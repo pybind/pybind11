@@ -12,10 +12,12 @@
 #include "numpy.h"
 
 #if defined(__INTEL_COMPILER)
-#  pragma warning(disable: 1682) // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
+#  pragma warning push
+#  pragma warning disable 1682 // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
 #elif defined(__GNUG__) || defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
+#  pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #  ifdef __clang__
 //   Eigen generates a bunch of implicit-copy-constructor-is-deprecated warnings with -Wdeprecated
@@ -25,9 +27,7 @@
 #  if __GNUC__ >= 7
 #    pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #  endif
-#endif
-
-#if defined(_MSC_VER)
+#elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #  pragma warning(disable: 4996) // warning C4996: std::unary_negate is deprecated in C++17
@@ -597,7 +597,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(__GNUG__) || defined(__clang__)
+#if defined(__INTEL_COMPILER)
+#  pragma warning pop
+#elif defined(__GNUG__) || defined(__clang__)
 #  pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
 #  pragma warning(pop)

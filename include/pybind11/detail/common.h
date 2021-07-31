@@ -734,9 +734,6 @@ using function_signature_t = conditional_t<
 template <typename T> using is_lambda = satisfies_none_of<remove_reference_t<T>,
         std::is_function, std::is_pointer, std::is_member_pointer>;
 
-/// Ignore that a variable is unused in compiler warnings
-inline void ignore_unused(const int *) { }
-
 // [workaround(intel)] Internal error on fold expression
 /// Apply a function over each element of a parameter pack
 #if defined(__cpp_fold_expressions) && !defined(__INTEL_COMPILER)
@@ -927,17 +924,24 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
 #endif
 }
 
-#if defined(_MSC_VER) && _MSC_VER <= 1916
-
-// warning C4100: Unreferenced formal parameter
+// For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
-inline constexpr void workaround_incorrect_msvc_c4100(Args &&...) {}
+inline constexpr void silence_unused_warnings(Args &&...) {}
 
+// MSVC warning C4100: Unreferenced formal parameter
+#if defined(_MSC_VER) && _MSC_VER <= 1916
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)                                         \
-        detail::workaround_incorrect_msvc_c4100(__VA_ARGS__)
-
+        detail::silence_unused_warnings(__VA_ARGS__)
 #else
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
+#endif
+
+// GCC -Wunused-but-set-parameter
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)                                         \
+        detail::silence_unused_warnings(__VA_ARGS__)
+#else
+#    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)
 #endif
 
 #if defined(_MSC_VER) // All versions (as of July 2021).

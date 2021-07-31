@@ -517,23 +517,26 @@ template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurs
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(r);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        ignore_unused(unused);
+        silence_unused_warnings(unused);
     }
     static void init(const Args&... args, type_record *r) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(r);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        ignore_unused(unused);
+        silence_unused_warnings(unused);
     }
     static void precall(function_call &call) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
-        ignore_unused(unused);
+        silence_unused_warnings(unused);
     }
     static void postcall(function_call &call, handle fn_ret) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call, fn_ret);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(fn_ret);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
-        ignore_unused(unused);
+        silence_unused_warnings(unused);
     }
 };
 
