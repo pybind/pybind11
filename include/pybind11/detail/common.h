@@ -926,12 +926,10 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
 
 // For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
-inline
-#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920  // MSVC 2017
+#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
-void silence_unused_warnings(Args &&...) {}
-// XXX XXX XXX inline void silence_unused_warnings(const int *) {}
+inline void silence_unused_warnings(Args &&...) {}
 
 // MSVC warning C4100: Unreferenced formal parameter
 #if defined(_MSC_VER) && _MSC_VER <= 1916
@@ -943,10 +941,17 @@ void silence_unused_warnings(Args &&...) {}
 
 // GCC -Wunused-but-set-parameter
 #if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)                                         \
+#    define PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(...)                   \
         detail::silence_unused_warnings(__VA_ARGS__)
+#    if defined(__GNUC__) && __GNUC__ <= 7
+#        define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)               \
+            detail::silence_unused_warnings(__VA_ARGS__)
+#    else
+#        define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)
+#    endif
 #else
-#    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)
+#    define PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(...)
+#    define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)
 #endif
 
 #if defined(_MSC_VER) // All versions (as of July 2021).
