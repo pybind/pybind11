@@ -926,7 +926,11 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
 
 // For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
+#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920  // MSVC 2017
+inline constexpr void silence_unused_warnings(Args &&...) {}
+#else
 inline void silence_unused_warnings(Args &&...) {}
+#endif
 inline void silence_unused_warnings(const int *) {}
 
 // MSVC warning C4100: Unreferenced formal parameter
