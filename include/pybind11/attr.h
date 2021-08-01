@@ -529,8 +529,9 @@ template <typename... Args> struct process_attributes {
     }
     static void precall(function_call &call) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
-        silence_unused_warnings(unused);
+        // int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
+        // silence_unused_warnings(unused);
+        (int []) { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
     }
     static void postcall(function_call &call, handle fn_ret) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call, fn_ret);
