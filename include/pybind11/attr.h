@@ -518,26 +518,26 @@ template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
         PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(r);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        silence_unused_warnings(unused);
+        PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(
+            {0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...});
     }
     static void init(const Args&... args, type_record *r) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
         PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(r);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        silence_unused_warnings(unused);
+        PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(
+            {0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...});
     }
     static void precall(function_call &call) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call);
-        // int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
-        // silence_unused_warnings(unused);
-        (int []) { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
+        PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(
+            {0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0)...});
     }
     static void postcall(function_call &call, handle fn_ret) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call, fn_ret);
         PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(fn_ret);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
-        silence_unused_warnings(unused);
+        PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(
+            {0,
+             (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0)...});
     }
 };
 
