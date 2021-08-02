@@ -25,6 +25,11 @@
 #include <utility>
 #include <vector>
 
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -483,20 +488,8 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 // Forward declarations
-inline PyObject *make_new_instance(PyTypeObject *type);
-
-#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
-#  define PYBIND11_PRAGMA_NOINLINE_FWD
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 PYBIND11_NOINLINE_FWD void keep_alive_impl(handle nurse, handle patient);
-
-#if defined(PYBIND11_PRAGMA_NOINLINE_FWD)
-#  pragma GCC diagnostic pop
-#  undef PYBIND11_PRAGMA_NOINLINE_FWD
-#endif
+inline PyObject *make_new_instance(PyTypeObject *type);
 
 class type_caster_generic {
 public:
@@ -961,3 +954,7 @@ protected:
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic pop
+#endif

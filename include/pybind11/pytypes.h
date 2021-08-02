@@ -14,6 +14,11 @@
 #include <utility>
 #include <type_traits>
 
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
@@ -25,20 +30,8 @@ struct arg; struct arg_v;
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 class args_proxy;
-
-#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
-#  define PYBIND11_PRAGMA_NOINLINE_FWD
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 PYBIND11_NOINLINE_FWD bool isinstance_generic(handle obj, const std::type_info &tp);
 PYBIND11_NOINLINE_FWD std::string error_string();
-
-#if defined(PYBIND11_PRAGMA_NOINLINE_FWD)
-#  pragma GCC diagnostic pop
-#  undef PYBIND11_PRAGMA_NOINLINE_FWD
-#endif
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
@@ -1773,3 +1766,7 @@ PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic pop
+#endif

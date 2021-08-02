@@ -110,6 +110,13 @@
 #  define PYBIND11_NOINLINE_FWD
 #endif
 
+#if !defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED) && \
+    !defined(PYBIND11_NOINLINE_DISABLED) && \
+    (defined(__CUDACC__) || \
+     (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
+#  define PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED
+#endif
+
 #if defined(__MINGW32__)
 // For unknown reasons all PYBIND11_DEPRECATED member trigger a warning when declared
 // whether it is used or not
@@ -378,6 +385,11 @@ extern "C" {
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
+
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -965,3 +977,7 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic pop
+#endif
