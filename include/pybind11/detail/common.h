@@ -100,9 +100,9 @@
 #endif
 
 #if defined(_MSC_VER)
-#  define PYBIND11_NOINLINE __declspec(noinline)
+#  define PYBIND11_NOINLINE __declspec(noinline) inline
 #else
-#  define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  define PYBIND11_NOINLINE __attribute__ ((noinline)) inline
 #endif
 
 #if defined(__MINGW32__)
@@ -778,8 +778,8 @@ PYBIND11_RUNTIME_EXCEPTION(import_error, PyExc_ImportError)
 PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 

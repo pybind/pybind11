@@ -10,11 +10,6 @@
 
 #pragma once
 
-#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
@@ -1874,8 +1869,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-
-inline void keep_alive_impl(handle nurse, handle patient) {
+PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
@@ -1902,7 +1896,7 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     }
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;
@@ -2152,7 +2146,7 @@ exception<CppException> &register_local_exception(handle scope,
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE inline void print(const tuple &args, const dict &kwargs) {
+PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
@@ -2382,8 +2376,4 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(__GNUC__) && __GNUC__ == 7
 #    pragma GCC diagnostic pop // -Wnoexcept-type
-#endif
-
-#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma GCC diagnostic pop
 #endif

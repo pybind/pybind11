@@ -81,7 +81,7 @@ public:
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type);
 
 // Populates a just-created cache entry.
-PYBIND11_NOINLINE inline void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases))
         check.push_back((PyTypeObject *) parent.ptr());
@@ -150,7 +150,7 @@ inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type)
  * ancestors are pybind11-registered.  Throws an exception if there are multiple bases--use
  * `all_type_info` instead if you want to support multiple bases.
  */
-PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
+PYBIND11_NOINLINE detail::type_info* get_type_info(PyTypeObject *type) {
     auto &bases = all_type_info(type);
     if (bases.empty())
         return nullptr;
@@ -176,7 +176,7 @@ inline detail::type_info *get_global_type_info(const std::type_index &tp) {
 }
 
 /// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
-PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_index &tp,
+PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_index &tp,
                                                           bool throw_if_missing = false) {
     if (auto ltype = get_local_type_info(tp))
         return ltype;
@@ -191,13 +191,13 @@ PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_index 
     return nullptr;
 }
 
-PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
+PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
     detail::type_info *type_info = get_type_info(tp, throw_if_missing);
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
 }
 
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
-PYBIND11_NOINLINE inline handle find_registered_python_instance(void *src,
+PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
                                                                 const detail::type_info *tinfo) {
     auto it_instances = get_internals().registered_instances.equal_range(src);
     for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
@@ -325,7 +325,7 @@ public:
  * The returned object should be short-lived: in particular, it must not outlive the called-upon
  * instance.
  */
-PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/, bool throw_if_missing /*= true in common.h*/) {
+PYBIND11_NOINLINE value_and_holder instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/, bool throw_if_missing /*= true in common.h*/) {
     // Optimize common case:
     if (!find_type || Py_TYPE(this) == find_type->type)
         return value_and_holder(this, find_type, 0, 0);
@@ -349,7 +349,7 @@ PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const t
 #endif
 }
 
-PYBIND11_NOINLINE inline void instance::allocate_layout() {
+PYBIND11_NOINLINE void instance::allocate_layout() {
     auto &tinfo = all_type_info(Py_TYPE(this));
 
     const size_t n_types = tinfo.size();
@@ -397,19 +397,19 @@ PYBIND11_NOINLINE inline void instance::allocate_layout() {
     owned = true;
 }
 
-PYBIND11_NOINLINE inline void instance::deallocate_layout() const {
+PYBIND11_NOINLINE void instance::deallocate_layout() const {
     if (!simple_layout)
         PyMem_Free(nonsimple.values_and_holders);
 }
 
-PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_info &tp) {
+PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
     handle type = detail::get_type_handle(tp, false);
     if (!type)
         return false;
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE inline std::string error_string() {
+PYBIND11_NOINLINE std::string error_string() {
     if (!PyErr_Occurred()) {
         PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
         return "Unknown internal error occurred";
@@ -456,7 +456,7 @@ PYBIND11_NOINLINE inline std::string error_string() {
     return errorString;
 }
 
-PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail::type_info *type ) {
+PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_info *type ) {
     auto &instances = get_internals().registered_instances;
     auto range = instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
@@ -483,7 +483,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 // Forward declarations
-inline void keep_alive_impl(handle nurse, handle patient);
+void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
 class type_caster_generic {
