@@ -100,8 +100,8 @@
 #endif
 
 #if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
-#  define PYBIND11_NOINLINE_DCL inline
-#  define PYBIND11_NOINLINE_FWD inline
+#  define PYBIND11_NOINLINE_DCL __attribute__ ((noinline)) inline
+#  define PYBIND11_NOINLINE_FWD __attribute__ ((noinline)) inline
 #elif defined(_MSC_VER)
 #  define PYBIND11_NOINLINE_DCL __declspec(noinline) inline
 #  define PYBIND11_NOINLINE_FWD
