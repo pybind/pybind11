@@ -12,6 +12,11 @@
 
 #include "cast.h"
 
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// \addtogroup annotations
@@ -124,19 +129,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-
-#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
-#  define PYBIND11_PRAGMA_NOINLINE_FWD
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 PYBIND11_NOINLINE_FWD void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
-
-#if defined(PYBIND11_PRAGMA_NOINLINE_FWD)
-#  pragma GCC diagnostic pop
-#  undef PYBIND11_PRAGMA_NOINLINE_FWD
-#endif
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -574,3 +567,7 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
+#  pragma GCC diagnostic pop
+#endif
