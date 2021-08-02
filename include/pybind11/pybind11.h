@@ -141,7 +141,7 @@ protected:
     using unique_function_record = std::unique_ptr<detail::function_record, InitializingFunctionRecordDeleter>;
 
     /// Space optimization: don't inline this frequently instantiated fragment
-    PYBIND11_NOINLINE unique_function_record make_function_record() {
+    PYBIND11_NOINLINE_DCL unique_function_record make_function_record() {
         return unique_function_record(new detail::function_record());
     }
 
@@ -1051,7 +1051,7 @@ public:
         ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11 has
         established will, in most cases, break things.
     \endrst */
-    PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
+    PYBIND11_NOINLINE_DCL void add_object(const char *name, handle obj, bool overwrite = false) {
         if (!overwrite && hasattr(*this, name))
             pybind11_fail("Error during initialization: multiple incompatible definitions with name \"" +
                     std::string(name) + "\"");
@@ -1666,7 +1666,7 @@ inline str enum_name(handle arg) {
 struct enum_base {
     enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
 
-    PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
+    PYBIND11_NOINLINE_DCL void init(bool is_arithmetic, bool is_convertible) {
         m_base.attr("__entries") = dict();
         auto property = handle((PyObject *) &PyProperty_Type);
         auto static_property = handle((PyObject *) get_internals().static_property_type);
@@ -1792,7 +1792,7 @@ struct enum_base {
             [](const object &arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
     }
 
-    PYBIND11_NOINLINE void value(char const* name_, object value, const char *doc = nullptr) {
+    PYBIND11_NOINLINE_DCL void value(char const* name_, object value, const char *doc = nullptr) {
         dict entries = m_base.attr("__entries");
         str name(name_);
         if (entries.contains(name)) {
@@ -1804,7 +1804,7 @@ struct enum_base {
         m_base.attr(name) = value;
     }
 
-    PYBIND11_NOINLINE void export_values() {
+    PYBIND11_NOINLINE_DCL void export_values() {
         dict entries = m_base.attr("__entries");
         for (auto kv : entries)
             m_parent.attr(kv.first) = kv.second[int_(0)];
@@ -1869,7 +1869,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
+PYBIND11_NOINLINE_DCL void keep_alive_impl(handle nurse, handle patient) {
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
@@ -1896,7 +1896,7 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
     }
 }
 
-PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+PYBIND11_NOINLINE_DCL void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;
@@ -2146,7 +2146,7 @@ exception<CppException> &register_local_exception(handle scope,
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
+PYBIND11_NOINLINE_DCL void print(const tuple &args, const dict &kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
