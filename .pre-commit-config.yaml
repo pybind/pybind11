@@ -31,7 +31,7 @@ repos:
     exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.23.0
+  rev: v2.23.1
   hooks:
   - id: pyupgrade
 
