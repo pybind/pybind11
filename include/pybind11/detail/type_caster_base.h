@@ -483,8 +483,20 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 // Forward declarations
-PYBIND11_NOINLINE_FWD void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
+
+#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
+#  define PYBIND11_PRAGMA_NOINLINE_FWD
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
+PYBIND11_NOINLINE_FWD void keep_alive_impl(handle nurse, handle patient);
+
+#if defined(PYBIND11_PRAGMA_NOINLINE_FWD)
+#  pragma GCC diagnostic pop
+#  undef PYBIND11_PRAGMA_NOINLINE_FWD
+#endif
 
 class type_caster_generic {
 public:

@@ -124,7 +124,19 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
+
+#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
+#  define PYBIND11_PRAGMA_NOINLINE_FWD
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 PYBIND11_NOINLINE_FWD void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+
+#if defined(PYBIND11_PRAGMA_NOINLINE_FWD)
+#  pragma GCC diagnostic pop
+#  undef PYBIND11_PRAGMA_NOINLINE_FWD
+#endif
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {

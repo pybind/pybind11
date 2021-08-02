@@ -23,8 +23,22 @@ class type;
 struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 class args_proxy;
+
+#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
+#  define PYBIND11_PRAGMA_NOINLINE_FWD
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 PYBIND11_NOINLINE_FWD bool isinstance_generic(handle obj, const std::type_info &tp);
+PYBIND11_NOINLINE_FWD std::string error_string();
+
+#if defined(PYBIND11_PRAGMA_NOINLINE_FWD)
+#  pragma GCC diagnostic pop
+#  undef PYBIND11_PRAGMA_NOINLINE_FWD
+#endif
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
@@ -314,10 +328,6 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
         py::str s = reinterpret_steal<py::str>(p); // <-- `p` must be already be a `str`
 \endrst */
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_t{}}; }
-
-PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE_FWD std::string error_string();
-PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
