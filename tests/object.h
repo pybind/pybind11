@@ -112,7 +112,7 @@ public:
     ref& operator=(const ref& r) {
         print_copy_assigned(this, "pointer", r.m_ptr); track_copy_assigned((ref_tag*) this);
 
-        if (m_ptr == r.m_ptr)
+        if (this == r || m_ptr == r.m_ptr)
             return *this;
         if (m_ptr)
             ((Object *) m_ptr)->decRef();
