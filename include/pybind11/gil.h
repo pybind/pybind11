@@ -49,7 +49,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 class gil_scoped_acquire {
 public:
-    PYBIND11_NOINLINE gil_scoped_acquire() {
+    PYBIND11_NOINLINE_DCL gil_scoped_acquire() {
         auto const &internals = detail::get_internals();
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
@@ -85,7 +85,7 @@ public:
         ++tstate->gilstate_counter;
     }
 
-    PYBIND11_NOINLINE void dec_ref() {
+    PYBIND11_NOINLINE_DCL void dec_ref() {
         --tstate->gilstate_counter;
         #if !defined(NDEBUG)
             if (detail::get_thread_state_unchecked() != tstate)
@@ -111,11 +111,11 @@ public:
     /// could be shutting down when this is called, as thread deletion is not
     /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
     /// protect subsequent code.
-    PYBIND11_NOINLINE void disarm() {
+    PYBIND11_NOINLINE_DCL void disarm() {
         active = false;
     }
 
-    PYBIND11_NOINLINE ~gil_scoped_acquire() {
+    PYBIND11_NOINLINE_DCL ~gil_scoped_acquire() {
         dec_ref();
         if (release)
            PyEval_SaveThread();
@@ -145,7 +145,7 @@ public:
     /// could be shutting down when this is called, as thread deletion is not
     /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
     /// protect subsequent code.
-    PYBIND11_NOINLINE void disarm() {
+    PYBIND11_NOINLINE_DCL void disarm() {
         active = false;
     }
 
