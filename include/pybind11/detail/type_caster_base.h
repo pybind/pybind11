@@ -38,6 +38,7 @@ public:
     }
 
     /// ... and destroyed after it returns
+    // NOLINTNEXTLINE(bugprone-exception-escape) See issue #2215
     ~loader_life_support() {
         auto &stack = get_internals().loader_patient_stack;
         if (stack.empty())
