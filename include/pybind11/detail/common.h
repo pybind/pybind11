@@ -99,6 +99,9 @@
 #if defined(PYBIND11_NOINLINE_DISABLED)
 #  define PYBIND11_NOINLINE_DCL inline
 #  define PYBIND11_NOINLINE_FWD inline
+#elif defined(__INTEL_COMPILER)
+#  define PYBIND11_NOINLINE_DCL __attribute__ ((noinline)) inline
+#  define PYBIND11_NOINLINE_FWD __attribute__ ((noinline)) inline
 #elif defined(_MSC_VER)
 #  define PYBIND11_NOINLINE_DCL __declspec(noinline) inline
 #  define PYBIND11_NOINLINE_FWD
