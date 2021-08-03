@@ -129,7 +129,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-PYBIND11_NOINLINE_FWD void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -225,7 +225,7 @@ struct function_record {
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
-    PYBIND11_NOINLINE_DCL type_record()
+    PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
           default_holder(true), module_local(false), is_final(false) { }
 
@@ -283,7 +283,7 @@ struct type_record {
     /// Is the class inheritable from python classes?
     bool is_final : 1;
 
-    PYBIND11_NOINLINE_DCL void add_base(const std::type_info &base, void *(*caster)(void *)) {
+    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(base, false);
         if (!base_info) {
             std::string tname(base.name());
