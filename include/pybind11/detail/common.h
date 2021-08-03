@@ -103,7 +103,6 @@
 // PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
 // When defining PYBIND11_NOINLINE_FORCED, it is best to also use
 // `-Wno-attributes` (or not to use `-Werror` and ignore the warnings).
-#define PYBIND11_NOINLINE_FORCED
 #if !defined(PYBIND11_NOINLINE_FORCED) && \
     (defined(__CUDACC__) || \
      (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
