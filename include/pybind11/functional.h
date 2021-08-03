@@ -74,7 +74,7 @@ public:
             func_handle &operator=(const func_handle &f_) {
                 gil_scoped_acquire acq;
                 f = f_.f;
-                return &this;
+                return *this;
             }
             ~func_handle() {
                 gil_scoped_acquire acq;
