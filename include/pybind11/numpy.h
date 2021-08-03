@@ -1551,6 +1551,9 @@ private:
             "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
 
 public:
+    vectorize_helper(const vectorize_helper &f) = delete;
+    vectorize_helper(vectorize_helper &&f) = delete;
+
     // NOLINTNEXTLINE(bugprone-forwarding-reference-overload) //TODO FIX BEFORE MERGE
     template <typename T>
     explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
