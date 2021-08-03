@@ -16,7 +16,7 @@ v2.8.0 (WIP)
   translator)`` to keep your exception remapping code local to the module.
   `#2650 <https://github.com/pybind/pybind11/pull/2650>`_
 
-v2.7.1 (Jul 30, 2021)
+v2.7.1 (Aug 3, 2021)
 ---------------------
 
 Minor missing functionality added:
