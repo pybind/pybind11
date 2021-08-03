@@ -56,6 +56,9 @@
 #  elif __INTEL_COMPILER < 1900 && defined(PYBIND11_CPP14)
 #    error pybind11 supports only C++11 with Intel C++ compiler v18. Use v19 or newer for C++14.
 #  endif
+/* The following pragma cannot be pop'ed:
+   https://community.intel.com/t5/Intel-C-Compiler/Inline-and-no-inline-warning/td-p/1216764 */
+#  pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__clang__) && !defined(__apple_build_version__)
 #  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
 #    error pybind11 requires clang 3.3 or newer
@@ -96,6 +99,17 @@
 #  endif
 #endif
 
+// For CUDA, GCC7, GCC8 (and maybe some other platforms):
+// PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
+// When defining PYBIND11_NOINLINE_FORCED, it is best to also use
+// `-Wno-attributes` (or not to use `-Werror` and ignore the warnings).
+#define PYBIND11_NOINLINE_FORCED
+#if !defined(PYBIND11_NOINLINE_FORCED) && \
+    (defined(__CUDACC__) || \
+     (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
+#  define PYBIND11_NOINLINE_DISABLED
+#endif
+
 #if defined(PYBIND11_NOINLINE_DISABLED)
 #  define PYBIND11_NOINLINE_DCL inline
 #  define PYBIND11_NOINLINE_FWD inline
@@ -110,6 +124,11 @@
 #  define PYBIND11_NOINLINE_FWD
 #endif
 
+// DECISION TO BE MADE before this PR is merged:
+// ----------------------------------------------------------------------------
+// This code and the 9 x 2 pragma blocks referring to
+// PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED could be purged.
+// ----------------------------------------------------------------------------
 #if !defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED) && \
     !defined(PYBIND11_NOINLINE_DISABLED) && \
     (defined(__CUDACC__) || \
