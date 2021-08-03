@@ -189,6 +189,7 @@ public:
     scoped_interpreter &operator=(const scoped_interpreter &) = delete;
     scoped_interpreter &operator=(scoped_interpreter &&) = delete;
 
+    // NOLINTNEXTLINE(bugprone-exception-escape)
     ~scoped_interpreter() {
         if (is_valid)
             finalize_interpreter();
