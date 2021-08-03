@@ -1551,9 +1551,7 @@ private:
             "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
 
 public:
-    vectorize_helper(const vectorize_helper &f) = delete;
-    vectorize_helper(vectorize_helper &&f) = delete;
-
+    //TODO FIX with enable_if magic
     template <typename T>
     explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
 
