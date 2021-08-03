@@ -1551,7 +1551,6 @@ private:
             "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
 
 public:
-    //TODO FIX with enable_if magic
     template <typename T,
               typename = detail::enable_if_t<
                   !std::is_same<vectorize_helper, typename std::decay<T>::type>::value>>
