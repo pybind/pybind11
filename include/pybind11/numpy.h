@@ -109,7 +109,7 @@ struct numpy_internals {
     }
 };
 
-PYBIND11_NOINLINE_DCL void load_numpy_internals(numpy_internals* &ptr) {
+PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr) {
     ptr = &get_or_create_shared_data<numpy_internals>("_numpy_internals");
 }
 
@@ -1115,7 +1115,7 @@ struct field_descriptor {
     dtype descr;
 };
 
-PYBIND11_NOINLINE_DCL void register_structured_dtype(
+PYBIND11_NOINLINE void register_structured_dtype(
     any_container<field_descriptor> fields,
     const std::type_info& tinfo, ssize_t itemsize,
     bool (*direct_converter)(PyObject *, void *&)) {

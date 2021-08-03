@@ -109,15 +109,14 @@
 #  define PYBIND11_NOINLINE_DISABLED
 #endif
 
+// Note: Forward declaration should never be `inline`:
+// https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
 #if defined(PYBIND11_NOINLINE_DISABLED)
-#  define PYBIND11_NOINLINE_DCL inline
-#  define PYBIND11_NOINLINE_FWD inline
+#  define PYBIND11_NOINLINE inline
 #elif defined(_MSC_VER)
-#  define PYBIND11_NOINLINE_DCL __declspec(noinline) inline
-#  define PYBIND11_NOINLINE_FWD
+#  define PYBIND11_NOINLINE __declspec(noinline) inline
 #else
-#  define PYBIND11_NOINLINE_DCL __attribute__ ((noinline)) inline
-#  define PYBIND11_NOINLINE_FWD
+#  define PYBIND11_NOINLINE __attribute__ ((noinline)) inline
 #endif
 
 // DECISION TO BE MADE before this PR is merged:
@@ -810,8 +809,8 @@ PYBIND11_RUNTIME_EXCEPTION(import_error, PyExc_ImportError)
 PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE_DCL void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
-[[noreturn]] PYBIND11_NOINLINE_DCL void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 

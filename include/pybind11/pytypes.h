@@ -30,8 +30,8 @@ struct arg; struct arg_v;
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 class args_proxy;
-PYBIND11_NOINLINE_FWD bool isinstance_generic(handle obj, const std::type_info &tp);
-PYBIND11_NOINLINE_FWD std::string error_string();
+bool isinstance_generic(handle obj, const std::type_info &tp);
+std::string error_string();
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
