@@ -1236,8 +1236,8 @@ public:
         // Tuples aren't (easily) resizable so a list is needed for collection,
         // but the actual function call strictly requires a tuple.
         auto args_list = list();
-        PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(
-            {0, (process(args_list, std::forward<Ts>(values)), 0)...});
+        using expander = int[];
+        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
 
         m_args = std::move(args_list);
     }

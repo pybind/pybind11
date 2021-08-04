@@ -954,17 +954,6 @@ inline void silence_unused_warnings(Args &&...) {}
 #    define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)
 #endif
 
-// MSVC error C4576: a parenthesized type followed by an initializer list is a
-//                   non-standard explicit type conversion syntax
-// clang: expression result unused [-Wunused-value]
-#if defined(_MSC_VER) || defined(__clang__) // All versions (as of July 2021).
-#    define PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(...)                              \
-        int dummy[] = __VA_ARGS__;                                                                \
-        detail::silence_unused_warnings(dummy)
-#else
-#    define PYBIND11_INT_ARRAY_WORKING_AROUND_MSVC_CLANG_ISSUES(...) (int[]) __VA_ARGS__
-#endif
-
 #if defined(_MSC_VER) // All versions (as of July 2021).
 
 // warning C4127: Conditional expression is constant
