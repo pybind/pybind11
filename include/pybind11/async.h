@@ -45,14 +45,12 @@ class Awaitable {
         };
 
         void next() {
-            // check future status (zero timeout)
+            // check if the future is resolved (with zero timeout)
             auto status = this->future.wait_for(std::chrono::milliseconds(0));
 
             if (status == std::future_status::ready) {
-                // future is ready -> raise StopInteration with the future result set
+                // job done -> throw
                 auto exception = StopIteration(this->future.get());
-                //exception.set_result(this->future.get());
-                //PyErr_SetObject(PyExc_StopIteration, this->future.get().ptr());
 
                 throw exception;
             }
@@ -163,7 +161,10 @@ class async_function : public cpp_function {
                     auto py_result = py::cast(Py_None);
                     return py_result;
                 };
-                auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
+                
+                auto bound_thread_func = [&args..., &thread_func]{
+                    return thread_func(args...);
+                };
 
                 auto future = std::async(std::launch::async, bound_thread_func);
                 auto awaitable = new Awaitable(future);
