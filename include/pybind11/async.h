@@ -17,11 +17,7 @@ PYBIND11_NAMESPACE_BEGIN(async)
 class StopIteration : public py::stop_iteration {
     public:
         StopIteration(py::object result) : stop_iteration("--"), result(result) {};
-        //using py::stop_iteration::stop_iteration;
-        /// Set the error using the Python C API
-        void set_result(py::object result) {
-            this->result = std::move(result);
-        }
+        
         void set_error() const override {
             PyErr_SetObject(PyExc_StopIteration, this->result.ptr());
         }
