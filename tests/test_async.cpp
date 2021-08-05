@@ -16,14 +16,14 @@
 
 namespace py = pybind11;
 using namespace py::literals;
-using namespace std::chrono_literals;
 
 class AsyncClass {
     public:
         unsigned int wait_async(const unsigned int n) {
             unsigned int i;
             for (i=0; i<n; i++) {
-                std::this_thread::sleep_for(100ms);
+                std::chrono::milliseconds duration(100);
+                std::this_thread::sleep_for(duration);
                 this->count++;
             }
 
