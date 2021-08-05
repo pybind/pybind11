@@ -102,9 +102,9 @@ public:                                                                         
         }                                                                                         \
         return cast(*src, policy, parent);                                                        \
     }                                                                                             \
-    operator type *() { return &value; }                                                          \
-    operator type &() { return value; }                                                           \
-    operator type &&() && { return std::move(value); }                                            \
+    operator type *() { return &value; }               /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &() { return value; }                /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
     template <typename T_>                                                                        \
     using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 

@@ -1726,7 +1726,7 @@ struct enum_base {
     m_base.attr(op) = cpp_function(                                                               \
         [](const object &a, const object &b) {                                                    \
             if (!type::handle_of(a).is(type::handle_of(b)))                                       \
-                strict_behavior;                                                                  \
+                strict_behavior; /* NOLINT(bugprone-macro-parentheses) */                         \
             return expr;                                                                          \
         },                                                                                        \
         name(op),                                                                                 \
