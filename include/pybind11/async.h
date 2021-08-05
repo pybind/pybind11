@@ -17,7 +17,7 @@ PYBIND11_NAMESPACE_BEGIN(async)
 
 class StopIteration : public py::stop_iteration {
     public:
-        StopIteration(py::object result) : stop_iteration("--"), result(result) {};
+        StopIteration(py::object result) : stop_iteration("--"), result(std::move(result)) {};
 
         void set_error() const override {
             PyErr_SetObject(PyExc_StopIteration, this->result.ptr());
@@ -31,7 +31,7 @@ class Awaitable {
     public:
         Awaitable() : future() {};
 
-        Awaitable(std::future<py::object>& _future) : future(std::move(_future)){};
+        Awaitable(std::future<py::object>& _future) : future(std::move(_future)) {};
 
         Awaitable* iter() {
             return this;
