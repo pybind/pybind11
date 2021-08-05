@@ -29,7 +29,7 @@ class AsyncClass {
 
             return this->count;
         }
-    
+
     private:
         unsigned int count;
 };
@@ -49,10 +49,10 @@ TEST_SUBMODULE(async_module, m) {
             return f.attr("__await__")();
         });
 
-    
+
     py::async::class_async<AsyncClass>(m, "AsyncClass")
         .def_async("wait_async", &AsyncClass::wait_async)
         .def(py::init());
-    
+
     py::async::enable_async(m);
 }
