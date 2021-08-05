@@ -3,6 +3,7 @@
 #include <memory>
 #include <future>
 #include <chrono>
+#include <functional>
 
 #include "pybind11/pybind11.h"
 
@@ -28,13 +29,9 @@ class StopIteration : public py::stop_iteration {
 
 class Awaitable {
     public:
-        Awaitable() {
-            this->future = std::future<py::object>();
-        };
+        Awaitable() : future() {};
 
-        Awaitable(std::future<py::object>& _future) {
-            this->future = std::move(_future);
-        };
+        Awaitable(std::future<py::object>& _future) : future(std::move(_future)){};
 
         Awaitable* iter() {
             return this;
@@ -134,7 +131,7 @@ class async_function : public cpp_function {
                     return py_result;
                 };
                 auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
-
+                
                 auto future = std::async(std::launch::async, bound_thread_func);
                 auto awaitable = new Awaitable(future);
 
@@ -161,10 +158,8 @@ class async_function : public cpp_function {
                     auto py_result = py::cast(Py_None);
                     return py_result;
                 };
-
-                auto bound_thread_func = [&args..., &thread_func]{
-                    return thread_func(args...);
-                };
+                
+                auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
 
                 auto future = std::async(std::launch::async, bound_thread_func);
                 auto awaitable = new Awaitable(future);
