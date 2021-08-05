@@ -30,7 +30,7 @@ class StopIteration : public py::stop_iteration {
 };
 
 
-class Awaitable : public std::enable_shared_from_this<Awaitable>{
+class Awaitable {
     public:
         Awaitable() {
             this->future = std::future<py::object>();
@@ -40,12 +40,12 @@ class Awaitable : public std::enable_shared_from_this<Awaitable>{
             this->future = std::move(_future);
         };
 
-        std::shared_ptr<Awaitable> iter() {
-            return this->shared_from_this();
+        Awaitable* iter() {
+            return this;
         };
 
-        std::shared_ptr<Awaitable> await() {
-            return this->shared_from_this();
+        Awaitable* await() {
+            return this;
         };
 
         void next() {
@@ -67,8 +67,8 @@ class Awaitable : public std::enable_shared_from_this<Awaitable>{
 };
 
 
-py::class_<Awaitable, std::shared_ptr<Awaitable>>enable_async(py::module m) {
-    return py::class_<Awaitable, std::shared_ptr<Awaitable>>(m, "Awaitable")
+py::class_<Awaitable> enable_async(py::module m) {
+    return py::class_<Awaitable>(m, "Awaitable")
         .def(py::init<>())
         .def("__iter__", &Awaitable::iter)
         .def("__await__", &Awaitable::await)
