@@ -161,7 +161,7 @@ class async_function : public cpp_function {
                     auto py_result = py::cast(Py_None);
                     return py_result;
                 };
-                
+
                 auto bound_thread_func = [&args..., &thread_func]{
                     return thread_func(args...);
                 };
