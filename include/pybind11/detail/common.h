@@ -943,15 +943,8 @@ inline void silence_unused_warnings(Args &&...) {}
 #if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #    define PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(...)                   \
         detail::silence_unused_warnings(__VA_ARGS__)
-#    if defined(__GNUC__) && __GNUC__ <= 5 // 4 is certain, 5 unknown, 6 is certain
-#        define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)               \
-            detail::silence_unused_warnings(__VA_ARGS__)
-#    else
-#        define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)
-#    endif
 #else
 #    define PYBIND11_WORKAROUND_INCORRECT_ALL_GCC_UNUSED_BUT_SET_PARAMETER(...)
-#    define PYBIND11_WORKAROUND_INCORRECT_OLD_GCC_UNUSED_BUT_SET_PARAMETER(...)
 #endif
 
 #if defined(_MSC_VER) // All versions (as of July 2021).
