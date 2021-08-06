@@ -1552,7 +1552,7 @@ private:
 
 public:
     template <typename T
-              // SFINAE to prevent shadowing the copy constructor.,
+              // SFINAE to prevent shadowing the copy constructor.
               typename = detail::enable_if_t<
                   !std::is_same<vectorize_helper, typename std::decay<T>::type>::value>>
     explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) {}
