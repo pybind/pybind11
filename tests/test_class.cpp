@@ -510,7 +510,7 @@ CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 // failures occurs).
 
 // We have to actually look into the type: the typedef alone isn't enough to instantiate the type:
-#define CHECK_BROKEN(N) static_assert(std::is_same<typename Breaks##N::type, BreaksBase<-N>>::value, \
+#define CHECK_BROKEN(N) static_assert(std::is_same<typename Breaks##N::type, BreaksBase<-(N)>>::value, \
         "Breaks1 has wrong type!");
 
 //// Two holder classes:
