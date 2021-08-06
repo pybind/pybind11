@@ -939,7 +939,7 @@ inline void silence_unused_warnings(Args &&...) {}
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
 #endif
 
-// GCC -Wunused-but-set-parameter
+// GCC -Wunused-but-set-parameter  All GCC versions (as of July 2021).
 #if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)                   \
         detail::silence_unused_warnings(__VA_ARGS__)
