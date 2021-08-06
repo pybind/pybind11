@@ -182,6 +182,7 @@ struct SharedPtrRef {
 struct SharedFromThisRef {
     struct B : std::enable_shared_from_this<B> {
         B() { print_created(this); }
+        // NOLINTNEXTLINE(bugprone-copy-constructor-init)
         B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
         B(B &&) noexcept : std::enable_shared_from_this<B>() { print_move_created(this); }
         ~B() { print_destroyed(this); }

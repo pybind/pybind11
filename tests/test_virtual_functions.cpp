@@ -454,6 +454,7 @@ template <class Base = B_Tpl>
 class PyB_Tpl : public PyA_Tpl<Base> {
 public:
     using PyA_Tpl<Base>::PyA_Tpl; // Inherit constructors (via PyA_Tpl's inherited constructors)
+    // NOLINTNEXTLINE(bugprone-parent-virtual-call)
     int unlucky_number() override { PYBIND11_OVERRIDE(int, Base, unlucky_number, ); }
     double lucky_number() override { PYBIND11_OVERRIDE(double, Base, lucky_number, ); }
 };

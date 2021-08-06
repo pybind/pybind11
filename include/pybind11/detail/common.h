@@ -220,8 +220,8 @@
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
-#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) o)
-#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) o)
+#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
+#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
 #define PYBIND11_BYTES_NAME "bytes"
 #define PYBIND11_STRING_NAME "str"
 #define PYBIND11_SLICE_OBJECT PyObject
@@ -356,24 +356,23 @@ extern "C" {
             });
         }
 \endrst */
-#define PYBIND11_MODULE(name, variable)                                        \
-    static ::pybind11::module_::module_def                                     \
-        PYBIND11_CONCAT(pybind11_module_def_, name) PYBIND11_MAYBE_UNUSED;     \
-    PYBIND11_MAYBE_UNUSED                                                      \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);  \
-    PYBIND11_PLUGIN_IMPL(name) {                                               \
-        PYBIND11_CHECK_PYTHON_VERSION                                          \
-        PYBIND11_ENSURE_INTERNALS_READY                                        \
-        auto m = ::pybind11::module_::create_extension_module(                 \
-            PYBIND11_TOSTRING(name), nullptr,                                  \
-            &PYBIND11_CONCAT(pybind11_module_def_, name));                     \
-        try {                                                                  \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
-            return m.ptr();                                                    \
-        } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
-    }                                                                          \
-    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &variable)
-
+#define PYBIND11_MODULE(name, variable)                                                           \
+    static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
+        PYBIND11_MAYBE_UNUSED;                                                                    \
+    PYBIND11_MAYBE_UNUSED                                                                         \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
+    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
+        PYBIND11_CHECK_PYTHON_VERSION                                                             \
+        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        auto m = ::pybind11::module_::create_extension_module(                                    \
+            PYBIND11_TOSTRING(name), nullptr, &PYBIND11_CONCAT(pybind11_module_def_, name));      \
+        try {                                                                                     \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
+            return m.ptr();                                                                       \
+        }                                                                                         \
+        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    }                                                                                             \
+    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

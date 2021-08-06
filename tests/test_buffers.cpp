@@ -40,7 +40,11 @@ TEST_SUBMODULE(buffers, m) {
         }
 
         Matrix &operator=(const Matrix &s) {
-            print_copy_assigned(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
+            if (this == &s) {
+                return *this;
+            }
+            print_copy_assigned(this,
+                                std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
             delete[] m_data;
             m_rows = s.m_rows;
             m_cols = s.m_cols;
