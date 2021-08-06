@@ -927,18 +927,17 @@ protected:
     using Constructor = void *(*)(const void *);
 
     /* Only enabled when the types are {copy,move}-constructible *and* when the type
-       does not have a private operator new implementation. */
+       does not have a private operator new implementation. A comma operator is used in the decltype
+       argument to apply SFINAE to the public copy/move constructors.*/
     template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
-        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(x);
+    static auto make_copy_constructor(const T *) -> decltype(new T(std::declval<const T>()), Constructor{}) {
         return [](const void *arg) -> void * {
             return new T(*reinterpret_cast<const T *>(arg));
         };
     }
 
     template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
-        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(x);
+    static auto make_move_constructor(const T *) -> decltype(new T(std::declval<T&&>()), Constructor{}) {
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };
