@@ -14,6 +14,7 @@
 #include <pybind11/stl.h>
 
 #include <algorithm>
+#include <utility>
 
 template<typename T>
 class NonZeroIterator {
@@ -80,18 +81,17 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
       int start,stop,step;
       int size;
     };
-    py::class_<Sliceable>(m,"Sliceable")
+    py::class_<Sliceable>(m, "Sliceable")
         .def(py::init<int>())
-        .def("__getitem__",[](const Sliceable &s, py::slice slice) {
-          py::ssize_t start, stop, step, slicelength;
-          if (!slice.compute(s.size, &start, &stop, &step, &slicelength))
-              throw py::error_already_set();
-          int istart = static_cast<int>(start);
-          int istop =  static_cast<int>(stop);
-          int istep =  static_cast<int>(step);
-          return std::make_tuple(istart,istop,istep);
-        })
-        ;
+        .def("__getitem__", [](const Sliceable &s, const py::slice &slice) {
+            py::ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
+            if (!slice.compute(s.size, &start, &stop, &step, &slicelength))
+                throw py::error_already_set();
+            int istart = static_cast<int>(start);
+            int istop  = static_cast<int>(stop);
+            int istep  = static_cast<int>(step);
+            return std::make_tuple(istart, istop, istep);
+        });
 
     // test_sequence
     class Sequence {
@@ -111,7 +111,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
             m_data = new float[m_size];
             memcpy(m_data, s.m_data, sizeof(float)*m_size);
         }
-        Sequence(Sequence &&s) : m_size(s.m_size), m_data(s.m_data) {
+        Sequence(Sequence &&s) noexcept : m_size(s.m_size), m_data(s.m_data) {
             print_move_created(this);
             s.m_size = 0;
             s.m_data = nullptr;
@@ -130,7 +130,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
             return *this;
         }
 
-        Sequence &operator=(Sequence &&s) {
+        Sequence &operator=(Sequence &&s) noexcept {
             if (&s != this) {
                 delete[] m_data;
                 m_size = s.m_size;
@@ -179,43 +179,54 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     };
     py::class_<Sequence>(m, "Sequence")
         .def(py::init<size_t>())
-        .def(py::init<const std::vector<float>&>())
+        .def(py::init<const std::vector<float> &>())
         /// Bare bones interface
-        .def("__getitem__", [](const Sequence &s, size_t i) {
-            if (i >= s.size()) throw py::index_error();
-            return s[i];
-        })
-        .def("__setitem__", [](Sequence &s, size_t i, float v) {
-            if (i >= s.size()) throw py::index_error();
-            s[i] = v;
-        })
+        .def("__getitem__",
+             [](const Sequence &s, size_t i) {
+                 if (i >= s.size())
+                     throw py::index_error();
+                 return s[i];
+             })
+        .def("__setitem__",
+             [](Sequence &s, size_t i, float v) {
+                 if (i >= s.size())
+                     throw py::index_error();
+                 s[i] = v;
+             })
         .def("__len__", &Sequence::size)
         /// Optional sequence protocol operations
-        .def("__iter__", [](const Sequence &s) { return py::make_iterator(s.begin(), s.end()); },
-                         py::keep_alive<0, 1>() /* Essential: keep object alive while iterator exists */)
+        .def(
+            "__iter__",
+            [](const Sequence &s) { return py::make_iterator(s.begin(), s.end()); },
+            py::keep_alive<0, 1>() /* Essential: keep object alive while iterator exists */)
         .def("__contains__", [](const Sequence &s, float v) { return s.contains(v); })
         .def("__reversed__", [](const Sequence &s) -> Sequence { return s.reversed(); })
         /// Slicing protocol (optional)
-        .def("__getitem__", [](const Sequence &s, py::slice slice) -> Sequence* {
-            size_t start, stop, step, slicelength;
-            if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
-                throw py::error_already_set();
-            auto *seq = new Sequence(slicelength);
-            for (size_t i = 0; i < slicelength; ++i) {
-                (*seq)[i] = s[start]; start += step;
-            }
-            return seq;
-        })
-        .def("__setitem__", [](Sequence &s, py::slice slice, const Sequence &value) {
-            size_t start, stop, step, slicelength;
-            if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
-                throw py::error_already_set();
-            if (slicelength != value.size())
-                throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-            for (size_t i = 0; i < slicelength; ++i) {
-                s[start] = value[i]; start += step;
-            }
-        })
+        .def("__getitem__",
+             [](const Sequence &s, const py::slice &slice) -> Sequence * {
+                 size_t start = 0, stop = 0, step = 0, slicelength = 0;
+                 if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
+                     throw py::error_already_set();
+                 auto *seq = new Sequence(slicelength);
+                 for (size_t i = 0; i < slicelength; ++i) {
+                     (*seq)[i] = s[start];
+                     start += step;
+                 }
+                 return seq;
+             })
+        .def("__setitem__",
+             [](Sequence &s, const py::slice &slice, const Sequence &value) {
+                 size_t start = 0, stop = 0, step = 0, slicelength = 0;
+                 if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
+                     throw py::error_already_set();
+                 if (slicelength != value.size())
+                     throw std::runtime_error(
+                         "Left and right hand size of slice assignment have different sizes!");
+                 for (size_t i = 0; i < slicelength; ++i) {
+                     s[start] = value[i];
+                     start += step;
+                 }
+             })
         /// Comparisons
         .def(py::self == py::self)
         .def(py::self != py::self)
@@ -231,8 +242,8 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         StringMap(std::unordered_map<std::string, std::string> init)
             : map(std::move(init)) {}
 
-        void set(std::string key, std::string val) { map[key] = val; }
-        std::string get(std::string key) const { return map.at(key); }
+        void set(const std::string &key, std::string val) { map[key] = std::move(val); }
+        std::string get(const std::string &key) const { return map.at(key); }
         size_t size() const { return map.size(); }
     private:
         std::unordered_map<std::string, std::string> map;
@@ -243,19 +254,24 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     py::class_<StringMap>(m, "StringMap")
         .def(py::init<>())
         .def(py::init<std::unordered_map<std::string, std::string>>())
-        .def("__getitem__", [](const StringMap &map, std::string key) {
-                try { return map.get(key); }
-                catch (const std::out_of_range&) {
-                    throw py::key_error("key '" + key + "' does not exist");
-                }
-        })
+        .def("__getitem__",
+             [](const StringMap &map, const std::string &key) {
+                 try {
+                     return map.get(key);
+                 } catch (const std::out_of_range &) {
+                     throw py::key_error("key '" + key + "' does not exist");
+                 }
+             })
         .def("__setitem__", &StringMap::set)
         .def("__len__", &StringMap::size)
-        .def("__iter__", [](const StringMap &map) { return py::make_key_iterator(map.begin(), map.end()); },
-                py::keep_alive<0, 1>())
-        .def("items", [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
-                py::keep_alive<0, 1>())
-        ;
+        .def(
+            "__iter__",
+            [](const StringMap &map) { return py::make_key_iterator(map.begin(), map.end()); },
+            py::keep_alive<0, 1>())
+        .def(
+            "items",
+            [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
+            py::keep_alive<0, 1>());
 
     // test_generalized_iterators
     class IntPairs {
@@ -304,7 +320,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
 #endif
 
     // test_python_iterator_in_cpp
-    m.def("object_to_list", [](py::object o) {
+    m.def("object_to_list", [](const py::object &o) {
         auto l = py::list();
         for (auto item : o) {
             l.append(item);
@@ -322,22 +338,22 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     });
 
     // test_sequence_length: check that Python sequences can be converted to py::sequence.
-    m.def("sequence_length", [](py::sequence seq) { return seq.size(); });
+    m.def("sequence_length", [](const py::sequence &seq) { return seq.size(); });
 
     // Make sure that py::iterator works with std algorithms
-    m.def("count_none", [](py::object o) {
+    m.def("count_none", [](const py::object &o) {
         return std::count_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
     });
 
-    m.def("find_none", [](py::object o) {
+    m.def("find_none", [](const py::object &o) {
         auto it = std::find_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
         return it->is_none();
     });
 
-    m.def("count_nonzeros", [](py::dict d) {
-       return std::count_if(d.begin(), d.end(), [](std::pair<py::handle, py::handle> p) {
-           return p.second.cast<int>() != 0;
-       });
+    m.def("count_nonzeros", [](const py::dict &d) {
+        return std::count_if(d.begin(), d.end(), [](std::pair<py::handle, py::handle> p) {
+            return p.second.cast<int>() != 0;
+        });
     });
 
     m.def("tuple_iterator", &test_random_access_iterator<py::tuple>);

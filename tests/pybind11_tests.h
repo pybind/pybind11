@@ -1,9 +1,15 @@
 #pragma once
+
+// This must be kept first for MSVC 2015.
+// Do not remove the empty line between the #includes.
 #include <pybind11/pybind11.h>
+
+#include <pybind11/eval.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1910
 // We get some really long type names here which causes MSVC 2015 to emit warnings
-#  pragma warning(disable: 4503) // warning C4503: decorated name length exceeded, name was truncated
+#    pragma warning(                                                                              \
+        disable : 4503) // warning C4503: decorated name length exceeded, name was truncated
 #endif
 
 namespace py = pybind11;
@@ -17,11 +23,10 @@ public:
     test_initializer(const char *submodule_name, Initializer init);
 };
 
-#define TEST_SUBMODULE(name, variable)                   \
-    void test_submodule_##name(py::module_ &);            \
-    test_initializer name(#name, test_submodule_##name); \
-    void test_submodule_##name(py::module_ &variable)
-
+#define TEST_SUBMODULE(name, variable)                                                            \
+    void test_submodule_##name(py::module_ &);                                                    \
+    test_initializer name(#name, test_submodule_##name);                                          \
+    void test_submodule_##name(py::module_ &(variable))
 
 /// Dummy type which is not exported anywhere -- something to trigger a conversion error
 struct UnregisteredType { };
@@ -69,3 +74,15 @@ public:
 };
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
+
+template <typename F>
+void ignoreOldStyleInitWarnings(F &&body) {
+    py::exec(R"(
+    message = "pybind11-bound class '.+' is using an old-style placement-new '(?:__init__|__setstate__)' which has been deprecated"
+
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=message, category=FutureWarning)
+        body()
+    )", py::dict(py::arg("body") = py::cpp_function(body)));
+}

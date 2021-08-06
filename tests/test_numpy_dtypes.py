@@ -169,6 +169,9 @@ def test_dtype(simple_dtype):
         np.zeros(1, m.trailing_padding_dtype())
     )
 
+    assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmO")
+    assert m.test_dtype_char_() == list("bhilqBHILQefdgFDG?MmO")
+
 
 def test_recarray(simple_dtype, packed_dtype):
     elements = [(False, 0, 0.0, -0.0), (True, 1, 1.5, -2.5), (False, 2, 3.0, -5.0)]

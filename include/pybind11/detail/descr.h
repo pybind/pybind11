@@ -23,9 +23,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /* Concatenate type signatures at compile time */
 template <size_t N, typename... Ts>
 struct descr {
-    char text[N + 1];
+    char text[N + 1]{'\0'};
 
-    constexpr descr() : text{'\0'} { }
+    constexpr descr() = default;
     constexpr descr(char const (&s)[N+1]) : descr(s, make_index_sequence<N>()) { }
 
     template <size_t... Is>
@@ -42,6 +42,7 @@ struct descr {
 template <size_t N1, size_t N2, typename... Ts1, typename... Ts2, size_t... Is1, size_t... Is2>
 constexpr descr<N1 + N2, Ts1..., Ts2...> plus_impl(const descr<N1, Ts1...> &a, const descr<N2, Ts2...> &b,
                                                    index_sequence<Is1...>, index_sequence<Is2...>) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(b);
     return {a.text[Is1]..., b.text[Is2]...};
 }
 

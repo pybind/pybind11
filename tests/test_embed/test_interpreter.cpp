@@ -8,16 +8,17 @@
 
 #include <catch.hpp>
 
-#include <thread>
 #include <fstream>
 #include <functional>
+#include <thread>
+#include <utility>
 
 namespace py = pybind11;
 using namespace py::literals;
 
 class Widget {
 public:
-    Widget(std::string message) : message(message) { }
+    Widget(std::string message) : message(std::move(message)) {}
     virtual ~Widget() = default;
 
     std::string the_message() const { return message; }
@@ -102,7 +103,7 @@ bool has_pybind11_internals_builtin() {
 
 bool has_pybind11_internals_static() {
     auto **&ipp = py::detail::get_internals_pp();
-    return ipp && *ipp;
+    return (ipp != nullptr) && (*ipp != nullptr);
 }
 
 TEST_CASE("Restart the interpreter") {

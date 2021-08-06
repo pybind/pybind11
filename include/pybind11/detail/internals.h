@@ -12,7 +12,11 @@
 #include "../pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+using ExceptionTranslator = void (*)(std::exception_ptr);
+
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -100,7 +104,7 @@ struct internals {
     std::unordered_set<std::pair<const PyObject *, const char *>, override_hash> inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
-    std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
+    std::forward_list<ExceptionTranslator> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     std::vector<PyObject *> loader_patient_stack; // Used by `loader_life_support`
     std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
@@ -112,7 +116,7 @@ struct internals {
     PyInterpreterState *istate = nullptr;
     ~internals() {
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
-        // That *SHOULD BE* fine. The following details what happens whe PyThread_tss_free is called.
+        // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is called.
         // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does nothing.
         // PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
         // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX). Neither
@@ -266,7 +270,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         const PyGILState_STATE state;
     } gil;
 
-    constexpr auto *id = PYBIND11_INTERNALS_ID;
+    PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_pp = static_cast<internals **>(capsule(builtins[id]));
@@ -276,6 +280,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         // initial exception translator, below, so add another for our local exception classes.
         //
         // libstdc++ doesn't require this (types there are identified only by name)
+        // libc++ with CPython doesn't require this (types are explicitly exported)
+        // libc++ with PyPy still need it, awaiting further investigation
 #if !defined(__GLIBCXX__)
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
@@ -291,7 +297,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         PyThreadState *tstate = PyThreadState_Get();
         #if PY_VERSION_HEX >= 0x03070000
             internals_ptr->tstate = PyThread_tss_alloc();
-            if (!internals_ptr->tstate || PyThread_tss_create(internals_ptr->tstate))
+            if (!internals_ptr->tstate || (PyThread_tss_create(internals_ptr->tstate) != 0))
                 pybind11_fail("get_internals: could not successfully initialize the TSS key!");
             PyThread_tss_set(internals_ptr->tstate, tstate);
         #else
@@ -311,11 +317,24 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     return **internals_pp;
 }
 
-/// Works like `internals.registered_types_cpp`, but for module-local registered types:
-inline type_map<type_info *> &registered_local_types_cpp() {
-    static type_map<type_info *> locals{};
-    return locals;
+
+// the internals struct (above) is shared between all the modules. local_internals are only
+// for a single module. Any changes made to internals may require an update to
+// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
+// restricted to a single module. Whether a module has local internals or not should not
+// impact any other modules, because the only things accessing the local internals is the
+// module that contains them.
+struct local_internals {
+  type_map<type_info *> registered_types_cpp;
+  std::forward_list<ExceptionTranslator> registered_exception_translators;
+};
+
+/// Works like `get_internals`, but for things which are locally registered.
+inline local_internals &get_local_internals() {
+  static local_internals locals;
+  return locals;
 }
+
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only

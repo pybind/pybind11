@@ -54,8 +54,7 @@ void reset_refs() {
 }
 
 // Returns element 2,1 from a matrix (used to test copy/nocopy)
-double get_elem(Eigen::Ref<const Eigen::MatrixXd> m) { return m(2, 1); };
-
+double get_elem(const Eigen::Ref<const Eigen::MatrixXd> &m) { return m(2, 1); };
 
 // Returns a matrix with 10*r + 100*c added to each matrix element (to help test that the matrix
 // reference is referencing rows/columns correctly).
@@ -94,15 +93,18 @@ TEST_SUBMODULE(eigen, m) {
     m.def("double_complex", [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
     m.def("double_threec", [](py::EigenDRef<Eigen::Vector3f> x) { x *= 2; });
     m.def("double_threer", [](py::EigenDRef<Eigen::RowVector3f> x) { x *= 2; });
-    m.def("double_mat_cm", [](Eigen::MatrixXf x) -> Eigen::MatrixXf { return 2.0f * x; });
-    m.def("double_mat_rm", [](DenseMatrixR x) -> DenseMatrixR { return 2.0f * x; });
+    m.def("double_mat_cm", [](const Eigen::MatrixXf &x) -> Eigen::MatrixXf { return 2.0f * x; });
+    m.def("double_mat_rm", [](const DenseMatrixR &x) -> DenseMatrixR { return 2.0f * x; });
 
     // test_eigen_ref_to_python
     // Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
-    m.def("cholesky1", [](Eigen::Ref<MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky1",
+          [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky2", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky3", [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
-    m.def("cholesky4", [](Eigen::Ref<const MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky4", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd {
+        return x.llt().matrixL();
+    });
 
     // test_eigen_ref_mutators
     // Mutators: these add some value to the given element using Eigen, but Eigen should be mapping into
@@ -247,16 +249,19 @@ TEST_SUBMODULE(eigen, m) {
     m.def("fixed_copy_r", [](const FixedMatrixR &m) -> FixedMatrixR { return m; });
     m.def("fixed_copy_c", [](const FixedMatrixC &m) -> FixedMatrixC { return m; });
     // test_mutator_descriptors
-    m.def("fixed_mutator_r", [](Eigen::Ref<FixedMatrixR>) {});
-    m.def("fixed_mutator_c", [](Eigen::Ref<FixedMatrixC>) {});
-    m.def("fixed_mutator_a", [](py::EigenDRef<FixedMatrixC>) {});
+    m.def("fixed_mutator_r", [](const Eigen::Ref<FixedMatrixR> &) {});
+    m.def("fixed_mutator_c", [](const Eigen::Ref<FixedMatrixC> &) {});
+    m.def("fixed_mutator_a", [](const py::EigenDRef<FixedMatrixC> &) {});
     // test_dense
     m.def("dense_r", [mat]() -> DenseMatrixR { return DenseMatrixR(mat); });
     m.def("dense_c", [mat]() -> DenseMatrixC { return DenseMatrixC(mat); });
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
     // test_sparse, test_sparse_signature
-    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); }); //NOLINT(clang-analyzer-core.uninitialized.UndefReturn)
+    m.def("sparse_r", [mat]() -> SparseMatrixR {
+        // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
+        return Eigen::SparseView<Eigen::MatrixXf>(mat);
+    });
     m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
@@ -273,39 +278,47 @@ TEST_SUBMODULE(eigen, m) {
     m.def("cpp_ref_r", [](py::handle m) { return m.cast<Eigen::Ref<MatrixXdR>>()(1, 0); });
     m.def("cpp_ref_any", [](py::handle m) { return m.cast<py::EigenDRef<Eigen::MatrixXd>>()(1, 0); });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // test_nocopy_wrapper
     // Test that we can prevent copying into an argument that would normally copy: First a version
     // that would allow copying (if types or strides don't match) for comparison:
     m.def("get_elem", &get_elem);
     // Now this alternative that calls the tells pybind to fail rather than copy:
-    m.def("get_elem_nocopy", [](Eigen::Ref<const Eigen::MatrixXd> m) -> double { return get_elem(m); },
-            py::arg().noconvert());
+    m.def(
+        "get_elem_nocopy",
+        [](const Eigen::Ref<const Eigen::MatrixXd> &m) -> double { return get_elem(m); },
+        py::arg{}.noconvert());
     // Also test a row-major-only no-copy const ref:
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
-            py::arg().noconvert());
+            py::arg{}.noconvert());
 
     // test_issue738
     // Issue #738: 1xN or Nx1 2D matrices were neither accepted nor properly copied with an
     // incompatible stride value on the length-1 dimension--but that should be allowed (without
     // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
-    m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
-    m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
+    m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg{}.noconvert());
+    m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg{}.noconvert());
 
     // test_issue1105
     // Issue #1105: when converting from a numpy two-dimensional (Nx1) or (1xN) value into a dense
-    // eigen Vector or RowVector, the argument would fail to load because the numpy copy would fail:
-    // numpy won't broadcast a Nx1 into a 1-dimensional vector.
-    m.def("iss1105_col", [](Eigen::VectorXd) { return true; });
-    m.def("iss1105_row", [](Eigen::RowVectorXd) { return true; });
+    // eigen Vector or RowVector, the argument would fail to load because the numpy copy would
+    // fail: numpy won't broadcast a Nx1 into a 1-dimensional vector.
+    m.def("iss1105_col", [](const Eigen::VectorXd &) { return true; });
+    m.def("iss1105_row", [](const Eigen::RowVectorXd &) { return true; });
 
     // test_named_arguments
     // Make sure named arguments are working properly:
-    m.def("matrix_multiply", [](const py::EigenDRef<const Eigen::MatrixXd> A, const py::EigenDRef<const Eigen::MatrixXd> B)
-            -> Eigen::MatrixXd {
-        if (A.cols() != B.rows()) throw std::domain_error("Nonconformable matrices!");
-        return A * B;
-    }, py::arg("A"), py::arg("B"));
+    m.def(
+        "matrix_multiply",
+        [](const py::EigenDRef<const Eigen::MatrixXd> &A,
+           const py::EigenDRef<const Eigen::MatrixXd> &B) -> Eigen::MatrixXd {
+            if (A.cols() != B.rows())
+                throw std::domain_error("Nonconformable matrices!");
+            return A * B;
+        },
+        py::arg("A"),
+        py::arg("B"));
 
     // test_custom_operator_new
     py::class_<CustomOperatorNew>(m, "CustomOperatorNew")
@@ -317,7 +330,7 @@ TEST_SUBMODULE(eigen, m) {
     // In case of a failure (the caster's temp array does not live long enough), creating
     // a new array (np.ones(10)) increases the chances that the temp array will be garbage
     // collected and/or that its memory will be overridden with different values.
-    m.def("get_elem_direct", [](Eigen::Ref<const Eigen::VectorXd> v) {
+    m.def("get_elem_direct", [](const Eigen::Ref<const Eigen::VectorXd> &v) {
         py::module_::import("numpy").attr("ones")(10);
         return v(5);
     });

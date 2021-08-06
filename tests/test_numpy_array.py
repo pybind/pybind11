@@ -482,6 +482,19 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
+@pytest.mark.parametrize(
+    "test_func",
+    [
+        m.test_fmt_desc_float,
+        m.test_fmt_desc_double,
+        m.test_fmt_desc_const_float,
+        m.test_fmt_desc_const_double,
+    ],
+)
+def test_format_descriptors_for_floating_point_types(test_func):
+    assert "numpy.ndarray[numpy.float" in test_func.__doc__
+
+
 @pytest.mark.parametrize("forcecast", [False, True])
 @pytest.mark.parametrize("contiguity", [None, "C", "F"])
 @pytest.mark.parametrize("noconvert", [False, True])

@@ -65,7 +65,7 @@ def test_set(capture, doc):
     """
     )
 
-    assert not m.set_contains(set([]), 42)
+    assert not m.set_contains(set(), 42)
     assert m.set_contains({42}, 42)
     assert m.set_contains({"foo"}, "foo")
 
@@ -120,15 +120,26 @@ def test_str(doc):
     assert s1 == s2
 
     malformed_utf8 = b"\x80"
-    assert m.str_from_object(malformed_utf8) is malformed_utf8  # To be fixed; see #2380
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+        assert m.str_from_object(malformed_utf8) is malformed_utf8
+    elif env.PY2:
+        with pytest.raises(UnicodeDecodeError):
+            m.str_from_object(malformed_utf8)
+    else:
+        assert m.str_from_object(malformed_utf8) == "b'\\x80'"
     if env.PY2:
-        # with pytest.raises(UnicodeDecodeError):
-        #     m.str_from_object(malformed_utf8)
         with pytest.raises(UnicodeDecodeError):
             m.str_from_handle(malformed_utf8)
     else:
-        # assert m.str_from_object(malformed_utf8) == "b'\\x80'"
         assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
+
+    assert m.str_from_string_from_str("this is a str") == "this is a str"
+    ucs_surrogates_str = u"\udcc3"
+    if env.PY2:
+        assert u"\udcc3" == m.str_from_string_from_str(ucs_surrogates_str)
+    else:
+        with pytest.raises(UnicodeEncodeError):
+            m.str_from_string_from_str(ucs_surrogates_str)
 
 
 def test_bytes(doc):
@@ -138,6 +149,11 @@ def test_bytes(doc):
     assert doc(m.bytes_from_str) == "bytes_from_str() -> {}".format(
         "str" if env.PY2 else "bytes"
     )
+
+
+def test_bytearray(doc):
+    assert m.bytearray_from_string().decode() == "foo"
+    assert m.bytearray_size() == len("foo")
 
 
 def test_capsule(capture):
@@ -220,7 +236,7 @@ def test_accessors():
 
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
-    types = [bytes, str, bool, int, float, tuple, list, dict, set]
+    types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
     if env.PY2:
         # Note that bytes.__name__ == 'str' in Python 2.
@@ -231,6 +247,7 @@ def test_constructors():
 
     data = {
         bytes: b"41",  # Currently no supported or working conversions.
+        bytearray: bytearray(b"41"),
         str: 42,
         bool: "Not empty",
         int: "42",
@@ -303,13 +320,26 @@ def test_pybind11_str_raw_str():
     valid_orig = u"Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
     valid_cvt = cvt(valid_utf8)
-    assert type(valid_cvt) == bytes  # Probably surprising.
-    assert valid_cvt == b"\xc7\xb1"
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+        assert valid_cvt is valid_utf8
+    else:
+        assert type(valid_cvt) is unicode if env.PY2 else str  # noqa: F821
+        if env.PY2:
+            assert valid_cvt == valid_orig
+        else:
+            assert valid_cvt == "b'\\xc7\\xb1'"
 
     malformed_utf8 = b"\x80"
-    malformed_cvt = cvt(malformed_utf8)
-    assert type(malformed_cvt) == bytes  # Probably surprising.
-    assert malformed_cvt == b"\x80"
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+        assert cvt(malformed_utf8) is malformed_utf8
+    else:
+        if env.PY2:
+            with pytest.raises(UnicodeDecodeError):
+                cvt(malformed_utf8)
+        else:
+            malformed_cvt = cvt(malformed_utf8)
+            assert type(malformed_cvt) is str
+            assert malformed_cvt == "b'\\x80'"
 
 
 def test_implicit_casting():
@@ -350,10 +380,10 @@ def test_print(capture):
 
     with pytest.raises(RuntimeError) as excinfo:
         m.print_failure()
-    assert str(excinfo.value) == "make_tuple(): unable to convert " + (
-        "argument of type 'UnregisteredType' to Python object"
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'1' of type 'UnregisteredType' to Python object"
         if debug_enabled
-        else "arguments to Python object (compile in debug mode for details)"
+        else "to Python object (compile in debug mode for details)"
     )
 
 
@@ -426,7 +456,7 @@ def test_memoryview(method, args, fmt, expected_view):
         view_as_list = list(view)
     else:
         # Using max to pick non-zero byte (big-endian vs little-endian).
-        view_as_list = [max([ord(c) for c in s]) for s in view]
+        view_as_list = [max(ord(c) for c in s) for s in view]
     assert view_as_list == list(expected_view)
 
 
@@ -488,3 +518,74 @@ def test_builtin_functions():
         "object of type 'generator' has no len()",
         "'generator' has no length",
     ]  # PyPy
+
+
+def test_isinstance_string_types():
+    assert m.isinstance_pybind11_bytes(b"")
+    assert not m.isinstance_pybind11_bytes(u"")
+
+    assert m.isinstance_pybind11_str(u"")
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+        assert m.isinstance_pybind11_str(b"")
+    else:
+        assert not m.isinstance_pybind11_str(b"")
+
+
+def test_pass_bytes_or_unicode_to_string_types():
+    assert m.pass_to_pybind11_bytes(b"Bytes") == 5
+    with pytest.raises(TypeError):
+        m.pass_to_pybind11_bytes(u"Str")
+
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE") or env.PY2:
+        assert m.pass_to_pybind11_str(b"Bytes") == 5
+    else:
+        with pytest.raises(TypeError):
+            m.pass_to_pybind11_str(b"Bytes")
+    assert m.pass_to_pybind11_str(u"Str") == 3
+
+    assert m.pass_to_std_string(b"Bytes") == 5
+    assert m.pass_to_std_string(u"Str") == 3
+
+    malformed_utf8 = b"\x80"
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+        assert m.pass_to_pybind11_str(malformed_utf8) == 1
+    elif env.PY2:
+        with pytest.raises(UnicodeDecodeError):
+            m.pass_to_pybind11_str(malformed_utf8)
+    else:
+        with pytest.raises(TypeError):
+            m.pass_to_pybind11_str(malformed_utf8)
+
+
+@pytest.mark.parametrize(
+    "create_weakref, create_weakref_with_callback",
+    [
+        (m.weakref_from_handle, m.weakref_from_handle_and_function),
+        (m.weakref_from_object, m.weakref_from_object_and_function),
+    ],
+)
+def test_weakref(create_weakref, create_weakref_with_callback):
+    from weakref import getweakrefcount
+
+    # Apparently, you cannot weakly reference an object()
+    class WeaklyReferenced(object):
+        pass
+
+    def callback(wr):
+        # No `nonlocal` in Python 2
+        callback.called = True
+
+    obj = WeaklyReferenced()
+    assert getweakrefcount(obj) == 0
+    wr = create_weakref(obj)  # noqa: F841
+    assert getweakrefcount(obj) == 1
+
+    obj = WeaklyReferenced()
+    assert getweakrefcount(obj) == 0
+    callback.called = False
+    wr = create_weakref_with_callback(obj, callback)  # noqa: F841
+    assert getweakrefcount(obj) == 1
+    assert not callback.called
+    del obj
+    pytest.gc_collect()
+    assert callback.called

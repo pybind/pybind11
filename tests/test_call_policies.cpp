@@ -51,6 +51,7 @@ TEST_SUBMODULE(call_policies, m) {
         void addChild(Child *) { }
         Child *returnChild() { return new Child(); }
         Child *returnNullChild() { return nullptr; }
+        static Child *staticFunction(Parent*) { return new Child(); }
     };
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
@@ -60,7 +61,12 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnChild", &Parent::returnChild)
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
-        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>());
+        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
+        .def_static(
+            "staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
+
+    m.def("free_function", [](Parent*, Child*) {}, py::keep_alive<1, 2>());
+    m.def("invalid_arg_index", []{}, py::keep_alive<0, 1>());
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc

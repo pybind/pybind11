@@ -390,7 +390,7 @@ operation on the C++ side:
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
 
 .. versionchanged:: 2.6
-   ``py::ellipsis()`` is now also avaliable in Python 2.
+   ``py::ellipsis()`` is now also available in Python 2.
 
 Memory view
 ===========

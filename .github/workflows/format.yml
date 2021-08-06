@@ -19,15 +19,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
-    - uses: pre-commit/action@v2.0.0
+    - uses: pre-commit/action@v2.0.3
       with:
         # Slow hooks are marked with manual - slow is okay here, run them too
         extra_args: --hook-stage manual --all-files
 
   clang-tidy:
+    # When making changes here, please also review the "Clang-Tidy" section
+    # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
     runs-on: ubuntu-latest
-    container: silkeh/clang:10
+    container: silkeh/clang:12
     steps:
     - uses: actions/checkout@v2
 
@@ -37,10 +39,10 @@ jobs:
     - name: Configure
       run: >
         cmake -S . -B build
-        -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);--warnings-as-errors=*"
+        -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy)"
         -DDOWNLOAD_EIGEN=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 2 -- --keep-going

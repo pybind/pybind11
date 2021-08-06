@@ -10,10 +10,10 @@ cmake_minimum_required(VERSION 3.4)
 # The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.18)
+if(${CMAKE_VERSION} VERSION_LESS 3.21)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.18)
+  cmake_policy(VERSION 3.21)
 endif()
 
 # Only needed for CMake < 3.5 support
@@ -24,7 +24,7 @@ include(CMakeParseArguments)
 # Usage:
 #   pybind11_filter_tests(LISTNAME file1.cpp file2.cpp ... MESSAGE "")
 #
-macro(PYBIND11_FILTER_TESTS LISTNAME)
+macro(pybind11_filter_tests LISTNAME)
   cmake_parse_arguments(ARG "" "MESSAGE" "" ${ARGN})
   set(PYBIND11_FILTER_TESTS_FOUND OFF)
   foreach(filename IN LISTS ARG_UNPARSED_ARGUMENTS)
@@ -37,6 +37,14 @@ macro(PYBIND11_FILTER_TESTS LISTNAME)
   if(PYBIND11_FILTER_TESTS_FOUND AND ARG_MESSAGE)
     message(STATUS "${ARG_MESSAGE}")
   endif()
+endmacro()
+
+macro(possibly_uninitialized)
+  foreach(VARNAME ${ARGN})
+    if(NOT DEFINED "${VARNAME}")
+      set("${VARNAME}" "")
+    endif()
+  endforeach()
 endmacro()
 
 # New Python support
@@ -67,7 +75,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   find_package(pybind11 REQUIRED CONFIG)
 endif()
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+if(NOT CMAKE_BUILD_TYPE AND NOT DEFINED CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting tests build type to MinSizeRel as none was specified")
   set(CMAKE_BUILD_TYPE
       MinSizeRel
@@ -217,7 +225,8 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
   else()
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-    message(STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN on CMake 3.11+ to download")
+    message(
+      STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN=ON on CMake 3.11+ to download")
   endif()
 endif()
 
@@ -236,6 +245,41 @@ if(Boost_FOUND)
                                                   ${Boost_INCLUDE_DIRS})
     endif()
   endif()
+endif()
+
+# Check if we need to add -lstdc++fs or -lc++fs or nothing
+if(MSVC)
+  set(STD_FS_NO_LIB_NEEDED TRUE)
+else()
+  file(
+    WRITE ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    "#include <filesystem>\nint main(int argc, char ** argv) {\n  std::filesystem::path p(argv[0]);\n  return p.string().length();\n}"
+  )
+  try_compile(
+    STD_FS_NO_LIB_NEEDED ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17)
+  try_compile(
+    STD_FS_NEEDS_STDCXXFS ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17
+    LINK_LIBRARIES stdc++fs)
+  try_compile(
+    STD_FS_NEEDS_CXXFS ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17
+    LINK_LIBRARIES c++fs)
+endif()
+
+if(${STD_FS_NEEDS_STDCXXFS})
+  set(STD_FS_LIB stdc++fs)
+elseif(${STD_FS_NEEDS_CXXFS})
+  set(STD_FS_LIB c++fs)
+elseif(${STD_FS_NO_LIB_NEEDED})
+  set(STD_FS_LIB "")
+else()
+  message(WARNING "Unknown compiler - not passing -lstdc++fs")
+  set(STD_FS_LIB "")
 endif()
 
 # Compile with compiler warnings turned on
@@ -259,12 +303,19 @@ function(pybind11_enable_warnings target_name)
       target_compile_options(${target_name} PRIVATE /WX)
     elseif(PYBIND11_CUDA_TESTS)
       target_compile_options(${target_name} PRIVATE "SHELL:-Werror all-warnings")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang|IntelLLVM)")
       target_compile_options(${target_name} PRIVATE -Werror)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+      target_compile_options(
+        ${target_name}
+        PRIVATE
+          -Werror-all
+          # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
+          -diag-disable 11074,11076)
     endif()
   endif()
 
-  # Needs to be readded since the ordering requires these to be after the ones above
+  # Needs to be re-added since the ordering requires these to be after the ones above
   if(CMAKE_CXX_STANDARD
      AND CMAKE_CXX_COMPILER_ID MATCHES "Clang"
      AND PYTHON_VERSION VERSION_LESS 3.0)
@@ -341,15 +392,20 @@ foreach(target ${test_targets})
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
 
+  target_link_libraries(${target} PRIVATE ${STD_FS_LIB})
+
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
     set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                "${CMAKE_CURRENT_BINARY_DIR}")
-    foreach(config ${CMAKE_CONFIGURATION_TYPES})
-      string(TOUPPER ${config} config)
-      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
-                                                 "${CMAKE_CURRENT_BINARY_DIR}")
-    endforeach()
+
+    if(DEFINED CMAKE_CONFIGURATION_TYPES)
+      foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${config} config)
+        set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                   "${CMAKE_CURRENT_BINARY_DIR}")
+      endforeach()
+    endif()
   endif()
 endforeach()
 
@@ -370,12 +426,17 @@ endif()
 string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_FILES
                "${PYBIND11_PYTEST_FILES}")
 
+set(PYBIND11_TEST_PREFIX_COMMAND
+    ""
+    CACHE STRING "Put this before pytest, use for checkers and such")
+
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
+  COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
+          ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
 
 if(PYBIND11_TEST_OVERRIDE)
@@ -385,6 +446,27 @@ if(PYBIND11_TEST_OVERRIDE)
     COMMAND ${CMAKE_COMMAND} -E echo
             "Note: not all tests run: -DPYBIND11_TEST_OVERRIDE is in effect")
 endif()
+
+# cmake-format: off
+add_custom_target(
+  memcheck
+  COMMAND
+    PYTHONMALLOC=malloc
+    valgrind
+    --leak-check=full
+    --show-leak-kinds=definite,indirect
+    --errors-for-leak-kinds=definite,indirect
+    --error-exitcode=1
+    --read-var-info=yes
+    --track-origins=yes
+    --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp"
+    --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp"
+    --gen-suppressions=all
+    ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
+  DEPENDS ${test_targets}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  USES_TERMINAL)
+# cmake-format: on
 
 # Add a check target to run all the tests, starting with pytest (we add dependencies to this below)
 add_custom_target(check DEPENDS pytest)
