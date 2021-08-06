@@ -220,16 +220,16 @@
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
-#    define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
-#    define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
-#    define PYBIND11_BYTES_NAME "bytes"
-#    define PYBIND11_STRING_NAME "str"
-#    define PYBIND11_SLICE_OBJECT PyObject
-#    define PYBIND11_FROM_STRING PyUnicode_FromString
-#    define PYBIND11_STR_TYPE ::pybind11::str
-#    define PYBIND11_BOOL_ATTR "__bool__"
-#    define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
-#    define PYBIND11_BUILTINS_MODULE "builtins"
+#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
+#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
+#define PYBIND11_BYTES_NAME "bytes"
+#define PYBIND11_STRING_NAME "str"
+#define PYBIND11_SLICE_OBJECT PyObject
+#define PYBIND11_FROM_STRING PyUnicode_FromString
+#define PYBIND11_STR_TYPE ::pybind11::str
+#define PYBIND11_BOOL_ATTR "__bool__"
+#define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
+#define PYBIND11_BUILTINS_MODULE "builtins"
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \

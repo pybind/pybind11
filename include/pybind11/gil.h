@@ -149,7 +149,6 @@ public:
         active = false;
     }
 
-    // NOLINTNEXTLINE(bugprone-exception-escape) See issue #2215
     ~gil_scoped_release() {
         if (!tstate)
             return;
@@ -161,7 +160,6 @@ public:
             PYBIND11_TLS_REPLACE_VALUE(key, tstate);
         }
     }
-
 private:
     PyThreadState *tstate;
     bool disassoc;
