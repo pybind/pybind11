@@ -109,7 +109,7 @@ jobs:
       run: cmake --build . -j 2
 
     - name: Python tests C++11
-      run: python tools/repeat_command.py 1 cmake --build . --target pytest -j 2
+      run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
@@ -137,7 +137,7 @@ jobs:
       run: cmake --build build2 -j 2
 
     - name: Python tests
-      run: python tools/repeat_command.py 1 cmake --build build2 --target pytest
+      run: cmake --build build2 --target pytest
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
@@ -237,7 +237,7 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests
-      run: python tools/repeat_command.py 1 cmake --build build --target pytest
+      run: cmake --build build --target pytest
 
     - name: C++ tests
       run: cmake --build build --target cpptest
@@ -292,7 +292,7 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests
-      run: python3 tools/repeat_command.py 1 cmake --build build --target pytest
+      run: cmake --build build --target pytest
 
     - name: C++ tests
       run: cmake --build build --target cpptest
@@ -321,7 +321,7 @@ jobs:
       run: cmake --build build -j2 --verbose
 
     - name: Python tests
-      run: python3 tools/repeat_command.py 1 cmake --build build --target pytest
+      run: cmake --build build --target pytest
 
 
 # TODO: Internal compiler error - report to NVidia
@@ -359,7 +359,7 @@ jobs:
 #      run: cmake --build build -j 2 --verbose
 #
 #    - name: Python tests
-#      run: python3 tools/repeat_command.py 1 cmake --build build --target pytest
+#      run: cmake --build build --target pytest
 #
 #    - name: C++ tests
 #      run: cmake --build build --target cpptest
@@ -460,7 +460,7 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests
-      run: python3 tools/repeat_command.py 1 cmake --build build --target pytest
+      run: cmake --build build --target pytest
 
     - name: C++ tests
       run: cmake --build build --target cpptest
@@ -617,7 +617,7 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests
-      run: python3 tools/repeat_command.py 1 cmake --build build --target pytest
+      run: cmake --build build --target pytest
 
     - name: C++ tests
       run: cmake --build build --target cpptest
@@ -653,9 +653,6 @@ jobs:
     - name: Copy tests to new directory
       run: cp -a tests /pybind11-tests
 
-    - name: Copy tools/repeat_command.py to /tmp
-      run: cp -a tools/repeat_command.py /tmp
-
     - name: Make a new test directory
       run: mkdir /build-tests
 
@@ -667,8 +664,8 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
 
-    - name: Run tests
-      run: python3 /tmp/repeat_command.py 1 make pytest -j 2
+    - name: Python tests
+      run: make pytest -j 2
       working-directory: /build-tests
 
 
@@ -763,8 +760,8 @@ jobs:
     - name: Build C++11
       run: cmake --build build -j 2
 
-    - name: Run tests
-      run: python3 tools/repeat_command.py 1 cmake --build build -t pytest
+    - name: Python tests
+      run: cmake --build build -t pytest
 
   win32-msvc2015:
     name: "🐍 ${{ matrix.python }} • MSVC 2015 • x64"
