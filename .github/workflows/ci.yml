@@ -664,7 +664,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
 
-    - name: Run tests
+    - name: Python tests
       run: make pytest -j 2
       working-directory: /build-tests
 
@@ -760,7 +760,7 @@ jobs:
     - name: Build C++11
       run: cmake --build build -j 2
 
-    - name: Run tests
+    - name: Python tests
       run: cmake --build build -t pytest
 
   win32-msvc2015:
