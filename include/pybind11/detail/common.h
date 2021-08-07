@@ -56,6 +56,9 @@
 #  elif __INTEL_COMPILER < 1900 && defined(PYBIND11_CPP14)
 #    error pybind11 supports only C++11 with Intel C++ compiler v18. Use v19 or newer for C++14.
 #  endif
+/* The following pragma cannot be pop'ed:
+   https://community.intel.com/t5/Intel-C-Compiler/Inline-and-no-inline-warning/td-p/1216764 */
+#  pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__clang__) && !defined(__apple_build_version__)
 #  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
 #    error pybind11 requires clang 3.3 or newer
@@ -105,18 +108,6 @@
 #  define PYBIND11_NOINLINE __declspec(noinline) inline
 #else
 #  define PYBIND11_NOINLINE __attribute__ ((noinline)) inline
-#endif
-
-#if !defined(PYBIND11_NOINLINE_DISABLED)
-#    if (defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))          \
-        && !defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-// Only CUDA version known/tested (as of August 2021): CUDA 11, Ubuntu 20.04
-#        define PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED
-#    elif defined(__INTEL_COMPILER)
-// The following pragma cannot be pop'ed:
-// https://community.intel.com/t5/Intel-C-Compiler/Inline-and-no-inline-warning/td-p/1216764
-#        pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
-#    endif
 #endif
 
 #if defined(__MINGW32__)
@@ -387,11 +378,6 @@ extern "C" {
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
-
-#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -979,7 +965,3 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-#  pragma GCC diagnostic pop
-#endif

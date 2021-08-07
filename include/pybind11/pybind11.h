@@ -10,6 +10,11 @@
 
 #pragma once
 
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
@@ -45,11 +50,6 @@
 #if defined(__GNUC__) && __GNUC__ == 7
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
-#endif
-
-#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -1874,6 +1874,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+
 PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
@@ -2379,10 +2380,10 @@ inline function get_overload(const T *this_ptr, const char *name) {
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-#  pragma GCC diagnostic pop
-#endif
-
 #if defined(__GNUC__) && __GNUC__ == 7
 #    pragma GCC diagnostic pop // -Wnoexcept-type
+#endif
+
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#  pragma GCC diagnostic pop
 #endif

@@ -12,11 +12,6 @@
 
 #include "cast.h"
 
-#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// \addtogroup annotations
@@ -567,7 +562,3 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(PYBIND11_NOINLINE_GCC_PRAGMA_ATTRIBUTES_NEEDED)
-#  pragma GCC diagnostic pop
-#endif
