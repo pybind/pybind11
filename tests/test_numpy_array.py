@@ -490,20 +490,20 @@ def test_create_and_reshape(msg):
 
 
 def test_reshape_tuple(msg):
-    a = np.random.randn(10 * 10 * 10).astype("float64")
-    x = m.reshape_tuple(a, (10, 10, 10))
-    assert x.shape == (10, 10, 10)
+    a = np.random.randn(10, 20, 30).astype("float64")
+    x = m.reshape_tuple(a, (30, 20, 10))
+    assert x.shape == (30, 20, 10)
 
 
 def test_reshape_tuple_empty(msg):
-    a = np.random.randn(10 * 10 * 10).astype("float64")
+    a = np.random.randn(10 * 20 * 30).astype("float64")
     # FIXME: This should be a ValueError for maximum numpy compat
     with pytest.raises(TypeError):
         m.reshape_tuple(a, tuple())
 
 
 def test_reshape_tuple_flatten(msg):
-    a = np.random.randn(10 * 10 * 10).astype("float64")
+    a = np.random.randn(10, 5, 20).astype("float64")
     x = m.reshape_tuple(a, (a.size,))
     assert x.shape == (1000,)
 
