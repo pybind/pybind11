@@ -495,6 +495,19 @@ def test_reshape_tuple(msg):
     assert x.shape == (10, 10, 10)
 
 
+def test_reshape_tuple_empty(msg):
+    a = np.random.randn(10 * 10 * 10).astype("float64")
+    # FIXME: This should be a ValueError for maximum numpy compat
+    with pytest.raises(TypeError):
+        m.reshape_tuple(a, tuple())
+
+
+def test_reshape_tuple_flatten(msg):
+    a = np.random.randn(10 * 10 * 10).astype("float64")
+    x = m.reshape_tuple(a, (a.size,))
+    assert x.shape == (1000,)
+
+
 def test_index_using_ellipsis():
     a = m.index_using_ellipsis(np.zeros((5, 6, 7)))
     assert a.shape == (6,)
