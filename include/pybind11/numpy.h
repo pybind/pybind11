@@ -478,11 +478,11 @@ public:
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
-        args["names"] = names;
-        args["formats"] = formats;
-        args["offsets"] = offsets;
+        args["names"] = std::move(names);
+        args["formats"] = std::move(formats);
+        args["offsets"] = std::move(offsets);
         args["itemsize"] = pybind11::int_(itemsize);
-        m_ptr = from_args(args).release().ptr();
+        m_ptr = from_args(std::move(args)).release().ptr();
     }
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
@@ -560,7 +560,7 @@ private:
             formats.append(descr.format);
             offsets.append(descr.offset);
         }
-        return dtype(names, formats, offsets, itemsize);
+        return dtype(std::move(names), std::move(formats), std::move(offsets), itemsize);
     }
 };
 
