@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 import pytest
+
+import env  # noqa: F401
 
 from pybind11_tests import local_bindings as m
 
@@ -33,8 +36,8 @@ def test_local_bindings():
     assert i2.get() == 11
     assert i2.get2() == 12
 
-    assert not hasattr(i1, 'get2')
-    assert not hasattr(i2, 'get3')
+    assert not hasattr(i1, "get2")
+    assert not hasattr(i2, "get3")
 
     # Loading within the local module
     assert m.local_value(i1) == 5
@@ -52,7 +55,9 @@ def test_nonlocal_failure():
 
     with pytest.raises(RuntimeError) as excinfo:
         cm.register_nonlocal()
-    assert str(excinfo.value) == 'generic_type: type "NonLocalType" is already registered!'
+    assert (
+        str(excinfo.value) == 'generic_type: type "NonLocalType" is already registered!'
+    )
 
 
 def test_duplicate_local():
@@ -60,9 +65,12 @@ def test_duplicate_local():
     with pytest.raises(RuntimeError) as excinfo:
         m.register_local_external()
     import pybind11_tests
+
     assert str(excinfo.value) == (
         'generic_type: type "LocalExternal" is already registered!'
-        if hasattr(pybind11_tests, 'class_') else 'test_class not enabled')
+        if hasattr(pybind11_tests, "class_")
+        else "test_class not enabled"
+    )
 
 
 def test_stl_bind_local():
@@ -95,8 +103,8 @@ def test_stl_bind_local():
     d1["b"] = v1[1]
     d2["c"] = v2[0]
     d2["d"] = v2[1]
-    assert {i: d1[i].get() for i in d1} == {'a': 0, 'b': 1}
-    assert {i: d2[i].get() for i in d2} == {'c': 2, 'd': 3}
+    assert {i: d1[i].get() for i in d1} == {"a": 0, "b": 1}
+    assert {i: d2[i].get() for i in d2} == {"c": 2, "d": 3}
 
 
 def test_stl_bind_global():
@@ -104,15 +112,21 @@ def test_stl_bind_global():
 
     with pytest.raises(RuntimeError) as excinfo:
         cm.register_nonlocal_map()
-    assert str(excinfo.value) == 'generic_type: type "NonLocalMap" is already registered!'
+    assert (
+        str(excinfo.value) == 'generic_type: type "NonLocalMap" is already registered!'
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         cm.register_nonlocal_vec()
-    assert str(excinfo.value) == 'generic_type: type "NonLocalVec" is already registered!'
+    assert (
+        str(excinfo.value) == 'generic_type: type "NonLocalVec" is already registered!'
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         cm.register_nonlocal_map2()
-    assert str(excinfo.value) == 'generic_type: type "NonLocalMap2" is already registered!'
+    assert (
+        str(excinfo.value) == 'generic_type: type "NonLocalMap2" is already registered!'
+    )
 
 
 def test_mixed_local_global():
@@ -120,6 +134,7 @@ def test_mixed_local_global():
     type can be registered even if the type is already registered globally.  With the module,
     casting will go to the local type; outside the module casting goes to the global type."""
     import pybind11_cross_module_tests as cm
+
     m.register_mixed_global()
     m.register_mixed_local()
 
@@ -142,16 +157,30 @@ def test_mixed_local_global():
     a.append(cm.get_mixed_gl(11))
     a.append(cm.get_mixed_lg(12))
 
-    assert [x.get() for x in a] == \
-        [101, 1002, 103, 1004, 105, 1006, 207, 2008, 109, 1010, 211, 2012]
+    assert [x.get() for x in a] == [
+        101,
+        1002,
+        103,
+        1004,
+        105,
+        1006,
+        207,
+        2008,
+        109,
+        1010,
+        211,
+        2012,
+    ]
 
 
 def test_internal_locals_differ():
     """Makes sure the internal local type map differs across the two modules"""
     import pybind11_cross_module_tests as cm
+
     assert m.local_cpp_types_addr() != cm.local_cpp_types_addr()
 
 
+@pytest.mark.xfail("env.PYPY and sys.pypy_version_info < (7, 3, 2)")
 def test_stl_caster_vs_stl_bind(msg):
     """One module uses a generic vector caster from `<pybind11/stl.h>` while the other
     exports `std::vector<int>` via `py:bind_vector` and `py::module_local`"""
@@ -164,13 +193,16 @@ def test_stl_caster_vs_stl_bind(msg):
     v2 = [1, 2, 3]
     assert m.load_vector_via_caster(v2) == 6
     with pytest.raises(TypeError) as excinfo:
-        cm.load_vector_via_binding(v2) == 6
-    assert msg(excinfo.value) == """
+        cm.load_vector_via_binding(v2)
+    assert (
+        msg(excinfo.value)
+        == """
     load_vector_via_binding(): incompatible function arguments. The following argument types are supported:
         1. (arg0: pybind11_cross_module_tests.VectorInt) -> int
 
     Invoked with: [1, 2, 3]
     """  # noqa: E501 line too long
+    )
 
 
 def test_cross_module_calls():

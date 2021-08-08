@@ -7,14 +7,14 @@ General notes regarding convenience macros
 ==========================================
 
 pybind11 provides a few convenience macros such as
-:func:`PYBIND11_DECLARE_HOLDER_TYPE` and ``PYBIND11_OVERLOAD_*``. Since these
+:func:`PYBIND11_DECLARE_HOLDER_TYPE` and ``PYBIND11_OVERRIDE_*``. Since these
 are "just" macros that are evaluated in the preprocessor (which has no concept
 of types), they *will* get confused by commas in a template argument; for
 example, consider:
 
 .. code-block:: cpp
 
-    PYBIND11_OVERLOAD(MyReturnType<T1, T2>, Class<T3, T4>, func)
+    PYBIND11_OVERRIDE(MyReturnType<T1, T2>, Class<T3, T4>, func)
 
 The limitation of the C preprocessor interprets this as five arguments (with new
 arguments beginning after each comma) rather than three.  To get around this,
@@ -26,10 +26,10 @@ using the ``PYBIND11_TYPE`` macro:
     // Version 1: using a type alias
     using ReturnType = MyReturnType<T1, T2>;
     using ClassType = Class<T3, T4>;
-    PYBIND11_OVERLOAD(ReturnType, ClassType, func);
+    PYBIND11_OVERRIDE(ReturnType, ClassType, func);
 
     // Version 2: using the PYBIND11_TYPE macro:
-    PYBIND11_OVERLOAD(PYBIND11_TYPE(MyReturnType<T1, T2>),
+    PYBIND11_OVERRIDE(PYBIND11_TYPE(MyReturnType<T1, T2>),
                       PYBIND11_TYPE(Class<T3, T4>), func)
 
 The ``PYBIND11_MAKE_OPAQUE`` macro does *not* require the above workarounds.
@@ -59,7 +59,7 @@ could be realized as follows (important changes highlighted):
             /* Acquire GIL before calling Python code */
             py::gil_scoped_acquire acquire;
 
-            PYBIND11_OVERLOAD_PURE(
+            PYBIND11_OVERRIDE_PURE(
                 std::string, /* Return type */
                 Animal,      /* Parent class */
                 go,          /* Name of function */
@@ -132,7 +132,7 @@ However, it can be acquired as follows:
 
 .. code-block:: cpp
 
-    py::object pet = (py::object) py::module::import("basic").attr("Pet");
+    py::object pet = (py::object) py::module_::import("basic").attr("Pet");
 
     py::class_<Dog>(m, "Dog", pet)
         .def(py::init<const std::string &>())
@@ -146,7 +146,7 @@ has been executed:
 
 .. code-block:: cpp
 
-    py::module::import("basic");
+    py::module_::import("basic");
 
     py::class_<Dog, Pet>(m, "Dog")
         .def(py::init<const std::string &>())
@@ -176,9 +176,9 @@ pybind11 version. Consider the following example:
 
 .. code-block:: cpp
 
-    auto data = (MyData *) py::get_shared_data("mydata");
+    auto data = reinterpret_cast<MyData *>(py::get_shared_data("mydata"));
     if (!data)
-        data = (MyData *) py::set_shared_data("mydata", new MyData(42));
+        data = static_cast<MyData *>(py::set_shared_data("mydata", new MyData(42)));
 
 If the above snippet was used in several separately compiled extension modules,
 the first one to be imported would create a ``MyData`` instance and associate
@@ -218,12 +218,12 @@ collected:
 
 Both approaches also expose a potentially dangerous ``_cleanup`` attribute in
 Python, which may be undesirable from an API standpoint (a premature explicit
-call from Python might lead to undefined behavior). Yet another approach that 
+call from Python might lead to undefined behavior). Yet another approach that
 avoids this issue involves weak reference with a cleanup callback:
 
 .. code-block:: cpp
 
-    // Register a callback function that is invoked when the BaseClass object is colelcted
+    // Register a callback function that is invoked when the BaseClass object is collected
     py::cpp_function cleanup_callback(
         [](py::handle weakref) {
             // perform cleanup here -- this function is called with the GIL held
@@ -237,13 +237,13 @@ avoids this issue involves weak reference with a cleanup callback:
 
 .. note::
 
-    PyPy (at least version 5.9) does not garbage collect objects when the
-    interpreter exits. An alternative approach (which also works on CPython) is to use
-    the :py:mod:`atexit` module [#f7]_, for example:
+    PyPy does not garbage collect objects when the interpreter exits. An alternative
+    approach (which also works on CPython) is to use the :py:mod:`atexit` module [#f7]_,
+    for example:
 
     .. code-block:: cpp
 
-        auto atexit = py::module::import("atexit");
+        auto atexit = py::module_::import("atexit");
         atexit.attr("register")(py::cpp_function([]() {
             // perform cleanup here -- this function is called with the GIL held
         }));
@@ -283,9 +283,9 @@ work, it is important that all lines are indented consistently, i.e.:
         ----------
     )mydelimiter");
 
-By default, pybind11 automatically generates and prepends a signature to the docstring of a function 
-registered with ``module::def()`` and ``class_::def()``. Sometimes this
-behavior is not desirable, because you want to provide your own signature or remove 
+By default, pybind11 automatically generates and prepends a signature to the docstring of a function
+registered with ``module_::def()`` and ``class_::def()``. Sometimes this
+behavior is not desirable, because you want to provide your own signature or remove
 the docstring completely to exclude the function from the Sphinx documentation.
 The class ``options`` allows you to selectively suppress auto-generated signatures:
 
@@ -298,9 +298,40 @@ The class ``options`` allows you to selectively suppress auto-generated signatur
         m.def("add", [](int a, int b) { return a + b; }, "A function which adds two numbers");
     }
 
-Note that changes to the settings affect only function bindings created during the 
-lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function, 
+Note that changes to the settings affect only function bindings created during the
+lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function,
 the default settings are restored to prevent unwanted side effects.
 
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
+
+.. _avoiding-cpp-types-in-docstrings:
+
+Avoiding C++ types in docstrings
+================================
+
+Docstrings are generated at the time of the declaration, e.g. when ``.def(...)`` is called.
+At this point parameter and return types should be known to pybind11.
+If a custom type is not exposed yet through a ``py::class_`` constructor or a custom type caster,
+its C++ type name will be used instead to generate the signature in the docstring:
+
+.. code-block:: text
+
+     |  __init__(...)
+     |      __init__(self: example.Foo, arg0: ns::Bar) -> None
+                                              ^^^^^^^
+
+
+This limitation can be circumvented by ensuring that C++ classes are registered with pybind11
+before they are used as a parameter or return type of a function:
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+
+        auto pyFoo = py::class_<ns::Foo>(m, "Foo");
+        auto pyBar = py::class_<ns::Bar>(m, "Bar");
+
+        pyFoo.def(py::init<const ns::Bar&>());
+        pyBar.def(py::init<const ns::Foo&>());
+    }

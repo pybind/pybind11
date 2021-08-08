@@ -26,17 +26,21 @@ if(NOT Eigen3_FIND_VERSION)
     set(Eigen3_FIND_VERSION_PATCH 0)
   endif(NOT Eigen3_FIND_VERSION_PATCH)
 
-  set(Eigen3_FIND_VERSION "${Eigen3_FIND_VERSION_MAJOR}.${Eigen3_FIND_VERSION_MINOR}.${Eigen3_FIND_VERSION_PATCH}")
+  set(Eigen3_FIND_VERSION
+      "${Eigen3_FIND_VERSION_MAJOR}.${Eigen3_FIND_VERSION_MINOR}.${Eigen3_FIND_VERSION_PATCH}")
 endif(NOT Eigen3_FIND_VERSION)
 
 macro(_eigen3_check_version)
   file(READ "${EIGEN3_INCLUDE_DIR}/Eigen/src/Core/util/Macros.h" _eigen3_version_header)
 
-  string(REGEX MATCH "define[ \t]+EIGEN_WORLD_VERSION[ \t]+([0-9]+)" _eigen3_world_version_match "${_eigen3_version_header}")
+  string(REGEX MATCH "define[ \t]+EIGEN_WORLD_VERSION[ \t]+([0-9]+)" _eigen3_world_version_match
+               "${_eigen3_version_header}")
   set(EIGEN3_WORLD_VERSION "${CMAKE_MATCH_1}")
-  string(REGEX MATCH "define[ \t]+EIGEN_MAJOR_VERSION[ \t]+([0-9]+)" _eigen3_major_version_match "${_eigen3_version_header}")
+  string(REGEX MATCH "define[ \t]+EIGEN_MAJOR_VERSION[ \t]+([0-9]+)" _eigen3_major_version_match
+               "${_eigen3_version_header}")
   set(EIGEN3_MAJOR_VERSION "${CMAKE_MATCH_1}")
-  string(REGEX MATCH "define[ \t]+EIGEN_MINOR_VERSION[ \t]+([0-9]+)" _eigen3_minor_version_match "${_eigen3_version_header}")
+  string(REGEX MATCH "define[ \t]+EIGEN_MINOR_VERSION[ \t]+([0-9]+)" _eigen3_minor_version_match
+               "${_eigen3_version_header}")
   set(EIGEN3_MINOR_VERSION "${CMAKE_MATCH_1}")
 
   set(EIGEN3_VERSION ${EIGEN3_WORLD_VERSION}.${EIGEN3_MAJOR_VERSION}.${EIGEN3_MINOR_VERSION})
@@ -53,20 +57,22 @@ macro(_eigen3_check_version)
   endif(NOT EIGEN3_VERSION_OK)
 endmacro(_eigen3_check_version)
 
-if (EIGEN3_INCLUDE_DIR)
+if(EIGEN3_INCLUDE_DIR)
 
   # in cache already
   _eigen3_check_version()
   set(EIGEN3_FOUND ${EIGEN3_VERSION_OK})
 
-else (EIGEN3_INCLUDE_DIR)
+else(EIGEN3_INCLUDE_DIR)
+  if(NOT DEFINED KDE4_INCLUDE_DIR)
+    set(KDE4_INCLUDE_DIR "")
+  endif()
 
-  find_path(EIGEN3_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library
-      PATHS
-      ${CMAKE_INSTALL_PREFIX}/include
-      ${KDE4_INCLUDE_DIR}
-      PATH_SUFFIXES eigen3 eigen
-    )
+  find_path(
+    EIGEN3_INCLUDE_DIR
+    NAMES signature_of_eigen3_matrix_library
+    PATHS ${CMAKE_INSTALL_PREFIX}/include ${KDE4_INCLUDE_DIR}
+    PATH_SUFFIXES eigen3 eigen)
 
   if(EIGEN3_INCLUDE_DIR)
     _eigen3_check_version()
@@ -78,4 +84,3 @@ else (EIGEN3_INCLUDE_DIR)
   mark_as_advanced(EIGEN3_INCLUDE_DIR)
 
 endif(EIGEN3_INCLUDE_DIR)
-

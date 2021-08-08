@@ -12,10 +12,10 @@ int main(int argc, char *argv[]) {
 
     py::scoped_interpreter guard{};
 
-    auto m = py::module::import("test_cmake_build");
+    auto m = py::module_::import("test_cmake_build");
     if (m.attr("add")(1, 2).cast<int>() != 3)
         throw std::runtime_error("embed.cpp failed");
 
-    py::module::import("sys").attr("argv") = py::make_tuple("test.py", "embed.cpp");
+    py::module_::import("sys").attr("argv") = py::make_tuple("test.py", "embed.cpp");
     py::eval_file(test_py_file, py::globals());
 }

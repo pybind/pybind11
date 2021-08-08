@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import operators as m
 from pybind11_tests import ConstructorStats
@@ -6,6 +7,9 @@ from pybind11_tests import ConstructorStats
 def test_operator_overloading():
     v1 = m.Vector2(1, 2)
     v2 = m.Vector(3, -1)
+    v3 = m.Vector2(1, 2)  # Same value as v1, but different instance.
+    assert v1 is not v3
+
     assert str(v1) == "[1.000000, 2.000000]"
     assert str(v2) == "[3.000000, -1.000000]"
 
@@ -24,6 +28,12 @@ def test_operator_overloading():
     assert str(v1 * v2) == "[3.000000, -2.000000]"
     assert str(v2 / v1) == "[3.000000, -0.500000]"
 
+    assert v1 == v3
+    assert v1 != v2
+    assert hash(v1) == 4
+    # TODO(eric.cousineau): Make this work.
+    # assert abs(v1) == "abs(Vector2)"
+
     v1 += 2 * v2
     assert str(v1) == "[7.000000, 0.000000]"
     v1 -= v2
@@ -37,22 +47,33 @@ def test_operator_overloading():
     v2 /= v1
     assert str(v2) == "[2.000000, 8.000000]"
 
-    assert hash(v1) == 4
-
     cstats = ConstructorStats.get(m.Vector2)
-    assert cstats.alive() == 2
+    assert cstats.alive() == 3
     del v1
-    assert cstats.alive() == 1
+    assert cstats.alive() == 2
     del v2
+    assert cstats.alive() == 1
+    del v3
     assert cstats.alive() == 0
-    assert cstats.values() == ['[1.000000, 2.000000]', '[3.000000, -1.000000]',
-                               '[-3.000000, 1.000000]', '[4.000000, 1.000000]',
-                               '[-2.000000, 3.000000]', '[-7.000000, -6.000000]',
-                               '[9.000000, 10.000000]', '[8.000000, 16.000000]',
-                               '[0.125000, 0.250000]', '[7.000000, 6.000000]',
-                               '[9.000000, 10.000000]', '[8.000000, 16.000000]',
-                               '[8.000000, 4.000000]', '[3.000000, -2.000000]',
-                               '[3.000000, -0.500000]', '[6.000000, -2.000000]']
+    assert cstats.values() == [
+        "[1.000000, 2.000000]",
+        "[3.000000, -1.000000]",
+        "[1.000000, 2.000000]",
+        "[-3.000000, 1.000000]",
+        "[4.000000, 1.000000]",
+        "[-2.000000, 3.000000]",
+        "[-7.000000, -6.000000]",
+        "[9.000000, 10.000000]",
+        "[8.000000, 16.000000]",
+        "[0.125000, 0.250000]",
+        "[7.000000, 6.000000]",
+        "[9.000000, 10.000000]",
+        "[8.000000, 16.000000]",
+        "[8.000000, 4.000000]",
+        "[3.000000, -2.000000]",
+        "[3.000000, -0.500000]",
+        "[6.000000, -2.000000]",
+    ]
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
     assert cstats.move_constructions >= 10
@@ -106,3 +127,19 @@ def test_nested():
     assert abase.value == 42
     del abase, b
     pytest.gc_collect()
+
+
+def test_overriding_eq_reset_hash():
+
+    assert m.Comparable(15) is not m.Comparable(15)
+    assert m.Comparable(15) == m.Comparable(15)
+
+    with pytest.raises(TypeError):
+        hash(m.Comparable(15))  # TypeError: unhashable type: 'm.Comparable'
+
+    for hashable in (m.Hashable, m.Hashable2):
+        assert hashable(15) is not hashable(15)
+        assert hashable(15) == hashable(15)
+
+        assert hash(hashable(15)) == 15
+        assert hash(hashable(15)) == hash(hashable(15))

@@ -274,7 +274,7 @@ Vectors versus column/row matrices
 
 Eigen and numpy have fundamentally different notions of a vector.  In Eigen, a
 vector is simply a matrix with the number of columns or rows set to 1 at
-compile time (for a column vector or row vector, respectively).  Numpy, in
+compile time (for a column vector or row vector, respectively).  NumPy, in
 contrast, has comparable 2-dimensional 1xN and Nx1 arrays, but *also* has
 1-dimensional arrays of size N.
 

@@ -1,9 +1,9 @@
+# -*- coding: utf-8 -*-
 import pytest
-import sys
-from pybind11_tests import stl_binders as m
 
-with pytest.suppress(ImportError):
-    import numpy as np
+import env  # noqa: F401
+
+from pybind11_tests import stl_binders as m
 
 
 def test_vector_int():
@@ -45,7 +45,7 @@ def test_vector_int():
 
     # test error handling, and that the vector is unchanged
     with pytest.raises(RuntimeError):
-        v_int2.extend([8, 'a'])
+        v_int2.extend([8, "a"])
 
     assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7])
 
@@ -53,31 +53,48 @@ def test_vector_int():
     v_int2.extend(x for x in range(5))
     assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4])
 
+    # test negative indexing
+    assert v_int2[-1] == 4
 
-# related to the PyPy's buffer protocol.
-@pytest.unsupported_on_pypy
+    # insert with negative index
+    v_int2.insert(-1, 88)
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88, 4])
+
+    # delete negative index
+    del v_int2[-1]
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88])
+
+    v_int2.clear()
+    assert len(v_int2) == 0
+
+
+# Older PyPy's failed here, related to the PyPy's buffer protocol.
 def test_vector_buffer():
     b = bytearray([1, 2, 3, 4])
     v = m.VectorUChar(b)
     assert v[1] == 2
     v[2] = 5
     mv = memoryview(v)  # We expose the buffer interface
-    if sys.version_info.major > 2:
+    if not env.PY2:
         assert mv[2] == 5
         mv[2] = 6
     else:
-        assert mv[2] == '\x05'
-        mv[2] = '\x06'
+        assert mv[2] == "\x05"
+        mv[2] = "\x06"
     assert v[2] == 6
+
+    if not env.PY2:
+        mv = memoryview(b)
+        v = m.VectorUChar(mv[::2])
+        assert v[1] == 3
 
     with pytest.raises(RuntimeError) as excinfo:
         m.create_undeclstruct()  # Undeclared struct contents, no buffer interface
     assert "NumPy type info missing for " in str(excinfo.value)
 
 
-@pytest.unsupported_on_pypy
-@pytest.requires_numpy
 def test_vector_buffer_numpy():
+    np = pytest.importorskip("numpy")
     a = np.array([1, 2, 3, 4], dtype=np.int32)
     with pytest.raises(TypeError):
         m.VectorInt(a)
@@ -97,12 +114,22 @@ def test_vector_buffer_numpy():
     v = m.get_vectorstruct()
     assert v[0].x == 5
     ma = np.asarray(v)
-    ma[1]['x'] = 99
+    ma[1]["x"] = 99
     assert v[1].x == 99
 
-    v = m.VectorStruct(np.zeros(3, dtype=np.dtype([('w', 'bool'), ('x', 'I'),
-                                                   ('y', 'float64'), ('z', 'bool')], align=True)))
+    v = m.VectorStruct(
+        np.zeros(
+            3,
+            dtype=np.dtype(
+                [("w", "bool"), ("x", "I"), ("y", "float64"), ("z", "bool")], align=True
+            ),
+        )
+    )
     assert len(v) == 3
+
+    b = np.array([1, 2, 3, 4], dtype=np.uint8)
+    v = m.VectorUChar(b[::2])
+    assert v[1] == 3
 
 
 def test_vector_bool():
@@ -130,31 +157,31 @@ def test_vector_custom():
 
 def test_map_string_double():
     mm = m.MapStringDouble()
-    mm['a'] = 1
-    mm['b'] = 2.5
+    mm["a"] = 1
+    mm["b"] = 2.5
 
-    assert list(mm) == ['a', 'b']
-    assert list(mm.items()) == [('a', 1), ('b', 2.5)]
+    assert list(mm) == ["a", "b"]
+    assert list(mm.items()) == [("a", 1), ("b", 2.5)]
     assert str(mm) == "MapStringDouble{a: 1, b: 2.5}"
 
     um = m.UnorderedMapStringDouble()
-    um['ua'] = 1.1
-    um['ub'] = 2.6
+    um["ua"] = 1.1
+    um["ub"] = 2.6
 
-    assert sorted(list(um)) == ['ua', 'ub']
-    assert sorted(list(um.items())) == [('ua', 1.1), ('ub', 2.6)]
+    assert sorted(list(um)) == ["ua", "ub"]
+    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
     assert "UnorderedMapStringDouble" in str(um)
 
 
 def test_map_string_double_const():
     mc = m.MapStringDoubleConst()
-    mc['a'] = 10
-    mc['b'] = 20.5
+    mc["a"] = 10
+    mc["b"] = 20.5
     assert str(mc) == "MapStringDoubleConst{a: 10, b: 20.5}"
 
     umc = m.UnorderedMapStringDoubleConst()
-    umc['a'] = 11
-    umc['b'] = 21.5
+    umc["a"] = 11
+    umc["b"] = 21.5
 
     str(umc)
 
@@ -175,7 +202,7 @@ def test_noncopyable_containers():
 
     i = 1
     for j in dnc:
-        assert(j.value == i)
+        assert j.value == i
         i += 1
 
     # std::map
@@ -202,24 +229,63 @@ def test_noncopyable_containers():
 
     assert vsum == 150
 
+    # nested std::map<std::vector>
+    nvnc = m.get_nvnc(5)
+    for i in range(1, 6):
+        for j in range(0, 5):
+            assert nvnc[i][j].value == j + 1
+
+    # Note: maps do not have .values()
+    for _, v in nvnc.items():
+        for i, j in enumerate(v, start=1):
+            assert j.value == i
+
+    # nested std::map<std::map>
+    nmnc = m.get_nmnc(5)
+    for i in range(1, 6):
+        for j in range(10, 60, 10):
+            assert nmnc[i][j].value == 10 * j
+
+    vsum = 0
+    for _, v_o in nmnc.items():
+        for k_i, v_i in v_o.items():
+            assert v_i.value == 10 * k_i
+            vsum += v_i.value
+
+    assert vsum == 7500
+
+    # nested std::unordered_map<std::unordered_map>
+    numnc = m.get_numnc(5)
+    for i in range(1, 6):
+        for j in range(10, 60, 10):
+            assert numnc[i][j].value == 10 * j
+
+    vsum = 0
+    for _, v_o in numnc.items():
+        for k_i, v_i in v_o.items():
+            assert v_i.value == 10 * k_i
+            vsum += v_i.value
+
+    assert vsum == 7500
+
 
 def test_map_delitem():
     mm = m.MapStringDouble()
-    mm['a'] = 1
-    mm['b'] = 2.5
+    mm["a"] = 1
+    mm["b"] = 2.5
 
-    assert list(mm) == ['a', 'b']
-    assert list(mm.items()) == [('a', 1), ('b', 2.5)]
-    del mm['a']
-    assert list(mm) == ['b']
-    assert list(mm.items()) == [('b', 2.5)]
+    assert list(mm) == ["a", "b"]
+    assert list(mm.items()) == [("a", 1), ("b", 2.5)]
+    del mm["a"]
+    assert list(mm) == ["b"]
+    assert list(mm.items()) == [("b", 2.5)]
 
     um = m.UnorderedMapStringDouble()
-    um['ua'] = 1.1
-    um['ub'] = 2.6
+    um["ua"] = 1.1
+    um["ub"] = 2.6
 
-    assert sorted(list(um)) == ['ua', 'ub']
-    assert sorted(list(um.items())) == [('ua', 1.1), ('ub', 2.6)]
-    del um['ua']
-    assert sorted(list(um)) == ['ub']
-    assert sorted(list(um.items())) == [('ub', 2.6)]
+    assert sorted(list(um)) == ["ua", "ub"]
+    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    del um["ua"]
+    assert sorted(list(um)) == ["ub"]
+    assert sorted(list(um.items())) == [("ub", 2.6)]

@@ -19,9 +19,14 @@ endif()
 
 # Extract the version number from catch.hpp
 function(_get_catch_version)
-  file(STRINGS "${CATCH_INCLUDE_DIR}/catch.hpp" version_line REGEX "Catch v.*" LIMIT_COUNT 1)
+  file(
+    STRINGS "${CATCH_INCLUDE_DIR}/catch.hpp" version_line
+    REGEX "Catch v.*"
+    LIMIT_COUNT 1)
   if(version_line MATCHES "Catch v([0-9]+)\\.([0-9]+)\\.([0-9]+)")
-    set(CATCH_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}" PARENT_SCOPE)
+    set(CATCH_VERSION
+        "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}"
+        PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -34,11 +39,16 @@ function(_download_catch version destination_dir)
   if(error)
     message(FATAL_ERROR "Could not download ${url}")
   endif()
-  set(CATCH_INCLUDE_DIR "${destination_dir}" CACHE INTERNAL "")
+  set(CATCH_INCLUDE_DIR
+      "${destination_dir}"
+      CACHE INTERNAL "")
 endfunction()
 
 # Look for catch locally
-find_path(CATCH_INCLUDE_DIR NAMES catch.hpp PATH_SUFFIXES catch)
+find_path(
+  CATCH_INCLUDE_DIR
+  NAMES catch.hpp
+  PATH_SUFFIXES catch2)
 if(CATCH_INCLUDE_DIR)
   _get_catch_version()
 endif()
@@ -53,5 +63,8 @@ if(NOT CATCH_VERSION OR CATCH_VERSION VERSION_LESS ${Catch_FIND_VERSION})
     return()
   endif()
 endif()
+
+add_library(Catch2::Catch2 IMPORTED INTERFACE)
+set_property(TARGET Catch2::Catch2 PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${CATCH_INCLUDE_DIR}")
 
 set(CATCH_FOUND TRUE)

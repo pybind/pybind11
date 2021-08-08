@@ -57,17 +57,17 @@ specification.
 
     struct buffer_info {
         void *ptr;
-        ssize_t itemsize;
+        py::ssize_t itemsize;
         std::string format;
-        ssize_t ndim;
-        std::vector<ssize_t> shape;
-        std::vector<ssize_t> strides;
+        py::ssize_t ndim;
+        std::vector<py::ssize_t> shape;
+        std::vector<py::ssize_t> strides;
     };
 
 To create a C++ function that can take a Python buffer object as an argument,
 simply use the type ``py::buffer`` as one of its arguments. Buffers can exist
 in a great variety of configurations, hence some safety checks are usually
-necessary in the function body. Below, you can see an basic example on how to
+necessary in the function body. Below, you can see a basic example on how to
 define a custom constructor for the Eigen double precision matrix
 (``Eigen::MatrixXd``) type, which supports initialization from compatible
 buffer objects (e.g. a NumPy matrix).
@@ -81,7 +81,7 @@ buffer objects (e.g. a NumPy matrix).
     constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
 
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
-        .def("__init__", [](Matrix &m, py::buffer b) {
+        .def(py::init([](py::buffer b) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
             /* Request a buffer descriptor from Python */
@@ -101,8 +101,8 @@ buffer objects (e.g. a NumPy matrix).
             auto map = Eigen::Map<Matrix, 0, Strides>(
                 static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
-            new (&m) Matrix(map);
-        });
+            return Matrix(map);
+        }));
 
 For reference, the ``def_buffer()`` call for this Eigen data type should look
 as follows:
@@ -150,8 +150,10 @@ NumPy array containing double precision values.
 
 When it is invoked with a different type (e.g. an integer or a list of
 integers), the binding code will attempt to cast the input into a NumPy array
-of the requested type. Note that this feature requires the
-:file:`pybind11/numpy.h` header to be included.
+of the requested type. This feature requires the :file:`pybind11/numpy.h`
+header to be included. Note that :file:`pybind11/numpy.h` does not depend on
+the NumPy headers, and thus can be used without declaring a build-time
+dependency on NumPy; NumPy>=1.7.0 is a runtime dependency.
 
 Data in NumPy arrays is not guaranteed to packed in a dense manner;
 furthermore, entries can be separated by arbitrary column and row strides.
@@ -274,9 +276,9 @@ simply using ``vectorize``).
 
         py::buffer_info buf3 = result.request();
 
-        double *ptr1 = (double *) buf1.ptr,
-               *ptr2 = (double *) buf2.ptr,
-               *ptr3 = (double *) buf3.ptr;
+        double *ptr1 = static_cast<double *>(buf1.ptr);
+        double *ptr2 = static_cast<double *>(buf2.ptr);
+        double *ptr3 = static_cast<double *>(buf3.ptr);
 
         for (size_t idx = 0; idx < buf1.shape[0]; idx++)
             ptr3[idx] = ptr1[idx] + ptr2[idx];
@@ -309,17 +311,17 @@ where ``N`` gives the required dimensionality of the array:
     m.def("sum_3d", [](py::array_t<double> x) {
         auto r = x.unchecked<3>(); // x must have ndim = 3; can be non-writeable
         double sum = 0;
-        for (ssize_t i = 0; i < r.shape(0); i++)
-            for (ssize_t j = 0; j < r.shape(1); j++)
-                for (ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            for (py::ssize_t j = 0; j < r.shape(1); j++)
+                for (py::ssize_t k = 0; k < r.shape(2); k++)
                     sum += r(i, j, k);
         return sum;
     });
     m.def("increment_3d", [](py::array_t<double> x) {
         auto r = x.mutable_unchecked<3>(); // Will throw if ndim != 3 or flags.writeable is false
-        for (ssize_t i = 0; i < r.shape(0); i++)
-            for (ssize_t j = 0; j < r.shape(1); j++)
-                for (ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            for (py::ssize_t j = 0; j < r.shape(1); j++)
+                for (py::ssize_t k = 0; k < r.shape(2); k++)
                     r(i, j, k) += 1.0;
     }, py::arg().noconvert());
 
@@ -371,6 +373,8 @@ Ellipsis
 Python 3 provides a convenient ``...`` ellipsis notation that is often used to
 slice multidimensional arrays. For instance, the following snippet extracts the
 middle dimensions of a tensor with the first and last index set to zero.
+In Python 2, the syntactic sugar ``...`` is not available, but the singleton
+``Ellipsis`` (of type ``ellipsis``) can still be used directly.
 
 .. code-block:: python
 
@@ -384,3 +388,51 @@ operation on the C++ side:
 
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
+
+.. versionchanged:: 2.6
+   ``py::ellipsis()`` is now also available in Python 2.
+
+Memory view
+===========
+
+For a case when we simply want to provide a direct accessor to C/C++ buffer
+without a concrete class object, we can return a ``memoryview`` object. Suppose
+we wish to expose a ``memoryview`` for 2x4 uint8_t array, we can do the
+following:
+
+.. code-block:: cpp
+
+    const uint8_t buffer[] = {
+        0, 1, 2, 3,
+        4, 5, 6, 7
+    };
+    m.def("get_memoryview2d", []() {
+        return py::memoryview::from_buffer(
+            buffer,                                    // buffer pointer
+            { 2, 4 },                                  // shape (rows, cols)
+            { sizeof(uint8_t) * 4, sizeof(uint8_t) }   // strides in bytes
+        );
+    })
+
+This approach is meant for providing a ``memoryview`` for a C/C++ buffer not
+managed by Python. The user is responsible for managing the lifetime of the
+buffer. Using a ``memoryview`` created in this way after deleting the buffer in
+C++ side results in undefined behavior.
+
+We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
+
+.. code-block:: cpp
+
+    m.def("get_memoryview1d", []() {
+        return py::memoryview::from_memory(
+            buffer,               // buffer pointer
+            sizeof(uint8_t) * 8   // buffer size
+        );
+    })
+
+.. note::
+
+    ``memoryview::from_memory`` is not available in Python 2.
+
+.. versionchanged:: 2.6
+    ``memoryview::from_memory`` added.

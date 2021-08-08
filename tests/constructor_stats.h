@@ -120,7 +120,7 @@ public:
             throw py::error_already_set();
         Py_DECREF(result);
 #else
-        py::module::import("gc").attr("collect")();
+        py::module_::import("gc").attr("collect")();
 #endif
     }
 
@@ -180,7 +180,7 @@ public:
                 }
             }
         }
-        catch (const std::out_of_range &) {}
+        catch (const std::out_of_range&) {}
         if (!t1) throw std::runtime_error("Unknown class passed to ConstructorStats::get()");
         auto &cs1 = get(*t1);
         // If we have both a t1 and t2 match, one is probably the trampoline class; return whichever
@@ -273,4 +273,3 @@ template <class T, typename... Values> void print_values(T *inst, Values &&...va
     print_constr_details(inst, ":", values...);
     track_values(inst, values...);
 }
-

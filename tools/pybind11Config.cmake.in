@@ -1,104 +1,233 @@
-# pybind11Config.cmake
-# --------------------
-#
-# PYBIND11 cmake module.
-# This module sets the following variables in your project::
-#
-#   pybind11_FOUND - true if pybind11 and all required components found on the system
-#   pybind11_VERSION - pybind11 version in format Major.Minor.Release
-#   pybind11_INCLUDE_DIRS - Directories where pybind11 and python headers are located.
-#   pybind11_INCLUDE_DIR - Directory where pybind11 headers are located.
-#   pybind11_DEFINITIONS - Definitions necessary to use pybind11, namely USING_pybind11.
-#   pybind11_LIBRARIES - compile flags and python libraries (as needed) to link against.
-#   pybind11_LIBRARY - empty.
-#   CMAKE_MODULE_PATH - appends location of accompanying FindPythonLibsNew.cmake and
-#                       pybind11Tools.cmake modules.
-#
-#
-# Available components: None
-#
-#
-# Exported targets::
-#
-# If pybind11 is found, this module defines the following :prop_tgt:`IMPORTED`
-# interface library targets::
-#
-#   pybind11::module - for extension modules
-#   pybind11::embed - for embedding the Python interpreter
-#
-# Python headers, libraries (as needed by platform), and the C++ standard
-# are attached to the target. Set PythonLibsNew variables to influence
-# python detection and PYBIND11_CPP_STANDARD (-std=c++11 or -std=c++14) to
-# influence standard setting. ::
-#
-#   find_package(pybind11 CONFIG REQUIRED)
-#   message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
-#
-#   # Create an extension module
-#   add_library(mylib MODULE main.cpp)
-#   target_link_libraries(mylib pybind11::module)
-#
-#   # Or embed the Python interpreter into an executable
-#   add_executable(myexe main.cpp)
-#   target_link_libraries(myexe pybind11::embed)
-#
-# Suggested usage::
-#
-# find_package with version info is not recommended except for release versions. ::
-#
-#   find_package(pybind11 CONFIG)
-#   find_package(pybind11 2.0 EXACT CONFIG REQUIRED)
-#
-#
-# The following variables can be set to guide the search for this package::
-#
-#   pybind11_DIR - CMake variable, set to directory containing this Config file
-#   CMAKE_PREFIX_PATH - CMake variable, set to root directory of this package
-#   PATH - environment variable, set to bin directory of this package
-#   CMAKE_DISABLE_FIND_PACKAGE_pybind11 - CMake variable, disables
-#     find_package(pybind11) when not REQUIRED, perhaps to force internal build
+#[=============================================================================[.rst:
 
+pybind11Config.cmake
+####################
+
+Exported variables
+==================
+
+This module sets the following variables in your project:
+
+``pybind11_FOUND``
+  true if pybind11 and all required components found on the system
+``pybind11_VERSION``
+  pybind11 version in format Major.Minor.Release
+``pybind11_VERSION_TYPE``
+  pybind11 version type (dev, release)
+``pybind11_INCLUDE_DIRS``
+  Directories where pybind11 and python headers are located.
+``pybind11_INCLUDE_DIR``
+  Directory where pybind11 headers are located.
+``pybind11_DEFINITIONS``
+  Definitions necessary to use pybind11, namely USING_pybind11.
+``pybind11_LIBRARIES``
+  Compile flags and python libraries (as needed) to link against.
+``pybind11_LIBRARY``
+  Empty.
+
+Available components: None
+
+
+Exported targets
+================
+
+If pybind11 is found, this module defines the following ``IMPORTED``
+interface library targets:
+
+``pybind11::module``
+  for extension modules.
+``pybind11::embed``
+  for embedding the Python interpreter.
+
+Python headers, libraries (as needed by platform), and the C++ standard
+are attached to the target.
+
+Advanced targets are also supplied - these are primary for users building
+complex applications, and they are available in all modes:
+
+``pybind11::headers``
+  Just the pybind11 headers and minimum compile requirements.
+``pybind11::pybind11``
+  Python headers too.
+``pybind11::python_link_helper``
+  Just the "linking" part of ``pybind11:module``, for CMake < 3.15.
+``pybind11::python2_no_register``
+  Quiets the warning/error when mixing C++14+ and Python 2, also included in ``pybind11::module``.
+``pybind11::thin_lto``
+  An alternative to ``INTERPROCEDURAL_OPTIMIZATION``.
+``pybind11::lto``
+  An alternative to ``INTERPROCEDURAL_OPTIMIZATION`` (also avoids thin LTO on clang).
+``pybind11::windows_extras``
+  Adds bigobj and mp for MSVC.
+
+Modes
+=====
+
+There are two modes provided; classic, which is built on the old Python
+discovery packages in CMake, or the new FindPython mode, which uses FindPython
+from 3.12+ forward (3.15+ _highly_ recommended).
+
+New FindPython mode
+^^^^^^^^^^^^^^^^^^^
+
+To activate this mode, either call ``find_package(Python COMPONENTS Interpreter Development)``
+before finding this package, or set the ``PYBIND11_FINDPYTHON`` variable to ON. In this mode,
+you can either use the basic targets, or use the FindPython tools:
+
+.. code-block:: cmake
+
+  find_package(Python COMPONENTS Interpreter Development)
+  find_package(pybind11 CONFIG)
+
+  # pybind11 method:
+  pybind11_add_module(MyModule1 src1.cpp)
+
+  # Python method:
+  Python_add_library(MyModule2 src2.cpp)
+  target_link_libraries(MyModule2 pybind11::headers)
+  set_target_properties(MyModule2 PROPERTIES
+                                  INTERPROCEDURAL_OPTIMIZATION ON
+                                  CXX_VISIBILITY_PRESET ON
+                                  VISIBLITY_INLINES_HIDDEN ON)
+
+If you build targets yourself, you may be interested in stripping the output
+for reduced size; this is the one other feature that the helper function gives you.
+
+Classic mode
+^^^^^^^^^^^^
+
+Set PythonLibsNew variables to influence python detection and
+CMAKE_CXX_STANDARD to influence standard setting.
+
+.. code-block:: cmake
+
+  find_package(pybind11 CONFIG REQUIRED)
+
+  # Create an extension module
+  add_library(mylib MODULE main.cpp)
+  target_link_libraries(mylib PUBLIC pybind11::module)
+
+  # Or embed the Python interpreter into an executable
+  add_executable(myexe main.cpp)
+  target_link_libraries(myexe PUBLIC pybind11::embed)
+
+
+Hints
+=====
+
+The following variables can be set to guide the search for this package:
+
+``pybind11_DIR``
+  CMake variable, set to directory containing this Config file.
+``CMAKE_PREFIX_PATH``
+  CMake variable, set to root directory of this package.
+``PATH``
+  Environment variable, set to bin directory of this package.
+``CMAKE_DISABLE_FIND_PACKAGE_pybind11``
+  CMake variable, disables ``find_package(pybind11)`` when not ``REQUIRED``,
+  perhaps to force internal build.
+
+Commands
+========
+
+pybind11_add_module
+^^^^^^^^^^^^^^^^^^^
+
+This module defines the following commands to assist with creating Python modules:
+
+.. code-block:: cmake
+
+  pybind11_add_module(<target>
+    [STATIC|SHARED|MODULE]
+    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOABI]
+    <files>...
+    )
+
+Add a module and setup all helpers. You can select the type of the library; the
+default is ``MODULE``. There are several options:
+
+``OPT_SIZE``
+  Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``RelSize``.
+``THIN_LTO``
+  Use thin TLO instead of regular if there's a choice (pybind11's selection
+  is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
+``WITHOUT_SOABI``
+  Disable the SOABI component (``PYBIND11_NEWPYTHON`` mode only).
+``NO_EXTRAS``
+  Disable all extras, exit immediately after making the module.
+
+pybind11_strip
+^^^^^^^^^^^^^^
+
+.. code-block:: cmake
+
+  pybind11_strip(<target>)
+
+Strip a target after building it (linux/macOS), called by ``pybind11_add_module``.
+
+pybind11_extension
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: cmake
+
+    pybind11_extension(<target>)
+
+Sets the Python extension name correctly for Python on your platform, called by
+``pybind11_add_module``.
+
+pybind11_find_import(module)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: cmake
+
+    pybind11_find_import(<module> [VERSION <number>] [REQUIRED] [QUIET])
+
+See if a module is installed. Use the registered name (the one on PyPI). You
+can specify a ``VERSION``, and you can specify ``REQUIRED`` or ``QUIET``. Only available if
+``NOPYTHON`` mode is not active.  Sets ``module_VERSION`` and ``module_FOUND``. Caches the
+result once a valid install is found.
+
+Suggested usage
+===============
+
+Using ``find_package`` with version info is not recommended except for release versions.
+
+.. code-block:: cmake
+
+  find_package(pybind11 CONFIG)
+  find_package(pybind11 2.0 EXACT CONFIG REQUIRED)
+
+#]=============================================================================]
 @PACKAGE_INIT@
 
-set(PN pybind11)
+# Location of pybind11/pybind11.h
+# This will be relative unless explicitly set as absolute
+set(pybind11_INCLUDE_DIR "@pybind11_INCLUDEDIR@")
 
-# location of pybind11/pybind11.h
-set(${PN}_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
+set(pybind11_LIBRARY "")
+set(pybind11_DEFINITIONS USING_pybind11)
+set(pybind11_VERSION_TYPE "@pybind11_VERSION_TYPE@")
 
-set(${PN}_LIBRARY "")
-set(${PN}_DEFINITIONS USING_${PN})
+check_required_components(pybind11)
 
-check_required_components(${PN})
-
-# make detectable the FindPythonLibsNew.cmake module
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
-
-include(pybind11Tools)
-
-if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
-#-----------------------------------------------------------------------------
-# Don't include targets if this file is being picked up by another
-# project which has already built this as a subproject
-#-----------------------------------------------------------------------------
-if(NOT TARGET ${PN}::pybind11)
-    include("${CMAKE_CURRENT_LIST_DIR}/${PN}Targets.cmake")
-
-    find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
-    set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
-    set_property(TARGET ${PN}::embed APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
-    if(WIN32 OR CYGWIN)
-      set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
-    endif()
-
-    if(CMAKE_VERSION VERSION_LESS 3.3)
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
-    else()
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
-    endif()
-
-    get_property(_iid TARGET ${PN}::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-    get_property(_ill TARGET ${PN}::module PROPERTY INTERFACE_LINK_LIBRARIES)
-    set(${PN}_INCLUDE_DIRS ${_iid})
-    set(${PN}_LIBRARIES ${_ico} ${_ill})
+if(TARGET pybind11::python_link_helper)
+  # This has already been setup elsewhere, such as with a previous call or
+  # add_subdirectory
+  return()
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/pybind11Targets.cmake")
+
+# Easier to use / remember
+add_library(pybind11::headers IMPORTED INTERFACE)
+set_target_properties(pybind11::headers PROPERTIES INTERFACE_LINK_LIBRARIES
+                                                   pybind11::pybind11_headers)
+
+include("${CMAKE_CURRENT_LIST_DIR}/pybind11Common.cmake")
+
+if(NOT pybind11_FIND_QUIETLY)
+  message(
+    STATUS
+      "Found pybind11: ${pybind11_INCLUDE_DIR} (found version \"${pybind11_VERSION}\" ${pybind11_VERSION_TYPE})"
+  )
 endif()

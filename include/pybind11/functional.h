@@ -12,8 +12,8 @@
 #include "pybind11.h"
 #include <functional>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename Return, typename... Args>
 struct type_caster<std::function<Return(Args...)>> {
@@ -43,22 +43,39 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (auto cfunc = func.cpp_function()) {
-            auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
-            auto rec = (function_record *) c;
+            auto cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
+            if (isinstance<capsule>(cfunc_self)) {
+                auto c = reinterpret_borrow<capsule>(cfunc_self);
+                auto rec = (function_record *) c;
 
-            if (rec && rec->is_stateless &&
-                    same_type(typeid(function_type), *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
-                struct capture { function_type f; };
-                value = ((capture *) &rec->data)->f;
-                return true;
+                while (rec != nullptr) {
+                    if (rec->is_stateless
+                        && same_type(typeid(function_type),
+                                     *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
+                        struct capture {
+                            function_type f;
+                        };
+                        value = ((capture *) &rec->data)->f;
+                        return true;
+                    }
+                    rec = rec->next;
+                }
             }
+            // PYPY segfaults here when passing builtin function like sum.
+            // Raising an fail exception here works to prevent the segfault, but only on gcc.
+            // See PR #1413 for full details
         }
 
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;
-            func_handle(function&& f_) : f(std::move(f_)) {}
-            func_handle(const func_handle&) = default;
+            func_handle(function &&f_) noexcept : f(std::move(f_)) {}
+            func_handle(const func_handle &f_) { operator=(f_); }
+            func_handle &operator=(const func_handle &f_) {
+                gil_scoped_acquire acq;
+                f = f_.f;
+                return *this;
+            }
             ~func_handle() {
                 gil_scoped_acquire acq;
                 function kill_f(std::move(f));
@@ -68,7 +85,7 @@ public:
         // to emulate 'move initialization capture' in C++11
         struct func_wrapper {
             func_handle hfunc;
-            func_wrapper(func_handle&& hf): hfunc(std::move(hf)) {}
+            func_wrapper(func_handle &&hf) noexcept : hfunc(std::move(hf)) {}
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 object retval(hfunc.f(std::forward<Args>(args)...));
@@ -89,13 +106,12 @@ public:
         auto result = f_.template target<function_type>();
         if (result)
             return cpp_function(*result, policy).release();
-        else
-            return cpp_function(std::forward<Func>(f_), policy).release();
+        return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
     PYBIND11_TYPE_CASTER(type, _("Callable[[") + concat(make_caster<Args>::name...) + _("], ")
                                + make_caster<retval_type>::name + _("]"));
 };
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

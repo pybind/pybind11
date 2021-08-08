@@ -13,11 +13,13 @@ TEST_SUBMODULE(enums, m) {
     // test_unscoped_enum
     enum UnscopedEnum {
         EOne = 1,
-        ETwo
+        ETwo,
+        EThree
     };
     py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic(), "An unscoped enumeration")
         .value("EOne", EOne, "Docstring for EOne")
         .value("ETwo", ETwo, "Docstring for ETwo")
+        .value("EThree", EThree, "Docstring for EThree")
         .export_values();
 
     // test_scoped_enum
