@@ -1,4 +1,4 @@
-/*
+
     pybind11/numpy.h: Basic NumPy support, vectorize() wrapper
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -247,15 +247,15 @@ private:
         DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_FromAny);
         DECL_NPY_API(PyArray_Resize);
-        DECL_NPY_API(PyArray_Newshape);
         DECL_NPY_API(PyArray_CopyInto);
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
         DECL_NPY_API(PyArray_DescrNewFromType);
+        DECL_NPY_API(PyArray_Newshape);
+        DECL_NPY_API(PyArray_Squeeze);
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
         DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-        DECL_NPY_API(PyArray_Squeeze);
         DECL_NPY_API(PyArray_SetBaseObject);
 
 #undef DECL_NPY_API
