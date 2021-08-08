@@ -36,9 +36,9 @@ def test_raise_without_throw(msg):
     assert msg(excinfo.value) == "this is a robbery!"
 
     # Setting an error and returning a non-null object is a Python system error
-    with pytest.raises(SystemError) as excinfo:
-        m.raise_without_throw(return_null=False, set_error=True)
-    assert "returned a result with an error set" in str(excinfo.value)
+    if not env.PY2:
+        with pytest.raises(SystemError) as excinfo:
+            m.raise_without_throw(return_null=False, set_error=True)
 
     # Returning a null object without error being set is not allowed either, as
     # that's also the case when function return value can't be converted to a
