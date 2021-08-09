@@ -11,9 +11,14 @@
 #pragma once
 
 #include "pybind11.h"
+
+#include <chrono>
 #include <cmath>
 #include <ctime>
-#include <chrono>
+#include <mutex>
+
+#include <time.h>
+
 #include <datetime.h>
 
 // Backport the PyDateTime_DELTA functions from Python3.3 if required
@@ -32,10 +37,10 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename type> class duration_caster {
 public:
-    typedef typename type::rep rep;
-    typedef typename type::period period;
+    using rep = typename type::rep;
+    using period = typename type::period;
 
-    typedef std::chrono::duration<uint_fast32_t, std::ratio<86400>> days;
+    using days = std::chrono::duration<int_least32_t, std::ratio<86400>>; // signed 25 bits required by the standard.
 
     bool load(handle src, bool) {
         using namespace std::chrono;
@@ -53,11 +58,11 @@ public:
             return true;
         }
         // If invoked with a float we assume it is seconds and convert
-        else if (PyFloat_Check(src.ptr())) {
+        if (PyFloat_Check(src.ptr())) {
             value = type(duration_cast<duration<rep, period>>(duration<double>(PyFloat_AsDouble(src.ptr()))));
             return true;
         }
-        else return false;
+        return false;
     }
 
     // If this is a duration just return it back
@@ -95,10 +100,26 @@ public:
     PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
 };
 
+inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || defined(_MSC_VER)
+    if (localtime_s(buf, time))
+        return nullptr;
+    return buf;
+#else
+    static std::mutex mtx;
+    std::lock_guard<std::mutex> lock(mtx);
+    std::tm *tm_ptr = localtime(time);
+    if (tm_ptr != nullptr) {
+        *buf = *tm_ptr;
+    }
+    return tm_ptr;
+#endif
+}
+
 // This is for casting times on the system clock into datetime.datetime instances
 template <typename Duration> class type_caster<std::chrono::time_point<std::chrono::system_clock, Duration>> {
 public:
-    typedef std::chrono::time_point<std::chrono::system_clock, Duration> type;
+    using type = std::chrono::time_point<std::chrono::system_clock, Duration>;
     bool load(handle src, bool) {
         using namespace std::chrono;
 
@@ -140,7 +161,7 @@ public:
         }
         else return false;
 
-        value = system_clock::from_time_t(std::mktime(&cal)) + msecs;
+        value = time_point_cast<Duration>(system_clock::from_time_t(std::mktime(&cal)) + msecs);
         return true;
     }
 
@@ -150,21 +171,29 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        std::time_t tt = system_clock::to_time_t(time_point_cast<system_clock::duration>(src));
-        // this function uses static memory so it's best to copy it out asap just in case
-        // otherwise other code that is using localtime may break this (not just python code)
-        std::tm localtime = *std::localtime(&tt);
-
-        // Declare these special duration types so the conversions happen with the correct primitive types (int)
+        // Get out microseconds, and make sure they are positive, to avoid bug in eastern hemisphere time zones
+        // (cfr. https://github.com/pybind/pybind11/issues/2417)
         using us_t = duration<int, std::micro>;
+        auto us = duration_cast<us_t>(src.time_since_epoch() % seconds(1));
+        if (us.count() < 0)
+            us += seconds(1);
 
+        // Subtract microseconds BEFORE `system_clock::to_time_t`, because:
+        // > If std::time_t has lower precision, it is implementation-defined whether the value is rounded or truncated.
+        // (https://en.cppreference.com/w/cpp/chrono/system_clock/to_time_t)
+        std::time_t tt = system_clock::to_time_t(time_point_cast<system_clock::duration>(src - us));
+
+        std::tm localtime;
+        std::tm *localtime_ptr = localtime_thread_safe(&tt, &localtime);
+        if (!localtime_ptr)
+            throw cast_error("Unable to represent system_clock in local time");
         return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
                                           localtime.tm_mon + 1,
                                           localtime.tm_mday,
                                           localtime.tm_hour,
                                           localtime.tm_min,
                                           localtime.tm_sec,
-                                          (duration_cast<us_t>(src.time_since_epoch() % seconds(1))).count());
+                                          us.count());
     }
     PYBIND11_TYPE_CASTER(type, _("datetime.datetime"));
 };

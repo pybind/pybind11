@@ -86,13 +86,13 @@ std::vector<std::unique_ptr<Animal>> create_zoo()
 const std::type_info* Animal::type_of_kind(Kind kind)
 {
     switch (kind) {
-        case Kind::Unknown: break;
-
+        case Kind::Unknown:
         case Kind::Dog: break;
+
         case Kind::Labrador: return &typeid(Labrador);
         case Kind::Chihuahua: return &typeid(Chihuahua);
-        case Kind::LastDog: break;
 
+        case Kind::LastDog:
         case Kind::Cat: break;
         case Kind::Panther: return &typeid(Panther);
         case Kind::LastCat: break;
@@ -117,7 +117,7 @@ namespace pybind11 {
         static const void *get(const itype *src, const std::type_info*& type)
         { type = src ? Animal::type_of_kind(src->kind) : nullptr; return src; }
     };
-}
+} // namespace pybind11
 
 TEST_SUBMODULE(tagbased_polymorphic, m) {
     py::class_<Animal>(m, "Animal")

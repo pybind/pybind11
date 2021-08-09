@@ -11,11 +11,11 @@ included set of test cases.
 Compiling the test cases
 ========================
 
-Linux/MacOS
+Linux/macOS
 -----------
 
 On Linux  you'll need to install the **python-dev** or **python3-dev** packages as
-well as **cmake**. On Mac OS, the included python version works out of the box,
+well as **cmake**. On macOS, the included python version works out of the box,
 but **cmake** must still be installed.
 
 After installing the prerequisites, run
@@ -34,6 +34,14 @@ Windows
 
 On Windows, only **Visual Studio 2015** and newer are supported since pybind11 relies
 on various C++11 language features that break older versions of Visual Studio.
+
+.. Note::
+
+    To use the C++17 in Visual Studio 2017 (MSVC 14.1), pybind11 requires the flag
+    ``/permissive-`` to be passed to the compiler `to enforce standard conformance`_. When
+    building with Visual Studio 2019, this is not strictly necessary, but still advised.
+
+..  _`to enforce standard conformance`: https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=vs-2017
 
 To compile and run the tests:
 
@@ -110,8 +118,8 @@ a file named :file:`example.cpp` with the following contents:
 The :func:`PYBIND11_MODULE` macro creates a function that will be called when an
 ``import`` statement is issued from within Python. The module name (``example``)
 is given as the first macro argument (it should not be in quotes). The second
-argument (``m``) defines a variable of type :class:`py::module <module>` which
-is the main interface for creating bindings. The method :func:`module::def`
+argument (``m``) defines a variable of type :class:`py::module_ <module>` which
+is the main interface for creating bindings. The method :func:`module_::def`
 generates binding code that exposes the ``add()`` function to Python.
 
 .. note::
@@ -128,9 +136,16 @@ On Linux, the above example can be compiled using the following command:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
-For more details on the required compiler flags on Linux and MacOS, see
+.. note::
+
+    If you used :ref:`include_as_a_submodule` to get the pybind11 source, then
+    use ``$(python3-config --includes) -Iextern/pybind11/include`` instead of
+    ``$(python3 -m pybind11 --includes)`` in the above compilation, as
+    explained in :ref:`building_manually`.
+
+For more details on the required compiler flags on Linux and macOS, see
 :ref:`building_manually`. For complete cross-platform compilation instructions,
 refer to the :ref:`compiling` page.
 
@@ -173,7 +188,7 @@ names of the arguments ("i" and "j" in this case).
           py::arg("i"), py::arg("j"));
 
 :class:`arg` is one of several special tag classes which can be used to pass
-metadata into :func:`module::def`. With this modified binding code, we can now
+metadata into :func:`module_::def`. With this modified binding code, we can now
 call the function using keyword arguments, which is a more readable alternative
 particularly for functions taking many parameters:
 

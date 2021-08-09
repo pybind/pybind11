@@ -1,0 +1,119 @@
+# To use:
+#
+#     pre-commit run -a
+#
+# Or:
+#
+#     pre-commit install  # (runs every time you commit in git)
+#
+# To update this file:
+#
+#     pre-commit autoupdate
+#
+# See https://github.com/pre-commit/pre-commit
+
+repos:
+# Standard hooks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.0.1
+  hooks:
+  - id: check-added-large-files
+  - id: check-case-conflict
+  - id: check-merge-conflict
+  - id: check-symlinks
+  - id: check-yaml
+  - id: debug-statements
+  - id: end-of-file-fixer
+  - id: mixed-line-ending
+  - id: requirements-txt-fixer
+  - id: trailing-whitespace
+  - id: fix-encoding-pragma
+    exclude: ^noxfile.py$
+
+- repo: https://github.com/asottile/pyupgrade
+  rev: v2.23.1
+  hooks:
+  - id: pyupgrade
+
+# Black, the code formatter, natively supports pre-commit
+- repo: https://github.com/psf/black
+  rev: 21.7b0
+  hooks:
+  - id: black
+    # By default, this ignores pyi files, though black supports them
+    types: [text]
+    files: \.pyi?$
+
+# Changes tabs to spaces
+- repo: https://github.com/Lucas-C/pre-commit-hooks
+  rev: v1.1.10
+  hooks:
+  - id: remove-tabs
+
+# Flake8 also supports pre-commit natively (same author)
+- repo: https://github.com/PyCQA/flake8
+  rev: 3.9.2
+  hooks:
+  - id: flake8
+    additional_dependencies: [flake8-bugbear, pep8-naming]
+    exclude: ^(docs/.*|tools/.*)$
+
+# CMake formatting
+- repo: https://github.com/cheshirekow/cmake-format-precommit
+  rev: v0.6.13
+  hooks:
+  - id: cmake-format
+    additional_dependencies: [pyyaml]
+    types: [file]
+    files: (\.cmake|CMakeLists.txt)(.in)?$
+
+# Check static types with mypy
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v0.910
+  hooks:
+  - id: mypy
+    # The default Python type ignores .pyi files, so let's rerun if detected
+    types: [text]
+    files: ^pybind11.*\.pyi?$
+    # Running per-file misbehaves a bit, so just run on all files, it's fast
+    pass_filenames: false
+    additional_dependencies: [typed_ast]
+
+# Checks the manifest for missing files (native support)
+- repo: https://github.com/mgedmin/check-manifest
+  rev: "0.46"
+  hooks:
+  - id: check-manifest
+    # This is a slow hook, so only run this if --hook-stage manual is passed
+    stages: [manual]
+    additional_dependencies: [cmake, ninja]
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.1.0
+  hooks:
+  - id: codespell
+    exclude: ".supp$"
+    args: ["-L", "nd,ot,thist"]
+
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.7.2.1
+    hooks:
+    -   id: shellcheck
+
+# The original pybind11 checks for a few C++ style items
+- repo: local
+  hooks:
+  - id: disallow-caps
+    name: Disallow improper capitalization
+    language: pygrep
+    entry: PyBind|Numpy|Cmake|CCache|PyTest
+    exclude: .pre-commit-config.yaml
+
+- repo: local
+  hooks:
+  - id: check-style
+    name: Classic check-style
+    language: system
+    types:
+    - c++
+    entry: ./tools/check-style.sh

@@ -47,10 +47,12 @@ TEST_SUBMODULE(call_policies, m) {
     class Parent {
     public:
         Parent() { py::print("Allocating parent."); }
+        Parent(const Parent& parent) = default;
         ~Parent() { py::print("Releasing parent."); }
         void addChild(Child *) { }
         Child *returnChild() { return new Child(); }
         Child *returnNullChild() { return nullptr; }
+        static Child *staticFunction(Parent*) { return new Child(); }
     };
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
@@ -60,7 +62,12 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnChild", &Parent::returnChild)
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
-        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>());
+        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
+        .def_static(
+            "staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
+
+    m.def("free_function", [](Parent*, Child*) {}, py::keep_alive<1, 2>());
+    m.def("invalid_arg_index", []{}, py::keep_alive<0, 1>());
 
     // test_keep_alive_single
     m.def("add_patient", [](py::object /*nurse*/, py::object /*patient*/) { }, py::keep_alive<1, 2>());

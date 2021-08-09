@@ -144,7 +144,7 @@ template <typename Type, typename Value> struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<sequence>(src) || isinstance<str>(src))
+        if (!isinstance<sequence>(src) || isinstance<bytes>(src) || isinstance<str>(src))
             return false;
         auto s = reinterpret_borrow<sequence>(src);
         value.clear();
@@ -159,10 +159,13 @@ template <typename Type, typename Value> struct list_caster {
     }
 
 private:
-    template <typename T = Type,
-              enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
-    void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
-    void reserve_maybe(sequence, void *) { }
+    template <
+        typename T                                                                          = Type,
+        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    void reserve_maybe(const sequence &s, Type *) {
+        value.reserve(s.size());
+    }
+    void reserve_maybe(const sequence &, void *) {}
 
 public:
     template <typename T>
@@ -275,7 +278,8 @@ template<typename T> struct optional_caster {
     bool load(handle src, bool convert) {
         if (!src) {
             return false;
-        } else if (src.is_none()) {
+        }
+        if (src.is_none()) {
             return true;  // default-constructed value is already empty
         }
         value_conv inner_caster;
@@ -289,7 +293,7 @@ template<typename T> struct optional_caster {
     PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name + _("]"));
 };
 
-#if PYBIND11_HAS_OPTIONAL
+#if defined(PYBIND11_HAS_OPTIONAL)
 template<typename T> struct type_caster<std::optional<T>>
     : public optional_caster<std::optional<T>> {};
 
@@ -297,7 +301,7 @@ template<> struct type_caster<std::nullopt_t>
     : public void_caster<std::nullopt_t> {};
 #endif
 
-#if PYBIND11_HAS_EXP_OPTIONAL
+#if defined(PYBIND11_HAS_EXP_OPTIONAL)
 template<typename T> struct type_caster<std::experimental::optional<T>>
     : public optional_caster<std::experimental::optional<T>> {};
 
@@ -369,7 +373,7 @@ struct variant_caster<V<Ts...>> {
     PYBIND11_TYPE_CASTER(Type, _("Union[") + detail::concat(make_caster<Ts>::name...) + _("]"));
 };
 
-#if PYBIND11_HAS_VARIANT
+#if defined(PYBIND11_HAS_VARIANT)
 template <typename... Ts>
 struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { };
 #endif
@@ -377,7 +381,11 @@ struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { 
 PYBIND11_NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
+#ifdef PYBIND11_HAS_STRING_VIEW
+    os << str(obj).cast<std::string_view>();
+#else
     os << (std::string) str(obj);
+#endif
     return os;
 }
 

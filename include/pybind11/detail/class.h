@@ -24,6 +24,18 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj) setattr((PyObject *) obj, "__qualname__", nameobj)
 #endif
 
+inline std::string get_fully_qualified_tp_name(PyTypeObject *type) {
+#if !defined(PYPY_VERSION)
+    return type->tp_name;
+#else
+    auto module_name = handle((PyObject *) type).attr("__module__").cast<std::string>();
+    if (module_name == PYBIND11_BUILTINS_MODULE)
+        return type->tp_name;
+    else
+        return std::move(module_name) + "." + type->tp_name;
+#endif
+}
+
 inline PyTypeObject *type_incref(PyTypeObject *type) {
     Py_INCREF(type);
     return type;
@@ -117,8 +129,9 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
     //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
     const auto static_prop = (PyObject *) get_internals().static_property_type;
-    const auto call_descr_set = descr && PyObject_IsInstance(descr, static_prop)
-                                && !PyObject_IsInstance(value, static_prop);
+    const auto call_descr_set = (descr != nullptr) && (value != nullptr)
+                                && (PyObject_IsInstance(descr, static_prop) != 0)
+                                && (PyObject_IsInstance(value, static_prop) == 0);
     if (call_descr_set) {
         // Call `static_property.__set__()` instead of replacing the `static_property`.
 #if !defined(PYPY_VERSION)
@@ -150,9 +163,7 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
         Py_INCREF(descr);
         return descr;
     }
-    else {
-        return PyType_Type.tp_getattro(obj, name);
-    }
+    return PyType_Type.tp_getattro(obj, name);
 }
 #endif
 
@@ -169,16 +180,54 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     auto instance = reinterpret_cast<detail::instance *>(self);
 
     // Ensure that the base __init__ function(s) were called
-    for (auto vh : values_and_holders(instance)) {
+    for (const auto &vh : values_and_holders(instance)) {
         if (!vh.holder_constructed()) {
             PyErr_Format(PyExc_TypeError, "%.200s.__init__() must be called when overriding __init__",
-                         vh.type->type->tp_name);
+                         get_fully_qualified_tp_name(vh.type->type).c_str());
             Py_DECREF(self);
             return nullptr;
         }
     }
 
     return self;
+}
+
+/// Cleanup the type-info for a pybind11-registered type.
+extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
+    auto *type = (PyTypeObject *) obj;
+    auto &internals = get_internals();
+
+    // A pybind11-registered type will:
+    // 1) be found in internals.registered_types_py
+    // 2) have exactly one associated `detail::type_info`
+    auto found_type = internals.registered_types_py.find(type);
+    if (found_type != internals.registered_types_py.end() &&
+        found_type->second.size() == 1 &&
+        found_type->second[0]->type == type) {
+
+        auto *tinfo = found_type->second[0];
+        auto tindex = std::type_index(*tinfo->cpptype);
+        internals.direct_conversions.erase(tindex);
+
+        if (tinfo->module_local)
+            get_local_internals().registered_types_cpp.erase(tindex);
+        else
+            internals.registered_types_cpp.erase(tindex);
+        internals.registered_types_py.erase(tinfo->type);
+
+        // Actually just `std::erase_if`, but that's only available in C++20
+        auto &cache = internals.inactive_override_cache;
+        for (auto it = cache.begin(), last = cache.end(); it != last; ) {
+            if (it->first == (PyObject *) tinfo->type)
+                it = cache.erase(it);
+            else
+                ++it;
+        }
+
+        delete tinfo;
+    }
+
+    PyType_Type.tp_dealloc(obj);
 }
 
 /** This metaclass is assigned by default to all pybind11 types and is required in order
@@ -212,6 +261,8 @@ inline PyTypeObject* make_default_metaclass() {
 #if PY_MAJOR_VERSION >= 3
     type->tp_getattro = pybind11_meta_getattro;
 #endif
+
+    type->tp_dealloc = pybind11_meta_dealloc;
 
     if (PyType_Ready(type) < 0)
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
@@ -250,7 +301,7 @@ inline bool deregister_instance_impl(void *ptr, instance *self) {
     auto &registered_instances = get_internals().registered_instances;
     auto range = registered_instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        if (Py_TYPE(self) == Py_TYPE(it->second)) {
+        if (self == it->second) {
             registered_instances.erase(it);
             return true;
         }
@@ -277,7 +328,7 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 inline PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
-    // object is a a plain Python type (i.e. not derived from an extension type).  Fix it.
+    // object is a plain Python type (i.e. not derived from an extension type).  Fix it.
     ssize_t instance_size = static_cast<ssize_t>(sizeof(instance));
     if (type->tp_basicsize < instance_size) {
         type->tp_basicsize = instance_size;
@@ -287,8 +338,6 @@ inline PyObject *make_new_instance(PyTypeObject *type) {
     auto inst = reinterpret_cast<instance *>(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
-
-    inst->owned = true;
 
     return self;
 }
@@ -304,12 +353,7 @@ extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, 
 /// following default function will be used which simply throws an exception.
 extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
     PyTypeObject *type = Py_TYPE(self);
-    std::string msg;
-#if defined(PYPY_VERSION)
-    msg += handle((PyObject *) type).attr("__module__").cast<std::string>() + ".";
-#endif
-    msg += type->tp_name;
-    msg += ": No constructor defined!";
+    std::string msg = get_fully_qualified_tp_name(type) + ": No constructor defined!";
     PyErr_SetString(PyExc_TypeError, msg.c_str());
     return -1;
 }
@@ -448,7 +492,7 @@ extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
 extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void *) {
     if (!PyDict_Check(new_dict)) {
         PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
-                     Py_TYPE(new_dict)->tp_name);
+                     get_fully_qualified_tp_name(Py_TYPE(new_dict)).c_str());
         return -1;
     }
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -475,11 +519,6 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto type = &heap_type->ht_type;
-#if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000)
-    pybind11_fail(std::string(type->tp_name) + ": dynamic attributes are "
-                                               "currently not supported in "
-                                               "conjunction with PyPy!");
-#endif
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
     type->tp_dictoffset = type->tp_basicsize; // place dict at the end
     type->tp_basicsize += (ssize_t)sizeof(PyObject *); // and allocate enough space for it
@@ -510,6 +549,12 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     }
     std::memset(view, 0, sizeof(Py_buffer));
     buffer_info *info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
+    if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
+        delete info;
+        // view->obj = nullptr;  // Was just memset to 0, so not necessary
+        PyErr_SetString(PyExc_BufferError, "Writable buffer requested for readonly storage");
+        return -1;
+    }
     view->obj = obj;
     view->ndim = 1;
     view->internal = info;
@@ -518,13 +563,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     view->len = view->itemsize;
     for (auto s : info->shape)
         view->len *= s;
-    view->readonly = info->readonly;
-    if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
-        if (view)
-            view->obj = nullptr;
-        PyErr_SetString(PyExc_BufferError, "Writable buffer requested for readonly storage");
-        return -1;
-    }
+    view->readonly = static_cast<int>(info->readonly);
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
         view->format = const_cast<char *>(info->format.c_str());
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
@@ -567,17 +606,17 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 #endif
     }
 
-    object module;
+    object module_;
     if (rec.scope) {
         if (hasattr(rec.scope, "__module__"))
-            module = rec.scope.attr("__module__");
+            module_ = rec.scope.attr("__module__");
         else if (hasattr(rec.scope, "__name__"))
-            module = rec.scope.attr("__name__");
+            module_ = rec.scope.attr("__name__");
     }
 
     auto full_name = c_str(
 #if !defined(PYPY_VERSION)
-        module ? str(module).cast<std::string>() + "." + rec.name :
+        module_ ? str(module_).cast<std::string>() + "." + rec.name :
 #endif
         rec.name);
 
@@ -592,7 +631,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     auto &internals = get_internals();
     auto bases = tuple(rec.bases);
-    auto base = (bases.size() == 0) ? internals.instance_base
+    auto base = (bases.empty()) ? internals.instance_base
                                     : bases[0].ptr();
 
     /* Danger zone: from now (and until PyType_Ready), make sure to
@@ -616,7 +655,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     type->tp_doc = tp_doc;
     type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
-    if (bases.size() > 0)
+    if (!bases.empty())
         type->tp_bases = bases.release().ptr();
 
     /* Don't inherit base __init__ */
@@ -656,8 +695,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     else
         Py_INCREF(type); // Keep it alive forever (reference leak)
 
-    if (module) // Needed by pydoc
-        setattr((PyObject *) type, "__module__", module);
+    if (module_) // Needed by pydoc
+        setattr((PyObject *) type, "__module__", module_);
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
 

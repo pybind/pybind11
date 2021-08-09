@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import operators as m
 from pybind11_tests import ConstructorStats
@@ -55,23 +56,23 @@ def test_operator_overloading():
     del v3
     assert cstats.alive() == 0
     assert cstats.values() == [
-        '[1.000000, 2.000000]',
-        '[3.000000, -1.000000]',
-        '[1.000000, 2.000000]',
-        '[-3.000000, 1.000000]',
-        '[4.000000, 1.000000]',
-        '[-2.000000, 3.000000]',
-        '[-7.000000, -6.000000]',
-        '[9.000000, 10.000000]',
-        '[8.000000, 16.000000]',
-        '[0.125000, 0.250000]',
-        '[7.000000, 6.000000]',
-        '[9.000000, 10.000000]',
-        '[8.000000, 16.000000]',
-        '[8.000000, 4.000000]',
-        '[3.000000, -2.000000]',
-        '[3.000000, -0.500000]',
-        '[6.000000, -2.000000]',
+        "[1.000000, 2.000000]",
+        "[3.000000, -1.000000]",
+        "[1.000000, 2.000000]",
+        "[-3.000000, 1.000000]",
+        "[4.000000, 1.000000]",
+        "[-2.000000, 3.000000]",
+        "[-7.000000, -6.000000]",
+        "[9.000000, 10.000000]",
+        "[8.000000, 16.000000]",
+        "[0.125000, 0.250000]",
+        "[7.000000, 6.000000]",
+        "[9.000000, 10.000000]",
+        "[8.000000, 16.000000]",
+        "[8.000000, 4.000000]",
+        "[3.000000, -2.000000]",
+        "[3.000000, -0.500000]",
+        "[6.000000, -2.000000]",
     ]
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
@@ -126,3 +127,19 @@ def test_nested():
     assert abase.value == 42
     del abase, b
     pytest.gc_collect()
+
+
+def test_overriding_eq_reset_hash():
+
+    assert m.Comparable(15) is not m.Comparable(15)
+    assert m.Comparable(15) == m.Comparable(15)
+
+    with pytest.raises(TypeError):
+        hash(m.Comparable(15))  # TypeError: unhashable type: 'm.Comparable'
+
+    for hashable in (m.Hashable, m.Hashable2):
+        assert hashable(15) is not hashable(15)
+        assert hashable(15) == hashable(15)
+
+        assert hash(hashable(15)) == 15
+        assert hash(hashable(15)) == hash(hashable(15))
