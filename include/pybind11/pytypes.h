@@ -24,7 +24,7 @@ struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
-inline bool isinstance_generic(handle obj, const std::type_info &tp);
+bool isinstance_generic(handle obj, const std::type_info &tp);
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
@@ -316,7 +316,7 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_t{}}; }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-inline std::string error_string();
+std::string error_string();
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
