@@ -131,14 +131,20 @@ def test_keep_alive_single():
     nurse_id = id(nurse)
     assert [refcount(nurse), refcount(p1), refcount(p2)] == [b, b, b]
     m.add_patient(nurse, p1)
-    assert m.get_patients(nurse) == {p1, }
+    assert m.get_patients(nurse) == {
+        p1,
+    }
     assert m.has_patients(nurse_id)
     assert [refcount(nurse), refcount(p1), refcount(p2)] == [b, b + 1, b]
     m.add_patient(nurse, p1)
-    assert m.get_patients(nurse) == {p1, }
+    assert m.get_patients(nurse) == {
+        p1,
+    }
     assert [refcount(nurse), refcount(p1), refcount(p2)] == [b, b + 1, b]
     m.add_patient(nurse, p1)
-    assert m.get_patients(nurse) == {p1, }
+    assert m.get_patients(nurse) == {
+        p1,
+    }
     assert [refcount(nurse), refcount(p1), refcount(p2)] == [b, b + 1, b]
     m.add_patient(nurse, p2)
     assert m.get_patients(nurse) == {p1, p2}
@@ -156,7 +162,7 @@ def test_keep_alive_single():
     # Ensure that nurse entry is removed once it goes out of scope.
     assert [refcount(p1), refcount(p2)] == [b, b]
 
-    
+
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
 def test_alive_gc(capture):
