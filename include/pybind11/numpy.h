@@ -799,10 +799,13 @@ public:
         detail::npy_api::PyArray_Dims d
             = {reinterpret_cast<Py_intptr_t *>(new_shape->data()), int(new_shape->size())};
         // try to reshape, set ordering param to 0 cause it's not used anyway
-        return reinterpret_steal<array>(
-              detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
+        auto new_array
+            = reinterpret_steal<array>(detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
+        if (!new_array) {
+            throw error_already_set();
+        }
+        return new_array;
     }
-
 
     /// Ensure that the argument is a NumPy array
     /// In case of an error, nullptr is returned and the Python error is cleared.

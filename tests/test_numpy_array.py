@@ -497,9 +497,9 @@ def test_reshape_tuple(msg):
 
 def test_reshape_tuple_empty(msg):
     a = np.random.randn(10 * 20 * 30).astype("float64")
-    # FIXME: This should be a ValueError for maximum numpy compat
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError) as excinfo:
         m.reshape_tuple(a, tuple())
+    assert str(excinfo.value) == "cannot reshape array of size 6000 into shape ()"
 
 
 def test_reshape_tuple_flatten(msg):
