@@ -495,11 +495,14 @@ def test_reshape_tuple(msg):
     assert x.shape == (30, 20, 10)
 
 
-def test_reshape_tuple_empty(msg):
+def test_reshape_tuple_invalid(msg):
     a = np.random.randn(10 * 20 * 30).astype("float64")
     with pytest.raises(ValueError) as excinfo:
         m.reshape_tuple(a, tuple())
     assert str(excinfo.value) == "cannot reshape array of size 6000 into shape ()"
+    with pytest.raises(ValueError) as excinfo:
+        m.reshape_tuple(a, (1, 2, 3))
+    assert str(excinfo.value) == "cannot reshape array of size 6000 into shape (1,2,3)"
 
 
 def test_reshape_tuple_flatten(msg):
