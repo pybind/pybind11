@@ -486,6 +486,13 @@ def test_array_view1(msg):
     assert a_int16_view.shape == (100 * 2,)
 
 
+def test_array_view_invalid(msg):
+    a = np.ones(100 * 4).astype("uint8")
+    with pytest.raises(TypeError) as excinfo:
+        m.array_view1(a, "deadly_dtype")
+    assert str(excinfo.value) == "data type 'deadly_dtype' not understood"
+
+
 def test_array_reshape(msg):
     a = np.random.randn(10 * 10 * 10).astype("float64")
     x = m.array_reshape1(a, 10)

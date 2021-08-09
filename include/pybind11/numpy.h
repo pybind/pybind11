@@ -222,7 +222,7 @@ private:
         API_PyArray_DescrNewFromType = 96,
         API_PyArray_Newshape = 135,
         API_PyArray_Squeeze = 136,
-        API_PyArray_View = 137
+        API_PyArray_View = 137,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
         API_PyArray_GetArrayParamsFromObject = 278,
@@ -815,8 +815,12 @@ public:
     // only supports the `dtype` argument, not the `type` argument
     array view(const std::string& dtype) {
         auto& api = detail::npy_api::get();
-        return reinterpret_steal<array>(
-              api.PyArray_View_(m_ptr, dtype::from_args(pybind11::str(dtype)).release().ptr(), NULL));
+        auto new_view = reinterpret_steal<array>(api.PyArray_View_(
+            m_ptr, dtype::from_args(pybind11::str(dtype)).release().ptr(), NULL));
+        if (!new_view) {
+            throw error_already_set();
+        }
+        return new_view;
     }
 
     /// Ensure that the argument is a NumPy array
