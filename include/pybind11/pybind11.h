@@ -10,7 +10,7 @@
 
 #pragma once
 
-#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wattributes"
 #endif
@@ -2384,6 +2384,6 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #    pragma GCC diagnostic pop // -Wnoexcept-type
 #endif
 
-#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
 #  pragma GCC diagnostic pop
 #endif
