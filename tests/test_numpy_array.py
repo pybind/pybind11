@@ -488,9 +488,8 @@ def test_array_view1(msg):
 
 def test_array_view_invalid(msg):
     a = np.ones(100 * 4).astype("uint8")
-    with pytest.raises(TypeError) as excinfo:
+    with pytest.raises(TypeError):
         m.array_view1(a, "deadly_dtype")
-    assert str(excinfo.value) == "data type 'deadly_dtype' not understood"
 
 
 def test_array_reshape(msg):
