@@ -57,11 +57,11 @@ specification.
 
     struct buffer_info {
         void *ptr;
-        ssize_t itemsize;
+        py::ssize_t itemsize;
         std::string format;
-        ssize_t ndim;
-        std::vector<ssize_t> shape;
-        std::vector<ssize_t> strides;
+        py::ssize_t ndim;
+        std::vector<py::ssize_t> shape;
+        std::vector<py::ssize_t> strides;
     };
 
 To create a C++ function that can take a Python buffer object as an argument,
@@ -150,8 +150,10 @@ NumPy array containing double precision values.
 
 When it is invoked with a different type (e.g. an integer or a list of
 integers), the binding code will attempt to cast the input into a NumPy array
-of the requested type. Note that this feature requires the
-:file:`pybind11/numpy.h` header to be included.
+of the requested type. This feature requires the :file:`pybind11/numpy.h`
+header to be included. Note that :file:`pybind11/numpy.h` does not depend on
+the NumPy headers, and thus can be used without declaring a build-time
+dependency on NumPy; NumPy>=1.7.0 is a runtime dependency.
 
 Data in NumPy arrays is not guaranteed to packed in a dense manner;
 furthermore, entries can be separated by arbitrary column and row strides.
@@ -309,17 +311,17 @@ where ``N`` gives the required dimensionality of the array:
     m.def("sum_3d", [](py::array_t<double> x) {
         auto r = x.unchecked<3>(); // x must have ndim = 3; can be non-writeable
         double sum = 0;
-        for (ssize_t i = 0; i < r.shape(0); i++)
-            for (ssize_t j = 0; j < r.shape(1); j++)
-                for (ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            for (py::ssize_t j = 0; j < r.shape(1); j++)
+                for (py::ssize_t k = 0; k < r.shape(2); k++)
                     sum += r(i, j, k);
         return sum;
     });
     m.def("increment_3d", [](py::array_t<double> x) {
         auto r = x.mutable_unchecked<3>(); // Will throw if ndim != 3 or flags.writeable is false
-        for (ssize_t i = 0; i < r.shape(0); i++)
-            for (ssize_t j = 0; j < r.shape(1); j++)
-                for (ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            for (py::ssize_t j = 0; j < r.shape(1); j++)
+                for (py::ssize_t k = 0; k < r.shape(2); k++)
                     r(i, j, k) += 1.0;
     }, py::arg().noconvert());
 
@@ -388,7 +390,7 @@ operation on the C++ side:
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
 
 .. versionchanged:: 2.6
-   ``py::ellipsis()`` is now also avaliable in Python 2.
+   ``py::ellipsis()`` is now also available in Python 2.
 
 Memory view
 ===========

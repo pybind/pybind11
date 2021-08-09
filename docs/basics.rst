@@ -39,7 +39,7 @@ on various C++11 language features that break older versions of Visual Studio.
 
     To use the C++17 in Visual Studio 2017 (MSVC 14.1), pybind11 requires the flag
     ``/permissive-`` to be passed to the compiler `to enforce standard conformance`_. When
-    building with Visual Studio 2019, this is not strictly necessary, but still adviced.
+    building with Visual Studio 2019, this is not strictly necessary, but still advised.
 
 ..  _`to enforce standard conformance`: https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=vs-2017
 
@@ -136,7 +136,14 @@ On Linux, the above example can be compiled using the following command:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+
+.. note::
+
+    If you used :ref:`include_as_a_submodule` to get the pybind11 source, then
+    use ``$(python3-config --includes) -Iextern/pybind11/include`` instead of
+    ``$(python3 -m pybind11 --includes)`` in the above compilation, as
+    explained in :ref:`building_manually`.
 
 For more details on the required compiler flags on Linux and macOS, see
 :ref:`building_manually`. For complete cross-platform compilation instructions,

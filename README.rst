@@ -1,10 +1,18 @@
 .. figure:: https://github.com/pybind/pybind11/raw/master/docs/pybind11-logo.png
    :alt: pybind11 logo
 
-pybind11 — Seamless operability between C++11 and Python
-========================================================
+**pybind11 — Seamless operability between C++11 and Python**
 
-|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |CI| |Build status|
+|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status|
+
+|Repology| |PyPI package| |Conda-forge| |Python Versions|
+
+`Setuptools example <https://github.com/pybind/python_example>`_
+• `Scikit-build example <https://github.com/pybind/scikit_build_example>`_
+• `CMake example <https://github.com/pybind/cmake_example>`_
+
+.. start
+
 
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing
@@ -34,33 +42,35 @@ grown beyond Boost.Python in many ways, leading to dramatically simpler
 binding code in many common situations.
 
 Tutorial and reference documentation is provided at
-`pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_).
+`pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_.
 A PDF version of the manual is available
-`here <https://media.readthedocs.org/pdf/pybind11/master/pybind11.pdf>`_.
+`here <https://pybind11.readthedocs.io/_/downloads/en/latest/pdf/>`_.
 And the source code is always available at
 `github.com/pybind/pybind11 <https://github.com/pybind/pybind11>`_.
+
 
 Core features
 -------------
 
+
 pybind11 can map the following core C++ features to Python:
 
--  Functions accepting and returning custom data structures per value,
-   reference, or pointer
--  Instance methods and static methods
--  Overloaded functions
--  Instance attributes and static attributes
--  Arbitrary exception types
--  Enumerations
--  Callbacks
--  Iterators and ranges
--  Custom operators
--  Single and multiple inheritance
--  STL data structures
--  Smart pointers with reference counting like ``std::shared_ptr``
--  Internal references with correct reference counting
--  C++ classes with virtual (and pure virtual) methods can be extended
-   in Python
+- Functions accepting and returning custom data structures per value,
+  reference, or pointer
+- Instance methods and static methods
+- Overloaded functions
+- Instance attributes and static attributes
+- Arbitrary exception types
+- Enumerations
+- Callbacks
+- Iterators and ranges
+- Custom operators
+- Single and multiple inheritance
+- STL data structures
+- Smart pointers with reference counting like ``std::shared_ptr``
+- Internal references with correct reference counting
+- C++ classes with virtual (and pure virtual) methods can be extended
+  in Python
 
 Goodies
 -------
@@ -68,43 +78,43 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
--  Python 2.7, 3.5+, and PyPy/PyPy3 7.3 are supported with an
-   implementation-agnostic interface.
+- Python 2.7, 3.5+, and PyPy/PyPy3 7.3 are supported with an
+  implementation-agnostic interface.
 
--  It is possible to bind C++11 lambda functions with captured
-   variables. The lambda capture data is stored inside the resulting
-   Python function object.
+- It is possible to bind C++11 lambda functions with captured
+  variables. The lambda capture data is stored inside the resulting
+  Python function object.
 
--  pybind11 uses C++11 move constructors and move assignment operators
-   whenever possible to efficiently transfer custom data types.
+- pybind11 uses C++11 move constructors and move assignment operators
+  whenever possible to efficiently transfer custom data types.
 
--  It’s easy to expose the internal storage of custom data types through
-   Pythons’ buffer protocols. This is handy e.g. for fast conversion
-   between C++ matrix classes like Eigen and NumPy without expensive
-   copy operations.
+- It’s easy to expose the internal storage of custom data types through
+  Pythons’ buffer protocols. This is handy e.g. for fast conversion
+  between C++ matrix classes like Eigen and NumPy without expensive
+  copy operations.
 
--  pybind11 can automatically vectorize functions so that they are
-   transparently applied to all entries of one or more NumPy array
-   arguments.
+- pybind11 can automatically vectorize functions so that they are
+  transparently applied to all entries of one or more NumPy array
+  arguments.
 
--  Python’s slice-based access and assignment operations can be
-   supported with just a few lines of code.
+- Python's slice-based access and assignment operations can be
+  supported with just a few lines of code.
 
--  Everything is contained in just a few header files; there is no need
-   to link against any additional libraries.
+- Everything is contained in just a few header files; there is no need
+  to link against any additional libraries.
 
--  Binaries are generally smaller by a factor of at least 2 compared to
-   equivalent bindings generated by Boost.Python. A recent pybind11
-   conversion of PyRosetta, an enormous Boost.Python binding project,
-   `reported <http://graylab.jhu.edu/RosettaCon2016/PyRosetta-4.pdf>`_
-   a binary size reduction of **5.4x** and compile time reduction by
-   **5.8x**.
+- Binaries are generally smaller by a factor of at least 2 compared to
+  equivalent bindings generated by Boost.Python. A recent pybind11
+  conversion of PyRosetta, an enormous Boost.Python binding project,
+  `reported <http://graylab.jhu.edu/RosettaCon2016/PyRosetta-4.pdf>`_
+  a binary size reduction of **5.4x** and compile time reduction by
+  **5.8x**.
 
--  Function signatures are precomputed at compile time (using
-   ``constexpr``), leading to smaller binaries.
+- Function signatures are precomputed at compile time (using
+  ``constexpr``), leading to smaller binaries.
 
--  With little extra effort, C++ types can be pickled and unpickled
-   similar to regular Python objects.
+- With little extra effort, C++ types can be pickled and unpickled
+  similar to regular Python objects.
 
 Supported compilers
 -------------------
@@ -113,12 +123,10 @@ Supported compilers
    newer)
 2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 Update 3 or newer
-4. Intel C++ compiler 17 or newer (16 with pybind11 v2.0 and 15 with
-   pybind11 v2.0 and a
-   `workaround <https://github.com/pybind/pybind11/issues/276>`_)
-5. Cygwin/GCC (tested on 2.5.1)
-6. NVCC (CUDA 11 tested)
-7. NVIDIA PGI (20.7 and 20.9 tested)
+4. Intel classic C++ compiler 18 or newer (ICC 20.2 tested in CI)
+5. Cygwin/GCC (previously tested on 2.5.1)
+6. NVCC (CUDA 11.0 tested in CI)
+7. NVIDIA PGI (20.9 tested in CI)
 
 About
 -----
@@ -126,10 +134,14 @@ About
 This project was created by `Wenzel
 Jakob <http://rgl.epfl.ch/people/wjakob>`_. Significant features and/or
 improvements to the code were contributed by Jonas Adler, Lori A. Burns,
-Sylvain Corlay, Trent Houliston, Axel Huebl, @hulucc, Sergey Lyskov
-Johan Mabille, Tomasz Miąsko, Dean Moldovan, Ben Pritchard, Jason
-Rhinelander, Boris Schäling, Pim Schellart, Henry Schreiner, Ivan
-Smirnov, and Patrick Stewart.
+Sylvain Corlay, Eric Cousineau, Ralf Grosse-Kunstleve, Trent Houliston, Axel
+Huebl, @hulucc, Yannick Jadoul, Sergey Lyskov Johan Mabille, Tomasz Miąsko,
+Dean Moldovan, Ben Pritchard, Jason Rhinelander, Boris Schäling,  Pim
+Schellart, Henry Schreiner, Ivan Smirnov, Boris Staletic, and Patrick Stewart.
+
+We thank Google for a generous financial contribution to the continuous
+integration infrastructure used by this project.
+
 
 Contributing
 ~~~~~~~~~~~~
@@ -148,7 +160,7 @@ to the terms and conditions of this license.
 
 .. |Latest Documentation Status| image:: https://readthedocs.org/projects/pybind11/badge?version=latest
    :target: http://pybind11.readthedocs.org/en/latest
-.. |Stable Documentation Status| image:: https://img.shields.io/badge/docs-stable-blue
+.. |Stable Documentation Status| image:: https://img.shields.io/badge/docs-stable-blue.svg
    :target: http://pybind11.readthedocs.org/en/stable
 .. |Gitter chat| image:: https://img.shields.io/gitter/room/gitterHQ/gitter.svg
    :target: https://gitter.im/pybind/Lobby
@@ -156,3 +168,13 @@ to the terms and conditions of this license.
    :target: https://github.com/pybind/pybind11/actions
 .. |Build status| image:: https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true
    :target: https://ci.appveyor.com/project/wjakob/pybind11
+.. |PyPI package| image:: https://img.shields.io/pypi/v/pybind11.svg
+   :target: https://pypi.org/project/pybind11/
+.. |Conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/pybind11.svg
+   :target: https://github.com/conda-forge/pybind11-feedstock
+.. |Repology| image:: https://repology.org/badge/latest-versions/python:pybind11.svg
+   :target: https://repology.org/project/python:pybind11/versions
+.. |Python Versions| image:: https://img.shields.io/pypi/pyversions/pybind11.svg
+   :target: https://pypi.org/project/pybind11/
+.. |GitHub Discussions| image:: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
+   :target: https://github.com/pybind/pybind11/discussions

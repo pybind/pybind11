@@ -8,6 +8,8 @@ There are several ways to get the pybind11 source, which lives at
 developers recommend one of the first three ways listed here, submodule, PyPI,
 or conda-forge, for obtaining pybind11.
 
+.. _include_as_a_submodule:
+
 Include as a submodule
 ======================
 
@@ -16,7 +18,7 @@ as a submodule. From your git repository, use:
 
 .. code-block:: bash
 
-    git submodule add ../../pybind/pybind11 extern/pybind11 -b stable
+    git submodule add -b stable ../../pybind/pybind11 extern/pybind11
     git submodule update --init
 
 This assumes you are placing your dependencies in ``extern/``, and that you are

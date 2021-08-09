@@ -70,6 +70,19 @@ that is supported via a ``build_ext`` command override; it will only affect
         ext_modules=ext_modules
     )
 
+If you have single-file extension modules that are directly stored in the
+Python source tree (``foo.cpp`` in the same directory as where a ``foo.py``
+would be located), you can also generate ``Pybind11Extensions`` using
+``setup_helpers.intree_extensions``: ``intree_extensions(["path/to/foo.cpp",
+...])`` returns a list of ``Pybind11Extensions`` which can be passed to
+``ext_modules``, possibly after further customizing their attributes
+(``libraries``, ``include_dirs``, etc.).  By doing so, a ``foo.*.so`` extension
+module will be generated and made available upon installation.
+
+``intree_extension`` will automatically detect if you are using a ``src``-style
+layout (as long as no namespace packages are involved), but you can also
+explicitly pass ``package_dir`` to it (as in ``setuptools.setup``).
+
 Since pybind11 does not require NumPy when building, a light-weight replacement
 for NumPy's parallel compilation distutils tool is included. Use it like this:
 
@@ -84,10 +97,41 @@ for NumPy's parallel compilation distutils tool is included. Use it like this:
 
 The argument is the name of an environment variable to control the number of
 threads, such as ``NPY_NUM_BUILD_JOBS`` (as used by NumPy), though you can set
-something different if you want. You can also pass ``default=N`` to set the
-default number of threads (0 will take the number of threads available) and
-``max=N``, the maximum number of threads; if you have a large extension you may
-want set this to a memory dependent number.
+something different if you want; ``CMAKE_BUILD_PARALLEL_LEVEL`` is another choice
+a user might expect. You can also pass ``default=N`` to set the default number
+of threads (0 will take the number of threads available) and ``max=N``, the
+maximum number of threads; if you have a large extension you may want set this
+to a memory dependent number.
+
+If you are developing rapidly and have a lot of C++ files, you may want to
+avoid rebuilding files that have not changed. For simple cases were you are
+using ``pip install -e .`` and do not have local headers, you can skip the
+rebuild if an object file is newer than its source (headers are not checked!)
+with the following:
+
+.. code-block:: python
+
+    from pybind11.setup_helpers import ParallelCompile, naive_recompile
+
+    SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
+
+
+If you have a more complex build, you can implement a smarter function and pass
+it to ``needs_recompile``, or you can use [Ccache]_ instead. ``CXX="cache g++"
+pip install -e .`` would be the way to use it with GCC, for example. Unlike the
+simple solution, this even works even when not compiling in editable mode, but
+it does require Ccache to be installed.
+
+Keep in mind that Pip will not even attempt to rebuild if it thinks it has
+already built a copy of your code, which it deduces from the version number.
+One way to avoid this is to use [setuptools_scm]_, which will generate a
+version number that includes the number of commits since your last tag and a
+hash for a dirty directory. Another way to force a rebuild is purge your cache
+or use Pip's ``--no-cache-dir`` option.
+
+.. [Ccache] https://ccache.dev
+
+.. [setuptools_scm] https://github.com/pypa/setuptools_scm
 
 .. _setup_helpers-pep518:
 
@@ -106,7 +150,7 @@ Your ``pyproject.toml`` file will likely look something like this:
 .. code-block:: toml
 
     [build-system]
-    requires = ["setuptools", "wheel", "pybind11==2.6.0"]
+    requires = ["setuptools>=42", "wheel", "pybind11~=2.6.1"]
     build-backend = "setuptools.build_meta"
 
 .. note::
@@ -117,10 +161,12 @@ Your ``pyproject.toml`` file will likely look something like this:
     in Python) using something like `cibuildwheel`_, remember that ``setup.py``
     and ``pyproject.toml`` are not even contained in the wheel, so this high
     Pip requirement is only for source builds, and will not affect users of
-    your binary wheels.
+    your binary wheels. If you are building SDists and wheels, then
+    `pypa-build`_ is the recommended official tool.
 
 .. _PEP 517: https://www.python.org/dev/peps/pep-0517/
 .. _cibuildwheel: https://cibuildwheel.readthedocs.io
+.. _pypa-build: https://pypa-build.readthedocs.io/en/latest/
 
 .. _setup_helpers-setup_requires:
 
@@ -264,8 +310,15 @@ As stated above, LTO is enabled by default. Some newer compilers also support
 different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
 the function to prefer this flavor if available. The function falls back to
 regular LTO if ``-flto=thin`` is not available. If
-``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ON or OFF), then that
-will be respected instead of the built-in flag search.
+``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ``ON`` or ``OFF``), then
+that will be respected instead of the built-in flag search.
+
+.. note::
+
+   If you want to set the property form on targets or the
+   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION_<CONFIG>`` versions of this, you should
+   still use ``set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)`` (otherwise a
+   no-op) to disable pybind11's ipo flags.
 
 The ``OPT_SIZE`` flag enables size-based optimization equivalent to the
 standard ``/Os`` or ``-Os`` compiler flags and the ``MinSizeRel`` build type,
@@ -364,13 +417,14 @@ can refer to the same [cmake_example]_ repository for a full sample project
 FindPython mode
 ---------------
 
-CMake 3.12+ (3.15+ recommended) added a new module called FindPython that had a
-highly improved search algorithm and modern targets and tools. If you use
-FindPython, pybind11 will detect this and use the existing targets instead:
+CMake 3.12+ (3.15+ recommended, 3.18.2+ ideal) added a new module called
+FindPython that had a highly improved search algorithm and modern targets
+and tools. If you use FindPython, pybind11 will detect this and use the
+existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minumum_required(VERSION 3.15...3.18)
+    cmake_minimum_required(VERSION 3.15...3.19)
     project(example LANGUAGES CXX)
 
     find_package(Python COMPONENTS Interpreter Development REQUIRED)
@@ -395,6 +449,14 @@ installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
 setting ``Python_ROOT_DIR`` may be the most common one (though with
 virtualenv/venv support, and Conda support, this tends to find the correct
 Python version more often than the old system did).
+
+.. warning::
+
+    When the Python libraries (i.e. ``libpythonXX.a`` and ``libpythonXX.so``
+    on Unix) are not available, as is the case on a manylinux image, the
+    ``Development`` component will not be resolved by ``FindPython``. When not
+    using the embedding functionality, CMake 3.18+ allows you to specify
+    ``Development.Module`` instead of ``Development`` to resolve this issue.
 
 .. versionadded:: 2.6
 
@@ -467,7 +529,7 @@ Instead of setting properties, you can set ``CMAKE_*`` variables to initialize t
     compiler flags are provided to ensure high quality code generation. In
     contrast to the ``pybind11_add_module()`` command, the CMake interface
     provides a *composable* set of targets to ensure that you retain flexibility.
-    It can be expecially important to provide or set these properties; the
+    It can be especially important to provide or set these properties; the
     :ref:`FAQ <faq:symhidden>` contains an explanation on why these are needed.
 
 .. versionadded:: 2.6
@@ -520,7 +582,7 @@ On Linux, you can compile an example such as the one given in
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 The flags given here assume that you're using Python 3. For Python 2, just
 change the executable appropriately (to ``python`` or ``python2``).
@@ -532,7 +594,7 @@ using ``pip`` or ``conda``. If it hasn't, you can also manually specify
 ``python3-config --includes``.
 
 Note that Python 2.7 modules don't use a special suffix, so you should simply
-use ``example.so`` instead of ``example`python3-config --extension-suffix```.
+use ``example.so`` instead of ``example$(python3-config --extension-suffix)``.
 Besides, the ``--extension-suffix`` option may or may not be available, depending
 on the distribution; in the latter case, the module extension can be manually
 set to ``.so``.
@@ -543,7 +605,7 @@ building the module:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section

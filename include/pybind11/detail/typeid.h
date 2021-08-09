@@ -29,7 +29,7 @@ inline void erase_all(std::string &string, const std::string &search) {
     }
 }
 
-PYBIND11_NOINLINE inline void clean_type_id(std::string &name) {
+PYBIND11_NOINLINE void clean_type_id(std::string &name) {
 #if defined(__GNUG__)
     int status = 0;
     std::unique_ptr<char, void (*)(void *)> res {

@@ -31,18 +31,13 @@ These are issues that hopefully will one day be fixed, but currently are
 unsolved. If you know how to help with one of these issues, contributions
 are welcome!
 
-- The test suite currently segfaults on macOS and Python 3.9.0 when exiting the
-  interpreter.  This was suspected to be related to the cross module GIL code,
-  but could be a broader Python 3.9.0 issue.
-  `#2558 <https://github.com/pybind/pybind11/issues/2558>`_
+- Intel 20.2 is currently having an issue with the test suite.
+  `#2573 <https://github.com/pybind/pybind11/pull/2573>`_
 
-- The ``cpptest`` does not run on Windows with Python 3.8 or newer, due to DLL
-  loader changes. User code that is correctly installed should not be affected.
-  `#2560 <https://github.com/pybind/pybind11/pull/2560>`_
+- Debug mode Python does not support 1-5 tests in the test suite currently.
+  `#2422 <https://github.com/pybind/pybind11/pull/2422>`_
 
-- There may be a rare issue with leakage under some compilers, exposed by
-  adding an unrelated test to the test suite.
-  `#2335 <https://github.com/pybind/pybind11/pull/2335>`_
+- PyPy3 7.3.1 and 7.3.2 have issues with several tests on 32-bit Windows.
 
 Known limitations
 ^^^^^^^^^^^^^^^^^
@@ -54,3 +49,24 @@ clean, well written patch would likely be accepted to solve them.
   `#2527 <https://github.com/pybind/pybind11/issues/2527>`_
   One consequence is that containers of ``char *`` are currently not supported.
   `#2245 <https://github.com/pybind/pybind11/issues/2245>`_
+
+- The ``cpptest`` does not run on Windows with Python 3.8 or newer, due to DLL
+  loader changes. User code that is correctly installed should not be affected.
+  `#2560 <https://github.com/pybind/pybind11/issue/2560>`_
+
+Python 3.9.0 warning
+^^^^^^^^^^^^^^^^^^^^
+
+Combining older versions of pybind11 (< 2.6.0) with Python on exactly 3.9.0
+will trigger undefined behavior that typically manifests as crashes during
+interpreter shutdown (but could also destroy your data. **You have been
+warned**).
+
+This issue was `fixed in Python <https://github.com/python/cpython/pull/22670>`_.
+As a mitigation for this bug, pybind11 2.6.0 or newer includes a workaround
+specifically when Python 3.9.0 is detected at runtime, leaking about 50 bytes
+of memory when a callback function is garbage collected.  For reference, the
+pybind11 test suite has about 2,000 such callbacks, but only 49 are garbage
+collected before the end-of-process. Wheels (even if built with Python 3.9.0)
+will correctly avoid the leak when run in Python 3.9.1, and this does not
+affect other 3.X versions.

@@ -169,21 +169,18 @@ template <typename Type_> struct EigenProps {
                 return false; // Vector size mismatch
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
         }
-        else if (fixed) {
+        if (fixed) {
             // The type has a fixed size, but is not a vector: abort
             return false;
         }
-        else if (fixed_cols) {
+        if (fixed_cols) {
             // Since this isn't a vector, cols must be != 1.  We allow this only if it exactly
             // equals the number of elements (rows is Dynamic, and so 1 row is allowed).
             if (cols != n) return false;
             return {1, n, stride};
-        }
-        else {
-            // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
+        } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
             if (fixed_rows && rows != n) return false;
             return {n, 1, stride};
-        }
     }
 
     static constexpr bool show_writeable = is_eigen_dense_map<Type>::value && is_eigen_mutable_map<Type>::value;
@@ -432,7 +429,7 @@ public:
         if (!need_copy) {
             // We don't need a converting copy, but we also need to check whether the strides are
             // compatible with the Ref's stride requirements
-            Array aref = reinterpret_borrow<Array>(src);
+            auto aref = reinterpret_borrow<Array>(src);
 
             if (aref && (!need_writeable || aref.writeable())) {
                 fits = props::conformable(aref);
@@ -539,9 +536,9 @@ public:
 
 template<typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
-    typedef typename Type::Scalar Scalar;
-    typedef remove_reference_t<decltype(*std::declval<Type>().outerIndexPtr())> StorageIndex;
-    typedef typename Type::Index Index;
+    using Scalar = typename Type::Scalar;
+    using StorageIndex = remove_reference_t<decltype(*std::declval<Type>().outerIndexPtr())>;
+    using Index = typename Type::Index;
     static constexpr bool rowMajor = Type::IsRowMajor;
 
     bool load(handle src, bool) {

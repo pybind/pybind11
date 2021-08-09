@@ -108,9 +108,11 @@ PYBIND11_PACKED(struct EnumStruct {
 
 std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
     os << "a='";
-    for (size_t i = 0; i < 3 && v.a[i]; i++) os << v.a[i];
+    for (size_t i = 0; i < 3 && (v.a[i] != 0); i++)
+        os << v.a[i];
     os << "',b='";
-    for (size_t i = 0; i < 3 && v.b[i]; i++) os << v.b[i];
+    for (size_t i = 0; i < 3 && (v.b[i] != 0); i++)
+        os << v.b[i];
     return os << "'";
 }
 
@@ -146,11 +148,13 @@ py::array mkarray_via_buffer(size_t n) {
                                      1, { n }, { sizeof(T) }));
 }
 
-#define SET_TEST_VALS(s, i) do { \
-    s.bool_ = (i) % 2 != 0; \
-    s.uint_ = (uint32_t) (i); \
-    s.float_ = (float) (i) * 1.5f; \
-    s.ldbl_ = (long double) (i) * -2.5L; } while (0)
+#define SET_TEST_VALS(s, i)                                                                       \
+    do {                                                                                          \
+        (s).bool_ = (i) % 2 != 0;                                                                 \
+        (s).uint_ = (uint32_t) (i);                                                               \
+        (s).float_ = (float) (i) *1.5f;                                                           \
+        (s).ldbl_ = (long double) (i) * -2.5L;                                                    \
+    } while (0)
 
 template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {
@@ -168,7 +172,7 @@ py::list print_recarray(py::array_t<S, 0> arr) {
     const auto req = arr.request();
     const auto ptr = static_cast<S*>(req.ptr);
     auto l = py::list();
-    for (ssize_t i = 0; i < req.size; i++) {
+    for (py::ssize_t i = 0; i < req.size; i++) {
         std::stringstream ss;
         ss << ptr[i];
         l.append(py::str(ss.str()));
@@ -180,8 +184,8 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     using arr_t = py::array_t<int32_t, 0>;
 
     std::vector<int32_t> data { 1, 2, 3, 4, 5, 6 };
-    std::vector<ssize_t> shape { 3, 2 };
-    std::vector<ssize_t> strides { 8, 4 };
+    std::vector<py::ssize_t> shape { 3, 2 };
+    std::vector<py::ssize_t> strides { 8, 4 };
 
     auto ptr = data.data();
     auto vptr = (void *) ptr;
@@ -266,10 +270,11 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         .def_readwrite("uint_", &SimpleStruct::uint_)
         .def_readwrite("float_", &SimpleStruct::float_)
         .def_readwrite("ldbl_", &SimpleStruct::ldbl_)
-        .def("astuple", [](const SimpleStruct& self) {
-            return py::make_tuple(self.bool_, self.uint_, self.float_, self.ldbl_);
-        })
-        .def_static("fromtuple", [](const py::tuple tup) {
+        .def("astuple",
+             [](const SimpleStruct &self) {
+                 return py::make_tuple(self.bool_, self.uint_, self.float_, self.ldbl_);
+             })
+        .def_static("fromtuple", [](const py::tuple &tup) {
             if (py::len(tup) != 4) {
                 throw py::cast_error("Invalid size");
             }
@@ -358,6 +363,14 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     });
 
     // test_dtype
+    std::vector<const char *> dtype_names{
+        "byte", "short", "intc", "int_", "longlong",
+        "ubyte", "ushort", "uintc", "uint", "ulonglong",
+        "half", "single", "double", "longdouble",
+        "csingle", "cdouble", "clongdouble",
+        "bool_", "datetime64", "timedelta64", "object_"
+    };
+
     m.def("print_dtypes", []() {
         py::list l;
         for (const py::handle &d : {
@@ -376,6 +389,18 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         return l;
     });
     m.def("test_dtype_ctors", &test_dtype_ctors);
+    m.def("test_dtype_kind", [dtype_names]() {
+        py::list list;
+        for (auto& dt_name : dtype_names)
+            list.append(py::dtype(dt_name).kind());
+        return list;
+    });
+    m.def("test_dtype_char_", [dtype_names]() {
+        py::list list;
+        for (auto& dt_name : dtype_names)
+            list.append(py::dtype(dt_name).char_());
+        return list;
+    });
     m.def("test_dtype_methods", []() {
         py::list list;
         auto dt1 = py::dtype::of<int32_t>();
@@ -398,7 +423,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         if (non_empty) {
             auto req = arr.request();
             auto ptr = static_cast<StringStruct*>(req.ptr);
-            for (ssize_t i = 0; i < req.size * req.itemsize; i++)
+            for (py::ssize_t i = 0; i < req.size * req.itemsize; i++)
                 static_cast<char*>(req.ptr)[i] = 0;
             ptr[1].a[0] = 'a'; ptr[1].b[0] = 'a';
             ptr[2].a[0] = 'a'; ptr[2].b[0] = 'a';

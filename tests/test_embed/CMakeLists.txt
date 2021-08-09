@@ -1,10 +1,13 @@
+possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
+
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
+  message(STATUS "Skipping embed test on PyPy")
   add_custom_target(cpptest) # Dummy target on PyPy. Embedding is not supported.
   set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
 endif()
 
-find_package(Catch 2.13.0)
+find_package(Catch 2.13.2)
 
 if(CATCH_FOUND)
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
@@ -28,6 +31,7 @@ endif()
 add_custom_target(
   cpptest
   COMMAND "$<TARGET_FILE:test_embed>"
+  DEPENDS test_embed
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)

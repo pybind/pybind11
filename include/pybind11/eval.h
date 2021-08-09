@@ -11,9 +11,27 @@
 
 #pragma once
 
+#include <utility>
+
 #include "pybind11.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline void ensure_builtins_in_globals(object &global) {
+    #if PY_VERSION_HEX < 0x03080000
+        // Running exec and eval on Python 2 and 3 adds `builtins` module under
+        // `__builtins__` key to globals if not yet present.
+        // Python 3.8 made PyRun_String behave similarly. Let's also do that for
+        // older versions, for consistency.
+        if (!global.contains("__builtins__"))
+            global["__builtins__"] = module_::import(PYBIND11_BUILTINS_MODULE);
+    #else
+        (void) global;
+    #endif
+}
+
+PYBIND11_NAMESPACE_END(detail)
 
 enum eval_mode {
     /// Evaluate a string containing an isolated expression
@@ -27,15 +45,17 @@ enum eval_mode {
 };
 
 template <eval_mode mode = eval_expr>
-object eval(str expr, object global = globals(), object local = object()) {
+object eval(const str &expr, object global = globals(), object local = object()) {
     if (!local)
         local = global;
+
+    detail::ensure_builtins_in_globals(global);
 
     /* PyRun_String does not accept a PyObject / encoding specifier,
        this seems to be the only alternative */
     std::string buffer = "# -*- coding: utf-8 -*-\n" + (std::string) expr;
 
-    int start;
+    int start = 0;
     switch (mode) {
         case eval_expr:             start = Py_eval_input;   break;
         case eval_single_statement: start = Py_single_input; break;
@@ -57,8 +77,8 @@ object eval(const char (&s)[N], object global = globals(), object local = object
     return eval<mode>(expr, global, local);
 }
 
-inline void exec(str expr, object global = globals(), object local = object()) {
-    eval<eval_statements>(expr, global, local);
+inline void exec(const str &expr, object global = globals(), object local = object()) {
+    eval<eval_statements>(expr, std::move(global), std::move(local));
 }
 
 template <size_t N>
@@ -85,7 +105,9 @@ object eval_file(str fname, object global = globals(), object local = object()) 
     if (!local)
         local = global;
 
-    int start;
+    detail::ensure_builtins_in_globals(global);
+
+    int start = 0;
     switch (mode) {
         case eval_expr:             start = Py_eval_input;   break;
         case eval_single_statement: start = Py_single_input; break;

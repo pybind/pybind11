@@ -32,12 +32,15 @@ def test_pointers(msg):
 
     with pytest.raises(TypeError) as excinfo:
         m.get_void_ptr_value([1, 2, 3])  # This should not work
-    assert msg(excinfo.value) == """
+    assert (
+        msg(excinfo.value)
+        == """
         get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
             1. (arg0: capsule) -> int
 
         Invoked with: [1, 2, 3]
     """  # noqa: E501 line too long
+    )
 
     assert m.return_null_str() is None
     assert m.get_null_str_value(m.return_null_str()) is not None

@@ -7,7 +7,9 @@ from pybind11_tests import ConstructorStats  # noqa: E402
 
 def test_smart_ptr(capture):
     # Object1
-    for i, o in enumerate([m.make_object_1(), m.make_object_2(), m.MyObject1(3)], start=1):
+    for i, o in enumerate(
+        [m.make_object_1(), m.make_object_2(), m.MyObject1(3)], start=1
+    ):
         assert o.getRefCount() == 1
         with capture:
             m.print_object_1(o)
@@ -16,8 +18,9 @@ def test_smart_ptr(capture):
             m.print_object_4(o)
         assert capture == "MyObject1[{i}]\n".format(i=i) * 4
 
-    for i, o in enumerate([m.make_myobject1_1(), m.make_myobject1_2(), m.MyObject1(6), 7],
-                          start=4):
+    for i, o in enumerate(
+        [m.make_myobject1_1(), m.make_myobject1_2(), m.MyObject1(6), 7], start=4
+    ):
         print(o)
         with capture:
             if not isinstance(o, int):
@@ -29,11 +32,15 @@ def test_smart_ptr(capture):
             m.print_myobject1_2(o)
             m.print_myobject1_3(o)
             m.print_myobject1_4(o)
-        assert capture == "MyObject1[{i}]\n".format(i=i) * (4 if isinstance(o, int) else 8)
+
+        times = 4 if isinstance(o, int) else 8
+        assert capture == "MyObject1[{i}]\n".format(i=i) * times
 
     cstats = ConstructorStats.get(m.MyObject1)
     assert cstats.alive() == 0
-    expected_values = ['MyObject1[{}]'.format(i) for i in range(1, 7)] + ['MyObject1[7]'] * 4
+    expected_values = ["MyObject1[{}]".format(i) for i in range(1, 7)] + [
+        "MyObject1[7]"
+    ] * 4
     assert cstats.values() == expected_values
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
@@ -42,7 +49,9 @@ def test_smart_ptr(capture):
     assert cstats.move_assignments == 0
 
     # Object2
-    for i, o in zip([8, 6, 7], [m.MyObject2(8), m.make_myobject2_1(), m.make_myobject2_2()]):
+    for i, o in zip(
+        [8, 6, 7], [m.MyObject2(8), m.make_myobject2_1(), m.make_myobject2_2()]
+    ):
         print(o)
         with capture:
             m.print_myobject2_1(o)
@@ -55,7 +64,7 @@ def test_smart_ptr(capture):
     assert cstats.alive() == 1
     o = None
     assert cstats.alive() == 0
-    assert cstats.values() == ['MyObject2[8]', 'MyObject2[6]', 'MyObject2[7]']
+    assert cstats.values() == ["MyObject2[8]", "MyObject2[6]", "MyObject2[7]"]
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
@@ -63,7 +72,9 @@ def test_smart_ptr(capture):
     assert cstats.move_assignments == 0
 
     # Object3
-    for i, o in zip([9, 8, 9], [m.MyObject3(9), m.make_myobject3_1(), m.make_myobject3_2()]):
+    for i, o in zip(
+        [9, 8, 9], [m.MyObject3(9), m.make_myobject3_1(), m.make_myobject3_2()]
+    ):
         print(o)
         with capture:
             m.print_myobject3_1(o)
@@ -76,7 +87,7 @@ def test_smart_ptr(capture):
     assert cstats.alive() == 1
     o = None
     assert cstats.alive() == 0
-    assert cstats.values() == ['MyObject3[9]', 'MyObject3[8]', 'MyObject3[9]']
+    assert cstats.values() == ["MyObject3[9]", "MyObject3[8]", "MyObject3[9]"]
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
@@ -96,7 +107,7 @@ def test_smart_ptr(capture):
     # ref<>
     cstats = m.cstats_ref()
     assert cstats.alive() == 0
-    assert cstats.values() == ['from pointer'] * 10
+    assert cstats.values() == ["from pointer"] * 10
     assert cstats.default_constructions == 30
     assert cstats.copy_constructions == 12
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
@@ -114,7 +125,9 @@ def test_unique_nodelete():
     cstats = ConstructorStats.get(m.MyObject4)
     assert cstats.alive() == 1
     del o
-    assert cstats.alive() == 1  # Leak, but that's intentional
+    assert cstats.alive() == 1
+    m.MyObject4.cleanup_all_instances()
+    assert cstats.alive() == 0
 
 
 def test_unique_nodelete4a():
@@ -123,19 +136,25 @@ def test_unique_nodelete4a():
     cstats = ConstructorStats.get(m.MyObject4a)
     assert cstats.alive() == 1
     del o
-    assert cstats.alive() == 1  # Leak, but that's intentional
+    assert cstats.alive() == 1
+    m.MyObject4a.cleanup_all_instances()
+    assert cstats.alive() == 0
 
 
 def test_unique_deleter():
+    m.MyObject4a(0)
     o = m.MyObject4b(23)
     assert o.value == 23
     cstats4a = ConstructorStats.get(m.MyObject4a)
-    assert cstats4a.alive() == 2  # Two because of previous test
+    assert cstats4a.alive() == 2
     cstats4b = ConstructorStats.get(m.MyObject4b)
     assert cstats4b.alive() == 1
     del o
-    assert cstats4a.alive() == 1  # Should now only be one leftover from previous test
+    assert cstats4a.alive() == 1  # Should now only be one leftover
     assert cstats4b.alive() == 0  # Should be deleted
+    m.MyObject4a.cleanup_all_instances()
+    assert cstats4a.alive() == 0
+    assert cstats4b.alive() == 0
 
 
 def test_large_holder():
@@ -186,7 +205,9 @@ def test_shared_ptr_from_this_and_references():
     ref = s.ref  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=false)
     assert stats.alive() == 2
     assert s.set_ref(ref)
-    assert s.set_holder(ref)  # std::enable_shared_from_this can create a holder from a reference
+    assert s.set_holder(
+        ref
+    )  # std::enable_shared_from_this can create a holder from a reference
 
     bad_wp = s.bad_wp  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=true)
     assert stats.alive() == 2
@@ -200,12 +221,16 @@ def test_shared_ptr_from_this_and_references():
     assert s.set_ref(copy)
     assert s.set_holder(copy)
 
-    holder_ref = s.holder_ref  # init_holder_helper(holder_ptr=true, owned=false, bad_wp=false)
+    holder_ref = (
+        s.holder_ref
+    )  # init_holder_helper(holder_ptr=true, owned=false, bad_wp=false)
     assert stats.alive() == 3
     assert s.set_ref(holder_ref)
     assert s.set_holder(holder_ref)
 
-    holder_copy = s.holder_copy  # init_holder_helper(holder_ptr=true, owned=true, bad_wp=false)
+    holder_copy = (
+        s.holder_copy
+    )  # init_holder_helper(holder_ptr=true, owned=true, bad_wp=false)
     assert stats.alive() == 3
     assert s.set_ref(holder_copy)
     assert s.set_holder(holder_copy)
@@ -277,8 +302,10 @@ def test_smart_ptr_from_default():
     instance = m.HeldByDefaultHolder()
     with pytest.raises(RuntimeError) as excinfo:
         m.HeldByDefaultHolder.load_shared_ptr(instance)
-    assert "Unable to load a custom holder type from a " \
-           "default-holder instance" in str(excinfo.value)
+    assert (
+        "Unable to load a custom holder type from a "
+        "default-holder instance" in str(excinfo.value)
+    )
 
 
 def test_shared_ptr_gc():

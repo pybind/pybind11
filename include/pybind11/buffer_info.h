@@ -83,7 +83,7 @@ struct buffer_info {
             view->strides
             ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
             : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
-            view->readonly) {
+            (view->readonly != 0)) {
         this->m_view = view;
         this->ownview = ownview;
     }
@@ -91,11 +91,9 @@ struct buffer_info {
     buffer_info(const buffer_info &) = delete;
     buffer_info& operator=(const buffer_info &) = delete;
 
-    buffer_info(buffer_info &&other) {
-        (*this) = std::move(other);
-    }
+    buffer_info(buffer_info &&other) noexcept { (*this) = std::move(other); }
 
-    buffer_info& operator=(buffer_info &&rhs) {
+    buffer_info &operator=(buffer_info &&rhs) noexcept {
         ptr = rhs.ptr;
         itemsize = rhs.itemsize;
         size = rhs.size;
