@@ -106,9 +106,10 @@
 #  define PYBIND11_NOINLINE_DISABLED
 #endif
 
-// Note: Forward declarations should never be `inline`:
+// The PYBIND11_NOINLINE macro is for function DEFINITIONS.
+// In contrast, FORWARD DECLARATIONS should never use this macro:
 // https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
-#if defined(PYBIND11_NOINLINE_DISABLED)
+#if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
 #  define PYBIND11_NOINLINE inline
 #elif defined(_MSC_VER)
 #  define PYBIND11_NOINLINE __declspec(noinline) inline

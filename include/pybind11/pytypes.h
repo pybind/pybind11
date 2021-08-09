@@ -28,10 +28,8 @@ class type;
 struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-
 class args_proxy;
 bool isinstance_generic(handle obj, const std::type_info &tp);
-std::string error_string();
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
@@ -321,6 +319,10 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
         py::str s = reinterpret_steal<py::str>(p); // <-- `p` must be already be a `str`
 \endrst */
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_t{}}; }
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+std::string error_string();
+PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
