@@ -499,9 +499,25 @@ def test_create_and_reshape(msg):
 
 
 def test_reshape_tuple(msg):
-    a = np.random.randn(10 * 10 * 10).astype("float64")
-    x = m.reshape_tuple(a, (10, 10, 10))
-    assert x.shape == (10, 10, 10)
+    a = np.random.randn(10, 20, 30).astype("float64")
+    x = m.reshape_tuple(a, (30, 20, 10))
+    assert x.shape == (30, 20, 10)
+
+
+def test_reshape_tuple_invalid(msg):
+    a = np.random.randn(10 * 20 * 30).astype("float64")
+    with pytest.raises(ValueError) as excinfo:
+        m.reshape_tuple(a, tuple())
+    assert str(excinfo.value) == "cannot reshape array of size 6000 into shape ()"
+    with pytest.raises(ValueError) as excinfo:
+        m.reshape_tuple(a, (1, 2, 3))
+    assert str(excinfo.value) == "cannot reshape array of size 6000 into shape (1,2,3)"
+
+
+def test_reshape_tuple_flatten(msg):
+    a = np.random.randn(10, 5, 20).astype("float64")
+    x = m.reshape_tuple(a, (a.size,))
+    assert x.shape == (1000,)
 
 
 def test_index_using_ellipsis():

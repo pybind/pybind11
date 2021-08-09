@@ -216,17 +216,17 @@ private:
         API_PyArray_DescrFromScalar = 57,
         API_PyArray_FromAny = 69,
         API_PyArray_Resize = 80,
-        API_PyArray_Newshape = 135,
         API_PyArray_CopyInto = 82,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
         API_PyArray_DescrNewFromType = 96,
+        API_PyArray_Newshape = 135,
+        API_PyArray_Squeeze = 136,
+        API_PyArray_View = 137
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
         API_PyArray_GetArrayParamsFromObject = 278,
-        API_PyArray_Squeeze = 136,
-        API_PyArray_SetBaseObject = 282,
-        API_PyArray_View = 137
+        API_PyArray_SetBaseObject = 282
     };
 
     static npy_api lookup() {
@@ -249,17 +249,17 @@ private:
         DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_FromAny);
         DECL_NPY_API(PyArray_Resize);
-        DECL_NPY_API(PyArray_Newshape);
         DECL_NPY_API(PyArray_CopyInto);
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
         DECL_NPY_API(PyArray_DescrNewFromType);
+        DECL_NPY_API(PyArray_Newshape);
+        DECL_NPY_API(PyArray_Squeeze);
+        DECL_NPY_API(PyArray_View);
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
         DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-        DECL_NPY_API(PyArray_Squeeze);
         DECL_NPY_API(PyArray_SetBaseObject);
-        DECL_NPY_API(PyArray_View);
 
 #undef DECL_NPY_API
         return api;
@@ -802,8 +802,12 @@ public:
         detail::npy_api::PyArray_Dims d
             = {reinterpret_cast<Py_intptr_t *>(new_shape->data()), int(new_shape->size())};
         // try to reshape, set ordering param to 0 cause it's not used anyway
-        return reinterpret_steal<array>(
-              detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
+        auto new_array
+            = reinterpret_steal<array>(detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
+        if (!new_array) {
+            throw error_already_set();
+        }
+        return new_array;
     }
 
     // Create a view of an array in a different data type
