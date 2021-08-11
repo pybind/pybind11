@@ -19,7 +19,7 @@ if not os.path.exists(lib):
 
 libsize = os.path.getsize(lib)
 
-print("------", os.path.basename(lib), "file size:", libsize, end="")
+print("SOSIZE:", os.path.basename(lib), libsize, end="")
 
 if os.path.exists(save):
     with open(save) as sf:
