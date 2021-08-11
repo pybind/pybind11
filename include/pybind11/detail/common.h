@@ -99,6 +99,7 @@
 #  endif
 #endif
 
+#define PYBIND11_NOINLINE_FORCED
 // For CUDA, GCC7, GCC8:
 // PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
 // When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
