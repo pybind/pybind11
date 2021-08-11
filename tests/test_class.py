@@ -11,6 +11,13 @@ def test_repr():
     # In Python 3.3+, repr() accesses __qualname__
     assert "pybind11_type" in repr(type(UserType))
     assert "UserType" in repr(UserType)
+    import weakref
+
+    u = UserType(0)
+    w = weakref.ref(u)
+    assert w() is not None
+    del u
+    assert w() is None
 
 
 def test_instance(msg):
