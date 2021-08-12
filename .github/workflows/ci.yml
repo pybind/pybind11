@@ -596,6 +596,7 @@ jobs:
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_BUILD_TYPE=Release
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
