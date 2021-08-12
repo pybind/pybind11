@@ -1458,7 +1458,7 @@ public:
     template <typename T> bool add(T &&val) {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
-    void clear() const { PySet_Clear(m_ptr); }
+    void clear() { PySet_Clear(m_ptr); }
     template <typename T> bool contains(T &&val) const {
         return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
     }
