@@ -104,7 +104,7 @@ struct numpy_internals {
     }
 };
 
-inline PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr) {
+PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr) {
     ptr = &get_or_create_shared_data<numpy_internals>("_numpy_internals");
 }
 
@@ -478,11 +478,11 @@ public:
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
-        args["names"] = names;
-        args["formats"] = formats;
-        args["offsets"] = offsets;
+        args["names"] = std::move(names);
+        args["formats"] = std::move(formats);
+        args["offsets"] = std::move(offsets);
         args["itemsize"] = pybind11::int_(itemsize);
-        m_ptr = from_args(args).release().ptr();
+        m_ptr = from_args(std::move(args)).release().ptr();
     }
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
@@ -560,7 +560,7 @@ private:
             formats.append(descr.format);
             offsets.append(descr.offset);
         }
-        return dtype(names, formats, offsets, itemsize);
+        return dtype(std::move(names), std::move(formats), std::move(offsets), itemsize);
     }
 };
 
@@ -1110,7 +1110,7 @@ struct field_descriptor {
     dtype descr;
 };
 
-inline PYBIND11_NOINLINE void register_structured_dtype(
+PYBIND11_NOINLINE void register_structured_dtype(
     any_container<field_descriptor> fields,
     const std::type_info& tinfo, ssize_t itemsize,
     bool (*direct_converter)(PyObject *, void *&)) {
@@ -1134,7 +1134,10 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
         formats.append(field.descr);
         offsets.append(pybind11::int_(field.offset));
     }
-    auto dtype_ptr = pybind11::dtype(names, formats, offsets, itemsize).release().ptr();
+    auto dtype_ptr
+        = pybind11::dtype(std::move(names), std::move(formats), std::move(offsets), itemsize)
+              .release()
+              .ptr();
 
     // There is an existing bug in NumPy (as of v1.11): trailing bytes are
     // not encoded explicitly into the format string. This will supposedly
@@ -1551,8 +1554,11 @@ private:
             "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
 
 public:
-    template <typename T>
-    explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
+    template <typename T,
+              // SFINAE to prevent shadowing the copy constructor.
+              typename = detail::enable_if_t<
+                  !std::is_same<vectorize_helper, typename std::decay<T>::type>::value>>
+    explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) {}
 
     object operator()(typename vectorize_arg<Args>::type... args) {
         return run(args...,

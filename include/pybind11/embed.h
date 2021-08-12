@@ -45,25 +45,23 @@
             });
         }
  \endrst */
-#define PYBIND11_EMBEDDED_MODULE(name, variable)                                \
-    static ::pybind11::module_::module_def                                      \
-        PYBIND11_CONCAT(pybind11_module_def_, name);                            \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);   \
-    static PyObject PYBIND11_CONCAT(*pybind11_init_wrapper_, name)() {          \
-        auto m = ::pybind11::module_::create_extension_module(                  \
-            PYBIND11_TOSTRING(name), nullptr,                                   \
-            &PYBIND11_CONCAT(pybind11_module_def_, name));                      \
-        try {                                                                   \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                           \
-            return m.ptr();                                                     \
-        } PYBIND11_CATCH_INIT_EXCEPTIONS                                        \
-    }                                                                           \
-    PYBIND11_EMBEDDED_MODULE_IMPL(name)                                         \
-    ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name) \
-                              (PYBIND11_TOSTRING(name),                         \
-                               PYBIND11_CONCAT(pybind11_init_impl_, name));     \
-    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &variable)
-
+#define PYBIND11_EMBEDDED_MODULE(name, variable)                                                  \
+    static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name);           \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
+    static PyObject PYBIND11_CONCAT(*pybind11_init_wrapper_, name)() {                            \
+        auto m = ::pybind11::module_::create_extension_module(                                    \
+            PYBIND11_TOSTRING(name), nullptr, &PYBIND11_CONCAT(pybind11_module_def_, name));      \
+        try {                                                                                     \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
+            return m.ptr();                                                                       \
+        }                                                                                         \
+        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    }                                                                                             \
+    PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                           \
+    ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name)(                  \
+        PYBIND11_TOSTRING(name), PYBIND11_CONCAT(pybind11_init_impl_, name));                     \
+    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
+                                               & variable) // NOLINT(bugprone-macro-parentheses)
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

@@ -102,9 +102,9 @@ public:                                                                         
         }                                                                                         \
         return cast(*src, policy, parent);                                                        \
     }                                                                                             \
-    operator type *() { return &value; }                                                          \
-    operator type &() { return value; }                                                           \
-    operator type &&() && { return std::move(value); }                                            \
+    operator type *() { return &value; }               /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &() { return value; }                /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
     template <typename T_>                                                                        \
     using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
@@ -145,9 +145,8 @@ public:
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             else
                 return false;
-        } else if (PyFloat_Check(src.ptr())) {
-            return false;
-        } else if (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr())) {
+        } else if (PyFloat_Check(src.ptr())
+                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
             return false;
         } else {
             handle src_or_index = src;
@@ -610,6 +609,7 @@ protected:
     template <typename T, size_t... Is>
     static handle cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
         std::array<object, size> entries{{
             reinterpret_steal<object>(make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...
         }};
@@ -1236,8 +1236,8 @@ public:
         // Tuples aren't (easily) resizable so a list is needed for collection,
         // but the actual function call strictly requires a tuple.
         auto args_list = list();
-        int _[] = { 0, (process(args_list, std::forward<Ts>(values)), 0)... };
-        ignore_unused(_);
+        using expander = int[];
+        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
 
         m_args = std::move(args_list);
     }

@@ -124,7 +124,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -517,23 +517,30 @@ template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurs
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(r);
+        using expander = int[];
+        (void) expander{
+            0, ((void) process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...};
     }
     static void init(const Args&... args, type_record *r) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(r);
+        using expander = int[];
+        (void) expander{0,
+                        (process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...};
     }
     static void precall(function_call &call) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
-        ignore_unused(unused);
+        using expander = int[];
+        (void) expander{0,
+                        (process_attribute<typename std::decay<Args>::type>::precall(call), 0)...};
     }
     static void postcall(function_call &call, handle fn_ret) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call, fn_ret);
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(fn_ret);
+        using expander = int[];
+        (void) expander{
+            0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0)...};
     }
 };
 
