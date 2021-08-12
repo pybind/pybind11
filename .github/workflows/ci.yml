@@ -600,7 +600,7 @@ jobs:
     # apparently when the gcc version changed from 8.3 to 8.4.
     - name: VAR_BUILD_TYPE 8
       if: matrix.centos == 8
-      run: echo Release > VAR_BUILD_TYPE
+      run: echo Debug > VAR_BUILD_TYPE
 
     - name: Configure
       shell: bash
