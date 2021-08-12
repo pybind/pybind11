@@ -507,7 +507,7 @@ struct instance {
     void allocate_layout();
 
     /// Destroys/deallocates all of the above
-    void deallocate_layout() const;
+    void deallocate_layout();
 
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
     /// omitted).  Returns a default-constructed (with `.inst = nullptr`) object on failure if

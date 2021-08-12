@@ -241,7 +241,8 @@ struct value_and_holder {
                    ? inst->simple_holder_constructed
                    : (inst->nonsimple.status[index] & instance::status_holder_constructed) != 0u;
     }
-    void set_holder_constructed(bool v = true) const {
+    //NOLINTNEXTLINE(readability-make-member-function-const)
+    void set_holder_constructed(bool v = true) {
         if (inst->simple_layout)
             inst->simple_holder_constructed = v;
         else if (v)
@@ -254,7 +255,8 @@ struct value_and_holder {
             ? inst->simple_instance_registered
             : ((inst->nonsimple.status[index] & instance::status_instance_registered) != 0);
     }
-    void set_instance_registered(bool v = true) const {
+    //NOLINTNEXTLINE(readability-make-member-function-const)
+    void set_instance_registered(bool v = true) {
         if (inst->simple_layout)
             inst->simple_instance_registered = v;
         else if (v)
@@ -397,7 +399,8 @@ PYBIND11_NOINLINE inline void instance::allocate_layout() {
     owned = true;
 }
 
-PYBIND11_NOINLINE inline void instance::deallocate_layout() const {
+//NOLINTNEXTLINE(readability-make-member-function-const)
+PYBIND11_NOINLINE inline void instance::deallocate_layout() {
     if (!simple_layout)
         PyMem_Free(nonsimple.values_and_holders);
 }
