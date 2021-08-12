@@ -102,6 +102,9 @@
 // For CUDA, GCC7, GCC8:
 // PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
 // When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
+// However, the measured shared-library size saving when using noinline are only
+// 1.7% for CUDA, -0.2% for GCC7, and 0.0% for GCC8 (using -DCMAKE_BUILD_TYPE=MinSizeRel,
+// the default under pybind11/tests).
 #if !defined(PYBIND11_NOINLINE_FORCED) && \
     (defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
 #  define PYBIND11_NOINLINE_DISABLED
