@@ -594,13 +594,13 @@ jobs:
 
     - name: VAR_BUILD_TYPE 7
       if: matrix.centos == 7
-      run: echo Release > VAR_BUILD_TYPE
+      run: echo MinSizeRel > VAR_BUILD_TYPE
 
-    # Using Debug to avoid segfault that appeared around 2021-06-04,
+    # Using Release to avoid segfault that appeared around 2021-06-04,
     # apparently when the gcc version changed from 8.3 to 8.4.
     - name: VAR_BUILD_TYPE 8
       if: matrix.centos == 8
-      run: echo Debug > VAR_BUILD_TYPE
+      run: echo Release > VAR_BUILD_TYPE
 
     - name: Configure
       shell: bash
