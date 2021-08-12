@@ -128,7 +128,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_program_dir_to_
         argc = 1;
     }
 #if PY_MAJOR_VERSION >= 3
-    size_t argv_size = static_cast<size_t>(argc);
+    auto argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
     std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
     std::vector< std::unique_ptr<wchar_t[], wide_char_arg_deleter> > widened_argv_entries;
@@ -138,8 +138,8 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_program_dir_to_
             // A null here indicates a character-encoding failure or the python
             // interpreter out of memory. Give up.
             return;
-        } else
-            widened_argv[ii] = widened_argv_entries.back().get();
+        }
+        widened_argv[ii] = widened_argv_entries.back().get();
     }
 
     auto pysys_argv = widened_argv.get();
@@ -148,7 +148,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_program_dir_to_
     auto pysys_argv = safe_argv;
 #endif
 
-    PySys_SetArgvEx(argc, pysys_argv, add_program_dir_to_path);
+    PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
 }
 
 PYBIND11_NAMESPACE_END(detail)

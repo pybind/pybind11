@@ -293,7 +293,7 @@ TEST_CASE("sys.argv gets initialized properly") {
         auto module = py::module::import("test_interpreter");
         auto py_widget = module.attr("DerivedWidget")("The question");
         const auto &cpp_widget = py_widget.cast<const Widget &>();
-        REQUIRE(cpp_widget.argv0() == "");
+        REQUIRE(cpp_widget.argv0().empty());
     }
 
     {
