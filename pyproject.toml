@@ -15,6 +15,9 @@ ignore = [
     "noxfile.py",
 ]
 
+[tool.isort]
+profile = 'black'
+
 [tool.mypy]
 files = "pybind11"
 python_version = "2.7"

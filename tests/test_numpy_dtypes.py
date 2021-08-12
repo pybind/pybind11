@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 
-import pytest
-
 import env  # noqa: F401
-
+import pytest
 from pybind11_tests import numpy_dtypes as m
 
 np = pytest.importorskip("numpy")

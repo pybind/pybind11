@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
-
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
-from pybind11_tests import UserType
-from pybind11_tests import ConstructorStats
 
 
 def test_vector(doc):

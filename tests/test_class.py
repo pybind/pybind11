@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-import pytest
-
 import env  # noqa: F401
-
+import pytest
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
-from pybind11_tests import UserType, ConstructorStats
 
 
 def test_repr():

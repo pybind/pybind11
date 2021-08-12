@@ -11,12 +11,11 @@ import gc
 import re
 import textwrap
 
-import pytest
-
 import env
 
 # Early diagnostic for failed imports
 import pybind11_tests  # noqa: F401
+import pytest
 
 _unicode_marker = re.compile(r"u(\'[^\']*\')")
 _long_marker = re.compile(r"([0-9])L")
