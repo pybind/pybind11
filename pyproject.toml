@@ -16,7 +16,7 @@ ignore = [
 ]
 
 [tool.isort]
-known_first_party = "env,pybind11_tests,"
+known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
 profile = "black"
 
 [tool.mypy]

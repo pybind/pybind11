@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
 
-import pybind11_cross_module_tests as cm
 import pytest
 
 import env  # noqa: F401
+import pybind11_cross_module_tests as cm
 from pybind11_tests import exceptions as m
 
 
