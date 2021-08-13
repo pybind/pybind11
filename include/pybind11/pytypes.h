@@ -1393,7 +1393,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
-    void clear() { PyDict_Clear(ptr()); }
+    void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T> bool contains(T &&key) const {
         return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
     }
@@ -1435,10 +1435,10 @@ public:
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
-    template <typename T> void append(T &&val) {
+    template <typename T> void append(T &&val) /* py-non-const */ {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
-    template <typename T> void insert(size_t index, T &&val) {
+    template <typename T> void insert(size_t index, T &&val) /* py-non-const */ {
         PyList_Insert(m_ptr, static_cast<ssize_t>(index),
             detail::object_or_cast(std::forward<T>(val)).ptr());
     }
@@ -1455,10 +1455,10 @@ public:
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
-    template <typename T> bool add(T &&val) {
+    template <typename T> bool add(T &&val) /* py-non-const */ {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
-    void clear() { PySet_Clear(m_ptr); }
+    void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
     template <typename T> bool contains(T &&val) const {
         return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
     }
