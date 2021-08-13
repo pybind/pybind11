@@ -16,7 +16,8 @@ ignore = [
 ]
 
 [tool.isort]
-profile = 'black'
+known_first_party = "pybind11_tests,"
+profile = "black"
 
 [tool.mypy]
 files = "pybind11"

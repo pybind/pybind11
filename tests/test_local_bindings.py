@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import env  # noqa: F401
 import pytest
+
 from pybind11_tests import local_bindings as m
 
 

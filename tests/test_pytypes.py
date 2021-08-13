@@ -5,6 +5,7 @@ import sys
 
 import env  # noqa: F401
 import pytest
+
 from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
