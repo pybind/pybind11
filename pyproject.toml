@@ -17,7 +17,9 @@ ignore = [
 
 [tool.isort]
 known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
+# For black compatibility
 profile = "black"
+multi_line_output = 3
 
 [tool.mypy]
 files = "pybind11"
