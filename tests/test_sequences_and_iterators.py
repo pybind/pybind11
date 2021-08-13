@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pybind11_tests import sequences_and_iterators as m
+
 from pybind11_tests import ConstructorStats
+from pybind11_tests import sequences_and_iterators as m
 
 
 def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):

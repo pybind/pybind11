@@ -4,9 +4,8 @@ import sys
 import pytest
 
 import env  # noqa: F401
-
-from pybind11_tests import exceptions as m
 import pybind11_cross_module_tests as cm
+from pybind11_tests import exceptions as m
 
 
 def test_std_exception(msg):
