@@ -11,8 +11,9 @@ import gc
 import re
 import textwrap
 
-import env
 import pytest
+
+import env
 
 # Early diagnostic for failed imports
 import pybind11_tests  # noqa: F401

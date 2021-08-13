@@ -3,9 +3,9 @@ from __future__ import division
 
 import sys
 
-import env  # noqa: F401
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 

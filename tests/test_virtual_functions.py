@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import env  # noqa: F401
 import pytest
+
+import env  # noqa: F401
 
 m = pytest.importorskip("pybind11_tests.virtual_functions")
 from pybind11_tests import ConstructorStats  # noqa: E402

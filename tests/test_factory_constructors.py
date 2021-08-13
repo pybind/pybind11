@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import re
 
-import env  # noqa: F401
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 from pybind11_tests import factory_constructors as m
 from pybind11_tests.factory_constructors import tag

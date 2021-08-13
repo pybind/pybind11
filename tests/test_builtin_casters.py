@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import env  # noqa: F401
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import IncType, UserType
 from pybind11_tests import builtin_casters as m
 

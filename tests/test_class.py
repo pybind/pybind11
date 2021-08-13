@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import env  # noqa: F401
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
 

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import datetime
 
-import env  # noqa: F401
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import chrono as m
 
 
