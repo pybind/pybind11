@@ -108,7 +108,10 @@ TEST_SUBMODULE(multiple_inheritance, m) {
 
 
     // test_multiple_inheritance_python_many_bases
-    #define PYBIND11_BASEN(N) py::class_<BaseN<N>>(m, "BaseN" #N).def(py::init<int>()).def("f" #N, [](BaseN<N> &b) { return b.i + N; })
+#define PYBIND11_BASEN(N)                                                                         \
+    py::class_<BaseN<(N)>>(m, "BaseN" #N).def(py::init<int>()).def("f" #N, [](BaseN<N> &b) {      \
+        return b.i + (N);                                                                         \
+    })
     PYBIND11_BASEN( 1); PYBIND11_BASEN( 2); PYBIND11_BASEN( 3); PYBIND11_BASEN( 4);
     PYBIND11_BASEN( 5); PYBIND11_BASEN( 6); PYBIND11_BASEN( 7); PYBIND11_BASEN( 8);
     PYBIND11_BASEN( 9); PYBIND11_BASEN(10); PYBIND11_BASEN(11); PYBIND11_BASEN(12);

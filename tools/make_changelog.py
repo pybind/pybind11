@@ -4,10 +4,8 @@
 import re
 
 import ghapi.all
-
 from rich import print
 from rich.syntax import Syntax
-
 
 ENTRY = re.compile(
     r"""

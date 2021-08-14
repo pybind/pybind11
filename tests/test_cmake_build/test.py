@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+
 import test_cmake_build
 
 assert test_cmake_build.add(1, 2) == 3

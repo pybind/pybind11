@@ -2,9 +2,8 @@
 import pytest
 
 import env  # noqa: F401
-
-from pybind11_tests import methods_and_attributes as m
 from pybind11_tests import ConstructorStats
+from pybind11_tests import methods_and_attributes as m
 
 
 def test_methods_and_attributes():
