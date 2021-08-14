@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "detail/pragma_warning_block.h"
-
 #include "detail/common.h"
 #include "detail/smart_holder_type_casters.h"
 #include "pybind11.h"

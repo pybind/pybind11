@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "pragma_warning_block.h"
-
 #include "../gil.h"
 #include "../pytypes.h"
 #include "../trampoline_self_life_support.h"
