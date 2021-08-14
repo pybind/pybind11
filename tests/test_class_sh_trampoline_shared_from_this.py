@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
+import weakref
+
 import pytest
 
 import env  # noqa: F401
-
-import weakref
-
 import pybind11_tests.class_sh_trampoline_shared_from_this as m
 
 

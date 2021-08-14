@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """Simple comparison of holder performances, relative to unique_ptr holder."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import pybind11_ubench_holder_comparison as m
+from __future__ import absolute_import, division, print_function
 
 import collections
 import sys
 import time
+
+import pybind11_ubench_holder_comparison as m
 
 number_bucket_pc = None
 

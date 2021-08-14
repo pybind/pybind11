@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import pytest
-
 import class_sh_module_local_0 as m0
 import class_sh_module_local_1 as m1
 import class_sh_module_local_2 as m2
+import pytest
 
 
 def test_cross_module_get_mtxt():
