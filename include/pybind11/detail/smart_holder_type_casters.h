@@ -704,13 +704,11 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         switch (policy) {
             case return_value_policy::automatic:
-                break;
             case return_value_policy::automatic_reference:
                 break;
             case return_value_policy::take_ownership:
                 throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
             case return_value_policy::copy:
-                break;
             case return_value_policy::move:
                 break;
             case return_value_policy::reference:
@@ -809,7 +807,7 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
                     // Critical transfer-of-ownership section. This must stay together.
                     self_life_support->deactivate_life_support();
                     holder.reclaim_disowned();
-                    src.release();
+                    (void) src.release();
                     // Critical section end.
                     return existing_inst;
                 }

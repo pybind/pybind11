@@ -309,7 +309,7 @@ struct smart_holder {
             hld.vptr.reset(static_cast<void *>(unq_ptr.get()), std::move(gd));
         else
             hld.vptr.reset(unq_ptr.get(), std::move(gd));
-        unq_ptr.release();
+        (void) unq_ptr.release();
         hld.is_populated = true;
         return hld;
     }

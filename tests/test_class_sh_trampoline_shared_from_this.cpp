@@ -21,7 +21,7 @@ struct Sft : std::enable_shared_from_this<Sft> {
     // history in case something goes wrong.
     // However, compilers other than clang have a variety of issues. It is not
     // worth the trouble covering all platforms.
-    Sft(const Sft &other) { history = other.history + "_CpCtor"; }
+    Sft(const Sft &other) : enable_shared_from_this(other) { history = other.history + "_CpCtor"; }
 
     Sft(Sft &&other) noexcept { history = other.history + "_MvCtor"; }
 

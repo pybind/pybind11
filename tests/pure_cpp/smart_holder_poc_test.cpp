@@ -137,8 +137,8 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+reclaim_disowned", "[S]") {
     REQUIRE(*new_owner == 19);
     hld.reclaim_disowned(); // Manually veriified: without this, clang++ -fsanitize=address reports
                             // "detected memory leaks".
-    new_owner.release();    // Manually verified: without this, clang++ -fsanitize=address reports
-                            // "attempting double-free".
+    (void) new_owner.release(); // Manually verified: without this, clang++ -fsanitize=address
+                                // reports "attempting double-free".
     REQUIRE(hld.as_lvalue_ref<int>() == 19);
     REQUIRE(new_owner.get() == nullptr);
 }
