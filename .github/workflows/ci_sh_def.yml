@@ -88,7 +88,7 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.10
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -208,7 +208,7 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.10
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -463,7 +463,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.10
 
     - name: Configure
       shell: bash
@@ -615,13 +615,13 @@ jobs:
 
     - name: VAR_BUILD_TYPE 7
       if: matrix.centos == 7
-      run: echo Release > VAR_BUILD_TYPE
+      run: echo MinSizeRel > VAR_BUILD_TYPE
 
-    # Using Debug to avoid segfault that appeared around 2021-06-04,
+    # Using Release to avoid segfault that appeared around 2021-06-04,
     # apparently when the gcc version changed from 8.3 to 8.4.
     - name: VAR_BUILD_TYPE 8
       if: matrix.centos == 8
-      run: echo Debug > VAR_BUILD_TYPE
+      run: echo Release > VAR_BUILD_TYPE
 
     - name: Configure
       shell: bash
@@ -687,7 +687,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
 
-    - name: Run tests
+    - name: Python tests
       run: make pytest -j 2
       working-directory: /build-tests
 
@@ -761,7 +761,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.10
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.9.0
@@ -784,7 +784,7 @@ jobs:
     - name: Build C++11
       run: cmake --build build -j 2
 
-    - name: Run tests
+    - name: Python tests
       run: cmake --build build -t pytest
 
   win32-msvc2015:
@@ -808,7 +808,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.10
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.9.0
@@ -864,7 +864,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.10
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
