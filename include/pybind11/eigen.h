@@ -9,12 +9,6 @@
 
 #pragma once
 
-/* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
-   See also:
-       https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir
-       https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
-*/
-
 #include "numpy.h"
 
 #include <Eigen/Core>
