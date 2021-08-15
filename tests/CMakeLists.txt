@@ -299,17 +299,10 @@ function(pybind11_enable_warnings target_name)
   endif()
 
   if(PYBIND11_WERROR)
-    if(MSVC)
-      target_compile_options(${target_name} PRIVATE /WX)
-    elseif(PYBIND11_CUDA_TESTS)
-      target_compile_options(${target_name} PRIVATE "SHELL:-Werror all-warnings")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang|IntelLLVM)")
-      target_compile_options(${target_name} PRIVATE -Werror)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
       target_compile_options(
         ${target_name}
         PRIVATE
-          -Werror-all
           # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
           -diag-disable 11074,11076)
     endif()
