@@ -131,7 +131,8 @@ template <typename Type_> struct EigenProps {
                 np_cols = a.shape(1),
                 np_rstride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar)),
                 np_cstride = a.strides(1) / static_cast<ssize_t>(sizeof(Scalar));
-            if ((fixed_rows && np_rows != rows) || (fixed_cols && np_cols != cols))
+            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows) ||
+                (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols))
                 return false;
 
             return {np_rows, np_cols, np_rstride, np_cstride};
@@ -143,7 +144,7 @@ template <typename Type_> struct EigenProps {
               stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
 
         if (vector) { // Eigen type is a compile-time vector
-            if (fixed && size != n)
+            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n)
                 return false; // Vector size mismatch
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
         }
@@ -157,7 +158,7 @@ template <typename Type_> struct EigenProps {
             if (cols != n) return false;
             return {1, n, stride};
         } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
-            if (fixed_rows && rows != n) return false;
+            if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) return false;
             return {n, 1, stride};
     }
 
