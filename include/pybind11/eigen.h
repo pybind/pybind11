@@ -11,13 +11,20 @@
 
 #include "numpy.h"
 
+// This will need maintenance as new supported platforms are added.
+#if !defined(__APPLE__) \
+    && (defined(__GNUC__) && __GNUC__ >= 9 || \
+        defined(__clang_major__) && __clang_major__ >= 10)
+#define PYBIND11_COMPATIBILITY_WDEPRECATED_COPY
+#endif
+
 #if defined(__GNUC__)
 // These suppressions are needed only for certain compilers and versions of Eigen, but:
 // * Maintaining narrowly defined ifdefs is very complicated/expensive.
 // * These suppressions are applied only to the Eigen headers anyway.
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
-#if __GNUC__ != 8
+#if defined(PYBIND11_COMPATIBILITY_WDEPRECATED_COPY)
 #  pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #  pragma GCC diagnostic ignored "-Wdeprecated-copy-dtor"
 #endif
@@ -80,14 +87,14 @@ template <bool EigenRowMajor> struct EigenConformable {
         if (rstride < 0 || cstride < 0) {
             negativestrides = true;
         } else {
-#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ != 8
+#if defined(PYBIND11_COMPATIBILITY_WDEPRECATED_COPY)
 // Suppressing warning originating from Eigen header.
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #endif
             stride = {EigenRowMajor ? rstride : cstride /* outer stride */,
                       EigenRowMajor ? cstride : rstride /* inner stride */ };
-#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ != 8
+#if defined(PYBIND11_COMPATIBILITY_WDEPRECATED_COPY)
 #  pragma GCC diagnostic pop
 #endif
         }
