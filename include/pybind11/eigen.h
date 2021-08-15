@@ -11,8 +11,24 @@
 
 #include "numpy.h"
 
+#if defined(__GNUC__)
+// These suppressions are needed only for certain compilers and versions of Eigen, but:
+// * Maintaining narrowly defined ifdefs is very complicated/expensive.
+// * These suppressions are applied only to the Eigen headers anyway.
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wconversion"
+#if __GNUC__ != 8
+#  pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#  pragma GCC diagnostic ignored "-Wdeprecated-copy-dtor"
+#endif
+#endif
+
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+
+#if defined(__GNUC__)
+#  pragma GCC diagnostic pop
+#endif
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
 // move constructors that break things.  We could detect this an explicitly copy, but an extra copy
@@ -64,8 +80,16 @@ template <bool EigenRowMajor> struct EigenConformable {
         if (rstride < 0 || cstride < 0) {
             negativestrides = true;
         } else {
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ != 8
+// Suppressing warning originating from Eigen header.
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif
             stride = {EigenRowMajor ? rstride : cstride /* outer stride */,
                       EigenRowMajor ? cstride : rstride /* inner stride */ };
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ != 8
+#  pragma GCC diagnostic pop
+#endif
         }
     }
     // Vector type:
