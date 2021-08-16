@@ -5,7 +5,7 @@ import argparse
 import sys
 import sysconfig
 
-from .commands import get_include, get_cmake_dir
+from .commands import get_cmake_dir, get_include
 
 
 def print_includes():

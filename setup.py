@@ -4,6 +4,7 @@
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
 import contextlib
+import io
 import os
 import re
 import shutil
@@ -11,7 +12,6 @@ import string
 import subprocess
 import sys
 import tempfile
-import io
 
 import setuptools.command.sdist
 
