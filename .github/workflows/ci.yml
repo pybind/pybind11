@@ -106,18 +106,18 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build C++11
-      run: cmake --build . --verbose -j 2
+      run: cmake --build . -j 2
 
     - name: Python tests C++11
-      run: cmake --build . --target pytest
+      run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
       if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
-      run: cmake --build .  --verbose --target cpptest -j 2
+      run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
-      run: cmake --build . --verbose --target test_cmake_build
+      run: cmake --build . --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -134,7 +134,7 @@ jobs:
         ${{ matrix.args2 }}
 
     - name: Build
-      run: cmake --build build2 --verbose -j 2
+      run: cmake --build build2 -j 2
 
     - name: Python tests
       run: cmake --build build2 --target pytest
@@ -142,10 +142,10 @@ jobs:
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
       if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
-      run: cmake --build build2 --verbose --target cpptest
+      run: cmake --build build2 --target cpptest
 
     - name: Interface test
-      run: cmake --build build2 --verbose --target test_cmake_build
+      run: cmake --build build2 --target test_cmake_build
 
     # Eventually Microsoft might have an action for setting up
     # MSVC, but for now, this action works:
@@ -234,17 +234,17 @@ jobs:
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Python tests
       run: cmake --build build --target pytest
 
     - name: C++ tests
-      run: cmake --build build --verbose --target cpptest
+      run: cmake --build build --target cpptest
 
     - name: Run Valgrind on Python tests
       if: matrix.valgrind
-      run: cmake --build build --verbose --target memcheck
+      run: cmake --build build --target memcheck
 
 
   # Testing on clang using the excellent silkeh clang docker images
@@ -318,7 +318,7 @@ jobs:
       run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
 
     - name: Build
-      run: cmake --build build --verbose -j2
+      run: cmake --build build -j2 --verbose
 
     - name: Python tests
       run: cmake --build build --target pytest
@@ -400,7 +400,7 @@ jobs:
 
     # Building before installing Pip should produce a warning but not an error
     - name: Build
-      run: cmake3 --build build -j 2
+      run: cmake3 --build build -j 2 --verbose
 
     - name: Install CMake with pip
       run: |
@@ -457,16 +457,16 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Python tests
       run: cmake --build build --target pytest
 
     - name: C++ tests
-      run: cmake --build build --verbose --target cpptest
+      run: cmake --build build --target cpptest
 
     - name: Interface test
-      run: cmake --build build --verbose --target test_cmake_build
+      run: cmake --build build --target test_cmake_build
 
 
   # Testing on ICC using the oneAPI apt repo
@@ -515,23 +515,23 @@ jobs:
     - name: Build C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 --verbose -j 2
+        cmake --build build-11 -j 2 -v
 
     - name: Python tests C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build-11 --target pytest
+        cmake --build build-11 --target check
 
     - name: C++ tests C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 --verbose --target cpptest
+        cmake --build build-11 --target cpptest
 
     - name: Interface test C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 --verbose --target test_cmake_build
+        cmake --build build-11 --target test_cmake_build
 
     - name: Configure C++17
       run: |
@@ -547,23 +547,23 @@ jobs:
     - name: Build C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-17 --verbose -j 2
+        cmake --build build-17 -j 2 -v
 
     - name: Python tests C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build-17 --target pytest
+        cmake --build build-17 --target check
 
     - name: C++ tests C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-17 --verbose --target cpptest
+        cmake --build build-17 --target cpptest
 
     - name: Interface test C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-17 --verbose --target test_cmake_build
+        cmake --build build-17 --target test_cmake_build
 
 
   # Testing on CentOS (manylinux uses a centos base, and this is an easy way
@@ -614,16 +614,16 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Python tests
       run: cmake --build build --target pytest
 
     - name: C++ tests
-      run: cmake --build build --verbose --target cpptest
+      run: cmake --build build --target cpptest
 
     - name: Interface test
-      run: cmake --build build --verbose --target test_cmake_build
+      run: cmake --build build --target test_cmake_build
 
 
   # This tests an "install" with the CMake tools
@@ -758,7 +758,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
     - name: Build C++11
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Python tests
       run: cmake --build build -t pytest
@@ -804,10 +804,10 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
 
     - name: Build C++14
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Run all checks
-      run: cmake --build build --target pytest
+      run: cmake --build build -t check
 
 
   win32-msvc2017:
@@ -855,10 +855,10 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build ${{ matrix.std }}
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Run all checks
-      run: cmake --build build --target pytest
+      run: cmake --build build -t check
 
   mingw:
     runs-on: windows-latest
@@ -886,7 +886,7 @@ jobs:
       run: cmake -G "MinGW Makefiles" -S . -B build
 
     - name: Build
-      run: cmake --build build --verbose -j 2
+      run: cmake --build build -j 2
 
     - name: Python tests
       run: cmake --build build --target pytest
