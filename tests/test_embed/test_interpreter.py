@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from widget_module import Widget
 import sys
+
+from widget_module import Widget
 
 
 class DerivedWidget(Widget):
