@@ -968,7 +968,7 @@ inline void silence_unused_warnings(Args &&...) {}
 // warning C4127: Conditional expression is constant
 constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
-#    define PYBIND11_SILENCE_MSVC_C4127(...) detail::silence_msvc_c4127(__VA_ARGS__)
+#    define PYBIND11_SILENCE_MSVC_C4127(...) ::pybind11::detail::silence_msvc_c4127(__VA_ARGS__)
 
 #else
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
