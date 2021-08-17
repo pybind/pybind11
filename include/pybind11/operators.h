@@ -55,7 +55,8 @@ template <op_id id, op_type ot, typename L, typename R> struct op_ {
         using op = op_impl<id, ot, Base, L_type, R_type>;
         cl.def(op::name(), &op::execute, is_operator(), extra...);
         #if PY_MAJOR_VERSION < 3
-        if (id == op_truediv || id == op_itruediv)
+        if (PYBIND11_SILENCE_MSVC_C4127(id == op_truediv) ||
+            PYBIND11_SILENCE_MSVC_C4127(id == op_itruediv))
             cl.def(id == op_itruediv ? "__idiv__" : ot == op_l ? "__div__" : "__rdiv__",
                     &op::execute, is_operator(), extra...);
         #endif

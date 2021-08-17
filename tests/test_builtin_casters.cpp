@@ -68,7 +68,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     std::wstring wstr;
     wstr.push_back(0x61); // a
     wstr.push_back(0x2e18); // ⸘
-    if (sizeof(wchar_t) == 2) { wstr.push_back(mathbfA16_1); wstr.push_back(mathbfA16_2); } // 𝐀, utf16
+    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(wchar_t) == 2)) { wstr.push_back(mathbfA16_1); wstr.push_back(mathbfA16_2); } // 𝐀, utf16
     else { wstr.push_back((wchar_t) mathbfA32); } // 𝐀, utf32
     wstr.push_back(0x7a); // z
 
@@ -78,11 +78,12 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("good_wchar_string", [=]() { return wstr; }); // a‽𝐀z
     m.def("bad_utf8_string", []()  { return std::string("abc\xd0" "def"); });
     m.def("bad_utf16_string", [=]() { return std::u16string({ b16, char16_t(0xd800), z16 }); });
+#if PY_MAJOR_VERSION >= 3
     // Under Python 2.7, invalid unicode UTF-32 characters don't appear to trigger UnicodeDecodeError
-    if (PY_MAJOR_VERSION >= 3)
-        m.def("bad_utf32_string", [=]() { return std::u32string({ a32, char32_t(0xd800), z32 }); });
-    if (PY_MAJOR_VERSION >= 3 || sizeof(wchar_t) == 2)
+    m.def("bad_utf32_string", [=]() { return std::u32string({ a32, char32_t(0xd800), z32 }); });
+    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(wchar_t) == 2))
         m.def("bad_wchar_string", [=]() { return std::wstring({ wchar_t(0x61), wchar_t(0xd800) }); });
+#endif
     m.def("u8_Z", []() -> char { return 'Z'; });
     m.def("u8_eacute", []() -> char { return '\xe9'; });
     m.def("u16_ibang", [=]() -> char16_t { return ib16; });
