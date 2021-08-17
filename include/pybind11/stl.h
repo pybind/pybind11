@@ -19,11 +19,6 @@
 #include <deque>
 #include <valarray>
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 #ifdef __has_include
 // std::optional (but including it in c++14 mode isn't allowed)
 #  if defined(PYBIND11_CPP17) && __has_include(<optional>)
@@ -390,7 +385,3 @@ inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif

@@ -10,11 +10,6 @@
 #include "pybind11_tests.h"
 #include <pybind11/complex.h>
 
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 struct ConstRefCasted {
   int tag;
 };
