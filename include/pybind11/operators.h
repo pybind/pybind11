@@ -13,9 +13,6 @@
 
 #if defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))
-#elif defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -167,7 +164,3 @@ using detail::self;
 using detail::hash;
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#  pragma warning(pop)
-#endif
