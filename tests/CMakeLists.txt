@@ -303,7 +303,7 @@ function(pybind11_enable_warnings target_name)
       target_compile_options(${target_name} PRIVATE /WX)
     elseif(PYBIND11_CUDA_TESTS)
       target_compile_options(${target_name} PRIVATE "SHELL:-Werror all-warnings")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang|IntelLLVM)")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|IntelLLVM)")
       target_compile_options(${target_name} PRIVATE -Werror)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
       target_compile_options(
