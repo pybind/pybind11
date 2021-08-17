@@ -11,10 +11,6 @@
 
 #include "pybind11.h"
 
-#if defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))
-#endif
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
