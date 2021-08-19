@@ -65,7 +65,9 @@ def partial_dtype_fmt():
     partial_ld_off = partial_ld_offset()
     partial_size = partial_ld_off + ld.itemsize
     partial_end_padding = partial_size % np.dtype("uint64").alignment
-    return dt_fmt().format(ld.itemsize, partial_ld_off, partial_size + partial_end_padding)
+    return dt_fmt().format(
+        ld.itemsize, partial_ld_off, partial_size + partial_end_padding
+    )
 
 
 def partial_nested_fmt():
@@ -99,7 +101,8 @@ def test_format_descriptors():
     partial_fmt = (
         "^T{?:bool_:3xI:uint_:f:float_:"
         + str(4 * (dbl.alignment > 4) + dbl.itemsize + 8 * (ld.alignment > 8))
-        + "xg:ldbl_:" + (str(end_padding) + "x}" if end_padding > 0 else "}")
+        + "xg:ldbl_:"
+        + (str(end_padding) + "x}" if end_padding > 0 else "}")
     )
     nested_extra = str(max(8, ld.alignment))
     assert m.print_format_descriptors() == [
