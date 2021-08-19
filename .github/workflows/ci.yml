@@ -911,17 +911,35 @@ jobs:
     - name: Clean directory
       run: git clean -fdx
 
-    - name: Configure C++17
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -S . -B build2
+    - name: Configure C++14
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -S . -B build2
 
-    - name: Build C++17
+    - name: Build C++14
       run: cmake --build build2 -j 2
 
-    - name: Python tests C++17
+    - name: Python tests C++14
       run: cmake --build build2 --target pytest -j 2
 
-    - name: C++17 tests
+    - name: C++14 tests
       run: cmake --build build2 --target cpptest -j 2
 
-    - name: Interface test C++17
+    - name: Interface test C++14
       run: cmake --build build2 --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    - name: Configure C++17
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -S . -B build3
+
+    - name: Build C++17
+      run: cmake --build build3 -j 2
+
+    - name: Python tests C++17
+      run: cmake --build build3 --target pytest -j 2
+
+    - name: C++17 tests
+      run: cmake --build build3 --target cpptest -j 2
+
+    - name: Interface test C++17
+      run: cmake --build build3 --target test_cmake_build
