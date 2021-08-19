@@ -25,11 +25,6 @@
 #include <vector>
 #include <typeindex>
 
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 /* This will be true on all flat address space platforms and allows us to reduce the
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
@@ -747,7 +742,7 @@ public:
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
     template <typename T, ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() & {
-        if (Dims >= 0 && ndim() != Dims)
+        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
         return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides(), ndim());
@@ -761,7 +756,7 @@ public:
      * invalid dimensions or dimension indices.
      */
     template <typename T, ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const & {
-        if (Dims >= 0 && ndim() != Dims)
+        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
         return detail::unchecked_reference<T, Dims>(data(), shape(), strides(), ndim());
@@ -1708,7 +1703,3 @@ Helper vectorize(Return (Class::*f)(Args...) const) {
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
