@@ -283,3 +283,55 @@ TEST_CASE("Reload module from file") {
     result = module_.attr("test")().cast<int>();
     REQUIRE(result == 2);
 }
+
+namespace rerun_register_exception
+{
+    class CustomException : std::exception
+    {
+    private:
+        std::string _what;
+    public:
+        explicit CustomException(const std::string &what) : _what(what) {}
+        const char* what() const noexcept override {return _what.c_str();}
+    };
+
+    struct SomeException : public std::runtime_error {};
+
+    void run()
+    {
+        py::scoped_interpreter guard{};
+
+        auto m = py::module("test_module");
+        py::register_exception<CustomException>(m, "CustomException");
+
+        auto globals = py::globals();
+        // This should not throw an exception if this function is called a
+        // second time.
+        globals["CustomException"] = m.attr("CustomException");
+    }
+} // namespace rerun_register_exception
+
+TEST_CASE("Re-run register_exception<>() after destroying interpreter")
+{
+    py::finalize_interpreter();
+    REQUIRE_NOTHROW(rerun_register_exception::run());
+    REQUIRE(Py_IsInitialized() == 0);
+    REQUIRE_NOTHROW(rerun_register_exception::run());
+    py::initialize_interpreter();
+}
+
+PYBIND11_EMBEDDED_MODULE(mod_reg_excp0, mod) { mod.doc() = ""; }
+PYBIND11_EMBEDDED_MODULE(mod_reg_excp1, mod) { mod.doc() = ""; }
+
+TEST_CASE("Add same exception to multiple modules using register_exception<>()")
+{
+    auto mod0 = pybind11::module::import("mod_reg_excp0");
+    pybind11::register_exception<rerun_register_exception::SomeException>(mod0, "SomeException");
+
+    auto mod1 = pybind11::module::import("mod_reg_excp1");
+    pybind11::register_exception<rerun_register_exception::SomeException>(mod1, "SomeException");
+
+    auto d = py::dict();
+    REQUIRE_NOTHROW(d["excp0"] = mod0.attr("SomeException"));
+    REQUIRE_NOTHROW(d["excp1"] = mod1.attr("SomeException"));
+}
