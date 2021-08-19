@@ -11,13 +11,6 @@
 
 #include "pybind11.h"
 
-#if defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))
-#elif defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -58,7 +51,8 @@ template <op_id id, op_type ot, typename L, typename R> struct op_ {
         using op = op_impl<id, ot, Base, L_type, R_type>;
         cl.def(op::name(), &op::execute, is_operator(), extra...);
         #if PY_MAJOR_VERSION < 3
-        if (id == op_truediv || id == op_itruediv)
+        if (PYBIND11_SILENCE_MSVC_C4127(id == op_truediv) ||
+            PYBIND11_SILENCE_MSVC_C4127(id == op_itruediv))
             cl.def(id == op_itruediv ? "__idiv__" : ot == op_l ? "__div__" : "__rdiv__",
                     &op::execute, is_operator(), extra...);
         #endif
@@ -167,7 +161,3 @@ using detail::self;
 using detail::hash;
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#  pragma warning(pop)
-#endif
