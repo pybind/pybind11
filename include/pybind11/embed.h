@@ -130,6 +130,7 @@ inline void set_interpreter_argv(int argc, const char* const* argv, bool add_pro
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
     std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
     std::vector< std::unique_ptr<wchar_t[], wide_char_arg_deleter> > widened_argv_entries;
+    widened_argv_entries.reserve(argv_size);
     for (size_t ii = 0; ii < argv_size; ++ii) {
         widened_argv_entries.emplace_back(widen_chars(safe_argv[ii]));
         if (!widened_argv_entries.back()) {
@@ -143,7 +144,7 @@ inline void set_interpreter_argv(int argc, const char* const* argv, bool add_pro
     auto pysys_argv = widened_argv.get();
 #else
     // python 2.x
-    auto pysys_argv = safe_argv;
+    char** pysys_argv = const_cast<char**>safe_argv;
 #endif
 
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
