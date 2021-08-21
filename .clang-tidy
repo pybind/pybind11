@@ -1,8 +1,8 @@
 FormatStyle: file
 
 Checks: '
-*bugprone*,
 cppcoreguidelines-init-variables,
+cppcoreguidelines-slicing,
 clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
 misc-misplaced-const,
