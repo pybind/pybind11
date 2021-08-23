@@ -120,7 +120,7 @@ public:
             throw py::error_already_set();
         Py_DECREF(result);
 #else
-        py::module::import("gc").attr("collect")();
+        py::module_::import("gc").attr("collect")();
 #endif
     }
 
@@ -273,4 +273,3 @@ template <class T, typename... Values> void print_values(T *inst, Values &&...va
     print_constr_details(inst, ":", values...);
     track_values(inst, values...);
 }
-

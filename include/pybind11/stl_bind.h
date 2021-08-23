@@ -15,8 +15,8 @@
 #include <algorithm>
 #include <sstream>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /* SFINAE helper class used by 'is_comparable */
 template <typename T>  struct container_traits {
@@ -128,13 +128,20 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
            arg("x"),
            "Add an item to the end of the list");
 
-    cl.def(init([](iterable it) {
+    cl.def(init([](const iterable &it) {
         auto v = std::unique_ptr<Vector>(new Vector());
         v->reserve(len_hint(it));
         for (handle h : it)
-           v->push_back(h.cast<T>());
+            v->push_back(h.cast<T>());
         return v.release();
     }));
+
+    cl.def("clear",
+        [](Vector &v) {
+            v.clear();
+        },
+        "Clear the contents"
+    );
 
     cl.def("extend",
        [](Vector &v, const Vector &src) {
@@ -144,27 +151,28 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
        "Extend the list by appending all the items in the given list"
     );
 
-    cl.def("extend",
-       [](Vector &v, iterable it) {
-           const size_t old_size = v.size();
-           v.reserve(old_size + len_hint(it));
-           try {
-               for (handle h : it) {
-                   v.push_back(h.cast<T>());
-               }
-           } catch (const cast_error &) {
-               v.erase(v.begin() + static_cast<typename Vector::difference_type>(old_size), v.end());
-               try {
-                   v.shrink_to_fit();
-               } catch (const std::exception &) {
-                   // Do nothing
-               }
-               throw;
-           }
-       },
-       arg("L"),
-       "Extend the list by appending all the items in the given list"
-    );
+    cl.def(
+        "extend",
+        [](Vector &v, const iterable &it) {
+            const size_t old_size = v.size();
+            v.reserve(old_size + len_hint(it));
+            try {
+                for (handle h : it) {
+                    v.push_back(h.cast<T>());
+                }
+            } catch (const cast_error &) {
+                v.erase(v.begin() + static_cast<typename Vector::difference_type>(old_size),
+                        v.end());
+                try {
+                    v.shrink_to_fit();
+                } catch (const std::exception &) {
+                    // Do nothing
+                }
+                throw;
+            }
+        },
+        arg("L"),
+        "Extend the list by appending all the items in the given list");
 
     cl.def("insert",
         [](Vector &v, DiffType i, const T &x) {
@@ -183,7 +191,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         [](Vector &v) {
             if (v.empty())
                 throw index_error();
-            T t = v.back();
+            T t = std::move(v.back());
             v.pop_back();
             return t;
         },
@@ -193,8 +201,8 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def("pop",
         [wrap_i](Vector &v, DiffType i) {
             i = wrap_i(i, v.size());
-            T t = v[(SizeType) i];
-            v.erase(v.begin() + i);
+            T t = std::move(v[(SizeType) i]);
+            v.erase(std::next(v.begin(), i));
             return t;
         },
         arg("i"),
@@ -209,14 +217,15 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     );
 
     /// Slicing protocol
-    cl.def("__getitem__",
+    cl.def(
+        "__getitem__",
         [](const Vector &v, slice slice) -> Vector * {
-            size_t start, stop, step, slicelength;
+            size_t start = 0, stop = 0, step = 0, slicelength = 0;
 
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
                 throw error_already_set();
 
-            Vector *seq = new Vector();
+            auto *seq = new Vector();
             seq->reserve((size_t) slicelength);
 
             for (size_t i=0; i<slicelength; ++i) {
@@ -226,12 +235,12 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
             return seq;
         },
         arg("s"),
-        "Retrieve list elements using a slice object"
-    );
+        "Retrieve list elements using a slice object");
 
-    cl.def("__setitem__",
-        [](Vector &v, slice slice,  const Vector &value) {
-            size_t start, stop, step, slicelength;
+    cl.def(
+        "__setitem__",
+        [](Vector &v, slice slice, const Vector &value) {
+            size_t start = 0, stop = 0, step = 0, slicelength = 0;
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
                 throw error_already_set();
 
@@ -243,8 +252,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
                 start += step;
             }
         },
-        "Assign list elements using a slice object"
-    );
+        "Assign list elements using a slice object");
 
     cl.def("__delitem__",
         [wrap_i](Vector &v, DiffType i) {
@@ -254,9 +262,10 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         "Delete the list elements at index ``i``"
     );
 
-    cl.def("__delitem__",
+    cl.def(
+        "__delitem__",
         [](Vector &v, slice slice) {
-            size_t start, stop, step, slicelength;
+            size_t start = 0, stop = 0, step = 0, slicelength = 0;
 
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
                 throw error_already_set();
@@ -270,9 +279,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
                 }
             }
         },
-        "Delete list elements using a slice object"
-    );
-
+        "Delete list elements using a slice object");
 }
 
 // If the type has an operator[] that doesn't return a reference (most notably std::vector<bool>),
@@ -368,10 +375,20 @@ struct vector_has_data_and_format : std::false_type {};
 template <typename Vector>
 struct vector_has_data_and_format<Vector, enable_if_t<std::is_same<decltype(format_descriptor<typename Vector::value_type>::format(), std::declval<Vector>().data()), typename Vector::value_type*>::value>> : std::true_type {};
 
+// [workaround(intel)] Separate function required here
+// Workaround as the Intel compiler does not compile the enable_if_t part below
+// (tested with icc (ICC) 2021.1 Beta 20200827)
+template <typename... Args>
+constexpr bool args_any_are_buffer() {
+    return detail::any_of<std::is_same<Args, buffer_protocol>...>::value;
+}
+
+// [workaround(intel)] Separate function required here
+// [workaround(msvc)] Can't use constexpr bool in return type
+
 // Add the buffer interface to a vector
 template <typename Vector, typename Class_, typename... Args>
-enable_if_t<detail::any_of<std::is_same<Args, buffer_protocol>...>::value>
-vector_buffer(Class_& cl) {
+void vector_buffer_impl(Class_& cl, std::true_type) {
     using T = typename Vector::value_type;
 
     static_assert(vector_has_data_and_format<Vector>::value, "There is not an appropriate format descriptor for this vector");
@@ -383,30 +400,39 @@ vector_buffer(Class_& cl) {
         return buffer_info(v.data(), static_cast<ssize_t>(sizeof(T)), format_descriptor<T>::format(), 1, {v.size()}, {sizeof(T)});
     });
 
-    cl.def(init([](buffer buf) {
+    cl.def(init([](const buffer &buf) {
         auto info = buf.request();
         if (info.ndim != 1 || info.strides[0] % static_cast<ssize_t>(sizeof(T)))
             throw type_error("Only valid 1D buffers can be copied to a vector");
         if (!detail::compare_buffer_info<T>::compare(info) || (ssize_t) sizeof(T) != info.itemsize)
             throw type_error("Format mismatch (Python: " + info.format + " C++: " + format_descriptor<T>::format() + ")");
 
-        auto vec = std::unique_ptr<Vector>(new Vector());
-        vec->reserve((size_t) info.shape[0]);
         T *p = static_cast<T*>(info.ptr);
         ssize_t step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
         T *end = p + info.shape[0] * step;
+        if (step == 1) {
+            return Vector(p, end);
+        }
+        Vector vec;
+        vec.reserve((size_t) info.shape[0]);
         for (; p != end; p += step)
-            vec->push_back(*p);
-        return vec.release();
+            vec.push_back(*p);
+        return vec;
+
     }));
 
     return;
 }
 
 template <typename Vector, typename Class_, typename... Args>
-enable_if_t<!detail::any_of<std::is_same<Args, buffer_protocol>...>::value> vector_buffer(Class_&) {}
+void vector_buffer_impl(Class_&, std::false_type) {}
 
-NAMESPACE_END(detail)
+template <typename Vector, typename Class_, typename... Args>
+void vector_buffer(Class_& cl) {
+    vector_buffer_impl<Vector, Class_, Args...>(cl, detail::any_of<std::is_same<Args, buffer_protocol>...>{});
+}
+
+PYBIND11_NAMESPACE_END(detail)
 
 //
 // std::vector
@@ -504,7 +530,7 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
 // std::map, std::unordered_map
 //
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /* Fallback functions */
 template <typename, typename, typename... Args> void map_if_insertion_operator(const Args &...) { }
@@ -570,7 +596,7 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
 }
 
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
 class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&... args) {
@@ -646,4 +672,4 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     return cl;
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

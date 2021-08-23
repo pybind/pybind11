@@ -18,7 +18,7 @@ TEST_SUBMODULE(async_module, m) {
         .def(py::init<>())
         .def("__await__", [](const SupportsAsync& self) -> py::object {
             static_cast<void>(self);
-            py::object loop = py::module::import("asyncio.events").attr("get_event_loop")();
+            py::object loop = py::module_::import("asyncio.events").attr("get_event_loop")();
             py::object f = loop.attr("create_future")();
             f.attr("set_result")(5);
             return f.attr("__await__")();

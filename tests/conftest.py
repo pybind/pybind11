@@ -1,31 +1,36 @@
+# -*- coding: utf-8 -*-
 """pytest configuration
 
 Extends output capture as needed by pybind11: ignore constructors, optional unordered lines.
 Adds docstring and exceptions message sanitizers: ignore Python 2 vs 3 differences.
 """
 
-import pytest
-import textwrap
-import difflib
-import re
-import sys
 import contextlib
-import platform
+import difflib
 import gc
+import re
+import textwrap
 
-_unicode_marker = re.compile(r'u(\'[^\']*\')')
-_long_marker = re.compile(r'([0-9])L')
-_hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
+import pytest
 
-# test_async.py requires support for async and await
+import env
+
+# Early diagnostic for failed imports
+import pybind11_tests  # noqa: F401
+
+_unicode_marker = re.compile(r"u(\'[^\']*\')")
+_long_marker = re.compile(r"([0-9])L")
+_hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
+
+# Avoid collecting Python3 only files
 collect_ignore = []
-if sys.version_info[:2] < (3, 5):
+if env.PY2:
     collect_ignore.append("test_async.py")
 
 
 def _strip_and_dedent(s):
     """For triple-quote strings"""
-    return textwrap.dedent(s.lstrip('\n').rstrip())
+    return textwrap.dedent(s.lstrip("\n").rstrip())
 
 
 def _split_and_sort(s):
@@ -35,11 +40,14 @@ def _split_and_sort(s):
 
 def _make_explanation(a, b):
     """Explanation for a failed assert -- the a and b arguments are List[str]"""
-    return ["--- actual / +++ expected"] + [line.strip('\n') for line in difflib.ndiff(a, b)]
+    return ["--- actual / +++ expected"] + [
+        line.strip("\n") for line in difflib.ndiff(a, b)
+    ]
 
 
 class Output(object):
     """Basic output post-processing and comparison"""
+
     def __init__(self, string):
         self.string = string
         self.explanation = []
@@ -49,7 +57,11 @@ class Output(object):
 
     def __eq__(self, other):
         # Ignore constructor/destructor output which is prefixed with "###"
-        a = [line for line in self.string.strip().splitlines() if not line.startswith("###")]
+        a = [
+            line
+            for line in self.string.strip().splitlines()
+            if not line.startswith("###")
+        ]
         b = _strip_and_dedent(other).splitlines()
         if a == b:
             return True
@@ -60,6 +72,7 @@ class Output(object):
 
 class Unordered(Output):
     """Custom comparison for output without strict line ordering"""
+
     def __eq__(self, other):
         a = _split_and_sort(self.string)
         b = _split_and_sort(other)
@@ -170,7 +183,7 @@ def msg():
 # noinspection PyUnusedLocal
 def pytest_assertrepr_compare(op, left, right):
     """Hook to insert custom failure explanation"""
-    if hasattr(left, 'explanation'):
+    if hasattr(left, "explanation"):
         return left.explanation
 
 
@@ -184,61 +197,12 @@ def suppress(exception):
 
 
 def gc_collect():
-    ''' Run the garbage collector twice (needed when running
-    reference counting tests with PyPy) '''
+    """Run the garbage collector twice (needed when running
+    reference counting tests with PyPy)"""
     gc.collect()
     gc.collect()
 
 
 def pytest_configure():
-    """Add import suppression and test requirements to `pytest` namespace"""
-    try:
-        import numpy as np
-    except ImportError:
-        np = None
-    try:
-        import scipy
-    except ImportError:
-        scipy = None
-    try:
-        from pybind11_tests.eigen import have_eigen
-    except ImportError:
-        have_eigen = False
-    pypy = platform.python_implementation() == "PyPy"
-
-    skipif = pytest.mark.skipif
     pytest.suppress = suppress
-    pytest.requires_numpy = skipif(not np, reason="numpy is not installed")
-    pytest.requires_scipy = skipif(not np, reason="scipy is not installed")
-    pytest.requires_eigen_and_numpy = skipif(not have_eigen or not np,
-                                             reason="eigen and/or numpy are not installed")
-    pytest.requires_eigen_and_scipy = skipif(
-        not have_eigen or not scipy, reason="eigen and/or scipy are not installed")
-    pytest.unsupported_on_pypy = skipif(pypy, reason="unsupported on PyPy")
-    pytest.unsupported_on_py2 = skipif(sys.version_info.major < 3,
-                                       reason="unsupported on Python 2.x")
     pytest.gc_collect = gc_collect
-
-
-def _test_import_pybind11():
-    """Early diagnostic for test module initialization errors
-
-    When there is an error during initialization, the first import will report the
-    real error while all subsequent imports will report nonsense. This import test
-    is done early (in the pytest configuration file, before any tests) in order to
-    avoid the noise of having all tests fail with identical error messages.
-
-    Any possible exception is caught here and reported manually *without* the stack
-    trace. This further reduces noise since the trace would only show pytest internals
-    which are not useful for debugging pybind11 module issues.
-    """
-    # noinspection PyBroadException
-    try:
-        import pybind11_tests  # noqa: F401 imported but unused
-    except Exception as e:
-        print("Failed to import pybind11_tests from pytest:")
-        print("  {}: {}".format(type(e).__name__, e))
-        sys.exit(1)
-
-
-_test_import_pybind11()

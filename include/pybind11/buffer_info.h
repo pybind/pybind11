@@ -11,7 +11,30 @@
 
 #include "detail/common.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Default, C-style strides
+inline std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
+    auto ndim = shape.size();
+    std::vector<ssize_t> strides(ndim, itemsize);
+    if (ndim > 0)
+        for (size_t i = ndim - 1; i > 0; --i)
+            strides[i - 1] = strides[i] * shape[i];
+    return strides;
+}
+
+// F-style strides; default when constructing an array_t with `ExtraFlags & f_style`
+inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
+    auto ndim = shape.size();
+    std::vector<ssize_t> strides(ndim, itemsize);
+    for (size_t i = 1; i < ndim; ++i)
+        strides[i] = strides[i - 1] * shape[i - 1];
+    return strides;
+}
+
+PYBIND11_NAMESPACE_END(detail)
 
 /// Information record describing a Python buffer object
 struct buffer_info {
@@ -24,7 +47,7 @@ struct buffer_info {
     std::vector<ssize_t> strides; // Number of bytes between adjacent entries (for each per dimension)
     bool readonly = false;        // flag to indicate if the underlying storage may be written to
 
-    buffer_info() { }
+    buffer_info() = default;
 
     buffer_info(void *ptr, ssize_t itemsize, const std::string &format, ssize_t ndim,
                 detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in, bool readonly=false)
@@ -53,19 +76,24 @@ struct buffer_info {
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, view->itemsize, view->format, view->ndim,
-            {view->shape, view->shape + view->ndim}, {view->strides, view->strides + view->ndim}, view->readonly) {
-        this->view = view;
+            {view->shape, view->shape + view->ndim},
+            /* Though buffer::request() requests PyBUF_STRIDES, ctypes objects
+             * ignore this flag and return a view with NULL strides.
+             * When strides are NULL, build them manually.  */
+            view->strides
+            ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
+            : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
+            (view->readonly != 0)) {
+        this->m_view = view;
         this->ownview = ownview;
     }
 
     buffer_info(const buffer_info &) = delete;
     buffer_info& operator=(const buffer_info &) = delete;
 
-    buffer_info(buffer_info &&other) {
-        (*this) = std::move(other);
-    }
+    buffer_info(buffer_info &&other) noexcept { (*this) = std::move(other); }
 
-    buffer_info& operator=(buffer_info &&rhs) {
+    buffer_info &operator=(buffer_info &&rhs) noexcept {
         ptr = rhs.ptr;
         itemsize = rhs.itemsize;
         size = rhs.size;
@@ -73,16 +101,18 @@ struct buffer_info {
         ndim = rhs.ndim;
         shape = std::move(rhs.shape);
         strides = std::move(rhs.strides);
-        std::swap(view, rhs.view);
+        std::swap(m_view, rhs.m_view);
         std::swap(ownview, rhs.ownview);
         readonly = rhs.readonly;
         return *this;
     }
 
     ~buffer_info() {
-        if (view && ownview) { PyBuffer_Release(view); delete view; }
+        if (m_view && ownview) { PyBuffer_Release(m_view); delete m_view; }
     }
 
+    Py_buffer *view() const { return m_view; }
+    Py_buffer *&view() { return m_view; }
 private:
     struct private_ctr_tag { };
 
@@ -90,11 +120,11 @@ private:
                 detail::any_container<ssize_t> &&shape_in, detail::any_container<ssize_t> &&strides_in, bool readonly)
     : buffer_info(ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in), readonly) { }
 
-    Py_buffer *view = nullptr;
+    Py_buffer *m_view = nullptr;
     bool ownview = false;
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T, typename SFINAE = void> struct compare_buffer_info {
     static bool compare(const buffer_info& b) {
@@ -110,5 +140,5 @@ template <typename T> struct compare_buffer_info<T, detail::enable_if_t<std::is_
     }
 };
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

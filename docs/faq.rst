@@ -5,7 +5,7 @@ Frequently asked questions
 ===========================================================
 
 1. Make sure that the name specified in PYBIND11_MODULE is identical to the
-filename of the extension library (without prefixes such as .so)
+filename of the extension library (without suffixes such as ``.so``).
 
 2. If the above did not fix the issue, you are likely using an incompatible
 version of Python (for instance, the extension library was compiled against
@@ -26,18 +26,6 @@ The Python interpreter immediately crashes when importing my module
 ===================================================================
 
 See the first answer.
-
-CMake doesn't detect the right Python version
-=============================================
-
-The CMake-based build system will try to automatically detect the installed
-version of Python and link against that. When this fails, or when there are
-multiple versions of Python and it finds the wrong one, delete
-``CMakeCache.txt`` and then invoke CMake as follows:
-
-.. code-block:: bash
-
-    cmake -DPYTHON_EXECUTABLE:FILEPATH=<path-to-python-executable> .
 
 .. _faq_reference_arguments:
 
@@ -100,8 +88,8 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex1(py::module &);
-    void init_ex2(py::module &);
+    void init_ex1(py::module_ &);
+    void init_ex2(py::module_ &);
     /* ... */
 
     PYBIND11_MODULE(example, m) {
@@ -114,7 +102,7 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex1(py::module &m) {
+    void init_ex1(py::module_ &m) {
         m.def("add", [](int a, int b) { return a + b; });
     }
 
@@ -122,7 +110,7 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex2(py::module &m) {
+    void init_ex2(py::module_ &m) {
         m.def("sub", [](int a, int b) { return a - b; });
     }
 
@@ -181,8 +169,8 @@ can be changed, but even if it isn't it is not always enough to guarantee
 complete independence of the symbols involved when not using
 ``-fvisibility=hidden``.
 
-Additionally, ``-fvisiblity=hidden`` can deliver considerably binary size
-savings.  (See the following section for more details).
+Additionally, ``-fvisibility=hidden`` can deliver considerably binary size
+savings. (See the following section for more details.)
 
 
 .. _`faq:symhidden`:
@@ -192,7 +180,7 @@ How can I create smaller binaries?
 
 To do its job, pybind11 extensively relies on a programming technique known as
 *template metaprogramming*, which is a way of performing computation at compile
-time using type information. Template metaprogamming usually instantiates code
+time using type information. Template metaprogramming usually instantiates code
 involving significant numbers of deeply nested types that are either completely
 removed or reduced to just a few instructions during the compiler's optimization
 phase. However, due to the nested nature of these types, the resulting symbol
@@ -275,17 +263,34 @@ been received, you must either explicitly interrupt execution by throwing
         });
     }
 
+CMake doesn't detect the right Python version
+=============================================
+
+The CMake-based build system will try to automatically detect the installed
+version of Python and link against that. When this fails, or when there are
+multiple versions of Python and it finds the wrong one, delete
+``CMakeCache.txt`` and then add ``-DPYTHON_EXECUTABLE=$(which python)`` to your
+CMake configure line. (Replace ``$(which python)`` with a path to python if
+your prefer.)
+
+You can alternatively try ``-DPYBIND11_FINDPYTHON=ON``, which will activate the
+new CMake FindPython support instead of pybind11's custom search. Requires
+CMake 3.12+, and 3.15+ or 3.18.2+ are even better. You can set this in your
+``CMakeLists.txt`` before adding or finding pybind11, as well.
+
 Inconsistent detection of Python version in CMake and pybind11
 ==============================================================
 
-The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` provided by CMake
-for Python version detection are not used by pybind11 due to unreliability and limitations that make
-them unsuitable for pybind11's needs. Instead pybind provides its own, more reliable Python detection
-CMake code. Conflicts can arise, however, when using pybind11 in a project that *also* uses the CMake
-Python detection in a system with several Python versions installed.
+The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)``
+provided by CMake for Python version detection are modified by pybind11 due to
+unreliability and limitations that make them unsuitable for pybind11's needs.
+Instead pybind11 provides its own, more reliable Python detection CMake code.
+Conflicts can arise, however, when using pybind11 in a project that *also* uses
+the CMake Python detection in a system with several Python versions installed.
 
-This difference may cause inconsistencies and errors if *both* mechanisms are used in the same project. Consider the following
-Cmake code executed in a system with Python 2.7 and 3.x installed:
+This difference may cause inconsistencies and errors if *both* mechanisms are
+used in the same project. Consider the following CMake code executed in a
+system with Python 2.7 and 3.x installed:
 
 .. code-block:: cmake
 
@@ -303,10 +308,24 @@ In contrast this code:
     find_package(PythonInterp)
     find_package(PythonLibs)
 
-will detect Python 3.x for pybind11 and may crash on ``find_package(PythonLibs)`` afterwards.
+will detect Python 3.x for pybind11 and may crash on
+``find_package(PythonLibs)`` afterwards.
 
-It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely
-on pybind11 in detecting Python version. If this is not possible CMake machinery should be called *before* including pybind11.
+There are three possible solutions:
+
+1. Avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)``
+   from CMake and rely on pybind11 in detecting Python version. If this is not
+   possible, the CMake machinery should be called *before* including pybind11.
+2. Set ``PYBIND11_FINDPYTHON`` to ``True`` or use ``find_package(Python
+   COMPONENTS Interpreter Development)`` on modern CMake (3.12+, 3.15+ better,
+   3.18.2+ best). Pybind11 in these cases uses the new CMake FindPython instead
+   of the old, deprecated search tools, and these modules are much better at
+   finding the correct Python.
+3. Set ``PYBIND11_NOPYTHON`` to ``TRUE``. Pybind11 will not search for Python.
+   However, you will have to use the target-based system, and do more setup
+   yourself, because it does not know about or include things that depend on
+   Python, like ``pybind11_add_module``. This might be ideal for integrating
+   into an existing system, like scikit-build's Python helpers.
 
 How to cite this project?
 =========================

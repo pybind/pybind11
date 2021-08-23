@@ -1,12 +1,11 @@
-from ._version import version_info, __version__  # noqa: F401 imported but unused
+# -*- coding: utf-8 -*-
 
+from ._version import __version__, version_info
+from .commands import get_cmake_dir, get_include
 
-def get_include(user=False):
-    import os
-    d = os.path.dirname(__file__)
-    if os.path.exists(os.path.join(d, "include")):
-        # Package is installed
-        return os.path.join(d, "include")
-    else:
-        # Package is from a source directory
-        return os.path.join(os.path.dirname(d), "include")
+__all__ = (
+    "version_info",
+    "__version__",
+    "get_include",
+    "get_cmake_dir",
+)
