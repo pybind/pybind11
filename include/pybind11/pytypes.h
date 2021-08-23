@@ -385,20 +385,25 @@ private:
 #if PY_VERSION_HEX >= 0x03030000
 
 /// Replaces the current Python error indicator with the chosen error, performing a
-/// 'raise from' to indicate that the chosen error was caused by the original error
+/// 'raise from' to indicate that the chosen error was caused by the original error.
 inline void raise_from(PyObject *type, const char *message) {
-    // from cpython/errors.c _PyErr_FormatVFromCause
+    // Based on _PyErr_FormatVFromCause:
+    // https://github.com/python/cpython/blob/467ab194fc6189d9f7310c89937c51abeac56839/Python/errors.c#L405
+    // See https://github.com/pybind/pybind11/pull/2112 for details.
     PyObject *exc = nullptr, *val = nullptr, *val2 = nullptr, *tb = nullptr;
-    PyErr_Fetch(&exc, &val, &tb);
 
+    assert(PyErr_Occurred());
+    PyErr_Fetch(&exc, &val, &tb);
     PyErr_NormalizeException(&exc, &val, &tb);
     if (tb != nullptr) {
         PyException_SetTraceback(val, tb);
         Py_DECREF(tb);
     }
     Py_DECREF(exc);
+    assert(!PyErr_Occurred());
 
     PyErr_SetString(type, message);
+
     PyErr_Fetch(&exc, &val2, &tb);
     PyErr_NormalizeException(&exc, &val2, &tb);
     Py_INCREF(val);
