@@ -68,8 +68,8 @@ nox -l
 # Run linters
 nox -s lint
 
-# Run tests
-nox -s tests
+# Run tests on Python 3.9
+nox -s tests-3.9
 
 # Build and preview docs
 nox -s docs -- serve
