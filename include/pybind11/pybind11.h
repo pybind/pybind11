@@ -1664,7 +1664,7 @@ inline str enum_name(handle arg) {
 }
 
 struct enum_base {
-    enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
+    enum_base(const handle &base, const handle &parent) : m_base(base), m_parent(parent) { }
 
     PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
         m_base.attr("__entries") = dict();
