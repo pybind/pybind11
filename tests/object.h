@@ -110,7 +110,11 @@ public:
 
     /// Overwrite this reference with another reference
     ref& operator=(const ref& r) {
-        print_copy_assigned(this, "pointer", r.m_ptr); track_copy_assigned((ref_tag*) this);
+        if (this == &r) {
+            return *this;
+        }
+        print_copy_assigned(this, "pointer", r.m_ptr);
+        track_copy_assigned((ref_tag *) this);
 
         if (m_ptr == r.m_ptr)
             return *this;

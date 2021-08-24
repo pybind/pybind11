@@ -6,9 +6,54 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-Next version (WIP)
-------------------
+v2.8.0 (WIP)
+------------
 
+* Allow exception translators to be optionally registered local to a module
+  instead of applying globally across all pybind11 modules. Use
+  ``register_local_exception_translator(ExceptionTranslator&& translator)``
+  instead of  ``register_exception_translator(ExceptionTranslator&&
+  translator)`` to keep your exception remapping code local to the module.
+  `#2650 <https://github.com/pybind/pybind11/pull/2650>`_
+
+v2.7.1 (Aug 3, 2021)
+---------------------
+
+Minor missing functionality added:
+
+* Allow Python builtins to be used as callbacks in CPython.
+  `#1413 <https://github.com/pybind/pybind11/pull/1413>`_
+
+Bug fixes:
+
+* Fix regression in CMake Python package config: improper use of absolute path.
+  `#3144 <https://github.com/pybind/pybind11/pull/3144>`_
+
+* Fix Mingw64 and add to the CI testing matrix.
+  `#3132 <https://github.com/pybind/pybind11/pull/3132>`_
+
+* Specified UTF8-encoding in setup.py calls of open().
+  `#3137 <https://github.com/pybind/pybind11/pull/3137>`_
+
+* Add clang-tidy-readability rules to make boolean casts explicit improving
+  code readability. Also enabled other misc and readability clang-tidy checks.
+  `#3148 <https://github.com/pybind/pybind11/pull/3148>`_
+
+* Move object in ``.pop()`` for list.
+  `#3116 <https://github.com/pybind/pybind11/pull/3116>`_
+
+Backend and tidying up:
+
+* Removed and fixed warning suppressions.
+  `#3127 <https://github.com/pybind/pybind11/pull/3127>`_
+  `#3129 <https://github.com/pybind/pybind11/pull/3129>`_
+  `#3135 <https://github.com/pybind/pybind11/pull/3135>`_
+  `#3141 <https://github.com/pybind/pybind11/pull/3141>`_
+  `#3142 <https://github.com/pybind/pybind11/pull/3142>`_
+  `#3150 <https://github.com/pybind/pybind11/pull/3150>`_
+  `#3152 <https://github.com/pybind/pybind11/pull/3152>`_
+  `#3160 <https://github.com/pybind/pybind11/pull/3160>`_
+  `#3161 <https://github.com/pybind/pybind11/pull/3161>`_
 
 
 v2.7.0 (Jul 16, 2021)

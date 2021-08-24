@@ -23,11 +23,10 @@ public:
     test_initializer(const char *submodule_name, Initializer init);
 };
 
-#define TEST_SUBMODULE(name, variable)                   \
-    void test_submodule_##name(py::module_ &);            \
-    test_initializer name(#name, test_submodule_##name); \
-    void test_submodule_##name(py::module_ &variable)
-
+#define TEST_SUBMODULE(name, variable)                                                            \
+    void test_submodule_##name(py::module_ &);                                                    \
+    test_initializer name(#name, test_submodule_##name);                                          \
+    void test_submodule_##name(py::module_ &(variable))
 
 /// Dummy type which is not exported anywhere -- something to trigger a conversion error
 struct UnregisteredType { };

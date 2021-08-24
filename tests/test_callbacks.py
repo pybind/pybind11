@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import pytest
-from pybind11_tests import callbacks as m
-from threading import Thread
 import time
+from threading import Thread
+
+import pytest
+
 import env  # NOQA: F401
+from pybind11_tests import callbacks as m
 
 
 def test_callbacks():

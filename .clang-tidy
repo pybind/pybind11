@@ -1,7 +1,9 @@
 FormatStyle: file
 
 Checks: '
+*bugprone*,
 cppcoreguidelines-init-variables,
+cppcoreguidelines-slicing,
 clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
 misc-misplaced-const,
@@ -43,6 +45,9 @@ readability-static-accessed-through-instance,
 readability-static-definition-in-anonymous-namespace,
 readability-string-compare,
 readability-uniqueptr-delete-release,
+-bugprone-exception-escape,
+-bugprone-reserved-identifier,
+-bugprone-unused-raii,
 '
 
 CheckOptions:

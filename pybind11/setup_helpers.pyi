@@ -1,13 +1,12 @@
 # IMPORTANT: Should stay in sync with setup_helpers.py (mostly checked by CI /
 # pre-commit).
 
-from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
-from types import TracebackType
-
+import contextlib
+import distutils.ccompiler
 from distutils.command.build_ext import build_ext as _build_ext  # type: ignore
 from distutils.extension import Extension as _Extension
-import distutils.ccompiler
-import contextlib
+from types import TracebackType
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
 
 WIN: bool
 PY2: bool
