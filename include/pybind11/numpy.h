@@ -790,10 +790,10 @@ public:
         if (isinstance<array>(new_array)) { *this = std::move(new_array); }
     }
 
+    /// Optional `order` parameter omitted, to be added as needed.
     array reshape(ShapeContainer new_shape) {
         detail::npy_api::PyArray_Dims d
             = {reinterpret_cast<Py_intptr_t *>(new_shape->data()), int(new_shape->size())};
-        // try to reshape, set ordering param to 0 cause it's not used anyway
         auto new_array
             = reinterpret_steal<array>(detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
         if (!new_array) {

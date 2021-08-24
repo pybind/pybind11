@@ -405,19 +405,13 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-    sm.def("array_reshape1", [](py::array_t<double> a, size_t N) {
-        return a.reshape({N, N, N});
-    });
-
-    sm.def("create_and_reshape", [](size_t N, size_t M, size_t O) {
-        py::array_t<double> a;
-        a.resize({N*M*O});
-        std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
+    sm.def("reshape_initializer_list", [](py::array_t<int> a, size_t N, size_t M, size_t O) {
         return a.reshape({N, M, O});
     });
-    sm.def("reshape_tuple", [](py::array_t<double> a, const std::vector<int> &new_shape) {
+    sm.def("reshape_tuple", [](py::array_t<int> a, const std::vector<int> &new_shape) {
         return a.reshape(new_shape);
     });
+
     sm.def("index_using_ellipsis",
            [](const py::array &a) { return a[py::make_tuple(0, py::ellipsis(), 0)]; });
 
