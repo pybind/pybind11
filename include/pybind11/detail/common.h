@@ -315,6 +315,19 @@ extern "C" {
         }                                                                      \
     }
 
+#if PY_VERSION_HEX >= 0x03030000
+
+#define PYBIND11_CATCH_INIT_EXCEPTIONS \
+        catch (pybind11::error_already_set &e) {                                 \
+            pybind11::raise_from(e, PyExc_ImportError, "initialization failed"); \
+            return nullptr;                                                      \
+        } catch (const std::exception &e) {                                      \
+            PyErr_SetString(PyExc_ImportError, e.what());                        \
+            return nullptr;                                                      \
+        }                                                                        \
+
+#else
+
 #define PYBIND11_CATCH_INIT_EXCEPTIONS \
         catch (pybind11::error_already_set &e) {                               \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
@@ -323,6 +336,8 @@ extern "C" {
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
         }                                                                      \
+
+#endif
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
