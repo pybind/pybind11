@@ -661,15 +661,18 @@ struct generic_item {
 struct sequence_item {
     using key_type = size_t;
 
-    static object get(handle obj, size_t index) {
-        PyObject *result = PySequence_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+    template <typename IdxType>
+    static object get(handle obj, const IdxType& index) {
+        PyObject *result = PySequence_GetItem(
+            obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t());
         if (!result) { throw error_already_set(); }
         return reinterpret_steal<object>(result);
     }
 
-    static void set(handle obj, size_t index, handle val) {
+    template <typename IdxType>
+    static void set(handle obj, const IdxType& index, handle val) {
         // PySequence_SetItem does not steal a reference to 'val'
-        if (PySequence_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.ptr()) != 0) {
+        if (PySequence_SetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t(), val.ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -678,15 +681,17 @@ struct sequence_item {
 struct list_item {
     using key_type = size_t;
 
-    static object get(handle obj, size_t index) {
-        PyObject *result = PyList_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+    template <typename IdxType>
+    static object get(handle obj, const IdxType& index) {
+        PyObject *result = PyList_GetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t());
         if (!result) { throw error_already_set(); }
         return reinterpret_borrow<object>(result);
     }
 
-    static void set(handle obj, size_t index, handle val) {
+    template <typename IdxType>
+    static void set(handle obj, const IdxType& index, handle val) {
         // PyList_SetItem steals a reference to 'val'
-        if (PyList_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+        if (PyList_SetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t(), val.inc_ref().ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -695,15 +700,17 @@ struct list_item {
 struct tuple_item {
     using key_type = size_t;
 
-    static object get(handle obj, size_t index) {
-        PyObject *result = PyTuple_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+    template <typename IdxType>
+    static object get(handle obj, const IdxType& index) {
+        PyObject *result = PyTuple_GetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t());
         if (!result) { throw error_already_set(); }
         return reinterpret_borrow<object>(result);
     }
 
-    static void set(handle obj, size_t index, handle val) {
+    template <typename IdxType>
+    static void set(handle obj, const IdxType& index, handle val) {
         // PyTuple_SetItem steals a reference to 'val'
-        if (PyTuple_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+        if (PyTuple_SetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t(), val.inc_ref().ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -1479,8 +1486,8 @@ public:
     template <typename T> void append(T &&val) /* py-non-const */ {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
-    template <typename T> void insert(size_t index, T &&val) /* py-non-const */ {
-        PyList_Insert(m_ptr, static_cast<ssize_t>(index),
+    template <typename IdxType, typename T> void insert(const IdxType& index, T &&val) /* py-non-const */ {
+        PyList_Insert(m_ptr, safe_ssize_t<IdxType>(index).as_ssize_t(),
             detail::object_or_cast(std::forward<T>(val)).ptr());
     }
 };

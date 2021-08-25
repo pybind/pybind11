@@ -410,6 +410,15 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
 
+template <typename IntType>
+struct safe_ssize_t {
+    IntType val;
+    explicit safe_ssize_t(const IntType &val) : val{val} {
+        static_assert(sizeof(IntType) <= sizeof(ssize_t), "");
+    }
+    ssize_t as_ssize_t() const { return (ssize_t) val; }
+};
+
 /// Approach used to cast a previously unknown C++ instance into a Python object
 enum class return_value_policy : uint8_t {
     /** This is the default return value policy, which falls back to the policy
