@@ -236,22 +236,26 @@ def test_duplicate_enum_name():
     assert str(excinfo.value) == 'SimpleEnum: element "ONE" already exists!'
 
 
-def test_char_underlying_enum():
-    assert type(m.ScopedCharEnum.Positive.__int__()) == int
-    assert m.ScopedCharEnum.Zero.__int__() == 0
-    assert m.ScopedChar32Enum.Positive.__getstate__() == 1
-    assert m.ScopedChar32Enum.Zero.__hash__() == 0
-    int(m.ScopedChar16Enum.Positive)
-    hash(m.ScopedChar16Enum.Zero)
-    m.ScopedWCharEnum(1)
+def test_char_underlying_enum():  # Issue #1331/PR #1334:
+    assert type(m.ScopedCharEnum.Positive.__int__()) is int
+    assert int(m.ScopedChar16Enum.Zero) == 0  # int() call should successfully return
+    assert hash(m.ScopedChar32Enum.Positive) == 1
+    assert m.ScopedCharEnum.Positive.__getstate__() == 1  # return type is long in py2.x
+    assert m.ScopedWCharEnum(1) == m.ScopedWCharEnum.Positive
     with pytest.raises(TypeError):
+        # Enum should construct with a int, even with char underlying type
         m.ScopedWCharEnum("0")
 
 
 def test_bool_underlying_enum():
-    assert type(m.ScopedBoolEnum.TRUE.__int__()) == int
-    assert m.ScopedBoolEnum.FALSE.__hash__() == 0
-    m.ScopedBoolEnum(1)
+    assert type(m.ScopedBoolEnum.TRUE.__int__()) is int
+    assert int(m.ScopedBoolEnum.FALSE) == 0
+    assert hash(m.ScopedBoolEnum.TRUE) == 1
+    assert m.ScopedBoolEnum.TRUE.__getstate__() == 1
+    assert m.ScopedBoolEnum(1) == m.ScopedBoolEnum.TRUE
+    # Enum could construct with a bool
+    # (bool is a strict subclass of int, and False will be converted to 0)
+    assert m.ScopedBoolEnum(False) == m.ScopedBoolEnum.FALSE
 
 
 def test_docstring_signatures():
