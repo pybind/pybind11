@@ -411,7 +411,7 @@ def test_array_unchecked_fixed_dims(msg):
     assert m.proxy_auxiliaries2_const_ref(z1)
 
 
-def test_array_unchecked_dyn_dims(msg):
+def test_array_unchecked_dyn_dims():
     z1 = np.array([[1, 2], [3, 4]], dtype="float64")
     m.proxy_add2_dyn(z1, 10)
     assert np.all(z1 == [[11, 12], [13, 14]])
@@ -444,7 +444,7 @@ def test_initializer_list():
     assert m.array_initializer_list4().shape == (1, 2, 3, 4)
 
 
-def test_array_resize(msg):
+def test_array_resize():
     a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype="float64")
     m.array_reshape2(a)
     assert a.size == 9
@@ -470,10 +470,35 @@ def test_array_resize(msg):
 
 
 @pytest.mark.xfail("env.PYPY")
-def test_array_create_and_resize(msg):
+def test_array_create_and_resize():
     a = m.create_and_resize(2)
     assert a.size == 4
     assert np.all(a == 42.0)
+
+
+def test_reshape_initializer_list():
+    a = np.arange(2 * 7 * 3) + 1
+    x = m.reshape_initializer_list(a, 2, 7, 3)
+    assert x.shape == (2, 7, 3)
+    assert list(x[1][4]) == [34, 35, 36]
+    with pytest.raises(ValueError) as excinfo:
+        m.reshape_initializer_list(a, 1, 7, 3)
+    assert str(excinfo.value) == "cannot reshape array of size 42 into shape (1,7,3)"
+
+
+def test_reshape_tuple():
+    a = np.arange(3 * 7 * 2) + 1
+    x = m.reshape_tuple(a, (3, 7, 2))
+    assert x.shape == (3, 7, 2)
+    assert list(x[1][4]) == [23, 24]
+    y = m.reshape_tuple(x, (x.size,))
+    assert y.shape == (42,)
+    with pytest.raises(ValueError) as excinfo:
+        m.reshape_tuple(a, (3, 7, 1))
+    assert str(excinfo.value) == "cannot reshape array of size 42 into shape (3,7,1)"
+    with pytest.raises(ValueError) as excinfo:
+        m.reshape_tuple(a, ())
+    assert str(excinfo.value) == "cannot reshape array of size 42 into shape ()"
 
 
 def test_index_using_ellipsis():
