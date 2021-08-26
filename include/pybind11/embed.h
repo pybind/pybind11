@@ -11,6 +11,7 @@
 
 #include "pybind11.h"
 #include "eval.h"
+
 #include <memory>
 #include <vector>
 
@@ -86,7 +87,7 @@ struct embedded_module {
 };
 
 struct wide_char_arg_deleter {
-    void operator()(wchar_t* ptr) const {
+    void operator()(wchar_t *ptr) const {
 #if PY_VERSION_HEX >= 0x030500f0
         // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
         PyMem_RawFree(ptr);
@@ -96,16 +97,16 @@ struct wide_char_arg_deleter {
     }
 };
 
-inline wchar_t* widen_chars(const char* safe_arg) {
+inline wchar_t *widen_chars(const char *safe_arg) {
 #if PY_VERSION_HEX >= 0x030500f0
-    wchar_t* widened_arg = Py_DecodeLocale(safe_arg, nullptr);
+    wchar_t *widened_arg = Py_DecodeLocale(safe_arg, nullptr);
 #else
-    wchar_t* widened_arg = nullptr;
-#  if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
+    wchar_t *widened_arg = nullptr;
+#    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
     size_t count = strlen(safe_arg);
-#  else
+#    else
     size_t count = mbstowcs(nullptr, safe_arg, 0);
-#  endif
+#    endif
     if (count != static_cast<size_t>(-1)) {
         widened_arg = new wchar_t[count + 1];
         mbstowcs(widened_arg, safe_arg, count + 1);
@@ -115,21 +116,21 @@ inline wchar_t* widen_chars(const char* safe_arg) {
 }
 
 /// Python 2.x/3.x-compatible version of `PySys_SetArgv`
-inline void set_interpreter_argv(int argc, const char* const* argv, bool add_program_dir_to_path) {
+inline void set_interpreter_argv(int argc, const char *const *argv, bool add_program_dir_to_path) {
     // Before it was special-cased in python 3.8, passing an empty or null argv
     // caused a segfault, so we have to reimplement the special case ourselves.
     bool special_case = (argv == nullptr || argc <= 0);
 
-    const char* const empty_argv[] {"\0"};
-    const char* const* safe_argv = special_case ? empty_argv : argv;
+    const char *const empty_argv[]{"\0"};
+    const char *const *safe_argv = special_case ? empty_argv : argv;
     if (special_case)
         argc = 1;
 
     auto argv_size = static_cast<size_t>(argc);
 #if PY_MAJOR_VERSION >= 3
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
-    std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
-    std::vector< std::unique_ptr<wchar_t[], wide_char_arg_deleter> > widened_argv_entries;
+    std::unique_ptr<wchar_t *[]> widened_argv(new wchar_t *[argv_size]);
+    std::vector<std::unique_ptr<wchar_t[], wide_char_arg_deleter>> widened_argv_entries;
     widened_argv_entries.reserve(argv_size);
     for (size_t ii = 0; ii < argv_size; ++ii) {
         widened_argv_entries.emplace_back(widen_chars(safe_argv[ii]));
@@ -144,11 +145,11 @@ inline void set_interpreter_argv(int argc, const char* const* argv, bool add_pro
     auto pysys_argv = widened_argv.get();
 #else
     // python 2.x
-    std::vector<std::string> strings{safe_argv, safe_argv+argv_size};
-    std::vector<char*> char_strings{argv_size};
-    for (std::size_t i=0; i<argv_size; ++i)
+    std::vector<std::string> strings{safe_argv, safe_argv + argv_size};
+    std::vector<char *> char_strings{argv_size};
+    for (std::size_t i = 0; i < argv_size; ++i)
         char_strings[i] = &strings[i][0];
-    char** pysys_argv = char_strings.data();
+    char **pysys_argv = char_strings.data();
 #endif
 
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
@@ -177,7 +178,7 @@ PYBIND11_NAMESPACE_END(detail)
  \endrst */
 inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
-                                   const char* const* argv = nullptr,
+                                   const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
     if (Py_IsInitialized() != 0)
         pybind11_fail("The interpreter is already running");
@@ -261,7 +262,7 @@ class scoped_interpreter {
 public:
     scoped_interpreter(bool init_signal_handlers = true,
                        int argc = 0,
-                       const char* const* argv = nullptr,
+                       const char *const *argv = nullptr,
                        bool add_program_dir_to_path = true) {
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
