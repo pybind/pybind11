@@ -1,5 +1,5 @@
---- ci.yml	2021-08-14 07:51:13.991347947 -0700
-+++ ci_sh_def.yml	2021-08-14 08:36:43.163463393 -0700
+--- ci.yml	2021-08-26 14:44:05.472874691 -0700
++++ ci_sh_def.yml	2021-08-26 15:02:18.318618529 -0700
 @@ -1,4 +1,16 @@
 -name: CI-SH-AVL
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -140,12 +140,30 @@
  
      steps:
      - uses: actions/checkout@v2
-@@ -884,7 +909,7 @@
-     - name: Configure
+@@ -895,7 +920,7 @@
+     - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
--      run: cmake -G "MinGW Makefiles" -S . -B build
-+      run: cmake -G "MinGW Makefiles" -S . -B build -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -S . -B build
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build
  
-     - name: Build
+     - name: Build C++11
        run: cmake --build build -j 2
+@@ -913,7 +938,7 @@
+       run: git clean -fdx
+ 
+     - name: Configure C++14
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -S . -B build2
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build2
+ 
+     - name: Build C++14
+       run: cmake --build build2 -j 2
+@@ -931,7 +956,7 @@
+       run: git clean -fdx
+ 
+     - name: Configure C++17
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -S . -B build3
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build3
+ 
+     - name: Build C++17
+       run: cmake --build build3 -j 2
