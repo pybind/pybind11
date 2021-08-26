@@ -198,7 +198,7 @@ struct npy_api {
     // Unused. Not removed because that affects ABI of the class.
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
     PyObject* (*PyArray_Resize_)(PyObject*, PyArray_Dims*, int, int);
-    PyObject *(*PyArray_Newshape_)(PyObject *, PyArray_Dims *, int);
+    PyObject* (*PyArray_Newshape_)(PyObject*, PyArray_Dims*, int);
     PyObject* (*PyArray_View_)(PyObject*, PyObject*, PyObject*);
 
 private:
