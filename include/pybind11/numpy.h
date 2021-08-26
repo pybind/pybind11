@@ -805,16 +805,17 @@ public:
         return new_array;
     }
 
-    // Create a view of an array in a different data type
-    // This function may fundamentally reinterpret the data in the array
-    // only supports the `dtype` argument, not the `type` argument
+    /// Create a view of an array in a different data type.
+    /// This function may fundamentally reinterpret the data in the array.
+    /// It is the responsibility of the caller to ensure that this is safe.
+    /// Only supports the `dtype` argument, the `type` argument is omitted,
+    /// to be added as needed.
     array view(const std::string& dtype) {
         auto& api = detail::npy_api::get();
         auto new_view = reinterpret_steal<array>(api.PyArray_View_(
-            m_ptr, dtype::from_args(pybind11::str(dtype)).release().ptr(), NULL));
-        if (!new_view) {
+            m_ptr, dtype::from_args(pybind11::str(dtype)).release().ptr(), nullptr));
+        if (!new_view)
             throw error_already_set();
-        }
         return new_view;
     }
 

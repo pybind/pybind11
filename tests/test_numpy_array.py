@@ -476,19 +476,19 @@ def test_array_create_and_resize():
     assert np.all(a == 42.0)
 
 
-def test_array_view1():
+def test_array_view():
     a = np.ones(100 * 4).astype("uint8")
-    a_float_view = m.array_view1(a, "float32")
+    a_float_view = m.array_view(a, "float32")
     assert a_float_view.shape == (100 * 1,)  # 1 / 4 bytes = 8 / 32
 
-    a_int16_view = m.array_view1(a, "int16")  # 1 / 2 bytes = 16 / 32
+    a_int16_view = m.array_view(a, "int16")  # 1 / 2 bytes = 16 / 32
     assert a_int16_view.shape == (100 * 2,)
 
 
 def test_array_view_invalid():
     a = np.ones(100 * 4).astype("uint8")
     with pytest.raises(TypeError):
-        m.array_view1(a, "deadly_dtype")
+        m.array_view(a, "deadly_dtype")
 
 
 def test_reshape_initializer_list():
