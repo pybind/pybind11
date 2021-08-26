@@ -67,7 +67,7 @@ TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
                 } break;
                 case 2: { // operator= lvalue
                     std::unique_ptr<Big5> lv(new Big5Trampoline);
-                    *lv = *obj_trampoline;
+                    *lv = *obj_trampoline; // NOLINT clang-tidy cppcoreguidelines-slicing
                     o2 = py::cast(std::move(lv));
                 } break;
                 case 3: { // operator= rvalue
