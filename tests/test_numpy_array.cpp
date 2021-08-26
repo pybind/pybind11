@@ -405,7 +405,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-    sm.def("array_view1", [](py::array_t<unsigned char> a, std::string dtype) {
+    sm.def("array_view1", [](py::array_t<unsigned char> a, const std::string &dtype) {
         return a.view(dtype);
     });
 
