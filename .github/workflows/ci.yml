@@ -862,32 +862,85 @@ jobs:
       run: cmake --build build -t check
 
   mingw:
+    name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
     defaults:
       run:
         shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64 }
+          - { sys: mingw32, env: i686 }
     steps:
     - uses: msys2/setup-msys2@v2
       with:
+        msystem: ${{matrix.sys}}
         install: >-
-          mingw-w64-x86_64-gcc
-          mingw-w64-x86_64-python-pip
-          mingw-w64-x86_64-cmake
-          mingw-w64-x86_64-make
-          mingw-w64-x86_64-python-pytest
-          mingw-w64-x86_64-eigen3
-          mingw-w64-x86_64-boost
-          mingw-w64-x86_64-catch
+          git
+          mingw-w64-${{matrix.env}}-gcc
+          mingw-w64-${{matrix.env}}-python-pip
+          mingw-w64-${{matrix.env}}-python-numpy
+          mingw-w64-${{matrix.env}}-python-scipy
+          mingw-w64-${{matrix.env}}-cmake
+          mingw-w64-${{matrix.env}}-make
+          mingw-w64-${{matrix.env}}-python-pytest
+          mingw-w64-${{matrix.env}}-eigen3
+          mingw-w64-${{matrix.env}}-boost
+          mingw-w64-${{matrix.env}}-catch
 
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
-    - name: Configure
+    - name: Configure C++11
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-      run: cmake -G "MinGW Makefiles" -S . -B build
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -S . -B build
 
-    - name: Build
+    - name: Build C++11
       run: cmake --build build -j 2
 
-    - name: Python tests
-      run: cmake --build build --target pytest
+    - name: Python tests C++11
+      run: cmake --build build --target pytest -j 2
+
+    - name: C++11 tests
+      run: cmake --build build --target cpptest -j 2
+
+    - name: Interface test C++11
+      run: cmake --build build --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    - name: Configure C++14
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -S . -B build2
+
+    - name: Build C++14
+      run: cmake --build build2 -j 2
+
+    - name: Python tests C++14
+      run: cmake --build build2 --target pytest -j 2
+
+    - name: C++14 tests
+      run: cmake --build build2 --target cpptest -j 2
+
+    - name: Interface test C++14
+      run: cmake --build build2 --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    - name: Configure C++17
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -S . -B build3
+
+    - name: Build C++17
+      run: cmake --build build3 -j 2
+
+    - name: Python tests C++17
+      run: cmake --build build3 --target pytest -j 2
+
+    - name: C++17 tests
+      run: cmake --build build3 --target cpptest -j 2
+
+    - name: Interface test C++17
+      run: cmake --build build3 --target test_cmake_build

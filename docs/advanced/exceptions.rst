@@ -323,6 +323,34 @@ Alternately, to ignore the error, call `PyErr_Clear
 Any Python error must be thrown or cleared, or Python/pybind11 will be left in
 an invalid state.
 
+Chaining exceptions ('raise from')
+==================================
+
+In Python 3.3 a mechanism for indicating that exceptions were caused by other
+exceptions was introduced:
+
+.. code-block:: py
+
+    try:
+        print(1 / 0)
+    except Exception as exc:
+        raise RuntimeError("could not divide by zero") from exc
+
+To do a similar thing in pybind11, you can use the ``py::raise_from`` function. It
+sets the current python error indicator, so to continue propagating the exception
+you should ``throw py::error_already_set()`` (Python 3 only).
+
+.. code-block:: cpp
+
+    try {
+        py::eval("print(1 / 0"));
+    } catch (py::error_already_set &e) {
+        py::raise_from(e, PyExc_RuntimeError, "could not divide by zero");
+        throw py::error_already_set();
+    }
+
+.. versionadded:: 2.8
+
 .. _unraisable_exceptions:
 
 Handling unraisable exceptions

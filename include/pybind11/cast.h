@@ -1045,6 +1045,16 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+template <typename... Args,
+          typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
+object make_simple_namespace(Args&&... args_) {
+    PyObject *ns = _PyNamespace_New(dict(std::forward<Args>(args_)...).ptr());
+    if (!ns) throw error_already_set();
+    return reinterpret_steal<object>(ns);
+}
+#endif
+
 /// \ingroup annotations
 /// Annotation for arguments
 struct arg {

@@ -84,4 +84,65 @@ TEST_SUBMODULE(enums, m) {
             .value("ONE", SimpleEnum::THREE)
             .export_values();
     });
+
+    // test_enum_scalar
+    enum UnscopedUCharEnum : unsigned char {};
+    enum class ScopedShortEnum : short {};
+    enum class ScopedLongEnum : long {};
+    enum UnscopedUInt64Enum : std::uint64_t {};
+    static_assert(py::detail::all_of<
+        std::is_same<py::enum_<UnscopedUCharEnum>::Scalar, unsigned char>,
+        std::is_same<py::enum_<ScopedShortEnum>::Scalar, short>,
+        std::is_same<py::enum_<ScopedLongEnum>::Scalar, long>,
+        std::is_same<py::enum_<UnscopedUInt64Enum>::Scalar, std::uint64_t>
+    >::value, "Error during the deduction of enum's scalar type with normal integer underlying");
+
+    // test_enum_scalar_with_char_underlying
+    enum class ScopedCharEnum   : char     { Zero, Positive };
+    enum class ScopedWCharEnum  : wchar_t  { Zero, Positive };
+    enum class ScopedChar32Enum : char32_t { Zero, Positive };
+    enum class ScopedChar16Enum : char16_t { Zero, Positive };
+
+    // test the scalar of char type enums according to chapter 'Character types'
+    // from https://en.cppreference.com/w/cpp/language/types
+    static_assert(py::detail::any_of<
+        std::is_same<py::enum_<ScopedCharEnum>::Scalar, signed char>, // e.g. gcc on x86
+        std::is_same<py::enum_<ScopedCharEnum>::Scalar, unsigned char>  // e.g. arm linux
+    >::value, "char should be cast to either signed char or unsigned char");
+    static_assert(
+        sizeof(py::enum_<ScopedWCharEnum>::Scalar) == 2 ||
+        sizeof(py::enum_<ScopedWCharEnum>::Scalar) == 4
+    , "wchar_t should be either 16 bits (Windows) or 32 (everywhere else)");
+    static_assert(py::detail::all_of<
+        std::is_same<py::enum_<ScopedChar32Enum>::Scalar, std::uint_least32_t>,
+        std::is_same<py::enum_<ScopedChar16Enum>::Scalar, std::uint_least16_t>
+    >::value, "char32_t, char16_t (and char8_t)'s size, signedness, and alignment is determined");
+#if defined(PYBIND11_HAS_U8STRING)
+    enum class ScopedChar8Enum : char8_t { Zero, Positive };
+    static_assert(std::is_same<py::enum_<ScopedChar8Enum>::Scalar, unsigned char>::value);
+#endif
+
+    // test_char_underlying_enum
+    py::enum_<ScopedCharEnum>(m, "ScopedCharEnum")
+        .value("Zero", ScopedCharEnum::Zero)
+        .value("Positive", ScopedCharEnum::Positive);
+    py::enum_<ScopedWCharEnum>(m, "ScopedWCharEnum")
+        .value("Zero", ScopedWCharEnum::Zero)
+        .value("Positive", ScopedWCharEnum::Positive);
+    py::enum_<ScopedChar32Enum>(m, "ScopedChar32Enum")
+        .value("Zero", ScopedChar32Enum::Zero)
+        .value("Positive", ScopedChar32Enum::Positive);
+    py::enum_<ScopedChar16Enum>(m, "ScopedChar16Enum")
+        .value("Zero", ScopedChar16Enum::Zero)
+        .value("Positive", ScopedChar16Enum::Positive);
+
+    // test_bool_underlying_enum
+    enum class ScopedBoolEnum : bool { FALSE, TRUE };
+
+    // bool is unsigned (std::is_signed returns false) and 1-byte long, so represented with u8
+    static_assert(std::is_same<py::enum_<ScopedBoolEnum>::Scalar, std::uint8_t>::value, "");
+
+    py::enum_<ScopedBoolEnum>(m, "ScopedBoolEnum")
+        .value("FALSE", ScopedBoolEnum::FALSE)
+        .value("TRUE", ScopedBoolEnum::TRUE);
 }

@@ -405,6 +405,16 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
+    sm.def("array_view",
+           [](py::array_t<uint8_t> a, const std::string &dtype) { return a.view(dtype); });
+
+    sm.def("reshape_initializer_list", [](py::array_t<int> a, size_t N, size_t M, size_t O) {
+        return a.reshape({N, M, O});
+    });
+    sm.def("reshape_tuple", [](py::array_t<int> a, const std::vector<int> &new_shape) {
+        return a.reshape(new_shape);
+    });
+
     sm.def("index_using_ellipsis",
            [](const py::array &a) { return a[py::make_tuple(0, py::ellipsis(), 0)]; });
 
