@@ -405,9 +405,8 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-    sm.def("array_view", [](py::array_t<uint8_t> a, const std::string &dtype) {
-        return a.view(dtype);
-    });
+    sm.def("array_view",
+           [](py::array_t<uint8_t> a, const std::string &dtype) { return a.view(dtype); });
 
     sm.def("reshape_initializer_list", [](py::array_t<int> a, size_t N, size_t M, size_t O) {
         return a.reshape({N, M, O});
