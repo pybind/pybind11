@@ -302,13 +302,18 @@ function(_pybind11_return_if_cxx_and_linker_flags_work result cxxflags linkerfla
 endfunction()
 
 function(_pybind11_generate_lto target prefer_thin_lto)
+  if(MINGW)
+    message(STATUS "${target} disabled (problems with undefined symbols for MinGW for now)")
+    return()
+  endif()
+
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(cxx_append "")
     set(linker_append "")
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
       # Clang Gold plugin does not support -Os; append -O3 to MinSizeRel builds to override it
       set(linker_append ";$<$<CONFIG:MinSizeRel>:-O3>")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT MINGW)
       set(cxx_append ";-fno-fat-lto-objects")
     endif()
 

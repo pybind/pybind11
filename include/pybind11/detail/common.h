@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 7
-#define PYBIND11_VERSION_PATCH 1.dev1
+#define PYBIND11_VERSION_MINOR 8
+#define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020701D1
+#define PYBIND11_VERSION_HEX 0x020800D1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -89,13 +89,43 @@
 #  endif
 #endif
 
-#if defined(_MSC_VER)
-#  define PYBIND11_NOINLINE __declspec(noinline)
-#else
-#  define PYBIND11_NOINLINE __attribute__ ((noinline))
+#if !defined(PYBIND11_EXPORT_EXCEPTION)
+#  ifdef __MINGW32__
+// workaround for:
+// error: 'dllexport' implies default visibility, but xxx has already been declared with a different visibility
+#    define PYBIND11_EXPORT_EXCEPTION
+#  else
+#    define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
+#  endif
 #endif
 
-#if defined(PYBIND11_CPP14)
+// For CUDA, GCC7, GCC8:
+// PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
+// When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
+// However, the measured shared-library size saving when using noinline are only
+// 1.7% for CUDA, -0.2% for GCC7, and 0.0% for GCC8 (using -DCMAKE_BUILD_TYPE=MinSizeRel,
+// the default under pybind11/tests).
+#if !defined(PYBIND11_NOINLINE_FORCED) && \
+    (defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
+#  define PYBIND11_NOINLINE_DISABLED
+#endif
+
+// The PYBIND11_NOINLINE macro is for function DEFINITIONS.
+// In contrast, FORWARD DECLARATIONS should never use this macro:
+// https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
+#if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
+#  define PYBIND11_NOINLINE inline
+#elif defined(_MSC_VER)
+#  define PYBIND11_NOINLINE __declspec(noinline) inline
+#else
+#  define PYBIND11_NOINLINE __attribute__ ((noinline)) inline
+#endif
+
+#if defined(__MINGW32__)
+// For unknown reasons all PYBIND11_DEPRECATED member trigger a warning when declared
+// whether it is used or not
+#  define PYBIND11_DEPRECATED(reason)
+#elif defined(PYBIND11_CPP14)
 #  define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
 #else
 #  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
@@ -121,7 +151,8 @@
 #    define HAVE_ROUND 1
 #  endif
 #  pragma warning(push)
-#  pragma warning(disable: 4510 4610 4512 4005)
+// C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
+#  pragma warning(disable: 4505)
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
@@ -205,8 +236,8 @@
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
-#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) o)
-#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) o)
+#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
+#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
 #define PYBIND11_BYTES_NAME "bytes"
 #define PYBIND11_STRING_NAME "str"
 #define PYBIND11_SLICE_OBJECT PyObject
@@ -284,6 +315,19 @@ extern "C" {
         }                                                                      \
     }
 
+#if PY_VERSION_HEX >= 0x03030000
+
+#define PYBIND11_CATCH_INIT_EXCEPTIONS \
+        catch (pybind11::error_already_set &e) {                                 \
+            pybind11::raise_from(e, PyExc_ImportError, "initialization failed"); \
+            return nullptr;                                                      \
+        } catch (const std::exception &e) {                                      \
+            PyErr_SetString(PyExc_ImportError, e.what());                        \
+            return nullptr;                                                      \
+        }                                                                        \
+
+#else
+
 #define PYBIND11_CATCH_INIT_EXCEPTIONS \
         catch (pybind11::error_already_set &e) {                               \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
@@ -292,6 +336,8 @@ extern "C" {
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
         }                                                                      \
+
+#endif
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
@@ -341,24 +387,23 @@ extern "C" {
             });
         }
 \endrst */
-#define PYBIND11_MODULE(name, variable)                                        \
-    static ::pybind11::module_::module_def                                     \
-        PYBIND11_CONCAT(pybind11_module_def_, name) PYBIND11_MAYBE_UNUSED;     \
-    PYBIND11_MAYBE_UNUSED                                                      \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);  \
-    PYBIND11_PLUGIN_IMPL(name) {                                               \
-        PYBIND11_CHECK_PYTHON_VERSION                                          \
-        PYBIND11_ENSURE_INTERNALS_READY                                        \
-        auto m = ::pybind11::module_::create_extension_module(                 \
-            PYBIND11_TOSTRING(name), nullptr,                                  \
-            &PYBIND11_CONCAT(pybind11_module_def_, name));                     \
-        try {                                                                  \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
-            return m.ptr();                                                    \
-        } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
-    }                                                                          \
-    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &variable)
-
+#define PYBIND11_MODULE(name, variable)                                                           \
+    static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
+        PYBIND11_MAYBE_UNUSED;                                                                    \
+    PYBIND11_MAYBE_UNUSED                                                                         \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
+    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
+        PYBIND11_CHECK_PYTHON_VERSION                                                             \
+        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        auto m = ::pybind11::module_::create_extension_module(                                    \
+            PYBIND11_TOSTRING(name), nullptr, &PYBIND11_CONCAT(pybind11_module_def_, name));      \
+        try {                                                                                     \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
+            return m.ptr();                                                                       \
+        }                                                                                         \
+        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    }                                                                                             \
+    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -492,7 +537,7 @@ struct instance {
     void allocate_layout();
 
     /// Destroys/deallocates all of the above
-    void deallocate_layout() const;
+    void deallocate_layout();
 
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
     /// omitted).  Returns a default-constructed (with `.inst = nullptr`) object on failure if
@@ -720,9 +765,6 @@ using function_signature_t = conditional_t<
 template <typename T> using is_lambda = satisfies_none_of<remove_reference_t<T>,
         std::is_function, std::is_pointer, std::is_member_pointer>;
 
-/// Ignore that a variable is unused in compiler warnings
-inline void ignore_unused(const int *) { }
-
 // [workaround(intel)] Internal error on fold expression
 /// Apply a function over each element of a parameter pack
 #if defined(__cpp_fold_expressions) && !defined(__INTEL_COMPILER)
@@ -740,7 +782,7 @@ PYBIND11_NAMESPACE_END(detail)
 #  pragma warning(disable: 4275) // warning C4275: An exported class was derived from a class that wasn't exported. Can be ignored when derived from a STL class.
 #endif
 /// C++ bindings of builtin Python exceptions
-class PYBIND11_EXPORT builtin_exception : public std::runtime_error {
+class PYBIND11_EXPORT_EXCEPTION builtin_exception : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
     /// Set the error using the Python C API
@@ -751,7 +793,7 @@ public:
 #endif
 
 #define PYBIND11_RUNTIME_EXCEPTION(name, type) \
-    class PYBIND11_EXPORT name : public builtin_exception { public: \
+    class PYBIND11_EXPORT_EXCEPTION name : public builtin_exception { public: \
         using builtin_exception::builtin_exception; \
         name() : name("") { } \
         void set_error() const override { PyErr_SetString(type, what()); } \
@@ -767,8 +809,8 @@ PYBIND11_RUNTIME_EXCEPTION(import_error, PyExc_ImportError)
 PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
@@ -912,6 +954,40 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
     }
 #endif
 }
+
+// For silencing "unused" compiler warnings in special situations.
+template <typename... Args>
+#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920 // MSVC 2017
+constexpr
+#endif
+inline void silence_unused_warnings(Args &&...) {}
+
+// MSVC warning C4100: Unreferenced formal parameter
+#if defined(_MSC_VER) && _MSC_VER <= 1916
+#    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)                                         \
+        detail::silence_unused_warnings(__VA_ARGS__)
+#else
+#    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
+#endif
+
+// GCC -Wunused-but-set-parameter  All GCC versions (as of July 2021).
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)                   \
+        detail::silence_unused_warnings(__VA_ARGS__)
+#else
+#    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)
+#endif
+
+#if defined(_MSC_VER) // All versions (as of July 2021).
+
+// warning C4127: Conditional expression is constant
+constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
+
+#    define PYBIND11_SILENCE_MSVC_C4127(...) ::pybind11::detail::silence_msvc_c4127(__VA_ARGS__)
+
+#else
+#    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

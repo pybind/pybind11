@@ -2,7 +2,6 @@
 import pytest
 
 import env  # noqa: F401
-
 from pybind11_tests import pickling as m
 
 try:

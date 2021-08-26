@@ -4,9 +4,8 @@ import sys
 import pytest
 
 import env  # noqa: F401
-
-from pybind11_tests import exceptions as m
 import pybind11_cross_module_tests as cm
+from pybind11_tests import exceptions as m
 
 
 def test_std_exception(msg):
@@ -23,6 +22,22 @@ def test_error_already_set(msg):
     with pytest.raises(ValueError) as excinfo:
         m.throw_already_set(True)
     assert msg(excinfo.value) == "foo"
+
+
+@pytest.mark.skipif("env.PY2")
+def test_raise_from(msg):
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_from()
+    assert msg(excinfo.value) == "outer"
+    assert msg(excinfo.value.__cause__) == "inner"
+
+
+@pytest.mark.skipif("env.PY2")
+def test_raise_from_already_set(msg):
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_from_already_set()
+    assert msg(excinfo.value) == "outer"
+    assert msg(excinfo.value.__cause__) == "inner"
 
 
 def test_cross_module_exceptions(msg):

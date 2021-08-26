@@ -4,7 +4,6 @@ import re
 import pytest
 
 import env  # noqa: F401
-
 from pybind11_tests import numpy_dtypes as m
 
 np = pytest.importorskip("numpy")
@@ -64,14 +63,20 @@ def partial_ld_offset():
 def partial_dtype_fmt():
     ld = np.dtype("longdouble")
     partial_ld_off = partial_ld_offset()
-    return dt_fmt().format(ld.itemsize, partial_ld_off, partial_ld_off + ld.itemsize)
+    partial_size = partial_ld_off + ld.itemsize
+    partial_end_padding = partial_size % np.dtype("uint64").alignment
+    return dt_fmt().format(
+        ld.itemsize, partial_ld_off, partial_size + partial_end_padding
+    )
 
 
 def partial_nested_fmt():
     ld = np.dtype("longdouble")
     partial_nested_off = 8 + 8 * (ld.alignment > 8)
     partial_ld_off = partial_ld_offset()
-    partial_nested_size = partial_nested_off * 2 + partial_ld_off + ld.itemsize
+    partial_size = partial_ld_off + ld.itemsize
+    partial_end_padding = partial_size % np.dtype("uint64").alignment
+    partial_nested_size = partial_nested_off * 2 + partial_size + partial_end_padding
     return "{{'names':['a'], 'formats':[{}], 'offsets':[{}], 'itemsize':{}}}".format(
         partial_dtype_fmt(), partial_nested_off, partial_nested_size
     )
@@ -92,10 +97,12 @@ def test_format_descriptors():
     ldbl_fmt = ("4x" if ld.alignment > 4 else "") + ld.char
     ss_fmt = "^T{?:bool_:3xI:uint_:f:float_:" + ldbl_fmt + ":ldbl_:}"
     dbl = np.dtype("double")
+    end_padding = ld.itemsize % np.dtype("uint64").alignment
     partial_fmt = (
         "^T{?:bool_:3xI:uint_:f:float_:"
         + str(4 * (dbl.alignment > 4) + dbl.itemsize + 8 * (ld.alignment > 8))
-        + "xg:ldbl_:}"
+        + "xg:ldbl_:"
+        + (str(end_padding) + "x}" if end_padding > 0 else "}")
     )
     nested_extra = str(max(8, ld.alignment))
     assert m.print_format_descriptors() == [

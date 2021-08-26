@@ -257,7 +257,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 #endif
 
 /// Return a reference to the current `internals` data
-PYBIND11_NOINLINE inline internals &get_internals() {
+PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp)
         return **internals_pp;
@@ -352,14 +352,14 @@ PYBIND11_NAMESPACE_END(detail)
 /// Returns a named pointer that is shared among all extension modules (using the same
 /// pybind11 version) running in the current interpreter. Names starting with underscores
 /// are reserved for internal usage. Returns `nullptr` if no matching entry was found.
-inline PYBIND11_NOINLINE void *get_shared_data(const std::string &name) {
+PYBIND11_NOINLINE void *get_shared_data(const std::string &name) {
     auto &internals = detail::get_internals();
     auto it = internals.shared_data.find(name);
     return it != internals.shared_data.end() ? it->second : nullptr;
 }
 
 /// Set the shared data that can be later recovered by `get_shared_data()`.
-inline PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
+PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
     detail::get_internals().shared_data[name] = data;
     return data;
 }

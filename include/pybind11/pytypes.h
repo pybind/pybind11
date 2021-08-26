@@ -24,7 +24,7 @@ struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
-inline bool isinstance_generic(handle obj, const std::type_info &tp);
+bool isinstance_generic(handle obj, const std::type_info &tp);
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
@@ -316,7 +316,7 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_t{}}; }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-inline std::string error_string();
+std::string error_string();
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -327,7 +327,7 @@ PYBIND11_NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class PYBIND11_EXPORT error_already_set : public std::runtime_error {
+class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
@@ -380,6 +380,47 @@ private:
 };
 #if defined(_MSC_VER)
 #  pragma warning(pop)
+#endif
+
+#if PY_VERSION_HEX >= 0x03030000
+
+/// Replaces the current Python error indicator with the chosen error, performing a
+/// 'raise from' to indicate that the chosen error was caused by the original error.
+inline void raise_from(PyObject *type, const char *message) {
+    // Based on _PyErr_FormatVFromCause:
+    // https://github.com/python/cpython/blob/467ab194fc6189d9f7310c89937c51abeac56839/Python/errors.c#L405
+    // See https://github.com/pybind/pybind11/pull/2112 for details.
+    PyObject *exc = nullptr, *val = nullptr, *val2 = nullptr, *tb = nullptr;
+
+    assert(PyErr_Occurred());
+    PyErr_Fetch(&exc, &val, &tb);
+    PyErr_NormalizeException(&exc, &val, &tb);
+    if (tb != nullptr) {
+        PyException_SetTraceback(val, tb);
+        Py_DECREF(tb);
+    }
+    Py_DECREF(exc);
+    assert(!PyErr_Occurred());
+
+    PyErr_SetString(type, message);
+
+    PyErr_Fetch(&exc, &val2, &tb);
+    PyErr_NormalizeException(&exc, &val2, &tb);
+    Py_INCREF(val);
+    PyException_SetCause(val2, val);
+    PyException_SetContext(val2, val);
+    PyErr_Restore(exc, val2, tb);
+}
+
+/// Sets the current Python error indicator with the chosen error, performing a 'raise from'
+/// from the error contained in error_already_set to indicate that the chosen error was
+/// caused by the original error. After this function is called error_already_set will
+/// no longer contain an error.
+inline void raise_from(error_already_set& err, PyObject *type, const char *message) {
+    err.restore();
+    raise_from(type, message);
+}
+
 #endif
 
 /** \defgroup python_builtins _
@@ -1191,9 +1232,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (sizeof(Unsigned) <= sizeof(unsigned long)
+    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))
 #if PY_VERSION_HEX < 0x03000000
-            || PyInt_Check(o)
+        || PyInt_Check(o)
 #endif
     ) {
         unsigned long v = PyLong_AsUnsignedLong(o);
@@ -1212,7 +1253,7 @@ public:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     int_(T value) {
-        if (sizeof(T) <= sizeof(long)) {
+        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
             if (std::is_signed<T>::value)
                 m_ptr = PyLong_FromLong((long) value);
             else
@@ -1393,7 +1434,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
-    void clear() const { PyDict_Clear(ptr()); }
+    void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T> bool contains(T &&key) const {
         return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
     }
@@ -1435,10 +1476,10 @@ public:
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
-    template <typename T> void append(T &&val) const {
+    template <typename T> void append(T &&val) /* py-non-const */ {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
-    template <typename T> void insert(size_t index, T &&val) const {
+    template <typename T> void insert(size_t index, T &&val) /* py-non-const */ {
         PyList_Insert(m_ptr, static_cast<ssize_t>(index),
             detail::object_or_cast(std::forward<T>(val)).ptr());
     }
@@ -1455,10 +1496,10 @@ public:
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
-    template <typename T> bool add(T &&val) const {
+    template <typename T> bool add(T &&val) /* py-non-const */ {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
-    void clear() const { PySet_Clear(m_ptr); }
+    void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
     template <typename T> bool contains(T &&val) const {
         return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
     }
