@@ -70,6 +70,19 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
+    // test_tuple
+    m.def("get_tuple", []() { return py::make_tuple(42, py::none(), "spam"); });
+
+#if PY_VERSION_HEX >= 0x03030000
+    // test_simple_namespace
+    m.def("get_simple_namespace", []() {
+        auto ns = py::make_simple_namespace("attr"_a=42, "x"_a="foo", "wrong"_a=1);
+        py::delattr(ns, "wrong");
+        py::setattr(ns, "right", py::int_(2));
+        return ns;
+    });
+#endif
+
     // test_str
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });

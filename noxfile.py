@@ -2,6 +2,8 @@ import nox
 
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
 
+PYTHON_VERISONS = ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
+
 
 @nox.session(reuse_venv=True)
 def lint(session: nox.Session) -> None:
@@ -12,7 +14,7 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", "-a")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERISONS)
 def tests(session: nox.Session) -> None:
     """
     Run the tests (requires a compiler).
