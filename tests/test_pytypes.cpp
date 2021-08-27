@@ -447,4 +447,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("weakref_from_object", [](const py::object &o) { return py::weakref(o); });
     m.def("weakref_from_object_and_function",
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
+    m.def("bytes_ssize_t", []() {
+        ssize_t size = 3;
+        auto obj = py::bytes{"foo", size};
+        return obj;
+    });
 }

@@ -603,3 +603,8 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     del obj
     pytest.gc_collect()
     assert callback.called
+
+
+def test_bytes_ssize_t():
+    obj = m.bytes_ssize_t()
+    assert obj == b"foo"
