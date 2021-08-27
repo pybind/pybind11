@@ -1568,7 +1568,8 @@ public:
         This method is meant for providing a ``memoryview`` for C/C++ buffer not
         managed by Python. The caller is responsible for managing the lifetime
         of ``ptr`` and ``format``, which MUST outlive the memoryview constructed
-        here.
+        here. Consider using ``memoryview_scoped_release`` to manage the lifetime
+        for short-lived memoryview objects.
 
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
@@ -1622,6 +1623,8 @@ public:
         This method is meant for providing a ``memoryview`` for C/C++ buffer not
         managed by Python. The caller is responsible for managing the lifetime
         of ``mem``, which MUST outlive the memoryview constructed here.
+        Consider using ``memoryview_scoped_release`` to manage the lifetime
+        for short-lived memoryview objects.
 
         This method is not available in Python 2.
 

@@ -419,6 +419,23 @@ managed by Python. The user is responsible for managing the lifetime of the
 buffer. Using a ``memoryview`` created in this way after deleting the buffer in
 C++ side results in undefined behavior.
 
+To prevent undefined behavior, you can call the ``release`` function on a
+``memoryview``. After ``release`` is called, any further operation on the view
+will raise a ``ValueError``. For short lived buffers, consider using
+``memoryview_scoped_release`` to release the memoryview:
+
+.. code-block:: cpp
+
+    {
+        auto view = py::memoryview::from_memory(buffer, size);
+        py::memoryview_scoped_release release(view);
+
+        some_function(view);
+    }
+
+    // operations on the memoryview after this scope exits will raise a
+    // ValueError exception
+
 We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
 
 .. code-block:: cpp
