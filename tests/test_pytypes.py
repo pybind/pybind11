@@ -23,6 +23,15 @@ def test_iterable(doc):
 
 
 def test_list(capture, doc):
+    assert m.list_no_args() == []
+    assert m.list_ssize_t() == []
+    assert m.list_size_t() == []
+    lins = [1, 2]
+    m.list_insert_ssize_t(lins)
+    assert lins == [1, 83, 2]
+    m.list_insert_size_t(lins)
+    assert lins == [1, 83, 2, 57]
+
     with capture:
         lst = m.get_list()
         assert lst == ["inserted-0", "overwritten", "inserted-2"]
@@ -100,6 +109,9 @@ def test_dict(capture, doc):
 
 
 def test_tuple():
+    assert m.tuple_no_args() == ()
+    assert m.tuple_ssize_t() == ()
+    assert m.tuple_size_t() == ()
     assert m.get_tuple() == (42, None, "spam")
 
 
@@ -113,6 +125,8 @@ def test_simple_namespace():
 
 
 def test_str(doc):
+    assert m.str_from_char_ssize_t().encode().decode() == "red"
+    assert m.str_from_char_size_t().encode().decode() == "blue"
     assert m.str_from_string().encode().decode() == "baz"
     assert m.str_from_bytes().encode().decode() == "boo"
 
@@ -157,6 +171,8 @@ def test_str(doc):
 
 
 def test_bytes(doc):
+    assert m.bytes_from_char_ssize_t().decode() == "green"
+    assert m.bytes_from_char_size_t().decode() == "purple"
     assert m.bytes_from_string().decode() == "foo"
     assert m.bytes_from_str().decode() == "bar"
 
@@ -166,6 +182,8 @@ def test_bytes(doc):
 
 
 def test_bytearray(doc):
+    assert m.bytearray_from_char_ssize_t().decode() == "$%"
+    assert m.bytearray_from_char_size_t().decode() == "@$!"
     assert m.bytearray_from_string().decode() == "foo"
     assert m.bytearray_size() == len("foo")
 
@@ -605,6 +623,22 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     assert callback.called
 
 
-def test_bytes_ssize_t():
-    obj = m.bytes_ssize_t()
-    assert obj == b"foo"
+def test_implementation_details():
+    lst = [39, 43, 92, 49, 22, 29, 93, 98, 26, 57, 8]
+    tup = tuple(lst)
+    assert m.sequence_item_get_ssize_t(lst) == 43
+    assert m.sequence_item_set_ssize_t(lst) is None
+    assert lst[1] == "peppa"
+    assert m.sequence_item_get_size_t(lst) == 92
+    assert m.sequence_item_set_size_t(lst) is None
+    assert lst[2] == "george"
+    assert m.list_item_get_ssize_t(lst) == 49
+    assert m.list_item_set_ssize_t(lst) is None
+    assert lst[3] == "rebecca"
+    assert m.list_item_get_size_t(lst) == 22
+    assert m.list_item_set_size_t(lst) is None
+    assert lst[4] == "richard"
+    assert m.tuple_item_get_ssize_t(tup) == 29
+    assert m.tuple_item_set_ssize_t() == ("emely", "edmond")
+    assert m.tuple_item_get_size_t(tup) == 93
+    assert m.tuple_item_set_size_t() == ("candy", "cat")
