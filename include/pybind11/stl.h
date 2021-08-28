@@ -168,12 +168,12 @@ public:
         if (!std::is_lvalue_reference<T>::value)
             policy = return_value_policy_override<Value>::policy(policy);
         list l(src.size());
-        size_t index = 0;
+        ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -225,12 +225,12 @@ public:
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
         list l(src.size());
-        size_t index = 0;
+        ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
