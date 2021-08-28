@@ -661,7 +661,7 @@ struct generic_item {
 struct sequence_item {
     using key_type = size_t;
 
-    template <typename IdxType>
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     static object get(handle obj, const IdxType& index) {
         PyObject *result = PySequence_GetItem(
             obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t());
@@ -669,7 +669,7 @@ struct sequence_item {
         return reinterpret_steal<object>(result);
     }
 
-    template <typename IdxType>
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     static void set(handle obj, const IdxType& index, handle val) {
         // PySequence_SetItem does not steal a reference to 'val'
         if (PySequence_SetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t(), val.ptr()) != 0) {
@@ -681,14 +681,14 @@ struct sequence_item {
 struct list_item {
     using key_type = size_t;
 
-    template <typename IdxType>
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     static object get(handle obj, const IdxType& index) {
         PyObject *result = PyList_GetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t());
         if (!result) { throw error_already_set(); }
         return reinterpret_borrow<object>(result);
     }
 
-    template <typename IdxType>
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     static void set(handle obj, const IdxType& index, handle val) {
         // PyList_SetItem steals a reference to 'val'
         if (PyList_SetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t(), val.inc_ref().ptr()) != 0) {
@@ -700,14 +700,14 @@ struct list_item {
 struct tuple_item {
     using key_type = size_t;
 
-    template <typename IdxType>
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     static object get(handle obj, const IdxType& index) {
         PyObject *result = PyTuple_GetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t());
         if (!result) { throw error_already_set(); }
         return reinterpret_borrow<object>(result);
     }
 
-    template <typename IdxType>
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     static void set(handle obj, const IdxType& index, handle val) {
         // PyTuple_SetItem steals a reference to 'val'
         if (PyTuple_SetItem(obj.ptr(), safe_ssize_t<IdxType>(index).as_ssize_t(), val.inc_ref().ptr()) != 0) {
@@ -1050,8 +1050,9 @@ class str : public object {
 public:
     PYBIND11_OBJECT_CVT(str, object, PYBIND11_STR_CHECK_FUN, raw_str)
 
-    str(const char *c, size_t n)
-        : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+    template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    str(const char *c, const SzType &n)
+        : object(PyUnicode_FromStringAndSize(c, safe_ssize_t<SzType>(n).as_ssize_t()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
@@ -1123,8 +1124,9 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
 
-    bytes(const char *c, size_t n)
-        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, (ssize_t) n), stolen_t{}) {
+    template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    bytes(const char *c, const SzType& n)
+        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, safe_ssize_t<SzType>(n).as_ssize_t()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
 
@@ -1167,7 +1169,7 @@ inline str::str(const bytes& b) {
     ssize_t length = 0;
     if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract bytes contents!");
-    auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, (ssize_t) length));
+    auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
     if (!obj)
         pybind11_fail("Could not allocate string object!");
     m_ptr = obj.release().ptr();
@@ -1179,8 +1181,9 @@ class bytearray : public object {
 public:
     PYBIND11_OBJECT_CVT(bytearray, object, PyByteArray_Check, PyByteArray_FromObject)
 
-    bytearray(const char *c, size_t n)
-        : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+    template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    bytearray(const char *c, const SzType& n)
+        : object(PyByteArray_FromStringAndSize(c, safe_ssize_t<SzType>(n).as_ssize_t()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
     }
 
@@ -1321,6 +1324,7 @@ public:
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
         if (!m_ptr) pybind11_fail("Could not allocate slice object!");
     }
+    // XXX
     bool compute(size_t length, size_t *start, size_t *stop, size_t *step,
                  size_t *slicelength) const {
         return PySlice_GetIndicesEx((PYBIND11_SLICE_OBJECT *) m_ptr,
@@ -1405,7 +1409,8 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
-    explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), stolen_t{}) {
+    template <typename SzType = ssize_t, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    explicit tuple(const SzType& size = 0) : object(PyTuple_New(safe_ssize_t<SzType>(size).as_ssize_t()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
@@ -1474,7 +1479,8 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT_CVT(list, object, PyList_Check, PySequence_List)
-    explicit list(size_t size = 0) : object(PyList_New((ssize_t) size), stolen_t{}) {
+    template <typename SzType = ssize_t, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    explicit list(const SzType& size = 0) : object(PyList_New(safe_ssize_t<SzType>(size).as_ssize_t()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
@@ -1486,7 +1492,9 @@ public:
     template <typename T> void append(T &&val) /* py-non-const */ {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
-    template <typename IdxType, typename T> void insert(const IdxType& index, T &&val) /* py-non-const */ {
+    template <typename IdxType, typename T,
+              detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    void insert(const IdxType& index, T &&val) /* py-non-const */ {
         PyList_Insert(m_ptr, safe_ssize_t<IdxType>(index).as_ssize_t(),
             detail::object_or_cast(std::forward<T>(val)).ptr());
     }
