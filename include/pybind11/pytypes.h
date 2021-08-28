@@ -1407,7 +1407,10 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
-    explicit tuple(size_t size = 0) : object(PyTuple_New(ssize_t_cast(size)), stolen_t{}) {
+    template <typename SzType = ssize_t,
+              detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    // Some compilers generate link errors when using `const SzType &` here:
+    explicit tuple(SzType size = 0) : object(PyTuple_New(ssize_t_cast(size)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
@@ -1476,7 +1479,10 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT_CVT(list, object, PyList_Check, PySequence_List)
-    explicit list(size_t size = 0) : object(PyList_New(ssize_t_cast(size)), stolen_t{}) {
+    template <typename SzType = ssize_t,
+              detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    // Some compilers generate link errors when using `const SzType &` here:
+    explicit list(SzType size = 0) : object(PyList_New(ssize_t_cast(size)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
@@ -1489,11 +1495,11 @@ public:
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
     template <typename IdxType,
-              typename T,
+              typename ValType,
               detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
-    void insert(const IdxType &index, T &&val) /* py-non-const */ {
+    void insert(const IdxType &index, ValType &&val) /* py-non-const */ {
         PyList_Insert(
-            m_ptr, ssize_t_cast(index), detail::object_or_cast(std::forward<T>(val)).ptr());
+            m_ptr, ssize_t_cast(index), detail::object_or_cast(std::forward<ValType>(val)).ptr());
     }
 };
 
