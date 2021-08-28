@@ -411,7 +411,7 @@ using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
 
 template <typename IntType>
-ssize_t ssize_t_cast(const IntType& val) {
+ssize_t ssize_t_cast(const IntType &val) {
     static_assert(sizeof(IntType) <= sizeof(ssize_t), "Implicit narrowing is not permitted.");
     return static_cast<ssize_t>(val);
 }
