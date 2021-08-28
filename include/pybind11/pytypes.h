@@ -1407,9 +1407,7 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
-    template <typename SzType = ssize_t,
-              detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
-    explicit tuple(const SzType &size = 0) : object(PyTuple_New(ssize_t_cast(size)), stolen_t{}) {
+    explicit tuple(size_t size = 0) : object(PyTuple_New(ssize_t_cast(size)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
@@ -1478,9 +1476,7 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT_CVT(list, object, PyList_Check, PySequence_List)
-    template <typename SzType = ssize_t,
-              detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
-    explicit list(const SzType &size = 0) : object(PyList_New(ssize_t_cast(size)), stolen_t{}) {
+    explicit list(size_t size = 0) : object(PyList_New(ssize_t_cast(size)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
