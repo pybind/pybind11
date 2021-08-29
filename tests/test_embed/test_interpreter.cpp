@@ -1,4 +1,5 @@
 #include <pybind11/embed.h>
+#include "../constructor_stats.h"
 
 #ifdef _MSC_VER
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to catch
@@ -324,31 +325,28 @@ TEST_CASE("sys.argv gets initialized properly") {
     py::initialize_interpreter();
 }
 
-class Counter {
+class MyFunctionObject {
 public:
-    Counter() { cnt_++; }
-    Counter(const Counter &) { cnt_++; }
-    Counter(Counter &&) { cnt_++; }
-    ~Counter() { cnt_--; }
-    static int get_cnt() { return cnt_; }
+    MyFunctionObject() noexcept { track_default_created(this); }
+    ~MyFunctionObject() noexcept { track_destroyed(this); }
+    MyFunctionObject(const MyFunctionObject &) noexcept { track_copy_created(this); }
+    MyFunctionObject(MyFunctionObject &&) noexcept { track_move_created(this); }
     void operator()() { }
-
-private:
-    static int cnt_;
 };
-
-int Counter::cnt_ = 0;
 
 // Related issue: https://github.com/pybind/pybind11/issues/3228
 // Related PR: https://github.com/pybind/pybind11/pull/3229
 TEST_CASE("Check objects are deconstructed in cpp_function") {
-    Counter counter;
+    MyFunctionObject func_obj;
+    ConstructorStats &stat = ConstructorStats::get<MyFunctionObject>();
     {
-        py::cpp_function func(counter);
+        py::cpp_function func(func_obj);
+        (void)func;
     }
-    CHECK(Counter::get_cnt() == 1);
+    CHECK(stat.alive() == 1);
     {
-        py::cpp_function func(std::move(counter));
+        py::cpp_function func(std::move(func_obj));
+        (void)func;
     }
-    CHECK(Counter::get_cnt() == 1);
+    CHECK(stat.alive() == 1);
 }
