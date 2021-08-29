@@ -306,13 +306,13 @@ TEST_CASE("Reload module from file") {
 
 class TestObject {
  public:
-  TestObject(std::function<void()> f) : _id(++_count), _f(f) {}
+  TestObject(std::function<void()> f) : _id(++_count), _f(std::move(f)) {}
 
   ~TestObject() {
-    py::print("~TestObject(" + std::to_string(_id) + ")");
     --_count;
+    py::print("~TestObject(" + std::to_string(_id) + ")");
   }
-  int GetCount() { return _id; }
+  int GetCount() const { return _id; }
 
   static int _count;
   int _id;
@@ -337,6 +337,7 @@ from test_memory_leak import TestObject
 guard = TestObject(lambda: None)
 )", local, local);
     REQUIRE(1 == TestObject::_count);
+    local.clear();
     }
 
     py::finalize_interpreter();
