@@ -93,5 +93,3 @@ favor.
 .. only:: latex
 
     .. image:: pybind11_vs_boost_python2.png
-
-

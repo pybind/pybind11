@@ -8,10 +8,19 @@
 */
 
 #include "pybind11_tests.h"
+#include "constructor_stats.h"
 #include <pybind11/stl.h>
 
+#ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#define PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#endif
+#include <pybind11/stl/filesystem.h>
+
+#include <vector>
+#include <string>
+
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
-#if PYBIND11_HAS_VARIANT
+#if defined(PYBIND11_HAS_VARIANT)
 using std::variant;
 #elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
 #  include <boost/variant.hpp>
@@ -32,6 +41,8 @@ struct visit_helper<boost::variant> {
 }} // namespace pybind11::detail
 #endif
 
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
+
 /// Issue #528: templated constructor
 struct TplCtorClass {
     template <typename T> TplCtorClass(const T &) { }
@@ -41,7 +52,18 @@ struct TplCtorClass {
 namespace std {
     template <>
     struct hash<TplCtorClass> { size_t operator()(const TplCtorClass &) const { return 0; } };
-}
+} // namespace std
+
+
+template <template <typename> class OptionalImpl, typename T>
+struct OptionalHolder
+{
+    OptionalHolder() = default;
+    bool member_initialized() const {
+        return member && member->initialized;
+    }
+    OptionalImpl<T> member = T{};
+};
 
 
 TEST_SUBMODULE(stl, m) {
@@ -56,6 +78,10 @@ TEST_SUBMODULE(stl, m) {
     // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
     static std::vector<RValueCaster> lvv{2};
     m.def("cast_ptr_vector", []() { return &lvv; });
+
+    // test_deque
+    m.def("cast_deque", []() { return std::deque<int>{1}; });
+    m.def("load_deque", [](const std::deque<int> &v) { return v.at(0) == 1 && v.at(1) == 2; });
 
     // test_array
     m.def("cast_array", []() { return std::array<int, 2> {{1 , 2}}; });
@@ -76,7 +102,7 @@ TEST_SUBMODULE(stl, m) {
     // test_set
     m.def("cast_set", []() { return std::set<std::string>{"key1", "key2"}; });
     m.def("load_set", [](const std::set<std::string> &set) {
-        return set.count("key1") && set.count("key2") && set.count("key3");
+        return (set.count("key1") != 0u) && (set.count("key2") != 0u) && (set.count("key3") != 0u);
     });
 
     // test_recursive_casting
@@ -144,6 +170,23 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def(py::init<int>());
 
+
+    struct MoveOutDetector
+    {
+        MoveOutDetector() = default;
+        MoveOutDetector(const MoveOutDetector&) = default;
+        MoveOutDetector(MoveOutDetector&& other) noexcept
+         : initialized(other.initialized) {
+            // steal underlying resource
+            other.initialized = false;
+        }
+        bool initialized = true;
+    };
+    py::class_<MoveOutDetector>(m, "MoveOutDetector", "Class with move tracking")
+        .def(py::init<>())
+        .def_readonly("initialized", &MoveOutDetector::initialized);
+
+
 #ifdef PYBIND11_HAS_OPTIONAL
     // test_optional
     m.attr("has_optional") = true;
@@ -153,9 +196,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("double_or_zero", [](const opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
-    m.def("half_or_none", [](int x) -> opt_int {
-        return x ? opt_int(x / 2) : opt_int();
-    });
+    m.def("half_or_none", [](int x) -> opt_int { return x != 0 ? opt_int(x / 2) : opt_int(); });
     m.def("test_nullopt", [](opt_int x) {
         return x.value_or(42);
     }, py::arg_v("x", std::nullopt, "None"));
@@ -164,7 +205,13 @@ TEST_SUBMODULE(stl, m) {
     }, py::arg_v("x", std::nullopt, "None"));
 
     m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
-    m.def("nodefer_none_optional", [](py::none) { return false; });
+    m.def("nodefer_none_optional", [](const py::none &) { return false; });
+
+    using opt_holder = OptionalHolder<std::optional, MoveOutDetector>;
+    py::class_<opt_holder>(m, "OptionalHolder", "Class with optional member")
+        .def(py::init<>())
+        .def_readonly("member", &opt_holder::member)
+        .def("member_initialized", &opt_holder::member_initialized);
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
@@ -185,6 +232,18 @@ TEST_SUBMODULE(stl, m) {
     m.def("test_no_assign_exp", [](const exp_opt_no_assign &x) {
         return x ? x->value : 42;
     }, py::arg_v("x", std::experimental::nullopt, "None"));
+
+    using opt_exp_holder = OptionalHolder<std::experimental::optional, MoveOutDetector>;
+    py::class_<opt_exp_holder>(m, "OptionalExpHolder", "Class with optional member")
+        .def(py::init<>())
+        .def_readonly("member", &opt_exp_holder::member)
+        .def("member_initialized", &opt_exp_holder::member_initialized);
+#endif
+
+#ifdef PYBIND11_HAS_FILESYSTEM
+    // test_fs_path
+    m.attr("has_filesystem") = true;
+    m.def("parent_path", [](const std::filesystem::path& p) { return p.parent_path(); });
 #endif
 
 #ifdef PYBIND11_HAS_VARIANT
@@ -195,13 +254,13 @@ TEST_SUBMODULE(stl, m) {
         using result_type = const char *;
 
         result_type operator()(int) { return "int"; }
-        result_type operator()(std::string) { return "std::string"; }
+        result_type operator()(const std::string &) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
     };
 
     // test_variant
-    m.def("load_variant", [](variant<int, std::string, double, std::nullptr_t> v) {
+    m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("load_variant_2pass", [](variant<double, int> v) {
@@ -235,4 +294,48 @@ TEST_SUBMODULE(stl, m) {
 
     // test_stl_pass_by_pointer
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
+
+    // #1258: pybind11/stl.h converts string to vector<string>
+    m.def("func_with_string_or_vector_string_arg_overload",
+          [](const std::vector<std::string> &) { return 1; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          [](const std::list<std::string> &) { return 2; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
+
+    class Placeholder {
+    public:
+        Placeholder() { print_created(this); }
+        Placeholder(const Placeholder &) = delete;
+        ~Placeholder() { print_destroyed(this); }
+    };
+    py::class_<Placeholder>(m, "Placeholder");
+
+    /// test_stl_vector_ownership
+    m.def("test_stl_ownership",
+          []() {
+              std::vector<Placeholder *> result;
+              result.push_back(new Placeholder());
+              return result;
+          },
+          py::return_value_policy::take_ownership);
+
+    m.def("array_cast_sequence", [](std::array<int, 3> x) { return x; });
+
+    /// test_issue_1561
+    struct Issue1561Inner { std::string data; };
+    struct Issue1561Outer { std::vector<Issue1561Inner> list; };
+
+    py::class_<Issue1561Inner>(m, "Issue1561Inner")
+        .def(py::init<std::string>())
+        .def_readwrite("data", &Issue1561Inner::data);
+
+    py::class_<Issue1561Outer>(m, "Issue1561Outer")
+        .def(py::init<>())
+        .def_readwrite("list", &Issue1561Outer::list);
+
+    m.def(
+        "return_vector_bool_raw_ptr",
+        []() { return new std::vector<bool>(4513); },
+        // Without explicitly specifying `take_ownership`, this function leaks.
+        py::return_value_policy::take_ownership);
 }
