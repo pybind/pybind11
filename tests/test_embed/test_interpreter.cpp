@@ -341,12 +341,14 @@ TEST_CASE("Check objects are deconstructed in cpp_function") {
     ConstructorStats &stat = ConstructorStats::get<MyFunctionObject>();
     {
         py::cpp_function func(func_obj);
-        (void)func;
+        func();
+        CHECK(stat.alive() == 2);
     }
     CHECK(stat.alive() == 1);
     {
         py::cpp_function func(std::move(func_obj));
-        (void)func;
+        func();
+        CHECK(stat.alive() == 2);
     }
     CHECK(stat.alive() == 1);
 }
