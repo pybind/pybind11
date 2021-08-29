@@ -327,9 +327,9 @@ TEST_CASE("sys.argv gets initialized properly") {
 
 class MyFunctionObject {
 public:
-    MyFunctionObject() noexcept { track_default_created(this); }
-    ~MyFunctionObject() noexcept { track_destroyed(this); }
-    MyFunctionObject(const MyFunctionObject &) noexcept { track_copy_created(this); }
+    MyFunctionObject() { track_default_created(this); }
+    ~MyFunctionObject() { track_destroyed(this); }
+    MyFunctionObject(const MyFunctionObject &) { track_copy_created(this); }
     MyFunctionObject(MyFunctionObject &&) noexcept { track_move_created(this); }
     void operator()() { }
 };
