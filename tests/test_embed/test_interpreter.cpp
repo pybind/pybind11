@@ -323,3 +323,32 @@ TEST_CASE("sys.argv gets initialized properly") {
     }
     py::initialize_interpreter();
 }
+
+class Counter {
+public:
+    Counter() { cnt_++; }
+    Counter(const Counter &) { cnt_++; }
+    Counter(Counter &&) { cnt_++; }
+    ~Counter() { cnt_--; }
+    static int get_cnt() { return cnt_; }
+    void operator()() { }
+
+private:
+    static int cnt_;
+};
+
+int Counter::cnt_ = 0;
+
+// Related issue: https://github.com/pybind/pybind11/issues/3228
+// Related PR: https://github.com/pybind/pybind11/pull/3229
+TEST_CASE("Check objects are deconstructed in cpp_function") {
+    Counter counter;
+    {
+        py::cpp_function func(counter);
+    }
+    CHECK(Counter::get_cnt() == 1);
+    {
+        py::cpp_function func(std::move(counter));
+    }
+    CHECK(Counter::get_cnt() == 1);
+}
