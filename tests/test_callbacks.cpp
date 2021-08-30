@@ -115,13 +115,13 @@ TEST_SUBMODULE(callbacks, m) {
                 // `cpp_function::initialize` IS trivially destructible,
                 // only `capture` is not.
                 py::cpp_function py_func(cpp_callable);
-                py_func();
+                py::detail::silence_unused_warnings(py_func);
                 alive_counts.append(stat.alive());
             }
             alive_counts.append(stat.alive());
             {
                 py::cpp_function py_func(std::move(cpp_callable));
-                py_func();
+                py::detail::silence_unused_warnings(py_func);
                 alive_counts.append(stat.alive());
             }
             alive_counts.append(stat.alive());
