@@ -1,5 +1,4 @@
 #include <pybind11/embed.h>
-#include "../constructor_stats.h"
 
 #ifdef _MSC_VER
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to catch
@@ -323,32 +322,4 @@ TEST_CASE("sys.argv gets initialized properly") {
         REQUIRE(cpp_widget.argv0() == "a.out");
     }
     py::initialize_interpreter();
-}
-
-class MyFunctionObject {
-public:
-    MyFunctionObject() { track_default_created(this); }
-    ~MyFunctionObject() { track_destroyed(this); }
-    MyFunctionObject(const MyFunctionObject &) { track_copy_created(this); }
-    MyFunctionObject(MyFunctionObject &&) noexcept { track_move_created(this); }
-    void operator()() { }
-};
-
-// Related issue: https://github.com/pybind/pybind11/issues/3228
-// Related PR: https://github.com/pybind/pybind11/pull/3229
-TEST_CASE("Check objects are deconstructed in cpp_function") {
-    MyFunctionObject func_obj;
-    ConstructorStats &stat = ConstructorStats::get<MyFunctionObject>();
-    {
-        py::cpp_function func(func_obj);
-        func();
-        CHECK(stat.alive() == 2);
-    }
-    CHECK(stat.alive() == 1);
-    {
-        py::cpp_function func(std::move(func_obj));
-        func();
-        CHECK(stat.alive() == 2);
-    }
-    CHECK(stat.alive() == 1);
 }
