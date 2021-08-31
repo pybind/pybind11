@@ -238,13 +238,13 @@ def test_duplicate_enum_name():
 
 def test_char_underlying_enum():  # Issue #1331/PR #1334:
     assert type(m.ScopedCharEnum.Positive.__int__()) is int
-    assert int(m.ScopedChar16Enum.Zero) == 0
+    assert int(m.ScopedChar16Enum.Zero) == 0  # int() call should successfully return
     assert hash(m.ScopedChar32Enum.Positive) == 1
-    assert m.ScopedCharEnum.Positive.__getstate__() == 1
+    assert m.ScopedCharEnum.Positive.__getstate__() == 1  # return type is long in py2.x
     assert m.ScopedWCharEnum(1) == m.ScopedWCharEnum.Positive
     with pytest.raises(TypeError):
-        # Even if the underlying type is char, only an int can be used to construct the enum:
-        m.ScopedCharEnum("0")
+        # Enum should construct with a int, even with char underlying type
+        m.ScopedWCharEnum("0")
 
 
 def test_bool_underlying_enum():
