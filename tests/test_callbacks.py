@@ -79,11 +79,16 @@ def test_keyword_args_and_generalized_unpacking():
 
 
 def test_lambda_closure_cleanup():
-    m.test_cleanup()
+    m.test_lambda_closure_cleanup()
     cstats = m.payload_cstats()
     assert cstats.alive() == 0
     assert cstats.copy_constructions == 1
     assert cstats.move_constructions >= 1
+
+
+def test_cpp_callable_cleanup():
+    alive_counts = m.test_cpp_callable_cleanup()
+    assert alive_counts == [0, 1, 2, 1, 2, 1, 0]
 
 
 def test_cpp_function_roundtrip():

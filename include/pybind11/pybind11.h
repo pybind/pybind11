@@ -175,7 +175,7 @@ protected:
 #endif
             // UB without std::launder, but without breaking ABI and/or
             // a significant refactoring it's "impossible" to solve.
-            if (!std::is_trivially_destructible<Func>::value)
+            if (!std::is_trivially_destructible<capture>::value)
                 rec->free_data = [](function_record *r) {
                     auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
                     (void) data;
