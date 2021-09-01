@@ -136,12 +136,11 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
 
+//Python2 API requires this to be encoded to syslocale so we don't support it.
+#if PY_VERSION_HEX >= 0x03000000
     if (!global.contains("__file__")) {
         global["__file__"] = std::move(fname);
     }
-
-#if PY_VERSION_HEX < 0x03000000
-    global["__file__"] = bytes(global["__file__"]);
 #endif
 
 #if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
