@@ -123,6 +123,7 @@ def refcount(h):
     return sys.getrefcount(h)
 
 
+@pytest.mark.xfail("env.PYPY", reason="getrefcount is unimplemented")
 def test_keep_alive_single():
     """Issue #1251 - patients are stored multiple times when given to the same nurse"""
 
