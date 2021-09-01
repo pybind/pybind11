@@ -4,7 +4,6 @@ import sys
 import pytest
 
 import env  # noqa: F401
-
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import call_policies as m
 
