@@ -115,6 +115,10 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         default: pybind11_fail("invalid evaluation mode");
     }
 
+    if (!global.contains("__file__")) {
+        global["__file__"] = fname;
+    }
+
     int closeFile = 1;
     std::string fname_str = (std::string) fname;
 #if PY_VERSION_HEX >= 0x03040000
