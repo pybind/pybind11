@@ -140,6 +140,10 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         global["__file__"] = std::move(fname);
     }
 
+#if PY_VERSION_HEX < 0x03000000
+    global["__file__"] = bytes(global["__file__"]);
+#endif
+
 #if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
     PyObject *result = PyRun_File(f, fname_str.c_str(), start, global.ptr(),
                                   local.ptr());
