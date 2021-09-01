@@ -136,7 +136,8 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
 
-//Python2 API requires this to be encoded to syslocale so we don't support it.
+// Python2 API requires this to be encoded to filesystemencoding.
+// Therefore, we don't bother supporting it.
 #if PY_VERSION_HEX >= 0x03000000
     if (!global.contains("__file__")) {
         global["__file__"] = std::move(fname);
