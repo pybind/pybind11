@@ -382,6 +382,47 @@ private:
 #  pragma warning(pop)
 #endif
 
+#if PY_VERSION_HEX >= 0x03030000
+
+/// Replaces the current Python error indicator with the chosen error, performing a
+/// 'raise from' to indicate that the chosen error was caused by the original error.
+inline void raise_from(PyObject *type, const char *message) {
+    // Based on _PyErr_FormatVFromCause:
+    // https://github.com/python/cpython/blob/467ab194fc6189d9f7310c89937c51abeac56839/Python/errors.c#L405
+    // See https://github.com/pybind/pybind11/pull/2112 for details.
+    PyObject *exc = nullptr, *val = nullptr, *val2 = nullptr, *tb = nullptr;
+
+    assert(PyErr_Occurred());
+    PyErr_Fetch(&exc, &val, &tb);
+    PyErr_NormalizeException(&exc, &val, &tb);
+    if (tb != nullptr) {
+        PyException_SetTraceback(val, tb);
+        Py_DECREF(tb);
+    }
+    Py_DECREF(exc);
+    assert(!PyErr_Occurred());
+
+    PyErr_SetString(type, message);
+
+    PyErr_Fetch(&exc, &val2, &tb);
+    PyErr_NormalizeException(&exc, &val2, &tb);
+    Py_INCREF(val);
+    PyException_SetCause(val2, val);
+    PyException_SetContext(val2, val);
+    PyErr_Restore(exc, val2, tb);
+}
+
+/// Sets the current Python error indicator with the chosen error, performing a 'raise from'
+/// from the error contained in error_already_set to indicate that the chosen error was
+/// caused by the original error. After this function is called error_already_set will
+/// no longer contain an error.
+inline void raise_from(error_already_set& err, PyObject *type, const char *message) {
+    err.restore();
+    raise_from(type, message);
+}
+
+#endif
+
 /** \defgroup python_builtins _
     Unless stated otherwise, the following C++ functions behave the same
     as their Python counterparts.
@@ -620,15 +661,17 @@ struct generic_item {
 struct sequence_item {
     using key_type = size_t;
 
-    static object get(handle obj, size_t index) {
-        PyObject *result = PySequence_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    static object get(handle obj, const IdxType &index) {
+        PyObject *result = PySequence_GetItem(obj.ptr(), ssize_t_cast(index));
         if (!result) { throw error_already_set(); }
         return reinterpret_steal<object>(result);
     }
 
-    static void set(handle obj, size_t index, handle val) {
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    static void set(handle obj, const IdxType &index, handle val) {
         // PySequence_SetItem does not steal a reference to 'val'
-        if (PySequence_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.ptr()) != 0) {
+        if (PySequence_SetItem(obj.ptr(), ssize_t_cast(index), val.ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -637,15 +680,17 @@ struct sequence_item {
 struct list_item {
     using key_type = size_t;
 
-    static object get(handle obj, size_t index) {
-        PyObject *result = PyList_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    static object get(handle obj, const IdxType &index) {
+        PyObject *result = PyList_GetItem(obj.ptr(), ssize_t_cast(index));
         if (!result) { throw error_already_set(); }
         return reinterpret_borrow<object>(result);
     }
 
-    static void set(handle obj, size_t index, handle val) {
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    static void set(handle obj, const IdxType &index, handle val) {
         // PyList_SetItem steals a reference to 'val'
-        if (PyList_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+        if (PyList_SetItem(obj.ptr(), ssize_t_cast(index), val.inc_ref().ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -654,15 +699,17 @@ struct list_item {
 struct tuple_item {
     using key_type = size_t;
 
-    static object get(handle obj, size_t index) {
-        PyObject *result = PyTuple_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    static object get(handle obj, const IdxType &index) {
+        PyObject *result = PyTuple_GetItem(obj.ptr(), ssize_t_cast(index));
         if (!result) { throw error_already_set(); }
         return reinterpret_borrow<object>(result);
     }
 
-    static void set(handle obj, size_t index, handle val) {
+    template <typename IdxType, detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    static void set(handle obj, const IdxType &index, handle val) {
         // PyTuple_SetItem steals a reference to 'val'
-        if (PyTuple_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+        if (PyTuple_SetItem(obj.ptr(), ssize_t_cast(index), val.inc_ref().ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -1002,8 +1049,9 @@ class str : public object {
 public:
     PYBIND11_OBJECT_CVT(str, object, PYBIND11_STR_CHECK_FUN, raw_str)
 
-    str(const char *c, size_t n)
-        : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+    template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    str(const char *c, const SzType &n)
+        : object(PyUnicode_FromStringAndSize(c, ssize_t_cast(n)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
@@ -1075,8 +1123,9 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
 
-    bytes(const char *c, size_t n)
-        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, (ssize_t) n), stolen_t{}) {
+    template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    bytes(const char *c, const SzType &n)
+        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, ssize_t_cast(n)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
 
@@ -1119,7 +1168,7 @@ inline str::str(const bytes& b) {
     ssize_t length = 0;
     if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract bytes contents!");
-    auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, (ssize_t) length));
+    auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
     if (!obj)
         pybind11_fail("Could not allocate string object!");
     m_ptr = obj.release().ptr();
@@ -1131,8 +1180,9 @@ class bytearray : public object {
 public:
     PYBIND11_OBJECT_CVT(bytearray, object, PyByteArray_Check, PyByteArray_FromObject)
 
-    bytearray(const char *c, size_t n)
-        : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+    template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    bytearray(const char *c, const SzType &n)
+        : object(PyByteArray_FromStringAndSize(c, ssize_t_cast(n)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
     }
 
@@ -1357,7 +1407,10 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
-    explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), stolen_t{}) {
+    template <typename SzType = ssize_t,
+              detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    // Some compilers generate link errors when using `const SzType &` here:
+    explicit tuple(SzType size = 0) : object(PyTuple_New(ssize_t_cast(size)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
@@ -1393,7 +1446,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
-    void clear() const { PyDict_Clear(ptr()); }
+    void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T> bool contains(T &&key) const {
         return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
     }
@@ -1426,7 +1479,10 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT_CVT(list, object, PyList_Check, PySequence_List)
-    explicit list(size_t size = 0) : object(PyList_New((ssize_t) size), stolen_t{}) {
+    template <typename SzType = ssize_t,
+              detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
+    // Some compilers generate link errors when using `const SzType &` here:
+    explicit list(SzType size = 0) : object(PyList_New(ssize_t_cast(size)), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
@@ -1435,12 +1491,15 @@ public:
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
-    template <typename T> void append(T &&val) const {
+    template <typename T> void append(T &&val) /* py-non-const */ {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
-    template <typename T> void insert(size_t index, T &&val) const {
-        PyList_Insert(m_ptr, static_cast<ssize_t>(index),
-            detail::object_or_cast(std::forward<T>(val)).ptr());
+    template <typename IdxType,
+              typename ValType,
+              detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
+    void insert(const IdxType &index, ValType &&val) /* py-non-const */ {
+        PyList_Insert(
+            m_ptr, ssize_t_cast(index), detail::object_or_cast(std::forward<ValType>(val)).ptr());
     }
 };
 
@@ -1455,10 +1514,10 @@ public:
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
-    template <typename T> bool add(T &&val) const {
+    template <typename T> bool add(T &&val) /* py-non-const */ {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
-    void clear() const { PySet_Clear(m_ptr); }
+    void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
     template <typename T> bool contains(T &&val) const {
         return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
     }

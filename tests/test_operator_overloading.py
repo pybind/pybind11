@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pybind11_tests import operators as m
+
 from pybind11_tests import ConstructorStats
+from pybind11_tests import operators as m
 
 
 def test_operator_overloading():

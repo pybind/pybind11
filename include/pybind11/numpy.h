@@ -25,11 +25,6 @@
 #include <vector>
 #include <typeindex>
 
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 /* This will be true on all flat address space platforms and allows us to reduce the
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
@@ -203,6 +198,9 @@ struct npy_api {
     // Unused. Not removed because that affects ABI of the class.
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
     PyObject* (*PyArray_Resize_)(PyObject*, PyArray_Dims*, int, int);
+    PyObject* (*PyArray_Newshape_)(PyObject*, PyArray_Dims*, int);
+    PyObject* (*PyArray_View_)(PyObject*, PyObject*, PyObject*);
+
 private:
     enum functions {
         API_PyArray_GetNDArrayCFeatureVersion = 211,
@@ -217,10 +215,12 @@ private:
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
         API_PyArray_DescrNewFromType = 96,
+        API_PyArray_Newshape = 135,
+        API_PyArray_Squeeze = 136,
+        API_PyArray_View = 137,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
         API_PyArray_GetArrayParamsFromObject = 278,
-        API_PyArray_Squeeze = 136,
         API_PyArray_SetBaseObject = 282
     };
 
@@ -248,11 +248,14 @@ private:
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
         DECL_NPY_API(PyArray_DescrNewFromType);
+        DECL_NPY_API(PyArray_Newshape);
+        DECL_NPY_API(PyArray_Squeeze);
+        DECL_NPY_API(PyArray_View);
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
         DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-        DECL_NPY_API(PyArray_Squeeze);
         DECL_NPY_API(PyArray_SetBaseObject);
+
 #undef DECL_NPY_API
         return api;
     }
@@ -747,7 +750,7 @@ public:
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
     template <typename T, ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() & {
-        if (Dims >= 0 && ndim() != Dims)
+        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
         return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides(), ndim());
@@ -761,7 +764,7 @@ public:
      * invalid dimensions or dimension indices.
      */
     template <typename T, ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const & {
-        if (Dims >= 0 && ndim() != Dims)
+        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
         return detail::unchecked_reference<T, Dims>(data(), shape(), strides(), ndim());
@@ -788,6 +791,33 @@ public:
         );
         if (!new_array) throw error_already_set();
         if (isinstance<array>(new_array)) { *this = std::move(new_array); }
+    }
+
+    /// Optional `order` parameter omitted, to be added as needed.
+    array reshape(ShapeContainer new_shape) {
+        detail::npy_api::PyArray_Dims d
+            = {reinterpret_cast<Py_intptr_t *>(new_shape->data()), int(new_shape->size())};
+        auto new_array
+            = reinterpret_steal<array>(detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
+        if (!new_array) {
+            throw error_already_set();
+        }
+        return new_array;
+    }
+
+    /// Create a view of an array in a different data type.
+    /// This function may fundamentally reinterpret the data in the array.
+    /// It is the responsibility of the caller to ensure that this is safe.
+    /// Only supports the `dtype` argument, the `type` argument is omitted,
+    /// to be added as needed.
+    array view(const std::string &dtype) {
+        auto &api = detail::npy_api::get();
+        auto new_view = reinterpret_steal<array>(api.PyArray_View_(
+            m_ptr, dtype::from_args(pybind11::str(dtype)).release().ptr(), nullptr));
+        if (!new_view) {
+            throw error_already_set();
+        }
+        return new_view;
     }
 
     /// Ensure that the argument is a NumPy array
@@ -1708,7 +1738,3 @@ Helper vectorize(Return (Class::*f)(Args...) const) {
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif

@@ -19,11 +19,6 @@
 #include <deque>
 #include <valarray>
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 #ifdef __has_include
 // std::optional (but including it in c++14 mode isn't allowed)
 #  if defined(PYBIND11_CPP17) && __has_include(<optional>)
@@ -173,12 +168,12 @@ public:
         if (!std::is_lvalue_reference<T>::value)
             policy = return_value_policy_override<Value>::policy(policy);
         list l(src.size());
-        size_t index = 0;
+        ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -230,12 +225,12 @@ public:
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
         list l(src.size());
-        size_t index = 0;
+        ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -390,7 +385,3 @@ inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif

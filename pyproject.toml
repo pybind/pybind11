@@ -15,6 +15,12 @@ ignore = [
     "noxfile.py",
 ]
 
+[tool.isort]
+# Needs the compiled .so modules and env.py from tests
+known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
+# For black compatibility
+profile = "black"
+
 [tool.mypy]
 files = "pybind11"
 python_version = "2.7"

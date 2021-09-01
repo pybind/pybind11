@@ -4,7 +4,6 @@ import os
 import pytest
 
 import env  # noqa: F401
-
 from pybind11_tests import eval_ as m
 
 

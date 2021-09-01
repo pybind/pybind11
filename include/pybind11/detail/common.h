@@ -99,6 +99,17 @@
 #  endif
 #endif
 
+// For CUDA, GCC7, GCC8:
+// PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
+// When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
+// However, the measured shared-library size saving when using noinline are only
+// 1.7% for CUDA, -0.2% for GCC7, and 0.0% for GCC8 (using -DCMAKE_BUILD_TYPE=MinSizeRel,
+// the default under pybind11/tests).
+#if !defined(PYBIND11_NOINLINE_FORCED) && \
+    (defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
+#  define PYBIND11_NOINLINE_DISABLED
+#endif
+
 // The PYBIND11_NOINLINE macro is for function DEFINITIONS.
 // In contrast, FORWARD DECLARATIONS should never use this macro:
 // https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
@@ -304,6 +315,19 @@ extern "C" {
         }                                                                      \
     }
 
+#if PY_VERSION_HEX >= 0x03030000
+
+#define PYBIND11_CATCH_INIT_EXCEPTIONS \
+        catch (pybind11::error_already_set &e) {                                 \
+            pybind11::raise_from(e, PyExc_ImportError, "initialization failed"); \
+            return nullptr;                                                      \
+        } catch (const std::exception &e) {                                      \
+            PyErr_SetString(PyExc_ImportError, e.what());                        \
+            return nullptr;                                                      \
+        }                                                                        \
+
+#else
+
 #define PYBIND11_CATCH_INIT_EXCEPTIONS \
         catch (pybind11::error_already_set &e) {                               \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
@@ -312,6 +336,8 @@ extern "C" {
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
         }                                                                      \
+
+#endif
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
@@ -383,6 +409,12 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
+
+template <typename IntType>
+inline ssize_t ssize_t_cast(const IntType &val) {
+    static_assert(sizeof(IntType) <= sizeof(ssize_t), "Implicit narrowing is not permitted.");
+    return static_cast<ssize_t>(val);
+}
 
 /// Approach used to cast a previously unknown C++ instance into a Python object
 enum class return_value_policy : uint8_t {
@@ -511,7 +543,7 @@ struct instance {
     void allocate_layout();
 
     /// Destroys/deallocates all of the above
-    void deallocate_layout() const;
+    void deallocate_layout();
 
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
     /// omitted).  Returns a default-constructed (with `.inst = nullptr`) object on failure if
@@ -957,7 +989,7 @@ inline void silence_unused_warnings(Args &&...) {}
 // warning C4127: Conditional expression is constant
 constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
-#    define PYBIND11_SILENCE_MSVC_C4127(...) detail::silence_msvc_c4127(__VA_ARGS__)
+#    define PYBIND11_SILENCE_MSVC_C4127(...) ::pybind11::detail::silence_msvc_c4127(__VA_ARGS__)
 
 #else
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__

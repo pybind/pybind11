@@ -10,11 +10,6 @@
 
 #pragma once
 
-#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
@@ -180,7 +175,7 @@ protected:
 #endif
             // UB without std::launder, but without breaking ABI and/or
             // a significant refactoring it's "impossible" to solve.
-            if (!std::is_trivially_destructible<Func>::value)
+            if (!std::is_trivially_destructible<capture>::value)
                 rec->free_data = [](function_record *r) {
                     auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
                     (void) data;
@@ -1669,7 +1664,7 @@ inline str enum_name(handle arg) {
 }
 
 struct enum_base {
-    enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
+    enum_base(const handle &base, const handle &parent) : m_base(base), m_parent(parent) { }
 
     PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
         m_base.attr("__entries") = dict();
@@ -1819,6 +1814,19 @@ struct enum_base {
     handle m_parent;
 };
 
+template <bool is_signed, size_t length> struct equivalent_integer {};
+template <> struct equivalent_integer<true,  1> { using type = int8_t;   };
+template <> struct equivalent_integer<false, 1> { using type = uint8_t;  };
+template <> struct equivalent_integer<true,  2> { using type = int16_t;  };
+template <> struct equivalent_integer<false, 2> { using type = uint16_t; };
+template <> struct equivalent_integer<true,  4> { using type = int32_t;  };
+template <> struct equivalent_integer<false, 4> { using type = uint32_t; };
+template <> struct equivalent_integer<true,  8> { using type = int64_t;  };
+template <> struct equivalent_integer<false, 8> { using type = uint64_t; };
+
+template <typename IntLike>
+using equivalent_integer_t = typename equivalent_integer<std::is_signed<IntLike>::value, sizeof(IntLike)>::type;
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Binds C++ enumerations and enumeration classes to Python
@@ -1829,13 +1837,17 @@ public:
     using Base::attr;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
-    using Scalar = typename std::underlying_type<Type>::type;
+    using Underlying = typename std::underlying_type<Type>::type;
+    // Scalar is the integer representation of underlying type
+    using Scalar = detail::conditional_t<detail::any_of<
+        detail::is_std_char_type<Underlying>, std::is_same<Underlying, bool>
+    >::value, detail::equivalent_integer_t<Underlying>, Underlying>;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
-        constexpr bool is_convertible = std::is_convertible<Type, Scalar>::value;
+        constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
@@ -2382,8 +2394,4 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(__GNUC__) && __GNUC__ == 7
 #    pragma GCC diagnostic pop // -Wnoexcept-type
-#endif
-
-#if defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8))
-#  pragma GCC diagnostic pop
 #endif

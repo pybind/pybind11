@@ -20,6 +20,11 @@ TEST_SUBMODULE(pytypes, m) {
     // test_iterable
     m.def("get_iterable", []{return py::iterable();});
     // test_list
+    m.def("list_no_args", []() { return py::list{}; });
+    m.def("list_ssize_t", []() { return py::list{(py::ssize_t) 0}; });
+    m.def("list_size_t", []() { return py::list{(py::size_t) 0}; });
+    m.def("list_insert_ssize_t", [](py::list *l) { return l->insert((py::ssize_t) 1, 83); });
+    m.def("list_insert_size_t", [](py::list *l) { return l->insert((py::size_t) 3, 57); });
     m.def("get_list", []() {
         py::list list;
         list.append("value");
@@ -70,7 +75,25 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
+    // test_tuple
+    m.def("tuple_no_args", []() { return py::tuple{}; });
+    m.def("tuple_ssize_t", []() { return py::tuple{(py::ssize_t) 0}; });
+    m.def("tuple_size_t", []() { return py::tuple{(py::size_t) 0}; });
+    m.def("get_tuple", []() { return py::make_tuple(42, py::none(), "spam"); });
+
+#if PY_VERSION_HEX >= 0x03030000
+    // test_simple_namespace
+    m.def("get_simple_namespace", []() {
+        auto ns = py::make_simple_namespace("attr"_a=42, "x"_a="foo", "wrong"_a=1);
+        py::delattr(ns, "wrong");
+        py::setattr(ns, "right", py::int_(2));
+        return ns;
+    });
+#endif
+
     // test_str
+    m.def("str_from_char_ssize_t", []() { return py::str{"red", (py::ssize_t) 3}; });
+    m.def("str_from_char_size_t", []() { return py::str{"blue", (py::size_t) 4}; });
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
     m.def("str_from_object", [](const py::object& obj) { return py::str(obj); });
@@ -87,10 +110,14 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     // test_bytes
+    m.def("bytes_from_char_ssize_t", []() { return py::bytes{"green", (py::ssize_t) 5}; });
+    m.def("bytes_from_char_size_t", []() { return py::bytes{"purple", (py::size_t) 6}; });
     m.def("bytes_from_string", []() { return py::bytes(std::string("foo")); });
     m.def("bytes_from_str", []() { return py::bytes(py::str("bar", 3)); });
 
     // test bytearray
+    m.def("bytearray_from_char_ssize_t", []() { return py::bytearray{"$%", (py::ssize_t) 2}; });
+    m.def("bytearray_from_char_size_t", []() { return py::bytearray{"@$!", (py::size_t) 3}; });
     m.def("bytearray_from_string", []() { return py::bytearray(std::string("foo")); });
     m.def("bytearray_size", []() { return py::bytearray("foo").size(); });
 
@@ -434,4 +461,57 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("weakref_from_object", [](const py::object &o) { return py::weakref(o); });
     m.def("weakref_from_object_and_function",
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
+
+    // Tests below this line are for pybind11 IMPLEMENTATION DETAILS:
+
+    m.def("sequence_item_get_ssize_t", [](const py::object &o) {
+        return py::detail::accessor_policies::sequence_item::get(o, (py::ssize_t) 1);
+    });
+    m.def("sequence_item_set_ssize_t", [](const py::object &o) {
+        auto s = py::str{"peppa", 5};
+        py::detail::accessor_policies::sequence_item::set(o, (py::ssize_t) 1, s);
+    });
+    m.def("sequence_item_get_size_t", [](const py::object &o) {
+        return py::detail::accessor_policies::sequence_item::get(o, (py::size_t) 2);
+    });
+    m.def("sequence_item_set_size_t", [](const py::object &o) {
+        auto s = py::str{"george", 6};
+        py::detail::accessor_policies::sequence_item::set(o, (py::size_t) 2, s);
+    });
+    m.def("list_item_get_ssize_t", [](const py::object &o) {
+        return py::detail::accessor_policies::list_item::get(o, (py::ssize_t) 3);
+    });
+    m.def("list_item_set_ssize_t", [](const py::object &o) {
+        auto s = py::str{"rebecca", 7};
+        py::detail::accessor_policies::list_item::set(o, (py::ssize_t) 3, s);
+    });
+    m.def("list_item_get_size_t", [](const py::object &o) {
+        return py::detail::accessor_policies::list_item::get(o, (py::size_t) 4);
+    });
+    m.def("list_item_set_size_t", [](const py::object &o) {
+        auto s = py::str{"richard", 7};
+        py::detail::accessor_policies::list_item::set(o, (py::size_t) 4, s);
+    });
+    m.def("tuple_item_get_ssize_t", [](const py::object &o) {
+        return py::detail::accessor_policies::tuple_item::get(o, (py::ssize_t) 5);
+    });
+    m.def("tuple_item_set_ssize_t", []() {
+        auto s0 = py::str{"emely", 5};
+        auto s1 = py::str{"edmond", 6};
+        auto o = py::tuple{2};
+        py::detail::accessor_policies::tuple_item::set(o, (py::ssize_t) 0, s0);
+        py::detail::accessor_policies::tuple_item::set(o, (py::ssize_t) 1, s1);
+        return o;
+    });
+    m.def("tuple_item_get_size_t", [](const py::object &o) {
+        return py::detail::accessor_policies::tuple_item::get(o, (py::size_t) 6);
+    });
+    m.def("tuple_item_set_size_t", []() {
+        auto s0 = py::str{"candy", 5};
+        auto s1 = py::str{"cat", 3};
+        auto o = py::tuple{2};
+        py::detail::accessor_policies::tuple_item::set(o, (py::size_t) 1, s1);
+        py::detail::accessor_policies::tuple_item::set(o, (py::size_t) 0, s0);
+        return o;
+    });
 }

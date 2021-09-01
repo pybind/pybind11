@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import random
-import os
-import time
 import datetime as dt
+import os
+import random
+import time
 
 nfns = 4  # Functions per class
 nargs = 4  # Arguments per function

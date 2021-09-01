@@ -13,12 +13,12 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import re
 import shlex
 import subprocess
+import sys
 from pathlib import Path
-import re
 
 DIR = Path(__file__).parent.resolve()
 
