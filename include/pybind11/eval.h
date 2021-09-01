@@ -88,20 +88,20 @@ void exec(const char (&s)[N], object global = globals(), object local = object()
 
 #if defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x03000000
 template <eval_mode mode = eval_statements>
-object eval_file(str, object, object) {
+object eval_file(const str&, object, object) {
     pybind11_fail("eval_file not supported in PyPy3. Use eval");
 }
 template <eval_mode mode = eval_statements>
-object eval_file(str, object) {
+object eval_file(const str&, object) {
     pybind11_fail("eval_file not supported in PyPy3. Use eval");
 }
 template <eval_mode mode = eval_statements>
-object eval_file(str) {
+object eval_file(const str&) {
     pybind11_fail("eval_file not supported in PyPy3. Use eval");
 }
 #else
 template <eval_mode mode = eval_statements>
-object eval_file(str fname, object global = globals(), object local = object()) {
+object eval_file(const str &fname, object global = globals(), object local = object()) {
     if (!local)
         local = global;
 
