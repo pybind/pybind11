@@ -336,7 +336,7 @@ public:
     }
 
     error_already_set(const error_already_set &) = default;
-    error_already_set(error_already_set &&) = default;
+    error_already_set(error_already_set &&) noexcept = default;
 
     inline ~error_already_set() override;
 
@@ -761,7 +761,7 @@ template <typename T>
 struct arrow_proxy {
     T value;
 
-    arrow_proxy(T &&value) : value(std::move(value)) { }
+    arrow_proxy(T &&value) noexcept : value(std::move(value)) { }
     T *operator->() const { return &value; }
 };
 
