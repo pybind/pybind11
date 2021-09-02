@@ -336,7 +336,7 @@ public:
     }
 
     error_already_set(const error_already_set &) = default;
-    error_already_set(error_already_set &&) noexcept = default;
+    error_already_set(error_already_set &&) = default;
 
     inline ~error_already_set() override;
 
