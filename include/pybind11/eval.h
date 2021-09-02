@@ -137,12 +137,13 @@ object eval_file(str fname, object global = globals(), object local = object()) 
     }
 
     if (!global.contains("__file__")) {
+#if PY_VERSION_HEX >= 0x03000000
         global["__file__"] = std::move(fname);
-#if PY_VERSION_HEX < 0x03000000
+#else
         // In Python2, this should be encoded by getfilesystemencoding.
         // We are just assuming it's UTF-8 since Python2 is past EOL anyway.
         // See PR#3233
-        global["__file__"] = bytes(global["__file__"]);
+        global["__file__"] = bytes(fname);
 #endif
     }
 
