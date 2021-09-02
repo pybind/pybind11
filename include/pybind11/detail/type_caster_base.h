@@ -32,46 +32,37 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
 public:
+    void* parent = nullptr;
+    std::unordered_set<PyObject *> keep_alive;
+
     /// A new patient frame is created when a function is entered
     loader_life_support() {
-        get_internals().loader_patient_stack.push_back(nullptr);
+        parent = get_loader_patient_pointer();
+        set_loader_patient_pointer(this);
     }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        auto &stack = get_internals().loader_patient_stack;
-        if (stack.empty())
+        auto* frame = reinterpret_cast<loader_life_support*>(get_loader_patient_pointer());
+        if (frame != this)
             pybind11_fail("loader_life_support: internal error");
+        set_loader_patient_pointer(parent);
 
-        auto ptr = stack.back();
-        stack.pop_back();
-        Py_CLEAR(ptr);
-
-        // A heuristic to reduce the stack's capacity (e.g. after long recursive calls)
-        if (stack.capacity() > 16 && !stack.empty() && stack.capacity() / stack.size() > 2)
-            stack.shrink_to_fit();
+        for (auto* item : keep_alive)
+            Py_DECREF(item);
     }
 
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        auto &stack = get_internals().loader_patient_stack;
-        if (stack.empty())
+        auto* frame = reinterpret_cast<loader_life_support*>(get_loader_patient_pointer());
+        if (!frame)
             throw cast_error("When called outside a bound function, py::cast() cannot "
                              "do Python -> C++ conversions which require the creation "
                              "of temporary values");
 
-        auto &list_ptr = stack.back();
-        if (list_ptr == nullptr) {
-            list_ptr = PyList_New(1);
-            if (!list_ptr)
-                pybind11_fail("loader_life_support: error allocating list");
-            PyList_SET_ITEM(list_ptr, 0, h.inc_ref().ptr());
-        } else {
-            auto result = PyList_Append(list_ptr, h.ptr());
-            if (result == -1)
-                pybind11_fail("loader_life_support: error adding patient");
-        }
+        if (frame->keep_alive.insert(h.ptr()).second)
+          Py_INCREF(h.ptr());
     }
 };
 
