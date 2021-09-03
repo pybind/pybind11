@@ -4,7 +4,6 @@ import threading
 
 import pytest
 
-import env  # noqa: F401
 from pybind11_tests import thread as m
 
 
