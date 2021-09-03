@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+import concurrent.futures
+
 import pytest
 
-import concurrent.futures
 import env  # noqa: F401
 from pybind11_tests import thread as m
 

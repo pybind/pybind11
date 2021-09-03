@@ -29,7 +29,6 @@ struct IntStruct {
 
 TEST_SUBMODULE(thread, m) {
 
-
     py::class_<IntStruct>(m, "IntStruct")
         .def(py::init([](const int i) { return IntStruct{i}; }));
 
@@ -63,4 +62,3 @@ TEST_SUBMODULE(thread, m) {
     // NOTE: std::string_view also uses loader_life_support to ensure that
     // the string contents remain alive, but that's a C++ 17 feature.
 }
-
