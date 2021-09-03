@@ -31,10 +31,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
-public:
+private:
     void* parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
+public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
         parent = get_loader_patient_pointer();
@@ -47,7 +48,6 @@ public:
         if (frame != this)
             pybind11_fail("loader_life_support: internal error");
         set_loader_patient_pointer(parent);
-
         for (auto* item : keep_alive)
             Py_DECREF(item);
     }
@@ -62,7 +62,7 @@ public:
                              "of temporary values");
 
         if (frame->keep_alive.insert(h.ptr()).second)
-          Py_INCREF(h.ptr());
+            Py_INCREF(h.ptr());
     }
 };
 
