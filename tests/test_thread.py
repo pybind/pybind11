@@ -2,8 +2,6 @@
 
 import threading
 
-import pytest
-
 from pybind11_tests import thread as m
 
 
