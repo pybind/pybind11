@@ -7,29 +7,60 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <string_view>
-#include <string>
-
-#define PYBIND11_HAS_STRING_VIEW 1
+#include <chrono>
+#include <thread>
 
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 #include "pybind11_tests.h"
 
 
+namespace py = pybind11;
+
+
+namespace {
+
+struct IntStruct {
+    int value;
+};
+
+}
+
 TEST_SUBMODULE(thread, m) {
 
-    // std::string_view uses loader_life_support to ensure that the string contents
-    // remains alive for the life of the call. These methods are invoked concurrently
-    m.def("method", [](std::string_view str) -> std::string { 
-        return std::string(str); 
+
+    py::class_<IntStruct>(m, "IntStruct")
+        .def(py::init([](const int i) { return IntStruct{i}; }));
+
+    // implicitly_convertible uses loader_life_support when an implicit
+    // conversion is required in order to llifetime extend the reference.
+    py::implicitly_convertible<int, IntStruct>();
+
+
+    m.def("test", [](const IntStruct& in) {
+        IntStruct copy = in;
+
+        {
+          py::gil_scoped_release release;
+          std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+
+        if (in.value != copy.value) {
+            throw std::runtime_error("Reference changed!!");
+        }
     });
 
-    m.def("method_no_gil", [](std::string_view str) -> std::string { 
-        return std::string(str); 
+   m.def("test_no_gil", [](const IntStruct& in) {
+        IntStruct copy = in;
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        if (in.value != copy.value) {
+            throw std::runtime_error("Reference changed!!");
+        }
     },
     py::call_guard<py::gil_scoped_release>());
 
+    // NOTE: std::string_view also uses loader_life_support to ensure that
+    // the string contents remain alive, but that's a C++ 17 feature.
 }
+
