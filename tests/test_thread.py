@@ -1,19 +1,35 @@
 # -*- coding: utf-8 -*-
-import concurrent.futures
 
 import pytest
+import threading
 
 import env  # noqa: F401
 from pybind11_tests import thread as m
 
 
 def test_implicit_conversion():
-    inputs = [i for i in range(20, 30)]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        executor.map(m.test, inputs)
+    def loop(count):
+        for i in range(count):
+            m.test(i)
+
+    a = threading.Thread(target=loop, args=(10,))
+    b = threading.Thread(target=loop, args=(10,))
+    c = threading.Thread(target=loop, args=(10,)) 
+    for x in [a,b,c]:
+        x.start()
+    for x in [c,b,a]:
+        x.join()
 
 
 def test_implicit_conversion_no_gil():
-    inputs = [i for i in range(20, 30)]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        executor.map(m.test_no_gil, inputs)
+    def loop(count):
+        for i in range(count):
+            m.test_no_gil(i)
+
+    a = threading.Thread(target=loop, args=(10,))
+    b = threading.Thread(target=loop, args=(10,))
+    c = threading.Thread(target=loop, args=(10,)) 
+    for x in [a,b,c]:
+        x.start()
+    for x in [c,b,a]:
+        x.join()
