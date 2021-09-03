@@ -106,16 +106,14 @@ struct internals {
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
+    std::vector<PyObject *> unused_loader_patient_stack_remove_at_v5;
     std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
-#if !defined(WITH_THREAD)
-    void* loader_patient_ptr = nullptr; // Used by `loader_life_support`
-#else // defined(WITH_THREAD)
+#if defined(WITH_THREAD)
     PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
-    PYBIND11_TLS_KEY_INIT(loader_patient_key);
     ~internals() {
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
         // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is called.
@@ -125,7 +123,6 @@ struct internals {
         // of those have anything to do with CPython internals.
         // PyMem_RawFree *requires* that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
-        PYBIND11_TLS_FREE(loader_patient_key);
     }
 #endif
 };
@@ -157,7 +154,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 5
+#define PYBIND11_INTERNALS_VERSION 4
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
@@ -310,17 +307,6 @@ PYBIND11_NOINLINE internals &get_internals() {
             PyThread_set_key_value(internals_ptr->tstate, tstate);
         #endif
         internals_ptr->istate = tstate->interp;
-
-        #if PY_VERSION_HEX >= 0x03070000
-            internals_ptr->loader_patient_key = PyThread_tss_alloc();
-            if (!internals_ptr->loader_patient_key || (PyThread_tss_create(internals_ptr->loader_patient_key) != 0))
-                pybind11_fail("get_internals: could not successfully initialize the loader_patient TSS key!");
-        #else
-            internals_ptr->loader_patient_key = PyThread_create_key();
-            if (internals_ptr->loader_patient_key == -1)
-                pybind11_fail("get_internals: could not successfully initialize the loader_patient TLS key!");
-        #endif
-
 #endif
         builtins[id] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
@@ -348,31 +334,6 @@ inline local_internals &get_local_internals() {
   static local_internals locals;
   return locals;
 }
-
-/// The patient pointer is used to store patient data for a call frame.
-/// See loader_life_support for use.
-inline void* get_loader_patient_pointer() {
-#if !defined(WITH_THREAD)
-  return get_internals().loader_patient_ptr;
-#else
-  auto &internals = get_internals();
-  return PYBIND11_TLS_GET_VALUE(internals.loader_patient_key);
-#endif
-}
-
-inline void set_loader_patient_pointer(void* ptr) {
-#if !defined(WITH_THREAD)
-  get_internals().loader_patient_ptr = ptr;
-#else
-  auto &internals = get_internals();
-#if PY_VERSION_HEX >= 0x03070000
-  PyThread_tss_set(internals.loader_patient_key, ptr);
-#else
-  PyThread_set_key_value(internals.loader_patient_key, ptr);
-#endif
-#endif
-}
-
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only

@@ -28,26 +28,36 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
 private:
-    void* parent = nullptr;
+    loader_life_support* parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
+
+    static loader_life_support** get_stack_pp() {
+#if defined(WITH_THREAD)
+        thread_local static loader_life_support* per_thread_stack = nullptr;
+        return &per_thread_stack;
+#else
+        static loader_life_support* global_stack = nullptr;
+        return &global_stack;
+#endif
+    }
 
 public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
-        parent = get_loader_patient_pointer();
-        set_loader_patient_pointer(this);
+        parent = *get_stack_pp();
+        *get_stack_pp() = this;
     }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        auto* frame = reinterpret_cast<loader_life_support*>(get_loader_patient_pointer());
-        if (frame != this)
+        if (*get_stack_pp() != this)
             pybind11_fail("loader_life_support: internal error");
-        set_loader_patient_pointer(parent);
+        *get_stack_pp() = parent;
         for (auto* item : keep_alive)
             Py_DECREF(item);
     }
@@ -55,7 +65,7 @@ public:
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        auto* frame = reinterpret_cast<loader_life_support*>(get_loader_patient_pointer());
+        loader_life_support* frame =  *get_stack_pp();
         if (!frame)
             throw cast_error("When called outside a bound function, py::cast() cannot "
                              "do Python -> C++ conversions which require the creation "
@@ -65,6 +75,7 @@ public:
             Py_INCREF(h.ptr());
     }
 };
+
 
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
 // returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
