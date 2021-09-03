@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import threading
+
+import pytest
 
 import env  # noqa: F401
 from pybind11_tests import thread as m
@@ -14,10 +15,10 @@ def test_implicit_conversion():
 
     a = threading.Thread(target=loop, args=(10,))
     b = threading.Thread(target=loop, args=(10,))
-    c = threading.Thread(target=loop, args=(10,)) 
-    for x in [a,b,c]:
+    c = threading.Thread(target=loop, args=(10,))
+    for x in [a, b, c]:
         x.start()
-    for x in [c,b,a]:
+    for x in [c, b, a]:
         x.join()
 
 
@@ -28,8 +29,8 @@ def test_implicit_conversion_no_gil():
 
     a = threading.Thread(target=loop, args=(10,))
     b = threading.Thread(target=loop, args=(10,))
-    c = threading.Thread(target=loop, args=(10,)) 
-    for x in [a,b,c]:
+    c = threading.Thread(target=loop, args=(10,))
+    for x in [a, b, c]:
         x.start()
-    for x in [c,b,a]:
+    for x in [c, b, a]:
         x.join()
