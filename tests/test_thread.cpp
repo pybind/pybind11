@@ -23,12 +23,12 @@ TEST_SUBMODULE(thread, m) {
 
     // std::string_view uses loader_life_support to ensure that the string contents
     // remains alive for the life of the call. These methods are invoked concurrently
-    m.def("method", [](std::string_view str) -> std::string { 
-        return std::string(str); 
+    m.def("method", [](std::string_view str) -> std::string {
+        return std::string(str);
     });
 
-    m.def("method_no_gil", [](std::string_view str) -> std::string { 
-        return std::string(str); 
+    m.def("method_no_gil", [](std::string_view str) -> std::string {
+        return std::string(str);
     },
     py::call_guard<py::gil_scoped_release>());
 
