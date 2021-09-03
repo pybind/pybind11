@@ -66,10 +66,15 @@ public:
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
         loader_life_support* frame =  *get_stack_pp();
-        if (!frame)
+        if (!frame) {
+            // NOTE: It would be nice to include the stack frames here, as this indicates
+            // use of pybind11::cast<> outside the normal call framework, finding such
+            // a location is challenging. Developers could consider printing out
+            // stack frame addresses here using something like __builtin_frame_address(0)
             throw cast_error("When called outside a bound function, py::cast() cannot "
                              "do Python -> C++ conversions which require the creation "
                              "of temporary values");
+        }
 
         if (frame->keep_alive.insert(h.ptr()).second)
             Py_INCREF(h.ptr());
