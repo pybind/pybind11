@@ -113,7 +113,7 @@ with the following:
 
     from pybind11.setup_helpers import ParallelCompile, naive_recompile
 
-    SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
+    ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
 If you have a more complex build, you can implement a smarter function and pass
