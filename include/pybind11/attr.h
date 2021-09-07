@@ -18,7 +18,9 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /// @{
 
 /// Annotation for methods
-struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
+struct is_method { handle class_;
+    explicit is_method(const handle &c) : class_(c) {}
+};
 
 /// Annotation for operators
 struct is_operator { };
@@ -27,16 +29,24 @@ struct is_operator { };
 struct is_final { };
 
 /// Annotation for parent scope
-struct scope { handle value; scope(const handle &s) : value(s) { } };
+struct scope { handle value;
+    explicit scope(const handle &s) : value(s) {}
+};
 
 /// Annotation for documentation
-struct doc { const char *value; doc(const char *value) : value(value) { } };
+struct doc { const char *value;
+    explicit doc(const char *value) : value(value) {}
+};
 
 /// Annotation for function names
-struct name { const char *value; name(const char *value) : value(value) { } };
+struct name { const char *value;
+    explicit name(const char *value) : value(value) {}
+};
 
 /// Annotation indicating that a function is an overload associated with a given "sibling"
-struct sibling { handle value; sibling(const handle &value) : value(value.ptr()) { } };
+struct sibling { handle value;
+    explicit sibling(const handle &value) : value(value.ptr()) {}
+};
 
 /// Annotation indicating that a class derives from another given type
 template <typename T> struct base {
@@ -70,7 +80,9 @@ struct metaclass {
 };
 
 /// Annotation that marks a class as local to the module:
-struct module_local { const bool value; constexpr module_local(bool v = true) : value(v) { } };
+struct module_local { const bool value;
+    constexpr explicit module_local(bool v = true) : value(v) {}
+};
 
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
