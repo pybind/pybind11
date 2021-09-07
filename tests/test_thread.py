@@ -1,18 +1,34 @@
 # -*- coding: utf-8 -*-
 
 import threading
+import sys
 
 from pybind11_tests import thread as m
 
 
-def test_implicit_conversion():
-    def loop(count):
-        for i in range(count):
-            m.test(i)
+class Thread(threading.Thread):
+  def __init__(self, fn):
+    super(Thread, self).__init__()
+    self.fn = fn
+    self.e = None
 
-    a = threading.Thread(target=loop, args=(10,))
-    b = threading.Thread(target=loop, args=(10,))
-    c = threading.Thread(target=loop, args=(10,))
+  def run(self):
+    try:
+        for i in range(10):
+            self.fn(i)
+    except Exception as e:
+        self.e = e
+
+  def join(self):
+    super(Thread, self).join()
+    if self.e:
+        raise self.e
+
+
+def test_implicit_conversion():
+    a = Thread(m.test)
+    b = Thread(m.test)
+    c = Thread(m.test)
     for x in [a, b, c]:
         x.start()
     for x in [c, b, a]:
@@ -20,13 +36,9 @@ def test_implicit_conversion():
 
 
 def test_implicit_conversion_no_gil():
-    def loop(count):
-        for i in range(count):
-            m.test_no_gil(i)
-
-    a = threading.Thread(target=loop, args=(10,))
-    b = threading.Thread(target=loop, args=(10,))
-    c = threading.Thread(target=loop, args=(10,))
+    a = Thread(m.test_no_gil)
+    b = Thread(m.test_no_gil)
+    c = Thread(m.test_no_gil)
     for x in [a, b, c]:
         x.start()
     for x in [c, b, a]:
