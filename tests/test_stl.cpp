@@ -45,7 +45,8 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
-    template <typename T> TplCtorClass(const T &) { }
+    template <typename T>
+    explicit TplCtorClass(const T &) {}
     bool operator==(const TplCtorClass &) const { return true; }
 };
 

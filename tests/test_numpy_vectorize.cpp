@@ -52,7 +52,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     // Passthrough test: references and non-pod types should be automatically passed through (in the
     // function definition below, only `b`, `d`, and `g` are vectorized):
     struct NonPODClass {
-        NonPODClass(int v) : value{v} {}
+        explicit NonPODClass(int v) : value{v} {}
         int value;
     };
     py::class_<NonPODClass>(m, "NonPODClass")
@@ -71,7 +71,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
 
     // test_method_vectorization
     struct VectorizeTestClass {
-        VectorizeTestClass(int v) : value{v} {};
+        explicit VectorizeTestClass(int v) : value{v} {};
         float method(int x, float y) const { return y + (float) (x + value); }
         int value = 0;
     };
