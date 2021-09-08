@@ -291,9 +291,9 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::implicitly_convertible<py::int_, MyObject1>();
 
     m.def("make_object_1", []() -> Object * { return new MyObject1(1); });
-    m.def("make_object_2", []() -> ref<Object> { return new MyObject1(2); });
+    m.def("make_object_2", []() -> ref<Object> { return ref<Object>(new MyObject1(2)); });
     m.def("make_myobject1_1", []() -> MyObject1 * { return new MyObject1(4); });
-    m.def("make_myobject1_2", []() -> ref<MyObject1> { return new MyObject1(5); });
+    m.def("make_myobject1_2", []() -> ref<MyObject1> { return ref<MyObject1>(new MyObject1(5)); });
     m.def("print_object_1", [](const Object *obj) { py::print(obj->toString()); });
     m.def("print_object_2", [](ref<Object> obj) { py::print(obj->toString()); });
     m.def("print_object_3", [](const ref<Object> &obj) { py::print(obj->toString()); });
@@ -328,7 +328,7 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr_refcounting
     m.def("test_object1_refcounting", []() {
-        ref<MyObject1> o = new MyObject1(0);
+        auto o = ref<MyObject1>(new MyObject1(0));
         bool good = o->getRefCount() == 1;
         py::object o2 = py::cast(o, py::return_value_policy::reference);
         // always request (partial) ownership for objects with intrusive
