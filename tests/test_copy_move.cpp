@@ -37,7 +37,7 @@ template <> lacking_move_ctor empty<lacking_move_ctor>::instance_ = {};
 class MoveOnlyInt {
 public:
     MoveOnlyInt() { print_default_created(this); }
-    MoveOnlyInt(int v) : value{v} { print_created(this, value); }
+    explicit MoveOnlyInt(int v) : value{v} { print_created(this, value); }
     MoveOnlyInt(MoveOnlyInt &&m) noexcept {
         print_move_created(this, m.value);
         std::swap(value, m.value);
@@ -56,7 +56,7 @@ public:
 class MoveOrCopyInt {
 public:
     MoveOrCopyInt() { print_default_created(this); }
-    MoveOrCopyInt(int v) : value{v} { print_created(this, value); }
+    explicit MoveOrCopyInt(int v) : value{v} { print_created(this, value); }
     MoveOrCopyInt(MoveOrCopyInt &&m) noexcept {
         print_move_created(this, m.value);
         std::swap(value, m.value);
@@ -75,7 +75,7 @@ public:
 class CopyOnlyInt {
 public:
     CopyOnlyInt() { print_default_created(this); }
-    CopyOnlyInt(int v) : value{v} { print_created(this, value); }
+    explicit CopyOnlyInt(int v) : value{v} { print_created(this, value); }
     CopyOnlyInt(const CopyOnlyInt &c) { print_copy_created(this, c.value); value = c.value; }
     CopyOnlyInt &operator=(const CopyOnlyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~CopyOnlyInt() { print_destroyed(this); }
@@ -107,8 +107,8 @@ public:
         if (!src) return none().release();
         return cast(*src, policy, parent);
     }
-    operator CopyOnlyInt*() { return &value; }
-    operator CopyOnlyInt&() { return value; }
+    explicit operator CopyOnlyInt *() { return &value; }
+    explicit operator CopyOnlyInt &() { return value; }
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 };
 PYBIND11_NAMESPACE_END(detail)
@@ -219,7 +219,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
     // #389: rvp::move should fall-through to copy on non-movable objects
     struct MoveIssue1 {
         int v;
-        MoveIssue1(int v) : v{v} {}
+        explicit MoveIssue1(int v) : v{v} {}
         MoveIssue1(const MoveIssue1 &c) = default;
         MoveIssue1(MoveIssue1 &&) = delete;
     };
@@ -227,7 +227,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     struct MoveIssue2 {
         int v;
-        MoveIssue2(int v) : v{v} {}
+        explicit MoveIssue2(int v) : v{v} {}
         MoveIssue2(MoveIssue2 &&) = default;
     };
     py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
