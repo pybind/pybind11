@@ -178,6 +178,7 @@ public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
     /// Creates a ``handle`` from the given raw Python object pointer
+    // NOLINTNEXTLINE(google-explicit-constructor)
     handle(PyObject *ptr) : m_ptr(ptr) { } // Allow implicit conversion from PyObject*
 
     /// Return the underlying ``PyObject *`` pointer
@@ -612,6 +613,7 @@ public:
         return obj.contains(key);
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator object() const { return get_cache(); }
     PyObject *ptr() const { return get_cache().ptr(); }
     template <typename T> T cast() const { return get_cache().template cast<T>(); }
@@ -761,7 +763,8 @@ template <typename T>
 struct arrow_proxy {
     T value;
 
-    arrow_proxy(T &&value) : value(std::move(value)) { }
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    arrow_proxy(T &&value) noexcept : value(std::move(value)) { }
     T *operator->() const { return &value; }
 };
 
@@ -909,14 +912,17 @@ PYBIND11_NAMESPACE_END(detail)
         bool check() const { return m_ptr != nullptr && (CheckFun(m_ptr) != 0); } \
         static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); } \
         template <typename Policy_> \
+        /* NOLINTNEXTLINE(google-explicit-constructor) */ \
         Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
     /* This is deliberately not 'explicit' to allow implicit conversion from object: */ \
+    /* NOLINTNEXTLINE(google-explicit-constructor) */ \
     Name(const object &o) \
     : Parent(check_(o) ? o.inc_ref().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
     { if (!m_ptr) throw error_already_set(); } \
+    /* NOLINTNEXTLINE(google-explicit-constructor) */ \
     Name(object &&o) \
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
     { if (!m_ptr) throw error_already_set(); }
@@ -933,8 +939,10 @@ PYBIND11_NAMESPACE_END(detail)
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
     /* This is deliberately not 'explicit' to allow implicit conversion from object: */ \
+    /* NOLINTNEXTLINE(google-explicit-constructor) */ \
     Name(const object &o) : Parent(o) \
     { if (m_ptr && !check_(m_ptr)) throw PYBIND11_OBJECT_CHECK_FAILED(Name, m_ptr); } \
+    /* NOLINTNEXTLINE(google-explicit-constructor) */ \
     Name(object &&o) : Parent(std::move(o)) \
     { if (m_ptr && !check_(m_ptr)) throw PYBIND11_OBJECT_CHECK_FAILED(Name, m_ptr); }
 
@@ -1056,11 +1064,13 @@ public:
     }
 
     // 'explicit' is explicitly omitted from the following constructors to allow implicit conversion to py::str from C++ string-like objects
+    // NOLINTNEXTLINE(google-explicit-constructor)
     str(const char *c = "")
         : object(PyUnicode_FromString(c), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     str(const std::string &s) : str(s.data(), s.size()) { }
 
     explicit str(const bytes &b);
@@ -1071,6 +1081,7 @@ public:
     \endrst */
     explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::string() const {
         object temp = *this;
         if (PyUnicode_Check(m_ptr)) {
@@ -1118,6 +1129,7 @@ public:
     PYBIND11_OBJECT(bytes, object, PYBIND11_BYTES_CHECK)
 
     // Allow implicit conversion:
+    // NOLINTNEXTLINE(google-explicit-constructor)
     bytes(const char *c = "")
         : object(PYBIND11_BYTES_FROM_STRING(c), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
@@ -1130,10 +1142,12 @@ public:
     }
 
     // Allow implicit conversion:
+    // NOLINTNEXTLINE(google-explicit-constructor)
     bytes(const std::string &s) : bytes(s.data(), s.size()) { }
 
     explicit bytes(const pybind11::str &s);
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::string() const {
         char *buffer = nullptr;
         ssize_t length = 0;
@@ -1222,7 +1236,9 @@ public:
     PYBIND11_OBJECT_CVT(bool_, object, PyBool_Check, raw_bool)
     bool_() : object(Py_False, borrowed_t{}) { }
     // Allow implicit conversion from and to `bool`:
+    // NOLINTNEXTLINE(google-explicit-constructor)
     bool_(bool value) : object(value ? Py_True : Py_False, borrowed_t{}) { }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator bool() const { return (m_ptr != nullptr) && PyLong_AsLong(m_ptr) != 0; }
 
 private:
@@ -1261,6 +1277,7 @@ public:
     // Allow implicit conversion from C++ integral types:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     int_(T value) {
         if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
             if (std::is_signed<T>::value)
@@ -1278,6 +1295,7 @@ public:
 
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T() const {
         return std::is_unsigned<T>::value
             ? detail::as_unsigned<T>(m_ptr)
@@ -1291,13 +1309,17 @@ class float_ : public object {
 public:
     PYBIND11_OBJECT_CVT(float_, object, PyFloat_Check, PyNumber_Float)
     // Allow implicit conversion from float/double:
+    // NOLINTNEXTLINE(google-explicit-constructor)
     float_(float value) : object(PyFloat_FromDouble((double) value), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate float object!");
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     float_(double value = .0) : object(PyFloat_FromDouble((double) value), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate float object!");
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
 };
 
@@ -1372,7 +1394,7 @@ public:
             pybind11_fail("Could not set capsule context!");
     }
 
-    capsule(void (*destructor)()) {
+    explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
             destructor();
@@ -1382,6 +1404,7 @@ public:
             pybind11_fail("Could not allocate capsule object!");
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     template <typename T> operator T *() const {
         return get_pointer<T>();
     }

@@ -19,8 +19,9 @@
 class TestFactory1 {
     friend class TestFactoryHelper;
     TestFactory1() : value("(empty)") { print_default_created(this); }
-    TestFactory1(int v) : value(std::to_string(v)) { print_created(this, value); }
-    TestFactory1(std::string v) : value(std::move(v)) { print_created(this, value); }
+    explicit TestFactory1(int v) : value(std::to_string(v)) { print_created(this, value); }
+    explicit TestFactory1(std::string v) : value(std::move(v)) { print_created(this, value); }
+
 public:
     std::string value;
     TestFactory1(TestFactory1 &&) = delete;
@@ -33,8 +34,9 @@ public:
 class TestFactory2 {
     friend class TestFactoryHelper;
     TestFactory2() : value("(empty2)") { print_default_created(this); }
-    TestFactory2(int v) : value(std::to_string(v)) { print_created(this, value); }
-    TestFactory2(std::string v) : value(std::move(v)) { print_created(this, value); }
+    explicit TestFactory2(int v) : value(std::to_string(v)) { print_created(this, value); }
+    explicit TestFactory2(std::string v) : value(std::move(v)) { print_created(this, value); }
+
 public:
     TestFactory2(TestFactory2 &&m) noexcept {
         value = std::move(m.value);
@@ -53,9 +55,10 @@ class TestFactory3 {
 protected:
     friend class TestFactoryHelper;
     TestFactory3() : value("(empty3)") { print_default_created(this); }
-    TestFactory3(int v) : value(std::to_string(v)) { print_created(this, value); }
+    explicit TestFactory3(int v) : value(std::to_string(v)) { print_created(this, value); }
+
 public:
-    TestFactory3(std::string v) : value(std::move(v)) { print_created(this, value); }
+    explicit TestFactory3(std::string v) : value(std::move(v)) { print_created(this, value); }
     TestFactory3(TestFactory3 &&m) noexcept {
         value = std::move(m.value);
         print_move_created(this);
@@ -72,13 +75,13 @@ public:
 class TestFactory4 : public TestFactory3 {
 public:
     TestFactory4() : TestFactory3() { print_default_created(this); }
-    TestFactory4(int v) : TestFactory3(v) { print_created(this, v); }
+    explicit TestFactory4(int v) : TestFactory3(v) { print_created(this, v); }
     ~TestFactory4() override { print_destroyed(this); }
 };
 // Another class for an invalid downcast test
 class TestFactory5 : public TestFactory3 {
 public:
-    TestFactory5(int i) : TestFactory3(i) { print_created(this, i); }
+    explicit TestFactory5(int i) : TestFactory3(i) { print_created(this, i); }
     ~TestFactory5() override { print_destroyed(this); }
 };
 
@@ -87,7 +90,7 @@ protected:
     int value;
     bool alias = false;
 public:
-    TestFactory6(int i) : value{i} { print_created(this, i); }
+    explicit TestFactory6(int i) : value{i} { print_created(this, i); }
     TestFactory6(TestFactory6 &&f) noexcept {
         print_move_created(this);
         value = f.value;
@@ -102,11 +105,20 @@ class PyTF6 : public TestFactory6 {
 public:
     // Special constructor that allows the factory to construct a PyTF6 from a TestFactory6 only
     // when an alias is needed:
-    PyTF6(TestFactory6 &&base) : TestFactory6(std::move(base)) { alias = true; print_created(this, "move", value); }
-    PyTF6(int i) : TestFactory6(i) { alias = true; print_created(this, i); }
+    explicit PyTF6(TestFactory6 &&base) : TestFactory6(std::move(base)) {
+        alias = true;
+        print_created(this, "move", value);
+    }
+    explicit PyTF6(int i) : TestFactory6(i) {
+        alias = true;
+        print_created(this, i);
+    }
     PyTF6(PyTF6 &&f) noexcept : TestFactory6(std::move(f)) { print_move_created(this); }
     PyTF6(const PyTF6 &f) : TestFactory6(f) { print_copy_created(this); }
-    PyTF6(std::string s) : TestFactory6((int) s.size()) { alias = true; print_created(this, s); }
+    explicit PyTF6(std::string s) : TestFactory6((int) s.size()) {
+        alias = true;
+        print_created(this, s);
+    }
     ~PyTF6() override { print_destroyed(this); }
     int get() override { PYBIND11_OVERRIDE(int, TestFactory6, get, /*no args*/); }
 };
@@ -116,7 +128,7 @@ protected:
     int value;
     bool alias = false;
 public:
-    TestFactory7(int i) : value{i} { print_created(this, i); }
+    explicit TestFactory7(int i) : value{i} { print_created(this, i); }
     TestFactory7(TestFactory7 &&f) noexcept {
         print_move_created(this);
         value = f.value;
@@ -129,7 +141,10 @@ public:
 };
 class PyTF7 : public TestFactory7 {
 public:
-    PyTF7(int i) : TestFactory7(i) { alias = true; print_created(this, i); }
+    explicit PyTF7(int i) : TestFactory7(i) {
+        alias = true;
+        print_created(this, i);
+    }
     PyTF7(PyTF7 &&f) noexcept : TestFactory7(std::move(f)) { print_move_created(this); }
     PyTF7(const PyTF7 &f) : TestFactory7(f) { print_copy_created(this); }
     ~PyTF7() override { print_destroyed(this); }
@@ -300,7 +315,7 @@ TEST_SUBMODULE(factory_constructors, m) {
     // Class with a custom new operator but *without* a placement new operator (issue #948)
     class NoPlacementNew {
     public:
-        NoPlacementNew(int i) : i(i) { }
+        explicit NoPlacementNew(int i) : i(i) {}
         static void *operator new(std::size_t s) {
             auto *p = ::operator new(s);
             py::print("operator new called, returning", reinterpret_cast<uintptr_t>(p));
@@ -324,8 +339,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     // Class that has verbose operator_new/operator_delete calls
     struct NoisyAlloc {
         NoisyAlloc(const NoisyAlloc &) = default;
-        NoisyAlloc(int i) { py::print(py::str("NoisyAlloc(int {})").format(i)); }
-        NoisyAlloc(double d) { py::print(py::str("NoisyAlloc(double {})").format(d)); }
+        explicit NoisyAlloc(int i) { py::print(py::str("NoisyAlloc(int {})").format(i)); }
+        explicit NoisyAlloc(double d) { py::print(py::str("NoisyAlloc(double {})").format(d)); }
         ~NoisyAlloc() { py::print("~NoisyAlloc()"); }
 
         static void *operator new(size_t s) { py::print("noisy new"); return ::operator new(s); }

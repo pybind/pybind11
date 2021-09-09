@@ -83,10 +83,12 @@ PYBIND11_NAMESPACE_END(detail)
 class cpp_function : public function {
 public:
     cpp_function() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t) { }
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (*f)(Args...), const Extra&... extra) {
         initialize(f, f, extra...);
     }
@@ -94,6 +96,7 @@ public:
     /// Construct a cpp_function from a lambda function (possibly with internal state)
     template <typename Func, typename... Extra,
               typename = detail::enable_if_t<detail::is_lambda<Func>::value>>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Func &&f, const Extra&... extra) {
         initialize(std::forward<Func>(f),
                    (detail::function_signature_t<Func> *) nullptr, extra...);
@@ -101,6 +104,7 @@ public:
 
     /// Construct a cpp_function from a class method (non-const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
@@ -110,6 +114,7 @@ public:
     /// A copy of the overload for non-const functions without explicit ref-qualifier
     /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...)&, const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
@@ -117,6 +122,7 @@ public:
 
     /// Construct a cpp_function from a class method (const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
@@ -126,6 +132,7 @@ public:
     /// A copy of the overload for const functions without explicit ref-qualifier
     /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...) const&, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
@@ -177,7 +184,7 @@ protected:
 #endif
             // UB without std::launder, but without breaking ABI and/or
             // a significant refactoring it's "impossible" to solve.
-            if (!std::is_trivially_destructible<Func>::value)
+            if (!std::is_trivially_destructible<capture>::value)
                 rec->free_data = [](function_record *r) {
                     auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
                     (void) data;
@@ -2148,7 +2155,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     struct set_flag {
         bool &flag;
-        set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
+        explicit set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
         ~set_flag() { flag = false; }
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {

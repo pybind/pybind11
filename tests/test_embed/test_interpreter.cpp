@@ -18,7 +18,7 @@ using namespace py::literals;
 
 class Widget {
 public:
-    Widget(std::string message) : message(std::move(message)) {}
+    explicit Widget(std::string message) : message(std::move(message)) {}
     virtual ~Widget() = default;
 
     std::string the_message() const { return message; }

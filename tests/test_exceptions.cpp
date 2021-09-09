@@ -81,7 +81,7 @@ private:
 
 
 struct PythonCallInDestructor {
-    PythonCallInDestructor(const py::dict &d) : d(d) {}
+    explicit PythonCallInDestructor(const py::dict &d) : d(d) {}
     ~PythonCallInDestructor() { d["good"] = true; }
 
     py::dict d;
@@ -90,7 +90,7 @@ struct PythonCallInDestructor {
 
 
 struct PythonAlreadySetInDestructor {
-    PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
+    explicit PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
     ~PythonAlreadySetInDestructor() {
         py::dict foo;
         try {

@@ -15,7 +15,7 @@
 /* This is an example class that we'll want to be able to extend from Python */
 class ExampleVirt  {
 public:
-    ExampleVirt(int state) : state(state) { print_created(this, state); }
+    explicit ExampleVirt(int state) : state(state) { print_created(this, state); }
     ExampleVirt(const ExampleVirt &e) : state(e.state) { print_copy_created(this); }
     ExampleVirt(ExampleVirt &&e) noexcept : state(e.state) {
         print_move_created(this);

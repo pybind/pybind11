@@ -19,9 +19,9 @@ using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
 class ExampleMandA {
 public:
     ExampleMandA() { print_default_created(this); }
-    ExampleMandA(int value) : value(value) { print_created(this, value); }
+    explicit ExampleMandA(int value) : value(value) { print_created(this, value); }
     ExampleMandA(const ExampleMandA &e) : value(e.value) { print_copy_created(this); }
-    ExampleMandA(std::string&&) {}
+    explicit ExampleMandA(std::string &&) {}
     ExampleMandA(ExampleMandA &&e) noexcept : value(e.value) { print_move_created(this); }
     ~ExampleMandA() { print_destroyed(this); }
 
@@ -124,14 +124,14 @@ class NoneCastTester {
 public:
     int answer = -1;
     NoneCastTester() = default;
-    NoneCastTester(int v) : answer(v) {}
+    explicit NoneCastTester(int v) : answer(v) {}
 };
 
 struct StrIssue {
     int val = -1;
 
     StrIssue() = default;
-    StrIssue(int i) : val{i} {}
+    explicit StrIssue(int i) : val{i} {}
 };
 
 // Issues #854, #910: incompatible function args when member function/pointer is in unregistered base class

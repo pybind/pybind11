@@ -104,7 +104,7 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
+    explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
@@ -301,7 +301,7 @@ public:
     }
 
     template <typename T> using cast_op_type = void*&;
-    operator void *&() { return value; }
+    explicit operator void *&() { return value; }
     static constexpr auto name = _("capsule");
 private:
     void *value = nullptr;
@@ -509,8 +509,10 @@ public:
         return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
-    operator CharT&() {
+    explicit operator CharT *() {
+        return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
+    }
+    explicit operator CharT &() {
         if (none)
             throw value_error("Cannot convert None to a character");
 
@@ -603,8 +605,8 @@ public:
 
     template <typename T> using cast_op_type = type;
 
-    operator type() & { return implicit_cast(indices{}); }
-    operator type() && { return std::move(*this).implicit_cast(indices{}); }
+    explicit operator type() & { return implicit_cast(indices{}); }
+    explicit operator type() && { return std::move(*this).implicit_cast(indices{}); }
 
 protected:
     template <size_t... Is>

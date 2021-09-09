@@ -6,7 +6,7 @@
 /// Simple class used to test py::local:
 template <int> class LocalBase {
 public:
-    LocalBase(int i) : i(i) { }
+    explicit LocalBase(int i) : i(i) { }
     int i = -1;
 };
 
@@ -75,11 +75,11 @@ py::class_<T> bind_local(Args && ...args) {
 namespace pets {
 class Pet {
 public:
-    Pet(std::string name) : name_(std::move(name)) {}
+    explicit Pet(std::string name) : name_(std::move(name)) {}
     std::string name_;
     const std::string &name() const { return name_; }
 };
 } // namespace pets
 
-struct MixGL { int i; MixGL(int i) : i{i} {} };
-struct MixGL2 { int i; MixGL2(int i) : i{i} {} };
+struct MixGL { int i; explicit MixGL(int i) : i{i} {} };
+struct MixGL2 { int i; explicit MixGL2(int i) : i{i} {} };

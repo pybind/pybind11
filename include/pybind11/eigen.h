@@ -61,6 +61,7 @@ template <bool EigenRowMajor> struct EigenConformable {
     EigenDStride stride{0, 0};      // Only valid if negativestrides is false!
     bool negativestrides = false;   // If true, do not use stride!
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     EigenConformable(bool fits = false) : conformable{fits} {}
     // Matrix type:
     EigenConformable(EigenIndex r, EigenIndex c,
@@ -88,6 +89,7 @@ template <bool EigenRowMajor> struct EigenConformable {
             (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer() ||
                 (EigenRowMajor ? rows : cols) == 1);
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator bool() const { return conformable; }
 };
 
@@ -326,8 +328,11 @@ public:
 
     static constexpr auto name = props::descriptor;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type*() { return &value; }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type&() { return value; }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type&&() && { return std::move(value); }
     template <typename T> using cast_op_type = movable_cast_op_type<T>;
 
@@ -451,7 +456,9 @@ public:
         return true;
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type*() { return ref.get(); }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type&() { return *ref; }
     template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 
