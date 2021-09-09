@@ -1,7 +1,7 @@
 /*
     tests/test_thread.cpp -- call pybind11 bound methods in threads
 
-    Copyright (c) 2017 Laramie Leavitt (Google LLC) <lar@google.com>
+    Copyright (c) 2021 Laramie Leavitt (Google LLC) <lar@google.com>
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.

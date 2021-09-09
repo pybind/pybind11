@@ -335,6 +335,7 @@ inline local_internals &get_local_internals() {
   return locals;
 }
 
+
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only
 /// cleared when the program exits or after interpreter shutdown (when embedding), and so are
