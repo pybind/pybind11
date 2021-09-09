@@ -477,7 +477,7 @@ public:
         m_ptr = from_args(pybind11::str(format)).release().ptr();
     }
 
-    dtype(const char *format) : dtype(std::string(format)) { }
+    explicit dtype(const char *format) : dtype(std::string(format)) {}
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
@@ -894,6 +894,7 @@ public:
         if (!is_borrowed) Py_XDECREF(h.ptr());
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     array_t(const object &o) : array(raw_array_t(o.ptr()), stolen_t{}) {
         if (!m_ptr) throw error_already_set();
     }

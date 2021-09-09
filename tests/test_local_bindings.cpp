@@ -91,7 +91,7 @@ TEST_SUBMODULE(local_bindings, m) {
 
     class Cat : public pets::Pet {
     public:
-        Cat(std::string name) : Pet(std::move(name)) {}
+        explicit Cat(std::string name) : Pet(std::move(name)) {}
     };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
