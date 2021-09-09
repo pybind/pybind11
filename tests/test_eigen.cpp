@@ -178,6 +178,7 @@ TEST_SUBMODULE(eigen, m) {
         ReturnTester() { print_created(this); }
         ~ReturnTester() { print_destroyed(this); }
         static Eigen::MatrixXd create() { return Eigen::MatrixXd::Ones(10, 10); }
+        // NOLINTNEXTLINE(readability-const-return-type)
         static const Eigen::MatrixXd createConst() { return Eigen::MatrixXd::Ones(10, 10); }
         Eigen::MatrixXd &get() { return mat; }
         Eigen::MatrixXd *getPtr() { return &mat; }
@@ -244,6 +245,7 @@ TEST_SUBMODULE(eigen, m) {
 
     // test_fixed, and various other tests
     m.def("fixed_r", [mat]() -> FixedMatrixR { return FixedMatrixR(mat); });
+    // NOLINTNEXTLINE(readability-const-return-type)
     m.def("fixed_r_const", [mat]() -> const FixedMatrixR { return FixedMatrixR(mat); });
     m.def("fixed_c", [mat]() -> FixedMatrixC { return FixedMatrixC(mat); });
     m.def("fixed_copy_r", [](const FixedMatrixR &m) -> FixedMatrixR { return m; });
