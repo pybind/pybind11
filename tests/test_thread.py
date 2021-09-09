@@ -14,7 +14,7 @@ class Thread(threading.Thread):
     def run(self):
         try:
             for i in range(10):
-                self.fn(i)
+                self.fn(i, i)
         except Exception as e:
             self.e = e
 

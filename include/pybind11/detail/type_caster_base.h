@@ -48,15 +48,17 @@ private:
 public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
-        parent = *get_stack_pp();
-        *get_stack_pp() = this;
+        loader_life_support** stack = get_stack_pp();
+        parent = *stack;
+        *stack = this;
     }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        if (*get_stack_pp() != this)
+        loader_life_support** stack = get_stack_pp();
+        if (*stack != this)
             pybind11_fail("loader_life_support: internal error");
-        *get_stack_pp() = parent;
+        *stack = parent;
         for (auto* item : keep_alive)
             Py_DECREF(item);
     }
