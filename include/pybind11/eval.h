@@ -136,16 +136,14 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
 
-    if (!global.contains("__file__")) {
+    // In Python2, this should be encoded by getfilesystemencoding.
+    // We don't boher setting it since Python2 is past EOL anyway.
+    // See PR#3233
 #if PY_VERSION_HEX >= 0x03000000
+    if (!global.contains("__file__")) {
         global["__file__"] = std::move(fname);
-#else
-        // In Python2, this should be encoded by getfilesystemencoding.
-        // We are just assuming it's UTF-8 since Python2 is past EOL anyway.
-        // See PR#3233
-        global["__file__"] = bytes(fname);
-#endif
     }
+#endif
 
 #if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
     PyObject *result = PyRun_File(f, fname_str.c_str(), start, global.ptr(),
