@@ -82,7 +82,7 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
+    operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
@@ -279,7 +279,7 @@ public:
     }
 
     template <typename T> using cast_op_type = void*&;
-    explicit operator void *&() { return value; }
+    operator void *&() { return value; }
     static constexpr auto name = _("capsule");
 private:
     void *value = nullptr;
@@ -487,10 +487,8 @@ public:
         return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    explicit operator CharT *() {
-        return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
-    }
-    explicit operator CharT &() {
+    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
+    operator CharT&() {
         if (none)
             throw value_error("Cannot convert None to a character");
 
@@ -583,8 +581,8 @@ public:
 
     template <typename T> using cast_op_type = type;
 
-    explicit operator type() & { return implicit_cast(indices{}); }
-    explicit operator type() && { return std::move(*this).implicit_cast(indices{}); }
+    operator type() & { return implicit_cast(indices{}); }
+    operator type() && { return std::move(*this).implicit_cast(indices{}); }
 
 protected:
     template <size_t... Is>
@@ -1178,13 +1176,17 @@ public:
     }
 
     template <typename Return, typename Guard, typename Func>
-    enable_if_t<!std::is_void<Return>::value, remove_cv_t<Return>> call(Func &&f) && {
-        return std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
+    // NOLINTNEXTLINE(readability-const-return-type)
+    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
+        // NOLINTNEXTLINE(readability-const-return-type)
+        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
     }
 
     template <typename Return, typename Guard, typename Func>
+    // NOLINTNEXTLINE(readability-const-return-type)
     enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
+        // NOLINTNEXTLINE(readability-const-return-type)
+        std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
     }
 
@@ -1206,7 +1208,8 @@ private:
     }
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
-    remove_cv_t<Return> call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
+    // NOLINTNEXTLINE(readability-const-return-type)
+    Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 
