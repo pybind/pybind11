@@ -11,7 +11,7 @@ template <int SerNo> // Using int as a trick to easily generate a series of type
 struct Abase {
     int val = 0;
     virtual ~Abase() = default;
-    Abase(int val_) : val{val_} {}
+    explicit Abase(int val_) : val{val_} {}
     int Get() const { return val * 10 + 3; }
     virtual int Add(int other_val) const = 0;
 

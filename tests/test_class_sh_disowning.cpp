@@ -10,7 +10,7 @@ namespace class_sh_disowning {
 template <int SerNo> // Using int as a trick to easily generate a series of types.
 struct Atype {
     int val = 0;
-    Atype(int val_) : val{val_} {}
+    explicit Atype(int val_) : val{val_} {}
     int get() const { return val * 10 + SerNo; }
 };
 

@@ -9,7 +9,7 @@ namespace helpers {
 
 struct movable_int {
     int valu;
-    movable_int(int v) : valu{v} {}
+    explicit movable_int(int v) : valu{v} {}
     movable_int(movable_int &&other) noexcept {
         valu = other.valu;
         other.valu = 91;
@@ -26,7 +26,7 @@ struct functor_other_delete : functor_builtin_delete<T> {};
 
 struct indestructible_int {
     int valu;
-    indestructible_int(int v) : valu{v} {}
+    explicit indestructible_int(int v) : valu{v} {}
 
 private:
     ~indestructible_int() = default;

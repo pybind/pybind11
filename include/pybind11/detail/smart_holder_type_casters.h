@@ -43,7 +43,7 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 // clang-format off
 class modified_type_caster_generic_load_impl {
 public:
-    PYBIND11_NOINLINE modified_type_caster_generic_load_impl(const std::type_info &type_info)
+    PYBIND11_NOINLINE explicit modified_type_caster_generic_load_impl(const std::type_info &type_info)
         : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
 
     explicit modified_type_caster_generic_load_impl(const type_info *typeinfo = nullptr)
@@ -598,13 +598,17 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     // The const operators here prove that the existing type_caster mechanism already supports
     // const-correctness. However, fully implementing const-correctness inside this type_caster
     // is still a major project.
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T const &() const {
         return const_cast<smart_holder_type_caster *>(this)->loaded_as_lvalue_ref();
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T const *() const {
         return const_cast<smart_holder_type_caster *>(this)->loaded_as_raw_ptr_unowned();
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T &() { return this->loaded_as_lvalue_ref(); }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T *() { return this->loaded_as_raw_ptr_unowned(); }
 
     // Originally type_caster_generic::cast.
@@ -749,6 +753,7 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     template <typename>
     using cast_op_type = std::shared_ptr<T>;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::shared_ptr<T>() { return this->loaded_as_shared_ptr(); }
 };
 
@@ -768,6 +773,7 @@ struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_ca
     template <typename>
     using cast_op_type = std::shared_ptr<T const>;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::shared_ptr<T const>() { return this->loaded_as_shared_ptr(); } // Mutbl2Const
 };
 
@@ -844,6 +850,7 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
     template <typename>
     using cast_op_type = std::unique_ptr<T, D>;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::unique_ptr<T, D>() { return this->template loaded_as_unique_ptr<D>(); }
 };
 
@@ -863,6 +870,7 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     template <typename>
     using cast_op_type = std::unique_ptr<T const, D>;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::unique_ptr<T const, D>() { return this->template loaded_as_unique_ptr<D>(); }
 };
 

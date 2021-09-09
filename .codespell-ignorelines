@@ -1,8 +1,8 @@
     assert m.atyp_valu().get_mtxt() == "Valu"
 atyp_valu        rtrn_valu() { atyp_valu obj{"Valu"}; return obj; }
-    indestructible_int(int v) : valu{v} {}
+    explicit indestructible_int(int v) : valu{v} {}
+    explicit movable_int(int v) : valu{v} {}
     int valu;
-    movable_int(int v) : valu{v} {}
         (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor)*_CpCtor"),
         other.valu = 91;
     REQUIRE(hld.as_raw_ptr_unowned<zombie>()->valu == 19);

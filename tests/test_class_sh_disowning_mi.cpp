@@ -31,13 +31,13 @@ void disown_b(std::unique_ptr<B>) {}
 
 // test_multiple_inheritance_python
 struct Base1 {
-    Base1(int i) : i(i) {}
+    explicit Base1(int i) : i(i) {}
     int foo() const { return i; }
     int i;
 };
 
 struct Base2 {
-    Base2(int j) : j(j) {}
+    explicit Base2(int j) : j(j) {}
     int bar() const { return j; }
     int j;
 };

@@ -14,7 +14,7 @@ const std::string fooNames[] = {"ShPtr_", "SmHld_"};
 template <int SerNo>
 struct Foo {
     std::string history;
-    Foo(const std::string &history_) : history(history_) {}
+    explicit Foo(const std::string &history_) : history(history_) {}
     Foo(const Foo &other) : history(other.history + "_CpCtor") {}
     Foo(Foo &&other) noexcept : history(other.history + "_MvCtor") {}
     Foo &operator=(const Foo &other) {
