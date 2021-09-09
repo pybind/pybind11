@@ -20,6 +20,7 @@ namespace py = pybind11;
 namespace {
 
 struct IntStruct {
+    IntStruct(int v) : value(v) {};
     ~IntStruct() { value = -value; }
     IntStruct(const IntStruct&) = default;
     IntStruct& operator=(const IntStruct&) = default;
@@ -31,7 +32,7 @@ struct IntStruct {
 
 TEST_SUBMODULE(thread, m) {
 
-    py::class_<IntStruct>(m, "IntStruct").def(py::init([](const int i) { return IntStruct{i}; }));
+    py::class_<IntStruct>(m, "IntStruct").def(py::init([](const int i) { return IntStruct(i); }));
 
     // implicitly_convertible uses loader_life_support when an implicit
     // conversion is required in order to lifetime extend the reference.
