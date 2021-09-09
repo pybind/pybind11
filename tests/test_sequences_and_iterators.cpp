@@ -20,7 +20,7 @@ template<typename T>
 class NonZeroIterator {
     const T* ptr_;
 public:
-    NonZeroIterator(const T* ptr) : ptr_(ptr) {}
+    explicit NonZeroIterator(const T *ptr) : ptr_(ptr) {}
     const T& operator*() const { return *ptr_; }
     NonZeroIterator& operator++() { ++ptr_; return *this; }
 };
@@ -77,9 +77,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_sliceable
     class Sliceable{
     public:
-      Sliceable(int n): size(n) {}
-      int start,stop,step;
-      int size;
+        explicit Sliceable(int n) : size(n) {}
+        int start, stop, step;
+        int size;
     };
     py::class_<Sliceable>(m, "Sliceable")
         .def(py::init<int>())
@@ -96,12 +96,12 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_sequence
     class Sequence {
     public:
-        Sequence(size_t size) : m_size(size) {
+        explicit Sequence(size_t size) : m_size(size) {
             print_created(this, "of size", m_size);
             m_data = new float[size];
             memset(m_data, 0, sizeof(float) * size);
         }
-        Sequence(const std::vector<float> &value) : m_size(value.size()) {
+        explicit Sequence(const std::vector<float> &value) : m_size(value.size()) {
             print_created(this, "of size", m_size, "from std::vector");
             m_data = new float[m_size];
             memcpy(m_data, &value[0], sizeof(float) * m_size);
@@ -239,7 +239,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     class StringMap {
     public:
         StringMap() = default;
-        StringMap(std::unordered_map<std::string, std::string> init)
+        explicit StringMap(std::unordered_map<std::string, std::string> init)
             : map(std::move(init)) {}
 
         void set(const std::string &key, std::string val) { map[key] = std::move(val); }
@@ -276,7 +276,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_generalized_iterators
     class IntPairs {
     public:
-        IntPairs(std::vector<std::pair<int, int>> data) : data_(std::move(data)) {}
+        explicit IntPairs(std::vector<std::pair<int, int>> data) : data_(std::move(data)) {}
         const std::pair<int, int>* begin() const { return data_.data(); }
     private:
         std::vector<std::pair<int, int>> data_;

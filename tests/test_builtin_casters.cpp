@@ -25,16 +25,28 @@ class type_caster<ConstRefCasted> {
   // cast operator.
   bool load(handle, bool) { return true; }
 
-  operator ConstRefCasted &&() {
+  explicit operator ConstRefCasted &&() {
       value = {1};
       // NOLINTNEXTLINE(performance-move-const-arg)
       return std::move(value);
   }
-  operator ConstRefCasted&() { value = {2}; return value; }
-  operator ConstRefCasted*() { value = {3}; return &value; }
+  explicit operator ConstRefCasted &() {
+      value = {2};
+      return value;
+  }
+  explicit operator ConstRefCasted *() {
+      value = {3};
+      return &value;
+  }
 
-  operator const ConstRefCasted&() { value = {4}; return value; }
-  operator const ConstRefCasted*() { value = {5}; return &value; }
+  explicit operator const ConstRefCasted &() {
+      value = {4};
+      return value;
+  }
+  explicit operator const ConstRefCasted *() {
+      value = {5};
+      return &value;
+  }
 
   // custom cast_op to explicitly propagate types to the conversion operators.
   template <typename T_>

@@ -16,7 +16,7 @@ class test_initializer {
     using Initializer = void (*)(py::module_ &);
 
 public:
-    test_initializer(Initializer init);
+    explicit test_initializer(Initializer init);
     test_initializer(const char *submodule_name, Initializer init);
 };
 
@@ -32,7 +32,7 @@ struct UnregisteredType { };
 class UserType {
 public:
     UserType() = default;
-    UserType(int i) : i(i) { }
+    explicit UserType(int i) : i(i) { }
 
     int value() const { return i; }
     void set(int set) { i = set; }

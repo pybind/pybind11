@@ -23,7 +23,7 @@ public:
     }
 
     template <typename> using cast_op_type = value_and_holder &;
-    operator value_and_holder &() { return *value; }
+    explicit operator value_and_holder &() { return *value; }
     static constexpr auto name = _<value_and_holder>();
 
 private:
@@ -222,7 +222,8 @@ template <typename Func, typename Return, typename... Args>
 struct factory<Func, void_type (*)(), Return(Args...)> {
     remove_reference_t<Func> class_factory;
 
-    factory(Func &&f) : class_factory(std::forward<Func>(f)) { }
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    factory(Func &&f) : class_factory(std::forward<Func>(f)) {}
 
     // The given class either has no alias or has no separate alias factory;
     // this always constructs the class itself.  If the class is registered with an alias
