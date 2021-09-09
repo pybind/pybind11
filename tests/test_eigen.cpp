@@ -245,6 +245,8 @@ TEST_SUBMODULE(eigen, m) {
 
     // test_fixed, and various other tests
     m.def("fixed_r", [mat]() -> FixedMatrixR { return FixedMatrixR(mat); });
+    // Our Eigen does a hack which respects constness through the numpy writeable flag.
+    // Therefore, the const return actually affects this type despite being an rvalue.
     // NOLINTNEXTLINE(readability-const-return-type)
     m.def("fixed_r_const", [mat]() -> const FixedMatrixR { return FixedMatrixR(mat); });
     m.def("fixed_c", [mat]() -> FixedMatrixC { return FixedMatrixC(mat); });
