@@ -1208,7 +1208,6 @@ private:
     }
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
-    // NOLINTNEXTLINE(readability-const-return-type)
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
