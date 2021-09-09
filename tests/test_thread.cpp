@@ -7,11 +7,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <chrono>
-#include <thread>
-
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
+
+#include <chrono>
+#include <thread>
 
 #include "pybind11_tests.h"
 
