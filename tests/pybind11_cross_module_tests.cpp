@@ -123,7 +123,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
 
     class Dog : public pets::Pet {
     public:
-        Dog(std::string name) : Pet(std::move(name)) {}
+        explicit Dog(std::string name) : Pet(std::move(name)) {}
     };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("name", &pets::Pet::name);

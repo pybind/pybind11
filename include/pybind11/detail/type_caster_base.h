@@ -232,7 +232,7 @@ struct value_and_holder {
     value_and_holder() = default;
 
     // Used for past-the-end iterator
-    value_and_holder(size_t index) : index{index} {}
+    explicit value_and_holder(size_t index) : index{index} {}
 
     template <typename V = void> V *&value_ptr() const {
         return reinterpret_cast<V *&>(vh[0]);
@@ -281,7 +281,8 @@ private:
     const type_vec &tinfo;
 
 public:
-    values_and_holders(instance *inst) : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
+    explicit values_and_holders(instance *inst)
+        : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
 
     struct iterator {
     private:
@@ -297,7 +298,8 @@ public:
                  0 /* index */)
         {}
         // Past-the-end iterator:
-        iterator(size_t end) : curr(end) {}
+        explicit iterator(size_t end) : curr(end) {}
+
     public:
         bool operator==(const iterator &other) const { return curr.index == other.curr.index; }
         bool operator!=(const iterator &other) const { return curr.index != other.curr.index; }
@@ -498,11 +500,11 @@ inline PyObject *make_new_instance(PyTypeObject *type);
 
 class type_caster_generic {
 public:
-    PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-        : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
+    PYBIND11_NOINLINE explicit type_caster_generic(const std::type_info &type_info)
+        : typeinfo(get_type_info(type_info)), cpptype(&type_info) {}
 
-    type_caster_generic(const type_info *typeinfo)
-        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) { }
+    explicit type_caster_generic(const type_info *typeinfo)
+        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) {}
 
     bool load(handle src, bool convert) {
         return load_impl<type_caster_generic>(src, convert);
@@ -930,7 +932,9 @@ public:
 
     template <typename T> using cast_op_type = detail::cast_op_type<T>;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator itype*() { return (type *) value; }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
 
 protected:

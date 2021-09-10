@@ -65,7 +65,7 @@ public:
     ref() : m_ptr(nullptr) { print_default_created(this); track_default_created((ref_tag*) this); }
 
     /// Construct a reference from a pointer
-    ref(T *ptr) : m_ptr(ptr) {
+    explicit ref(T *ptr) : m_ptr(ptr) {
         if (m_ptr) ((Object *) m_ptr)->incRef();
 
         print_created(this, "from pointer", m_ptr); track_created((ref_tag*) this, "from pointer");
@@ -165,7 +165,7 @@ public:
     const T& operator*() const { return *m_ptr; }
 
     /// Return a pointer to the referenced object
-    operator T* () { return m_ptr; }
+    explicit operator T* () { return m_ptr; }
 
     /// Return a const pointer to the referenced object
     T* get_ptr() { return m_ptr; }

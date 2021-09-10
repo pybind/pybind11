@@ -260,10 +260,10 @@ inline void finalize_interpreter() {
  \endrst */
 class scoped_interpreter {
 public:
-    scoped_interpreter(bool init_signal_handlers = true,
-                       int argc = 0,
-                       const char *const *argv = nullptr,
-                       bool add_program_dir_to_path = true) {
+    explicit scoped_interpreter(bool init_signal_handlers = true,
+                                int argc = 0,
+                                const char *const *argv = nullptr,
+                                bool add_program_dir_to_path = true) {
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 

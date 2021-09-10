@@ -82,7 +82,7 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
+    explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
@@ -279,7 +279,7 @@ public:
     }
 
     template <typename T> using cast_op_type = void*&;
-    operator void *&() { return value; }
+    explicit operator void *&() { return value; }
     static constexpr auto name = _("capsule");
 private:
     void *value = nullptr;
@@ -376,6 +376,22 @@ template <typename StringType, bool IsView = false> struct string_caster {
             load_src = temp;
 #endif
         }
+
+#if PY_VERSION_HEX >= 0x03030000
+        // On Python >= 3.3, for UTF-8 we avoid the need for a temporary `bytes`
+        // object by using `PyUnicode_AsUTF8AndSize`.
+        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N == 8)) {
+            Py_ssize_t size = -1;
+            const auto *buffer
+                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+            if (!buffer) {
+                PyErr_Clear();
+                return false;
+            }
+            value = StringType(buffer, static_cast<size_t>(size));
+            return true;
+        }
+#endif
 
         auto utfNbytes = reinterpret_steal<object>(PyUnicode_AsEncodedString(
             load_src.ptr(), UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr));
@@ -487,8 +503,10 @@ public:
         return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
-    operator CharT&() {
+    explicit operator CharT *() {
+        return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
+    }
+    explicit operator CharT &() {
         if (none)
             throw value_error("Cannot convert None to a character");
 
@@ -581,8 +599,8 @@ public:
 
     template <typename T> using cast_op_type = type;
 
-    operator type() & { return implicit_cast(indices{}); }
-    operator type() && { return std::move(*this).implicit_cast(indices{}); }
+    explicit operator type() & { return implicit_cast(indices{}); }
+    explicit operator type() && { return std::move(*this).implicit_cast(indices{}); }
 
 protected:
     template <size_t... Is>
@@ -1176,13 +1194,14 @@ public:
     }
 
     template <typename Return, typename Guard, typename Func>
+    // NOLINTNEXTLINE(readability-const-return-type)
     enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        return std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
     }
 
     template <typename Return, typename Guard, typename Func>
     enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
     }
 
