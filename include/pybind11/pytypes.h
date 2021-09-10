@@ -1414,14 +1414,19 @@ public:
     T* get_pointer() const {
         auto name = this->name();
         T *result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
-        if (!result) pybind11_fail("Unable to extract capsule contents!");
+        if (!result) {
+            PyErr_Clear();
+            pybind11_fail("Unable to extract capsule contents!");
+        }
         return result;
     }
 
     /// Replaces a capsule's pointer *without* calling the destructor on the existing one.
     void set_pointer(const void *value) {
-        if (PyCapsule_SetPointer(m_ptr, const_cast<void *>(value)) != 0)
+        if (PyCapsule_SetPointer(m_ptr, const_cast<void *>(value)) != 0) {
+            PyErr_Clear();
             pybind11_fail("Could not set capsule pointer");
+        }
     }
 
     const char *name() const { return PyCapsule_GetName(m_ptr); }
