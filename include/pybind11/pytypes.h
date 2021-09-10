@@ -733,7 +733,9 @@ public:
     generic_iterator() = default;
     generic_iterator(handle seq, ssize_t index) : Policy(seq, index) { }
 
+    // NOLINTNEXTLINE(readability-const-return-type)
     reference operator*() const { return Policy::dereference(); }
+    // NOLINTNEXTLINE(readability-const-return-type)
     reference operator[](difference_type n) const { return *(*this + n); }
     pointer operator->() const { return **this; }
 
@@ -778,6 +780,7 @@ protected:
 
     sequence_fast_readonly(handle obj, ssize_t n) : ptr(PySequence_Fast_ITEMS(obj.ptr()) + n) { }
 
+    // NOLINTNEXTLINE(readability-const-return-type)
     reference dereference() const { return *ptr; }
     void increment() { ++ptr; }
     void decrement() { --ptr; }
@@ -822,6 +825,7 @@ protected:
     dict_readonly() = default;
     dict_readonly(handle obj, ssize_t pos) : obj(obj), pos(pos) { increment(); }
 
+    // NOLINTNEXTLINE(readability-const-return-type)
     reference dereference() const { return {key, value}; }
     void increment() {
         if (PyDict_Next(obj.ptr(), &pos, &key, &value) == 0) {
@@ -982,6 +986,7 @@ public:
         return rv;
     }
 
+    // NOLINTNEXTLINE(readability-const-return-type)
     reference operator*() const {
         if (m_ptr && !value.ptr()) {
             auto& self = const_cast<iterator &>(*this);

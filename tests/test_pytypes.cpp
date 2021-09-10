@@ -482,7 +482,7 @@ TEST_SUBMODULE(pytypes, m) {
         return kv_sum;
     });
 
-    m.def("passed_iterator", [](py::iterator py_it) {
+    m.def("passed_iterator", [](const py::iterator &py_it) {
         int elem_sum = 0;
         for (auto &it : py_it) {
             elem_sum += it.cast<int>();

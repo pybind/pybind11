@@ -1987,6 +1987,7 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                     throw stop_iteration();
                 }
                 return *s.it;
+            // NOLINTNEXTLINE(readability-const-return-type)
             }, std::forward<Extra>(extra)..., Policy);
     }
 
