@@ -31,47 +31,54 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
+private:
+    loader_life_support* parent = nullptr;
+    std::unordered_set<PyObject *> keep_alive;
+
+    static loader_life_support** get_stack_pp() {
+#if defined(WITH_THREAD)
+        thread_local static loader_life_support* per_thread_stack = nullptr;
+        return &per_thread_stack;
+#else
+        static loader_life_support* global_stack = nullptr;
+        return &global_stack;
+#endif
+    }
+
 public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
-        get_internals().loader_patient_stack.push_back(nullptr);
+        loader_life_support** stack = get_stack_pp();
+        parent = *stack;
+        *stack = this;
     }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        auto &stack = get_internals().loader_patient_stack;
-        if (stack.empty())
+        loader_life_support** stack = get_stack_pp();
+        if (*stack != this)
             pybind11_fail("loader_life_support: internal error");
-
-        auto ptr = stack.back();
-        stack.pop_back();
-        Py_CLEAR(ptr);
-
-        // A heuristic to reduce the stack's capacity (e.g. after long recursive calls)
-        if (stack.capacity() > 16 && !stack.empty() && stack.capacity() / stack.size() > 2)
-            stack.shrink_to_fit();
+        *stack = parent;
+        for (auto* item : keep_alive)
+            Py_DECREF(item);
     }
 
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        auto &stack = get_internals().loader_patient_stack;
-        if (stack.empty())
+        loader_life_support* frame =  *get_stack_pp();
+        if (!frame) {
+            // NOTE: It would be nice to include the stack frames here, as this indicates
+            // use of pybind11::cast<> outside the normal call framework, finding such
+            // a location is challenging. Developers could consider printing out
+            // stack frame addresses here using something like __builtin_frame_address(0)
             throw cast_error("When called outside a bound function, py::cast() cannot "
                              "do Python -> C++ conversions which require the creation "
                              "of temporary values");
-
-        auto &list_ptr = stack.back();
-        if (list_ptr == nullptr) {
-            list_ptr = PyList_New(1);
-            if (!list_ptr)
-                pybind11_fail("loader_life_support: error allocating list");
-            PyList_SET_ITEM(list_ptr, 0, h.inc_ref().ptr());
-        } else {
-            auto result = PyList_Append(list_ptr, h.ptr());
-            if (result == -1)
-                pybind11_fail("loader_life_support: error adding patient");
         }
+
+        if (frame->keep_alive.insert(h.ptr()).second)
+            Py_INCREF(h.ptr());
     }
 };
 
