@@ -773,7 +773,7 @@ class sequence_fast_readonly {
 protected:
     using iterator_category = std::random_access_iterator_tag;
     using value_type = handle;
-    using reference = const handle;
+    using reference = handle;
     using pointer = arrow_proxy<const handle>;
 
     sequence_fast_readonly(handle obj, ssize_t n) : ptr(PySequence_Fast_ITEMS(obj.ptr()) + n) { }
@@ -816,7 +816,7 @@ class dict_readonly {
 protected:
     using iterator_category = std::forward_iterator_tag;
     using value_type = std::pair<handle, handle>;
-    using reference = const value_type;
+    using reference = value_type;
     using pointer = arrow_proxy<const value_type>;
 
     dict_readonly() = default;
@@ -966,7 +966,7 @@ public:
     using iterator_category = std::input_iterator_tag;
     using difference_type = ssize_t;
     using value_type = handle;
-    using reference = const handle;
+    using reference = handle;
     using pointer = const handle *;
 
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
