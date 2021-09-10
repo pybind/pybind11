@@ -1200,7 +1200,6 @@ public:
     }
 
     template <typename Return, typename Guard, typename Func>
-    // NOLINTNEXTLINE(readability-const-return-type)
     enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
         std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
@@ -1224,7 +1223,6 @@ private:
     }
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
-    // NOLINTNEXTLINE(readability-const-return-type)
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
