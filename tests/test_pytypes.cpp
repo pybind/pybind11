@@ -434,4 +434,32 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("weakref_from_object", [](const py::object &o) { return py::weakref(o); });
     m.def("weakref_from_object_and_function",
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
+
+    m.def("tuple_iterator", []() {
+        auto tup = py::make_tuple(5, 7);
+        int tup_sum = 0;
+        for (auto &it : tup) {
+            tup_sum += it.cast<int>();
+        }
+        return tup_sum;
+    });
+
+    m.def("dict_iterator", []() {
+        py::dict dct;
+        dct[py::int_(3)] = 5;
+        dct[py::int_(7)] = 11;
+        int kv_sum = 0;
+        for (auto &it : dct) {
+            kv_sum += it.first.cast<int>() * 100 + it.second.cast<int>();
+        }
+        return kv_sum;
+    });
+
+    m.def("passed_iterator", [](const py::iterator &py_it) {
+        int elem_sum = 0;
+        for (auto &it : py_it) {
+            elem_sum += it.cast<int>();
+        }
+        return elem_sum;
+    });
 }
