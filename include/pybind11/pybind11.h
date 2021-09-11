@@ -416,7 +416,7 @@ protected:
         detail::function_record *chain = nullptr, *chain_start = rec;
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
-                auto self = PyCFunction_GET_SELF(rec->sibling.ptr());
+                auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
                 capsule rec_capsule;
                 if (isinstance<capsule>(self)) {
                     rec_capsule = reinterpret_borrow<capsule>(self);
