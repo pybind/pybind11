@@ -47,9 +47,29 @@ TEST_SUBMODULE(class_, m) {
         }
         ~NoConstructor() { print_destroyed(this); }
     };
+    struct NoConstructorNew {
+        NoConstructorNew() = default;
+        NoConstructorNew(const NoConstructorNew &) = default;
+        NoConstructorNew(NoConstructorNew &&) = default;
+        static NoConstructorNew *new_instance() {
+            auto *ptr = new NoConstructorNew();
+            print_created(ptr, "via new_instance");
+            return ptr;
+        }
+        ~NoConstructorNew() { print_destroyed(this); }
+    };
 
     py::class_<NoConstructor>(m, "NoConstructor")
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
+
+    py::class_<NoConstructorNew>(m, "NoConstructorNew")
+        .def("__init__", [](const NoConstructorNew &self) { return self; }) // Need a NOOP __init__
+        .def_property_readonly_static("__new__",
+                                      [](const py::object &) { // define __new__ class method
+                                          return py::cpp_function([](const py::object &) {
+                                              return NoConstructorNew::new_instance();
+                                          });
+                                      });
 
     // test_inheritance
     class Pet {
