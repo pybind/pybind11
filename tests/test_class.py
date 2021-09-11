@@ -25,7 +25,6 @@ def test_instance(msg):
     assert cstats.alive() == 0
 
 
-@pytest.mark.xfail("env.PY2")
 def test_instance_new(msg):
     instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
     cstats = ConstructorStats.get(m.NoConstructorNew)
