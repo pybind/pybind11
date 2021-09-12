@@ -463,11 +463,15 @@ TEST_SUBMODULE(pytypes, m) {
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
 
 // See https://github.com/pybind/pybind11/pull/3263 for background.
+// pytypes.h could be changed to enforce the "most correct" user code below, by removing
+// `const` from iterator `reference` using type aliases, but that will break existing
+// user code.
 #if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION)
 // This is "most correct" and enforced on these platforms.
 #    define PYBIND11_AUTO_IT auto it
 #else
-// This works on many platforms and is reflective of existing user code.
+// This works on many platforms and is (unfortunately) reflective of existing user code.
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
 #    define PYBIND11_AUTO_IT auto &it
 #endif
 
