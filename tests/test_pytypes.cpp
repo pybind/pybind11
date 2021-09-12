@@ -463,7 +463,7 @@ TEST_SUBMODULE(pytypes, m) {
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
 
 // See https://github.com/pybind/pybind11/pull/3263 for background.
-#if (defined(__clang__) && defined(__apple_build_version__)) || defined(PYPY_VERSION)
+#if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION)
 #    define PYBIND11_CONST_FOR_STRICT_PLATFORMS const
 #else
 #    define PYBIND11_CONST_FOR_STRICT_PLATFORMS
