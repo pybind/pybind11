@@ -322,7 +322,6 @@ protected:
         rec->is_constructor
             = (strcmp(rec->name, "__init__") == 0) || (strcmp(rec->name, "__setstate__") == 0);
 
-#define PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
             const auto class_name = detail::get_fully_qualified_tp_name((PyTypeObject *) rec->scope.ptr());
