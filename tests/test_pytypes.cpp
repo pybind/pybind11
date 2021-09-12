@@ -462,7 +462,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("weakref_from_object_and_function",
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
 
-// See https://github.com/pybind/pybind11/pull/3263 for background.
+// See PR #3263 for background (https://github.com/pybind/pybind11/pull/3263):
 // pytypes.h could be changed to enforce the "most correct" user code below, by removing
 // `const` from iterator `reference` using type aliases, but that will break existing
 // user code.
