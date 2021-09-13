@@ -733,7 +733,9 @@ public:
     generic_iterator() = default;
     generic_iterator(handle seq, ssize_t index) : Policy(seq, index) { }
 
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference operator*() const { return Policy::dereference(); }
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference operator[](difference_type n) const { return *(*this + n); }
     pointer operator->() const { return **this; }
 
@@ -773,11 +775,12 @@ class sequence_fast_readonly {
 protected:
     using iterator_category = std::random_access_iterator_tag;
     using value_type = handle;
-    using reference = handle;
+    using reference = const handle; // PR #3263
     using pointer = arrow_proxy<const handle>;
 
     sequence_fast_readonly(handle obj, ssize_t n) : ptr(PySequence_Fast_ITEMS(obj.ptr()) + n) { }
 
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference dereference() const { return *ptr; }
     void increment() { ++ptr; }
     void decrement() { --ptr; }
@@ -816,12 +819,13 @@ class dict_readonly {
 protected:
     using iterator_category = std::forward_iterator_tag;
     using value_type = std::pair<handle, handle>;
-    using reference = value_type;
+    using reference = const value_type; // PR #3263
     using pointer = arrow_proxy<const value_type>;
 
     dict_readonly() = default;
     dict_readonly(handle obj, ssize_t pos) : obj(obj), pos(pos) { increment(); }
 
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference dereference() const { return {key, value}; }
     void increment() {
         if (PyDict_Next(obj.ptr(), &pos, &key, &value) == 0) {
@@ -966,7 +970,7 @@ public:
     using iterator_category = std::input_iterator_tag;
     using difference_type = ssize_t;
     using value_type = handle;
-    using reference = handle;
+    using reference = const handle; // PR #3263
     using pointer = const handle *;
 
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
@@ -982,6 +986,7 @@ public:
         return rv;
     }
 
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference operator*() const {
         if (m_ptr && !value.ptr()) {
             auto& self = const_cast<iterator &>(*this);

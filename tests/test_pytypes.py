@@ -623,6 +623,12 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     assert callback.called
 
 
+def test_cpp_iterators():
+    assert m.tuple_iterator() == 12
+    assert m.dict_iterator() == 305 + 711
+    assert m.passed_iterator(iter((-7, 3))) == -4
+
+
 def test_implementation_details():
     lst = [39, 43, 92, 49, 22, 29, 93, 98, 26, 57, 8]
     tup = tuple(lst)
