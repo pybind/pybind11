@@ -9,29 +9,13 @@
 
 #pragma once
 
+/* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
+   See also:
+       https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir
+       https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
+*/
+
 #include "numpy.h"
-
-#if defined(__INTEL_COMPILER)
-#  pragma warning(disable: 1682) // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
-#elif defined(__GNUG__) || defined(__clang__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wconversion"
-#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#  ifdef __clang__
-//   Eigen generates a bunch of implicit-copy-constructor-is-deprecated warnings with -Wdeprecated
-//   under Clang, so disable that warning here:
-#    pragma GCC diagnostic ignored "-Wdeprecated"
-#  endif
-#  if __GNUC__ >= 7
-#    pragma GCC diagnostic ignored "-Wint-in-bool-context"
-#  endif
-#endif
-
-#if defined(_MSC_VER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#  pragma warning(disable: 4996) // warning C4996: std::unary_negate is deprecated in C++17
-#endif
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
@@ -77,6 +61,7 @@ template <bool EigenRowMajor> struct EigenConformable {
     EigenDStride stride{0, 0};      // Only valid if negativestrides is false!
     bool negativestrides = false;   // If true, do not use stride!
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     EigenConformable(bool fits = false) : conformable{fits} {}
     // Matrix type:
     EigenConformable(EigenIndex r, EigenIndex c,
@@ -104,6 +89,7 @@ template <bool EigenRowMajor> struct EigenConformable {
             (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer() ||
                 (EigenRowMajor ? rows : cols) == 1);
     }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator bool() const { return conformable; }
 };
 
@@ -153,7 +139,8 @@ template <typename Type_> struct EigenProps {
                 np_cols = a.shape(1),
                 np_rstride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar)),
                 np_cstride = a.strides(1) / static_cast<ssize_t>(sizeof(Scalar));
-            if ((fixed_rows && np_rows != rows) || (fixed_cols && np_cols != cols))
+            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows) ||
+                (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols))
                 return false;
 
             return {np_rows, np_cols, np_rstride, np_cstride};
@@ -165,25 +152,22 @@ template <typename Type_> struct EigenProps {
               stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
 
         if (vector) { // Eigen type is a compile-time vector
-            if (fixed && size != n)
+            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n)
                 return false; // Vector size mismatch
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
         }
-        else if (fixed) {
+        if (fixed) {
             // The type has a fixed size, but is not a vector: abort
             return false;
         }
-        else if (fixed_cols) {
+        if (fixed_cols) {
             // Since this isn't a vector, cols must be != 1.  We allow this only if it exactly
             // equals the number of elements (rows is Dynamic, and so 1 row is allowed).
             if (cols != n) return false;
             return {1, n, stride};
-        }
-        else {
-            // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
-            if (fixed_rows && rows != n) return false;
+        } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
+            if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) return false;
             return {n, 1, stride};
-        }
     }
 
     static constexpr bool show_writeable = is_eigen_dense_map<Type>::value && is_eigen_mutable_map<Type>::value;
@@ -344,8 +328,11 @@ public:
 
     static constexpr auto name = props::descriptor;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type*() { return &value; }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type&() { return value; }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type&&() && { return std::move(value); }
     template <typename T> using cast_op_type = movable_cast_op_type<T>;
 
@@ -469,7 +456,9 @@ public:
         return true;
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type*() { return ref.get(); }
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type&() { return *ref; }
     template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 
@@ -599,9 +588,3 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(__GNUG__) || defined(__clang__)
-#  pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#  pragma warning(pop)
-#endif

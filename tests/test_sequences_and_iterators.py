@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pybind11_tests import sequences_and_iterators as m
+
 from pybind11_tests import ConstructorStats
+from pybind11_tests import sequences_and_iterators as m
 
 
 def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
@@ -104,7 +105,7 @@ def test_sequence():
 
 
 def test_sequence_length():
-    """#2076: Exception raised by len(arg) should be propagated """
+    """#2076: Exception raised by len(arg) should be propagated"""
 
     class BadLen(RuntimeError):
         pass
@@ -187,7 +188,7 @@ def test_iterator_passthrough():
 
 
 def test_iterator_rvp():
-    """#388: Can't make iterators via make_iterator() with different r/v policies """
+    """#388: Can't make iterators via make_iterator() with different r/v policies"""
     import pybind11_tests.sequences_and_iterators as m
 
     assert list(m.make_iterator_1()) == [1, 2, 3]

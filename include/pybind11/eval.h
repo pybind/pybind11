@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "pybind11.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -43,7 +45,7 @@ enum eval_mode {
 };
 
 template <eval_mode mode = eval_expr>
-object eval(str expr, object global = globals(), object local = object()) {
+object eval(const str &expr, object global = globals(), object local = object()) {
     if (!local)
         local = global;
 
@@ -53,7 +55,7 @@ object eval(str expr, object global = globals(), object local = object()) {
        this seems to be the only alternative */
     std::string buffer = "# -*- coding: utf-8 -*-\n" + (std::string) expr;
 
-    int start;
+    int start = 0;
     switch (mode) {
         case eval_expr:             start = Py_eval_input;   break;
         case eval_single_statement: start = Py_single_input; break;
@@ -75,8 +77,8 @@ object eval(const char (&s)[N], object global = globals(), object local = object
     return eval<mode>(expr, global, local);
 }
 
-inline void exec(str expr, object global = globals(), object local = object()) {
-    eval<eval_statements>(expr, global, local);
+inline void exec(const str &expr, object global = globals(), object local = object()) {
+    eval<eval_statements>(expr, std::move(global), std::move(local));
 }
 
 template <size_t N>
@@ -105,7 +107,7 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 
     detail::ensure_builtins_in_globals(global);
 
-    int start;
+    int start = 0;
     switch (mode) {
         case eval_expr:             start = Py_eval_input;   break;
         case eval_single_statement: start = Py_single_input; break;
@@ -133,6 +135,15 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         PyErr_Clear();
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
+
+    // In Python2, this should be encoded by getfilesystemencoding.
+    // We don't boher setting it since Python2 is past EOL anyway.
+    // See PR#3233
+#if PY_VERSION_HEX >= 0x03000000
+    if (!global.contains("__file__")) {
+        global["__file__"] = std::move(fname);
+    }
+#endif
 
 #if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
     PyObject *result = PyRun_File(f, fname_str.c_str(), start, global.ptr(),

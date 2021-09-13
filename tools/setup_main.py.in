@@ -16,12 +16,14 @@ setup(
         "pybind11",
         "pybind11.include.pybind11",
         "pybind11.include.pybind11.detail",
+        "pybind11.include.pybind11.stl",
         "pybind11.share.cmake.pybind11",
     ],
     package_data={
         "pybind11": ["py.typed", "*.pyi"],
         "pybind11.include.pybind11": ["*.h"],
         "pybind11.include.pybind11.detail": ["*.h"],
+        "pybind11.include.pybind11.stl": ["*.h"],
         "pybind11.share.cmake.pybind11": ["*.cmake"],
     },
     extras_require={
@@ -30,6 +32,9 @@ setup(
     entry_points={
         "console_scripts": [
              "pybind11-config = pybind11.__main__:main",
+        ],
+        "pipx.run": [
+             "pybind11 = pybind11.__main__:main",
         ]
     },
     cmdclass=cmdclass

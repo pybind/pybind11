@@ -10,9 +10,12 @@
 
 #include "pybind11_tests.h"
 #include "local_bindings.h"
+
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+
 #include <numeric>
+#include <utility>
 
 TEST_SUBMODULE(local_bindings, m) {
     // test_load_external
@@ -75,7 +78,7 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("get_mixed_lg", [](int i) { return MixedLocalGlobal(i); });
 
     // test_internal_locals_differ
-    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::registered_local_types_cpp(); });
+    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::get_local_internals().registered_types_cpp; });
 
     // test_stl_caster_vs_stl_bind
     m.def("load_vector_via_caster", [](std::vector<int> v) {
@@ -86,7 +89,10 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("return_self", [](LocalVec *v) { return v; });
     m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
 
-    class Cat : public pets::Pet { public: Cat(std::string name) : Pet(name) {}; };
+    class Cat : public pets::Pet {
+    public:
+        explicit Cat(std::string name) : Pet(std::move(name)) {}
+    };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
     // Binding for local extending class:

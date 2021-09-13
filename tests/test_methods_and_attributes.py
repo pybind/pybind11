@@ -2,9 +2,8 @@
 import pytest
 
 import env  # noqa: F401
-
-from pybind11_tests import methods_and_attributes as m
 from pybind11_tests import ConstructorStats
+from pybind11_tests import methods_and_attributes as m
 
 
 def test_methods_and_attributes():
@@ -429,6 +428,17 @@ def test_accepts_none(msg):
     with pytest.raises(TypeError) as excinfo:
         m.no_none_kwarg_kw_only(a=None)
     assert "incompatible function arguments" in str(excinfo.value)
+
+
+def test_casts_none():
+    """#2778: implicit casting from None to object (not pointer)"""
+    a = m.NoneCastTester()
+    assert m.ok_obj_or_none(a) == -1
+    a = m.NoneCastTester(4)
+    assert m.ok_obj_or_none(a) == 4
+    a = m.NoneCastTester(None)
+    assert m.ok_obj_or_none(a) == -1
+    assert m.ok_obj_or_none(None) == -1
 
 
 def test_str_issue(msg):

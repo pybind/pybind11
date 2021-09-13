@@ -8,20 +8,22 @@
 
 #include <catch.hpp>
 
-#include <thread>
 #include <fstream>
 #include <functional>
+#include <thread>
+#include <utility>
 
 namespace py = pybind11;
 using namespace py::literals;
 
 class Widget {
 public:
-    Widget(std::string message) : message(message) { }
+    explicit Widget(std::string message) : message(std::move(message)) {}
     virtual ~Widget() = default;
 
     std::string the_message() const { return message; }
     virtual int the_answer() const = 0;
+    virtual std::string argv0() const = 0;
 
 private:
     std::string message;
@@ -31,6 +33,7 @@ class PyWidget final : public Widget {
     using Widget::Widget;
 
     int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer); }
+    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m) {
@@ -73,8 +76,24 @@ TEST_CASE("Import error handling") {
     REQUIRE_NOTHROW(py::module_::import("widget_module"));
     REQUIRE_THROWS_WITH(py::module_::import("throw_exception"),
                         "ImportError: C++ Error");
+#if PY_VERSION_HEX >= 0x03030000
+    REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
+                        Catch::Contains("ImportError: initialization failed"));
+
+    auto locals = py::dict("is_keyerror"_a=false, "message"_a="not set");
+    py::exec(R"(
+        try:
+            import throw_error_already_set
+        except ImportError as e:
+            is_keyerror = type(e.__cause__) == KeyError
+            message = str(e.__cause__)
+    )", py::globals(), locals);
+    REQUIRE(locals["is_keyerror"].cast<bool>() == true);
+    REQUIRE(locals["message"].cast<std::string>() == "'missing'");
+#else
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: KeyError"));
+#endif
 }
 
 TEST_CASE("There can be only one interpreter") {
@@ -102,7 +121,7 @@ bool has_pybind11_internals_builtin() {
 
 bool has_pybind11_internals_static() {
     auto **&ipp = py::detail::get_internals_pp();
-    return ipp && *ipp;
+    return (ipp != nullptr) && (*ipp != nullptr);
 }
 
 TEST_CASE("Restart the interpreter") {
@@ -281,4 +300,26 @@ TEST_CASE("Reload module from file") {
     module_.reload();
     result = module_.attr("test")().cast<int>();
     REQUIRE(result == 2);
+}
+
+TEST_CASE("sys.argv gets initialized properly") {
+    py::finalize_interpreter();
+    {
+        py::scoped_interpreter default_scope;
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0().empty());
+    }
+
+    {
+        char *argv[] = {strdup("a.out")};
+        py::scoped_interpreter argv_scope(true, 1, argv);
+        free(argv[0]);
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0() == "a.out");
+    }
+    py::initialize_interpreter();
 }
