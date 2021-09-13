@@ -2101,6 +2101,7 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                     throw stop_iteration();
                 }
                 return *s.it;
+            // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
             }, std::forward<Extra>(extra)..., Policy);
     }
 
@@ -2116,13 +2117,13 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename KeyType = decltype((*std::declval<Iterator>()).first),
 #endif
           typename... Extra>
-iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     using state = detail::iterator_state<Iterator, Sentinel, true, Policy>;
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
             .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> KeyType {
+            .def("__next__", [](state &s) -> detail::remove_cv_t<KeyType> {
                 if (!s.first_or_done)
                     ++s.it;
                 else

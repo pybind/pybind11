@@ -77,7 +77,8 @@ constexpr enable_if_t<B, T1> _(const T1 &d, const T2 &) { return d; }
 template <bool B, typename T1, typename T2>
 constexpr enable_if_t<!B, T2> _(const T1 &, const T2 &d) { return d; }
 
-template <size_t Size> auto constexpr _() -> decltype(int_to_str<Size / 10, Size % 10>::digits) {
+template <size_t Size>
+auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
 

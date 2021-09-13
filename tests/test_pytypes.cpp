@@ -462,6 +462,49 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("weakref_from_object_and_function",
           [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
 
+// See PR #3263 for background (https://github.com/pybind/pybind11/pull/3263):
+// pytypes.h could be changed to enforce the "most correct" user code below, by removing
+// `const` from iterator `reference` using type aliases, but that will break existing
+// user code.
+#if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION)
+// This is "most correct" and enforced on these platforms.
+#    define PYBIND11_AUTO_IT auto it
+#else
+// This works on many platforms and is (unfortunately) reflective of existing user code.
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#    define PYBIND11_AUTO_IT auto &it
+#endif
+
+    m.def("tuple_iterator", []() {
+        auto tup = py::make_tuple(5, 7);
+        int tup_sum = 0;
+        for (PYBIND11_AUTO_IT : tup) {
+            tup_sum += it.cast<int>();
+        }
+        return tup_sum;
+    });
+
+    m.def("dict_iterator", []() {
+        py::dict dct;
+        dct[py::int_(3)] = 5;
+        dct[py::int_(7)] = 11;
+        int kv_sum = 0;
+        for (PYBIND11_AUTO_IT : dct) {
+            kv_sum += it.first.cast<int>() * 100 + it.second.cast<int>();
+        }
+        return kv_sum;
+    });
+
+    m.def("passed_iterator", [](const py::iterator &py_it) {
+        int elem_sum = 0;
+        for (PYBIND11_AUTO_IT : py_it) {
+            elem_sum += it.cast<int>();
+        }
+        return elem_sum;
+    });
+
+#undef PYBIND11_AUTO_IT
+
     // Tests below this line are for pybind11 IMPLEMENTATION DETAILS:
 
     m.def("sequence_item_get_ssize_t", [](const py::object &o) {

@@ -107,7 +107,7 @@ struct internals {
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
-    std::vector<PyObject *> loader_patient_stack; // Used by `loader_life_support`
+    std::vector<PyObject *> unused_loader_patient_stack_remove_at_v5;
     std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
@@ -305,12 +305,12 @@ PYBIND11_NOINLINE internals &get_internals() {
         #if PY_VERSION_HEX >= 0x03070000
             internals_ptr->tstate = PyThread_tss_alloc();
             if (!internals_ptr->tstate || (PyThread_tss_create(internals_ptr->tstate) != 0))
-                pybind11_fail("get_internals: could not successfully initialize the TSS key!");
+                pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
             PyThread_tss_set(internals_ptr->tstate, tstate);
         #else
             internals_ptr->tstate = PyThread_create_key();
             if (internals_ptr->tstate == -1)
-                pybind11_fail("get_internals: could not successfully initialize the TLS key!");
+                pybind11_fail("get_internals: could not successfully initialize the tstate TLS key!");
             PyThread_set_key_value(internals_ptr->tstate, tstate);
         #endif
         internals_ptr->istate = tstate->interp;
