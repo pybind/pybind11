@@ -271,6 +271,10 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def(
             "items",
             [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
+            py::keep_alive<0, 1>())
+        .def(
+            "values",
+            [](const StringMap &map) { return py::make_value_iterator(map.begin(), map.end()); },
             py::keep_alive<0, 1>());
 
     // test_generalized_iterators
@@ -288,6 +292,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         }, py::keep_alive<0, 1>())
         .def("nonzero_keys", [](const IntPairs& s) {
             return py::make_key_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+        }, py::keep_alive<0, 1>())
+        .def("nonzero_values", [](const IntPairs& s) {
+            return py::make_value_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
         ;
 
