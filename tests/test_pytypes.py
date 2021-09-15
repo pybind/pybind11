@@ -467,7 +467,8 @@ def test_issue2361():
     assert m.issue2361_str_implicit_copy_none() == "None"
     with pytest.raises(TypeError) as excinfo:
         assert m.issue2361_dict_implicit_copy_none()
-    assert "'NoneType' object is not iterable" in str(excinfo.value)
+    assert "NoneType" in str(excinfo.value)
+    assert "iterable" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
