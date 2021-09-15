@@ -1963,21 +1963,21 @@ struct iterator_state {
 
 template <typename Iterator>
 struct iterator_access {
-    decltype(*std::declval<Iterator>()) operator()(const Iterator it) {
+    detail::remove_cv_t<decltype(*std::declval<Iterator>())> operator()(const Iterator it) {
         return *it;
     }
 };
 
 template <typename Iterator>
 struct iterator_key_access {
-    decltype((*std::declval<Iterator>()).first) operator()(const Iterator it) {
+    detail::remove_cv_t<decltype((*std::declval<Iterator>()).first)> operator()(const Iterator it) {
         return (*it).first;
     }
 };
 
 template <typename Iterator>
 struct iterator_value_access {
-    decltype((*std::declval<Iterator>()).second) operator()(const Iterator it) {
+    detail::remove_cv_t<decltype((*std::declval<Iterator>()).second)> operator()(const Iterator it) {
         return (*it).second;
     }
 };
