@@ -9,12 +9,126 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.8.0 (WIP)
 ------------
 
+New features:
+
+* Added ``py::raise_from`` to enable chaining exceptions.
+  `#3215 <https://github.com/pybind/pybind11/pull/3215>`_
+
 * Allow exception translators to be optionally registered local to a module
   instead of applying globally across all pybind11 modules. Use
   ``register_local_exception_translator(ExceptionTranslator&& translator)``
   instead of  ``register_exception_translator(ExceptionTranslator&&
   translator)`` to keep your exception remapping code local to the module.
   `#2650 <https://github.com/pybind/pybind11/pull/2650>`_
+
+* Add ``make_simple_namespace`` function for instantiating Python
+  ``SimpleNamespace`` objects.
+  `#2840 <https://github.com/pybind/pybind11/pull/2840>`_
+
+* ``pybind11::scoped_interpreter`` and ``initialize_interpreter`` have new
+  arguments to allow ``sys.argv`` initialization.
+  `#2341 <https://github.com/pybind/pybind11/pull/2341>`_
+
+* Allow Python builtins to be used as callbacks in CPython.
+  `#1413 <https://github.com/pybind/pybind11/pull/1413>`_
+
+* Added ``view`` to view arrays with a different datatype.
+  `#987 <https://github.com/pybind/pybind11/pull/987>`_
+
+* Implemented ``reshape`` on arrays.
+  `#984 <https://github.com/pybind/pybind11/pull/984>`_
+
+
+Changes:
+
+* Set ``__file__`` constant when running ``eval_file`` in an embedded interpreter.
+  `#3233 <https://github.com/pybind/pybind11/pull/3233>`_
+
+* The pybind11 proxy types ``str``, ``bytes``, ``bytearray``, ``tuple``,
+  ``list`` now consistently support passing ``ssize_t`` values for sizes and
+  indexes. Previously, only ``size_t`` was accepted in several interfaces.
+  `#3219 <https://github.com/pybind/pybind11/pull/3219>`_
+
+
+Fixes:
+
+* Bug fix: enum value's ``__int__`` returning non-int when underlying type is bool or of char type.
+  `#1334 <https://github.com/pybind/pybind11/pull/1334>`_
+
+* Fixes bug in setting error state in Capsule's pointer methods.
+  `#3261 <https://github.com/pybind/pybind11/pull/3261>`_
+
+* A long-standing memory leak in ``py::cpp_function::initialize`` was fixed.
+  `#3229 <https://github.com/pybind/pybind11/pull/3229>`_
+
+* Fixes thread safety for some ``pybind11::type_caster`` which require lifetime extension, such as for ``std::string_view``.
+  `#3237 <https://github.com/pybind/pybind11/pull/3237>`_
+
+* Restore compatibility with gcc 4.8.4 as distributed by ubuntu-trusty, linuxmint-17.
+  `#3270 <https://github.com/pybind/pybind11/pull/3270>`_
+
+
+Build system improvements:
+
+* Fix regression in CMake Python package config: improper use of absolute path.
+  `#3144 <https://github.com/pybind/pybind11/pull/3144>`_
+
+* Specified UTF8-encoding in setup.py calls of open().
+  `#3137 <https://github.com/pybind/pybind11/pull/3137>`_
+
+
+Backend and tidying up:
+
+* Optimize NumPy array construction with additional moves.
+  `#3183 <https://github.com/pybind/pybind11/pull/3183>`_
+
+* Conversion to ``std::string`` and ``std::string_view`` now avoids making an
+  extra copy of the data on Python >= 3.3.
+  `#3257 <https://github.com/pybind/pybind11/pull/3257>`_
+
+* Remove const modifier from certain C++ methods on Python collections
+  (``list``, ``set``, ``dict``) such as (``clear()``, ``append()``,
+  ``insert()``, etc...) and annotated them with ``py-non-const``.
+
+* Enable readability ``clang-tidy-const-return`` and remove useless consts.
+  `#3254 <https://github.com/pybind/pybind11/pull/3254>`_
+  `#3194 <https://github.com/pybind/pybind11/pull/3194>`_
+
+* The clang-tidy ``google-explicit-constructor`` option was enabled.
+  `#3250 <https://github.com/pybind/pybind11/pull/3250>`_
+
+* Mark a pytype move constructor as noexcept (perf).
+  `#3236 <https://github.com/pybind/pybind11/pull/3236>`_
+
+* Enable clang-tidy check to guard against inheritance slicing.
+  `#3210 <https://github.com/pybind/pybind11/pull/3210>`_
+
+* Legacy warning suppression pragma were removed from eigen.h. On Unix
+  platforms, please use -isystem for Eigen include directories, to suppress
+  compiler warnings originating from Eigen headers. Note that CMake does this
+  by default. No adjustments are needed for Windows.
+  `#3198 <https://github.com/pybind/pybind11/pull/3198>`_
+
+* Format pybind11 with isort consistent ordering of imports
+  `#3195 <https://github.com/pybind/pybind11/pull/3195>`_
+
+* The warnings-suppression "pragma clamp" at the top/bottom of pybind11 was
+  removed, clearing the path to refactoring and IWYU cleanup.
+  `#3186 <https://github.com/pybind/pybind11/pull/3186>`_
+
+* Enable most bugprone checks in clang-tidy and fix the found potential bugs
+  and poor coding styles.
+  `#3166 <https://github.com/pybind/pybind11/pull/3166>`_
+
+* Add ``clang-tidy-readability`` rules to make boolean casts explicit improving
+  code readability. Also enabled other misc and readability clang-tidy checks.
+  `#3148 <https://github.com/pybind/pybind11/pull/3148>`_
+
+* Move object in ``.pop()`` for list.
+  `#3116 <https://github.com/pybind/pybind11/pull/3116>`_
+
+
+
 
 v2.7.1 (Aug 3, 2021)
 ---------------------
