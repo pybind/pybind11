@@ -1965,21 +1965,21 @@ struct iterator_state {
 // iterators in the wild can't be dereferenced when const.
 template <typename Iterator>
 struct iterator_access {
-    detail::remove_cv_t<decltype(*std::declval<Iterator>())> operator()(Iterator &it) {
+    decltype((*std::declval<Iterator>())) operator()(Iterator &it) {
         return *it;
     }
 };
 
 template <typename Iterator>
 struct iterator_key_access {
-    detail::remove_cv_t<decltype((*std::declval<Iterator>()).first)> operator()(Iterator &it) {
+    decltype(((*std::declval<Iterator>()).first)) operator()(Iterator &it) {
         return (*it).first;
     }
 };
 
 template <typename Iterator>
 struct iterator_value_access {
-    detail::remove_cv_t<decltype((*std::declval<Iterator>()).second)> operator()(Iterator &it) {
+    decltype(((*std::declval<Iterator>()).second)) operator()(Iterator &it) {
         return (*it).second;
     }
 };
@@ -1997,7 +1997,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
             .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> detail::remove_cv_t<ValueType> {
+            .def("__next__", [](state &s) -> ValueType {
                 if (!s.first_or_done)
                     ++s.it;
                 else
@@ -2039,7 +2039,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
 #ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename KeyType = decltype((*std::declval<Iterator>()).first),
+          typename KeyType = decltype(((*std::declval<Iterator>()).first)),
 #endif
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
@@ -2058,7 +2058,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
 #ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename ValueType = decltype((*std::declval<Iterator>()).second),
+          typename ValueType = decltype(((*std::declval<Iterator>()).second)),
 #endif
           typename... Extra>
 iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
