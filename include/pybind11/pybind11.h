@@ -1961,23 +1961,25 @@ struct iterator_state {
     bool first_or_done;
 };
 
+// Note: these helpers take the iterator by non-const reference because some
+// iterators in the wild can't be dereferenced when const.
 template <typename Iterator>
 struct iterator_access {
-    detail::remove_cv_t<decltype(*std::declval<Iterator>())> operator()(const Iterator it) {
+    detail::remove_cv_t<decltype(*std::declval<Iterator>())> operator()(Iterator &it) {
         return *it;
     }
 };
 
 template <typename Iterator>
 struct iterator_key_access {
-    detail::remove_cv_t<decltype((*std::declval<Iterator>()).first)> operator()(const Iterator it) {
+    detail::remove_cv_t<decltype((*std::declval<Iterator>()).first)> operator()(Iterator &it) {
         return (*it).first;
     }
 };
 
 template <typename Iterator>
 struct iterator_value_access {
-    detail::remove_cv_t<decltype((*std::declval<Iterator>()).second)> operator()(const Iterator it) {
+    detail::remove_cv_t<decltype((*std::declval<Iterator>()).second)> operator()(Iterator &it) {
         return (*it).second;
     }
 };
