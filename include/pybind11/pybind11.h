@@ -417,12 +417,7 @@ protected:
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
                 auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
-                capsule rec_capsule;
-                if (isinstance<capsule>(self)) {
-                    rec_capsule = reinterpret_borrow<capsule>(self);
-                } else {
-                    rec_capsule = capsule(self);
-                }
+                capsule rec_capsule = isinstance<capsule>(self) ? reinterpret_borrow<capsule>(self) : capsule(self);
                 chain = (detail::function_record *) rec_capsule;
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
