@@ -1965,6 +1965,7 @@ struct iterator_state {
 // iterators in the wild can't be dereferenced when const.
 template <typename Iterator>
 struct iterator_access {
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     decltype((*std::declval<Iterator>())) operator()(Iterator &it) {
         return *it;
     }
@@ -2007,6 +2008,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
                     throw stop_iteration();
                 }
                 return Access()(s.it);
+            // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
             }, std::forward<Extra>(extra)..., Policy);
     }
 
