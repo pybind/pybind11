@@ -1965,22 +1965,25 @@ struct iterator_state {
 // iterators in the wild can't be dereferenced when const.
 template <typename Iterator>
 struct iterator_access {
+    using result_type = decltype((*std::declval<Iterator>()));
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
-    decltype((*std::declval<Iterator>())) operator()(Iterator &it) const {
+    result_type operator()(Iterator &it) const {
         return *it;
     }
 };
 
 template <typename Iterator>
 struct iterator_key_access {
-    decltype(((*std::declval<Iterator>()).first)) operator()(Iterator &it) const {
+    using result_type = decltype(((*std::declval<Iterator>()).first));
+    result_type operator()(Iterator &it) const {
         return (*it).first;
     }
 };
 
 template <typename Iterator>
 struct iterator_value_access {
-    decltype(((*std::declval<Iterator>()).second)) operator()(Iterator &it) const {
+    using result_type = decltype(((*std::declval<Iterator>()).second));
+    result_type operator()(Iterator &it) const {
         return (*it).second;
     }
 };
@@ -2022,7 +2025,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
 #ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename ValueType = decltype(*std::declval<Iterator>()),
+          typename ValueType = typename detail::iterator_access<Iterator>::result_type,
 #endif
           typename... Extra>
 iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
@@ -2041,7 +2044,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
 #ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename KeyType = decltype(((*std::declval<Iterator>()).first)),
+          typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
 #endif
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
@@ -2060,7 +2063,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
 #ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename ValueType = decltype(((*std::declval<Iterator>()).second)),
+          typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
 #endif
           typename... Extra>
 iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
