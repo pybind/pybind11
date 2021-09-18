@@ -340,7 +340,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     py::class_<std::vector<NonCopyableIntPair>>(m, "VectorNonCopyableIntPair")
         .def(py::init<>())
         .def("append", [](std::vector<NonCopyableIntPair> &vec, const std::pair<int, int> &value) {
-            vec.emplace_back(value.first, value.second);
+            vec.emplace_back(NonCopyableInt(value.first), NonCopyableInt(value.second));
         })
         .def("keys", [](std::vector<NonCopyableIntPair> &vec) {
             return py::make_key_iterator(vec.begin(), vec.end());
