@@ -35,7 +35,7 @@ bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentine
 
 class NonCopyableInt {
 public:
-    NonCopyableInt(int value) : value_(value) {}
+    explicit NonCopyableInt(int value) : value_(value) {}
     NonCopyableInt(const NonCopyableInt &) = delete;
     NonCopyableInt(NonCopyableInt &&other) noexcept : value_(other.value_) {
         other.value_ = -1;  // detect when an unwanted move occurs
