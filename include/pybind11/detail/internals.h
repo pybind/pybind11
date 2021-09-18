@@ -103,7 +103,7 @@ struct internals {
     std::unordered_multimap<const void *, instance*> registered_instances; // void * -> instance*
     std::unordered_set<std::pair<const PyObject *, const char *>, override_hash> inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
-    std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
+    std::unordered_map<const PyObject *, std::unordered_set<PyObject *>> patients;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     std::vector<PyObject *> unused_loader_patient_stack_remove_at_v5;
@@ -154,7 +154,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 4
+#define PYBIND11_INTERNALS_VERSION 5
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
