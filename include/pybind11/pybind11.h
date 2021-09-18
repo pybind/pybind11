@@ -1966,21 +1966,21 @@ struct iterator_state {
 template <typename Iterator>
 struct iterator_access {
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
-    decltype((*std::declval<Iterator>())) operator()(Iterator &it) {
+    decltype((*std::declval<Iterator>())) operator()(Iterator &it) const {
         return *it;
     }
 };
 
 template <typename Iterator>
 struct iterator_key_access {
-    decltype(((*std::declval<Iterator>()).first)) operator()(Iterator &it) {
+    decltype(((*std::declval<Iterator>()).first)) operator()(Iterator &it) const {
         return (*it).first;
     }
 };
 
 template <typename Iterator>
 struct iterator_value_access {
-    decltype(((*std::declval<Iterator>()).second)) operator()(Iterator &it) {
+    decltype(((*std::declval<Iterator>()).second)) operator()(Iterator &it) const {
         return (*it).second;
     }
 };
