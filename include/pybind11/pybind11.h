@@ -2024,9 +2024,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
-#endif
           typename... Extra>
 iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     return detail::make_iterator_impl<
@@ -2043,9 +2041,7 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
           typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
-#endif
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<
@@ -2062,9 +2058,7 @@ iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
           typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
-#endif
           typename... Extra>
 iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<
