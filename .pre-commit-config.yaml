@@ -32,7 +32,7 @@ repos:
     exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.25.0
+  rev: v2.26.0
   hooks:
   - id: pyupgrade
 
