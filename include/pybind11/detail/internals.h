@@ -155,13 +155,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 #define PYBIND11_INTERNALS_VERSION 4
-#else
-// See README_smart_holder.rst:
-// Classic / Conservative / Progressive cross-module compatibility
-#define PYBIND11_INTERNALS_VERSION 1004
-#endif
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
@@ -221,11 +215,21 @@ struct type_info {
 #  endif
 #endif
 
+/// See README_smart_holder.rst:
+/// Classic / Conservative / Progressive cross-module compatibility
+#ifndef PYBIND11_INTERNALS_SH_DEF
+#  if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)
+#    define PYBIND11_INTERNALS_SH_DEF ""
+#  else
+#    define PYBIND11_INTERNALS_SH_DEF "_sh_def"
+#  endif
+#endif
+
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE PYBIND11_INTERNALS_SH_DEF "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE PYBIND11_INTERNALS_SH_DEF "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
