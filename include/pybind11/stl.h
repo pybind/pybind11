@@ -20,11 +20,6 @@
 #include <deque>
 #include <valarray>
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#endif
-
 // See `detail/common.h` for implementation of these guards.
 #if defined(PYBIND11_HAS_OPTIONAL)
 #  include <optional>
