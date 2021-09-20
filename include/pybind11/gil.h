@@ -50,7 +50,7 @@ PYBIND11_NAMESPACE_END(detail)
 class gil_scoped_acquire {
 public:
     PYBIND11_NOINLINE gil_scoped_acquire() {
-        auto const &internals = detail::get_internals();
+        auto &internals = detail::get_internals();
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
         if (!tstate) {
@@ -132,7 +132,7 @@ public:
         // `get_internals()` must be called here unconditionally in order to initialize
         // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
         // initialization race could occur as multiple threads try `gil_scoped_acquire`.
-        const auto &internals = detail::get_internals();
+        auto &internals = detail::get_internals();
         tstate = PyEval_SaveThread();
         if (disassoc) {
             auto key = internals.tstate;
