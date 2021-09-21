@@ -1954,6 +1954,9 @@ inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_t
     return res;
 }
 
+/* There are a large number of apparently unused template arguments because
+ * each combination requires a separate py::class_ registration.
+ */
 template <typename Access, return_value_policy Policy, typename Iterator, typename Sentinel, typename ValueType, typename... Extra>
 struct iterator_state {
     Iterator it;
