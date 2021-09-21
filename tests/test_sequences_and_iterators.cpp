@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 template<typename T>
 class NonZeroIterator {
@@ -31,6 +32,29 @@ template<typename A, typename B>
 bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentinel&) {
     return !(*it).first || !(*it).second;
 }
+
+class NonCopyableInt {
+public:
+    explicit NonCopyableInt(int value) : value_(value) {}
+    NonCopyableInt(const NonCopyableInt &) = delete;
+    NonCopyableInt(NonCopyableInt &&other) noexcept : value_(other.value_) {
+        other.value_ = -1;  // detect when an unwanted move occurs
+    }
+    NonCopyableInt &operator=(const NonCopyableInt &) = delete;
+    NonCopyableInt &operator=(NonCopyableInt &&other) noexcept {
+        value_ = other.value_;
+        other.value_ = -1;  // detect when an unwanted move occurs
+        return *this;
+    }
+    int get() const { return value_; }
+    void set(int value) { value_ = value; }
+    ~NonCopyableInt() = default;
+private:
+    int value_;
+};
+using NonCopyableIntPair = std::pair<NonCopyableInt, NonCopyableInt>;
+PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableInt>);
+PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>);
 
 template <typename PythonType>
 py::list test_random_access_iterator(PythonType x) {
@@ -271,6 +295,10 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def(
             "items",
             [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
+            py::keep_alive<0, 1>())
+        .def(
+            "values",
+            [](const StringMap &map) { return py::make_value_iterator(map.begin(), map.end()); },
             py::keep_alive<0, 1>());
 
     // test_generalized_iterators
@@ -289,8 +317,38 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def("nonzero_keys", [](const IntPairs& s) {
             return py::make_key_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
+        .def("nonzero_values", [](const IntPairs& s) {
+            return py::make_value_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+        }, py::keep_alive<0, 1>())
         ;
 
+    // test_iterater_referencing
+    py::class_<NonCopyableInt>(m, "NonCopyableInt")
+        .def(py::init<int>())
+        .def("set", &NonCopyableInt::set)
+        .def("__int__", &NonCopyableInt::get)
+        ;
+    py::class_<std::vector<NonCopyableInt>>(m, "VectorNonCopyableInt")
+        .def(py::init<>())
+        .def("append", [](std::vector<NonCopyableInt> &vec, int value) {
+            vec.emplace_back(value);
+        })
+        .def("__iter__", [](std::vector<NonCopyableInt> &vec) {
+            return py::make_iterator(vec.begin(), vec.end());
+        })
+        ;
+    py::class_<std::vector<NonCopyableIntPair>>(m, "VectorNonCopyableIntPair")
+        .def(py::init<>())
+        .def("append", [](std::vector<NonCopyableIntPair> &vec, const std::pair<int, int> &value) {
+            vec.emplace_back(NonCopyableInt(value.first), NonCopyableInt(value.second));
+        })
+        .def("keys", [](std::vector<NonCopyableIntPair> &vec) {
+            return py::make_key_iterator(vec.begin(), vec.end());
+        })
+        .def("values", [](std::vector<NonCopyableIntPair> &vec) {
+            return py::make_value_iterator(vec.begin(), vec.end());
+        })
+        ;
 
 #if 0
     // Obsolete: special data structure for exposing custom iterator types to python
