@@ -42,12 +42,19 @@ repos:
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 21.9b0
+  rev: 21.9b0 # Keep in sync with blacken-docs
   hooks:
   - id: black
     # By default, this ignores pyi files, though black supports them
     types: [text]
     files: \.pyi?$
+
+- repo: https://github.com/asottile/blacken-docs
+  rev: v1.11.0
+  hooks:
+  - id: blacken-docs
+    additional_dependencies:
+    - black==21.9b0 # keep in sync with black hook
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
@@ -86,7 +93,7 @@ repos:
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
-  rev: "0.46"
+  rev: "0.47"
   hooks:
   - id: check-manifest
     # This is a slow hook, so only run this if --hook-stage manual is passed
@@ -100,10 +107,10 @@ repos:
     exclude: ".supp$"
     args: ["-L", "nd,ot,thist"]
 
--   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.7.2.1
-    hooks:
-    -   id: shellcheck
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.7.2.1
+  hooks:
+  - id: shellcheck
 
 # The original pybind11 checks for a few C++ style items
 - repo: local
