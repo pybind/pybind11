@@ -62,6 +62,12 @@ repos:
   hooks:
   - id: remove-tabs
 
+# Autoremoves unused imports
+- repo: https://github.com/hadialqattan/pycln
+  rev: v1.0.3
+  hooks:
+  - id: pycln
+
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
   rev: 3.9.2
