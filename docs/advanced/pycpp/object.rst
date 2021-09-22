@@ -173,6 +173,7 @@ Keyword arguments are also supported. In Python, there is the usual call syntax:
     def f(number, say, to):
         ...  # function code
 
+
     f(1234, say="hello", to=some_instance)  # keyword call in Python
 
 In C++, the same call can be made using:

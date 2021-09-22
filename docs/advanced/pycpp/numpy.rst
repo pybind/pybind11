@@ -258,8 +258,8 @@ by the compiler. The result is returned as a NumPy array of type
 
 .. code-block:: pycon
 
-    >>> x = np.array([[1, 3],[5, 7]])
-    >>> y = np.array([[2, 4],[6, 8]])
+    >>> x = np.array([[1, 3], [5, 7]])
+    >>> y = np.array([[2, 4], [6, 8]])
     >>> z = 3
     >>> result = vectorized_func(x, y, z)
 
@@ -403,7 +403,7 @@ In Python 2, the syntactic sugar ``...`` is not available, but the singleton
 
 .. code-block:: python
 
-   a = # a NumPy array
+   a = ...  # a NumPy array
    b = a[0, ..., 0]
 
 The function ``py::ellipsis()`` function can be used to perform the same
