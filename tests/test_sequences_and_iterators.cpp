@@ -339,16 +339,29 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def("nonzero_values", [](const IntPairs& s) {
             return py::make_value_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
+
+        // test single-argument make_iterator
         .def("simple_iterator", [](IntPairs& self) {
             return py::make_iterator(self);
         }, py::keep_alive<0, 1>())
         .def("simple_keys", [](IntPairs& self) {
             return py::make_key_iterator(self);
         }, py::keep_alive<0, 1>())
+        .def("simple_values", [](IntPairs& self) {
+            return py::make_value_iterator(self);
+        }, py::keep_alive<0, 1>())
 
-        // test iterator with keep_alive (doesn't work so not used at runtime, but tests compile)
-        .def("make_iterator_keep_alive", [](IntPairs& self) {
-            return py::make_iterator(self, py::keep_alive<0, 1>());
+        // Test iterator with an Extra (doesn't do anything useful, so not used
+        // at runtime, but tests need to be able to compile with the correct
+        // overload. See PR #3293.
+        .def("_make_iterator_extras", [](IntPairs& self) {
+            return py::make_iterator(self, py::call_guard<int>());
+        }, py::keep_alive<0, 1>())
+        .def("_make_key_extras", [](IntPairs& self) {
+            return py::make_key_iterator(self, py::call_guard<int>());
+        }, py::keep_alive<0, 1>())
+        .def("_make_value_extras", [](IntPairs& self) {
+            return py::make_value_iterator(self, py::call_guard<int>());
         }, py::keep_alive<0, 1>())
         ;
 

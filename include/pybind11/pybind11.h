@@ -1966,27 +1966,29 @@ struct iterator_state {
 };
 
 // Note: these helpers take the iterator by non-const reference because some
-// iterators in the wild can't be dereferenced when const.
-template <typename Iterator>
+// iterators in the wild can't be dereferenced when const. C++ needs the extra parens in decltype
+// to enforce an lvalue. The & after Iterator is required for MSVC < 16.9. SFINAE cannot be
+// reused for result_type due to bugs in ICC, NVCC, and PGI compilers. See PR #3293.
+template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()))>
 struct iterator_access {
-    using result_type = decltype((*std::declval<Iterator>()));
+    using result_type = decltype((*std::declval<Iterator &>()));
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     result_type operator()(Iterator &it) const {
         return *it;
     }
 };
 
-template <typename Iterator>
+template <typename Iterator, typename SFINAE = decltype(((*std::declval<Iterator &>()).first)) >
 struct iterator_key_access {
-    using result_type = decltype(((*std::declval<Iterator>()).first));
+    using result_type = decltype(((*std::declval<Iterator &>()).first));
     result_type operator()(Iterator &it) const {
         return (*it).first;
     }
 };
 
-template <typename Iterator>
+template <typename Iterator, typename SFINAE = decltype(((*std::declval<Iterator &>()).second))>
 struct iterator_value_access {
-    using result_type = decltype(((*std::declval<Iterator>()).second));
+    using result_type = decltype(((*std::declval<Iterator &>()).second));
     result_type operator()(Iterator &it) const {
         return (*it).second;
     }
