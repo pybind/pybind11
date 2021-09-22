@@ -1357,7 +1357,7 @@ public:
 
 #ifdef PYBIND11_HAS_OPTIONAL
     slice(std::optional<ssize_t> start, std::optional<ssize_t> stop, std::optional<ssize_t> step)
-        : slice(indexToObject(start), indexToObject(stop), indexToObject(step)) {}
+        : slice(index_to_object(start), index_to_object(stop), index_to_object(step)) {}
 #else
     slice(ssize_t start_, ssize_t stop_, ssize_t step_)
         : slice(int_(start_), int_(stop_), int_(step_)) {}
@@ -1380,7 +1380,7 @@ public:
 
 private:
     template <typename T>
-    static object indexToObject(T index) {
+    static object index_to_object(T index) {
         return index ? object(int_(*index)) : object(none());
     }
 };
