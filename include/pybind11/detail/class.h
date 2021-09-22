@@ -366,6 +366,25 @@ inline void add_patient(PyObject *nurse, PyObject *patient) {
     internals.patients[nurse].push_back(patient);
 }
 
+inline void remove_patient(PyObject *nurse, PyObject *patient) {
+    auto &internals = get_internals();
+    auto instance = reinterpret_cast<detail::instance *>(nurse);
+    if (!instance->has_patients) {
+        return;
+    }
+
+    auto &patients = internals.patients[nurse];
+    auto pos = std::find(patients.begin(), patients.end(), patient);
+    if (pos == patients.end()) {
+        return;
+    }
+
+    patients.erase(pos);
+    Py_DECREF(patient);
+
+    instance->has_patients = !patients.empty();
+}
+
 inline void clear_patients(PyObject *self) {
     auto instance = reinterpret_cast<detail::instance *>(self);
     auto &internals = get_internals();

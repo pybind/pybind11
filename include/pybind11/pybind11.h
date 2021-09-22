@@ -1922,8 +1922,26 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
     }
 }
 
-PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
-    auto get_arg = [&](size_t n) {
+PYBIND11_NOINLINE void unplug_patient_impl(handle nurse, handle patient) {
+    if (!nurse || !patient)
+        pybind11_fail("Could not unplug patient!");
+
+    if (patient.is_none() || nurse.is_none())
+        return;
+
+    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+    if (!tinfo.empty()) {
+        /* It's a pybind-registered type */
+        remove_patient(nurse.ptr(), patient.ptr());
+    } else {
+        pybind11_fail("Cannot unplug patient that is not a pybind11-registered type");
+    }
+}
+
+struct nursery_arg_getter {
+    nursery_arg_getter(function_call &call, handle ret) : call(call), ret(ret) {}
+
+    handle operator()(size_t n) {
         if (n == 0)
             return ret;
         if (n == 1 && call.init_self)
@@ -1931,9 +1949,20 @@ PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_ca
         if (n <= call.args.size())
             return call.args[n - 1];
         return handle();
-    };
+    }
 
+    function_call &call;
+    handle ret;
+};
+
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+    nursery_arg_getter get_arg(call, ret);
     keep_alive_impl(get_arg(Nurse), get_arg(Patient));
+}
+
+PYBIND11_NOINLINE void unplug_patient_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+    nursery_arg_getter get_arg(call, ret);
+    unplug_patient_impl(get_arg(Nurse), get_arg(Patient));
 }
 
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type) {

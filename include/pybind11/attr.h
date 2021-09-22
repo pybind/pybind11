@@ -58,6 +58,10 @@ template <typename T> struct base {
 /// Keep patient alive while nurse lives
 template <size_t Nurse, size_t Patient> struct keep_alive { };
 
+/// 'Unplug patient' from its nurse, meaning it is no longer required to keep the
+/// patient alive while the nurse lives
+template <size_t Nurse, size_t Patient> struct unplug_patient { };
+
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
 struct multiple_inheritance { };
 
@@ -137,6 +141,7 @@ enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+void unplug_patient_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -523,6 +528,26 @@ template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurs
     static void precall(function_call &) { }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
+};
+
+/**
+ * Process the unplug_patient policy
+ *
+ */
+template <size_t Nurse, size_t Patient>
+struct process_attribute<unplug_patient<Nurse, Patient>> : public process_attribute_default<unplug_patient<Nurse, Patient>> {
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void precall(function_call &call) {
+        unplug_patient_impl(Nurse, Patient, call, handle());
+    }
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void postcall(function_call &, handle) {}
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void precall(function_call &) {}
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void postcall(function_call &call, handle ret) {
+        unplug_patient_impl(Nurse, Patient, call, ret);
+    }
 };
 
 /// Recursively iterate over variadic template arguments

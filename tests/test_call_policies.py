@@ -115,6 +115,59 @@ def test_keep_alive_return_value(capture):
     )
 
 
+def test_unplug_patient(capture):
+    n_inst = ConstructorStats.detail_reg_inst()
+
+    # 1. Test unplugging a child that is kept alive by the parent that created it
+    with capture:
+        p = m.Parent()
+        c = p.returnChildKeepAlive()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    assert (
+        capture
+        == """
+        Allocating parent.
+        Allocating child.
+    """
+    )
+    p.detachChild(c)
+    # Since the child was detached, and the parent is no longer keeping it alive
+    # if we drop our reference it will be released
+    with capture:
+        del c
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
+    assert capture == "Releasing child."
+
+    with capture:
+        del p
+        assert ConstructorStats.detail_reg_inst() == n_inst
+    assert capture == "Releasing parent."
+
+    with capture:
+        p = m.Parent()
+        c = m.Child()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    assert (
+        capture
+        == """
+        Allocating parent.
+        Allocating child.
+    """
+    )
+
+    p.addChildKeepAlive(c)
+    p.detachChild(c)
+    with capture:
+        del p
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
+    assert capture == "Releasing parent."
+
+    with capture:
+        del c
+        assert ConstructorStats.detail_reg_inst() == n_inst
+    assert capture == "Releasing child."
+
+
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
 def test_alive_gc(capture):
