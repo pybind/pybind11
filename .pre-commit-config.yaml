@@ -47,9 +47,6 @@ repos:
   rev: 21.9b0 # Keep in sync with blacken-docs
   hooks:
   - id: black
-    # By default, this ignores pyi files, though black supports them
-    types: [text]
-    files: \.pyi?$
 
 - repo: https://github.com/asottile/blacken-docs
   rev: v1.11.0
