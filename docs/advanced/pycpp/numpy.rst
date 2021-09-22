@@ -171,6 +171,31 @@ template parameter, and it ensures that non-conforming arguments are converted
 into an array satisfying the specified requirements instead of trying the next
 function overload.
 
+There are several methods on arrays; the methods listed below under references
+work, as well as the following functions based on the NumPy API:
+
+- ``.dtype()`` returns the type of the contained values.
+
+- ``.strides()`` returns a pointer to the strides of the array (optionally pass
+  an integer axis to get a number).
+
+- ``.flags()`` returns the flag settings. ``.writable()`` and ``.owndata()``
+  are directly available.
+
+- ``.offset_at()`` returns the offset (optionally pass indices).
+
+- ``.squeeze()`` returns a view with length-1 axes removed.
+
+- ``.view(dtype)`` returns a view of the array with a different dtype.
+
+- ``.reshape({i, j, ...})`` returns a view of the array with a different shape.
+  ``.resize({...})`` is also available.
+
+- ``.index_at(i, j, ...)`` gets the count from the beginning to a given index.
+
+
+There are also several methods for getting references (described below).
+
 Structured types
 ================
 
@@ -345,21 +370,21 @@ The returned proxy object supports some of the same methods as ``py::array`` so
 that it can be used as a drop-in replacement for some existing, index-checked
 uses of ``py::array``:
 
-- ``r.ndim()`` returns the number of dimensions
+- ``.ndim()`` returns the number of dimensions
 
-- ``r.data(1, 2, ...)`` and ``r.mutable_data(1, 2, ...)``` returns a pointer to
+- ``.data(1, 2, ...)`` and ``r.mutable_data(1, 2, ...)``` returns a pointer to
   the ``const T`` or ``T`` data, respectively, at the given indices.  The
   latter is only available to proxies obtained via ``a.mutable_unchecked()``.
 
-- ``itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
+- ``.itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
 
-- ``ndim()`` returns the number of dimensions.
+- ``.ndim()`` returns the number of dimensions.
 
-- ``shape(n)`` returns the size of dimension ``n``
+- ``.shape(n)`` returns the size of dimension ``n``
 
-- ``size()`` returns the total number of elements (i.e. the product of the shapes).
+- ``.size()`` returns the total number of elements (i.e. the product of the shapes).
 
-- ``nbytes()`` returns the number of bytes used by the referenced elements
+- ``.nbytes()`` returns the number of bytes used by the referenced elements
   (i.e. ``itemsize()`` times ``size()``).
 
 .. seealso::
