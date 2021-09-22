@@ -1142,6 +1142,7 @@ v2.2.0 (August 31, 2017)
 
       from cpp_module import CppBase1, CppBase2
 
+
       class PyDerived(CppBase1, CppBase2):
           def __init__(self):
               CppBase1.__init__(self)  # C++ bases must be initialized explicitly

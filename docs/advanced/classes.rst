@@ -136,7 +136,7 @@ a virtual method call.
     u'woof! woof! woof! '
     >>> class Cat(Animal):
     ...     def go(self, n_times):
-    ...             return "meow! " * n_times
+    ...         return "meow! " * n_times
     ...
     >>> c = Cat()
     >>> call_go(c)
@@ -159,8 +159,9 @@ Here is an example:
 
     class Dachshund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, a TypeError is raised.
+            Dog.__init__(self)  # Without this, a TypeError is raised.
             self.name = name
+
         def bark(self):
             return "yap!"
 
@@ -1153,6 +1154,7 @@ error:
 
     >>> class PyFinalChild(IsFinal):
     ...     pass
+    ...
     TypeError: type 'IsFinal' is not an acceptable base type
 
 .. note:: This attribute is currently ignored on PyPy
@@ -1247,7 +1249,7 @@ Accessing the type object
 
 You can get the type object from a C++ class that has already been registered using:
 
-.. code-block:: python
+.. code-block:: cpp
 
     py::type T_py = py::type::of<T>();
 
