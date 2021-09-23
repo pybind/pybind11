@@ -48,6 +48,15 @@ def test_generalized_iterators():
             next(it)
 
 
+def test_generalized_iterators_simple():
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_iterator()) == [
+        (1, 2),
+        (3, 4),
+        (0, 5),
+    ]
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_keys()) == [1, 3, 0]
+
+
 def test_sliceable():
     sliceable = m.Sliceable(100)
     assert sliceable[::] == (0, 100, 1)
