@@ -1955,52 +1955,25 @@ inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_t
     return res;
 }
 
-/* There are a large number of apparently unused template arguments because
- * each combination requires a separate py::class_ registration.
- */
-template <typename Access, return_value_policy Policy, typename Iterator, typename Sentinel, typename ValueType, typename... Extra>
+template <typename Iterator, typename Sentinel, bool KeyIterator, return_value_policy Policy>
 struct iterator_state {
     Iterator it;
     Sentinel end;
     bool first_or_done;
 };
 
-// Note: these helpers take the iterator by non-const reference because some
-// iterators in the wild can't be dereferenced when const.
-template <typename Iterator>
-struct iterator_access {
-    using result_type = decltype((*std::declval<Iterator>()));
-    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
-    result_type operator()(Iterator &it) const {
-        return *it;
-    }
-};
+PYBIND11_NAMESPACE_END(detail)
 
-template <typename Iterator>
-struct iterator_key_access {
-    using result_type = decltype(((*std::declval<Iterator>()).first));
-    result_type operator()(Iterator &it) const {
-        return (*it).first;
-    }
-};
-
-template <typename Iterator>
-struct iterator_value_access {
-    using result_type = decltype(((*std::declval<Iterator>()).second));
-    result_type operator()(Iterator &it) const {
-        return (*it).second;
-    }
-};
-
-template <typename Access,
-          return_value_policy Policy,
+/// Makes a python iterator from a first and past-the-end C++ InputIterator.
+template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
-          typename ValueType,
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
+          typename ValueType = decltype(*std::declval<Iterator>()),
+#endif
           typename... Extra>
-iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
-    using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
-    // TODO: state captures only the types of Extra, not the values
+iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    using state = detail::iterator_state<Iterator, Sentinel, false, Policy>;
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
@@ -2014,7 +1987,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
                     s.first_or_done = true;
                     throw stop_iteration();
                 }
-                return Access()(s.it);
+                return *s.it;
             // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
             }, std::forward<Extra>(extra)..., Policy);
     }
@@ -2022,55 +1995,35 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
     return cast(state{first, last, true});
 }
 
-PYBIND11_NAMESPACE_END(detail)
-
-/// Makes a python iterator from a first and past-the-end C++ InputIterator.
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Iterator,
-          typename Sentinel,
-          typename ValueType = typename detail::iterator_access<Iterator>::result_type,
-          typename... Extra>
-iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    return detail::make_iterator_impl<
-        detail::iterator_access<Iterator>,
-        Policy,
-        Iterator,
-        Sentinel,
-        ValueType,
-        Extra...>(first, last, std::forward<Extra>(extra)...);
-}
-
-/// Makes a python iterator over the keys (`.first`) of a iterator over pairs from a
+/// Makes an python iterator over the keys (`.first`) of a iterator over pairs from a
 /// first and past-the-end InputIterator.
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
-          typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
+          typename KeyType = decltype((*std::declval<Iterator>()).first),
+#endif
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
-    return detail::make_iterator_impl<
-        detail::iterator_key_access<Iterator>,
-        Policy,
-        Iterator,
-        Sentinel,
-        KeyType,
-        Extra...>(first, last, std::forward<Extra>(extra)...);
-}
+    using state = detail::iterator_state<Iterator, Sentinel, true, Policy>;
 
-/// Makes a python iterator over the values (`.second`) of a iterator over pairs from a
-/// first and past-the-end InputIterator.
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Iterator,
-          typename Sentinel,
-          typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
-          typename... Extra>
-iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
-    return detail::make_iterator_impl<
-        detail::iterator_value_access<Iterator>,
-        Policy, Iterator,
-        Sentinel,
-        ValueType,
-        Extra...>(first, last, std::forward<Extra>(extra)...);
+    if (!detail::get_type_info(typeid(state), false)) {
+        class_<state>(handle(), "iterator", pybind11::module_local())
+            .def("__iter__", [](state &s) -> state& { return s; })
+            .def("__next__", [](state &s) -> detail::remove_cv_t<KeyType> {
+                if (!s.first_or_done)
+                    ++s.it;
+                else
+                    s.first_or_done = false;
+                if (s.it == s.end) {
+                    s.first_or_done = true;
+                    throw stop_iteration();
+                }
+                return (*s.it).first;
+            }, std::forward<Extra>(extra)..., Policy);
+    }
+
+    return cast(state{first, last, true});
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
@@ -2085,13 +2038,6 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type, typename... Extra> iterator make_key_iterator(Type &value, Extra&&... extra) {
     return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
-}
-
-/// Makes an iterator over the values (`.second`) of a stl map-like container supporting
-/// `std::begin()`/`std::end()`
-template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Type, typename... Extra> iterator make_value_iterator(Type &value, Extra&&... extra) {
-    return make_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
 }
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {
