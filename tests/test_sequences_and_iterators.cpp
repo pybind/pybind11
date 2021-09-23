@@ -295,6 +295,8 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     public:
         explicit IntPairs(std::vector<std::pair<int, int>> data) : data_(std::move(data)) {}
         const std::pair<int, int>* begin() const { return data_.data(); }
+        // .end() only required for py::make_iterator(self) overload
+        const std::pair<int, int>* end() const { return data_.data() + data_.size(); }
     private:
         std::vector<std::pair<int, int>> data_;
     };
@@ -305,6 +307,17 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         }, py::keep_alive<0, 1>())
         .def("nonzero_keys", [](const IntPairs& s) {
             return py::make_key_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+        }, py::keep_alive<0, 1>())
+        .def("simple_iterator", [](IntPairs& self) {
+            return py::make_iterator(self);
+        }, py::keep_alive<0, 1>())
+        .def("simple_keys", [](IntPairs& self) {
+            return py::make_key_iterator(self);
+        }, py::keep_alive<0, 1>())
+
+        // test iterator with keep_alive (doesn't work so not used at runtime, but tests compile)
+        .def("make_iterator_keep_alive", [](IntPairs& self) {
+            return py::make_iterator(self, py::keep_alive<0, 1>());
         }, py::keep_alive<0, 1>())
         ;
 
