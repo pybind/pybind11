@@ -272,7 +272,7 @@ And used in Python as usual:
 
 .. code-block:: pycon
 
-    >>> print_dict({'foo': 123, 'bar': 'hello'})
+    >>> print_dict({"foo": 123, "bar": "hello"})
     key=foo, value=123
     key=bar, value=hello
 
@@ -377,10 +377,11 @@ argument in a function definition:
     def f(a, *, b):  # a can be positional or via keyword; b must be via keyword
         pass
 
+
     f(a=1, b=2)  # good
     f(b=2, a=1)  # good
-    f(1, b=2)    # good
-    f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
+    f(1, b=2)  # good
+    f(1, 2)  # TypeError: f() takes 1 positional argument but 2 were given
 
 Pybind11 provides a ``py::kw_only`` object that allows you to implement
 the same behaviour by specifying the object between positional and keyword-only

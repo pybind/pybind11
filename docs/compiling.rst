@@ -42,10 +42,7 @@ An example of a ``setup.py`` using pybind11's helpers:
         ),
     ]
 
-    setup(
-        ...,
-        ext_modules=ext_modules
-    )
+    setup(..., ext_modules=ext_modules)
 
 If you want to do an automatic search for the highest supported C++ standard,
 that is supported via a ``build_ext`` command override; it will only affect
@@ -64,11 +61,7 @@ that is supported via a ``build_ext`` command override; it will only affect
         ),
     ]
 
-    setup(
-        ...,
-        cmdclass={"build_ext": build_ext},
-        ext_modules=ext_modules
-    )
+    setup(..., cmdclass={"build_ext": build_ext}, ext_modules=ext_modules)
 
 If you have single-file extension modules that are directly stored in the
 Python source tree (``foo.cpp`` in the same directory as where a ``foo.py``

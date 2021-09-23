@@ -161,7 +161,26 @@
 
 // https://en.cppreference.com/w/c/chrono/localtime
 #if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
-#    define __STDC_WANT_LIB_EXT1__
+#  define __STDC_WANT_LIB_EXT1__
+#endif
+
+#ifdef __has_include
+// std::optional (but including it in c++14 mode isn't allowed)
+#  if defined(PYBIND11_CPP17) && __has_include(<optional>)
+#    define PYBIND11_HAS_OPTIONAL 1
+#  endif
+// std::experimental::optional (but not allowed in c++11 mode)
+#  if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
+                                 !__has_include(<optional>))
+#    define PYBIND11_HAS_EXP_OPTIONAL 1
+#  endif
+// std::variant
+#  if defined(PYBIND11_CPP17) && __has_include(<variant>)
+#    define PYBIND11_HAS_VARIANT 1
+#  endif
+#elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
+#  define PYBIND11_HAS_OPTIONAL 1
+#  define PYBIND11_HAS_VARIANT 1
 #endif
 
 #include <Python.h>

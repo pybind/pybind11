@@ -112,7 +112,7 @@ example:
 .. code-block:: python
 
     a = MyClass()
-    m = a.get_matrix()   # flags.writeable = True,  flags.owndata = False
+    m = a.get_matrix()  # flags.writeable = True,  flags.owndata = False
     v = a.view_matrix()  # flags.writeable = False, flags.owndata = False
     c = a.copy_matrix()  # flags.writeable = True,  flags.owndata = True
     # m[5,6] and v[5,6] refer to the same element, c[5,6] does not.
@@ -203,7 +203,7 @@ adding the ``order='F'`` option when creating an array:
 
 .. code-block:: python
 
-    myarray = np.array(source, order='F')
+    myarray = np.array(source, order="F")
 
 Such an object will be passable to a bound function accepting an
 ``Eigen::Ref<MatrixXd>`` (or similar column-major Eigen type).
