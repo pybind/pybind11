@@ -57,6 +57,22 @@ def test_generalized_iterators_simple():
     assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_keys()) == [1, 3, 0]
 
 
+def test_iterator_referencing():
+    """Test that iterators reference rather than copy their referents."""
+    vec = m.VectorNonCopyableInt()
+    vec.append(3)
+    vec.append(5)
+    assert [int(x) for x in vec] == [3, 5]
+    # Increment everything to make sure the referents can be mutated
+    for x in vec:
+        x.set(int(x) + 1)
+    assert [int(x) for x in vec] == [4, 6]
+
+    vec = m.VectorNonCopyableIntPair()
+    vec.append([3, 4])
+    vec.append([5, 7])
+
+
 def test_sliceable():
     sliceable = m.Sliceable(100)
     assert sliceable[::] == (0, 100, 1)
