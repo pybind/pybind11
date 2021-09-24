@@ -259,8 +259,11 @@ public:
 
     object& operator=(const object &other) {
         other.inc_ref();
-        dec_ref();
+        // Use temporary variable to ensure `*this` remains valid while
+        // `Py_XDECREF` executes, in case `*this` is accessible from Python.
+        handle temp(m_ptr);
         m_ptr = other.m_ptr;
+        temp.dec_ref();
         return *this;
     }
 

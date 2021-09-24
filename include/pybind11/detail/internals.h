@@ -85,12 +85,13 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // On CPython < 3.4 and on PyPy, `PyThread_set_key_value` strangely does not set
 // the value if it has already been set.  Instead, it must first be deleted and
 // then set again.
+inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
+    PyThread_delete_key_value(key);
+    PyThread_set_key_value(key, value);
+}
 #        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_delete_key_value(key)
 #        define PYBIND11_TLS_REPLACE_VALUE(key, value)                                            \
-            do {                                                                                  \
-                PyThread_delete_key_value((key));                                                 \
-                PyThread_set_key_value((key), (value));                                           \
-            } while (false)
+            ::pybind11::detail::tls_replace_value((key), (value))
 #    else
 #        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_set_key_value((key), nullptr)
 #        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_set_key_value((key), (value))

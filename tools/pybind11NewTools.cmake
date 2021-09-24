@@ -82,6 +82,15 @@ if(NOT DEFINED ${_Python}_EXECUTABLE)
 
 endif()
 
+if(NOT ${_Python}_EXECUTABLE STREQUAL PYTHON_EXECUTABLE_LAST)
+  # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
+  unset(PYTHON_IS_DEBUG CACHE)
+  unset(PYTHON_MODULE_EXTENSION CACHE)
+  set(PYTHON_EXECUTABLE_LAST
+      "${${_Python}_EXECUTABLE}"
+      CACHE INTERNAL "Python executable during the last CMake run")
+endif()
+
 if(NOT DEFINED PYTHON_IS_DEBUG)
   # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
   execute_process(

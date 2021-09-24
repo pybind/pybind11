@@ -1261,3 +1261,37 @@ object, just like ``type(ob)`` in Python.
     Other types, like ``py::type::of<int>()``, do not work, see :ref:`type-conversions`.
 
 .. versionadded:: 2.6
+
+Custom type setup
+=================
+
+For advanced use cases, such as enabling garbage collection support, you may
+wish to directly manipulate the `PyHeapTypeObject` corresponding to a
+``py::class_`` definition.
+
+You can do that using ``py::custom_type_setup``:
+
+.. code-block:: cpp
+
+   struct OwnsPythonObjects {
+       py::object value = py::none();
+   };
+   py::class_<OwnsPythonObjects> cls(
+       m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
+           auto *type = &heap_type->ht_type;
+           type->tp_flags |= Py_TPFLAGS_HAVE_GC;
+           type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
+               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+               Py_VISIT(self.value.ptr());
+               return 0;
+           };
+           type->tp_clear = [](PyObject *self_base) {
+               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+               self.value = py::none();
+               return 0;
+           };
+       }));
+   cls.def(py::init<>());
+   cls.def_readwrite("value", &OwnsPythonObjects::value);
+
+.. versionadded:: 2.8
