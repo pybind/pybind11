@@ -12,6 +12,8 @@
 
 #include "cast.h"
 
+#include <functional>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// \addtogroup annotations
@@ -77,6 +79,23 @@ struct metaclass {
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) { }
+};
+
+/// Specifies a custom callback with signature `void (PyHeapTypeObject*)` that
+/// may be used to customize the Python type.
+///
+/// The callback is invoked immediately before `PyType_Ready`.
+///
+/// Note: This is an advanced interface, and uses of it may require changes to
+/// work with later versions of pybind11.  You may wish to consult the
+/// implementation of `make_new_python_type` in `detail/classes.h` to understand
+/// the context in which the callback will be run.
+struct custom_type_setup {
+    using callback = std::function<void(PyHeapTypeObject *heap_type)>;
+
+    explicit custom_type_setup(callback value) : value(std::move(value)) {}
+
+    callback value;
 };
 
 /// Annotation that marks a class as local to the module:
@@ -271,6 +290,9 @@ struct type_record {
 
     /// Custom metaclass (optional)
     handle metaclass;
+
+    /// Custom type setup.
+    custom_type_setup::callback custom_type_setup_callback;
 
     /// Multiple inheritance marker
     bool multiple_inheritance : 1;
@@ -474,6 +496,13 @@ struct process_attribute<multiple_inheritance> : process_attribute_default<multi
 template <>
 struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
+};
+
+template <>
+struct process_attribute<custom_type_setup> {
+    static void init(const custom_type_setup &value, type_record *r) {
+        r->custom_type_setup_callback = value.value;
+    }
 };
 
 template <>
