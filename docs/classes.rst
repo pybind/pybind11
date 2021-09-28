@@ -455,7 +455,7 @@ Let's now suppose that the example class contains internal types like enumeratio
             Dog = 0,
             Cat
         };
-        
+
         struct Attributes {
             float age = 0;
         };
@@ -482,11 +482,11 @@ The binding code for this example looks as follows:
         .value("Dog", Pet::Kind::Dog)
         .value("Cat", Pet::Kind::Cat)
         .export_values();
-        
+
     py::class_<Pet::Attributes> attributes(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
-    
+
 
 To ensure that the nested types ``Kind`` and ``Attributes`` are created within the scope of ``Pet``, the
 ``pet`` :class:`class_` instance must be supplied to the :class:`enum_` and :class:`class_`
