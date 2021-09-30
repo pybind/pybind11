@@ -38,21 +38,42 @@ New features:
 * Implemented ``reshape`` on arrays.
   `#984 <https://github.com/pybind/pybind11/pull/984>`_
 
+* Enable defining custom ``__new__`` methods on classes by fixing bug
+  preventing overriding methods if they have non-pybind11 siblings.
+  `#3265 <https://github.com/pybind/pybind11/pull/3265>`_
+
+* Add ``make_value_iterator()``, and fix ``make_key_iterator()`` to return
+  references instead of copies.
+  `#3293 <https://github.com/pybind/pybind11/pull/3293>`_
+
+* ``pybind11::custom_type_setup`` was added, for customizing the
+  ``PyHeapTypeObject`` corresponding to a class, which may be useful for
+  enabling garbage collection support, among other things.
+  `#3287 <https://github.com/pybind/pybind11/pull/3287>`_
+
+
 
 Changes:
 
 * Set ``__file__`` constant when running ``eval_file`` in an embedded interpreter.
   `#3233 <https://github.com/pybind/pybind11/pull/3233>`_
 
+* Python objects and (C++17) ``std::optional`` now accepted in ``py::slice``
+  constructor.
+  `#1101 <https://github.com/pybind/pybind11/pull/1101>`_
+
 * The pybind11 proxy types ``str``, ``bytes``, ``bytearray``, ``tuple``,
   ``list`` now consistently support passing ``ssize_t`` values for sizes and
   indexes. Previously, only ``size_t`` was accepted in several interfaces.
   `#3219 <https://github.com/pybind/pybind11/pull/3219>`_
 
+* Avoid evaluating ``PYBIND11_TLS_REPLACE_VALUE`` arguments more than once.
+  `#3290 <https://github.com/pybind/pybind11/pull/3290>`_
 
 Fixes:
 
-* Bug fix: enum value's ``__int__`` returning non-int when underlying type is bool or of char type.
+* Bug fix: enum value's ``__int__`` returning non-int when underlying type is
+  bool or of char type.
   `#1334 <https://github.com/pybind/pybind11/pull/1334>`_
 
 * Fixes bug in setting error state in Capsule's pointer methods.
@@ -61,7 +82,8 @@ Fixes:
 * A long-standing memory leak in ``py::cpp_function::initialize`` was fixed.
   `#3229 <https://github.com/pybind/pybind11/pull/3229>`_
 
-* Fixes thread safety for some ``pybind11::type_caster`` which require lifetime extension, such as for ``std::string_view``.
+* Fixes thread safety for some ``pybind11::type_caster`` which require lifetime
+  extension, such as for ``std::string_view``.
   `#3237 <https://github.com/pybind/pybind11/pull/3237>`_
 
 * Restore compatibility with gcc 4.8.4 as distributed by ubuntu-trusty, linuxmint-17.
@@ -73,11 +95,25 @@ Build system improvements:
 * Fix regression in CMake Python package config: improper use of absolute path.
   `#3144 <https://github.com/pybind/pybind11/pull/3144>`_
 
+* Cached Python version information could become stale when CMake was re-run
+  with a different Python version. The build system now detects this and
+  updates this information.
+  `#3299 <https://github.com/pybind/pybind11/pull/3299>`_
+
 * Specified UTF8-encoding in setup.py calls of open().
   `#3137 <https://github.com/pybind/pybind11/pull/3137>`_
 
+* Fix a harmless warning from CMake 3.21 with the classic Python discovery.
+  `#3220 <https://github.com/pybind/pybind11/pull/3220>`_
+
 
 Backend and tidying up:
+
+* Reduced thread-local storage required for keeping alive temporary data for
+  type conversion to one key per ABI version, rather than one key per extension
+  module.  This makes the total thread-local storage required by pybind11 2
+  keys per ABI version.
+  `#3275 <https://github.com/pybind/pybind11/pull/3275>`_
 
 * Optimize NumPy array construction with additional moves.
   `#3183 <https://github.com/pybind/pybind11/pull/3183>`_
