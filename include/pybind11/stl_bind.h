@@ -690,6 +690,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
            return true;
         }
     );
+    // Fallback for when the object is not of the key type
+    cl.def("__contains__", [](Map &, py::object) -> bool { return false; });
 
     // Assignment provided only if the type is copyable
     detail::map_assignment<Map, Class_>(cl);
@@ -720,6 +722,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
             return true;
         }
     );
+    // Fallback for when the object is not of the key type
+    keys_view.def("__contains__", [](KeysView &, py::object) -> bool { return false; });
 
     values_view.def("__len__", [](ValuesView &view) { return view.map.size(); });
     values_view.def("__iter__",

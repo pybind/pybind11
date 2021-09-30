@@ -161,6 +161,9 @@ def test_map_string_double():
 
     assert list(mm) == ["a", "b"]
     assert str(mm) == "MapStringDouble{a: 1, b: 2.5}"
+    assert "b" in mm
+    assert "c" not in mm
+    assert 123 not in mm
 
     # Check that keys, values, items are views, not merely iterable
     keys = mm.keys()
@@ -170,6 +173,7 @@ def test_map_string_double():
     assert len(keys) == 2
     assert "a" in keys
     assert "c" not in keys
+    assert 123 not in keys
     assert list(items) == [("a", 1), ("b", 2.5)]
     assert len(items) == 2
     assert ("b", 2.5) in items
