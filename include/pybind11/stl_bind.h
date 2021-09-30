@@ -635,11 +635,11 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     }
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
-    py::class_<KeysView> keys_view(
+    class_<KeysView> keys_view(
         scope, ("KeysView[" + name + "]").c_str(), pybind11::module_local(local));
-    py::class_<ValuesView> values_view(
+    class_<ValuesView> values_view(
         scope, ("ValuesView[" + name + "]").c_str(), pybind11::module_local(local));
-    py::class_<ItemsView> items_view(
+    class_<ItemsView> items_view(
         scope, ("ItemsView[" + name + "]").c_str(), pybind11::module_local(local));
 
     cl.def(init<>());
@@ -691,7 +691,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
         }
     );
     // Fallback for when the object is not of the key type
-    cl.def("__contains__", [](Map &, const py::object &) -> bool { return false; });
+    cl.def("__contains__", [](Map &, const object &) -> bool { return false; });
 
     // Assignment provided only if the type is copyable
     detail::map_assignment<Map, Class_>(cl);
@@ -723,7 +723,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
         }
     );
     // Fallback for when the object is not of the key type
-    keys_view.def("__contains__", [](KeysView &, const py::object &) -> bool { return false; });
+    keys_view.def("__contains__", [](KeysView &, const object &) -> bool { return false; });
 
     values_view.def("__len__", [](ValuesView &view) { return view.map.size(); });
     values_view.def("__iter__",
