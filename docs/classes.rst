@@ -446,8 +446,7 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
 Enumerations and internal types
 ===============================
 
-Let's now suppose that the example class contains an internal enumeration type,
-e.g.:
+Let's now suppose that the example class contains internal types like enumerations, e.g.:
 
 .. code-block:: cpp
 
@@ -457,10 +456,15 @@ e.g.:
             Cat
         };
 
+        struct Attributes {
+            float age = 0;
+        };
+
         Pet(const std::string &name, Kind type) : name(name), type(type) { }
 
         std::string name;
         Kind type;
+        Attributes attr;
     };
 
 The binding code for this example looks as follows:
@@ -471,15 +475,21 @@ The binding code for this example looks as follows:
 
     pet.def(py::init<const std::string &, Pet::Kind>())
         .def_readwrite("name", &Pet::name)
-        .def_readwrite("type", &Pet::type);
+        .def_readwrite("type", &Pet::type)
+        .def_readwrite("attr", &Pet::attr);
 
     py::enum_<Pet::Kind>(pet, "Kind")
         .value("Dog", Pet::Kind::Dog)
         .value("Cat", Pet::Kind::Cat)
         .export_values();
 
-To ensure that the ``Kind`` type is created within the scope of ``Pet``, the
-``pet`` :class:`class_` instance must be supplied to the :class:`enum_`.
+    py::class_<Pet::Attributes> attributes(pet, "Attributes")
+        .def(py::init<>())
+        .def_readwrite("age", &Pet::Attributes::age);
+
+
+To ensure that the nested types ``Kind`` and ``Attributes`` are created within the scope of ``Pet``, the
+``pet`` :class:`class_` instance must be supplied to the :class:`enum_` and :class:`class_`
 constructor. The :func:`enum_::export_values` function exports the enum entries
 into the parent scope, which should be skipped for newer C++11-style strongly
 typed enums.
