@@ -16,6 +16,7 @@
 #include "detail/class.h"
 #include "detail/init.h"
 
+#include <cstdlib>
 #include <memory>
 #include <new>
 #include <vector>
