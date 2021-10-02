@@ -315,7 +315,7 @@ TEST_CASE("sys.argv gets initialized properly") {
     {
         char *argv[] = {strdup("a.out")};
         py::scoped_interpreter argv_scope(true, 1, argv);
-        free(argv[0]);
+        std::free(argv[0]);
         auto module = py::module::import("test_interpreter");
         auto py_widget = module.attr("DerivedWidget")("The question");
         const auto &cpp_widget = py_widget.cast<const Widget &>();

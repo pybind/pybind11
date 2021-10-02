@@ -1536,7 +1536,7 @@ public:
            char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
            detail::process_attributes<Extra...>::init(extra..., rec_fget);
            if (rec_fget->doc && rec_fget->doc != doc_prev) {
-              free(doc_prev);
+              std::free(doc_prev);
               rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
            }
         }
@@ -1544,7 +1544,7 @@ public:
             char *doc_prev = rec_fset->doc;
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
-                free(doc_prev);
+                std::free(doc_prev);
                 rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
             }
             if (! rec_active) rec_active = rec_fset;
