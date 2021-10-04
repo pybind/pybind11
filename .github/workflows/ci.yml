@@ -102,7 +102,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         -DCMAKE_CXX_STANDARD=11
         ${{ matrix.args }}
 
@@ -130,7 +129,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         -DCMAKE_CXX_STANDARD=17
         ${{ matrix.args }}
         ${{ matrix.args2 }}
@@ -153,7 +151,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
@@ -252,7 +249,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build
@@ -632,7 +628,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=OFF
+        -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
@@ -779,7 +775,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build -j 2
@@ -826,7 +821,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
 
     - name: Build C++14
       run: cmake --build build -j 2
@@ -876,7 +870,6 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         ${{ matrix.args }}
 
