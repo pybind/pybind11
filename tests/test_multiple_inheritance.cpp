@@ -16,7 +16,7 @@ namespace {
 // Many bases for testing that multiple inheritance from many classes (i.e. requiring extra
 // space for holder constructed flags) works.
 template <int N> struct BaseN {
-    BaseN(int i) : i(i) { }
+    explicit BaseN(int i) : i(i) {}
     int i;
 };
 
@@ -47,12 +47,12 @@ int VanillaStaticMix2::static_value = 12;
 
 // test_multiple_inheritance_virtbase
 struct Base1a {
-    Base1a(int i) : i(i) { }
+    explicit Base1a(int i) : i(i) {}
     int foo() const { return i; }
     int i;
 };
 struct Base2a {
-    Base2a(int i) : i(i) { }
+    explicit Base2a(int i) : i(i) {}
     int bar() const { return i; }
     int i;
 };
@@ -77,7 +77,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // test_multiple_inheritance_mix1
     // test_multiple_inheritance_mix2
     struct Base1 {
-        Base1(int i) : i(i) { }
+        explicit Base1(int i) : i(i) {}
         int foo() const { return i; }
         int i;
     };
@@ -86,7 +86,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
       .def("foo", &Base1::foo);
 
     struct Base2 {
-        Base2(int i) : i(i) { }
+        explicit Base2(int i) : i(i) {}
         int bar() const { return i; }
         int i;
     };
@@ -108,7 +108,10 @@ TEST_SUBMODULE(multiple_inheritance, m) {
 
 
     // test_multiple_inheritance_python_many_bases
-    #define PYBIND11_BASEN(N) py::class_<BaseN<N>>(m, "BaseN" #N).def(py::init<int>()).def("f" #N, [](BaseN<N> &b) { return b.i + N; })
+#define PYBIND11_BASEN(N)                                                                         \
+    py::class_<BaseN<(N)>>(m, "BaseN" #N).def(py::init<int>()).def("f" #N, [](BaseN<N> &b) {      \
+        return b.i + (N);                                                                         \
+    })
     PYBIND11_BASEN( 1); PYBIND11_BASEN( 2); PYBIND11_BASEN( 3); PYBIND11_BASEN( 4);
     PYBIND11_BASEN( 5); PYBIND11_BASEN( 6); PYBIND11_BASEN( 7); PYBIND11_BASEN( 8);
     PYBIND11_BASEN( 9); PYBIND11_BASEN(10); PYBIND11_BASEN(11); PYBIND11_BASEN(12);

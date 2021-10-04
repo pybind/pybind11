@@ -41,23 +41,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import contextlib
 import os
+import platform
 import shutil
 import sys
+import sysconfig
 import tempfile
 import threading
-import platform
 import warnings
-import sysconfig
 
 try:
-    from setuptools.command.build_ext import build_ext as _build_ext
     from setuptools import Extension as _Extension
+    from setuptools.command.build_ext import build_ext as _build_ext
 except ImportError:
     from distutils.command.build_ext import build_ext as _build_ext
     from distutils.extension import Extension as _Extension
 
-import distutils.errors
 import distutils.ccompiler
+import distutils.errors
 
 WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
 PY2 = sys.version_info[0] < 3

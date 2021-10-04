@@ -210,7 +210,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         internals.direct_conversions.erase(tindex);
 
         if (tinfo->module_local)
-            registered_local_types_cpp().erase(tindex);
+            get_local_internals().registered_types_cpp.erase(tindex);
         else
             internals.registered_types_cpp.erase(tindex);
         internals.registered_types_py.erase(tinfo->type);
@@ -683,11 +683,13 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     if (rec.buffer_protocol)
         enable_buffer_protocol(heap_type);
 
+    if (rec.custom_type_setup_callback)
+        rec.custom_type_setup_callback(heap_type);
+
     if (PyType_Ready(type) < 0)
         pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
 
-    assert(rec.dynamic_attr ? PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC)
-                            : !PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */
     if (rec.scope)

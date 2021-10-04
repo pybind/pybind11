@@ -37,33 +37,35 @@ struct Animal
 
 struct Dog : Animal
 {
-    Dog(const std::string& _name, Kind _kind = Kind::Dog) : Animal(_name, _kind) {}
+    explicit Dog(const std::string &_name, Kind _kind = Kind::Dog) : Animal(_name, _kind) {}
     std::string bark() const { return name_of_kind(kind) + " " + name + " goes " + sound; }
     std::string sound = "WOOF!";
 };
 
 struct Labrador : Dog
 {
-    Labrador(const std::string& _name, int _excitement = 9001)
+    explicit Labrador(const std::string &_name, int _excitement = 9001)
         : Dog(_name, Kind::Labrador), excitement(_excitement) {}
     int excitement;
 };
 
 struct Chihuahua : Dog
 {
-    Chihuahua(const std::string& _name) : Dog(_name, Kind::Chihuahua) { sound = "iyiyiyiyiyi"; }
+    explicit Chihuahua(const std::string &_name) : Dog(_name, Kind::Chihuahua) {
+        sound = "iyiyiyiyiyi";
+    }
     std::string bark() const { return Dog::bark() + " and runs in circles"; }
 };
 
 struct Cat : Animal
 {
-    Cat(const std::string& _name, Kind _kind = Kind::Cat) : Animal(_name, _kind) {}
+    explicit Cat(const std::string &_name, Kind _kind = Kind::Cat) : Animal(_name, _kind) {}
     std::string purr() const { return "mrowr"; }
 };
 
 struct Panther : Cat
 {
-    Panther(const std::string& _name) : Cat(_name, Kind::Panther) {}
+    explicit Panther(const std::string &_name) : Cat(_name, Kind::Panther) {}
     std::string purr() const { return "mrrrRRRRRR"; }
 };
 
@@ -86,13 +88,13 @@ std::vector<std::unique_ptr<Animal>> create_zoo()
 const std::type_info* Animal::type_of_kind(Kind kind)
 {
     switch (kind) {
-        case Kind::Unknown: break;
-
+        case Kind::Unknown:
         case Kind::Dog: break;
+
         case Kind::Labrador: return &typeid(Labrador);
         case Kind::Chihuahua: return &typeid(Chihuahua);
-        case Kind::LastDog: break;
 
+        case Kind::LastDog:
         case Kind::Cat: break;
         case Kind::Panther: return &typeid(Panther);
         case Kind::LastCat: break;

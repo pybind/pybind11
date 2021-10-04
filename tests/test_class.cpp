@@ -27,7 +27,7 @@
 
 // test_brace_initialization
 struct NoBraceInitialization {
-    NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
+    explicit NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
     template <typename T>
     NoBraceInitialization(std::initializer_list<T> l) : vec(l) {}
 
@@ -47,9 +47,25 @@ TEST_SUBMODULE(class_, m) {
         }
         ~NoConstructor() { print_destroyed(this); }
     };
+    struct NoConstructorNew {
+        NoConstructorNew() = default;
+        NoConstructorNew(const NoConstructorNew &) = default;
+        NoConstructorNew(NoConstructorNew &&) = default;
+        static NoConstructorNew *new_instance() {
+            auto *ptr = new NoConstructorNew();
+            print_created(ptr, "via new_instance");
+            return ptr;
+        }
+        ~NoConstructorNew() { print_destroyed(this); }
+    };
 
     py::class_<NoConstructor>(m, "NoConstructor")
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
+
+    py::class_<NoConstructorNew>(m, "NoConstructorNew")
+        .def(py::init([](const NoConstructorNew &self) { return self; })) // Need a NOOP __init__
+        .def_static("__new__",
+                    [](const py::object &) { return NoConstructorNew::new_instance(); });
 
     // test_inheritance
     class Pet {
@@ -65,18 +81,18 @@ TEST_SUBMODULE(class_, m) {
 
     class Dog : public Pet {
     public:
-        Dog(const std::string &name) : Pet(name, "dog") {}
+        explicit Dog(const std::string &name) : Pet(name, "dog") {}
         std::string bark() const { return "Woof!"; }
     };
 
     class Rabbit : public Pet {
     public:
-        Rabbit(const std::string &name) : Pet(name, "parrot") {}
+        explicit Rabbit(const std::string &name) : Pet(name, "parrot") {}
     };
 
     class Hamster : public Pet {
     public:
-        Hamster(const std::string &name) : Pet(name, "rodent") {}
+        explicit Hamster(const std::string &name) : Pet(name, "rodent") {}
     };
 
     class Chimera : public Pet {
@@ -208,7 +224,7 @@ TEST_SUBMODULE(class_, m) {
     struct ConvertibleFromUserType {
         int i;
 
-        ConvertibleFromUserType(UserType u) : i(u.value()) { }
+        explicit ConvertibleFromUserType(UserType u) : i(u.value()) {}
     };
 
     py::class_<ConvertibleFromUserType>(m, "AcceptsUserType")
@@ -263,7 +279,7 @@ TEST_SUBMODULE(class_, m) {
     };
     struct PyAliasedHasOpNewDelSize : AliasedHasOpNewDelSize {
         PyAliasedHasOpNewDelSize() = default;
-        PyAliasedHasOpNewDelSize(int) { }
+        explicit PyAliasedHasOpNewDelSize(int) {}
         std::uint64_t j;
     };
     struct HasOpNewDelBoth {
@@ -492,15 +508,15 @@ using DoesntBreak5 = py::class_<BreaksBase<5>>;
 using DoesntBreak6 = py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>>;
 using DoesntBreak7 = py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>>;
 using DoesntBreak8 = py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>>;
-#define CHECK_BASE(N) static_assert(std::is_same<typename DoesntBreak##N::type, BreaksBase<N>>::value, \
+#define CHECK_BASE(N) static_assert(std::is_same<typename DoesntBreak##N::type, BreaksBase<(N)>>::value, \
         "DoesntBreak" #N " has wrong type!")
 CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK_BASE(6); CHECK_BASE(7); CHECK_BASE(8);
-#define CHECK_ALIAS(N) static_assert(DoesntBreak##N::has_alias && std::is_same<typename DoesntBreak##N::type_alias, BreaksTramp<N>>::value, \
+#define CHECK_ALIAS(N) static_assert(DoesntBreak##N::has_alias && std::is_same<typename DoesntBreak##N::type_alias, BreaksTramp<(N)>>::value, \
         "DoesntBreak" #N " has wrong type_alias!")
 #define CHECK_NOALIAS(N) static_assert(!DoesntBreak##N::has_alias && std::is_void<typename DoesntBreak##N::type_alias>::value, \
         "DoesntBreak" #N " has type alias, but shouldn't!")
 CHECK_ALIAS(1); CHECK_ALIAS(2); CHECK_NOALIAS(3); CHECK_ALIAS(4); CHECK_NOALIAS(5); CHECK_ALIAS(6); CHECK_ALIAS(7); CHECK_NOALIAS(8);
-#define CHECK_HOLDER(N, TYPE) static_assert(std::is_same<typename DoesntBreak##N::holder_type, std::TYPE##_ptr<BreaksBase<N>>>::value, \
+#define CHECK_HOLDER(N, TYPE) static_assert(std::is_same<typename DoesntBreak##N::holder_type, std::TYPE##_ptr<BreaksBase<(N)>>>::value, \
         "DoesntBreak" #N " has wrong holder_type!")
 CHECK_HOLDER(1, unique); CHECK_HOLDER(2, unique); CHECK_HOLDER(3, unique); CHECK_HOLDER(4, unique); CHECK_HOLDER(5, unique);
 CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
@@ -510,7 +526,7 @@ CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 // failures occurs).
 
 // We have to actually look into the type: the typedef alone isn't enough to instantiate the type:
-#define CHECK_BROKEN(N) static_assert(std::is_same<typename Breaks##N::type, BreaksBase<-N>>::value, \
+#define CHECK_BROKEN(N) static_assert(std::is_same<typename Breaks##N::type, BreaksBase<-(N)>>::value, \
         "Breaks1 has wrong type!");
 
 //// Two holder classes:

@@ -54,7 +54,7 @@ provided by the caller -- in fact, it does nothing at all.
 .. code-block:: python
 
     def increment(i):
-        i += 1 # nope..
+        i += 1  # nope..
 
 pybind11 is also affected by such language-level conventions, which means that
 binding ``increment`` or ``increment_ptr`` will also create Python functions

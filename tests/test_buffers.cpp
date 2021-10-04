@@ -40,7 +40,11 @@ TEST_SUBMODULE(buffers, m) {
         }
 
         Matrix &operator=(const Matrix &s) {
-            print_copy_assigned(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
+            if (this == &s) {
+                return *this;
+            }
+            print_copy_assigned(this,
+                                std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
             delete[] m_data;
             m_rows = s.m_rows;
             m_cols = s.m_cols;
@@ -118,7 +122,7 @@ TEST_SUBMODULE(buffers, m) {
     // test_inherited_protocol
     class SquareMatrix : public Matrix {
     public:
-        SquareMatrix(py::ssize_t n) : Matrix(n, n) { }
+        explicit SquareMatrix(py::ssize_t n) : Matrix(n, n) {}
     };
     // Derived classes inherit the buffer protocol and the buffer access function
     py::class_<SquareMatrix, Matrix>(m, "SquareMatrix")
@@ -169,7 +173,7 @@ TEST_SUBMODULE(buffers, m) {
 
     struct BufferReadOnly {
         const uint8_t value = 0;
-        BufferReadOnly(uint8_t value): value(value) {}
+        explicit BufferReadOnly(uint8_t value) : value(value) {}
 
         py::buffer_info get_buffer_info() {
             return py::buffer_info(&value, 1);

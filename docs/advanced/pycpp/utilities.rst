@@ -66,7 +66,7 @@ extra type, `py::scoped_estream_redirect <scoped_estream_redirect>`, is identica
 except for defaulting to ``std::cerr`` and ``sys.stderr``; this can be useful with
 `py::call_guard`, which allows multiple items, but uses the default constructor:
 
-.. code-block:: py
+.. code-block:: cpp
 
     // Alternative: Call single function using call guard
     m.def("noisy_func", &call_noisy_function,

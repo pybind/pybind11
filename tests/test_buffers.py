@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
+import ctypes
 import io
 import struct
-import ctypes
 
 import pytest
 
 import env  # noqa: F401
-
-from pybind11_tests import buffers as m
 from pybind11_tests import ConstructorStats
+from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
 

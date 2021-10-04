@@ -15,7 +15,7 @@
 /* This is an example class that we'll want to be able to extend from Python */
 class ExampleVirt  {
 public:
-    ExampleVirt(int state) : state(state) { print_created(this, state); }
+    explicit ExampleVirt(int state) : state(state) { print_created(this, state); }
     ExampleVirt(const ExampleVirt &e) : state(e.state) { print_copy_created(this); }
     ExampleVirt(ExampleVirt &&e) noexcept : state(e.state) {
         print_move_created(this);
@@ -454,6 +454,7 @@ template <class Base = B_Tpl>
 class PyB_Tpl : public PyA_Tpl<Base> {
 public:
     using PyA_Tpl<Base>::PyA_Tpl; // Inherit constructors (via PyA_Tpl's inherited constructors)
+    // NOLINTNEXTLINE(bugprone-parent-virtual-call)
     int unlucky_number() override { PYBIND11_OVERRIDE(int, Base, unlucky_number, ); }
     double lucky_number() override { PYBIND11_OVERRIDE(double, Base, lucky_number, ); }
 };

@@ -82,7 +82,7 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
+    explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
@@ -102,9 +102,9 @@ public:                                                                         
         }                                                                                         \
         return cast(*src, policy, parent);                                                        \
     }                                                                                             \
-    operator type *() { return &value; }                                                          \
-    operator type &() { return value; }                                                           \
-    operator type &&() && { return std::move(value); }                                            \
+    operator type *() { return &value; }               /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &() { return value; }                /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
     template <typename T_>                                                                        \
     using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
@@ -145,9 +145,8 @@ public:
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             else
                 return false;
-        } else if (PyFloat_Check(src.ptr())) {
-            return false;
-        } else if (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr())) {
+        } else if (PyFloat_Check(src.ptr())
+                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
             return false;
         } else {
             handle src_or_index = src;
@@ -280,7 +279,7 @@ public:
     }
 
     template <typename T> using cast_op_type = void*&;
-    operator void *&() { return value; }
+    explicit operator void *&() { return value; }
     static constexpr auto name = _("capsule");
 private:
     void *value = nullptr;
@@ -378,13 +377,33 @@ template <typename StringType, bool IsView = false> struct string_caster {
 #endif
         }
 
+#if PY_VERSION_HEX >= 0x03030000
+        // On Python >= 3.3, for UTF-8 we avoid the need for a temporary `bytes`
+        // object by using `PyUnicode_AsUTF8AndSize`.
+        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N == 8)) {
+            Py_ssize_t size = -1;
+            const auto *buffer
+                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+            if (!buffer) {
+                PyErr_Clear();
+                return false;
+            }
+            value = StringType(buffer, static_cast<size_t>(size));
+            return true;
+        }
+#endif
+
         auto utfNbytes = reinterpret_steal<object>(PyUnicode_AsEncodedString(
             load_src.ptr(), UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr));
         if (!utfNbytes) { PyErr_Clear(); return false; }
 
         const auto *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
-        if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
+        // Skip BOM for UTF-16/32
+        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N > 8)) {
+            buffer++;
+            length--;
+        }
         value = StringType(buffer, length);
 
         // If we're loading a string_view we need to keep the encoded Python object alive:
@@ -484,8 +503,10 @@ public:
         return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
-    operator CharT&() {
+    explicit operator CharT *() {
+        return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
+    }
+    explicit operator CharT &() {
         if (none)
             throw value_error("Cannot convert None to a character");
 
@@ -499,7 +520,7 @@ public:
         // out how long the first encoded character is in bytes to distinguish between these two
         // errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as those
         // can fit into a single char value.
-        if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
+        if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 8) && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
             // low bits only: 0-127
             // 0b110xxxxx - start of 2-byte sequence
@@ -524,7 +545,7 @@ public:
         // UTF-16 is much easier: we can only have a surrogate pair for values above U+FFFF, thus a
         // surrogate pair with total length 2 instantly indicates a range error (but not a "your
         // string was too long" error).
-        else if (StringCaster::UTF_N == 16 && str_len == 2) {
+        else if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 16) && str_len == 2) {
             one_char = static_cast<CharT>(value[0]);
             if (one_char >= 0xD800 && one_char < 0xE000)
                 throw value_error("Character code point not in range(0x10000)");
@@ -578,8 +599,8 @@ public:
 
     template <typename T> using cast_op_type = type;
 
-    operator type() & { return implicit_cast(indices{}); }
-    operator type() && { return std::move(*this).implicit_cast(indices{}); }
+    explicit operator type() & { return implicit_cast(indices{}); }
+    explicit operator type() && { return std::move(*this).implicit_cast(indices{}); }
 
 protected:
     template <size_t... Is>
@@ -605,6 +626,8 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <typename T, size_t... Is>
     static handle cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
         std::array<object, size> entries{{
             reinterpret_steal<object>(make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...
         }};
@@ -777,7 +800,7 @@ struct pyobject_caster {
         // For Python 2, without this implicit conversion, Python code would
         // need to be cluttered with six.ensure_text() or similar, only to be
         // un-cluttered later after Python 2 support is dropped.
-        if (std::is_same<T, str>::value && isinstance<bytes>(src)) {
+        if (PYBIND11_SILENCE_MSVC_C4127(std::is_same<T, str>::value) && isinstance<bytes>(src)) {
             PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
             if (!str_from_bytes) throw error_already_set();
             value = reinterpret_steal<type>(str_from_bytes);
@@ -1013,6 +1036,16 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+template <typename... Args,
+          typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
+object make_simple_namespace(Args&&... args_) {
+    PyObject *ns = _PyNamespace_New(dict(std::forward<Args>(args_)...).ptr());
+    if (!ns) throw error_already_set();
+    return reinterpret_steal<object>(ns);
+}
+#endif
+
 /// \ingroup annotations
 /// Annotation for arguments
 struct arg {
@@ -1161,13 +1194,14 @@ public:
     }
 
     template <typename Return, typename Guard, typename Func>
+    // NOLINTNEXTLINE(readability-const-return-type)
     enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        return std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
     }
 
     template <typename Return, typename Guard, typename Func>
     enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
     }
 
@@ -1231,8 +1265,8 @@ public:
         // Tuples aren't (easily) resizable so a list is needed for collection,
         // but the actual function call strictly requires a tuple.
         auto args_list = list();
-        int _[] = { 0, (process(args_list, std::forward<Ts>(values)), 0)... };
-        ignore_unused(_);
+        using expander = int[];
+        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
 
         m_args = std::move(args_list);
     }

@@ -31,6 +31,7 @@ endif()
 add_custom_target(
   cpptest
   COMMAND "$<TARGET_FILE:test_embed>"
+  DEPENDS test_embed
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)

@@ -148,11 +148,13 @@ py::array mkarray_via_buffer(size_t n) {
                                      1, { n }, { sizeof(T) }));
 }
 
-#define SET_TEST_VALS(s, i) do { \
-    s.bool_ = (i) % 2 != 0; \
-    s.uint_ = (uint32_t) (i); \
-    s.float_ = (float) (i) * 1.5f; \
-    s.ldbl_ = (long double) (i) * -2.5L; } while (0)
+#define SET_TEST_VALS(s, i)                                                                       \
+    do {                                                                                          \
+        (s).bool_ = (i) % 2 != 0;                                                                 \
+        (s).uint_ = (uint32_t) (i);                                                               \
+        (s).float_ = (float) (i) *1.5f;                                                           \
+        (s).ldbl_ = (long double) (i) * -2.5L;                                                    \
+    } while (0)
 
 template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {

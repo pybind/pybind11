@@ -123,7 +123,7 @@ private:
     }
 
 public:
-    pythonbuf(const object &pyostream, size_t buffer_size = 1024)
+    explicit pythonbuf(const object &pyostream, size_t buffer_size = 1024)
         : buf_size(buffer_size), d_buffer(new char[buf_size]), pywrite(pyostream.attr("write")),
           pyflush(pyostream.attr("flush")) {
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
@@ -171,8 +171,9 @@ protected:
     detail::pythonbuf buffer;
 
 public:
-    scoped_ostream_redirect(std::ostream &costream  = std::cout,
-                            const object &pyostream = module_::import("sys").attr("stdout"))
+    explicit scoped_ostream_redirect(std::ostream &costream = std::cout,
+                                     const object &pyostream
+                                     = module_::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
@@ -201,8 +202,9 @@ public:
 \endrst */
 class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
-    scoped_estream_redirect(std::ostream &costream  = std::cerr,
-                            const object &pyostream = module_::import("sys").attr("stderr"))
+    explicit scoped_estream_redirect(std::ostream &costream = std::cerr,
+                                     const object &pyostream
+                                     = module_::import("sys").attr("stderr"))
         : scoped_ostream_redirect(costream, pyostream) {}
 };
 
@@ -217,7 +219,7 @@ class OstreamRedirect {
     std::unique_ptr<scoped_estream_redirect> redirect_stderr;
 
 public:
-    OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
+    explicit OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
         : do_stdout_(do_stdout), do_stderr_(do_stderr) {}
 
     void enter() {

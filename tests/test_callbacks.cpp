@@ -81,14 +81,53 @@ TEST_SUBMODULE(callbacks, m) {
     };
     // Export the payload constructor statistics for testing purposes:
     m.def("payload_cstats", &ConstructorStats::get<Payload>);
-    /* Test cleanup of lambda closure */
-    m.def("test_cleanup", []() -> std::function<void()> {
+    m.def("test_lambda_closure_cleanup", []() -> std::function<void()> {
         Payload p;
 
+        // In this situation, `Func` in the implementation of
+        // `cpp_function::initialize` is NOT trivially destructible.
         return [p]() {
             /* p should be cleaned up when the returned function is garbage collected */
             (void) p;
         };
+    });
+
+    class CppCallable {
+    public:
+        CppCallable() { track_default_created(this); }
+        ~CppCallable() { track_destroyed(this); }
+        CppCallable(const CppCallable &) { track_copy_created(this); }
+        CppCallable(CppCallable &&) noexcept { track_move_created(this); }
+        void operator()() {}
+    };
+
+    m.def("test_cpp_callable_cleanup", []() {
+        // Related issue: https://github.com/pybind/pybind11/issues/3228
+        // Related PR: https://github.com/pybind/pybind11/pull/3229
+        py::list alive_counts;
+        ConstructorStats &stat = ConstructorStats::get<CppCallable>();
+        alive_counts.append(stat.alive());
+        {
+            CppCallable cpp_callable;
+            alive_counts.append(stat.alive());
+            {
+                // In this situation, `Func` in the implementation of
+                // `cpp_function::initialize` IS trivially destructible,
+                // only `capture` is not.
+                py::cpp_function py_func(cpp_callable);
+                py::detail::silence_unused_warnings(py_func);
+                alive_counts.append(stat.alive());
+            }
+            alive_counts.append(stat.alive());
+            {
+                py::cpp_function py_func(std::move(cpp_callable));
+                py::detail::silence_unused_warnings(py_func);
+                alive_counts.append(stat.alive());
+            }
+            alive_counts.append(stat.alive());
+        }
+        alive_counts.append(stat.alive());
+        return alive_counts;
     });
 
     // test_cpp_function_roundtrip

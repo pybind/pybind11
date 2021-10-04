@@ -1,8 +1,11 @@
 FormatStyle: file
 
 Checks: '
+*bugprone*,
 cppcoreguidelines-init-variables,
+cppcoreguidelines-slicing,
 clang-analyzer-optin.cplusplus.VirtualCall,
+google-explicit-constructor,
 llvm-namespace-comment,
 misc-misplaced-const,
 misc-non-copyable-objects,
@@ -28,9 +31,10 @@ modernize-use-override,
 modernize-use-using,
 *performance*,
 readability-avoid-const-params-in-decls,
+readability-const-return-type,
 readability-container-size-empty,
-readability-else-after-return,
 readability-delete-null-pointer,
+readability-else-after-return,
 readability-implicit-bool-conversion,
 readability-make-member-function-const,
 readability-misplaced-array-index,
@@ -43,6 +47,9 @@ readability-static-accessed-through-instance,
 readability-static-definition-in-anonymous-namespace,
 readability-string-compare,
 readability-uniqueptr-delete-release,
+-bugprone-exception-escape,
+-bugprone-reserved-identifier,
+-bugprone-unused-raii,
 '
 
 CheckOptions:

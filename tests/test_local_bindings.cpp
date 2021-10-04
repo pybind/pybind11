@@ -78,7 +78,7 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("get_mixed_lg", [](int i) { return MixedLocalGlobal(i); });
 
     // test_internal_locals_differ
-    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::registered_local_types_cpp(); });
+    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::get_local_internals().registered_types_cpp; });
 
     // test_stl_caster_vs_stl_bind
     m.def("load_vector_via_caster", [](std::vector<int> v) {
@@ -91,7 +91,7 @@ TEST_SUBMODULE(local_bindings, m) {
 
     class Cat : public pets::Pet {
     public:
-        Cat(std::string name) : Pet(std::move(name)) {}
+        explicit Cat(std::string name) : Pet(std::move(name)) {}
     };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
