@@ -41,7 +41,6 @@ jobs:
         cmake -S . -B build
         -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy)"
         -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=17
 
