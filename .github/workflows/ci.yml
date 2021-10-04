@@ -624,6 +624,7 @@ jobs:
       if: matrix.centos == 8
       run: echo Release > VAR_BUILD_TYPE
 
+    # Temporally disabling EIGEN due to SSL issue in CentOS 7
     - name: Configure
       shell: bash
       run: >
@@ -631,8 +632,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=ON
-        -DPYBIND11_EIGEN_REPO=https://gitlab.com/libeigen/eigen-backup
+        -DDOWNLOAD_EIGEN=OFF
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
