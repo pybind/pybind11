@@ -6,6 +6,12 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+
+IN DEVELOPMENT
+--------------
+
+
+
 v2.8.0 (Oct 4, 2021)
 --------------------
 
