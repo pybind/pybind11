@@ -189,6 +189,14 @@ set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
 
 set(PYBIND11_CLASS_SH_MODULE_LOCAL_TESTS test_class_sh_module_local.py)
 
+set(PYBIND11_EIGEN_REPO
+    "https://gitlab.com/libeigen/eigen.git"
+    CACHE STRING "Eigen repository to use for tests")
+# This hash is for 3.3.8, using a hash for security reasons
+set(PYBIND11_EIGEN_VERSION
+    "dc252fbf00079ccab57948a164b1421703fe4361"
+    CACHE STRING "Eigen version to use for tests")
+
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
@@ -202,13 +210,11 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       message(FATAL_ERROR "CMake 3.11+ required when using DOWNLOAD_EIGEN")
     endif()
 
-    set(EIGEN3_VERSION_STRING "3.3.8")
-
     include(FetchContent)
     FetchContent_Declare(
       eigen
-      GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-      GIT_TAG ${EIGEN3_VERSION_STRING})
+      GIT_REPOSITORY "${PYBIND11_EIGEN_REPO}"
+      GIT_TAG "${PYBIND11_EIGEN_VERSION}")
 
     FetchContent_GetProperties(eigen)
     if(NOT eigen_POPULATED)

@@ -621,6 +621,7 @@ jobs:
       if: matrix.centos == 8
       run: echo Release > VAR_BUILD_TYPE
 
+    # Temporally disabling EIGEN due to SSL issue in CentOS 7
     - name: Configure
       shell: bash
       run: >
