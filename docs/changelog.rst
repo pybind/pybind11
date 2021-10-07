@@ -250,8 +250,8 @@ New features:
 
 Changes:
 
-* ``py::str`` changed to exclusively hold `PyUnicodeObject`. Previously
-  ``py::str`` could also hold `bytes`, which is probably surprising, was
+* ``py::str`` changed to exclusively hold ``PyUnicodeObject``. Previously
+  ``py::str`` could also hold ``bytes``, which is probably surprising, was
   never documented, and can mask bugs (e.g. accidental use of ``py::str``
   instead of ``py::bytes``).
   `#2409 <https://github.com/pybind/pybind11/pull/2409>`_
@@ -1404,7 +1404,7 @@ v2.2.0 (August 31, 2017)
 * Intel C++ compiler compatibility fixes.
   `#937 <https://github.com/pybind/pybind11/pull/937>`_.
 
-* Fixed implicit conversion of `py::enum_` to integer types on Python 2.7.
+* Fixed implicit conversion of ``py::enum_`` to integer types on Python 2.7.
   `#821 <https://github.com/pybind/pybind11/pull/821>`_.
 
 * Added ``py::hash`` to fetch the hash value of Python objects, and
