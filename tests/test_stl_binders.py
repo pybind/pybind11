@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import stl_binders as m
 
 
