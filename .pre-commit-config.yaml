@@ -67,6 +67,14 @@ repos:
   hooks:
   - id: pycln
 
+- repo: https://github.com/pre-commit/pygrep-hooks
+  rev: v1.9.0
+  hooks:
+  - id: python-check-blanket-noqa
+  - id: python-check-blanket-type-ignore
+  - id: rst-directive-colons
+  - id: rst-inline-touching-normal
+
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
   rev: 3.9.2
