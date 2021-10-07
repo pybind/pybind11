@@ -106,6 +106,7 @@ repos:
   rev: v0.910-1
   hooks:
   - id: mypy
+    # Running per-file misbehaves a bit, so just run on all files, it's fast
     pass_filenames: false
     additional_dependencies: [typed_ast]
 
