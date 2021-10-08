@@ -19,13 +19,11 @@
 #include <vector>
 #include <string>
 
-// Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
-#if defined(PYBIND11_HAS_OPTIONAL) && defined(PYBIND11_HAS_VARIANT)
+#if defined(PYBIND11_HAS_OPTIONAL)
 using std::nullopt;
 using std::nullopt_t;
 using std::optional;
-using std::variant;
-#elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#elif defined(PYBIND11_TEST_BOOST)
 #  include <boost/none.hpp>
 #  include <boost/optional.hpp>
 #  define PYBIND11_HAS_OPTIONAL 1
@@ -33,6 +31,19 @@ template <typename T>
 using optional = boost::optional<T>;
 using nullopt_t = boost::none_t;
 const nullopt_t nullopt = boost::none;
+
+namespace pybind11 { namespace detail {
+template <typename T>
+struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
+
+template<> struct type_caster<nullopt_t> : public void_caster<nullopt_t> {};
+}} // namespace pybind11::detail
+#endif
+
+// Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
+#if  defined(PYBIND11_HAS_VARIANT)
+using std::variant;
+#elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
 #  include <boost/variant.hpp>
 #  define PYBIND11_HAS_VARIANT 1
 using boost::variant;
@@ -48,11 +59,6 @@ struct visit_helper<boost::variant> {
         return boost::apply_visitor(args...);
     }
 };
-
-template <typename T>
-struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
-
-template<> struct type_caster<nullopt_t> : public void_caster<nullopt_t> {};
 }} // namespace pybind11::detail
 #endif
 
