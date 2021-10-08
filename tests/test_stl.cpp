@@ -9,6 +9,7 @@
 
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
+#include <optional>
 #include <pybind11/stl.h>
 
 #ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
@@ -21,12 +22,14 @@
 
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if defined(PYBIND11_HAS_OPTIONAL) && defined(PYBIND11_HAS_VARIANT)
+using std::nullopt;
 using std::optional;
 using std::variant;
 #elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
 #  include <boost/optional.hpp>
 #  define PYBIND11_HAS_OPTIONAL 1
 using boost::optional;
+using nullopt = boost::none;
 #  include <boost/variant.hpp>
 #  define PYBIND11_HAS_VARIANT 1
 using boost::variant;
@@ -207,10 +210,10 @@ TEST_SUBMODULE(stl, m) {
     m.def("half_or_none", [](int x) -> opt_int { return x != 0 ? opt_int(x / 2) : opt_int(); });
     m.def("test_nullopt", [](opt_int x) {
         return x.value_or(42);
-    }, py::arg_v("x", std::nullopt, "None"));
+    }, py::arg_v("x", nullopt, "None"));
     m.def("test_no_assign", [](const opt_no_assign &x) {
         return x ? x->value : 42;
-    }, py::arg_v("x", std::nullopt, "None"));
+    }, py::arg_v("x", nullopt, "None"));
 
     m.def("nodefer_none_optional", [](optional<int>) { return true; });
     m.def("nodefer_none_optional", [](const py::none &) { return false; });
