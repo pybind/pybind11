@@ -25,6 +25,7 @@ using std::nullopt;
 using std::optional;
 using std::variant;
 #elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#  include <boost/none.hpp>
 #  include <boost/optional.hpp>
 #  define PYBIND11_HAS_OPTIONAL 1
 using boost::optional;
