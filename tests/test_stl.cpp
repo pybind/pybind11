@@ -47,7 +47,7 @@ using std::variant;
 #  include <boost/variant.hpp>
 #  define PYBIND11_HAS_VARIANT 1
 using boost::variant;
-
+/
 namespace pybind11 { namespace detail {
 template <typename... Ts>
 struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
@@ -69,6 +69,13 @@ struct TplCtorClass {
     template <typename T>
     explicit TplCtorClass(const T &) {}
     bool operator==(const TplCtorClass &) const { return true; }
+};
+
+// Issue: #3330
+// Needs to be here for MSVC
+enum class IssueKEnum {
+    k0 = 0,
+    k1 = 1,
 };
 
 namespace std {
@@ -235,12 +242,7 @@ TEST_SUBMODULE(stl, m) {
         .def_readonly("member", &opt_holder::member)
         .def("member_initialized", &opt_holder::member_initialized);
 
-    // issue_3330
-    enum class IssueKEnum {
-        k0 = 0,
-        k1 = 1,
-    };
-
+    // Issue: 3330
     struct BoostOptionalIssue {
         optional<IssueKEnum> value = IssueKEnum::k1;
     };
