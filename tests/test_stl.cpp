@@ -28,8 +28,10 @@ using std::variant;
 #  include <boost/none.hpp>
 #  include <boost/optional.hpp>
 #  define PYBIND11_HAS_OPTIONAL 1
-using boost::optional;
-using nullopt = boost::none_t;
+template <typename T>
+using optional = boost::optional<T>;
+using nullopt_t = boost::none_t;
+const nullopt_t nullopt = boost::none;
 #  include <boost/variant.hpp>
 #  define PYBIND11_HAS_VARIANT 1
 using boost::variant;
