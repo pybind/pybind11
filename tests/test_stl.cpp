@@ -20,9 +20,13 @@
 #include <string>
 
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
-#if defined(PYBIND11_HAS_VARIANT)
+#if defined(PYBIND11_HAS_OPTIONAL) && defined(PYBIND11_HAS_VARIANT)
+using std::optional;
 using std::variant;
 #elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#  include <boost/optional.hpp>
+#  define PYBIND11_HAS_OPTIONAL 1
+using boost::optional;
 #  include <boost/variant.hpp>
 #  define PYBIND11_HAS_VARIANT 1
 using boost::variant;
@@ -38,6 +42,9 @@ struct visit_helper<boost::variant> {
         return boost::apply_visitor(args...);
     }
 };
+
+template <typename T>
+struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
 }} // namespace pybind11::detail
 #endif
 
@@ -192,8 +199,8 @@ TEST_SUBMODULE(stl, m) {
     // test_optional
     m.attr("has_optional") = true;
 
-    using opt_int = std::optional<int>;
-    using opt_no_assign = std::optional<NoAssign>;
+    using opt_int = optional<int>;
+    using opt_no_assign = optional<NoAssign>;
     m.def("double_or_zero", [](const opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
@@ -205,10 +212,10 @@ TEST_SUBMODULE(stl, m) {
         return x ? x->value : 42;
     }, py::arg_v("x", std::nullopt, "None"));
 
-    m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
+    m.def("nodefer_none_optional", [](optional<int>) { return true; });
     m.def("nodefer_none_optional", [](const py::none &) { return false; });
 
-    using opt_holder = OptionalHolder<std::optional, MoveOutDetector>;
+    using opt_holder = OptionalHolder<optional, MoveOutDetector>;
     py::class_<opt_holder>(m, "OptionalHolder", "Class with optional member")
         .def(py::init<>())
         .def_readonly("member", &opt_holder::member)
@@ -279,7 +286,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("tpl_ctor_map", [](std::unordered_map<TplCtorClass, TplCtorClass> &) {});
     m.def("tpl_ctor_set", [](std::unordered_set<TplCtorClass> &) {});
 #if defined(PYBIND11_HAS_OPTIONAL)
-    m.def("tpl_constr_optional", [](std::optional<TplCtorClass> &) {});
+    m.def("tpl_constr_optional", [](optional<TplCtorClass> &) {});
 #elif defined(PYBIND11_HAS_EXP_OPTIONAL)
     m.def("tpl_constr_optional", [](std::experimental::optional<TplCtorClass> &) {});
 #endif
