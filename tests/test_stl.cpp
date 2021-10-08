@@ -78,6 +78,11 @@ enum class IssueKEnum {
     k1 = 1,
 };
 
+// Issue: 3330
+struct BoostOptionalIssue {
+    optional<IssueKEnum> value = IssueKEnum::k1;
+};
+
 namespace std {
     template <>
     struct hash<TplCtorClass> { size_t operator()(const TplCtorClass &) const { return 0; } };
@@ -241,11 +246,6 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def_readonly("member", &opt_holder::member)
         .def("member_initialized", &opt_holder::member_initialized);
-
-    // Issue: 3330
-    struct BoostOptionalIssue {
-        optional<IssueKEnum> value = IssueKEnum::k1;
-    };
 
     py::enum_<IssueKEnum>(m, "IssueKEnum").value("k0", IssueKEnum::k0).value("k1", IssueKEnum::k1);
 
