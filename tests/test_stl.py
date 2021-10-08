@@ -131,6 +131,10 @@ def test_optional():
     mvalue = holder.member
     assert mvalue.initialized
     assert holder.member_initialized()
+    a = m.BoostOptionalIssue().by_ref()
+    assert a is not None
+    b = m.BoostOptionalIssue().by_copy()
+    assert b is not None
 
 
 @pytest.mark.skipif(

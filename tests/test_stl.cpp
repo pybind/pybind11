@@ -228,6 +228,25 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def_readonly("member", &opt_holder::member)
         .def("member_initialized", &opt_holder::member_initialized);
+
+    // issue_3330
+    enum class IssueKEnum {
+        k0 = 0,
+        k1 = 1,
+    };
+
+    struct BoostOptionalIssue {
+        optional<IssueKEnum> value = IssueKEnum::k1;
+    };
+
+    py::enum_<IssueKEnum>(m, "IssueKEnum").value("k0", IssueKEnum::k0).value("k1", IssueKEnum::k1);
+
+    py::class_<BoostOptionalIssue>(m, "BoostOptionalIssue")
+        .def(py::init<>())
+        .def_property_readonly(
+            "by_ref", [](BoostOptionalIssue &a) -> optional<IssueKEnum> & { return a.value; })
+        .def_property_readonly(
+            "by_copy", [](BoostOptionalIssue &a) -> optional<IssueKEnum> { return a.value; });
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
