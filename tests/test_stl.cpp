@@ -49,7 +49,7 @@ struct visit_helper<boost::variant> {
 };
 
 template <typename T>
-struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
+struct type_caster<optional<T>> : optional_caster<optional<T>> {};
 
 template<> struct type_caster<nullopt_t> : public void_caster<nullopt_t> {};
 }} // namespace pybind11::detail
