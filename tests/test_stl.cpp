@@ -22,6 +22,7 @@
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if defined(PYBIND11_HAS_OPTIONAL) && defined(PYBIND11_HAS_VARIANT)
 using std::nullopt;
+using std::nullopt_t;
 using std::optional;
 using std::variant;
 #elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
@@ -50,6 +51,8 @@ struct visit_helper<boost::variant> {
 
 template <typename T>
 struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
+
+template<> struct type_caster<nullopt> : public void_caster<nullopt> {};
 }} // namespace pybind11::detail
 #endif
 
