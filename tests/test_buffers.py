@@ -5,7 +5,7 @@ import struct
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import buffers as m
 

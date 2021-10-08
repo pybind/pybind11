@@ -96,18 +96,18 @@ A matching function is available for registering a local exception translator:
 
 
 It is possible to specify base class for the exception using the third
-parameter, a `handle`:
+parameter, a ``handle``:
 
 .. code-block:: cpp
 
     py::register_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
     py::register_local_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
 
-Then `PyExp` can be caught both as `PyExp` and `RuntimeError`.
+Then ``PyExp`` can be caught both as ``PyExp`` and ``RuntimeError``.
 
 The class objects of the built-in Python exceptions are listed in the Python
 documentation on `Standard Exceptions <https://docs.python.org/3/c-api/exceptions.html#standard-exceptions>`_.
-The default base class is `PyExc_Exception`.
+The default base class is ``PyExc_Exception``.
 
 When more advanced exception translation is needed, the functions
 ``py::register_exception_translator(translator)`` and

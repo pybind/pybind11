@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
@@ -610,7 +610,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    wr = create_weakref(obj)  # noqa: F841
+    wr = create_weakref(obj)
     assert getweakrefcount(obj) == 1
 
     obj = WeaklyReferenced()
