@@ -19,6 +19,18 @@
 #include <vector>
 #include <string>
 
+#if defined(PYBIND11_TEST_BOOST)
+#include <boost/optional.hpp>
+
+namespace pybind11 { namespace detail {
+template <typename T>
+struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
+
+template <>
+struct type_caster<boost::none_t> : void_caster<boost::none_t> {};
+}} // namespace pybind11::detail
+#endif
+
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if defined(PYBIND11_HAS_VARIANT)
 using std::variant;
@@ -65,6 +77,92 @@ struct OptionalHolder
     }
     OptionalImpl<T> member = T{};
 };
+
+
+enum class EnumType {
+  k0 = 0,
+  k1 = 1,
+};
+
+// This is used to test that return-by-ref and return-by-copy policies are
+// handled properly for optional types. This is a regression test for a dangling
+// reference issue. The issue seemed to require the enum value type to
+// reproduce - it didn't seem to happen if the value type is just an integer.
+template <template <typename> class OptionalImpl>
+class OptionalProperties {
+public:
+    using OptionalEnumValue = OptionalImpl<EnumType>;
+
+    OptionalProperties() : value(EnumType::k1) {}
+    ~OptionalProperties() {
+        // Reset value to detect use-after-destruction.
+        // This is set to a specific value rather than NULL to ensure that
+        // the memory that contains the value gets re-written.
+        value = EnumType::k0;
+    }
+
+    OptionalEnumValue& access_by_ref() { return value; }
+    OptionalEnumValue access_by_copy() { return value; }
+
+private:
+    OptionalEnumValue value;
+};
+
+// This type mimics aspects of boost::optional from old versions of Boost,
+// which exposed a dangling reference bug in Pybind11. Recent versions of
+// boost::optional, as well as libstdc++'s std::optional, don't seem to be
+// affected by the same issue. This is meant to be a minimal implementation
+// required to reproduce the issue, not fully standard-compliant.
+// See issue #3330 for more details.
+template <typename T>
+class ReferenceSensitiveOptional {
+public:
+    using value_type = T;
+
+    ReferenceSensitiveOptional() = default;
+    ReferenceSensitiveOptional(const T& value) : storage{value} {}
+    ReferenceSensitiveOptional(T&& value) : storage{std::move(value)} {}
+    ReferenceSensitiveOptional& operator=(const T& value) {
+        storage = {value};
+        return *this;
+    }
+    ReferenceSensitiveOptional& operator=(T&& value) {
+        storage = {std::move(value)};
+        return *this;
+    }
+
+    template <typename... Args>
+    T& emplace(Args&&... args) {
+        storage.clear();
+        storage.emplace_back(std::forward<Args>(args)...);
+        return storage.back();
+    }
+
+    const T& value() const noexcept {
+        assert(!storage.empty());
+        return storage[0];
+    }
+
+    const T& operator*() const noexcept {
+        return value();
+    }
+
+    const T* operator->() const noexcept {
+        return &value();
+    }
+
+    explicit operator bool() const noexcept {
+        return !storage.empty();
+    }
+
+private:
+    std::vector<T> storage;
+};
+
+namespace pybind11 { namespace detail {
+template <typename T>
+struct type_caster<ReferenceSensitiveOptional<T>> : optional_caster<ReferenceSensitiveOptional<T>> {};
+}} // namespace pybind11::detail
 
 
 TEST_SUBMODULE(stl, m) {
@@ -145,6 +243,10 @@ TEST_SUBMODULE(stl, m) {
         return v;
     });
 
+    pybind11::enum_<EnumType>(m, "EnumType")
+        .value("k0", EnumType::k0)
+        .value("k1", EnumType::k1);
+
     // test_move_out_container
     struct MoveOutContainer {
         struct Value { int value; };
@@ -213,6 +315,12 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def_readonly("member", &opt_holder::member)
         .def("member_initialized", &opt_holder::member_initialized);
+
+    using opt_props = OptionalProperties<std::optional>;
+    pybind11::class_<opt_props>(m, "OptionalProperties")
+        .def(pybind11::init<>())
+        .def_property_readonly("access_by_ref", &opt_props::access_by_ref)
+        .def_property_readonly("access_by_copy", &opt_props::access_by_copy);
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
@@ -239,7 +347,75 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def_readonly("member", &opt_exp_holder::member)
         .def("member_initialized", &opt_exp_holder::member_initialized);
+
+    using opt_exp_props = OptionalProperties<std::experimental::optional>;
+    pybind11::class_<opt_exp_props>(m, "OptionalExpProperties")
+        .def(pybind11::init<>())
+        .def_property_readonly("access_by_ref", &opt_exp_props::access_by_ref)
+        .def_property_readonly("access_by_copy", &opt_exp_props::access_by_copy);
 #endif
+
+#if defined(PYBIND11_TEST_BOOST)
+    // test_boost_optional
+    m.attr("has_boost_optional") = true;
+
+    using boost_opt_int = boost::optional<int>;
+    using boost_opt_no_assign = boost::optional<NoAssign>;
+    m.def("double_or_zero_boost", [](const boost_opt_int& x) -> int {
+        return x.value_or(0) * 2;
+    });
+    m.def("half_or_none_boost", [](int x) -> boost_opt_int {
+        return x ? boost_opt_int(x / 2) : boost_opt_int();
+    });
+    m.def("test_nullopt_boost", [](boost_opt_int x) {
+        return x.value_or(42);
+    }, py::arg_v("x", boost::none, "None"));
+    m.def("test_no_assign_boost", [](const boost_opt_no_assign &x) {
+        return x ? x->value : 42;
+    }, py::arg_v("x", boost::none, "None"));
+
+    using opt_boost_holder = OptionalHolder<boost::optional, MoveOutDetector>;
+    py::class_<opt_boost_holder>(m, "OptionalBoostHolder", "Class with optional member")
+        .def(py::init<>())
+        .def_readonly("member", &opt_boost_holder::member)
+        .def("member_initialized", &opt_boost_holder::member_initialized);
+
+    using opt_boost_props = OptionalProperties<boost::optional>;
+    pybind11::class_<opt_boost_props>(m, "OptionalBoostProperties")
+        .def(pybind11::init<>())
+        .def_property_readonly("access_by_ref", &opt_boost_props::access_by_ref)
+        .def_property_readonly("access_by_copy", &opt_boost_props::access_by_copy);
+#endif
+
+    // test_refsensitive_optional
+    m.attr("has_refsensitive_optional") = true;
+
+    using refsensitive_opt_int = ReferenceSensitiveOptional<int>;
+    using refsensitive_opt_no_assign = ReferenceSensitiveOptional<NoAssign>;
+    m.def("double_or_zero_refsensitive", [](const refsensitive_opt_int& x) -> int {
+        return (x ? x.value() : 0) * 2;
+    });
+    m.def("half_or_none_refsensitive", [](int x) -> refsensitive_opt_int {
+        return x ? refsensitive_opt_int(x / 2) : refsensitive_opt_int();
+    });
+    m.def("test_nullopt_refsensitive", [](refsensitive_opt_int x) {
+        return x ? x.value() : 42;
+    }, py::arg_v("x", refsensitive_opt_int(), "None"));
+    m.def("test_no_assign_refsensitive", [](const refsensitive_opt_no_assign &x) {
+        return x ? x->value : 42;
+    }, py::arg_v("x", refsensitive_opt_no_assign(), "None"));
+
+    using opt_refsensitive_holder = OptionalHolder<ReferenceSensitiveOptional, MoveOutDetector>;
+    py::class_<opt_refsensitive_holder>(m, "OptionalRefSensitiveHolder", "Class with optional member")
+        .def(py::init<>())
+        .def_readonly("member", &opt_refsensitive_holder::member)
+        .def("member_initialized", &opt_refsensitive_holder::member_initialized);
+
+    using opt_refsensitive_props = OptionalProperties<ReferenceSensitiveOptional>;
+    pybind11::class_<opt_refsensitive_props>(m, "OptionalRefSensitiveProperties")
+        .def(pybind11::init<>())
+        .def_property_readonly("access_by_ref", &opt_refsensitive_props::access_by_ref)
+        .def_property_readonly("access_by_copy", &opt_refsensitive_props::access_by_copy);
 
 #ifdef PYBIND11_HAS_FILESYSTEM
     // test_fs_path
@@ -280,8 +456,12 @@ TEST_SUBMODULE(stl, m) {
     m.def("tpl_ctor_set", [](std::unordered_set<TplCtorClass> &) {});
 #if defined(PYBIND11_HAS_OPTIONAL)
     m.def("tpl_constr_optional", [](std::optional<TplCtorClass> &) {});
-#elif defined(PYBIND11_HAS_EXP_OPTIONAL)
-    m.def("tpl_constr_optional", [](std::experimental::optional<TplCtorClass> &) {});
+#endif
+#if defined(PYBIND11_HAS_EXP_OPTIONAL)
+    m.def("tpl_constr_optional_exp", [](std::experimental::optional<TplCtorClass> &) {});
+#endif
+#if defined(PYBIND11_TEST_BOOST)
+    m.def("tpl_constr_optional_boost", [](boost::optional<TplCtorClass> &) {});
 #endif
 
     // test_vec_of_reference_wrapper
