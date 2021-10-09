@@ -11,9 +11,14 @@
 #pragma once
 
 #include "pybind11.h"
+
+#include <chrono>
 #include <cmath>
 #include <ctime>
-#include <chrono>
+#include <mutex>
+
+#include <time.h>
+
 #include <datetime.h>
 
 // Backport the PyDateTime_DELTA functions from Python3.3 if required
@@ -53,11 +58,11 @@ public:
             return true;
         }
         // If invoked with a float we assume it is seconds and convert
-        else if (PyFloat_Check(src.ptr())) {
+        if (PyFloat_Check(src.ptr())) {
             value = type(duration_cast<duration<rep, period>>(duration<double>(PyFloat_AsDouble(src.ptr()))));
             return true;
         }
-        else return false;
+        return false;
     }
 
     // If this is a duration just return it back
@@ -94,6 +99,22 @@ public:
 
     PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
 };
+
+inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || defined(_MSC_VER)
+    if (localtime_s(buf, time))
+        return nullptr;
+    return buf;
+#else
+    static std::mutex mtx;
+    std::lock_guard<std::mutex> lock(mtx);
+    std::tm *tm_ptr = localtime(time);
+    if (tm_ptr != nullptr) {
+        *buf = *tm_ptr;
+    }
+    return tm_ptr;
+#endif
+}
 
 // This is for casting times on the system clock into datetime.datetime instances
 template <typename Duration> class type_caster<std::chrono::time_point<std::chrono::system_clock, Duration>> {
@@ -162,16 +183,10 @@ public:
         // (https://en.cppreference.com/w/cpp/chrono/system_clock/to_time_t)
         std::time_t tt = system_clock::to_time_t(time_point_cast<system_clock::duration>(src - us));
 
-        // std::localtime returns a pointer to a static internal std::tm object on success,
-        // or null pointer otherwise
-        std::tm *localtime_ptr = std::localtime(&tt);
+        std::tm localtime;
+        std::tm *localtime_ptr = localtime_thread_safe(&tt, &localtime);
         if (!localtime_ptr)
             throw cast_error("Unable to represent system_clock in local time");
-
-        // this function uses static memory so it's best to copy it out asap just in case
-        // otherwise other code that is using localtime may break this (not just python code)
-        std::tm localtime = *localtime_ptr;
-
         return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
                                           localtime.tm_mon + 1,
                                           localtime.tm_mday,

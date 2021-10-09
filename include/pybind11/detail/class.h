@@ -129,8 +129,9 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
     //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
     const auto static_prop = (PyObject *) get_internals().static_property_type;
-    const auto call_descr_set = descr && value && PyObject_IsInstance(descr, static_prop)
-                                && !PyObject_IsInstance(value, static_prop);
+    const auto call_descr_set = (descr != nullptr) && (value != nullptr)
+                                && (PyObject_IsInstance(descr, static_prop) != 0)
+                                && (PyObject_IsInstance(value, static_prop) == 0);
     if (call_descr_set) {
         // Call `static_property.__set__()` instead of replacing the `static_property`.
 #if !defined(PYPY_VERSION)
@@ -162,9 +163,7 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
         Py_INCREF(descr);
         return descr;
     }
-    else {
-        return PyType_Type.tp_getattro(obj, name);
-    }
+    return PyType_Type.tp_getattro(obj, name);
 }
 #endif
 
@@ -211,7 +210,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         internals.direct_conversions.erase(tindex);
 
         if (tinfo->module_local)
-            registered_local_types_cpp().erase(tindex);
+            get_local_internals().registered_types_cpp.erase(tindex);
         else
             internals.registered_types_cpp.erase(tindex);
         internals.registered_types_py.erase(tinfo->type);
@@ -329,7 +328,7 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 inline PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
-    // object is a a plain Python type (i.e. not derived from an extension type).  Fix it.
+    // object is a plain Python type (i.e. not derived from an extension type).  Fix it.
     ssize_t instance_size = static_cast<ssize_t>(sizeof(instance));
     if (type->tp_basicsize < instance_size) {
         type->tp_basicsize = instance_size;
@@ -564,7 +563,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     view->len = view->itemsize;
     for (auto s : info->shape)
         view->len *= s;
-    view->readonly = info->readonly;
+    view->readonly = static_cast<int>(info->readonly);
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
         view->format = const_cast<char *>(info->format.c_str());
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
@@ -684,11 +683,13 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     if (rec.buffer_protocol)
         enable_buffer_protocol(heap_type);
 
+    if (rec.custom_type_setup_callback)
+        rec.custom_type_setup_callback(heap_type);
+
     if (PyType_Ready(type) < 0)
         pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
 
-    assert(rec.dynamic_attr ? PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC)
-                            : !PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */
     if (rec.scope)

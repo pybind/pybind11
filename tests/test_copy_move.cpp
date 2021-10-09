@@ -37,9 +37,16 @@ template <> lacking_move_ctor empty<lacking_move_ctor>::instance_ = {};
 class MoveOnlyInt {
 public:
     MoveOnlyInt() { print_default_created(this); }
-    MoveOnlyInt(int v) : value{std::move(v)} { print_created(this, value); }
-    MoveOnlyInt(MoveOnlyInt &&m) { print_move_created(this, m.value); std::swap(value, m.value); }
-    MoveOnlyInt &operator=(MoveOnlyInt &&m) { print_move_assigned(this, m.value); std::swap(value, m.value); return *this; }
+    explicit MoveOnlyInt(int v) : value{v} { print_created(this, value); }
+    MoveOnlyInt(MoveOnlyInt &&m) noexcept {
+        print_move_created(this, m.value);
+        std::swap(value, m.value);
+    }
+    MoveOnlyInt &operator=(MoveOnlyInt &&m) noexcept {
+        print_move_assigned(this, m.value);
+        std::swap(value, m.value);
+        return *this;
+    }
     MoveOnlyInt(const MoveOnlyInt &) = delete;
     MoveOnlyInt &operator=(const MoveOnlyInt &) = delete;
     ~MoveOnlyInt() { print_destroyed(this); }
@@ -49,9 +56,16 @@ public:
 class MoveOrCopyInt {
 public:
     MoveOrCopyInt() { print_default_created(this); }
-    MoveOrCopyInt(int v) : value{std::move(v)} { print_created(this, value); }
-    MoveOrCopyInt(MoveOrCopyInt &&m) { print_move_created(this, m.value); std::swap(value, m.value); }
-    MoveOrCopyInt &operator=(MoveOrCopyInt &&m) { print_move_assigned(this, m.value); std::swap(value, m.value); return *this; }
+    explicit MoveOrCopyInt(int v) : value{v} { print_created(this, value); }
+    MoveOrCopyInt(MoveOrCopyInt &&m) noexcept {
+        print_move_created(this, m.value);
+        std::swap(value, m.value);
+    }
+    MoveOrCopyInt &operator=(MoveOrCopyInt &&m) noexcept {
+        print_move_assigned(this, m.value);
+        std::swap(value, m.value);
+        return *this;
+    }
     MoveOrCopyInt(const MoveOrCopyInt &c) { print_copy_created(this, c.value); value = c.value; }
     MoveOrCopyInt &operator=(const MoveOrCopyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~MoveOrCopyInt() { print_destroyed(this); }
@@ -61,7 +75,7 @@ public:
 class CopyOnlyInt {
 public:
     CopyOnlyInt() { print_default_created(this); }
-    CopyOnlyInt(int v) : value{std::move(v)} { print_created(this, value); }
+    explicit CopyOnlyInt(int v) : value{v} { print_created(this, value); }
     CopyOnlyInt(const CopyOnlyInt &c) { print_copy_created(this, c.value); value = c.value; }
     CopyOnlyInt &operator=(const CopyOnlyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~CopyOnlyInt() { print_destroyed(this); }
@@ -93,8 +107,8 @@ public:
         if (!src) return none().release();
         return cast(*src, policy, parent);
     }
-    operator CopyOnlyInt*() { return &value; }
-    operator CopyOnlyInt&() { return value; }
+    explicit operator CopyOnlyInt *() { return &value; }
+    explicit operator CopyOnlyInt &() { return value; }
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 };
 PYBIND11_NAMESPACE_END(detail)
@@ -111,7 +125,8 @@ TEST_SUBMODULE(copy_move_policies, m) {
                     py::return_value_policy::move);
 
     // test_move_and_copy_casts
-    m.def("move_and_copy_casts", [](py::object o) {
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    m.def("move_and_copy_casts", [](const py::object &o) {
         int r = 0;
         r += py::cast<MoveOrCopyInt>(o).value; /* moves */
         r += py::cast<MoveOnlyInt>(o).value; /* moves */
@@ -126,7 +141,11 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // test_move_and_copy_loads
     m.def("move_only", [](MoveOnlyInt m) { return m.value; });
+    // Changing this breaks the existing test: needs careful review.
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("move_or_copy", [](MoveOrCopyInt m) { return m.value; });
+    // Changing this breaks the existing test: needs careful review.
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("copy_only", [](CopyOnlyInt m) { return m.value; });
     m.def("move_pair", [](std::pair<MoveOnlyInt, MoveOrCopyInt> p) {
         return p.first.value + p.second.value;
@@ -186,8 +205,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
             void *ptr = std::malloc(bytes);
             if (ptr)
                 return ptr;
-            else
-                throw std::bad_alloc{};
+            throw std::bad_alloc{};
         }
     };
     py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);
@@ -201,7 +219,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
     // #389: rvp::move should fall-through to copy on non-movable objects
     struct MoveIssue1 {
         int v;
-        MoveIssue1(int v) : v{v} {}
+        explicit MoveIssue1(int v) : v{v} {}
         MoveIssue1(const MoveIssue1 &c) = default;
         MoveIssue1(MoveIssue1 &&) = delete;
     };
@@ -209,7 +227,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     struct MoveIssue2 {
         int v;
-        MoveIssue2(int v) : v{v} {}
+        explicit MoveIssue2(int v) : v{v} {}
         MoveIssue2(MoveIssue2 &&) = default;
     };
     py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);

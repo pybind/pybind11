@@ -4,6 +4,7 @@
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
 import contextlib
+import io
 import os
 import re
 import shutil
@@ -18,6 +19,36 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 VERSION_REGEX = re.compile(
     r"^\s*#\s*define\s+PYBIND11_VERSION_([A-Z]+)\s+(.*)$", re.MULTILINE
 )
+
+
+def build_expected_version_hex(matches):
+    patch_level_serial = matches["PATCH"]
+    serial = None
+    try:
+        major = int(matches["MAJOR"])
+        minor = int(matches["MINOR"])
+        flds = patch_level_serial.split(".")
+        if flds:
+            patch = int(flds[0])
+            level = None
+            if len(flds) == 1:
+                level = "0"
+                serial = 0
+            elif len(flds) == 2:
+                level_serial = flds[1]
+                for level in ("a", "b", "c", "dev"):
+                    if level_serial.startswith(level):
+                        serial = int(level_serial[len(level) :])
+                        break
+    except ValueError:
+        pass
+    if serial is None:
+        msg = 'Invalid PYBIND11_VERSION_PATCH: "{}"'.format(patch_level_serial)
+        raise RuntimeError(msg)
+    return "0x{:02x}{:02x}{:02x}{}{:x}".format(
+        major, minor, patch, level[:1].upper(), serial
+    )
+
 
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
 # files, and the sys.prefix files (CMake and headers).
@@ -40,12 +71,21 @@ exec(code, loc)
 version = loc["__version__"]
 
 # Verify that the version matches the one in C++
-with open("include/pybind11/detail/common.h") as f:
+with io.open("include/pybind11/detail/common.h", encoding="utf8") as f:
     matches = dict(VERSION_REGEX.findall(f.read()))
 cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
 if version != cpp_version:
     msg = "Python version {} does not match C++ version {}!".format(
         version, cpp_version
+    )
+    raise RuntimeError(msg)
+
+version_hex = matches.get("HEX", "MISSING")
+expected_version_hex = build_expected_version_hex(matches)
+if version_hex != expected_version_hex:
+    msg = "PYBIND11_VERSION_HEX {} does not match expected value {}!".format(
+        version_hex,
+        expected_version_hex,
     )
     raise RuntimeError(msg)
 

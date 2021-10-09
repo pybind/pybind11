@@ -5,20 +5,31 @@
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
+
+    WARNING: The implementation in this file is NOT thread safe. Multiple
+    threads writing to a redirected ostream concurrently cause data races
+    and potentially buffer overflows. Therefore it is currently a requirement
+    that all (possibly) concurrent redirected ostream writes are protected by
+    a mutex.
+    #HelpAppreciated: Work on iostream.h thread safety.
+    For more background see the discussions under
+    https://github.com/pybind/pybind11/pull/2982 and
+    https://github.com/pybind/pybind11/pull/2995.
 */
 
 #pragma once
 
 #include "pybind11.h"
 
-#include <streambuf>
-#include <ostream>
-#include <string>
-#include <memory>
-#include <iostream>
-#include <cstring>
-#include <iterator>
 #include <algorithm>
+#include <cstring>
+#include <iostream>
+#include <iterator>
+#include <memory>
+#include <ostream>
+#include <streambuf>
+#include <string>
+#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -84,30 +95,25 @@ private:
         return remainder;
     }
 
-    // This function must be non-virtual to be called in a destructor. If the
-    // rare MSVC test failure shows up with this version, then this should be
-    // simplified to a fully qualified call.
+    // This function must be non-virtual to be called in a destructor.
     int _sync() {
         if (pbase() != pptr()) { // If buffer is not empty
             gil_scoped_acquire tmp;
-            // Placed inside gil_scoped_acquire as a mutex to avoid a race.
-            if (pbase() != pptr()) { // Check again under the lock
-                // This subtraction cannot be negative, so dropping the sign.
-                auto size        = static_cast<size_t>(pptr() - pbase());
-                size_t remainder = utf8_remainder();
+            // This subtraction cannot be negative, so dropping the sign.
+            auto size        = static_cast<size_t>(pptr() - pbase());
+            size_t remainder = utf8_remainder();
 
-                if (size > remainder) {
-                    str line(pbase(), size - remainder);
-                    pywrite(line);
-                    pyflush();
-                }
-
-                // Copy the remainder at the end of the buffer to the beginning:
-                if (remainder > 0)
-                    std::memmove(pbase(), pptr() - remainder, remainder);
-                setp(pbase(), epptr());
-                pbump(static_cast<int>(remainder));
+            if (size > remainder) {
+                str line(pbase(), size - remainder);
+                pywrite(line);
+                pyflush();
             }
+
+            // Copy the remainder at the end of the buffer to the beginning:
+            if (remainder > 0)
+                std::memmove(pbase(), pptr() - remainder, remainder);
+            setp(pbase(), epptr());
+            pbump(static_cast<int>(remainder));
         }
         return 0;
     }
@@ -117,11 +123,8 @@ private:
     }
 
 public:
-
-    pythonbuf(object pyostream, size_t buffer_size = 1024)
-        : buf_size(buffer_size),
-          d_buffer(new char[buf_size]),
-          pywrite(pyostream.attr("write")),
+    explicit pythonbuf(const object &pyostream, size_t buffer_size = 1024)
+        : buf_size(buffer_size), d_buffer(new char[buf_size]), pywrite(pyostream.attr("write")),
           pyflush(pyostream.attr("flush")) {
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
     }
@@ -168,9 +171,9 @@ protected:
     detail::pythonbuf buffer;
 
 public:
-    scoped_ostream_redirect(
-            std::ostream &costream = std::cout,
-            object pyostream = module_::import("sys").attr("stdout"))
+    explicit scoped_ostream_redirect(std::ostream &costream = std::cout,
+                                     const object &pyostream
+                                     = module_::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
@@ -199,10 +202,10 @@ public:
 \endrst */
 class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
-    scoped_estream_redirect(
-            std::ostream &costream = std::cerr,
-            object pyostream = module_::import("sys").attr("stderr"))
-        : scoped_ostream_redirect(costream,pyostream) {}
+    explicit scoped_estream_redirect(std::ostream &costream = std::cerr,
+                                     const object &pyostream
+                                     = module_::import("sys").attr("stderr"))
+        : scoped_ostream_redirect(costream, pyostream) {}
 };
 
 
@@ -216,7 +219,7 @@ class OstreamRedirect {
     std::unique_ptr<scoped_estream_redirect> redirect_stderr;
 
 public:
-    OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
+    explicit OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
         : do_stdout_(do_stdout), do_stderr_(do_stderr) {}
 
     void enter() {
@@ -261,11 +264,12 @@ PYBIND11_NAMESPACE_END(detail)
             m.noisy_function_with_error_printing()
 
  \endrst */
-inline class_<detail::OstreamRedirect> add_ostream_redirect(module_ m, std::string name = "ostream_redirect") {
-    return class_<detail::OstreamRedirect>(m, name.c_str(), module_local())
-        .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
+inline class_<detail::OstreamRedirect>
+add_ostream_redirect(module_ m, const std::string &name = "ostream_redirect") {
+    return class_<detail::OstreamRedirect>(std::move(m), name.c_str(), module_local())
+        .def(init<bool, bool>(), arg("stdout") = true, arg("stderr") = true)
         .def("__enter__", &detail::OstreamRedirect::enter)
-        .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); });
+        .def("__exit__", [](detail::OstreamRedirect &self_, const args &) { self_.exit(); });
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -11,6 +11,11 @@
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
 
+#ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#define PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#endif
+#include <pybind11/stl/filesystem.h>
+
 #include <vector>
 #include <string>
 
@@ -40,7 +45,8 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
-    template <typename T> TplCtorClass(const T &) { }
+    template <typename T>
+    explicit TplCtorClass(const T &) {}
     bool operator==(const TplCtorClass &) const { return true; }
 };
 
@@ -97,7 +103,7 @@ TEST_SUBMODULE(stl, m) {
     // test_set
     m.def("cast_set", []() { return std::set<std::string>{"key1", "key2"}; });
     m.def("load_set", [](const std::set<std::string> &set) {
-        return set.count("key1") && set.count("key2") && set.count("key3");
+        return (set.count("key1") != 0u) && (set.count("key2") != 0u) && (set.count("key3") != 0u);
     });
 
     // test_recursive_casting
@@ -191,9 +197,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("double_or_zero", [](const opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
-    m.def("half_or_none", [](int x) -> opt_int {
-        return x ? opt_int(x / 2) : opt_int();
-    });
+    m.def("half_or_none", [](int x) -> opt_int { return x != 0 ? opt_int(x / 2) : opt_int(); });
     m.def("test_nullopt", [](opt_int x) {
         return x.value_or(42);
     }, py::arg_v("x", std::nullopt, "None"));
@@ -202,7 +206,7 @@ TEST_SUBMODULE(stl, m) {
     }, py::arg_v("x", std::nullopt, "None"));
 
     m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
-    m.def("nodefer_none_optional", [](py::none) { return false; });
+    m.def("nodefer_none_optional", [](const py::none &) { return false; });
 
     using opt_holder = OptionalHolder<std::optional, MoveOutDetector>;
     py::class_<opt_holder>(m, "OptionalHolder", "Class with optional member")
@@ -237,6 +241,12 @@ TEST_SUBMODULE(stl, m) {
         .def("member_initialized", &opt_exp_holder::member_initialized);
 #endif
 
+#ifdef PYBIND11_HAS_FILESYSTEM
+    // test_fs_path
+    m.attr("has_filesystem") = true;
+    m.def("parent_path", [](const std::filesystem::path& p) { return p.parent_path(); });
+#endif
+
 #ifdef PYBIND11_HAS_VARIANT
     static_assert(std::is_same<py::detail::variant_caster_visitor::result_type, py::handle>::value,
                   "visitor::result_type is required by boost::variant in C++11 mode");
@@ -245,13 +255,13 @@ TEST_SUBMODULE(stl, m) {
         using result_type = const char *;
 
         result_type operator()(int) { return "int"; }
-        result_type operator()(std::string) { return "std::string"; }
+        result_type operator()(const std::string &) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
     };
 
     // test_variant
-    m.def("load_variant", [](variant<int, std::string, double, std::nullptr_t> v) {
+    m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("load_variant_2pass", [](variant<double, int> v) {
@@ -287,9 +297,11 @@ TEST_SUBMODULE(stl, m) {
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
 
     // #1258: pybind11/stl.h converts string to vector<string>
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::vector<std::string>) { return 1; });
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          [](const std::vector<std::string> &) { return 1; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          [](const std::list<std::string> &) { return 2; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
 
     class Placeholder {
     public:
@@ -321,4 +333,10 @@ TEST_SUBMODULE(stl, m) {
     py::class_<Issue1561Outer>(m, "Issue1561Outer")
         .def(py::init<>())
         .def_readwrite("list", &Issue1561Outer::list);
+
+    m.def(
+        "return_vector_bool_raw_ptr",
+        []() { return new std::vector<bool>(4513); },
+        // Without explicitly specifying `take_ownership`, this function leaks.
+        py::return_value_policy::take_ownership);
 }

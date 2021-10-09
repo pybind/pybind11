@@ -75,7 +75,7 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -144,6 +144,24 @@ jobs:
       if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
       run: cmake --build build2 --target cpptest
 
+    # Third build - C++17 mode with unstable ABI
+    - name: Configure (unstable ABI)
+      run: >
+        cmake -S . -B build3
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=17
+        -DPYBIND11_INTERNALS_VERSION=10000000
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+        ${{ matrix.args }}
+
+    - name: Build (unstable ABI)
+      run: cmake --build build3 -j 2
+
+    - name: Python tests (unstable ABI)
+      run: cmake --build build3 --target pytest
+
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
 
@@ -151,7 +169,7 @@ jobs:
     # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.8.0
+      uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
         arch: x64
 
@@ -193,7 +211,7 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -384,7 +402,7 @@ jobs:
       run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-2020-20.9-1.x86_64.rpm
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
-    # and allow deeper templete recursion (not needed on CentOS 8 with a newer
+    # and allow deeper template recursion (not needed on CentOS 8 with a newer
     # standard library). On some systems, you many need further workarounds:
     # https://github.com/pybind/pybind11/pull/2475
     - name: Configure
@@ -445,7 +463,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Configure
       shell: bash
@@ -592,10 +610,22 @@ jobs:
     - name: Install dependencies
       run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
 
+    - name: VAR_BUILD_TYPE 7
+      if: matrix.centos == 7
+      run: echo MinSizeRel > VAR_BUILD_TYPE
+
+    # Using Release to avoid segfault that appeared around 2021-06-04,
+    # apparently when the gcc version changed from 8.3 to 8.4.
+    - name: VAR_BUILD_TYPE 8
+      if: matrix.centos == 8
+      run: echo Release > VAR_BUILD_TYPE
+
+    # Temporally disabling EIGEN due to SSL issue in CentOS 7
     - name: Configure
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -653,7 +683,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
 
-    - name: Run tests
+    - name: Python tests
       run: make pytest -j 2
       working-directory: /build-tests
 
@@ -727,10 +757,10 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.8.0
+      uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
         arch: x86
 
@@ -749,7 +779,7 @@ jobs:
     - name: Build C++11
       run: cmake --build build -j 2
 
-    - name: Run tests
+    - name: Python tests
       run: cmake --build build -t pytest
 
   win32-msvc2015:
@@ -773,10 +803,10 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.8.0
+      uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
         toolset: 14.0
 
@@ -827,7 +857,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.9
+      uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
@@ -848,3 +878,87 @@ jobs:
 
     - name: Run all checks
       run: cmake --build build -t check
+
+  mingw:
+    name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64 }
+          - { sys: mingw32, env: i686 }
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{matrix.sys}}
+        install: >-
+          git
+          mingw-w64-${{matrix.env}}-gcc
+          mingw-w64-${{matrix.env}}-python-pip
+          mingw-w64-${{matrix.env}}-python-numpy
+          mingw-w64-${{matrix.env}}-python-scipy
+          mingw-w64-${{matrix.env}}-cmake
+          mingw-w64-${{matrix.env}}-make
+          mingw-w64-${{matrix.env}}-python-pytest
+          mingw-w64-${{matrix.env}}-eigen3
+          mingw-w64-${{matrix.env}}-boost
+          mingw-w64-${{matrix.env}}-catch
+
+    - uses: actions/checkout@v2
+
+    - name: Configure C++11
+      # LTO leads to many undefined reference like
+      # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -S . -B build
+
+    - name: Build C++11
+      run: cmake --build build -j 2
+
+    - name: Python tests C++11
+      run: cmake --build build --target pytest -j 2
+
+    - name: C++11 tests
+      run: cmake --build build --target cpptest -j 2
+
+    - name: Interface test C++11
+      run: cmake --build build --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    - name: Configure C++14
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -S . -B build2
+
+    - name: Build C++14
+      run: cmake --build build2 -j 2
+
+    - name: Python tests C++14
+      run: cmake --build build2 --target pytest -j 2
+
+    - name: C++14 tests
+      run: cmake --build build2 --target cpptest -j 2
+
+    - name: Interface test C++14
+      run: cmake --build build2 --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    - name: Configure C++17
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -S . -B build3
+
+    - name: Build C++17
+      run: cmake --build build3 -j 2
+
+    - name: Python tests C++17
+      run: cmake --build build3 --target pytest -j 2
+
+    - name: C++17 tests
+      run: cmake --build build3 --target cpptest -j 2
+
+    - name: Interface test C++17
+      run: cmake --build build3 --target test_cmake_build

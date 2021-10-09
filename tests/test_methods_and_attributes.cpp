@@ -19,19 +19,21 @@ using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
 class ExampleMandA {
 public:
     ExampleMandA() { print_default_created(this); }
-    ExampleMandA(int value) : value(value) { print_created(this, value); }
+    explicit ExampleMandA(int value) : value(value) { print_created(this, value); }
     ExampleMandA(const ExampleMandA &e) : value(e.value) { print_copy_created(this); }
-    ExampleMandA(std::string&&) {}
-    ExampleMandA(ExampleMandA &&e) : value(e.value) { print_move_created(this); }
+    explicit ExampleMandA(std::string &&) {}
+    ExampleMandA(ExampleMandA &&e) noexcept : value(e.value) { print_move_created(this); }
     ~ExampleMandA() { print_destroyed(this); }
 
-    std::string toString() {
-        return "ExampleMandA[value=" + std::to_string(value) + "]";
-    }
+    std::string toString() const { return "ExampleMandA[value=" + std::to_string(value) + "]"; }
 
     void operator=(const ExampleMandA &e) { print_copy_assigned(this); value = e.value; }
-    void operator=(ExampleMandA &&e) { print_move_assigned(this); value = e.value; }
+    void operator=(ExampleMandA &&e) noexcept {
+        print_move_assigned(this);
+        value = e.value;
+    }
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     void add1(ExampleMandA other) { value += other.value; }         // passing by value
     void add2(ExampleMandA &other) { value += other.value; }        // passing by reference
     void add3(const ExampleMandA &other) { value += other.value; }  // passing by const reference
@@ -41,6 +43,7 @@ public:
     void add6(int other) { value += other; }                        // passing by value
     void add7(int &other) { value += other; }                       // passing by reference
     void add8(const int &other) { value += other; }                 // passing by const reference
+    // NOLINTNEXTLINE(readability-non-const-parameter) Deliberately non-const for testing
     void add9(int *other) { value += *other; }                      // passing by pointer
     void add10(const int *other) { value += *other; }               // passing by const pointer
 
@@ -48,13 +51,13 @@ public:
 
     ExampleMandA self1() { return *this; }                          // return by value
     ExampleMandA &self2() { return *this; }                         // return by reference
-    const ExampleMandA &self3() { return *this; }                   // return by const reference
+    const ExampleMandA &self3() const { return *this; }             // return by const reference
     ExampleMandA *self4() { return this; }                          // return by pointer
-    const ExampleMandA *self5() { return this; }                    // return by const pointer
+    const ExampleMandA *self5() const { return this; }              // return by const pointer
 
-    int internal1() { return value; }                               // return by value
+    int internal1() const { return value; }                         // return by value
     int &internal2() { return value; }                              // return by reference
-    const int &internal3() { return value; }                        // return by const reference
+    const int &internal3() const { return value; }                  // return by const reference
     int *internal4() { return &value; }                             // return by pointer
     const int *internal5() { return &value; }                       // return by const pointer
 
@@ -114,13 +117,21 @@ int none1(const NoneTester &obj) { return obj.answer; }
 int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
 int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
-int none5(std::shared_ptr<NoneTester> obj) { return obj ? obj->answer : -1; }
+int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
+
+// Issue #2778: implicit casting from None to object (not pointer)
+class NoneCastTester {
+public:
+    int answer = -1;
+    NoneCastTester() = default;
+    explicit NoneCastTester(int v) : answer(v) {}
+};
 
 struct StrIssue {
     int val = -1;
 
     StrIssue() = default;
-    StrIssue(int i) : val{i} {}
+    explicit StrIssue(int i) : val{i} {}
 };
 
 // Issues #854, #910: incompatible function args when member function/pointer is in unregistered base class
@@ -228,36 +239,41 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def(py::init<>())
         .def_readonly("def_readonly", &TestProperties::value)
         .def_readwrite("def_readwrite", &TestProperties::value)
-        .def_property("def_writeonly", nullptr,
-                      [](TestProperties& s,int v) { s.value = v; } )
+        .def_property("def_writeonly", nullptr, [](TestProperties &s, int v) { s.value = v; })
         .def_property("def_property_writeonly", nullptr, &TestProperties::set)
         .def_property_readonly("def_property_readonly", &TestProperties::get)
         .def_property("def_property", &TestProperties::get, &TestProperties::set)
         .def_property("def_property_impossible", nullptr, nullptr)
         .def_readonly_static("def_readonly_static", &TestProperties::static_value)
         .def_readwrite_static("def_readwrite_static", &TestProperties::static_value)
-        .def_property_static("def_writeonly_static", nullptr,
-                             [](py::object, int v) { TestProperties::static_value = v; })
-        .def_property_readonly_static("def_property_readonly_static",
-                                      [](py::object) { return TestProperties::static_get(); })
-        .def_property_static("def_property_writeonly_static", nullptr,
-                             [](py::object, int v) { return TestProperties::static_set(v); })
-        .def_property_static("def_property_static",
-                             [](py::object) { return TestProperties::static_get(); },
-                             [](py::object, int v) { TestProperties::static_set(v); })
-        .def_property_static("static_cls",
-                             [](py::object cls) { return cls; },
-                             [](py::object cls, py::function f) { f(cls); });
+        .def_property_static("def_writeonly_static",
+                             nullptr,
+                             [](const py::object &, int v) { TestProperties::static_value = v; })
+        .def_property_readonly_static(
+            "def_property_readonly_static",
+            [](const py::object &) { return TestProperties::static_get(); })
+        .def_property_static(
+            "def_property_writeonly_static",
+            nullptr,
+            [](const py::object &, int v) { return TestProperties::static_set(v); })
+        .def_property_static(
+            "def_property_static",
+            [](const py::object &) { return TestProperties::static_get(); },
+            [](const py::object &, int v) { TestProperties::static_set(v); })
+        .def_property_static(
+            "static_cls",
+            [](py::object cls) { return cls; },
+            [](const py::object &cls, const py::function &f) { f(cls); });
 
     py::class_<TestPropertiesOverride, TestProperties>(m, "TestPropertiesOverride")
         .def(py::init<>())
         .def_readonly("def_readonly", &TestPropertiesOverride::value)
         .def_readonly_static("def_readonly_static", &TestPropertiesOverride::static_value);
 
-    auto static_get1 = [](py::object) -> const UserType & { return TestPropRVP::sv1; };
-    auto static_get2 = [](py::object) -> const UserType & { return TestPropRVP::sv2; };
-    auto static_set1 = [](py::object, int v) { TestPropRVP::sv1.set(v); };
-    auto static_set2 = [](py::object, int v) { TestPropRVP::sv2.set(v); };
+    auto static_get1 = [](const py::object &) -> const UserType & { return TestPropRVP::sv1; };
+    auto static_get2 = [](const py::object &) -> const UserType & { return TestPropRVP::sv2; };
+    auto static_set1 = [](const py::object &, int v) { TestPropRVP::sv1.set(v); };
+    auto static_set2 = [](const py::object &, int v) { TestPropRVP::sv2.set(v); };
     auto rvp_copy = py::return_value_policy::copy;
 
     // test_property_return_value_policies
@@ -268,25 +284,28 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_property_readonly("ro_func", py::cpp_function(&TestPropRVP::get2, rvp_copy))
         .def_property("rw_ref", &TestPropRVP::get1, &TestPropRVP::set1)
         .def_property("rw_copy", &TestPropRVP::get2, &TestPropRVP::set2, rvp_copy)
-        .def_property("rw_func", py::cpp_function(&TestPropRVP::get2, rvp_copy), &TestPropRVP::set2)
+        .def_property(
+            "rw_func", py::cpp_function(&TestPropRVP::get2, rvp_copy), &TestPropRVP::set2)
         .def_property_readonly_static("static_ro_ref", static_get1)
         .def_property_readonly_static("static_ro_copy", static_get2, rvp_copy)
         .def_property_readonly_static("static_ro_func", py::cpp_function(static_get2, rvp_copy))
         .def_property_static("static_rw_ref", static_get1, static_set1)
         .def_property_static("static_rw_copy", static_get2, static_set2, rvp_copy)
-        .def_property_static("static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
+        .def_property_static(
+            "static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
         // test_property_rvalue_policy
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
-        .def_property_readonly_static("static_rvalue", [](py::object) { return UserType(1); });
+        .def_property_readonly_static("static_rvalue",
+                                      [](const py::object &) { return UserType(1); });
 
     // test_metaclass_override
     struct MetaclassOverride { };
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
-        .def_property_readonly_static("readonly", [](py::object) { return 1; });
+        .def_property_readonly_static("readonly", [](const py::object &) { return 1; });
 
     // test_overload_ordering
-    m.def("overload_order", [](std::string) { return 1; });
-    m.def("overload_order", [](std::string) { return 2; });
+    m.def("overload_order", [](const std::string &) { return 1; });
+    m.def("overload_order", [](const std::string &) { return 2; });
     m.def("overload_order", [](int) { return 3; });
     m.def("overload_order", [](int) { return 4; }, py::prepend{});
 
@@ -341,6 +360,16 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("no_none_kwarg", &none2, "a"_a.none(false));
     m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));
 
+    // test_casts_none
+    // Issue #2778: implicit casting from None to object (not pointer)
+    py::class_<NoneCastTester>(m, "NoneCastTester")
+          .def(py::init<>())
+          .def(py::init<int>())
+          .def(py::init([](py::none const&) { return NoneCastTester{}; }));
+    py::implicitly_convertible<py::none, NoneCastTester>();
+    m.def("ok_obj_or_none", [](NoneCastTester const& foo) { return foo.answer; });
+
+
     // test_str_issue
     // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid
     py::class_<StrIssue>(m, "StrIssue")
@@ -362,14 +391,14 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def("increase_value", &RegisteredDerived::increase_value)
         .def_readwrite("rw_value", &RegisteredDerived::rw_value)
         .def_readonly("ro_value", &RegisteredDerived::ro_value)
-        // These should trigger a static_assert if uncommented
-        //.def_readwrite("fails", &UserType::value) // should trigger a static_assert if uncommented
-        //.def_readonly("fails", &UserType::value) // should trigger a static_assert if uncommented
+        // Uncommenting the next line should trigger a static_assert:
+        // .def_readwrite("fails", &UserType::value)
+        // Uncommenting the next line should trigger a static_assert:
+        // .def_readonly("fails", &UserType::value)
         .def_property("rw_value_prop", &RegisteredDerived::get_int, &RegisteredDerived::set_int)
         .def_property_readonly("ro_value_prop", &RegisteredDerived::get_double)
         // This one is in the registered class:
-        .def("sum", &RegisteredDerived::sum)
-        ;
+        .def("sum", &RegisteredDerived::sum);
 
     using Adapted = decltype(py::method_adaptor<RegisteredDerived>(&RegisteredDerived::do_nothing));
     static_assert(std::is_same<Adapted, void (RegisteredDerived::*)() const>::value, "");

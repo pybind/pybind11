@@ -147,7 +147,7 @@ Add a module and setup all helpers. You can select the type of the library; the
 default is ``MODULE``. There are several options:
 
 ``OPT_SIZE``
-  Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``RelSize``.
+  Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``MinSizeRel``.
 ``THIN_LTO``
   Use thin TLO instead of regular if there's a choice (pybind11's selection
   is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
@@ -201,7 +201,8 @@ Using ``find_package`` with version info is not recommended except for release v
 @PACKAGE_INIT@
 
 # Location of pybind11/pybind11.h
-set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
+# This will be relative unless explicitly set as absolute
+set(pybind11_INCLUDE_DIR "@pybind11_INCLUDEDIR@")
 
 set(pybind11_LIBRARY "")
 set(pybind11_DEFINITIONS USING_pybind11)

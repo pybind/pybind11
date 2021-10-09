@@ -23,15 +23,17 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /* Concatenate type signatures at compile time */
 template <size_t N, typename... Ts>
 struct descr {
-    char text[N + 1];
+    char text[N + 1]{'\0'};
 
-    constexpr descr() : text{'\0'} { }
+    constexpr descr() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr descr(char const (&s)[N+1]) : descr(s, make_index_sequence<N>()) { }
 
     template <size_t... Is>
     constexpr descr(char const (&s)[N+1], index_sequence<Is...>) : text{s[Is]..., '\0'} { }
 
     template <typename... Chars>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr descr(char c, Chars... cs) : text{c, static_cast<char>(cs)..., '\0'} { }
 
     static constexpr std::array<const std::type_info *, sizeof...(Ts) + 1> types() {
@@ -42,6 +44,7 @@ struct descr {
 template <size_t N1, size_t N2, typename... Ts1, typename... Ts2, size_t... Is1, size_t... Is2>
 constexpr descr<N1 + N2, Ts1..., Ts2...> plus_impl(const descr<N1, Ts1...> &a, const descr<N2, Ts2...> &b,
                                                    index_sequence<Is1...>, index_sequence<Is2...>) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(b);
     return {a.text[Is1]..., b.text[Is2]...};
 }
 
@@ -74,7 +77,8 @@ constexpr enable_if_t<B, T1> _(const T1 &d, const T2 &) { return d; }
 template <bool B, typename T1, typename T2>
 constexpr enable_if_t<!B, T2> _(const T1 &, const T2 &d) { return d; }
 
-template <size_t Size> auto constexpr _() -> decltype(int_to_str<Size / 10, Size % 10>::digits) {
+template <size_t Size>
+auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
 

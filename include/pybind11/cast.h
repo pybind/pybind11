@@ -82,28 +82,31 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
+    explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
-#define PYBIND11_TYPE_CASTER(type, py_name) \
-    protected: \
-        type value; \
-    public: \
-        static constexpr auto name = py_name; \
-        template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0> \
-        static handle cast(T_ *src, return_value_policy policy, handle parent) { \
-            if (!src) return none().release(); \
-            if (policy == return_value_policy::take_ownership) { \
-                auto h = cast(std::move(*src), policy, parent); delete src; return h; \
-            } else { \
-                return cast(*src, policy, parent); \
-            } \
-        } \
-        operator type*() { return &value; } \
-        operator type&() { return value; } \
-        operator type&&() && { return std::move(value); } \
-        template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
-
+#define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
+protected:                                                                                        \
+    type value;                                                                                   \
+                                                                                                  \
+public:                                                                                           \
+    static constexpr auto name = py_name;                                                         \
+    template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0>      \
+    static handle cast(T_ *src, return_value_policy policy, handle parent) {                      \
+        if (!src)                                                                                 \
+            return none().release();                                                              \
+        if (policy == return_value_policy::take_ownership) {                                      \
+            auto h = cast(std::move(*src), policy, parent);                                       \
+            delete src;                                                                           \
+            return h;                                                                             \
+        }                                                                                         \
+        return cast(*src, policy, parent);                                                        \
+    }                                                                                             \
+    operator type *() { return &value; }               /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &() { return value; }                /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
+    template <typename T_>                                                                        \
+    using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 template <typename CharT> using is_std_char_type = any_of<
     std::is_same<CharT, char>, /* std::string */
@@ -142,9 +145,8 @@ public:
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             else
                 return false;
-        } else if (PyFloat_Check(src.ptr())) {
-            return false;
-        } else if (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr())) {
+        } else if (PyFloat_Check(src.ptr())
+                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
             return false;
         } else {
             handle src_or_index = src;
@@ -178,7 +180,7 @@ public:
         // Signed/unsigned checks happen elsewhere
         if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) && py_value != (py_type) (T) py_value)) {
             PyErr_Clear();
-            if (py_err && convert && PyNumber_Check(src.ptr())) {
+            if (py_err && convert && (PyNumber_Check(src.ptr()) != 0)) {
                 auto tmp = reinterpret_steal<object>(std::is_floating_point<T>::value
                                                      ? PyNumber_Float(src.ptr())
                                                      : PyNumber_Long(src.ptr()));
@@ -247,7 +249,8 @@ public:
     bool load(handle h, bool) {
         if (!h) {
             return false;
-        } else if (h.is_none()) {
+        }
+        if (h.is_none()) {
             value = nullptr;
             return true;
         }
@@ -272,12 +275,11 @@ public:
     static handle cast(const void *ptr, return_value_policy /* policy */, handle /* parent */) {
         if (ptr)
             return capsule(ptr).release();
-        else
-            return none().inc_ref();
+        return none().inc_ref();
     }
 
     template <typename T> using cast_op_type = void*&;
-    operator void *&() { return value; }
+    explicit operator void *&() { return value; }
     static constexpr auto name = _("capsule");
 private:
     void *value = nullptr;
@@ -289,9 +291,15 @@ template <> class type_caster<bool> {
 public:
     bool load(handle src, bool convert) {
         if (!src) return false;
-        else if (src.ptr() == Py_True) { value = true; return true; }
-        else if (src.ptr() == Py_False) { value = false; return true; }
-        else if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+        if (src.ptr() == Py_True) {
+            value = true;
+            return true;
+        }
+        if (src.ptr() == Py_False) {
+            value = false;
+            return true;
+        }
+        if (convert || (std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name) == 0)) {
             // (allow non-implicit conversion for numpy booleans)
 
             Py_ssize_t res = -1;
@@ -313,11 +321,10 @@ public:
             }
             #endif
             if (res == 0 || res == 1) {
-                value = (bool) res;
+                value = (res != 0);
                 return true;
-            } else {
-                PyErr_Clear();
             }
+            PyErr_Clear();
         }
         return false;
     }
@@ -351,7 +358,8 @@ template <typename StringType, bool IsView = false> struct string_caster {
         handle load_src = src;
         if (!src) {
             return false;
-        } else if (!PyUnicode_Check(load_src.ptr())) {
+        }
+        if (!PyUnicode_Check(load_src.ptr())) {
 #if PY_MAJOR_VERSION >= 3
             return load_bytes(load_src);
 #else
@@ -369,13 +377,33 @@ template <typename StringType, bool IsView = false> struct string_caster {
 #endif
         }
 
+#if PY_VERSION_HEX >= 0x03030000
+        // On Python >= 3.3, for UTF-8 we avoid the need for a temporary `bytes`
+        // object by using `PyUnicode_AsUTF8AndSize`.
+        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N == 8)) {
+            Py_ssize_t size = -1;
+            const auto *buffer
+                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+            if (!buffer) {
+                PyErr_Clear();
+                return false;
+            }
+            value = StringType(buffer, static_cast<size_t>(size));
+            return true;
+        }
+#endif
+
         auto utfNbytes = reinterpret_steal<object>(PyUnicode_AsEncodedString(
             load_src.ptr(), UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr));
         if (!utfNbytes) { PyErr_Clear(); return false; }
 
         const auto *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
-        if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
+        // Skip BOM for UTF-16/32
+        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N > 8)) {
+            buffer++;
+            length--;
+        }
         value = StringType(buffer, length);
 
         // If we're loading a string_view we need to keep the encoded Python object alive:
@@ -475,8 +503,10 @@ public:
         return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
-    operator CharT&() {
+    explicit operator CharT *() {
+        return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
+    }
+    explicit operator CharT &() {
         if (none)
             throw value_error("Cannot convert None to a character");
 
@@ -490,12 +520,16 @@ public:
         // out how long the first encoded character is in bytes to distinguish between these two
         // errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as those
         // can fit into a single char value.
-        if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
+        if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 8) && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
-            size_t char0_bytes = !(v0 & 0x80) ? 1 : // low bits only: 0-127
-                (v0 & 0xE0) == 0xC0 ? 2 : // 0b110xxxxx - start of 2-byte sequence
-                (v0 & 0xF0) == 0xE0 ? 3 : // 0b1110xxxx - start of 3-byte sequence
-                4; // 0b11110xxx - start of 4-byte sequence
+            // low bits only: 0-127
+            // 0b110xxxxx - start of 2-byte sequence
+            // 0b1110xxxx - start of 3-byte sequence
+            // 0b11110xxx - start of 4-byte sequence
+            size_t char0_bytes = (v0 & 0x80) == 0      ? 1
+                                 : (v0 & 0xE0) == 0xC0 ? 2
+                                 : (v0 & 0xF0) == 0xE0 ? 3
+                                                       : 4;
 
             if (char0_bytes == str_len) {
                 // If we have a 128-255 value, we can decode it into a single char:
@@ -511,7 +545,7 @@ public:
         // UTF-16 is much easier: we can only have a surrogate pair for values above U+FFFF, thus a
         // surrogate pair with total length 2 instantly indicates a range error (but not a "your
         // string was too long" error).
-        else if (StringCaster::UTF_N == 16 && str_len == 2) {
+        else if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 16) && str_len == 2) {
             one_char = static_cast<CharT>(value[0]);
             if (one_char >= 0xD800 && one_char < 0xE000)
                 throw value_error("Character code point not in range(0x10000)");
@@ -554,18 +588,19 @@ public:
     static handle cast(T *src, return_value_policy policy, handle parent) {
         if (!src) return none().release();
         if (policy == return_value_policy::take_ownership) {
-            auto h = cast(std::move(*src), policy, parent); delete src; return h;
-        } else {
-            return cast(*src, policy, parent);
+            auto h = cast(std::move(*src), policy, parent);
+            delete src;
+            return h;
         }
+        return cast(*src, policy, parent);
     }
 
     static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
 
     template <typename T> using cast_op_type = type;
 
-    operator type() & { return implicit_cast(indices{}); }
-    operator type() && { return std::move(*this).implicit_cast(indices{}); }
+    explicit operator type() & { return implicit_cast(indices{}); }
+    explicit operator type() && { return std::move(*this).implicit_cast(indices{}); }
 
 protected:
     template <size_t... Is>
@@ -591,6 +626,8 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <typename T, size_t... Is>
     static handle cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
         std::array<object, size> entries{{
             reinterpret_steal<object>(make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...
         }};
@@ -664,14 +701,14 @@ protected:
             value = v_h.value_ptr();
             holder = v_h.template holder<holder_type>();
             return true;
-        } else {
-            throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
-#if defined(NDEBUG)
-                             "(compile in debug mode for type information)");
-#else
-                             "of type '" + type_id<holder_type>() + "''");
-#endif
         }
+        throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
+#if defined(NDEBUG)
+                         "(compile in debug mode for type information)");
+#else
+                         "of type '"
+                         + type_id<holder_type>() + "''");
+#endif
     }
 
     template <typename T = holder_type, detail::enable_if_t<!std::is_constructible<T, const T &, type*>::value, int> = 0>
@@ -763,7 +800,7 @@ struct pyobject_caster {
         // For Python 2, without this implicit conversion, Python code would
         // need to be cluttered with six.ensure_text() or similar, only to be
         // un-cluttered later after Python 2 support is dropped.
-        if (std::is_same<T, str>::value && isinstance<bytes>(src)) {
+        if (PYBIND11_SILENCE_MSVC_C4127(std::is_same<T, str>::value) && isinstance<bytes>(src)) {
             PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
             if (!str_from_bytes) throw error_already_set();
             value = reinterpret_steal<type>(str_from_bytes);
@@ -917,8 +954,7 @@ template <typename T> detail::enable_if_t<detail::move_always<T>::value, T> cast
 template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value, T> cast(object &&object) {
     if (object.ref_count() > 1)
         return cast<T>(object);
-    else
-        return move<T>(std::move(object));
+    return move<T>(std::move(object));
 }
 template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
     return cast<T>(object);
@@ -958,6 +994,21 @@ template <> inline void cast_safe<void>(object &&) {}
 
 PYBIND11_NAMESPACE_END(detail)
 
+// The overloads could coexist, i.e. the #if is not strictly speaking needed,
+// but it is an easy minor optimization.
+#if defined(NDEBUG)
+inline cast_error cast_error_unable_to_convert_call_arg() {
+    return cast_error(
+        "Unable to convert call argument to Python object (compile in debug mode for details)");
+}
+#else
+inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name,
+                                                        const std::string &type) {
+    return cast_error("Unable to convert call argument '" + name + "' of type '" + type
+                      + "' to Python object");
+}
+#endif
+
 template <return_value_policy policy = return_value_policy::automatic_reference>
 tuple make_tuple() { return tuple(0); }
 
@@ -971,11 +1022,10 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
 #if defined(NDEBUG)
-            throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
+            throw cast_error_unable_to_convert_call_arg();
 #else
             std::array<std::string, size> argtypes { {type_id<Args>()...} };
-            throw cast_error("make_tuple(): unable to convert argument of type '" +
-                argtypes[i] + "' to Python object");
+            throw cast_error_unable_to_convert_call_arg(std::to_string(i), argtypes[i]);
 #endif
         }
     }
@@ -985,6 +1035,16 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
         PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
     return result;
 }
+
+#if PY_VERSION_HEX >= 0x03030000
+template <typename... Args,
+          typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
+object make_simple_namespace(Args&&... args_) {
+    PyObject *ns = _PyNamespace_New(dict(std::forward<Args>(args_)...).ptr());
+    if (!ns) throw error_already_set();
+    return reinterpret_steal<object>(ns);
+}
+#endif
 
 /// \ingroup annotations
 /// Annotation for arguments
@@ -1064,7 +1124,9 @@ struct kw_only {};
 struct pos_only {};
 
 template <typename T>
-arg_v arg::operator=(T &&value) const { return {std::move(*this), std::forward<T>(value)}; }
+arg_v arg::operator=(T &&value) const {
+    return {*this, std::forward<T>(value)};
+}
 
 /// Alias for backward compatibility -- to be removed in version 2.0
 template <typename /*unused*/> using arg_t = arg_v;
@@ -1132,13 +1194,14 @@ public:
     }
 
     template <typename Return, typename Guard, typename Func>
+    // NOLINTNEXTLINE(readability-const-return-type)
     enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        return std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
     }
 
     template <typename Return, typename Guard, typename Func>
     enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        std::move(*this).template call_impl<remove_cv_t<Return>>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
     }
 
@@ -1202,8 +1265,8 @@ public:
         // Tuples aren't (easily) resizable so a list is needed for collection,
         // but the actual function call strictly requires a tuple.
         auto args_list = list();
-        int _[] = { 0, (process(args_list, std::forward<Ts>(values)), 0)... };
-        ignore_unused(_);
+        using expander = int[];
+        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
 
         m_args = std::move(args_list);
     }
@@ -1228,9 +1291,10 @@ private:
         auto o = reinterpret_steal<object>(detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
 #if defined(NDEBUG)
-            argument_cast_error();
+            throw cast_error_unable_to_convert_call_arg();
 #else
-            argument_cast_error(std::to_string(args_list.size()), type_id<T>());
+            throw cast_error_unable_to_convert_call_arg(
+                std::to_string(args_list.size()), type_id<T>());
 #endif
         }
         args_list.append(o);
@@ -1258,9 +1322,9 @@ private:
         }
         if (!a.value) {
 #if defined(NDEBUG)
-            argument_cast_error();
+            throw cast_error_unable_to_convert_call_arg();
 #else
-            argument_cast_error(a.name, a.type);
+            throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
         m_kwargs[a.name] = a.value;
@@ -1286,7 +1350,7 @@ private:
                          "may be passed via py::arg() to a python function call. "
                          "(compile in debug mode for details)");
     }
-    [[noreturn]] static void nameless_argument_error(std::string type) {
+    [[noreturn]] static void nameless_argument_error(const std::string &type) {
         throw type_error("Got kwargs without a name of type '" + type + "'; only named "
                          "arguments may be passed via py::arg() to a python function call. ");
     }
@@ -1295,18 +1359,8 @@ private:
                          "(compile in debug mode for details)");
     }
 
-    [[noreturn]] static void multiple_values_error(std::string name) {
+    [[noreturn]] static void multiple_values_error(const std::string &name) {
         throw type_error("Got multiple values for keyword argument '" + name + "'");
-    }
-
-    [[noreturn]] static void argument_cast_error() {
-        throw cast_error("Unable to convert call argument to Python object "
-                         "(compile in debug mode for details)");
-    }
-
-    [[noreturn]] static void argument_cast_error(std::string name, std::string type) {
-        throw cast_error("Unable to convert call argument '" + name
-                         + "' of type '" + type + "' to Python object");
     }
 
 private:

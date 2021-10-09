@@ -20,11 +20,12 @@ TEST_SUBMODULE(modules, m) {
     // test_reference_internal
     class A {
     public:
-        A(int v) : v(v) { print_created(this, v); }
+        explicit A(int v) : v(v) { print_created(this, v); }
         ~A() { print_destroyed(this); }
         A(const A&) { print_copy_created(this); }
         A& operator=(const A &copy) { print_copy_assigned(this); v = copy.v; return *this; }
-        std::string toString() { return "A[" + std::to_string(v) + "]"; }
+        std::string toString() const { return "A[" + std::to_string(v) + "]"; }
+
     private:
         int v;
     };

@@ -3,7 +3,7 @@
 
 **pybind11 — Seamless operability between C++11 and Python**
 
-|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |CI| |Build status|
+|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status|
 
 |Repology| |PyPI package| |Conda-forge| |Python Versions|
 
@@ -12,19 +12,6 @@
 • `CMake example <https://github.com/pybind/cmake_example>`_
 
 .. start
-
-.. warning::
-
-   Combining older versions of pybind11 (< 2.6.0) with Python 3.9.0 will
-   trigger undefined behavior that typically manifests as crashes during
-   interpreter shutdown (but could also destroy your data. **You have been
-   warned.**)
-
-   We recommend that you update to the latest patch release of Python (3.9.1),
-   which includes a `fix <https://github.com/python/cpython/pull/22670>`_
-   that resolves this problem. If you do use Python 3.9.0, please update to
-   the latest version of pybind11 (2.6.0 or newer), which includes a temporary
-   workaround specifically when Python 3.9.0 is detected at runtime.
 
 
 **pybind11** is a lightweight header-only library that exposes C++ types
@@ -110,7 +97,7 @@ goodies:
   transparently applied to all entries of one or more NumPy array
   arguments.
 
-- Python’s slice-based access and assignment operations can be
+- Python's slice-based access and assignment operations can be
   supported with just a few lines of code.
 
 - Everything is contained in just a few header files; there is no need
@@ -147,9 +134,9 @@ About
 This project was created by `Wenzel
 Jakob <http://rgl.epfl.ch/people/wjakob>`_. Significant features and/or
 improvements to the code were contributed by Jonas Adler, Lori A. Burns,
-Sylvain Corlay, Eric Cousineau, Ralf Grosse-Kunstleve, Trent Houliston, Axel
+Sylvain Corlay, Eric Cousineau, Aaron Gokaslan, Ralf Grosse-Kunstleve, Trent Houliston, Axel
 Huebl, @hulucc, Yannick Jadoul, Sergey Lyskov Johan Mabille, Tomasz Miąsko,
-Dean Moldovan, Ben Pritchard, Jason Rhinelander, Boris Schäling,  Pim
+Dean Moldovan, Ben Pritchard, Jason Rhinelander, Boris Schäling, Pim
 Schellart, Henry Schreiner, Ivan Smirnov, Boris Staletic, and Patrick Stewart.
 
 We thank Google for a generous financial contribution to the continuous
@@ -189,3 +176,5 @@ to the terms and conditions of this license.
    :target: https://repology.org/project/python:pybind11/versions
 .. |Python Versions| image:: https://img.shields.io/pypi/pyversions/pybind11.svg
    :target: https://pypi.org/project/pybind11/
+.. |GitHub Discussions| image:: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
+   :target: https://github.com/pybind/pybind11/discussions

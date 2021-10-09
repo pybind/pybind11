@@ -2,9 +2,8 @@
 import pytest
 
 import env  # noqa: F401
-
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
-from pybind11_tests import UserType, ConstructorStats
 
 
 def test_repr():
@@ -21,6 +20,14 @@ def test_instance(msg):
     instance = m.NoConstructor.new_instance()
 
     cstats = ConstructorStats.get(m.NoConstructor)
+    assert cstats.alive() == 1
+    del instance
+    assert cstats.alive() == 0
+
+
+def test_instance_new(msg):
+    instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
+    cstats = ConstructorStats.get(m.NoConstructorNew)
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
@@ -321,7 +328,7 @@ def test_bind_protected_functions():
 
 
 def test_brace_initialization():
-    """ Tests that simple POD classes can be constructed using C++11 brace initialization """
+    """Tests that simple POD classes can be constructed using C++11 brace initialization"""
     a = m.BraceInitialization(123, "test")
     assert a.field1 == 123
     assert a.field2 == "test"

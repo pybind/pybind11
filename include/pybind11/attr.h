@@ -12,13 +12,17 @@
 
 #include "cast.h"
 
+#include <functional>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// \addtogroup annotations
 /// @{
 
 /// Annotation for methods
-struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
+struct is_method { handle class_;
+    explicit is_method(const handle &c) : class_(c) {}
+};
 
 /// Annotation for operators
 struct is_operator { };
@@ -27,16 +31,24 @@ struct is_operator { };
 struct is_final { };
 
 /// Annotation for parent scope
-struct scope { handle value; scope(const handle &s) : value(s) { } };
+struct scope { handle value;
+    explicit scope(const handle &s) : value(s) {}
+};
 
 /// Annotation for documentation
-struct doc { const char *value; doc(const char *value) : value(value) { } };
+struct doc { const char *value;
+    explicit doc(const char *value) : value(value) {}
+};
 
 /// Annotation for function names
-struct name { const char *value; name(const char *value) : value(value) { } };
+struct name { const char *value;
+    explicit name(const char *value) : value(value) {}
+};
 
 /// Annotation indicating that a function is an overload associated with a given "sibling"
-struct sibling { handle value; sibling(const handle &value) : value(value.ptr()) { } };
+struct sibling { handle value;
+    explicit sibling(const handle &value) : value(value.ptr()) {}
+};
 
 /// Annotation indicating that a class derives from another given type
 template <typename T> struct base {
@@ -62,14 +74,34 @@ struct metaclass {
     handle value;
 
     PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
-    metaclass() { } // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    // NOLINTNEXTLINE(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    metaclass() {}
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) { }
 };
 
+/// Specifies a custom callback with signature `void (PyHeapTypeObject*)` that
+/// may be used to customize the Python type.
+///
+/// The callback is invoked immediately before `PyType_Ready`.
+///
+/// Note: This is an advanced interface, and uses of it may require changes to
+/// work with later versions of pybind11.  You may wish to consult the
+/// implementation of `make_new_python_type` in `detail/classes.h` to understand
+/// the context in which the callback will be run.
+struct custom_type_setup {
+    using callback = std::function<void(PyHeapTypeObject *heap_type)>;
+
+    explicit custom_type_setup(callback value) : value(std::move(value)) {}
+
+    callback value;
+};
+
 /// Annotation that marks a class as local to the module:
-struct module_local { const bool value; constexpr module_local(bool v = true) : value(v) { } };
+struct module_local { const bool value;
+    constexpr explicit module_local(bool v = true) : value(v) {}
+};
 
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
@@ -123,7 +155,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -259,6 +291,9 @@ struct type_record {
     /// Custom metaclass (optional)
     handle metaclass;
 
+    /// Custom type setup.
+    custom_type_setup::callback custom_type_setup_callback;
+
     /// Multiple inheritance marker
     bool multiple_inheritance : 1;
 
@@ -377,7 +412,7 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
 };
 
 inline void process_kw_only_arg(const arg &a, function_record *r) {
-    if (!a.name || strlen(a.name) == 0)
+    if (!a.name || a.name[0] == '\0')
         pybind11_fail("arg(): cannot specify an unnamed argument after an kw_only() annotation");
     ++r->nargs_kw_only;
 }
@@ -464,6 +499,13 @@ struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr>
 };
 
 template <>
+struct process_attribute<custom_type_setup> {
+    static void init(const custom_type_setup &value, type_record *r) {
+        r->custom_type_setup_callback = value.value;
+    }
+};
+
+template <>
 struct process_attribute<is_final> : process_attribute_default<is_final> {
     static void init(const is_final &, type_record *r) { r->is_final = true; }
 };
@@ -515,20 +557,31 @@ template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurs
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(r);
+        using expander = int[];
+        (void) expander{
+            0, ((void) process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...};
     }
     static void init(const Args&... args, type_record *r) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(r);
+        using expander = int[];
+        (void) expander{0,
+                        (process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...};
     }
     static void precall(function_call &call) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call);
+        using expander = int[];
+        (void) expander{0,
+                        (process_attribute<typename std::decay<Args>::type>::precall(call), 0)...};
     }
     static void postcall(function_call &call, handle fn_ret) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
-        ignore_unused(unused);
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call, fn_ret);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(fn_ret);
+        using expander = int[];
+        (void) expander{
+            0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0)...};
     }
 };
 
@@ -544,6 +597,7 @@ template <typename... Extra,
           size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
           size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(nargs, has_args, has_kwargs);
     return named == 0 || (self + named + size_t(has_args) + size_t(has_kwargs)) == nargs;
 }
 

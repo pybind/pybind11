@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "detail/common.h"
 #include "pybind11.h"
 #include <set>
 #include <unordered_set>
@@ -19,33 +20,15 @@
 #include <deque>
 #include <valarray>
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+// See `detail/common.h` for implementation of these guards.
+#if defined(PYBIND11_HAS_OPTIONAL)
+#  include <optional>
+#elif defined(PYBIND11_HAS_EXP_OPTIONAL)
+#  include <experimental/optional>
 #endif
 
-#ifdef __has_include
-// std::optional (but including it in c++14 mode isn't allowed)
-#  if defined(PYBIND11_CPP17) && __has_include(<optional>)
-#    include <optional>
-#    define PYBIND11_HAS_OPTIONAL 1
-#  endif
-// std::experimental::optional (but not allowed in c++11 mode)
-#  if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
-                                 !__has_include(<optional>))
-#    include <experimental/optional>
-#    define PYBIND11_HAS_EXP_OPTIONAL 1
-#  endif
-// std::variant
-#  if defined(PYBIND11_CPP17) && __has_include(<variant>)
-#    include <variant>
-#    define PYBIND11_HAS_VARIANT 1
-#  endif
-#elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
-#  include <optional>
+#if defined(PYBIND11_HAS_VARIANT)
 #  include <variant>
-#  define PYBIND11_HAS_OPTIONAL 1
-#  define PYBIND11_HAS_VARIANT 1
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -159,10 +142,13 @@ template <typename Type, typename Value> struct list_caster {
     }
 
 private:
-    template <typename T = Type,
-              enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
-    void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
-    void reserve_maybe(sequence, void *) { }
+    template <
+        typename T                                                                          = Type,
+        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    void reserve_maybe(const sequence &s, Type *) {
+        value.reserve(s.size());
+    }
+    void reserve_maybe(const sequence &, void *) {}
 
 public:
     template <typename T>
@@ -170,12 +156,12 @@ public:
         if (!std::is_lvalue_reference<T>::value)
             policy = return_value_policy_override<Value>::policy(policy);
         list l(src.size());
-        size_t index = 0;
+        ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -227,12 +213,12 @@ public:
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
         list l(src.size());
-        size_t index = 0;
+        ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -275,7 +261,8 @@ template<typename T> struct optional_caster {
     bool load(handle src, bool convert) {
         if (!src) {
             return false;
-        } else if (src.is_none()) {
+        }
+        if (src.is_none()) {
             return true;  // default-constructed value is already empty
         }
         value_conv inner_caster;
@@ -377,12 +364,12 @@ struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { 
 PYBIND11_NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
+#ifdef PYBIND11_HAS_STRING_VIEW
+    os << str(obj).cast<std::string_view>();
+#else
     os << (std::string) str(obj);
+#endif
     return os;
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif

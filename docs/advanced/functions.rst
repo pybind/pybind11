@@ -90,17 +90,18 @@ The following table provides an overview of available policies:
 |                                                  | return value is referenced by Python. This is the default policy for       |
 |                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.     |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::automatic`           | **Default policy.** This policy falls back to the policy                   |
+| :enum:`return_value_policy::automatic`           | This policy falls back to the policy                                       |
 |                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
 |                                                  | pointer. Otherwise, it uses :enum:`return_value_policy::move` or           |
 |                                                  | :enum:`return_value_policy::copy` for rvalue and lvalue references,        |
 |                                                  | respectively. See above for a description of what all of these different   |
-|                                                  | policies do.                                                               |
+|                                                  | policies do. This is the default policy for ``py::class_``-wrapped types.  |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
 |                                                  | return value is a pointer. This is the default conversion policy for       |
 |                                                  | function arguments when calling Python functions manually from C++ code    |
-|                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
+|                                                  | (i.e. via ``handle::operator()``) and the casters in ``pybind11/stl.h``.   |
+|                                                  | You probably won't need to use this explicitly.                            |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 Return value policies can also be applied to properties:
@@ -231,7 +232,7 @@ is equivalent to the following pseudocode:
     });
 
 The only requirement is that ``T`` is default-constructible, but otherwise any
-scope guard will work. This is very useful in combination with `gil_scoped_release`.
+scope guard will work. This is very useful in combination with ``gil_scoped_release``.
 See :ref:`gil`.
 
 Multiple guards can also be specified as ``py::call_guard<T1, T2, T3...>``. The
@@ -254,7 +255,7 @@ For instance, the following statement iterates over a Python ``dict``:
 
 .. code-block:: cpp
 
-    void print_dict(py::dict dict) {
+    void print_dict(const py::dict& dict) {
         /* Easily interact with Python types */
         for (auto item : dict)
             std::cout << "key=" << std::string(py::str(item.first)) << ", "
@@ -271,7 +272,7 @@ And used in Python as usual:
 
 .. code-block:: pycon
 
-    >>> print_dict({'foo': 123, 'bar': 'hello'})
+    >>> print_dict({"foo": 123, "bar": "hello"})
     key=foo, value=123
     key=bar, value=hello
 
@@ -292,7 +293,7 @@ Such functions can also be created using pybind11:
 
 .. code-block:: cpp
 
-   void generic(py::args args, py::kwargs kwargs) {
+   void generic(py::args args, const py::kwargs& kwargs) {
        /// .. do something with args
        if (kwargs)
            /// .. do something with kwargs
@@ -376,10 +377,11 @@ argument in a function definition:
     def f(a, *, b):  # a can be positional or via keyword; b must be via keyword
         pass
 
+
     f(a=1, b=2)  # good
     f(b=2, a=1)  # good
-    f(1, b=2)    # good
-    f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
+    f(1, b=2)  # good
+    f(1, 2)  # TypeError: f() takes 1 positional argument but 2 were given
 
 Pybind11 provides a ``py::kw_only`` object that allows you to implement
 the same behaviour by specifying the object between positional and keyword-only

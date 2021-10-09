@@ -7,13 +7,13 @@
 
 cmake_minimum_required(VERSION 3.4)
 
-# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.4...3.21)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.18)
+if(${CMAKE_VERSION} VERSION_LESS 3.21)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.18)
+  cmake_policy(VERSION 3.21)
 endif()
 
 # Extract project version from source
@@ -89,6 +89,9 @@ endif()
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
+set(PYBIND11_INTERNALS_VERSION
+    ""
+    CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
@@ -125,7 +128,8 @@ set(PYBIND11_HEADERS
     include/pybind11/pybind11.h
     include/pybind11/pytypes.h
     include/pybind11/stl.h
-    include/pybind11/stl_bind.h)
+    include/pybind11/stl_bind.h
+    include/pybind11/stl/filesystem.h)
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)
@@ -182,6 +186,10 @@ if(NOT TARGET pybind11_headers)
 
   target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
                                                      cxx_right_angle_brackets)
+  if(NOT "${PYBIND11_INTERNALS_VERSION}" STREQUAL "")
+    target_compile_definitions(
+      pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")
+  endif()
 else()
   # It is invalid to install a target twice, too.
   set(PYBIND11_INSTALL OFF)
@@ -201,6 +209,12 @@ if(PYBIND11_INSTALL)
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
+
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(pybind11_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+  else()
+    set(pybind11_INCLUDEDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
 
   configure_package_config_file(
     tools/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"

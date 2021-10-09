@@ -16,9 +16,18 @@ class Vector2 {
 public:
     Vector2(float x, float y) : x(x), y(y) { print_created(this, toString()); }
     Vector2(const Vector2 &v) : x(v.x), y(v.y) { print_copy_created(this); }
-    Vector2(Vector2 &&v) : x(v.x), y(v.y) { print_move_created(this); v.x = v.y = 0; }
+    Vector2(Vector2 &&v) noexcept : x(v.x), y(v.y) {
+        print_move_created(this);
+        v.x = v.y = 0;
+    }
     Vector2 &operator=(const Vector2 &v) { x = v.x; y = v.y; print_copy_assigned(this); return *this; }
-    Vector2 &operator=(Vector2 &&v) { x = v.x; y = v.y; v.x = v.y = 0; print_move_assigned(this); return *this; }
+    Vector2 &operator=(Vector2 &&v) noexcept {
+        x   = v.x;
+        y   = v.y;
+        v.x = v.y = 0;
+        print_move_assigned(this);
+        return *this;
+    }
     ~Vector2() { print_destroyed(this); }
 
     std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
