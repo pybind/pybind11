@@ -96,18 +96,18 @@ A matching function is available for registering a local exception translator:
 
 
 It is possible to specify base class for the exception using the third
-parameter, a `handle`:
+parameter, a ``handle``:
 
 .. code-block:: cpp
 
     py::register_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
     py::register_local_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
 
-Then `PyExp` can be caught both as `PyExp` and `RuntimeError`.
+Then ``PyExp`` can be caught both as ``PyExp`` and ``RuntimeError``.
 
 The class objects of the built-in Python exceptions are listed in the Python
 documentation on `Standard Exceptions <https://docs.python.org/3/c-api/exceptions.html#standard-exceptions>`_.
-The default base class is `PyExc_Exception`.
+The default base class is ``PyExc_Exception``.
 
 When more advanced exception translation is needed, the functions
 ``py::register_exception_translator(translator)`` and
@@ -322,6 +322,34 @@ Alternately, to ignore the error, call `PyErr_Clear
 
 Any Python error must be thrown or cleared, or Python/pybind11 will be left in
 an invalid state.
+
+Chaining exceptions ('raise from')
+==================================
+
+In Python 3.3 a mechanism for indicating that exceptions were caused by other
+exceptions was introduced:
+
+.. code-block:: py
+
+    try:
+        print(1 / 0)
+    except Exception as exc:
+        raise RuntimeError("could not divide by zero") from exc
+
+To do a similar thing in pybind11, you can use the ``py::raise_from`` function. It
+sets the current python error indicator, so to continue propagating the exception
+you should ``throw py::error_already_set()`` (Python 3 only).
+
+.. code-block:: cpp
+
+    try {
+        py::eval("print(1 / 0"));
+    } catch (py::error_already_set &e) {
+        py::raise_from(e, PyExc_RuntimeError, "could not divide by zero");
+        throw py::error_already_set();
+    }
+
+.. versionadded:: 2.8
 
 .. _unraisable_exceptions:
 

@@ -1,5 +1,5 @@
 /*
-    pybind11/exec.h: Support for evaluating Python expressions and statements
+    pybind11/eval.h: Support for evaluating Python expressions and statements
     from strings and files
 
     Copyright (c) 2016 Klemens Morgenstern <klemens.morgenstern@ed-chemnitz.de> and
@@ -135,6 +135,15 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         PyErr_Clear();
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
+
+    // In Python2, this should be encoded by getfilesystemencoding.
+    // We don't boher setting it since Python2 is past EOL anyway.
+    // See PR#3233
+#if PY_VERSION_HEX >= 0x03000000
+    if (!global.contains("__file__")) {
+        global["__file__"] = std::move(fname);
+    }
+#endif
 
 #if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
     PyObject *result = PyRun_File(f, fname_str.c_str(), start, global.ptr(),

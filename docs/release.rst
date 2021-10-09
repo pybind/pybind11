@@ -27,6 +27,7 @@ To release a new version of pybind11:
       ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
     - Update the version HEX just below, as well.
     - Update ``pybind11/_version.py`` (match above)
+    - Run ``nox -s tests_packaging``` to ensure this was done correctly.
     - Ensure that all the information in ``setup.cfg`` is up-to-date, like
       supported Python versions.
     - Add release date in ``docs/changelog.rst``.
@@ -64,6 +65,7 @@ To release a new version of pybind11:
     - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
       ``0.dev1`` and increment MINOR).
     - Update ``_version.py`` to match
+    - Run ``nox -s tests_packaging``` to ensure this was done correctly.
     - Add a spot for in-development updates in ``docs/changelog.rst``.
     - ``git add``, ``git commit``, ``git push``
 

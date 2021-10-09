@@ -42,10 +42,7 @@ An example of a ``setup.py`` using pybind11's helpers:
         ),
     ]
 
-    setup(
-        ...,
-        ext_modules=ext_modules
-    )
+    setup(..., ext_modules=ext_modules)
 
 If you want to do an automatic search for the highest supported C++ standard,
 that is supported via a ``build_ext`` command override; it will only affect
@@ -64,11 +61,7 @@ that is supported via a ``build_ext`` command override; it will only affect
         ),
     ]
 
-    setup(
-        ...,
-        cmdclass={"build_ext": build_ext},
-        ext_modules=ext_modules
-    )
+    setup(..., cmdclass={"build_ext": build_ext}, ext_modules=ext_modules)
 
 If you have single-file extension modules that are directly stored in the
 Python source tree (``foo.cpp`` in the same directory as where a ``foo.py``
@@ -113,7 +106,7 @@ with the following:
 
     from pybind11.setup_helpers import ParallelCompile, naive_recompile
 
-    SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
+    ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
 If you have a more complex build, you can implement a smarter function and pass
@@ -347,7 +340,7 @@ standard explicitly with
 
     set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ version selection")  # or 11, 14, 17, 20
     set(CMAKE_CXX_STANDARD_REQUIRED ON)  # optional, ensure standard is supported
-    set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensionsn off
+    set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensions off
 
 The variables can also be set when calling CMake from the command line using
 the ``-D<variable>=<value>`` flag. You can also manually set ``CXX_STANDARD``

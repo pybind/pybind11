@@ -36,13 +36,13 @@ everywhere <http://utf8everywhere.org/>`_.
         }
     );
 
-.. code-block:: python
+.. code-block:: pycon
 
-    >>> utf8_test('🎂')
+    >>> utf8_test("🎂")
     utf-8 is icing on the cake.
     🎂
 
-    >>> utf8_charptr('🍕')
+    >>> utf8_charptr("🍕")
     My favorite food is
     🍕
 
@@ -80,7 +80,7 @@ raise a ``UnicodeDecodeError``.
         }
     );
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> isinstance(example.std_string_return(), str)
     True
@@ -114,7 +114,7 @@ conversion has the same overhead as implicit conversion.
         }
     );
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> str_output()
     'Send your résumé to Alice in HR'
@@ -143,7 +143,7 @@ returned to Python as ``bytes``, then one can return the data as a
         }
     );
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> example.return_bytes()
     b'\xba\xd0\xba\xd0'
@@ -160,7 +160,7 @@ encoding, but cannot convert ``std::string`` back to ``bytes`` implicitly.
         }
     );
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> isinstance(example.asymmetry(b"have some bytes"), str)
     True
@@ -229,16 +229,16 @@ character.
     m.def("pass_char", [](char c) { return c; });
     m.def("pass_wchar", [](wchar_t w) { return w; });
 
-.. code-block:: python
+.. code-block:: pycon
 
-    >>> example.pass_char('A')
+    >>> example.pass_char("A")
     'A'
 
 While C++ will cast integers to character types (``char c = 0x65;``), pybind11
 does not convert Python integers to characters implicitly. The Python function
 ``chr()`` can be used to convert integers to characters.
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> example.pass_char(0x65)
     TypeError
@@ -259,17 +259,17 @@ a combining acute accent). The combining character will be lost if the
 two-character sequence is passed as an argument, even though it renders as a
 single grapheme.
 
-.. code-block:: python
+.. code-block:: pycon
 
-    >>> example.pass_wchar('é')
+    >>> example.pass_wchar("é")
     'é'
 
-    >>> combining_e_acute = 'e' + '\u0301'
+    >>> combining_e_acute = "e" + "\u0301"
 
     >>> combining_e_acute
     'é'
 
-    >>> combining_e_acute == 'é'
+    >>> combining_e_acute == "é"
     False
 
     >>> example.pass_wchar(combining_e_acute)
@@ -278,9 +278,9 @@ single grapheme.
 Normalizing combining characters before passing the character literal to C++
 may resolve *some* of these issues:
 
-.. code-block:: python
+.. code-block:: pycon
 
-    >>> example.pass_wchar(unicodedata.normalize('NFC', combining_e_acute))
+    >>> example.pass_wchar(unicodedata.normalize("NFC", combining_e_acute))
     'é'
 
 In some languages (Thai for example), there are `graphemes that cannot be

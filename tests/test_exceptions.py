@@ -3,10 +3,9 @@ import sys
 
 import pytest
 
-import env  # noqa: F401
-
-from pybind11_tests import exceptions as m
+import env
 import pybind11_cross_module_tests as cm
+from pybind11_tests import exceptions as m
 
 
 def test_std_exception(msg):
@@ -49,6 +48,22 @@ def test_raise_without_throw(msg):
         "Unable to convert function return value to a Python type! The "
         "signature was\n\t(return_null: bool, set_error: bool) -> object"
     )
+
+
+@pytest.mark.skipif("env.PY2")
+def test_raise_from(msg):
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_from()
+    assert msg(excinfo.value) == "outer"
+    assert msg(excinfo.value.__cause__) == "inner"
+
+
+@pytest.mark.skipif("env.PY2")
+def test_raise_from_already_set(msg):
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_from_already_set()
+    assert msg(excinfo.value) == "outer"
+    assert msg(excinfo.value.__cause__) == "inner"
 
 
 def test_cross_module_exceptions(msg):

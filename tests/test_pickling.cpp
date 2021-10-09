@@ -67,7 +67,7 @@ TEST_SUBMODULE(pickling, m) {
     // test_roundtrip
     class Pickleable {
     public:
-        Pickleable(const std::string &value) : m_value(value) { }
+        explicit Pickleable(const std::string &value) : m_value(value) { }
         const std::string &value() const { return m_value; }
 
         void setExtra1(int extra1) { m_extra1 = extra1; }
@@ -132,7 +132,7 @@ TEST_SUBMODULE(pickling, m) {
     // test_roundtrip_with_dict
     class PickleableWithDict {
     public:
-        PickleableWithDict(const std::string &value) : value(value) { }
+        explicit PickleableWithDict(const std::string &value) : value(value) { }
 
         std::string value;
         int extra;

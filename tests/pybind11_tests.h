@@ -1,9 +1,6 @@
 #pragma once
 
-// This must be kept first for MSVC 2015.
-// Do not remove the empty line between the #includes.
 #include <pybind11/pybind11.h>
-
 #include <pybind11/eval.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1910
@@ -19,7 +16,7 @@ class test_initializer {
     using Initializer = void (*)(py::module_ &);
 
 public:
-    test_initializer(Initializer init);
+    explicit test_initializer(Initializer init);
     test_initializer(const char *submodule_name, Initializer init);
 };
 
@@ -35,7 +32,7 @@ struct UnregisteredType { };
 class UserType {
 public:
     UserType() = default;
-    UserType(int i) : i(i) { }
+    explicit UserType(int i) : i(i) { }
 
     int value() const { return i; }
     void set(int set) { i = set; }

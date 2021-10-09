@@ -89,6 +89,9 @@ endif()
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
+set(PYBIND11_INTERNALS_VERSION
+    ""
+    CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
@@ -183,6 +186,10 @@ if(NOT TARGET pybind11_headers)
 
   target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
                                                      cxx_right_angle_brackets)
+  if(NOT "${PYBIND11_INTERNALS_VERSION}" STREQUAL "")
+    target_compile_definitions(
+      pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")
+  endif()
 else()
   # It is invalid to install a target twice, too.
   set(PYBIND11_INSTALL OFF)

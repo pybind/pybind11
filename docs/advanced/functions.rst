@@ -232,7 +232,7 @@ is equivalent to the following pseudocode:
     });
 
 The only requirement is that ``T`` is default-constructible, but otherwise any
-scope guard will work. This is very useful in combination with `gil_scoped_release`.
+scope guard will work. This is very useful in combination with ``gil_scoped_release``.
 See :ref:`gil`.
 
 Multiple guards can also be specified as ``py::call_guard<T1, T2, T3...>``. The
@@ -272,7 +272,7 @@ And used in Python as usual:
 
 .. code-block:: pycon
 
-    >>> print_dict({'foo': 123, 'bar': 'hello'})
+    >>> print_dict({"foo": 123, "bar": "hello"})
     key=foo, value=123
     key=bar, value=hello
 
@@ -377,10 +377,11 @@ argument in a function definition:
     def f(a, *, b):  # a can be positional or via keyword; b must be via keyword
         pass
 
+
     f(a=1, b=2)  # good
     f(b=2, a=1)  # good
-    f(1, b=2)    # good
-    f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
+    f(1, b=2)  # good
+    f(1, 2)  # TypeError: f() takes 1 positional argument but 2 were given
 
 Pybind11 provides a ``py::kw_only`` object that allows you to implement
 the same behaviour by specifying the object between positional and keyword-only

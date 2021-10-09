@@ -27,7 +27,7 @@
 
 // test_brace_initialization
 struct NoBraceInitialization {
-    NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
+    explicit NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
     template <typename T>
     NoBraceInitialization(std::initializer_list<T> l) : vec(l) {}
 
@@ -47,9 +47,25 @@ TEST_SUBMODULE(class_, m) {
         }
         ~NoConstructor() { print_destroyed(this); }
     };
+    struct NoConstructorNew {
+        NoConstructorNew() = default;
+        NoConstructorNew(const NoConstructorNew &) = default;
+        NoConstructorNew(NoConstructorNew &&) = default;
+        static NoConstructorNew *new_instance() {
+            auto *ptr = new NoConstructorNew();
+            print_created(ptr, "via new_instance");
+            return ptr;
+        }
+        ~NoConstructorNew() { print_destroyed(this); }
+    };
 
     py::class_<NoConstructor>(m, "NoConstructor")
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
+
+    py::class_<NoConstructorNew>(m, "NoConstructorNew")
+        .def(py::init([](const NoConstructorNew &self) { return self; })) // Need a NOOP __init__
+        .def_static("__new__",
+                    [](const py::object &) { return NoConstructorNew::new_instance(); });
 
     // test_inheritance
     class Pet {
@@ -65,18 +81,18 @@ TEST_SUBMODULE(class_, m) {
 
     class Dog : public Pet {
     public:
-        Dog(const std::string &name) : Pet(name, "dog") {}
+        explicit Dog(const std::string &name) : Pet(name, "dog") {}
         std::string bark() const { return "Woof!"; }
     };
 
     class Rabbit : public Pet {
     public:
-        Rabbit(const std::string &name) : Pet(name, "parrot") {}
+        explicit Rabbit(const std::string &name) : Pet(name, "parrot") {}
     };
 
     class Hamster : public Pet {
     public:
-        Hamster(const std::string &name) : Pet(name, "rodent") {}
+        explicit Hamster(const std::string &name) : Pet(name, "rodent") {}
     };
 
     class Chimera : public Pet {
@@ -208,7 +224,7 @@ TEST_SUBMODULE(class_, m) {
     struct ConvertibleFromUserType {
         int i;
 
-        ConvertibleFromUserType(UserType u) : i(u.value()) { }
+        explicit ConvertibleFromUserType(UserType u) : i(u.value()) {}
     };
 
     py::class_<ConvertibleFromUserType>(m, "AcceptsUserType")
@@ -263,7 +279,7 @@ TEST_SUBMODULE(class_, m) {
     };
     struct PyAliasedHasOpNewDelSize : AliasedHasOpNewDelSize {
         PyAliasedHasOpNewDelSize() = default;
-        PyAliasedHasOpNewDelSize(int) { }
+        explicit PyAliasedHasOpNewDelSize(int) {}
         std::uint64_t j;
     };
     struct HasOpNewDelBoth {

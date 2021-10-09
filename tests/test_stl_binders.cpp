@@ -18,7 +18,7 @@
 class El {
 public:
     El() = delete;
-    El(int v) : a(v) { }
+    explicit El(int v) : a(v) {}
 
     int a;
 };

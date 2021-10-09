@@ -81,7 +81,7 @@ private:
 
 
 struct PythonCallInDestructor {
-    PythonCallInDestructor(const py::dict &d) : d(d) {}
+    explicit PythonCallInDestructor(const py::dict &d) : d(d) {}
     ~PythonCallInDestructor() { d["good"] = true; }
 
     py::dict d;
@@ -90,7 +90,7 @@ struct PythonCallInDestructor {
 
 
 struct PythonAlreadySetInDestructor {
-    PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
+    explicit PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
     ~PythonAlreadySetInDestructor() {
         py::dict foo;
         try {
@@ -270,4 +270,24 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("simple_bool_passthrough", [](bool x) {return x;});
 
     m.def("throw_should_be_translated_to_key_error", []() { throw shared_exception(); });
+
+#if PY_VERSION_HEX >= 0x03030000
+
+    m.def("raise_from", []() {
+        PyErr_SetString(PyExc_ValueError, "inner");
+        py::raise_from(PyExc_ValueError, "outer");
+        throw py::error_already_set();
+    });
+
+    m.def("raise_from_already_set", []() {
+        try {
+            PyErr_SetString(PyExc_ValueError, "inner");
+            throw py::error_already_set();
+        } catch (py::error_already_set& e) {
+            py::raise_from(e, PyExc_ValueError, "outer");
+            throw py::error_already_set();
+        }
+    });
+
+#endif
 }

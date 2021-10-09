@@ -2,9 +2,8 @@
 import pytest
 
 import env  # noqa: F401
-
-from pybind11_tests import methods_and_attributes as m
 from pybind11_tests import ConstructorStats
+from pybind11_tests import methods_and_attributes as m
 
 
 def test_methods_and_attributes():
@@ -103,7 +102,7 @@ def test_properties():
     assert instance.def_property == 3
 
     with pytest.raises(AttributeError) as excinfo:
-        dummy = instance.def_property_writeonly  # noqa: F841 unused var
+        dummy = instance.def_property_writeonly  # unused var
     assert "unreadable attribute" in str(excinfo.value)
 
     instance.def_property_writeonly = 4
@@ -128,7 +127,7 @@ def test_static_properties():
     assert m.TestProperties.def_readwrite_static == 2
 
     with pytest.raises(AttributeError) as excinfo:
-        dummy = m.TestProperties.def_writeonly_static  # noqa: F841 unused var
+        dummy = m.TestProperties.def_writeonly_static  # unused var
     assert "unreadable attribute" in str(excinfo.value)
 
     m.TestProperties.def_writeonly_static = 3

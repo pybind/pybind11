@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 8
+#define PYBIND11_VERSION_MINOR 9
 #define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020800D1
+#define PYBIND11_VERSION_HEX 0x020900D1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -99,10 +99,26 @@
 #  endif
 #endif
 
-#if defined(_MSC_VER)
-#  define PYBIND11_NOINLINE __declspec(noinline)
+// For CUDA, GCC7, GCC8:
+// PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
+// When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
+// However, the measured shared-library size saving when using noinline are only
+// 1.7% for CUDA, -0.2% for GCC7, and 0.0% for GCC8 (using -DCMAKE_BUILD_TYPE=MinSizeRel,
+// the default under pybind11/tests).
+#if !defined(PYBIND11_NOINLINE_FORCED) && \
+    (defined(__CUDACC__) || (defined(__GNUC__) && (__GNUC__ == 7 || __GNUC__ == 8)))
+#  define PYBIND11_NOINLINE_DISABLED
+#endif
+
+// The PYBIND11_NOINLINE macro is for function DEFINITIONS.
+// In contrast, FORWARD DECLARATIONS should never use this macro:
+// https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
+#if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
+#  define PYBIND11_NOINLINE inline
+#elif defined(_MSC_VER)
+#  define PYBIND11_NOINLINE __declspec(noinline) inline
 #else
-#  define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  define PYBIND11_NOINLINE __attribute__ ((noinline)) inline
 #endif
 
 #if defined(__MINGW32__)
@@ -145,7 +161,26 @@
 
 // https://en.cppreference.com/w/c/chrono/localtime
 #if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
-#    define __STDC_WANT_LIB_EXT1__
+#  define __STDC_WANT_LIB_EXT1__
+#endif
+
+#ifdef __has_include
+// std::optional (but including it in c++14 mode isn't allowed)
+#  if defined(PYBIND11_CPP17) && __has_include(<optional>)
+#    define PYBIND11_HAS_OPTIONAL 1
+#  endif
+// std::experimental::optional (but not allowed in c++11 mode)
+#  if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
+                                 !__has_include(<optional>))
+#    define PYBIND11_HAS_EXP_OPTIONAL 1
+#  endif
+// std::variant
+#  if defined(PYBIND11_CPP17) && __has_include(<variant>)
+#    define PYBIND11_HAS_VARIANT 1
+#  endif
+#elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
+#  define PYBIND11_HAS_OPTIONAL 1
+#  define PYBIND11_HAS_VARIANT 1
 #endif
 
 #include <Python.h>
@@ -299,6 +334,19 @@ extern "C" {
         }                                                                      \
     }
 
+#if PY_VERSION_HEX >= 0x03030000
+
+#define PYBIND11_CATCH_INIT_EXCEPTIONS \
+        catch (pybind11::error_already_set &e) {                                 \
+            pybind11::raise_from(e, PyExc_ImportError, "initialization failed"); \
+            return nullptr;                                                      \
+        } catch (const std::exception &e) {                                      \
+            PyErr_SetString(PyExc_ImportError, e.what());                        \
+            return nullptr;                                                      \
+        }                                                                        \
+
+#else
+
 #define PYBIND11_CATCH_INIT_EXCEPTIONS \
         catch (pybind11::error_already_set &e) {                               \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
@@ -307,6 +355,8 @@ extern "C" {
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
         }                                                                      \
+
+#endif
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
@@ -378,6 +428,12 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
+
+template <typename IntType>
+inline ssize_t ssize_t_cast(const IntType &val) {
+    static_assert(sizeof(IntType) <= sizeof(ssize_t), "Implicit narrowing is not permitted.");
+    return static_cast<ssize_t>(val);
+}
 
 /// Approach used to cast a previously unknown C++ instance into a Python object
 enum class return_value_policy : uint8_t {
@@ -506,7 +562,7 @@ struct instance {
     void allocate_layout();
 
     /// Destroys/deallocates all of the above
-    void deallocate_layout() const;
+    void deallocate_layout();
 
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
     /// omitted).  Returns a default-constructed (with `.inst = nullptr`) object on failure if
@@ -778,8 +834,8 @@ PYBIND11_RUNTIME_EXCEPTION(import_error, PyExc_ImportError)
 PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
@@ -881,6 +937,7 @@ public:
 
     // Implicit conversion constructor from any arbitrary container type with values convertible to T
     template <typename Container, typename = enable_if_t<std::is_convertible<decltype(*std::begin(std::declval<const Container &>())), T>::value>>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     any_container(const Container &c) : any_container(std::begin(c), std::end(c)) { }
 
     // initializer_list's aren't deducible, so don't get matched by the above template; we need this
@@ -889,9 +946,11 @@ public:
     any_container(const std::initializer_list<TIn> &c) : any_container(c.begin(), c.end()) { }
 
     // Avoid copying if given an rvalue vector of the correct type.
+    // NOLINTNEXTLINE(google-explicit-constructor)
     any_container(std::vector<T> &&v) : v(std::move(v)) { }
 
     // Moves the vector out of an rvalue any_container
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::vector<T> &&() && { return std::move(v); }
 
     // Dereferencing obtains a reference to the underlying vector
@@ -952,7 +1011,7 @@ inline void silence_unused_warnings(Args &&...) {}
 // warning C4127: Conditional expression is constant
 constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
-#    define PYBIND11_SILENCE_MSVC_C4127(...) detail::silence_msvc_c4127(__VA_ARGS__)
+#    define PYBIND11_SILENCE_MSVC_C4127(...) ::pybind11::detail::silence_msvc_c4127(__VA_ARGS__)
 
 #else
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__

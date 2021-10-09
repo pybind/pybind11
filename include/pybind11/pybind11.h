@@ -10,17 +10,13 @@
 
 #pragma once
 
-#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wattributes"
-#endif
-
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
 
+#include <cstdlib>
 #include <memory>
 #include <new>
 #include <vector>
@@ -86,10 +82,12 @@ PYBIND11_NAMESPACE_END(detail)
 class cpp_function : public function {
 public:
     cpp_function() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t) { }
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (*f)(Args...), const Extra&... extra) {
         initialize(f, f, extra...);
     }
@@ -97,6 +95,7 @@ public:
     /// Construct a cpp_function from a lambda function (possibly with internal state)
     template <typename Func, typename... Extra,
               typename = detail::enable_if_t<detail::is_lambda<Func>::value>>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Func &&f, const Extra&... extra) {
         initialize(std::forward<Func>(f),
                    (detail::function_signature_t<Func> *) nullptr, extra...);
@@ -104,6 +103,7 @@ public:
 
     /// Construct a cpp_function from a class method (non-const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
@@ -113,6 +113,7 @@ public:
     /// A copy of the overload for non-const functions without explicit ref-qualifier
     /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...)&, const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
@@ -120,6 +121,7 @@ public:
 
     /// Construct a cpp_function from a class method (const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
@@ -129,6 +131,7 @@ public:
     /// A copy of the overload for const functions without explicit ref-qualifier
     /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Return (Class::*f)(Arg...) const&, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
@@ -180,7 +183,7 @@ protected:
 #endif
             // UB without std::launder, but without breaking ABI and/or
             // a significant refactoring it's "impossible" to solve.
-            if (!std::is_trivially_destructible<Func>::value)
+            if (!std::is_trivially_destructible<capture>::value)
                 rec->free_data = [](function_record *r) {
                     auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
                     (void) data;
@@ -414,7 +417,8 @@ protected:
         detail::function_record *chain = nullptr, *chain_start = rec;
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
-                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(rec->sibling.ptr()));
+                auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
+                capsule rec_capsule = isinstance<capsule>(self) ? reinterpret_borrow<capsule>(self) : capsule(self);
                 chain = (detail::function_record *) rec_capsule;
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
@@ -1541,7 +1545,7 @@ public:
            char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
            detail::process_attributes<Extra...>::init(extra..., rec_fget);
            if (rec_fget->doc && rec_fget->doc != doc_prev) {
-              free(doc_prev);
+              std::free(doc_prev);
               rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
            }
         }
@@ -1549,7 +1553,7 @@ public:
             char *doc_prev = rec_fset->doc;
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
-                free(doc_prev);
+                std::free(doc_prev);
                 rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
             }
             if (! rec_active) rec_active = rec_fset;
@@ -1677,7 +1681,7 @@ inline str enum_name(handle arg) {
 }
 
 struct enum_base {
-    enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
+    enum_base(const handle &base, const handle &parent) : m_base(base), m_parent(parent) { }
 
     PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
         m_base.attr("__entries") = dict();
@@ -1827,6 +1831,19 @@ struct enum_base {
     handle m_parent;
 };
 
+template <bool is_signed, size_t length> struct equivalent_integer {};
+template <> struct equivalent_integer<true,  1> { using type = int8_t;   };
+template <> struct equivalent_integer<false, 1> { using type = uint8_t;  };
+template <> struct equivalent_integer<true,  2> { using type = int16_t;  };
+template <> struct equivalent_integer<false, 2> { using type = uint16_t; };
+template <> struct equivalent_integer<true,  4> { using type = int32_t;  };
+template <> struct equivalent_integer<false, 4> { using type = uint32_t; };
+template <> struct equivalent_integer<true,  8> { using type = int64_t;  };
+template <> struct equivalent_integer<false, 8> { using type = uint64_t; };
+
+template <typename IntLike>
+using equivalent_integer_t = typename equivalent_integer<std::is_signed<IntLike>::value, sizeof(IntLike)>::type;
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Binds C++ enumerations and enumeration classes to Python
@@ -1837,13 +1854,17 @@ public:
     using Base::attr;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
-    using Scalar = typename std::underlying_type<Type>::type;
+    using Underlying = typename std::underlying_type<Type>::type;
+    // Scalar is the integer representation of underlying type
+    using Scalar = detail::conditional_t<detail::any_of<
+        detail::is_std_char_type<Underlying>, std::is_same<Underlying, bool>
+    >::value, detail::equivalent_integer_t<Underlying>, Underlying>;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
-        constexpr bool is_convertible = std::is_convertible<Type, Scalar>::value;
+        constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
@@ -1883,7 +1904,7 @@ private:
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 
-inline void keep_alive_impl(handle nurse, handle patient) {
+PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
@@ -1910,7 +1931,7 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     }
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;
@@ -1943,25 +1964,54 @@ inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_t
     return res;
 }
 
-template <typename Iterator, typename Sentinel, bool KeyIterator, return_value_policy Policy>
+/* There are a large number of apparently unused template arguments because
+ * each combination requires a separate py::class_ registration.
+ */
+template <typename Access, return_value_policy Policy, typename Iterator, typename Sentinel, typename ValueType, typename... Extra>
 struct iterator_state {
     Iterator it;
     Sentinel end;
     bool first_or_done;
 };
 
-PYBIND11_NAMESPACE_END(detail)
+// Note: these helpers take the iterator by non-const reference because some
+// iterators in the wild can't be dereferenced when const. C++ needs the extra parens in decltype
+// to enforce an lvalue. The & after Iterator is required for MSVC < 16.9. SFINAE cannot be
+// reused for result_type due to bugs in ICC, NVCC, and PGI compilers. See PR #3293.
+template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()))>
+struct iterator_access {
+    using result_type = decltype((*std::declval<Iterator &>()));
+    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
+    result_type operator()(Iterator &it) const {
+        return *it;
+    }
+};
 
-/// Makes a python iterator from a first and past-the-end C++ InputIterator.
-template <return_value_policy Policy = return_value_policy::reference_internal,
+template <typename Iterator, typename SFINAE = decltype(((*std::declval<Iterator &>()).first)) >
+struct iterator_key_access {
+    using result_type = decltype(((*std::declval<Iterator &>()).first));
+    result_type operator()(Iterator &it) const {
+        return (*it).first;
+    }
+};
+
+template <typename Iterator, typename SFINAE = decltype(((*std::declval<Iterator &>()).second))>
+struct iterator_value_access {
+    using result_type = decltype(((*std::declval<Iterator &>()).second));
+    result_type operator()(Iterator &it) const {
+        return (*it).second;
+    }
+};
+
+template <typename Access,
+          return_value_policy Policy,
           typename Iterator,
           typename Sentinel,
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename ValueType = decltype(*std::declval<Iterator>()),
-#endif
+          typename ValueType,
           typename... Extra>
-iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    using state = detail::iterator_state<Iterator, Sentinel, false, Policy>;
+iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
+    using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
+    // TODO: state captures only the types of Extra, not the values
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
@@ -1975,42 +2025,63 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                     s.first_or_done = true;
                     throw stop_iteration();
                 }
-                return *s.it;
+                return Access()(s.it);
+            // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
             }, std::forward<Extra>(extra)..., Policy);
     }
 
     return cast(state{first, last, true});
 }
 
-/// Makes an python iterator over the keys (`.first`) of a iterator over pairs from a
+PYBIND11_NAMESPACE_END(detail)
+
+/// Makes a python iterator from a first and past-the-end C++ InputIterator.
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Iterator,
+          typename Sentinel,
+          typename ValueType = typename detail::iterator_access<Iterator>::result_type,
+          typename... Extra>
+iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    return detail::make_iterator_impl<
+        detail::iterator_access<Iterator>,
+        Policy,
+        Iterator,
+        Sentinel,
+        ValueType,
+        Extra...>(first, last, std::forward<Extra>(extra)...);
+}
+
+/// Makes a python iterator over the keys (`.first`) of a iterator over pairs from a
 /// first and past-the-end InputIterator.
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Iterator,
           typename Sentinel,
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
-          typename KeyType = decltype((*std::declval<Iterator>()).first),
-#endif
+          typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
           typename... Extra>
-iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    using state = detail::iterator_state<Iterator, Sentinel, true, Policy>;
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+    return detail::make_iterator_impl<
+        detail::iterator_key_access<Iterator>,
+        Policy,
+        Iterator,
+        Sentinel,
+        KeyType,
+        Extra...>(first, last, std::forward<Extra>(extra)...);
+}
 
-    if (!detail::get_type_info(typeid(state), false)) {
-        class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> KeyType {
-                if (!s.first_or_done)
-                    ++s.it;
-                else
-                    s.first_or_done = false;
-                if (s.it == s.end) {
-                    s.first_or_done = true;
-                    throw stop_iteration();
-                }
-                return (*s.it).first;
-            }, std::forward<Extra>(extra)..., Policy);
-    }
-
-    return cast(state{first, last, true});
+/// Makes a python iterator over the values (`.second`) of a iterator over pairs from a
+/// first and past-the-end InputIterator.
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Iterator,
+          typename Sentinel,
+          typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
+          typename... Extra>
+iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+    return detail::make_iterator_impl<
+        detail::iterator_value_access<Iterator>,
+        Policy, Iterator,
+        Sentinel,
+        ValueType,
+        Extra...>(first, last, std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
@@ -2027,10 +2098,17 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
     return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
 }
 
+/// Makes an iterator over the values (`.second`) of a stl map-like container supporting
+/// `std::begin()`/`std::end()`
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Type, typename... Extra> iterator make_value_iterator(Type &value, Extra&&... extra) {
+    return make_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
+}
+
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     struct set_flag {
         bool &flag;
-        set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
+        explicit set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
         ~set_flag() { flag = false; }
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
@@ -2160,7 +2238,7 @@ exception<CppException> &register_local_exception(handle scope,
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE inline void print(const tuple &args, const dict &kwargs) {
+PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
@@ -2390,8 +2468,4 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(__GNUC__) && __GNUC__ == 7
 #    pragma GCC diagnostic pop // -Wnoexcept-type
-#endif
-
-#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma GCC diagnostic pop
 #endif

@@ -136,7 +136,7 @@ a virtual method call.
     u'woof! woof! woof! '
     >>> class Cat(Animal):
     ...     def go(self, n_times):
-    ...             return "meow! " * n_times
+    ...         return "meow! " * n_times
     ...
     >>> c = Cat()
     >>> call_go(c)
@@ -159,8 +159,9 @@ Here is an example:
 
     class Dachshund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, a TypeError is raised.
+            Dog.__init__(self)  # Without this, a TypeError is raised.
             self.name = name
+
         def bark(self):
             return "yap!"
 
@@ -1153,6 +1154,7 @@ error:
 
     >>> class PyFinalChild(IsFinal):
     ...     pass
+    ...
     TypeError: type 'IsFinal' is not an acceptable base type
 
 .. note:: This attribute is currently ignored on PyPy
@@ -1247,7 +1249,7 @@ Accessing the type object
 
 You can get the type object from a C++ class that has already been registered using:
 
-.. code-block:: python
+.. code-block:: cpp
 
     py::type T_py = py::type::of<T>();
 
@@ -1259,3 +1261,37 @@ object, just like ``type(ob)`` in Python.
     Other types, like ``py::type::of<int>()``, do not work, see :ref:`type-conversions`.
 
 .. versionadded:: 2.6
+
+Custom type setup
+=================
+
+For advanced use cases, such as enabling garbage collection support, you may
+wish to directly manipulate the ``PyHeapTypeObject`` corresponding to a
+``py::class_`` definition.
+
+You can do that using ``py::custom_type_setup``:
+
+.. code-block:: cpp
+
+   struct OwnsPythonObjects {
+       py::object value = py::none();
+   };
+   py::class_<OwnsPythonObjects> cls(
+       m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
+           auto *type = &heap_type->ht_type;
+           type->tp_flags |= Py_TPFLAGS_HAVE_GC;
+           type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
+               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+               Py_VISIT(self.value.ptr());
+               return 0;
+           };
+           type->tp_clear = [](PyObject *self_base) {
+               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+               self.value = py::none();
+               return 0;
+           };
+       }));
+   cls.def(py::init<>());
+   cls.def_readwrite("value", &OwnsPythonObjects::value);
+
+.. versionadded:: 2.8

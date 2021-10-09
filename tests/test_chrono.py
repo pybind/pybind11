@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from pybind11_tests import chrono as m
 import datetime
+
 import pytest
 
 import env  # noqa: F401
+from pybind11_tests import chrono as m
 
 
 def test_chrono_system_clock():
