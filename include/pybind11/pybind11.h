@@ -1980,15 +1980,24 @@ struct iterator_access {
 };
 
 template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()).first) >
-struct iterator_key_access {
-    // If either the pair itself or the element of the pair is a reference, we
-    // want to return a reference, otherwise a value. When the decltype
-    // expression is parenthesized it is based on the value category of the
-    // expression; otherwise it is the declared type of the pair member.
+class iterator_key_access {
+private:
+    using pair_type = decltype(*std::declval<Iterator &>());
+
+public:
+    /* If either the pair itself or the element of the pair is a reference, we
+     * want to return a reference, otherwise a value. When the decltype
+     * expression is parenthesized it is based on the value category of the
+     * expression; otherwise it is the declared type of the pair member.
+     * The use of declval<pair_type> in the second branch rather than directly
+     * using *std::declval<Iterator &>() is a workaround for nvcc
+     * (it's not used in the first branch because going via decltype and back
+     * through declval does not perfectly preserve references).
+     */
     using result_type = conditional_t<
         std::is_reference<decltype(*std::declval<Iterator &>())>::value,
         decltype(((*std::declval<Iterator &>()).first)),
-        decltype((*std::declval<Iterator &>()).first)
+        decltype(std::declval<pair_type>().first)
     >;
     result_type operator()(Iterator &it) const {
         return (*it).first;
@@ -1996,11 +2005,15 @@ struct iterator_key_access {
 };
 
 template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()).second)>
-struct iterator_value_access {
+class iterator_value_access {
+private:
+    using pair_type = decltype(*std::declval<Iterator &>());
+
+public:
     using result_type = conditional_t<
         std::is_reference<decltype(*std::declval<Iterator &>())>::value,
         decltype(((*std::declval<Iterator &>()).second)),
-        decltype((*std::declval<Iterator &>()).second)
+        decltype(std::declval<pair_type>().second)
     >;
     result_type operator()(Iterator &it) const {
         return (*it).second;
