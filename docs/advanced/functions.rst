@@ -232,7 +232,7 @@ is equivalent to the following pseudocode:
     });
 
 The only requirement is that ``T`` is default-constructible, but otherwise any
-scope guard will work. This is very useful in combination with `gil_scoped_release`.
+scope guard will work. This is very useful in combination with ``gil_scoped_release``.
 See :ref:`gil`.
 
 Multiple guards can also be specified as ``py::call_guard<T1, T2, T3...>``. The
