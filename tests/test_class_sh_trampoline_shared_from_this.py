@@ -3,7 +3,7 @@ import weakref
 
 import pytest
 
-import env  # noqa: F401
+import env
 import pybind11_tests.class_sh_trampoline_shared_from_this as m
 
 
