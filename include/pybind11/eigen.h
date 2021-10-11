@@ -24,7 +24,7 @@
 // it is probably best to keep this around indefinitely.
 #if defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable: 4127)
+#  pragma warning(disable: 4127) // C4127: conditional expression is constant
 #endif
 
 #include <Eigen/Core>
