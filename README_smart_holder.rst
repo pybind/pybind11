@@ -112,10 +112,10 @@ There are three small differences compared to Classic pybind11:
 
 To the 2nd bullet point, the ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro
 needs to appear in all translation units with pybind11 bindings that involve
-Python⇄C++ conversions for `Foo`. This is the biggest inconvenience of the
+Python⇄C++ conversions for ``Foo``. This is the biggest inconvenience of the
 Conservative mode. Practically, at a larger scale it is best to work with a
-pair of `.h` and `.cpp` files for the bindings code, with the macros in the
-`.h` files.
+pair of ``.h`` and ``.cpp`` files for the bindings code, with the macros in
+the ``.h`` files.
 
 To the 3rd bullet point, ``py::classh<Foo>`` is simply a shortcut for
 ``py::class_<Foo, py::smart_holder>``. The shortcut makes it possible to
@@ -155,7 +155,7 @@ To work in Progressive mode:
 - Remove or replace (see below) ``std::shared_ptr<...>`` holders.
 
 - Only if custom smart-pointers are used: the
-  `PYBIND11_TYPE_CASTER_BASE_HOLDER` macro is needed (see
+  ``PYBIND11_TYPE_CASTER_BASE_HOLDER`` macro is needed (see
   tests/test_smart_ptr.cpp for examples).
 
 Overall this is probably easier to work with than the Conservative mode, but
