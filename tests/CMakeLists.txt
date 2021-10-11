@@ -174,7 +174,7 @@ set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
     CACHE STRING "Eigen repository to use for tests")
-# This hash is for 3.3.8, using a hash for security reasons
+# This hash is for 3.4.0, using a hash for security reasons
 set(PYBIND11_EIGEN_VERSION
     "929bc0e191d0927b1735b9a1ddc0e8b77e3a25ec"
     CACHE STRING "Eigen version to use for tests")
