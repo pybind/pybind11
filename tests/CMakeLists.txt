@@ -192,9 +192,9 @@ set(PYBIND11_CLASS_SH_MODULE_LOCAL_TESTS test_class_sh_module_local.py)
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
     CACHE STRING "Eigen repository to use for tests")
-# This hash is for 3.3.8, using a hash for security reasons
+# This hash is for 3.4.0, using a hash for security reasons
 set(PYBIND11_EIGEN_VERSION
-    "dc252fbf00079ccab57948a164b1421703fe4361"
+    "929bc0e191d0927b1735b9a1ddc0e8b77e3a25ec"
     CACHE STRING "Eigen version to use for tests")
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but

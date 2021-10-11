@@ -1266,7 +1266,7 @@ Custom type setup
 =================
 
 For advanced use cases, such as enabling garbage collection support, you may
-wish to directly manipulate the `PyHeapTypeObject` corresponding to a
+wish to directly manipulate the ``PyHeapTypeObject`` corresponding to a
 ``py::class_`` definition.
 
 You can do that using ``py::custom_type_setup``:

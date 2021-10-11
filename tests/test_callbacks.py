@@ -4,7 +4,7 @@ from threading import Thread
 
 import pytest
 
-import env  # NOQA: F401
+import env  # noqa: F401
 from pybind11_tests import callbacks as m
 
 

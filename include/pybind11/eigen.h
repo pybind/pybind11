@@ -17,8 +17,22 @@
 
 #include "numpy.h"
 
+// The C4127 suppression was introduced for Eigen 3.4.0. In theory we could
+// make it version specific, or even remove it later, but considering that
+// 1. C4127 is generally far more distracting than useful for modern template code, and
+// 2. we definitely want to ignore any MSVC warnings originating from Eigen code,
+// it is probably best to keep this around indefinitely.
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // C4127: conditional expression is constant
+#endif
+
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
 // move constructors that break things.  We could detect this an explicitly copy, but an extra copy
@@ -559,7 +573,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         if (!values || !innerIndices || !outerIndices)
             return false;
 
-        value = Eigen::MappedSparseMatrix<Scalar, Type::Flags, StorageIndex>(
+        value = Eigen::MappedSparseMatrix<Scalar,
+                                          Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
+                                          StorageIndex>(
             shape[0].cast<Index>(), shape[1].cast<Index>(), nnz,
             outerIndices.mutable_data(), innerIndices.mutable_data(), values.mutable_data());
 

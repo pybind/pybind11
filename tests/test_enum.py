@@ -96,13 +96,13 @@ Members:
         y >= object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y | object()  # noqa: B015
+        y | object()
 
     with pytest.raises(TypeError):
-        y & object()  # noqa: B015
+        y & object()
 
     with pytest.raises(TypeError):
-        y ^ object()  # noqa: B015
+        y ^ object()
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
