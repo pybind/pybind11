@@ -22,13 +22,14 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
         python:
-        - 2.7
-        - 3.5
-        - 3.6
-        - 3.9
-        - 3.10-dev
-        - pypy2
-        - pypy3
+        - '2.7'
+        - '3.5'
+        - '3.6'
+        - '3.9'
+        - '3.10'
+        - '3.11-dev'
+        - pypy-3.6
+        - pypy-3.7
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -46,18 +47,6 @@ jobs:
             python: 3.6
             args: >
               -DPYBIND11_FINDPYTHON=ON
-
-        # These items will be removed from the build matrix, keys must match.
-        exclude:
-            # Currently 32bit only, and we build 64bit
-          - runs-on: windows-latest
-            python: pypy2
-          - runs-on: windows-latest
-            python: pypy3
-
-          # TODO: PyPy2 7.3.3 segfaults, while 7.3.2 was fine.
-          - runs-on: ubuntu-latest
-            python: pypy2
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -117,7 +106,7 @@ jobs:
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev'))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -145,7 +134,7 @@ jobs:
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -199,7 +188,7 @@ jobs:
         - python-version: 3.9
           python-debug: true
           valgrind: true
-        - python-version: 3.10-dev
+        - python-version: 3.11-dev
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
@@ -739,7 +728,7 @@ jobs:
         - 3.7
         - 3.8
         - 3.9
-        - pypy3
+        - pypy-3.7
         # TODO: fix hang on pypy2
 
         include:
