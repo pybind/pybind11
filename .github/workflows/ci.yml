@@ -28,7 +28,6 @@ jobs:
         - '3.9'
         - '3.10'
         - '3.11-dev'
-        - pypy-3.6
         - pypy-3.7
 
         # Items in here will either be added to the build matrix (if not
@@ -728,8 +727,7 @@ jobs:
         - 3.7
         - 3.8
         - 3.9
-        - pypy-3.7
-        # TODO: fix hang on pypy2
+        - pypy-3.6
 
         include:
           - python: 3.9
