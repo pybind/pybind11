@@ -174,10 +174,14 @@ set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
     CACHE STRING "Eigen repository to use for tests")
-# This hash is for 3.4.0, using a hash for security reasons
+# Always use a hash for reconfigure speed and security reasons
 set(PYBIND11_EIGEN_VERSION
     "929bc0e191d0927b1735b9a1ddc0e8b77e3a25ec"
     CACHE STRING "Eigen version to use for tests")
+# Pretty print the version (keep in sync)
+set(PYBIND11_EIGEN_VERSION_STRING
+    "3.4.0"
+    CACHE STRING "Eigen version string to use for tests")
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
@@ -206,6 +210,9 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
 
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
+    # When getting locally, the version is not visible from a superprojet,
+    # so just force it.
+    set(EIGEN3_VERSION "${PYBIND11_EIGEN_VERSION_STRING}")
 
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
