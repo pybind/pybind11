@@ -27,10 +27,6 @@ New features:
   translator)`` to keep your exception remapping code local to the module.
   `#2650 <https://github.com/pybind/pybind11/pull/2650>`_
 
-* Add ``make_simple_namespace`` function for instantiating Python
-  ``SimpleNamespace`` objects.
-  `#2840 <https://github.com/pybind/pybind11/pull/2840>`_
-
 * ``pybind11::scoped_interpreter`` and ``initialize_interpreter`` have new
   arguments to allow ``sys.argv`` initialization.
   `#2341 <https://github.com/pybind/pybind11/pull/2341>`_

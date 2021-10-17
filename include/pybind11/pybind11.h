@@ -1124,6 +1124,15 @@ inline dict globals() {
     return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+template <typename... Args,
+          typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
+PYBIND11_DEPRECATED("make_simple_namespace should be replaced with py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
+object make_simple_namespace(Args&&... args_) {
+    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
+}
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
