@@ -164,7 +164,7 @@ private:
 namespace pybind11 { namespace detail {
 template <typename T>
 struct type_caster<ReferenceSensitiveOptional<T>> : optional_caster<ReferenceSensitiveOptional<T>> {};
-} // namespace pybind11::detail
+} // namespace detail
 } // namespace pybind11
 
 
@@ -399,7 +399,7 @@ TEST_SUBMODULE(stl, m) {
         return (x ? x.value() : 0) * 2;
     });
     m.def("half_or_none_refsensitive", [](int x) -> refsensitive_opt_int {
-        return x ? refsensitive_opt_int(x / 2) : refsensitive_opt_int();
+        return x != 0 ? refsensitive_opt_int(x / 2) : refsensitive_opt_int();
     });
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("test_nullopt_refsensitive", [](refsensitive_opt_int x) {
