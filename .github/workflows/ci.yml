@@ -9,6 +9,10 @@ on:
       - stable
       - v*
 
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # This is the "main" test suite, which tests a large number of different
   # versions of default compilers and Python versions in GitHub Actions.
