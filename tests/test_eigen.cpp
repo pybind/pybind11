@@ -13,6 +13,9 @@
 #include <pybind11/stl.h>
 
 #if defined(_MSC_VER)
+#if _MSC_VER < 1910  // VS 2015's MSVC
+#  pragma warning(disable: 4127) // C4127: conditional expression is constant
+#endif
 #  pragma warning(disable: 4996) // C4996: std::unary_negation is deprecated
 #endif
 

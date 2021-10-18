@@ -9,6 +9,10 @@ on:
       - stable
       - v*
 
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # This is the "main" test suite, which tests a large number of different
   # versions of default compilers and Python versions in GitHub Actions.
@@ -169,7 +173,7 @@ jobs:
     # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.9.0
+      uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
         arch: x64
 
@@ -760,7 +764,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.9.0
+      uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
         arch: x86
 
@@ -806,7 +810,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.11
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.9.0
+      uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
         toolset: 14.0
 
@@ -892,7 +896,8 @@ jobs:
           - { sys: mingw64, env: x86_64 }
           - { sys: mingw32, env: i686 }
     steps:
-    - uses: msys2/setup-msys2@v2
+    # Force version because of https://github.com/msys2/setup-msys2/issues/167
+    - uses: msys2/setup-msys2@v2.4.2
       with:
         msystem: ${{matrix.sys}}
         install: >-
