@@ -120,7 +120,9 @@ public:
     using value_type = T;
 
     ReferenceSensitiveOptional() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
     ReferenceSensitiveOptional(const T& value) : storage{value} {}
+    // NOLINTNEXTLINE(google-explicit-constructor)
     ReferenceSensitiveOptional(T&& value) : storage{std::move(value)} {}
     ReferenceSensitiveOptional& operator=(const T& value) {
         storage = {value};
@@ -162,7 +164,8 @@ private:
 namespace pybind11 { namespace detail {
 template <typename T>
 struct type_caster<ReferenceSensitiveOptional<T>> : optional_caster<ReferenceSensitiveOptional<T>> {};
-}} // namespace pybind11::detail
+} // namespace pybind11::detail
+} // namespace pybind11
 
 
 TEST_SUBMODULE(stl, m) {
@@ -365,7 +368,7 @@ TEST_SUBMODULE(stl, m) {
         return x.value_or(0) * 2;
     });
     m.def("half_or_none_boost", [](int x) -> boost_opt_int {
-        return x ? boost_opt_int(x / 2) : boost_opt_int();
+        return x != 0 ? boost_opt_int(x / 2) : boost_opt_int();
     });
     m.def("test_nullopt_boost", [](boost_opt_int x) {
         return x.value_or(42);
