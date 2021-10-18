@@ -44,8 +44,9 @@ A `simple namespace`_ can be instantiated using
 
 .. code-block:: cpp
 
-    using namespace pybind11::literals; // to bring in the `_a` literal
-    py::object ns = py::module_::import("types").attr("SimpleNamespace")("spam"_a=py::none(), "eggs"_a=42);
+    using namespace pybind11::literals;  // to bring in the `_a` literal
+    py::object SimpleNamespace = py::module_::import("types").attr("SimpleNamespace");
+    py::object ns = SimpleNamespace("spam"_a=py::none(), "eggs"_a=42);
 
 Attributes on a namespace can be modified with the :func:`py::delattr`,
 :func:`py::getattr`, and :func:`py::setattr` functions. Simple namespaces can

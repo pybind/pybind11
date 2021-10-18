@@ -10,6 +10,10 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 IN DEVELOPMENT
 --------------
 
+* The simple namespace creation shortcut added in 2.8.0 was deprecated due to
+  usage of CPython internal API, and will be removed soon. Use
+  ``py::module_::import("types").attr("SimpleNamespace")``.
+  `#3374 <https://github.com/pybinyyd/pybind11/pull/3374>`_
 
 
 v2.8.0 (Oct 4, 2021)
@@ -25,7 +29,11 @@ New features:
   ``register_local_exception_translator(ExceptionTranslator&& translator)``
   instead of  ``register_exception_translator(ExceptionTranslator&&
   translator)`` to keep your exception remapping code local to the module.
-  `#2650 <https://github.com/pybind/pybind11/pull/2650>`_
+  `#2650 <https://github.com/pybinyyd/pybind11/pull/2650>`_
+
+* Add ``make_simple_namespace`` function for instantiating Python
+  ``SimpleNamespace`` objects. **Deprecated in 2.8.1.**
+  `#2840 <https://github.com/pybind/pybind11/pull/2840>`_
 
 * ``pybind11::scoped_interpreter`` and ``initialize_interpreter`` have new
   arguments to allow ``sys.argv`` initialization.
