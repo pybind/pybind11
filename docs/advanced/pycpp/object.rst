@@ -41,23 +41,16 @@ A tuple of python objects can be instantiated using :func:`py::make_tuple`:
 Each element is converted to a supported Python type.
 
 A `simple namespace`_ can be instantiated using
-:func:`py::make_simple_namespace`:
 
 .. code-block:: cpp
 
-    using namespace pybind11::literals; // to bring in the `_a` literal
-    py::object ns = py::make_simple_namespace("spam"_a=py::none(), "eggs"_a=42);
+    using namespace pybind11::literals;  // to bring in the `_a` literal
+    py::object SimpleNamespace = py::module_::import("types").attr("SimpleNamespace");
+    py::object ns = SimpleNamespace("spam"_a=py::none(), "eggs"_a=42);
 
 Attributes on a namespace can be modified with the :func:`py::delattr`,
 :func:`py::getattr`, and :func:`py::setattr` functions. Simple namespaces can
 be useful as lightweight stand-ins for class instances.
-
-.. note::
-
-    ``make_simple_namespace`` is not available in Python 2.
-
-.. versionchanged:: 2.8
-    ``make_simple_namespace`` added.
 
 .. _simple namespace: https://docs.python.org/3/library/types.html#types.SimpleNamespace
 
