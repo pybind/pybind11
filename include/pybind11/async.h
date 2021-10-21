@@ -131,10 +131,10 @@ class async_function : public cpp_function {
                     auto py_result = py::cast(result);
                     return py_result;
                 };
-                //auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
+                auto bound_thread_func = std::bind_front(thread_func, std::forward<Args>(args)...);
 
 
-                auto future = std::async(std::launch::async, std::forward<decltype(thread_func)>(thread_func), std::forward<Args>(args)...);
+                auto future = std::async(std::launch::async, bound_thread_func);
                 auto awaitable = new Awaitable(future);
 
                 return awaitable;
@@ -161,10 +161,10 @@ class async_function : public cpp_function {
                     auto py_result = py::cast(result);
                     return py_result;
                 };
-                //auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
+                auto bound_thread_func = std::bind_front(thread_func, std::forward<Args>(args)...);
 
 
-                auto future = std::async(std::launch::async, std::forward<decltype(thread_func)>(thread_func), std::forward<Args>(args)...);
+                auto future = std::async(std::launch::async, bound_thread_func);
                 auto awaitable = new Awaitable(future);
 
                 return awaitable;
