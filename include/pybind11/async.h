@@ -123,16 +123,18 @@ class async_function : public cpp_function {
             // create a new lambda which spawns an async thread running the original function
             auto proxy = [f](Args... args) -> Awaitable* {
                 auto thread_func = [f](Args... args) {
-                    auto result = f(std::forward<Args>(args) ...);
+                    auto result = f(args...);
+                    //auto result = f(args...);
 
                     py::gil_scoped_acquire gil;
 
                     auto py_result = py::cast(result);
                     return py_result;
                 };
-                auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
+                //auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
 
-                auto future = std::async(std::launch::async, bound_thread_func);
+
+                auto future = std::async(std::launch::async, std::forward<decltype(thread_func)>(thread_func), std::forward<Args>(args)...);
                 auto awaitable = new Awaitable(future);
 
                 return awaitable;
@@ -151,17 +153,18 @@ class async_function : public cpp_function {
             // create a new lambda which spawns an async thread running the original function
             auto proxy = [f](Args... args) -> Awaitable* {
                 auto thread_func = [f](Args... args) {
-                    f(std::forward<Args>(args) ...);
+                    auto result = f(args...);
+                    //auto result = f(args...);
 
                     py::gil_scoped_acquire gil;
 
-                    auto py_result = py::cast(Py_None);
+                    auto py_result = py::cast(result);
                     return py_result;
                 };
+                //auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
 
-                auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
 
-                auto future = std::async(std::launch::async, bound_thread_func);
+                auto future = std::async(std::launch::async, std::forward<decltype(thread_func)>(thread_func), std::forward<Args>(args)...);
                 auto awaitable = new Awaitable(future);
 
                 return awaitable;
@@ -176,6 +179,13 @@ class async_function : public cpp_function {
         }
 
 };
+
+
+
+template <typename Func, typename Return, typename... Args, typename... Extra>
+Func make_async(Func &&f, Return (*)(Args...), const Extra&... extra) {
+
+}
 
 template <typename type_, typename... options>
 class class_async : public class_<type_, options...> {
