@@ -518,7 +518,7 @@ public:
     }
 
     /// Single-character for dtype's type.
-    /// For example, ``float`` is 'f', ``double`` 'd', ``int`` 'i', and ``long`` 'd'.
+    /// For example, ``float`` is 'f', ``double`` 'd', ``int`` 'i', and ``long`` 'l'.
     char char_() const {
         // Note: The signature, `dtype::char_` follows the naming of NumPy's
         // public Python API (i.e., ``dtype.char``), rather than its internal
