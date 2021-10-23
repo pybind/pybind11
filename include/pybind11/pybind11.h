@@ -238,6 +238,8 @@ protected:
             return result;
         };
 
+        rec->nargs_pos = sizeof...(Args) - cast_in::has_args - cast_in::has_kwargs; // Will get reduced more if we have a kw_only
+
         /* Process any user-provided function attributes */
         process_attributes<Extra...>::init(extra..., rec);
 
@@ -349,7 +351,7 @@ protected:
                     continue;
                 // Separator for keyword-only arguments, placed before the kw
                 // arguments start
-                if (rec->nargs_kw_only > 0 && arg_index + rec->nargs_kw_only == args)
+                if (!rec->has_args && arg_index == rec->nargs_pos)
                     signature += "*, ";
                 if (arg_index < rec->args.size() && rec->args[arg_index].name) {
                     signature += rec->args[arg_index].name;
@@ -631,7 +633,7 @@ protected:
                       named positional arguments weren't *also* specified via kwarg.
                    2. If we weren't given enough, try to make up the omitted ones by checking
                       whether they were provided by a kwarg matching the `py::arg("name")` name.  If
-                      so, use it (and remove it from kwargs; if not, see if the function binding
+                      so, use it (and remove it from kwargs); if not, see if the function binding
                       provided a default that we can use.
                    3. Ensure that either all keyword arguments were "consumed", or that the function
                       takes a kwargs argument to accept unconsumed kwargs.
@@ -649,7 +651,7 @@ protected:
                 size_t num_args = func.nargs;    // Number of positional arguments that we need
                 if (func.has_args) --num_args;   // (but don't count py::args
                 if (func.has_kwargs) --num_args; //  or py::kwargs)
-                size_t pos_args = num_args - func.nargs_kw_only;
+                size_t pos_args = func.nargs_pos;
 
                 if (!func.has_args && n_args_in > pos_args)
                     continue; // Too many positional arguments for this overload
