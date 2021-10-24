@@ -203,7 +203,7 @@ protected:
             conditional_t<std::is_void<Return>::value, void_type, Return>
         >;
 
-        static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
+        static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::args_pos >= 0, cast_in::has_kwargs),
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
@@ -238,7 +238,11 @@ protected:
             return result;
         };
 
-        rec->nargs_pos = sizeof...(Args) - cast_in::has_args - cast_in::has_kwargs; // Will get reduced more if we have a kw_only
+        rec->nargs_pos = cast_in::args_pos >= 0
+            ? static_cast<std::uint16_t>(cast_in::args_pos)
+            : sizeof...(Args) - cast_in::has_kwargs; // Will get reduced more if we have a kw_only
+        rec->has_args = cast_in::args_pos >= 0;
+        rec->has_kwargs = cast_in::has_kwargs;
 
         /* Process any user-provided function attributes */
         process_attributes<Extra...>::init(extra..., rec);
@@ -246,11 +250,15 @@ protected:
         {
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
-                           has_args = any_of<std::is_same<args, Args>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
             static_assert(has_arg_annotations || !has_kw_only_args, "py::kw_only requires the use of argument annotations");
             static_assert(has_arg_annotations || !has_pos_only_args, "py::pos_only requires the use of argument annotations (for docstrings and aligning the annotations to the argument)");
-            static_assert(!(has_args && has_kw_only_args), "py::kw_only cannot be combined with a py::args argument");
+
+            static_assert(constexpr_sum(is_kw_only<Extra>::value...) <= 1, "py::kw_only may be specified only once");
+            static_assert(constexpr_sum(is_pos_only<Extra>::value...) <= 1, "py::pos_only may be specified only once");
+            constexpr auto kw_only_pos = constexpr_first<is_kw_only, Extra...>();
+            constexpr auto pos_only_pos = constexpr_first<is_pos_only, Extra...>();
+            static_assert(!(has_kw_only_args && has_pos_only_args) || pos_only_pos < kw_only_pos, "py::pos_only must come before py::kw_only");
         }
 
         /* Generate a readable signature describing the function's arguments and return value types */
@@ -260,9 +268,6 @@ protected:
         /* Register the function with Python from generic (non-templated) code */
         // Pass on the ownership over the `unique_rec` to `initialize_generic`. `rec` stays valid.
         initialize_generic(std::move(unique_rec), signature.text, types.data(), sizeof...(Args));
-
-        if (cast_in::has_args) rec->has_args = true;
-        if (cast_in::has_kwargs) rec->has_kwargs = true;
 
         /* Stash some additional information used by an important optimization in 'functional.h' */
         using FunctionType = Return (*)(Args...);
@@ -342,15 +347,17 @@ protected:
         /* Generate a proper function signature */
         std::string signature;
         size_t type_index = 0, arg_index = 0;
+        bool is_starred = false;
         for (auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
             if (c == '{') {
                 // Write arg name for everything except *args and **kwargs.
-                if (*(pc + 1) == '*')
+                is_starred = *(pc + 1) == '*';
+                if (is_starred)
                     continue;
                 // Separator for keyword-only arguments, placed before the kw
-                // arguments start
+                // arguments start (unless we are already putting an *args)
                 if (!rec->has_args && arg_index == rec->nargs_pos)
                     signature += "*, ";
                 if (arg_index < rec->args.size() && rec->args[arg_index].name) {
@@ -363,7 +370,7 @@ protected:
                 signature += ": ";
             } else if (c == '}') {
                 // Write default value if available.
-                if (arg_index < rec->args.size() && rec->args[arg_index].descr) {
+                if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
                     signature += " = ";
                     signature += rec->args[arg_index].descr;
                 }
@@ -371,7 +378,8 @@ protected:
                 // argument, rather than before like *
                 if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only)
                     signature += ", /";
-                arg_index++;
+                if (!is_starred)
+                    arg_index++;
             } else if (c == '%') {
                 const std::type_info *t = types[type_index++];
                 if (!t)
@@ -397,7 +405,7 @@ protected:
             }
         }
 
-        if (arg_index != args || types[type_index] != nullptr)
+        if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr)
             pybind11_fail("Internal error while parsing type signature (2)");
 
 #if PY_MAJOR_VERSION < 3
@@ -697,6 +705,10 @@ protected:
                 if (bad_arg)
                     continue; // Maybe it was meant for another overload (issue #688)
 
+                // Keep track of how many position args we copied out in case we need to come back
+                // to copy the rest into a py::args argument.
+                size_t positional_args_copied = args_copied;
+
                 // We'll need to copy this if we steal some kwargs for defaults
                 dict kwargs = reinterpret_borrow<dict>(kwargs_in);
 
@@ -749,6 +761,10 @@ protected:
                         }
 
                         if (value) {
+                            // If we're at the py::args index then first insert a stub for it to be replaced later
+                            if (func.has_args && call.args.size() == func.nargs_pos)
+                                call.args.push_back(none());
+
                             call.args.push_back(value);
                             call.args_convert.push_back(arg_rec.convert);
                         }
@@ -771,16 +787,19 @@ protected:
                         // We didn't copy out any position arguments from the args_in tuple, so we
                         // can reuse it directly without copying:
                         extra_args = reinterpret_borrow<tuple>(args_in);
-                    } else if (args_copied >= n_args_in) {
+                    } else if (positional_args_copied >= n_args_in) {
                         extra_args = tuple(0);
                     } else {
-                        size_t args_size = n_args_in - args_copied;
+                        size_t args_size = n_args_in - positional_args_copied;
                         extra_args = tuple(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
-                            extra_args[i] = PyTuple_GET_ITEM(args_in, args_copied + i);
+                            extra_args[i] = PyTuple_GET_ITEM(args_in, positional_args_copied + i);
                         }
                     }
-                    call.args.push_back(extra_args);
+                    if (call.args.size() <= func.nargs_pos)
+                        call.args.push_back(extra_args);
+                    else
+                        call.args[func.nargs_pos] = extra_args;
                     call.args_convert.push_back(false);
                     call.args_ref = std::move(extra_args);
                 }

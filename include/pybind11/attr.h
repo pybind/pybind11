@@ -411,7 +411,7 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
 
 inline void check_kw_only_arg(const arg &a, function_record *r) {
     if (r->args.size() > r->nargs_pos && (!a.name || a.name[0] == '\0'))
-        pybind11_fail("arg(): cannot specify an unnamed argument after an kw_only() annotation");
+        pybind11_fail("arg(): cannot specify an unnamed argument after a kw_only() annotation or args() argument");
 }
 
 /// Process a keyword argument attribute (*without* a default value)
@@ -461,6 +461,8 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 /// Process a keyword-only-arguments-follow pseudo argument
 template <> struct process_attribute<kw_only> : process_attribute_default<kw_only> {
     static void init(const kw_only &, function_record *r) {
+        if (r->has_args && r->nargs_pos != static_cast<std::uint16_t>(r->args.size()))
+            pybind11_fail("Mismatched args() and kw_only(): they must occur at the same relative argument location (or omit kw_only() entirely)");
         r->nargs_pos = static_cast<std::uint16_t>(r->args.size());
     }
 };
@@ -469,6 +471,9 @@ template <> struct process_attribute<kw_only> : process_attribute_default<kw_onl
 template <> struct process_attribute<pos_only> : process_attribute_default<pos_only> {
     static void init(const pos_only &, function_record *r) {
         r->nargs_pos_only = static_cast<std::uint16_t>(r->args.size());
+        if (r->nargs_pos_only > r->nargs_pos)
+            pybind11_fail("pos_only(): cannot follow a py::args() argument");
+            // It also can't follow a kw_only, but a static_assert in pybind11.h checks that
     }
 };
 
