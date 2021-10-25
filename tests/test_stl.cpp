@@ -71,7 +71,8 @@ namespace std {
 template <template <typename> class OptionalImpl, typename T>
 struct OptionalHolder
 {
-    OptionalHolder() = default;
+    // NOLINTNEXTLINE(modernize-use-equals-default): breaks GCC 4.8
+    OptionalHolder() {};
     bool member_initialized() const {
         return member && member->initialized;
     }
