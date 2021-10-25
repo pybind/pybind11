@@ -256,7 +256,9 @@ if(Boost_FOUND)
 endif()
 
 # Check if we need to add -lstdc++fs or -lc++fs or nothing
-if(MSVC)
+if(DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD LESS 17)
+  set(STD_FS_NO_LIB_NEEDED TRUE)
+elseif(MSVC)
   set(STD_FS_NO_LIB_NEEDED TRUE)
 else()
   file(
@@ -286,7 +288,7 @@ elseif(${STD_FS_NEEDS_CXXFS})
 elseif(${STD_FS_NO_LIB_NEEDED})
   set(STD_FS_LIB "")
 else()
-  message(WARNING "Unknown compiler - not passing -lstdc++fs")
+  message(WARNING "Unknown C++17 compiler - not passing -lstdc++fs")
   set(STD_FS_LIB "")
 endif()
 
