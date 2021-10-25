@@ -69,7 +69,7 @@ public:
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;
-#if !(defined(_MSC_VER) && _MSC_VER == 1916 && defined(PYBIND11_CPP17) && PY_MAJOR_VERSION < 3)
+#if !(defined(_MSC_VER) && _MSC_VER == 1916 && defined(PYBIND11_CPP17))
             // This triggers a syntax error under very special conditions (very weird indeed).
             explicit
 #endif
