@@ -851,6 +851,10 @@ jobs:
             std: 17
             args: >
               -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
+          - python: 3.7
+            std: 17
+            args: >
+              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
 
     steps:
     - uses: actions/checkout@v2
