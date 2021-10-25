@@ -13,6 +13,9 @@ concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PIP_ONLY_BINARY: numpy
+
 jobs:
   # This is the "main" test suite, which tests a large number of different
   # versions of default compilers and Python versions in GitHub Actions.
@@ -29,7 +32,7 @@ jobs:
         - '3.10'
         # - '3.11-dev'
         - 'pypy-3.7-v7.3.5'
-        - 'pypy-3.8'
+        # - 'pypy-3.8'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -85,7 +88,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m pip install -r tests/requirements.txt --only-binary=:all:
+        python -m pip install -r tests/requirements.txt
 
     - name: Setup annotations on Linux
       if: runner.os == 'Linux'
@@ -238,7 +241,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m pip install -r tests/requirements.txt --only-binary=:all:
+        python -m pip install -r tests/requirements.txt
 
     - name: Configure
       run: >
@@ -515,7 +518,7 @@ jobs:
     - name: Install dependencies
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        python3 -m pip install -r tests/requirements.txt --only-binary=:all:
+        python3 -m pip install -r tests/requirements.txt
 
     - name: Configure C++11
       run: |
@@ -607,7 +610,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python3 -m pip install cmake -r tests/requirements.txt --only-binary=:all:
+        python3 -m pip install cmake -r tests/requirements.txt
 
     - name: VAR_BUILD_TYPE 7
       if: matrix.centos == 7
@@ -764,7 +767,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m pip install -r tests/requirements.txt --only-binary=:all:
+        python -m pip install -r tests/requirements.txt
 
     # First build - C++11 mode and inplace
     - name: Configure ${{ matrix.args }}
@@ -811,7 +814,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m pip install -r tests/requirements.txt --only-binary=:all:
+        python -m pip install -r tests/requirements.txt
 
     # First build - C++11 mode and inplace
     - name: Configure
@@ -861,7 +864,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m pip install -r tests/requirements.txt --only-binary=:all:
+        python -m pip install -r tests/requirements.txt
 
     # First build - C++11 mode and inplace
     - name: Configure
