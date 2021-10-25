@@ -29,7 +29,8 @@ jobs:
         python-version: 2.7
 
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt --prefer-binary
+      run: |
+        python -m pip install -r tests/requirements.txt --only-binary=:all:
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
@@ -50,7 +51,8 @@ jobs:
         python-version: 3.8
 
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt build twine --prefer-binary
+      run: |
+        python -m pip install -r tests/requirements.txt build twine --only-binary=:all:
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
