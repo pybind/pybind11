@@ -392,8 +392,6 @@ TEST_SUBMODULE(stl, m) {
 #endif
 
     // test_refsensitive_optional
-    m.attr("has_refsensitive_optional") = true;
-
     using refsensitive_opt_int = ReferenceSensitiveOptional<int>;
     using refsensitive_opt_no_assign = ReferenceSensitiveOptional<NoAssign>;
     m.def("double_or_zero_refsensitive", [](const refsensitive_opt_int& x) -> int {
