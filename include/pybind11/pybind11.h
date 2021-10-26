@@ -2339,21 +2339,22 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
 #if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
-        PyCodeObject *code = PyFrame_GetCode(frame);
-        if ((std::string) str(code->co_name) == name && code->co_argcount > 0) {
+        PyCodeObject *f_code = PyFrame_GetCode(frame);
+        // f_code is guaranteed to not be NULL
+        if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
             PyObject* locals = PyEval_GetLocals();
             if (locals != nullptr) {
                 PyObject *self_caller = dict_getitem(
-                    locals, PyTuple_GET_ITEM(code->co_varnames, 0)
+                    locals, PyTuple_GET_ITEM(f_code->co_varnames, 0)
                 );
                 if (self_caller == self.ptr()) {
-                    Py_DECREF(code);
+                    Py_DECREF(f_code);
                     Py_DECREF(frame);
                     return function();
                 }
             }
         }
-        Py_DECREF(code);
+        Py_DECREF(f_code);
         Py_DECREF(frame);
     }
 #else
