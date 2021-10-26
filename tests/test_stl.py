@@ -133,8 +133,8 @@ def test_optional():
     assert holder.member_initialized()
 
     props = m.OptionalProperties()
-    assert int(props.access_by_ref) == 1
-    assert int(props.access_by_copy) == 1
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
 
 
 @pytest.mark.skipif(
@@ -165,8 +165,8 @@ def test_exp_optional():
     assert holder.member_initialized()
 
     props = m.OptionalExpProperties()
-    assert int(props.access_by_ref) == 1
-    assert int(props.access_by_copy) == 1
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
 
 
 @pytest.mark.skipif(not hasattr(m, "has_boost_optional"), reason="no <boost/optional>")
@@ -195,8 +195,8 @@ def test_boost_optional():
     assert holder.member_initialized()
 
     props = m.OptionalBoostProperties()
-    assert int(props.access_by_ref) == 1
-    assert int(props.access_by_copy) == 1
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
 
 
 def test_reference_sensitive_optional():
@@ -224,8 +224,8 @@ def test_reference_sensitive_optional():
     assert holder.member_initialized()
 
     props = m.OptionalRefSensitiveProperties()
-    assert int(props.access_by_ref) == 1
-    assert int(props.access_by_copy) == 1
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
 
 
 @pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")

@@ -81,8 +81,8 @@ struct OptionalHolder
 
 
 enum class EnumType {
-  k0 = 0,
-  k1 = 1,
+  kSet = 42,
+  kUnset = 85,
 };
 
 // This is used to test that return-by-ref and return-by-copy policies are
@@ -94,12 +94,12 @@ class OptionalProperties {
 public:
     using OptionalEnumValue = OptionalImpl<EnumType>;
 
-    OptionalProperties() : value(EnumType::k1) {}
+    OptionalProperties() : value(EnumType::kSet) {}
     ~OptionalProperties() {
         // Reset value to detect use-after-destruction.
-        // This is set to a specific value rather than NULL to ensure that
+        // This is set to a specific value rather than nullopt to ensure that
         // the memory that contains the value gets re-written.
-        value = EnumType::k0;
+        value = EnumType::kUnset;
     }
 
     OptionalEnumValue& access_by_ref() { return value; }
@@ -248,8 +248,8 @@ TEST_SUBMODULE(stl, m) {
     });
 
     pybind11::enum_<EnumType>(m, "EnumType")
-        .value("k0", EnumType::k0)
-        .value("k1", EnumType::k1);
+        .value("kSet", EnumType::kSet)
+        .value("kUnset", EnumType::kUnset);
 
     // test_move_out_container
     struct MoveOutContainer {
