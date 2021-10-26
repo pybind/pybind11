@@ -1126,6 +1126,15 @@ inline dict globals() {
     return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+template <typename... Args,
+          typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
+PYBIND11_DEPRECATED("make_simple_namespace should be replaced with py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
+object make_simple_namespace(Args&&... args_) {
+    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
+}
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
@@ -2440,6 +2449,29 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy. */
 #if !defined(PYPY_VERSION)
+
+#if PY_VERSION_HEX >= 0x03090000
+    PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
+    if (frame != nullptr) {
+        PyCodeObject *f_code = PyFrame_GetCode(frame);
+        // f_code is guaranteed to not be NULL
+        if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
+            PyObject* locals = PyEval_GetLocals();
+            if (locals != nullptr) {
+                PyObject *self_caller = dict_getitem(
+                    locals, PyTuple_GET_ITEM(f_code->co_varnames, 0)
+                );
+                if (self_caller == self.ptr()) {
+                    Py_DECREF(f_code);
+                    Py_DECREF(frame);
+                    return function();
+                }
+            }
+        }
+        Py_DECREF(f_code);
+        Py_DECREF(frame);
+    }
+#else
     PyFrameObject *frame = PyThreadState_Get()->frame;
     if (frame != nullptr && (std::string) str(frame->f_code->co_name) == name
         && frame->f_code->co_argcount > 0) {
@@ -2449,6 +2481,8 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
         if (self_caller == self.ptr())
             return function();
     }
+#endif
+
 #else
     /* PyPy currently doesn't provide a detailed cpyext emulation of
        frame objects, so we have to emulate this using Python. This

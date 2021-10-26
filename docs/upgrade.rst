@@ -8,7 +8,17 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
-.. _upgrade-guide-2.6:
+.. _upgrade-guide-2.9:
+
+v2.9
+====
+
+* Any usage of the recently added ``py::make_simple_namespace`` should be
+  converted to using ``py::module_::import("types").attr("SimpleNamespace")``
+  instead.
+
+
+.. _upgrade-guide-2.7:
 
 v2.7
 ====
@@ -34,6 +44,7 @@ to be common:
   careful review and custom fixes.
 
 
+.. _upgrade-guide-2.6:
 
 v2.6
 ====
