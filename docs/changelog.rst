@@ -10,10 +10,48 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 IN DEVELOPMENT
 --------------
 
+v2.8.0 (Oct 27, 2021)
+---------------------
+
+Changes and additions:
+
 * The simple namespace creation shortcut added in 2.8.0 was deprecated due to
   usage of CPython internal API, and will be removed soon. Use
   ``py::module_::import("types").attr("SimpleNamespace")``.
   `#3374 <https://github.com/pybinyyd/pybind11/pull/3374>`_
+
+* Add C++ Exception type to throw and catch ``AttributeError``. Useful for
+  defining custom ``__setattr__`` and ``__getattr__`` methods.
+  `#3387 <https://github.com/pybind/pybind11/pull/3387>`_
+
+Fixes:
+
+* Fixed the potential for dangling references when using properties with
+  ``std::optional`` types.
+  `#3376 <https://github.com/pybind/pybind11/pull/3376>`_
+
+* Modernize usage of ``PyCodeObject`` on Python 3.9+ (moving toward support for
+  Python 3.11a1)
+  `#3368 <https://github.com/pybind/pybind11/pull/3368>`_
+
+* A long-standing bug in ``eigen.h`` was fixed (originally PR #3343). The bug
+  was unmasked by newly added ``static_assert``'s in the Eigen 3.4.0 release.
+  `#3352 <https://github.com/pybind/pybind11/pull/3352>`_
+
+* Support multiple raw inclusion of CMake helper files (Conan.io does this for
+  multi-config generators).
+  `#3420 <https://github.com/pybind/pybind11/pull/3420>`_
+
+* Fix harmless warning on upcoming CMake 3.22.
+  `#3368 <https://github.com/pybind/pybind11/pull/3368>`_
+
+* Fix 2.8.0 regression with MSVC 2017 + C++17 mode + Python 3.
+  `#3407 <https://github.com/pybind/pybind11/pull/3407>`_
+
+* Fix 2.8.0 regression that caused undefined behavior (typically
+  segfaults) in ``make_key_iterator``/``make_value_iterator`` if dereferencing
+  the iterator returned a temporary value instead of a reference.
+  `#3348 <https://github.com/pybind/pybind11/pull/3348>`_
 
 
 v2.8.0 (Oct 4, 2021)
