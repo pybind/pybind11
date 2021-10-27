@@ -37,7 +37,7 @@ Fixes:
 * A long-standing bug in ``eigen.h`` was fixed (originally PR #3343). The bug
   was unmasked by newly added ``static_assert``'s in the Eigen 3.4.0 release.
   `#3352 <https://github.com/pybind/pybind11/pull/3352>`_
-  
+
 * Support multiple raw inclusion of CMake helper files (Conan.io does this for
   multi-config generators).
   `#3420 <https://github.com/pybind/pybind11/pull/3420>`_
