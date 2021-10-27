@@ -5,6 +5,12 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+if(CMAKE_VERSION VERSION_LESS 3.12)
+  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
+endif()
+
+include_guard(GLOBAL)
+
 get_property(
   is_config
   TARGET pybind11::headers
@@ -14,10 +20,6 @@ if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
 else()
   set(_pybind11_quiet "")
-endif()
-
-if(CMAKE_VERSION VERSION_LESS 3.12)
-  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
 
 if(NOT Python_FOUND
