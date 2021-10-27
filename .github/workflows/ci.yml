@@ -1,4 +1,4 @@
-name: CI-SH-AVL
+name: CI
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ on:
       - v*
 
 concurrency:
-  group: test-${{ github.ref }}
+  group: test-sh-avl${{ github.ref }}
   cancel-in-progress: true
 
 env:

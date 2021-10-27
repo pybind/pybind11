@@ -23,7 +23,7 @@ on:
       - v*
 
 concurrency:
-  group: test-${{ github.ref }}
+  group: test-sh-def-${{ github.ref }}
   cancel-in-progress: true
 
 env:

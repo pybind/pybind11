@@ -1,7 +1,7 @@
---- ci.yml	2021-10-26 12:10:34.834324858 -0700
-+++ ci_sh_def.yml	2021-10-26 12:12:26.000136653 -0700
+--- ci.yml	2021-10-27 10:49:16.082259700 -0700
++++ ci_sh_def.yml	2021-10-27 10:51:56.216396775 -0700
 @@ -1,4 +1,16 @@
--name: CI-SH-AVL
+-name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
 +#     ci.yml
 +#     ci_sh_def.yml
@@ -18,6 +18,15 @@
  
  on:
    workflow_dispatch:
+@@ -11,7 +23,7 @@
+       - v*
+ 
+ concurrency:
+-  group: test-sh-avl${{ github.ref }}
++  group: test-sh-def-${{ github.ref }}
+   cancel-in-progress: true
+ 
+ env:
 @@ -103,6 +115,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
