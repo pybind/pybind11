@@ -245,17 +245,17 @@ template <typename Key, typename Value, typename Hash, typename Equal, typename 
   : map_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>, Key, Value> { };
 
 // This type caster is intended to be used for std::optional and std::experimental::optional
-template<typename T> struct optional_caster {
-    using value_conv = make_caster<typename T::value_type>;
+template<typename Type, typename Value = typename Type::value_type> struct optional_caster {
+    using value_conv = make_caster<Value>;
 
-    template <typename T_>
-    static handle cast(T_ &&src, return_value_policy policy, handle parent) {
+    template <typename T>
+    static handle cast(T &&src, return_value_policy policy, handle parent) {
         if (!src)
             return none().inc_ref();
         if (!std::is_lvalue_reference<T>::value) {
-            policy = return_value_policy_override<T>::policy(policy);
+            policy = return_value_policy_override<Value>::policy(policy);
         }
-        return value_conv::cast(*std::forward<T_>(src), policy, parent);
+        return value_conv::cast(*std::forward<T>(src), policy, parent);
     }
 
     bool load(handle src, bool convert) {
@@ -269,11 +269,11 @@ template<typename T> struct optional_caster {
         if (!inner_caster.load(src, convert))
             return false;
 
-        value.emplace(cast_op<typename T::value_type &&>(std::move(inner_caster)));
+        value.emplace(cast_op<Value &&>(std::move(inner_caster)));
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name + _("]"));
+    PYBIND11_TYPE_CASTER(Type, _("Optional[") + value_conv::name + _("]"));
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)

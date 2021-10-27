@@ -84,7 +84,7 @@ TEST_SUBMODULE(pytypes, m) {
 #if PY_VERSION_HEX >= 0x03030000
     // test_simple_namespace
     m.def("get_simple_namespace", []() {
-        auto ns = py::make_simple_namespace("attr"_a=42, "x"_a="foo", "wrong"_a=1);
+        auto ns = py::module_::import("types").attr("SimpleNamespace")("attr"_a=42, "x"_a="foo", "wrong"_a=1);
         py::delattr(ns, "wrong");
         py::setattr(ns, "right", py::int_(2));
         return ns;

@@ -1124,6 +1124,15 @@ inline dict globals() {
     return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+template <typename... Args,
+          typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
+PYBIND11_DEPRECATED("make_simple_namespace should be replaced with py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
+object make_simple_namespace(Args&&... args_) {
+    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
+}
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
@@ -1967,29 +1976,54 @@ struct iterator_state {
 };
 
 // Note: these helpers take the iterator by non-const reference because some
-// iterators in the wild can't be dereferenced when const. C++ needs the extra parens in decltype
-// to enforce an lvalue. The & after Iterator is required for MSVC < 16.9. SFINAE cannot be
-// reused for result_type due to bugs in ICC, NVCC, and PGI compilers. See PR #3293.
-template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()))>
+// iterators in the wild can't be dereferenced when const. The & after Iterator
+// is required for MSVC < 16.9. SFINAE cannot be reused for result_type due to
+// bugs in ICC, NVCC, and PGI compilers. See PR #3293.
+template <typename Iterator, typename SFINAE = decltype(*std::declval<Iterator &>())>
 struct iterator_access {
-    using result_type = decltype((*std::declval<Iterator &>()));
+    using result_type = decltype(*std::declval<Iterator &>());
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     result_type operator()(Iterator &it) const {
         return *it;
     }
 };
 
-template <typename Iterator, typename SFINAE = decltype(((*std::declval<Iterator &>()).first)) >
-struct iterator_key_access {
-    using result_type = decltype(((*std::declval<Iterator &>()).first));
+template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()).first) >
+class iterator_key_access {
+private:
+    using pair_type = decltype(*std::declval<Iterator &>());
+
+public:
+    /* If either the pair itself or the element of the pair is a reference, we
+     * want to return a reference, otherwise a value. When the decltype
+     * expression is parenthesized it is based on the value category of the
+     * expression; otherwise it is the declared type of the pair member.
+     * The use of declval<pair_type> in the second branch rather than directly
+     * using *std::declval<Iterator &>() is a workaround for nvcc
+     * (it's not used in the first branch because going via decltype and back
+     * through declval does not perfectly preserve references).
+     */
+    using result_type = conditional_t<
+        std::is_reference<decltype(*std::declval<Iterator &>())>::value,
+        decltype(((*std::declval<Iterator &>()).first)),
+        decltype(std::declval<pair_type>().first)
+    >;
     result_type operator()(Iterator &it) const {
         return (*it).first;
     }
 };
 
-template <typename Iterator, typename SFINAE = decltype(((*std::declval<Iterator &>()).second))>
-struct iterator_value_access {
-    using result_type = decltype(((*std::declval<Iterator &>()).second));
+template <typename Iterator, typename SFINAE = decltype((*std::declval<Iterator &>()).second)>
+class iterator_value_access {
+private:
+    using pair_type = decltype(*std::declval<Iterator &>());
+
+public:
+    using result_type = conditional_t<
+        std::is_reference<decltype(*std::declval<Iterator &>())>::value,
+        decltype(((*std::declval<Iterator &>()).second)),
+        decltype(std::declval<pair_type>().second)
+    >;
     result_type operator()(Iterator &it) const {
         return (*it).second;
     }
@@ -2301,6 +2335,29 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy. */
 #if !defined(PYPY_VERSION)
+
+#if PY_VERSION_HEX >= 0x03090000
+    PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
+    if (frame != nullptr) {
+        PyCodeObject *f_code = PyFrame_GetCode(frame);
+        // f_code is guaranteed to not be NULL
+        if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
+            PyObject* locals = PyEval_GetLocals();
+            if (locals != nullptr) {
+                PyObject *self_caller = dict_getitem(
+                    locals, PyTuple_GET_ITEM(f_code->co_varnames, 0)
+                );
+                if (self_caller == self.ptr()) {
+                    Py_DECREF(f_code);
+                    Py_DECREF(frame);
+                    return function();
+                }
+            }
+        }
+        Py_DECREF(f_code);
+        Py_DECREF(frame);
+    }
+#else
     PyFrameObject *frame = PyThreadState_Get()->frame;
     if (frame != nullptr && (std::string) str(frame->f_code->co_name) == name
         && frame->f_code->co_argcount > 0) {
@@ -2310,6 +2367,8 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
         if (self_caller == self.ptr())
             return function();
     }
+#endif
+
 #else
     /* PyPy currently doesn't provide a detailed cpyext emulation of
        frame objects, so we have to emulate this using Python. This

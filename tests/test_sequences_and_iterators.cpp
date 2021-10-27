@@ -38,6 +38,17 @@ bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentine
     return !(*it).first || !(*it).second;
 }
 
+/* Iterator where dereferencing returns prvalues instead of references. */
+template<typename T>
+class NonRefIterator {
+    const T* ptr_;
+public:
+    explicit NonRefIterator(const T *ptr) : ptr_(ptr) {}
+    T operator*() const { return T(*ptr_); }
+    NonRefIterator& operator++() { ++ptr_; return *this; }
+    bool operator==(const NonRefIterator &other) const { return ptr_ == other.ptr_; }
+};
+
 class NonCopyableInt {
 public:
     explicit NonCopyableInt(int value) : value_(value) {}
@@ -331,13 +342,27 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     py::class_<IntPairs>(m, "IntPairs")
         .def(py::init<std::vector<std::pair<int, int>>>())
         .def("nonzero", [](const IntPairs& s) {
-                return py::make_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+            return py::make_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
         .def("nonzero_keys", [](const IntPairs& s) {
             return py::make_key_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
         .def("nonzero_values", [](const IntPairs& s) {
             return py::make_value_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+        }, py::keep_alive<0, 1>())
+
+        // test iterator that returns values instead of references
+        .def("nonref", [](const IntPairs& s) {
+             return py::make_iterator(NonRefIterator<std::pair<int, int>>(s.begin()),
+                                      NonRefIterator<std::pair<int, int>>(s.end()));
+        }, py::keep_alive<0, 1>())
+        .def("nonref_keys", [](const IntPairs& s) {
+             return py::make_key_iterator(NonRefIterator<std::pair<int, int>>(s.begin()),
+                                          NonRefIterator<std::pair<int, int>>(s.end()));
+        }, py::keep_alive<0, 1>())
+        .def("nonref_values", [](const IntPairs& s) {
+             return py::make_value_iterator(NonRefIterator<std::pair<int, int>>(s.begin()),
+                                            NonRefIterator<std::pair<int, int>>(s.end()));
         }, py::keep_alive<0, 1>())
 
         // test single-argument make_iterator

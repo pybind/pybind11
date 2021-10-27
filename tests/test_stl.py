@@ -132,6 +132,10 @@ def test_optional():
     assert mvalue.initialized
     assert holder.member_initialized()
 
+    props = m.OptionalProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
 
 @pytest.mark.skipif(
     not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
@@ -159,6 +163,69 @@ def test_exp_optional():
     mvalue = holder.member
     assert mvalue.initialized
     assert holder.member_initialized()
+
+    props = m.OptionalExpProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
+
+@pytest.mark.skipif(not hasattr(m, "has_boost_optional"), reason="no <boost/optional>")
+def test_boost_optional():
+    assert m.double_or_zero_boost(None) == 0
+    assert m.double_or_zero_boost(42) == 84
+    pytest.raises(TypeError, m.double_or_zero_boost, "foo")
+
+    assert m.half_or_none_boost(0) is None
+    assert m.half_or_none_boost(42) == 21
+    pytest.raises(TypeError, m.half_or_none_boost, "foo")
+
+    assert m.test_nullopt_boost() == 42
+    assert m.test_nullopt_boost(None) == 42
+    assert m.test_nullopt_boost(42) == 42
+    assert m.test_nullopt_boost(43) == 43
+
+    assert m.test_no_assign_boost() == 42
+    assert m.test_no_assign_boost(None) == 42
+    assert m.test_no_assign_boost(m.NoAssign(43)) == 43
+    pytest.raises(TypeError, m.test_no_assign_boost, 43)
+
+    holder = m.OptionalBoostHolder()
+    mvalue = holder.member
+    assert mvalue.initialized
+    assert holder.member_initialized()
+
+    props = m.OptionalBoostProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
+
+def test_reference_sensitive_optional():
+    assert m.double_or_zero_refsensitive(None) == 0
+    assert m.double_or_zero_refsensitive(42) == 84
+    pytest.raises(TypeError, m.double_or_zero_refsensitive, "foo")
+
+    assert m.half_or_none_refsensitive(0) is None
+    assert m.half_or_none_refsensitive(42) == 21
+    pytest.raises(TypeError, m.half_or_none_refsensitive, "foo")
+
+    assert m.test_nullopt_refsensitive() == 42
+    assert m.test_nullopt_refsensitive(None) == 42
+    assert m.test_nullopt_refsensitive(42) == 42
+    assert m.test_nullopt_refsensitive(43) == 43
+
+    assert m.test_no_assign_refsensitive() == 42
+    assert m.test_no_assign_refsensitive(None) == 42
+    assert m.test_no_assign_refsensitive(m.NoAssign(43)) == 43
+    pytest.raises(TypeError, m.test_no_assign_refsensitive, 43)
+
+    holder = m.OptionalRefSensitiveHolder()
+    mvalue = holder.member
+    assert mvalue.initialized
+    assert holder.member_initialized()
+
+    props = m.OptionalRefSensitiveProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
 
 
 @pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
