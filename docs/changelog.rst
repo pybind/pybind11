@@ -10,7 +10,7 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 IN DEVELOPMENT
 --------------
 
-v2.8.0 (Oct 27, 2021)
+v2.8.1 (Oct 27, 2021)
 ---------------------
 
 Changes and additions:
