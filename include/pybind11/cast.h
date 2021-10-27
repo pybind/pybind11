@@ -895,7 +895,9 @@ template <typename Return, typename SFINAE = void> struct return_value_policy_ov
 };
 
 template <typename Return> struct return_value_policy_override<Return,
-        detail::enable_if_t<std::is_base_of<type_caster_generic, make_caster<Return>>::value, void>> {
+        detail::enable_if_t<
+            std::is_base_of<type_caster_generic, make_caster<Return>>::value ||
+            type_uses_smart_holder_type_caster<intrinsic_t<Return>>::value, void>> {
     static return_value_policy policy(return_value_policy p) {
         return !std::is_lvalue_reference<Return>::value &&
                !std::is_pointer<Return>::value
