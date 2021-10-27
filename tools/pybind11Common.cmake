@@ -20,6 +20,7 @@ Adds the following functions::
 #]======================================================]
 
 # CMake 3.10 has an include_guard command, but we can't use that yet
+# include_guard(global) (pre-CMake 3.10)
 if(TARGET pybind11::lto)
   return()
 endif()
