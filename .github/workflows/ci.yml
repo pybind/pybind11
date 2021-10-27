@@ -31,15 +31,14 @@ jobs:
         - '3.9'
         - '3.10'
         # - '3.11-dev'
-        - 'pypy-3.7-v7.3.5'
-        # - 'pypy-3.8'
+        - 'pypy-3.7-v7.3.7'
+        - 'pypy-3.8-v7.3.7'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
         # existing keys match.
         #
-        # We support three optional keys: args (both build), args1 (first
-        # build), and args2 (second build).
+        # We support an optional keys: args, for cmake args
         include:
           # Just add a key
           - runs-on: ubuntu-latest
@@ -122,7 +121,7 @@ jobs:
       run: git clean -fdx
 
     # Second build - C++17 mode and in a build directory
-    - name: Configure ${{ matrix.args2 }}
+    - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
@@ -130,7 +129,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         ${{ matrix.args }}
-        ${{ matrix.args2 }}
 
     - name: Build
       run: cmake --build build2 -j 2
