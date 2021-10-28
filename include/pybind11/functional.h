@@ -113,8 +113,8 @@ public:
         return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("Callable[[") + concat(make_caster<Args>::name...) + _("], ")
-                               + make_caster<retval_type>::name + _("]"));
+    PYBIND11_TYPE_CASTER(type, const_str("Callable[[") + concat(make_caster<Args>::name...) + const_str("], ")
+                               + make_caster<retval_type>::name + const_str("]"));
 };
 
 PYBIND11_NAMESPACE_END(detail)
