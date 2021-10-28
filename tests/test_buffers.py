@@ -63,6 +63,7 @@ def test_to_python():
     del mat2  # holds a mat reference
     pytest.gc_collect()
     pytest.gc_collect()  # Needed for PyPy
+    pytest.gc_collect()  # Needed for PyPy
     assert cstats.alive() == 0
     assert cstats.values() == ["5x4 matrix"]
     assert cstats.copy_constructions == 0

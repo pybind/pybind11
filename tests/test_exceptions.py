@@ -109,6 +109,7 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
 
         def hook(unraisable_hook_args):
             exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
+            print(locals())
             if obj == "already_set demo":
                 triggered[0] = True
             default_hook(unraisable_hook_args)
