@@ -27,7 +27,7 @@ The binding code for ``Pet`` looks as follows:
 
     namespace py = pybind11;
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(Pet, m) {
         py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def("setName", &Pet::setName)
