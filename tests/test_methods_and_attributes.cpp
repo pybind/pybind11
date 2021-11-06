@@ -161,10 +161,10 @@ struct RefQualified {
 
 // Test rvalue ref param
 struct RValueRefParam {
-    int func1(std::string&& s) { return s.size(); }
-    int func2(std::string&& s) const { return s.size(); }
-    int func3(std::string&& s) & { return s.size(); }
-    int func4(std::string&& s) const & { return s.size(); }
+    std::size_t func1(std::string&& s) { return s.size(); }
+    std::size_t func2(std::string&& s) const { return s.size(); }
+    std::size_t func3(std::string&& s) & { return s.size(); }
+    std::size_t func4(std::string&& s) const & { return s.size(); }
 };
 
 TEST_SUBMODULE(methods_and_attributes, m) {
