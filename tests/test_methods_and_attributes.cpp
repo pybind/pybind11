@@ -159,12 +159,12 @@ struct RefQualified {
     int constRefQualified(int other) const & { return value + other; }
 };
 
-// Test rvalue param
-struct RValueParam {
-    void func1(std::string&&) {}
-    void func2(std::string&&) const {}
-    void func3(std::string&&) & {}
-    void func4(std::string&&) const & {}
+// Test rvalue ref param
+struct RValueRefParam {
+    int func1(std::string&& s) { return s.size(); }
+    int func2(std::string&& s) const { return s.size(); }
+    int func3(std::string&& s) & { return s.size(); }
+    int func4(std::string&& s) const & { return s.size(); }
 };
 
 TEST_SUBMODULE(methods_and_attributes, m) {
@@ -418,10 +418,10 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def("refQualified", &RefQualified::refQualified)
         .def("constRefQualified", &RefQualified::constRefQualified);
 
-    py::class_<RValueParam>(m, "RValueParam")
+    py::class_<RValueRefParam>(m, "RValueRefParam")
         .def(py::init<>())
-        .def("func1", &RValueParam::func1)
-        .def("func2", &RValueParam::func2)
-        .def("func3", &RValueParam::func3)
-        .def("func4", &RValueParam::func4);
+        .def("func1", &RValueRefParam::func1)
+        .def("func2", &RValueRefParam::func2)
+        .def("func3", &RValueRefParam::func3)
+        .def("func4", &RValueRefParam::func4);
 }
