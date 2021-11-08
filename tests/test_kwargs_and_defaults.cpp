@@ -56,6 +56,23 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("mixed_plus_args_kwargs_defaults", mixed_plus_both,
             py::arg("i") = 1, py::arg("j") = 3.14159);
 
+    m.def("args_kwonly",
+            [](int i, double j, const py::args &args, int z) { return py::make_tuple(i, j, args, z); },
+            "i"_a, "j"_a, "z"_a);
+    m.def("args_kwonly_kwargs",
+            [](int i, double j, const py::args &args, int z, const py::kwargs &kwargs) {
+                return py::make_tuple(i, j, args, z, kwargs); },
+            "i"_a, "j"_a, py::kw_only{}, "z"_a);
+    m.def("args_kwonly_kwargs_defaults",
+            [](int i, double j, const py::args &args, int z, const py::kwargs &kwargs) {
+                return py::make_tuple(i, j, args, z, kwargs); },
+            "i"_a = 1, "j"_a = 3.14159, "z"_a = 42);
+    m.def("args_kwonly_full_monty",
+            [](int h, int i, double j, const py::args &args, int z, const py::kwargs &kwargs) {
+                return py::make_tuple(h, i, j, args, z, kwargs); },
+            py::arg() = 1, py::arg() = 2, py::pos_only{}, "j"_a = 3.14159, "z"_a = 42);
+
+
     // test_args_refcount
     // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
     #ifdef PYPY_VERSION
