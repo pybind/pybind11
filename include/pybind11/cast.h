@@ -1159,6 +1159,9 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+template <typename T> using is_kw_only = std::is_same<intrinsic_t<T>, kw_only>;
+template <typename T> using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
+
 // forward declaration (definition in attr.h)
 struct function_record;
 
@@ -1194,17 +1197,18 @@ class argument_loader {
 
     template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
     template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
-    // Get args/kwargs argument positions relative to the end of the argument list:
-    static constexpr auto args_pos = constexpr_first<argument_is_args, Args...>() - (int) sizeof...(Args),
-                        kwargs_pos = constexpr_first<argument_is_kwargs, Args...>() - (int) sizeof...(Args);
+    // Get kwargs argument position, or -1 if not present:
+    static constexpr auto kwargs_pos = constexpr_last<argument_is_kwargs, Args...>();
 
-    static constexpr bool args_kwargs_are_last = kwargs_pos >= - 1 && args_pos >= kwargs_pos - 1;
-
-    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
+    static_assert(kwargs_pos == -1 || kwargs_pos == (int) sizeof...(Args) - 1, "py::kwargs is only permitted as the last argument of a function");
 
 public:
-    static constexpr bool has_kwargs = kwargs_pos < 0;
-    static constexpr bool has_args = args_pos < 0;
+    static constexpr bool has_kwargs = kwargs_pos != -1;
+
+    // py::args argument position; -1 if not present.
+    static constexpr int args_pos = constexpr_last<argument_is_args, Args...>();
+
+    static_assert(args_pos == -1 || args_pos == constexpr_first<argument_is_args, Args...>(), "py::args cannot be specified more than once");
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 

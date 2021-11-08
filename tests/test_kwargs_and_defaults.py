@@ -141,6 +141,53 @@ def test_mixed_args_and_kwargs(msg):
     """  # noqa: E501 line too long
     )
 
+    # Arguments after a py::args are automatically keyword-only (pybind 2.9+)
+    assert m.args_kwonly(2, 2.5, z=22) == (2, 2.5, (), 22)
+    assert m.args_kwonly(2, 2.5, "a", "b", "c", z=22) == (2, 2.5, ("a", "b", "c"), 22)
+    assert m.args_kwonly(z=22, i=4, j=16) == (4, 16, (), 22)
+
+    with pytest.raises(TypeError) as excinfo:
+        assert m.args_kwonly(2, 2.5, 22)  # missing z= keyword
+    assert (
+        msg(excinfo.value)
+        == """
+        args_kwonly(): incompatible function arguments. The following argument types are supported:
+            1. (i: int, j: float, *args, z: int) -> tuple
+
+        Invoked with: 2, 2.5, 22
+    """
+    )
+
+    assert m.args_kwonly_kwargs(i=1, k=4, j=10, z=-1, y=9) == (
+        1,
+        10,
+        (),
+        -1,
+        {"k": 4, "y": 9},
+    )
+    assert m.args_kwonly_kwargs(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, z=11, y=12) == (
+        1,
+        2,
+        (3, 4, 5, 6, 7, 8, 9, 10),
+        11,
+        {"y": 12},
+    )
+    assert (
+        m.args_kwonly_kwargs.__doc__
+        == "args_kwonly_kwargs(i: int, j: float, *args, z: int, **kwargs) -> tuple\n"
+    )
+
+    assert (
+        m.args_kwonly_kwargs_defaults.__doc__
+        == "args_kwonly_kwargs_defaults(i: int = 1, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
+    )
+    assert m.args_kwonly_kwargs_defaults() == (1, 3.14159, (), 42, {})
+    assert m.args_kwonly_kwargs_defaults(2) == (2, 3.14159, (), 42, {})
+    assert m.args_kwonly_kwargs_defaults(z=-99) == (1, 3.14159, (), -99, {})
+    assert m.args_kwonly_kwargs_defaults(5, 6, 7, 8) == (5, 6, (7, 8), 42, {})
+    assert m.args_kwonly_kwargs_defaults(5, 6, 7, m=8) == (5, 6, (7,), 42, {"m": 8})
+    assert m.args_kwonly_kwargs_defaults(5, 6, 7, m=8, z=9) == (5, 6, (7,), 9, {"m": 8})
+
 
 def test_keyword_only_args(msg):
     assert m.kw_only_all(i=1, j=2) == (1, 2)
@@ -178,7 +225,7 @@ def test_keyword_only_args(msg):
     assert (
         msg(excinfo.value)
         == """
-        arg(): cannot specify an unnamed argument after an kw_only() annotation
+        arg(): cannot specify an unnamed argument after a kw_only() annotation or args() argument
     """
     )
 
@@ -221,6 +268,47 @@ def test_positional_only_args(msg):
     with pytest.raises(TypeError) as excinfo:
         m.pos_only_def_mix(1, j=4)
     assert "incompatible function arguments" in str(excinfo.value)
+
+    # Mix it with args and kwargs:
+    assert (
+        m.args_kwonly_full_monty.__doc__
+        == "args_kwonly_full_monty(arg0: int = 1, arg1: int = 2, /, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
+    )
+    assert m.args_kwonly_full_monty() == (1, 2, 3.14159, (), 42, {})
+    assert m.args_kwonly_full_monty(8) == (8, 2, 3.14159, (), 42, {})
+    assert m.args_kwonly_full_monty(8, 9) == (8, 9, 3.14159, (), 42, {})
+    assert m.args_kwonly_full_monty(8, 9, 10) == (8, 9, 10.0, (), 42, {})
+    assert m.args_kwonly_full_monty(3, 4, 5, 6, 7, m=8, z=9) == (
+        3,
+        4,
+        5.0,
+        (
+            6,
+            7,
+        ),
+        9,
+        {"m": 8},
+    )
+    assert m.args_kwonly_full_monty(3, 4, 5, 6, 7, m=8, z=9) == (
+        3,
+        4,
+        5.0,
+        (
+            6,
+            7,
+        ),
+        9,
+        {"m": 8},
+    )
+    assert m.args_kwonly_full_monty(5, j=7, m=8, z=9) == (5, 2, 7.0, (), 9, {"m": 8})
+    assert m.args_kwonly_full_monty(i=5, j=7, m=8, z=9) == (
+        1,
+        2,
+        7.0,
+        (),
+        9,
+        {"i": 5, "m": 8},
+    )
 
 
 def test_signatures():
