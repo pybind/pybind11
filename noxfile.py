@@ -88,4 +88,6 @@ def build(session: nox.Session) -> None:
     session.log("Building normal files")
     session.run("python", "-m", "build", *session.posargs)
     session.log("Building pybind11-global files (PYBIND11_GLOBAL_SDIST=1)")
-    session.run("python", "-m", "build", *session.posargs, env={"PYBIND11_GLOBAL_SDIST": "1"})
+    session.run(
+        "python", "-m", "build", *session.posargs, env={"PYBIND11_GLOBAL_SDIST": "1"}
+    )
