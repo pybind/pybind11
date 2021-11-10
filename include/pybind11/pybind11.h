@@ -2342,8 +2342,12 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
         PyCodeObject *f_code = PyFrame_GetCode(frame);
         // f_code is guaranteed to not be NULL
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
-			PyFrame_FastToLocals(frame); //PyEval_GetLocals();
+            PyFrame_FastToLocals(frame); //PyEval_GetLocals();
+#if PY_VERSION_HEX >= 0x03110000
+            PyObject* locals = frame->f_frame->f_locals;
+#else
             PyObject* locals = frame->f_locals;
+#endif
             if (true) {
                 PyObject *self_caller = dict_getitem(
                     locals, PyTuple_GET_ITEM(f_code->co_varnames, 0)
