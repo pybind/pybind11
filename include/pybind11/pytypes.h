@@ -287,10 +287,10 @@ protected:
     struct borrowed_t { };
     struct stolen_t { };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
+    /// @cond BROKEN
     template <typename T> friend T reinterpret_borrow(handle);
     template <typename T> friend T reinterpret_steal(handle);
-#endif
+    /// @endcond
 
 public:
     // Only accessible from derived classes and the reinterpret_* functions
@@ -1717,7 +1717,7 @@ public:
 #endif
 };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
+/// @cond DUPLICATE
 inline memoryview memoryview::from_buffer(
     void *ptr, ssize_t itemsize, const char* format,
     detail::any_container<ssize_t> shape,
@@ -1745,7 +1745,7 @@ inline memoryview memoryview::from_buffer(
         throw error_already_set();
     return memoryview(object(obj, stolen_t{}));
 }
-#endif  // DOXYGEN_SHOULD_SKIP_THIS
+/// @endcond
 /// @} pytypes
 
 /// \addtogroup python_builtins
