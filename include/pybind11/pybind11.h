@@ -2342,7 +2342,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
         PyCodeObject *f_code = PyFrame_GetCode(frame);
         // f_code is guaranteed to not be NULL
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
-            PyObject* locals = PyEval_GetLocals(frame);
+            PyObject* locals = PyFrame_GetLocals(frame);
             if (locals != nullptr) {
                 PyObject *self_caller = dict_getitem(
                     locals, PyTuple_GET_ITEM(f_code->co_varnames, 0)
