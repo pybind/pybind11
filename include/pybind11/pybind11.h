@@ -2334,7 +2334,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
 
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy. */
-#if !defined(PYPY_VERSION) and PY_VERSION_HEX < 0x03110000
+#if !defined(PYPY_VERSION) && PY_VERSION_HEX < 0x03110000
 
 #if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
