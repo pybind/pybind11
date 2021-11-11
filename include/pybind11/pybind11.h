@@ -2345,7 +2345,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
             PyObject* locals = PyEval_GetLocals();
             if (locals != nullptr && f_code->co_varnames != nullptr) {
                 PyObject *self_caller = dict_getitem(
-                    locals, PyTuple_GET_ITEM(co_varnames, 0)
+                    locals, PyTuple_GET_ITEM(f_code->co_varnames, 0)
                 );
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
