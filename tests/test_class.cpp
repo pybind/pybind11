@@ -50,7 +50,7 @@ class py_test_derived : public test_derived {
     int func() override { PYBIND11_OVERRIDE(int, test_derived, func); }
 };
 
-inline int test_override_cache(std::shared_ptr<test_derived> instance) { return instance->func(); }
+inline int test_override_cache(std::shared_ptr<test_derived> const &instance) { return instance->func(); }
 
 TEST_SUBMODULE(class_, m) {
     // test_instance
