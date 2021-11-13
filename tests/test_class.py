@@ -471,22 +471,3 @@ def test_register_duplicate_class():
         m.register_duplicate_nested_class_type(ClassScope)
     expected = 'generic_type: type "YetAnotherDuplicateNested" is already registered!'
     assert str(exc_info.value) == expected
-
-
-def test_python_override():
-    def func():
-        class Test(m.test_derived):
-            def func(self):
-                return 42
-
-        return Test()
-
-    def func2():
-        class Test(m.test_derived):
-            pass
-
-        return Test()
-
-    for _ in range(1500):
-        assert m.test_override_cache(func()) == 42
-        assert m.test_override_cache(func2()) == 0

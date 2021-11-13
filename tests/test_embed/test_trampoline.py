@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import derived_module
+import trampoline_module
 
 
 def func():
-    class Test(derived_module.test_derived):
+    class Test(trampoline_module.test_override_cache_helper):
         def func(self):
             return 42
 
@@ -12,7 +12,7 @@ def func():
 
 
 def func2():
-    class Test(derived_module.test_derived):
+    class Test(trampoline_module.test_override_cache_helper):
         pass
 
     return Test()

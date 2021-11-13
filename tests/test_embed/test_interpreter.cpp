@@ -37,20 +37,20 @@ class PyWidget final : public Widget {
     std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0); }
 };
 
-class test_derived {
+class test_override_cache_helper {
 
 public:
     virtual int func() { return 0; }
 
-    test_derived() = default;
-    virtual ~test_derived() = default;
+    test_override_cache_helper() = default;
+    virtual ~test_override_cache_helper() = default;
     // Non-copyable
-    test_derived &operator=(test_derived const &Right) = delete;
-    test_derived(test_derived const &Copy) = delete;
+    test_override_cache_helper &operator=(test_override_cache_helper const &Right) = delete;
+    test_override_cache_helper(test_override_cache_helper const &Copy) = delete;
 };
 
-class py_test_derived : public test_derived {
-    int func() override { PYBIND11_OVERRIDE(int, test_derived, func); }
+class test_override_cache_helper_trampoline : public test_override_cache_helper {
+    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m) {
@@ -61,10 +61,10 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m) {
     m.def("add", [](int i, int j) { return i + j; });
 }
 
-PYBIND11_EMBEDDED_MODULE(derived_module, m) {
-    py::class_<test_derived, py_test_derived, std::shared_ptr<test_derived>>(m, "test_derived")
+PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
+    py::class_<test_override_cache_helper, test_override_cache_helper_trampoline, std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
         .def(py::init_alias<>())
-        .def("func", &test_derived::func);
+        .def("func", &test_override_cache_helper::func);
 }
 
 PYBIND11_EMBEDDED_MODULE(throw_exception, ) {
@@ -96,7 +96,7 @@ TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
 }
 
 TEST_CASE("Override cache") {
-    auto module_ = py::module_::import("test_derived");
+    auto module_ = py::module_::import("test_trampoline");
     REQUIRE(py::hasattr(module_, "func"));
     REQUIRE(py::hasattr(module_, "func2"));
 
@@ -104,11 +104,11 @@ TEST_CASE("Override cache") {
 
     int i = 0;
     for (; i < 1500; ++i) {
-        std::shared_ptr<test_derived> p_obj;
-        std::shared_ptr<test_derived> p_obj2;
+        std::shared_ptr<test_override_cache_helper> p_obj;
+        std::shared_ptr<test_override_cache_helper> p_obj2;
 
         py::object loc_inst = locals["func"]();
-        p_obj = py::cast<std::shared_ptr<test_derived>>(loc_inst);
+        p_obj = py::cast<std::shared_ptr<test_override_cache_helper>>(loc_inst);
 
         int ret = p_obj->func();
 
@@ -116,7 +116,7 @@ TEST_CASE("Override cache") {
 
         loc_inst = locals["func2"]();
 
-        p_obj2 = py::cast<std::shared_ptr<test_derived>>(loc_inst);
+        p_obj2 = py::cast<std::shared_ptr<test_override_cache_helper>>(loc_inst);
 
         p_obj2->func();
     }
