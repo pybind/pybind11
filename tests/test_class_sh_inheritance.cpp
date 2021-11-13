@@ -49,6 +49,24 @@ struct drvd2 : base1, base2 {
     int id() const override { return 3 * base1::base_id + 4 * base2::base_id; }
 };
 
+class test_derived {
+
+public:
+    virtual int func() { return 0; }
+
+    test_derived() = default;
+    ~test_derived() = default;
+    // Non-copyable
+    test_derived &operator=(test_derived const &Right) = delete;
+    test_derived(test_derived const &Copy) = delete;
+};
+
+class py_test_derived : public test_derived {
+    virtual int func() override { PYBIND11_OVERRIDE(int, test_derived, func); }
+};
+
+inline int test_override_cache(std::shared_ptr < test_derived> instance) { return instance->func(); }
+
 // clang-format off
 inline drvd2 *rtrn_mptr_drvd2()          { return new drvd2; }
 inline base1 *rtrn_mptr_drvd2_up_cast1() { return new drvd2; }
@@ -68,6 +86,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::drvd)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base1)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base2)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::drvd2)
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::test_derived)
 
 namespace pybind11_tests {
 namespace class_sh_inheritance {
@@ -99,6 +119,12 @@ TEST_SUBMODULE(class_sh_inheritance, m) {
     m.def("pass_cptr_base1", pass_cptr_base1);
     m.def("pass_cptr_base2", pass_cptr_base2);
     m.def("pass_cptr_drvd2", pass_cptr_drvd2);
+
+    py::classh<test_derived, py_test_derived>(m, "test_derived")
+        .def(py::init_alias<>())
+        .def("func", &test_derived::func);
+
+    m.def("test_override_cache", test_override_cache);
 }
 
 } // namespace class_sh_inheritance

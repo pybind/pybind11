@@ -61,3 +61,22 @@ def test_python_drvd2():
     assert i1 == 110 + 21
     i2 = m.pass_cptr_base2(d)
     assert i2 == 120 + 22
+
+
+def test_python_override():
+    def func():
+        class Test(m.test_derived):
+            def func(self):
+                return 42
+
+        return Test()
+
+    def func2():
+        class Test(m.test_derived):
+            pass
+
+        return Test()
+
+    for _ in range(1500):
+        assert m.test_override_cache(func()) == 42
+        assert m.test_override_cache(func2()) == 0
