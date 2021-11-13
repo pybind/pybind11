@@ -61,6 +61,12 @@ repos:
   hooks:
   - id: remove-tabs
 
+# Autoremoves unused imports
+- repo: https://github.com/hadialqattan/pycln
+  rev: v1.0.3
+  hooks:
+  - id: pycln
+
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.9.0
   hooks:
