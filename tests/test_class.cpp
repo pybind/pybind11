@@ -34,6 +34,24 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
+class test_derived {
+
+public:
+    virtual int func() { return 0; }
+
+    test_derived() = default;
+    virtual ~test_derived() = default;
+    // Non-copyable
+    test_derived &operator=(test_derived const &Right) = delete;
+    test_derived(test_derived const &Copy) = delete;
+};
+
+class py_test_derived : public test_derived {
+    int func() override { PYBIND11_OVERRIDE(int, test_derived, func); }
+};
+
+inline int test_override_cache(std::shared_ptr<test_derived> instance) { return instance->func(); }
+
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -491,6 +509,12 @@ TEST_SUBMODULE(class_, m) {
         py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
+
+    py::class_<test_derived, py_test_derived, std::shared_ptr<test_derived>>(m, "test_derived")
+        .def(py::init_alias<>())
+        .def("func", &test_derived::func);
+
+    m.def("test_override_cache", test_override_cache);
 }
 
 template <int N> class BreaksBase { public:

@@ -1979,6 +1979,16 @@ inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_t
         // gets destroyed:
         weakref((PyObject *) type, cpp_function([type](handle wr) {
             get_internals().registered_types_py.erase(type);
+
+            // Actually just `std::erase_if`, but that's only available in C++20
+            auto &cache = get_internals().inactive_override_cache;
+            for (auto it = cache.begin(), last = cache.end(); it != last; ) {
+                if (it->first == reinterpret_cast<PyObject *>(type))
+                    it = cache.erase(it);
+                else
+                    ++it;
+            }
+
             wr.dec_ref();
         })).release();
     }

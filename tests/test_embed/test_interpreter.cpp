@@ -37,12 +37,34 @@ class PyWidget final : public Widget {
     std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0); }
 };
 
+class test_derived {
+
+public:
+    virtual int func() { return 0; }
+
+    test_derived() = default;
+    virtual ~test_derived() = default;
+    // Non-copyable
+    test_derived &operator=(test_derived const &Right) = delete;
+    test_derived(test_derived const &Copy) = delete;
+};
+
+class py_test_derived : public test_derived {
+    int func() override { PYBIND11_OVERRIDE(int, test_derived, func); }
+};
+
 PYBIND11_EMBEDDED_MODULE(widget_module, m) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
 
     m.def("add", [](int i, int j) { return i + j; });
+}
+
+PYBIND11_EMBEDDED_MODULE(derived_module, m) {
+    py::class_<test_derived, py_test_derived, std::shared_ptr<test_derived>>(m, "test_derived")
+        .def(py::init_alias<>())
+        .def("func", &test_derived::func);
 }
 
 PYBIND11_EMBEDDED_MODULE(throw_exception, ) {
@@ -71,6 +93,33 @@ TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
 
     const auto &cpp_widget = py_widget.cast<const Widget &>();
     REQUIRE(cpp_widget.the_answer() == 42);
+}
+
+TEST_CASE("Override cache") {
+    auto module_ = py::module_::import("test_derived");
+    REQUIRE(py::hasattr(module_, "func"));
+    REQUIRE(py::hasattr(module_, "func2"));
+
+    auto locals = py::dict(**module_.attr("__dict__"));
+
+    int i = 0;
+    for (; i < 1500; ++i) {
+        std::shared_ptr<test_derived> p_obj;
+        std::shared_ptr<test_derived> p_obj2;
+
+        py::object loc_inst = locals["func"]();
+        p_obj = py::cast<std::shared_ptr<test_derived>>(loc_inst);
+
+        int ret = p_obj->func();
+
+        REQUIRE(ret == 42);
+
+        loc_inst = locals["func2"]();
+
+        p_obj2 = py::cast<std::shared_ptr<test_derived>>(loc_inst);
+
+        p_obj2->func();
+    }
 }
 
 TEST_CASE("Import error handling") {
