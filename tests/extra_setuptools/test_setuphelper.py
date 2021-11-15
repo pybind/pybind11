@@ -8,6 +8,7 @@ import pytest
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(DIR))
+WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 
 @pytest.mark.parametrize("parallel", [False, True])
@@ -71,13 +72,20 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
         encoding="ascii",
     )
 
-    subprocess.check_call(
+    out = subprocess.check_output(
         [sys.executable, "setup.py", "build_ext", "--inplace"],
-        stdout=sys.stdout,
-        stderr=sys.stderr,
     )
+    if not WIN:
+        assert b"-g0" in out
+    out = subprocess.check_output(
+        [sys.executable, "setup.py", "build_ext", "--inplace", "--force"],
+        env=dict(os.environ, CFLAGS="-g"),
+    )
+    if not WIN:
+        assert b"-g0" not in out
 
     # Debug helper printout, normally hidden
+    print(out)
     for item in tmpdir.listdir():
         print(item.basename)
 

@@ -52,7 +52,7 @@ can be mapped *and* if the numpy array is writeable (that is
 the passed variable will be transparently carried out directly on the
 ``numpy.ndarray``.
 
-This means you can can write code such as the following and have it work as
+This means you can write code such as the following and have it work as
 expected:
 
 .. code-block:: cpp

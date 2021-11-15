@@ -39,7 +39,7 @@ repos:
   - id: pyupgrade
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.9.3
+  rev: 5.10.0
   hooks:
   - id: isort
 
@@ -62,6 +62,12 @@ repos:
   hooks:
   - id: remove-tabs
     exclude: (^docs/.*|\.patch)?$
+
+# Autoremoves unused imports
+- repo: https://github.com/hadialqattan/pycln
+  rev: v1.1.0
+  hooks:
+  - id: pycln
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.9.0
