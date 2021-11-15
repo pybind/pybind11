@@ -214,6 +214,25 @@ static void test_gil_from_thread() {
     t.join();
 }
 
+class test_override_cache_helper {
+
+public:
+    virtual int func() { return 0; }
+
+    test_override_cache_helper() = default;
+    virtual ~test_override_cache_helper() = default;
+    // Non-copyable
+    test_override_cache_helper &operator=(test_override_cache_helper const &Right) = delete;
+    test_override_cache_helper(test_override_cache_helper const &Copy) = delete;
+};
+
+class test_override_cache_helper_trampoline : public test_override_cache_helper {
+    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
+};
+
+inline int test_override_cache(std::shared_ptr<test_override_cache_helper> const &instance) { return instance->func(); }
+
+
 
 // Forward declaration (so that we can put the main tests here; the inherited virtual approaches are
 // rather long).
@@ -378,6 +397,12 @@ TEST_SUBMODULE(virtual_functions, m) {
 //      .def("str_ref", &OverrideTest::str_ref)
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
+
+    py::class_<test_override_cache_helper, test_override_cache_helper_trampoline, std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
+        .def(py::init_alias<>())
+        .def("func", &test_override_cache_helper::func);
+
+    m.def("test_override_cache", test_override_cache);
 }
 
 
