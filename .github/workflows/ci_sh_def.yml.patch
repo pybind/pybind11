@@ -1,5 +1,5 @@
---- ci.yml	2021-10-27 10:49:16.082259700 -0700
-+++ ci_sh_def.yml	2021-10-27 10:51:56.216396775 -0700
+--- ci.yml	2021-11-15 14:43:09.035251017 -0800
++++ ci_sh_def.yml	2021-11-15 15:03:40.563973496 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -126,7 +126,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -778,6 +801,7 @@
+@@ -775,6 +798,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -134,7 +134,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -825,6 +849,7 @@
+@@ -822,6 +846,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -142,7 +142,7 @@
  
      - name: Build C++14
        run: cmake --build build -j 2
-@@ -850,11 +875,11 @@
+@@ -847,11 +872,11 @@
            - python: 2.7
              std: 17
              args: >
@@ -156,7 +156,7 @@
  
      steps:
      - uses: actions/checkout@v2
-@@ -923,7 +948,7 @@
+@@ -920,7 +945,7 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
@@ -165,7 +165,7 @@
  
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -941,7 +966,7 @@
+@@ -938,7 +963,7 @@
        run: git clean -fdx
  
      - name: Configure C++14
@@ -174,7 +174,7 @@
  
      - name: Build C++14
        run: cmake --build build2 -j 2
-@@ -959,7 +984,7 @@
+@@ -956,7 +981,7 @@
        run: git clean -fdx
  
      - name: Configure C++17
