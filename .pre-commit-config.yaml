@@ -38,7 +38,7 @@ repos:
   - id: pyupgrade
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.10.0
+  rev: 5.10.1
   hooks:
   - id: isort
 
@@ -128,7 +128,7 @@ repos:
     args: ["-L", "nd,ot,thist"]
 
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.7.2.1
+  rev: v0.8.0.1
   hooks:
   - id: shellcheck
 
