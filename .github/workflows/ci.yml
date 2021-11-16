@@ -702,14 +702,11 @@ jobs:
     - name: Install Doxygen
       run: sudo apt-get install -y doxygen librsvg2-bin # Changed to rsvg-convert in 20.04
 
-    - name: Install docs & setup requirements
-      run: python3 -m pip install -r docs/requirements.txt
-
     - name: Build docs
-      run: python3 -m sphinx -W -b html docs docs/.build
+      run: pipx run nox -s docs
 
     - name: Make SDist
-      run: python3 setup.py sdist
+      run: pipx run nox -s build -- --sdist
 
     - run: git status --ignored
 
@@ -721,7 +718,7 @@ jobs:
     - name: Compare Dists (headers only)
       working-directory: include
       run: |
-        python3 -m pip install --user -U ../dist/*
+        python3 -m pip install --user -U ../dist/*.tar.gz
         installed=$(python3 -c "import pybind11; print(pybind11.get_include() + '/pybind11')")
         diff -rq $installed ./pybind11
 

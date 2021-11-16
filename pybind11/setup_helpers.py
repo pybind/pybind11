@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import contextlib
 import os
 import platform
+import shlex
 import shutil
 import sys
 import sysconfig
@@ -143,7 +144,12 @@ class Pybind11Extension(_Extension):
         if WIN:
             cflags += ["/EHsc", "/bigobj"]
         else:
-            cflags += ["-fvisibility=hidden", "-g0"]
+            cflags += ["-fvisibility=hidden"]
+            env_cflags = os.environ.get("CFLAGS", "")
+            env_cppflags = os.environ.get("CPPFLAGS", "")
+            c_cpp_flags = shlex.split(env_cflags) + shlex.split(env_cppflags)
+            if not any(opt.startswith("-g") for opt in c_cpp_flags):
+                cflags += ["-g0"]
             if MACOS:
                 cflags += ["-stdlib=libc++"]
                 ldflags += ["-stdlib=libc++"]

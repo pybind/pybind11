@@ -38,13 +38,13 @@ repos:
   - id: pyupgrade
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.9.3
+  rev: 5.10.1
   hooks:
   - id: isort
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 21.9b0 # Keep in sync with blacken-docs
+  rev: 21.10b0 # Keep in sync with blacken-docs
   hooks:
   - id: black
 
@@ -53,13 +53,19 @@ repos:
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==21.9b0 # keep in sync with black hook
+    - black==21.10b0 # keep in sync with black hook
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
   hooks:
   - id: remove-tabs
+
+# Autoremoves unused imports
+- repo: https://github.com/hadialqattan/pycln
+  rev: v1.1.0
+  hooks:
+  - id: pycln
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.9.0
@@ -122,7 +128,7 @@ repos:
     args: ["-L", "nd,ot,thist"]
 
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.7.2.1
+  rev: v0.8.0.1
   hooks:
   - id: shellcheck
 

@@ -5,6 +5,11 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+# include_guard(global) (pre-CMake 3.10)
+if(TARGET pybind11::python_headers)
+  return()
+endif()
+
 # Built-in in CMake 3.5+
 include(CMakeParseArguments)
 
