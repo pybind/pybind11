@@ -31,8 +31,8 @@ jobs:
         - '3.9'
         - '3.10'
         # - '3.11-dev'
-        - 'pypy-3.7-v7.3.7'
-        - 'pypy-3.8-v7.3.7'
+        - 'pypy-3.7-v7.3.5'
+        #- 'pypy-3.8-v7.3.7'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
