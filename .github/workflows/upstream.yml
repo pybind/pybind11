@@ -66,7 +66,7 @@ jobs:
       run: git clean -fdx
 
     # Second build - C++17 mode and in a build directory
-    - name: Configure C+=17
+    - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
