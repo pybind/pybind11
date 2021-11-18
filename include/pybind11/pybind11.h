@@ -10,11 +10,6 @@
 
 #pragma once
 
-// Bug in MSVC 2022 requiring this file first
-#if defined(_MSC_VER) && (_MSC_VER >= 1930)
-#include <corecrt.h>
-#endif
-
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
