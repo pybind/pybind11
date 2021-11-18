@@ -10,6 +10,11 @@
 
 #pragma once
 
+// Bug in MSVC 2022 requiring this file first
+#if defined(_MSC_VER) && (_MSC_VER >= 1930)
+#include <corecrt.h>
+#endif
+
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
@@ -31,10 +36,6 @@
 #else
 #  define PYBIND11_STD_LAUNDER
 #  define PYBIND11_HAS_STD_LAUNDER 0
-#endif
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1930)
-#include <corecrt.h>
 #endif
 
 #if defined(__GNUG__) && !defined(__clang__)
