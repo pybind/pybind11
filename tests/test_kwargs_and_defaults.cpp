@@ -167,4 +167,12 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         "class_default_argument",
         [](py::object a) { return py::repr(std::move(a)); },
         "a"_a = py::module_::import("decimal").attr("Decimal"));
+
+    // https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
+    // Reduced from tensorstore.Dim
+    struct tensorstore_dim {};
+    py::class_<tensorstore_dim>(m, "tensorstore_dim")
+        .def(py::init([](int) { return tensorstore_dim(); }),
+             py::kw_only(), // test_tensorstore_dim passes with this line commented out.
+             py::arg("i") = 0);
 }

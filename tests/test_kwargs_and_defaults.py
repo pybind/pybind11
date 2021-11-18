@@ -370,3 +370,7 @@ def test_args_refcount():
     assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"
+
+
+def test_tensorstore_dim():
+    m.tensorstore_dim(i=1)
