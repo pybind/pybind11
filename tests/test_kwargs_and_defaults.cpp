@@ -168,11 +168,38 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         [](py::object a) { return py::repr(std::move(a)); },
         "a"_a = py::module_::import("decimal").attr("Decimal"));
 
+    m.def(
+        "func_kw_only_0", [](int) {}, py::kw_only(), py::arg("i") = 0);
+    m.def(
+        "func_kw_only_1", [](int, int) {}, py::arg("a") = 0, py::kw_only(), py::arg("i") = 0);
+    m.def(
+        "func_kw_only_2",
+        [](int, int, int) {},
+        py::arg("a") = 0,
+        py::arg("b") = 0,
+        py::kw_only(),
+        py::arg("i") = 0);
+
     // https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
-    // Reduced from tensorstore.Dim
-    struct tensorstore_dim {};
-    py::class_<tensorstore_dim>(m, "tensorstore_dim")
-        .def(py::init([](int) { return tensorstore_dim(); }),
-             py::kw_only(), // test_tensorstore_dim passes with this line commented out.
+    // Originally reduced from tensorstore.Dim
+    struct init_kw_only_0 {};
+    py::class_<init_kw_only_0>(m, "init_kw_only_0")
+        .def(py::init([](int) { return init_kw_only_0(); }),
+             py::kw_only(), // test passes with this line commented out.
+             py::arg("i") = 0);
+
+    struct init_kw_only_1 {};
+    py::class_<init_kw_only_1>(m, "init_kw_only_1")
+        .def(py::init([](int, int) { return init_kw_only_1(); }),
+             py::arg("a") = 0,
+             py::kw_only(), // test passes with this line commented out.
+             py::arg("i") = 0);
+
+    struct init_kw_only_2 {};
+    py::class_<init_kw_only_2>(m, "init_kw_only_2")
+        .def(py::init([](int, int, int) { return init_kw_only_2(); }),
+             py::arg("a") = 0,
+             py::arg("b") = 0,
+             py::kw_only(), // test passes with this line commented out.
              py::arg("i") = 0);
 }

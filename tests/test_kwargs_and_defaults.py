@@ -372,5 +372,25 @@ def test_args_refcount():
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"
 
 
-def test_tensorstore_dim():
-    m.tensorstore_dim(i=1)
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.func_kw_only_0,
+        m.func_kw_only_1,
+        m.func_kw_only_2,
+    ],
+)
+def test_func_kw_only(func):
+    func(i=1)
+
+
+@pytest.mark.parametrize(
+    "init",
+    [
+        m.init_kw_only_0,
+        m.init_kw_only_1,
+        m.init_kw_only_2,
+    ],
+)
+def test_init_kw_only(init):
+    init(i=1)
