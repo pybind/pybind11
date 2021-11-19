@@ -429,6 +429,14 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
+# Provide nice organisation in IDEs
+if(NOT CMAKE_VERSION VERSION_LESS 3.8)
+  source_group(
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+    PREFIX "Header Files"
+    FILES ${PYBIND11_HEADERS})
+endif()
+
 # Make sure pytest is found or produce a warning
 pybind11_find_import(pytest VERSION 3.1)
 
