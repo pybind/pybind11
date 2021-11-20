@@ -414,11 +414,15 @@ inline void check_kw_only_arg(const arg &a, function_record *r) {
         pybind11_fail("arg(): cannot specify an unnamed argument after a kw_only() annotation or args() argument");
 }
 
+inline void check_have_self_arg(function_record *r) {
+    if (r->is_method && r->args.empty())
+        r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
+}
+
 /// Process a keyword argument attribute (*without* a default value)
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
-        if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
+        check_have_self_arg(r);
         r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none);
 
         check_kw_only_arg(a, r);
@@ -461,6 +465,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 /// Process a keyword-only-arguments-follow pseudo argument
 template <> struct process_attribute<kw_only> : process_attribute_default<kw_only> {
     static void init(const kw_only &, function_record *r) {
+        check_have_self_arg(r);
         if (r->has_args && r->nargs_pos != static_cast<std::uint16_t>(r->args.size()))
             pybind11_fail("Mismatched args() and kw_only(): they must occur at the same relative argument location (or omit kw_only() entirely)");
         r->nargs_pos = static_cast<std::uint16_t>(r->args.size());
@@ -470,6 +475,7 @@ template <> struct process_attribute<kw_only> : process_attribute_default<kw_onl
 /// Process a positional-only-argument maker
 template <> struct process_attribute<pos_only> : process_attribute_default<pos_only> {
     static void init(const pos_only &, function_record *r) {
+        check_have_self_arg(r);
         r->nargs_pos_only = static_cast<std::uint16_t>(r->args.size());
         if (r->nargs_pos_only > r->nargs_pos)
             pybind11_fail("pos_only(): cannot follow a py::args() argument");
