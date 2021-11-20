@@ -19,11 +19,11 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline void ensure_builtins_in_globals(object &global) {
-    #if PY_VERSION_HEX < 0x03080000
+    #if defined(PYPY_VERSION) || PY_VERSION_HEX < 0x03080000
         // Running exec and eval on Python 2 and 3 adds `builtins` module under
         // `__builtins__` key to globals if not yet present.
         // Python 3.8 made PyRun_String behave similarly. Let's also do that for
-        // older versions, for consistency.
+        // older versions, for consistency. This was missing from PyPy3.8 7.3.7.
         if (!global.contains("__builtins__"))
             global["__builtins__"] = module_::import(PYBIND11_BUILTINS_MODULE);
     #else

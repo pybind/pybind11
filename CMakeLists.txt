@@ -16,6 +16,11 @@ else()
   cmake_policy(VERSION 3.22)
 endif()
 
+# Avoid infinite recursion if tests include this as a subdirectory
+if(DEFINED PYBIND11_MASTER_PROJECT)
+  return()
+endif()
+
 # Extract project version from source
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/include/pybind11/detail/common.h"
      pybind11_version_defines REGEX "#define PYBIND11_VERSION_(MAJOR|MINOR|PATCH) ")
@@ -45,13 +50,8 @@ if(NOT pybind11_FIND_QUIETLY)
   message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
 endif()
 
-# Avoid infinite recursion if tests include this as a subdirectory
-if(DEFINED PYBIND11_MASTER_PROJECT)
-  set(PYBIND11_TEST OFF)
-endif()
-
 # Check if pybind11 is being used directly or via add_subdirectory
-if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND NOT DEFINED PYBIND11_MASTER_PROJECT)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   ### Warn if not an out-of-source builds
   if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(lines
@@ -80,6 +80,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND NOT DEFINED PYBIND11_MASTER_
   endif()
 
   set(pybind11_system "")
+
+  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 else()
   set(PYBIND11_MASTER_PROJECT OFF)
   set(pybind11_system SYSTEM)
