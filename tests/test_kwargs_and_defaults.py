@@ -229,6 +229,19 @@ def test_keyword_only_args(msg):
     """
     )
 
+    # https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
+    x = m.first_arg_kw_only(i=1)
+    x.method()
+    x.method(i=1, j=2)
+    assert (
+        m.first_arg_kw_only.__init__.__doc__
+        == "__init__(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 0) -> None\n"  # noqa: E501 line too long
+    )
+    assert (
+        m.first_arg_kw_only.method.__doc__
+        == "method(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 1, j: int = 2) -> None\n"  # noqa: E501 line too long
+    )
+
 
 def test_positional_only_args(msg):
     assert m.pos_only_all(1, 2) == (1, 2)
@@ -308,6 +321,14 @@ def test_positional_only_args(msg):
         (),
         9,
         {"i": 5, "m": 8},
+    )
+
+    # pos_only at the beginning of the argument list was "broken" in how it was displayed (though
+    # this is fairly useless in practice).  Related to:
+    # https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
+    assert (
+        m.first_arg_kw_only.pos_only.__doc__
+        == "pos_only(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, /, i: int, j: int) -> None\n"  # noqa: E501 line too long
     )
 
 
