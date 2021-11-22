@@ -573,9 +573,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         if (!values || !innerIndices || !outerIndices)
             return false;
 
-        value = Eigen::MappedSparseMatrix<Scalar,
+        value = Eigen::Map<Eigen::SparseMatrix<Scalar,
                                           Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
-                                          StorageIndex>(
+                                          StorageIndex>>(
             shape[0].cast<Index>(), shape[1].cast<Index>(), nnz,
             outerIndices.mutable_data(), innerIndices.mutable_data(), values.mutable_data());
 
