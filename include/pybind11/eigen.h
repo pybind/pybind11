@@ -85,7 +85,7 @@ template <bool EigenRowMajor> struct EigenConformable {
         negativestrides{rstride < 0 || cstride < 0},
         stride{EigenRowMajor ? (rstride > 0 ? rstride : 0) : (cstride > 0 ? cstride : 0) /* outer stride */,
                EigenRowMajor ? (cstride > 0 ? cstride : 0) : (rstride > 0 ? rstride : 0) /* inner stride */ } {
-        
+
     }
     // Vector type:
     EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride)
