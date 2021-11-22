@@ -50,8 +50,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if EIGEN_VERSION_AT_LEAST(3,3,0)
 using EigenIndex = Eigen::Index;
+template<typename Scalar, int Flags, typename StorageIndex>
+using eigen_mapped_sparse_matrix = Eigen::Map<Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
 #else
 using EigenIndex = EIGEN_DEFAULT_DENSE_INDEX_TYPE;
+template<typename Scalar, int Flags, typename StorageIndex>
+using eigen_mapped_sparse_matrix = Eigen::MappedSparseMatrix<Scalar, Flags, StorageIndex>;
 #endif
 
 // Matches Eigen::Map, Eigen::Ref, blocks, etc:
@@ -573,9 +577,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         if (!values || !innerIndices || !outerIndices)
             return false;
 
-        value = Eigen::Map<Eigen::SparseMatrix<Scalar,
+        value = eigen_mapped_sparse_matrix<Scalar,
                                           Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
-                                          StorageIndex>>(
+                                          StorageIndex>(
             shape[0].cast<Index>(), shape[1].cast<Index>(), nnz,
             outerIndices.mutable_data(), innerIndices.mutable_data(), values.mutable_data());
 
