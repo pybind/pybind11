@@ -80,14 +80,12 @@ template <bool EigenRowMajor> struct EigenConformable {
     // Matrix type:
     EigenConformable(EigenIndex r, EigenIndex c,
             EigenIndex rstride, EigenIndex cstride) :
-        conformable{true}, rows{r}, cols{c} {
-        // TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
-        if (rstride < 0 || cstride < 0) {
-            negativestrides = true;
-        } else {
-            stride = {EigenRowMajor ? rstride : cstride /* outer stride */,
-                      EigenRowMajor ? cstride : rstride /* inner stride */ };
-        }
+        conformable{true}, rows{r}, cols{c},
+        //TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
+        stride{EigenRowMajor ? (rstride > 0 ? rstride : 0) : (cstride > 0 ? cstride : 0) /* outer stride */,
+               EigenRowMajor ? (cstride > 0 ? cstride : 0) : (rstride > 0 ? rstride : 0) /* inner stride */ },
+        negativestrides{rstride < 0 || cstride < 0} {
+
     }
     // Vector type:
     EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride)
