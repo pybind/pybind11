@@ -154,6 +154,8 @@
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
 #  pragma warning(disable: 4505)
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
+// fix for vs2022: https://github.com/pybind/pybind11/issues/3477
+#    include <crtdefs.h>
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
