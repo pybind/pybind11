@@ -33,7 +33,7 @@ repos:
     exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.29.0
+  rev: v2.29.1
   hooks:
   - id: pyupgrade
 
@@ -44,12 +44,12 @@ repos:
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 21.10b0 # Keep in sync with blacken-docs
+  rev: 21.11b1 # Keep in sync with blacken-docs
   hooks:
   - id: black
 
 - repo: https://github.com/asottile/blacken-docs
-  rev: v1.11.0
+  rev: v1.12.0
   hooks:
   - id: blacken-docs
     additional_dependencies:
