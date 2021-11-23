@@ -156,6 +156,9 @@
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
 // fix for vs2022: https://github.com/pybind/pybind11/issues/3477
 #    include <crtdefs.h>
+// python 2.7 header uses 'mbstowcs' function
+#    pragma warning(push)
+#    pragma warning(disable:4996)
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
@@ -223,6 +226,7 @@
 
 #if defined(_MSC_VER)
 #  if defined(PYBIND11_DEBUG_MARKER)
+#    pragma warning(pop)
 #    define _DEBUG
 #    undef PYBIND11_DEBUG_MARKER
 #  endif
