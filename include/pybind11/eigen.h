@@ -50,8 +50,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if EIGEN_VERSION_AT_LEAST(3,3,0)
 using EigenIndex = Eigen::Index;
+template<typename Scalar, int Flags, typename StorageIndex>
+using EigenMapSparseMatrix = Eigen::Map<Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
 #else
 using EigenIndex = EIGEN_DEFAULT_DENSE_INDEX_TYPE;
+template<typename Scalar, int Flags, typename StorageIndex>
+using EigenMapSparseMatrix = Eigen::MappedSparseMatrix<Scalar, Flags, StorageIndex>;
 #endif
 
 // Matches Eigen::Map, Eigen::Ref, blocks, etc:
@@ -80,14 +84,12 @@ template <bool EigenRowMajor> struct EigenConformable {
     // Matrix type:
     EigenConformable(EigenIndex r, EigenIndex c,
             EigenIndex rstride, EigenIndex cstride) :
-        conformable{true}, rows{r}, cols{c} {
-        // TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
-        if (rstride < 0 || cstride < 0) {
-            negativestrides = true;
-        } else {
-            stride = {EigenRowMajor ? rstride : cstride /* outer stride */,
-                      EigenRowMajor ? cstride : rstride /* inner stride */ };
-        }
+        conformable{true}, rows{r}, cols{c},
+        //TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
+        stride{EigenRowMajor ? (rstride > 0 ? rstride : 0) : (cstride > 0 ? cstride : 0) /* outer stride */,
+               EigenRowMajor ? (cstride > 0 ? cstride : 0) : (rstride > 0 ? rstride : 0) /* inner stride */ },
+        negativestrides{rstride < 0 || cstride < 0} {
+
     }
     // Vector type:
     EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride)
@@ -573,9 +575,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         if (!values || !innerIndices || !outerIndices)
             return false;
 
-        value = Eigen::MappedSparseMatrix<Scalar,
-                                          Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
-                                          StorageIndex>(
+        value = EigenMapSparseMatrix<Scalar,
+                                     Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
+                                     StorageIndex>(
             shape[0].cast<Index>(), shape[1].cast<Index>(), nnz,
             outerIndices.mutable_data(), innerIndices.mutable_data(), values.mutable_data());
 
