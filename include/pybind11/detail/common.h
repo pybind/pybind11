@@ -155,7 +155,9 @@
 #  pragma warning(disable: 4505)
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
 // fix for vs2022: https://github.com/pybind/pybind11/issues/3477
-#    include <crtdefs.h>
+#    if _MSVC_STL_VERSION >= 143
+#      include <crtdefs.h>
+#    endif
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
