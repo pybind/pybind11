@@ -97,17 +97,18 @@ struct wide_char_arg_deleter {
     }
 };
 
+inline wchar_t *widen_chars(const char *safe_arg) {
+#if PY_VERSION_HEX >= 0x030500f0
+    wchar_t *widened_arg = Py_DecodeLocale(safe_arg, nullptr);
+#else
+    wchar_t *widened_arg = nullptr;
+
 // warning C4996: 'mbstowcs': This function or variable may be unsafe.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable:4996)
 #endif
 
-inline wchar_t *widen_chars(const char *safe_arg) {
-#if PY_VERSION_HEX >= 0x030500f0
-    wchar_t *widened_arg = Py_DecodeLocale(safe_arg, nullptr);
-#else
-    wchar_t *widened_arg = nullptr;
 #    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
     size_t count = strlen(safe_arg);
 #    else
@@ -117,13 +118,14 @@ inline wchar_t *widen_chars(const char *safe_arg) {
         widened_arg = new wchar_t[count + 1];
         mbstowcs(widened_arg, safe_arg, count + 1);
     }
-#endif
-    return widened_arg;
-}
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
+
+#endif
+    return widened_arg;
+}
 
 /// Python 2.x/3.x-compatible version of `PySys_SetArgv`
 inline void set_interpreter_argv(int argc, const char *const *argv, bool add_program_dir_to_path) {
