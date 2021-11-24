@@ -819,6 +819,7 @@ public:
             case LoadType::DerivedCppMulti: {
                 if (this_.try_implicit_casts(src, convert))
                     return true;
+                break;
             }
             case LoadType::ConversionNeeded: {
                 break;
