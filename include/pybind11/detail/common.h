@@ -183,6 +183,21 @@
 #  define PYBIND11_HAS_VARIANT 1
 #endif
 
+#if defined(PYBIND11_CPP17)
+#  if defined(__has_include)
+#    if __has_include(<string_view>)
+#      define PYBIND11_HAS_STRING_VIEW
+#    endif
+#  elif defined(_MSC_VER)
+#    define PYBIND11_HAS_STRING_VIEW
+#  endif
+#endif
+
+#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
+#  define PYBIND11_HAS_U8STRING
+#endif
+
+
 #include <Python.h>
 #include <frameobject.h>
 #include <pythread.h>
@@ -228,6 +243,9 @@
 #  if __has_include(<version>)
 #    include <version>
 #  endif
+#endif
+#ifdef PYBIND11_HAS_STRING_VIEW
+#  include <string_view>
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE

@@ -140,10 +140,23 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("string_view16_return", []() { return std::u16string_view(u"utf16 secret \U0001f382"); });
     m.def("string_view32_return", []() { return std::u32string_view(U"utf32 secret \U0001f382"); });
 
+    // The inner lambdas here are to also test implicit conversion
+    using namespace std::literals;
+    m.def("string_view_bytes", []() { return [](py::bytes b) { return b; }("abc \x80\x80 def"sv); });
+    m.def("string_view_str",   []() { return [](py::str s) { return s; }("abc \342\200\275 def"sv); });
+    m.def("string_view_from_bytes", [](const py::bytes &b) { return [](std::string_view s) { return s; }(b); });
+#if PY_MAJOR_VERSION >= 3
+    m.def("string_view_memoryview", []() {
+        static constexpr auto val = "Have some \360\237\216\202"sv;
+        return py::memoryview::from_memory(val);
+    });
+#endif
+
 #   ifdef PYBIND11_HAS_U8STRING
     m.def("string_view8_print",  [](std::u8string_view s) { py::print(s, s.size()); });
     m.def("string_view8_chars",  [](std::u8string_view s) { py::list l; for (auto c : s) l.append((std::uint8_t) c); return l; });
     m.def("string_view8_return", []() { return std::u8string_view(u8"utf8 secret \U0001f382"); });
+    m.def("string_view8_str",    []() { return py::str{std::u8string_view{u8"abc ‽ def"}}; });
 #   endif
 #endif
 
