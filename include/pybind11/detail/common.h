@@ -244,9 +244,6 @@
 #    include <version>
 #  endif
 #endif
-#ifdef PYBIND11_HAS_STRING_VIEW
-#  include <string_view>
-#endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject

@@ -18,6 +18,10 @@
 #  include <optional>
 #endif
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+#  include <string_view>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
