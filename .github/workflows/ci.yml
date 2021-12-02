@@ -50,6 +50,9 @@ jobs:
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: macos-latest
             python: pypy-2.7
+          # Inject a Windows 2019 run
+          - runs-on: windows-2019
+            python: 3.9
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
