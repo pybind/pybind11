@@ -160,7 +160,9 @@ TEST_SUBMODULE(builtin_casters, m) {
 #   endif
 
     struct TypeWithBothOperatorStringAndStringView {
+        // NOLINTNEXTLINE(google-explicit-constructor)
         operator std::string() const { return "success"; }
+        // NOLINTNEXTLINE(google-explicit-constructor)
         operator std::string_view() const { return "failure"; }
     };
     m.def("bytes_from_type_with_both_operator_string_and_string_view",
