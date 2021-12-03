@@ -1186,8 +1186,8 @@ public:
 
 #ifdef PYBIND11_HAS_STRING_VIEW
     // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
-    // NOLINTNEXTLINE(google-explicit-constructor)
     template <typename T, detail::enable_if_t<std::is_same<T, std::string_view>::value, int> = 0>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     bytes(T s) : bytes(s.data(), s.size()) { }
 
     // Obtain a string view that views the current `bytes` buffer value.  Note that this is only
