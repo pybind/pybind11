@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, windows-latest, macos-latest]
+        runs-on: [ubuntu-latest, windows-2022, macos-latest]
         python:
         - '2.7'
         - '3.5'
@@ -37,19 +37,24 @@ jobs:
         # present), or add new keys to an existing matrix element if all the
         # existing keys match.
         #
-        # We support an optional keys: args, for cmake args
+        # We support an optional key: args, for cmake args
         include:
           # Just add a key
           - runs-on: ubuntu-latest
-            python: 3.6
+            python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-latest
-            python: 3.6
+            python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: macos-latest
-            python: pypy-2.7
+            python: 'pypy-2.7'
+          # Inject a couple Windows 2019 runs
+          - runs-on: windows-2019
+            python: '3.9'
+          - runs-on: windows-2019
+            python: '2.7'
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -181,6 +186,7 @@ jobs:
     # setuptools
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
+      if: "!(matrix.python == '3.5' && matrix.runs-on == 'windows-2022')"
 
 
   deadsnakes:
