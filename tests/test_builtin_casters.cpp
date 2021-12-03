@@ -158,6 +158,13 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("string_view8_return", []() { return std::u8string_view(u8"utf8 secret \U0001f382"); });
     m.def("string_view8_str",    []() { return py::str{std::u8string_view{u8"abc ‽ def"}}; });
 #   endif
+
+    struct TypeWithBothOperatorStringAndStringView {
+        operator std::string() const { return "success"; }
+        operator std::string_view() const { return "failure"; }
+    };
+    m.def("bytes_from_type_with_both_operator_string_and_string_view",
+          []() { return py::bytes(TypeWithBothOperatorStringAndStringView()); });
 #endif
 
     // test_integer_casting

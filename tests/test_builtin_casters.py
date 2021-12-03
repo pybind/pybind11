@@ -214,6 +214,8 @@ def test_string_view(capture):
     if not env.PY2:
         assert m.string_view_memoryview() == "Have some 🎂".encode()
 
+    assert m.bytes_from_type_with_both_operator_string_and_string_view() == b"success"
+
 
 def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""
