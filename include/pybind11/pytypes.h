@@ -1090,8 +1090,10 @@ public:
     str(const std::string &s) : str(s.data(), s.size()) { }
 
 #ifdef PYBIND11_HAS_STRING_VIEW
+    // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
+    template <typename T, detail::enable_if_t<std::is_same<T, std::string_view>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    str(std::string_view s) : str(s.data(), s.size()) { }
+    str(T s) : str(s.data(), s.size()) { }
 
 # ifdef PYBIND11_HAS_U8STRING
     // reinterpret_cast here is safe (C++20 guarantees char8_t has the same size/alignment as char)

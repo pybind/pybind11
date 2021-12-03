@@ -167,6 +167,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     };
     m.def("bytes_from_type_with_both_operator_string_and_string_view",
           []() { return py::bytes(TypeWithBothOperatorStringAndStringView()); });
+    m.def("str_from_type_with_both_operator_string_and_string_view",
+          []() { return py::str(TypeWithBothOperatorStringAndStringView()); });
 #endif
 
     // test_integer_casting

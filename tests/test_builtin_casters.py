@@ -215,6 +215,7 @@ def test_string_view(capture):
         assert m.string_view_memoryview() == "Have some 🎂".encode()
 
     assert m.bytes_from_type_with_both_operator_string_and_string_view() == b"success"
+    assert m.str_from_type_with_both_operator_string_and_string_view() == "success"
 
 
 def test_integer_casting():
