@@ -44,7 +44,7 @@ repos:
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 21.11b1 # Keep in sync with blacken-docs
+  rev: 21.12b0 # Keep in sync with blacken-docs
   hooks:
   - id: black
 
