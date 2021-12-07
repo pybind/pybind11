@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "pybind11.h"
-#include "complex.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/complex.h"
 #include <numeric>
 #include <algorithm>
 #include <array>
@@ -159,9 +159,9 @@ struct npy_api {
                 NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
         NPY_FLOAT64_ = platform_lookup<8, double, float, long double>(
                 NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
-        NPY_COMPLEX64_ = platform_lookup<8, double, float, long double>(
+        NPY_COMPLEX64_ = platform_lookup<8, std::complex<double>, std::complex<float>, std::complex<long double>>(
                 NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
-        NPY_COMPLEX128_ = platform_lookup<8, double, float, long double>(
+        NPY_COMPLEX128_ = platform_lookup<8, std::complex<double>, std::complex<float>, std::complex<long double>>(
                 NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
         NPY_CHAR_ = std::is_signed<char>::value ? NPY_BYTE_ : NPY_UBYTE_,
     };
