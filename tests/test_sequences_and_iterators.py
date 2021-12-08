@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pybind11_tests import sequences_and_iterators as m
+
 from pybind11_tests import ConstructorStats
+from pybind11_tests import sequences_and_iterators as m
 
 
 def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
@@ -15,6 +16,17 @@ def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
     )
 
 
+def test_slice_constructors():
+    assert m.make_forward_slice_size_t() == slice(0, -1, 1)
+    assert m.make_reversed_slice_object() == slice(None, None, -1)
+
+
+@pytest.mark.skipif(not m.has_optional, reason="no <optional>")
+def test_slice_constructors_explicit_optional():
+    assert m.make_reversed_slice_size_t_optional() == slice(None, None, -1)
+    assert m.make_reversed_slice_size_t_optional_verbose() == slice(None, None, -1)
+
+
 def test_generalized_iterators():
     assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero()) == [(1, 2), (3, 4)]
     assert list(m.IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero()) == [(1, 2)]
@@ -23,6 +35,10 @@ def test_generalized_iterators():
     assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero_keys()) == [1, 3]
     assert list(m.IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero_keys()) == [1]
     assert list(m.IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero_keys()) == []
+
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero_values()) == [2, 4]
+    assert list(m.IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero_values()) == [2]
+    assert list(m.IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero_values()) == []
 
     # __next__ must continue to raise StopIteration
     it = m.IntPairs([(0, 0)]).nonzero()
@@ -34,6 +50,47 @@ def test_generalized_iterators():
     for _ in range(3):
         with pytest.raises(StopIteration):
             next(it)
+
+
+def test_nonref_iterators():
+    pairs = m.IntPairs([(1, 2), (3, 4), (0, 5)])
+    assert list(pairs.nonref()) == [(1, 2), (3, 4), (0, 5)]
+    assert list(pairs.nonref_keys()) == [1, 3, 0]
+    assert list(pairs.nonref_values()) == [2, 4, 5]
+
+
+def test_generalized_iterators_simple():
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_iterator()) == [
+        (1, 2),
+        (3, 4),
+        (0, 5),
+    ]
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_keys()) == [1, 3, 0]
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_values()) == [2, 4, 5]
+
+
+def test_iterator_referencing():
+    """Test that iterators reference rather than copy their referents."""
+    vec = m.VectorNonCopyableInt()
+    vec.append(3)
+    vec.append(5)
+    assert [int(x) for x in vec] == [3, 5]
+    # Increment everything to make sure the referents can be mutated
+    for x in vec:
+        x.set(int(x) + 1)
+    assert [int(x) for x in vec] == [4, 6]
+
+    vec = m.VectorNonCopyableIntPair()
+    vec.append([3, 4])
+    vec.append([5, 7])
+    assert [int(x) for x in vec.keys()] == [3, 5]
+    assert [int(x) for x in vec.values()] == [4, 7]
+    for x in vec.keys():
+        x.set(int(x) + 1)
+    for x in vec.values():
+        x.set(int(x) + 10)
+    assert [int(x) for x in vec.keys()] == [4, 6]
+    assert [int(x) for x in vec.values()] == [14, 17]
 
 
 def test_sliceable():
@@ -104,7 +161,7 @@ def test_sequence():
 
 
 def test_sequence_length():
-    """#2076: Exception raised by len(arg) should be propagated """
+    """#2076: Exception raised by len(arg) should be propagated"""
 
     class BadLen(RuntimeError):
         pass
@@ -139,6 +196,7 @@ def test_map_iterator():
         assert sm[k] == expected[k]
     for k, v in sm.items():
         assert v == expected[k]
+    assert list(sm.values()) == [expected[k] for k in sm]
 
     it = iter(m.StringMap({}))
     for _ in range(3):  # __next__ must continue to raise StopIteration
@@ -187,7 +245,7 @@ def test_iterator_passthrough():
 
 
 def test_iterator_rvp():
-    """#388: Can't make iterators via make_iterator() with different r/v policies """
+    """#388: Can't make iterators via make_iterator() with different r/v policies"""
     import pybind11_tests.sequences_and_iterators as m
 
     assert list(m.make_iterator_1()) == [1, 2, 3]

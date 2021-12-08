@@ -5,6 +5,11 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+# include_guard(global) (pre-CMake 3.10)
+if(TARGET pybind11::python_headers)
+  return()
+endif()
+
 # Built-in in CMake 3.5+
 include(CMakeParseArguments)
 
@@ -38,38 +43,32 @@ endif()
 
 # A user can set versions manually too
 set(Python_ADDITIONAL_VERSIONS
-    "3.10;3.9;3.8;3.7;3.6;3.5;3.4"
+    "3.11;3.10;3.9;3.8;3.7;3.6;3.5;3.4"
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED ${_pybind11_quiet})
 list(REMOVE_AT CMAKE_MODULE_PATH -1)
 
+# Makes a normal variable a cached variable
+macro(_PYBIND11_PROMOTE_TO_CACHE NAME)
+  set(_tmp_ptc "${${NAME}}")
+  # CMake 3.21 complains if a cached variable is shadowed by a normal one
+  unset(${NAME})
+  set(${NAME}
+      "${_tmp_ptc}"
+      CACHE INTERNAL "")
+endmacro()
+
 # Cache variables so pybind11_add_module can be used in parent projects
-set(PYTHON_INCLUDE_DIRS
-    ${PYTHON_INCLUDE_DIRS}
-    CACHE INTERNAL "")
-set(PYTHON_LIBRARIES
-    ${PYTHON_LIBRARIES}
-    CACHE INTERNAL "")
-set(PYTHON_MODULE_PREFIX
-    ${PYTHON_MODULE_PREFIX}
-    CACHE INTERNAL "")
-set(PYTHON_MODULE_EXTENSION
-    ${PYTHON_MODULE_EXTENSION}
-    CACHE INTERNAL "")
-set(PYTHON_VERSION_MAJOR
-    ${PYTHON_VERSION_MAJOR}
-    CACHE INTERNAL "")
-set(PYTHON_VERSION_MINOR
-    ${PYTHON_VERSION_MINOR}
-    CACHE INTERNAL "")
-set(PYTHON_VERSION
-    ${PYTHON_VERSION}
-    CACHE INTERNAL "")
-set(PYTHON_IS_DEBUG
-    "${PYTHON_IS_DEBUG}"
-    CACHE INTERNAL "")
+_pybind11_promote_to_cache(PYTHON_INCLUDE_DIRS)
+_pybind11_promote_to_cache(PYTHON_LIBRARIES)
+_pybind11_promote_to_cache(PYTHON_MODULE_PREFIX)
+_pybind11_promote_to_cache(PYTHON_MODULE_EXTENSION)
+_pybind11_promote_to_cache(PYTHON_VERSION_MAJOR)
+_pybind11_promote_to_cache(PYTHON_VERSION_MINOR)
+_pybind11_promote_to_cache(PYTHON_VERSION)
+_pybind11_promote_to_cache(PYTHON_IS_DEBUG)
 
 if(PYBIND11_MASTER_PROJECT)
   if(PYTHON_MODULE_EXTENSION MATCHES "pypy")

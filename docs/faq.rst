@@ -5,7 +5,7 @@ Frequently asked questions
 ===========================================================
 
 1. Make sure that the name specified in PYBIND11_MODULE is identical to the
-filename of the extension library (without suffixes such as .so)
+filename of the extension library (without suffixes such as ``.so``).
 
 2. If the above did not fix the issue, you are likely using an incompatible
 version of Python (for instance, the extension library was compiled against
@@ -54,7 +54,7 @@ provided by the caller -- in fact, it does nothing at all.
 .. code-block:: python
 
     def increment(i):
-        i += 1 # nope..
+        i += 1  # nope..
 
 pybind11 is also affected by such language-level conventions, which means that
 binding ``increment`` or ``increment_ptr`` will also create Python functions
@@ -170,7 +170,7 @@ complete independence of the symbols involved when not using
 ``-fvisibility=hidden``.
 
 Additionally, ``-fvisibility=hidden`` can deliver considerably binary size
-savings.  (See the following section for more details).
+savings. (See the following section for more details.)
 
 
 .. _`faq:symhidden`:
@@ -180,7 +180,7 @@ How can I create smaller binaries?
 
 To do its job, pybind11 extensively relies on a programming technique known as
 *template metaprogramming*, which is a way of performing computation at compile
-time using type information. Template metaprogamming usually instantiates code
+time using type information. Template metaprogramming usually instantiates code
 involving significant numbers of deeply nested types that are either completely
 removed or reduced to just a few instructions during the compiler's optimization
 phase. However, due to the nested nature of these types, the resulting symbol

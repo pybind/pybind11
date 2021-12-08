@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-import pytest
-from pybind11_tests import callbacks as m
+import time
 from threading import Thread
+
+import pytest
+
+import env  # noqa: F401
+from pybind11_tests import callbacks as m
 
 
 def test_callbacks():
@@ -75,11 +79,16 @@ def test_keyword_args_and_generalized_unpacking():
 
 
 def test_lambda_closure_cleanup():
-    m.test_cleanup()
+    m.test_lambda_closure_cleanup()
     cstats = m.payload_cstats()
     assert cstats.alive() == 0
     assert cstats.copy_constructions == 1
     assert cstats.move_constructions >= 1
+
+
+def test_cpp_callable_cleanup():
+    alive_counts = m.test_cpp_callable_cleanup()
+    assert alive_counts == [0, 1, 2, 1, 2, 1, 0]
 
 
 def test_cpp_function_roundtrip():
@@ -90,6 +99,10 @@ def test_cpp_function_roundtrip():
     )
     assert (
         m.test_dummy_function(m.roundtrip(m.dummy_function))
+        == "matches dummy_function: eval(1) = 2"
+    )
+    assert (
+        m.test_dummy_function(m.dummy_function_overloaded)
         == "matches dummy_function: eval(1) = 2"
     )
     assert m.roundtrip(None, expect_none=True) is None
@@ -119,6 +132,16 @@ def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
 
 
+@pytest.mark.skipif(
+    "env.PYPY",
+    reason="PyPy segfaults on here. See discussion on #1413.",
+)
+def test_python_builtins():
+    """Test if python builtins like sum() can be used as callbacks"""
+    assert m.test_sum_builtin(sum, [1, 2, 3]) == 6
+    assert m.test_sum_builtin(sum, []) == 0
+
+
 def test_async_callbacks():
     # serves as state for async callback
     class Item:
@@ -139,10 +162,41 @@ def test_async_callbacks():
     from time import sleep
 
     sleep(0.5)
-    assert sum(res) == sum([x + 3 for x in work])
+    assert sum(res) == sum(x + 3 for x in work)
 
 
 def test_async_async_callbacks():
     t = Thread(target=test_async_callbacks)
     t.start()
     t.join()
+
+
+def test_callback_num_times():
+    # Super-simple micro-benchmarking related to PR #2919.
+    # Example runtimes (Intel Xeon 2.2GHz, fully optimized):
+    #   num_millions  1, repeats  2:  0.1 secs
+    #   num_millions 20, repeats 10: 11.5 secs
+    one_million = 1000000
+    num_millions = 1  # Try 20 for actual micro-benchmarking.
+    repeats = 2  # Try 10.
+    rates = []
+    for rep in range(repeats):
+        t0 = time.time()
+        m.callback_num_times(lambda: None, num_millions * one_million)
+        td = time.time() - t0
+        rate = num_millions / td if td else 0
+        rates.append(rate)
+        if not rep:
+            print()
+        print(
+            "callback_num_times: {:d} million / {:.3f} seconds = {:.3f} million / second".format(
+                num_millions, td, rate
+            )
+        )
+    if len(rates) > 1:
+        print("Min    Mean   Max")
+        print(
+            "{:6.3f} {:6.3f} {:6.3f}".format(
+                min(rates), sum(rates) / len(rates), max(rates)
+            )
+        )

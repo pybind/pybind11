@@ -257,6 +257,39 @@ def test_dispatch_issue(msg):
     assert m.dispatch_issue_go(b) == "Yay.."
 
 
+def test_recursive_dispatch_issue(msg):
+    """#3357: Recursive dispatch fails to find python function override"""
+
+    class Data(m.Data):
+        def __init__(self, value):
+            super(Data, self).__init__()
+            self.value = value
+
+    class Adder(m.Adder):
+        def __call__(self, first, second, visitor):
+            # lambda is a workaround, which adds extra frame to the
+            # current CPython thread. Removing lambda reveals the bug
+            # [https://github.com/pybind/pybind11/issues/3357]
+            (lambda: visitor(Data(first.value + second.value)))()
+
+    class StoreResultVisitor:
+        def __init__(self):
+            self.result = None
+
+        def __call__(self, data):
+            self.result = data.value
+
+    store = StoreResultVisitor()
+
+    m.add2(Data(1), Data(2), Adder(), store)
+    assert store.result == 3
+
+    # without lambda in Adder class, this function fails with
+    # RuntimeError: Tried to call pure virtual function "AdderBase::__call__"
+    m.add3(Data(1), Data(2), Data(3), Adder(), store)
+    assert store.result == 6
+
+
 def test_override_ref():
     """#392/397: overriding reference-returning functions"""
     o = m.OverrideTest("asdf")
@@ -406,3 +439,22 @@ def test_issue_1454():
     # Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.test_gil()
     m.test_gil_from_thread()
+
+
+def test_python_override():
+    def func():
+        class Test(m.test_override_cache_helper):
+            def func(self):
+                return 42
+
+        return Test()
+
+    def func2():
+        class Test(m.test_override_cache_helper):
+            pass
+
+        return Test()
+
+    for _ in range(1500):
+        assert m.test_override_cache(func()) == 42
+        assert m.test_override_cache(func2()) == 0

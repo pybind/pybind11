@@ -10,10 +10,10 @@ cmake_minimum_required(VERSION 3.4)
 # The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.18)
+if(${CMAKE_VERSION} VERSION_LESS 3.21)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.18)
+  cmake_policy(VERSION 3.21)
 endif()
 
 # Only needed for CMake < 3.5 support
@@ -104,6 +104,7 @@ set(PYBIND11_TEST_FILES
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp
+    test_custom_type_setup.cpp
     test_docstring_options.cpp
     test_eigen.cpp
     test_enum.cpp
@@ -130,6 +131,7 @@ set(PYBIND11_TEST_FILES
     test_stl.cpp
     test_stl_binders.cpp
     test_tagbased_polymorphic.cpp
+    test_thread.cpp
     test_union.cpp
     test_virtual_functions.cpp)
 
@@ -170,6 +172,18 @@ set(PYBIND11_CROSS_MODULE_TESTS test_exceptions.py test_local_bindings.py test_s
 
 set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
 
+set(PYBIND11_EIGEN_REPO
+    "https://gitlab.com/libeigen/eigen.git"
+    CACHE STRING "Eigen repository to use for tests")
+# Always use a hash for reconfigure speed and security reasons
+# Include the version number for pretty printing (keep in sync)
+set(PYBIND11_EIGEN_VERSION_AND_HASH
+    "3.4.0;929bc0e191d0927b1735b9a1ddc0e8b77e3a25ec"
+    CACHE STRING "Eigen version to use for tests, format: VERSION;HASH")
+
+list(GET PYBIND11_EIGEN_VERSION_AND_HASH 0 PYBIND11_EIGEN_VERSION_STRING)
+list(GET PYBIND11_EIGEN_VERSION_AND_HASH 1 PYBIND11_EIGEN_VERSION_HASH)
+
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
@@ -183,22 +197,26 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       message(FATAL_ERROR "CMake 3.11+ required when using DOWNLOAD_EIGEN")
     endif()
 
-    set(EIGEN3_VERSION_STRING "3.3.8")
-
     include(FetchContent)
     FetchContent_Declare(
       eigen
-      GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-      GIT_TAG ${EIGEN3_VERSION_STRING})
+      GIT_REPOSITORY "${PYBIND11_EIGEN_REPO}"
+      GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}")
 
     FetchContent_GetProperties(eigen)
     if(NOT eigen_POPULATED)
-      message(STATUS "Downloading Eigen")
+      message(
+        STATUS
+          "Downloading Eigen ${PYBIND11_EIGEN_VERSION_STRING} (${PYBIND11_EIGEN_VERSION_HASH}) from ${PYBIND11_EIGEN_REPO}"
+      )
       FetchContent_Populate(eigen)
     endif()
 
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
+    # When getting locally, the version is not visible from a superprojet,
+    # so just force it.
+    set(EIGEN3_VERSION "${PYBIND11_EIGEN_VERSION_STRING}")
 
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
@@ -248,6 +266,43 @@ if(Boost_FOUND)
   endif()
 endif()
 
+# Check if we need to add -lstdc++fs or -lc++fs or nothing
+if(DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD LESS 17)
+  set(STD_FS_NO_LIB_NEEDED TRUE)
+elseif(MSVC)
+  set(STD_FS_NO_LIB_NEEDED TRUE)
+else()
+  file(
+    WRITE ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    "#include <filesystem>\nint main(int argc, char ** argv) {\n  std::filesystem::path p(argv[0]);\n  return p.string().length();\n}"
+  )
+  try_compile(
+    STD_FS_NO_LIB_NEEDED ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17)
+  try_compile(
+    STD_FS_NEEDS_STDCXXFS ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17
+    LINK_LIBRARIES stdc++fs)
+  try_compile(
+    STD_FS_NEEDS_CXXFS ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17
+    LINK_LIBRARIES c++fs)
+endif()
+
+if(${STD_FS_NEEDS_STDCXXFS})
+  set(STD_FS_LIB stdc++fs)
+elseif(${STD_FS_NEEDS_CXXFS})
+  set(STD_FS_LIB c++fs)
+elseif(${STD_FS_NO_LIB_NEEDED})
+  set(STD_FS_LIB "")
+else()
+  message(WARNING "Unknown C++17 compiler - not passing -lstdc++fs")
+  set(STD_FS_LIB "")
+endif()
+
 # Compile with compiler warnings turned on
 function(pybind11_enable_warnings target_name)
   if(MSVC)
@@ -269,12 +324,19 @@ function(pybind11_enable_warnings target_name)
       target_compile_options(${target_name} PRIVATE /WX)
     elseif(PYBIND11_CUDA_TESTS)
       target_compile_options(${target_name} PRIVATE "SHELL:-Werror all-warnings")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang|IntelLLVM)")
       target_compile_options(${target_name} PRIVATE -Werror)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+      target_compile_options(
+        ${target_name}
+        PRIVATE
+          -Werror-all
+          # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
+          -diag-disable 11074,11076)
     endif()
   endif()
 
-  # Needs to be readded since the ordering requires these to be after the ones above
+  # Needs to be re-added since the ordering requires these to be after the ones above
   if(CMAKE_CXX_STANDARD
      AND CMAKE_CXX_COMPILER_ID MATCHES "Clang"
      AND PYTHON_VERSION VERSION_LESS 3.0)
@@ -351,6 +413,8 @@ foreach(target ${test_targets})
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
 
+  target_link_libraries(${target} PRIVATE ${STD_FS_LIB})
+
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
     set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
@@ -365,6 +429,14 @@ foreach(target ${test_targets})
     endif()
   endif()
 endforeach()
+
+# Provide nice organisation in IDEs
+if(NOT CMAKE_VERSION VERSION_LESS 3.8)
+  source_group(
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+    PREFIX "Header Files"
+    FILES ${PYBIND11_HEADERS})
+endif()
 
 # Make sure pytest is found or produce a warning
 pybind11_find_import(pytest VERSION 3.1)

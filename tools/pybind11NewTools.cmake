@@ -5,6 +5,12 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+if(CMAKE_VERSION VERSION_LESS 3.12)
+  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
+endif()
+
+include_guard(GLOBAL)
+
 get_property(
   is_config
   TARGET pybind11::headers
@@ -14,10 +20,6 @@ if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
 else()
   set(_pybind11_quiet "")
-endif()
-
-if(CMAKE_VERSION VERSION_LESS 3.12)
-  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
 
 if(NOT Python_FOUND
@@ -80,6 +82,15 @@ if(NOT DEFINED ${_Python}_EXECUTABLE)
     FATAL_ERROR
       "${_Python} was found without the Interpreter component. Pybind11 requires this component.")
 
+endif()
+
+if(NOT ${_Python}_EXECUTABLE STREQUAL PYBIND11_PYTHON_EXECUTABLE_LAST)
+  # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
+  unset(PYTHON_IS_DEBUG CACHE)
+  unset(PYTHON_MODULE_EXTENSION CACHE)
+  set(PYBIND11_PYTHON_EXECUTABLE_LAST
+      "${${_Python}_EXECUTABLE}"
+      CACHE INTERNAL "Python executable during the last CMake run")
 endif()
 
 if(NOT DEFINED PYTHON_IS_DEBUG)
@@ -230,7 +241,7 @@ function(pybind11_add_module target_name)
   endif()
 
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
-  if(NOT ARG_WITHOUT_SOABI OR NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
+  if(NOT ARG_WITHOUT_SOABI AND NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
     pybind11_extension(${target_name})
   endif()
 

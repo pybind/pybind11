@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
-from pybind11_tests import UserType
-from pybind11_tests import ConstructorStats
 
 
 def test_vector(doc):
@@ -133,6 +132,10 @@ def test_optional():
     assert mvalue.initialized
     assert holder.member_initialized()
 
+    props = m.OptionalProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
 
 @pytest.mark.skipif(
     not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
@@ -160,6 +163,88 @@ def test_exp_optional():
     mvalue = holder.member
     assert mvalue.initialized
     assert holder.member_initialized()
+
+    props = m.OptionalExpProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
+
+@pytest.mark.skipif(not hasattr(m, "has_boost_optional"), reason="no <boost/optional>")
+def test_boost_optional():
+    assert m.double_or_zero_boost(None) == 0
+    assert m.double_or_zero_boost(42) == 84
+    pytest.raises(TypeError, m.double_or_zero_boost, "foo")
+
+    assert m.half_or_none_boost(0) is None
+    assert m.half_or_none_boost(42) == 21
+    pytest.raises(TypeError, m.half_or_none_boost, "foo")
+
+    assert m.test_nullopt_boost() == 42
+    assert m.test_nullopt_boost(None) == 42
+    assert m.test_nullopt_boost(42) == 42
+    assert m.test_nullopt_boost(43) == 43
+
+    assert m.test_no_assign_boost() == 42
+    assert m.test_no_assign_boost(None) == 42
+    assert m.test_no_assign_boost(m.NoAssign(43)) == 43
+    pytest.raises(TypeError, m.test_no_assign_boost, 43)
+
+    holder = m.OptionalBoostHolder()
+    mvalue = holder.member
+    assert mvalue.initialized
+    assert holder.member_initialized()
+
+    props = m.OptionalBoostProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
+
+def test_reference_sensitive_optional():
+    assert m.double_or_zero_refsensitive(None) == 0
+    assert m.double_or_zero_refsensitive(42) == 84
+    pytest.raises(TypeError, m.double_or_zero_refsensitive, "foo")
+
+    assert m.half_or_none_refsensitive(0) is None
+    assert m.half_or_none_refsensitive(42) == 21
+    pytest.raises(TypeError, m.half_or_none_refsensitive, "foo")
+
+    assert m.test_nullopt_refsensitive() == 42
+    assert m.test_nullopt_refsensitive(None) == 42
+    assert m.test_nullopt_refsensitive(42) == 42
+    assert m.test_nullopt_refsensitive(43) == 43
+
+    assert m.test_no_assign_refsensitive() == 42
+    assert m.test_no_assign_refsensitive(None) == 42
+    assert m.test_no_assign_refsensitive(m.NoAssign(43)) == 43
+    pytest.raises(TypeError, m.test_no_assign_refsensitive, 43)
+
+    holder = m.OptionalRefSensitiveHolder()
+    mvalue = holder.member
+    assert mvalue.initialized
+    assert holder.member_initialized()
+
+    props = m.OptionalRefSensitiveProperties()
+    assert int(props.access_by_ref) == 42
+    assert int(props.access_by_copy) == 42
+
+
+@pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
+def test_fs_path():
+    from pathlib import Path
+
+    class PseudoStrPath:
+        def __fspath__(self):
+            return "foo/bar"
+
+    class PseudoBytesPath:
+        def __fspath__(self):
+            return b"foo/bar"
+
+    assert m.parent_path(Path("foo/bar")) == Path("foo")
+    assert m.parent_path("foo/bar") == Path("foo")
+    assert m.parent_path(b"foo/bar") == Path("foo")
+    assert m.parent_path(PseudoStrPath()) == Path("foo")
+    assert m.parent_path(PseudoBytesPath()) == Path("foo")
 
 
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
@@ -259,8 +344,15 @@ def test_array_cast_sequence():
 
 
 def test_issue_1561():
-    """ check fix for issue #1561 """
+    """check fix for issue #1561"""
     bar = m.Issue1561Outer()
     bar.list = [m.Issue1561Inner("bar")]
     bar.list
     assert bar.list[0].data == "bar"
+
+
+def test_return_vector_bool_raw_ptr():
+    # Add `while True:` for manual leak checking.
+    v = m.return_vector_bool_raw_ptr()
+    assert isinstance(v, list)
+    assert len(v) == 4513

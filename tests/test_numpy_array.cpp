@@ -13,6 +13,7 @@
 #include <pybind11/stl.h>
 
 #include <cstdint>
+#include <utility>
 
 // Size / dtype checks.
 struct DtypeCheck {
@@ -192,7 +193,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("scalar_int", []() { return py::array(py::dtype("i"), {}, {}, &data_i); });
 
     // test_wrap
-    sm.def("wrap", [](py::array a) {
+    sm.def("wrap", [](const py::array &a) {
         return py::array(
             a.dtype(),
             {a.shape(), a.shape() + a.ndim()},
@@ -222,9 +223,10 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     // test_isinstance
     sm.def("isinstance_untyped", [](py::object yes, py::object no) {
-        return py::isinstance<py::array>(yes) && !py::isinstance<py::array>(no);
+        return py::isinstance<py::array>(std::move(yes))
+               && !py::isinstance<py::array>(std::move(no));
     });
-    sm.def("isinstance_typed", [](py::object o) {
+    sm.def("isinstance_typed", [](const py::object &o) {
         return py::isinstance<py::array_t<double>>(o) && !py::isinstance<py::array_t<int>>(o);
     });
 
@@ -236,7 +238,7 @@ TEST_SUBMODULE(numpy_array, sm) {
             "array_t<double>"_a=py::array_t<double>()
         );
     });
-    sm.def("converting_constructors", [](py::object o) {
+    sm.def("converting_constructors", [](const py::object &o) {
         return py::dict(
             "array"_a=py::array(o),
             "array_t<int32>"_a=py::array_t<std::int32_t>(o),
@@ -245,40 +247,47 @@ TEST_SUBMODULE(numpy_array, sm) {
     });
 
     // test_overload_resolution
-    sm.def("overloaded", [](py::array_t<double>) { return "double"; });
-    sm.def("overloaded", [](py::array_t<float>) { return "float"; });
-    sm.def("overloaded", [](py::array_t<int>) { return "int"; });
-    sm.def("overloaded", [](py::array_t<unsigned short>) { return "unsigned short"; });
-    sm.def("overloaded", [](py::array_t<long long>) { return "long long"; });
-    sm.def("overloaded", [](py::array_t<std::complex<double>>) { return "double complex"; });
-    sm.def("overloaded", [](py::array_t<std::complex<float>>) { return "float complex"; });
+    sm.def("overloaded", [](const py::array_t<double> &) { return "double"; });
+    sm.def("overloaded", [](const py::array_t<float> &) { return "float"; });
+    sm.def("overloaded", [](const py::array_t<int> &) { return "int"; });
+    sm.def("overloaded", [](const py::array_t<unsigned short> &) { return "unsigned short"; });
+    sm.def("overloaded", [](const py::array_t<long long> &) { return "long long"; });
+    sm.def("overloaded",
+           [](const py::array_t<std::complex<double>> &) { return "double complex"; });
+    sm.def("overloaded", [](const py::array_t<std::complex<float>> &) { return "float complex"; });
 
-    sm.def("overloaded2", [](py::array_t<std::complex<double>>) { return "double complex"; });
-    sm.def("overloaded2", [](py::array_t<double>) { return "double"; });
-    sm.def("overloaded2", [](py::array_t<std::complex<float>>) { return "float complex"; });
-    sm.def("overloaded2", [](py::array_t<float>) { return "float"; });
+    sm.def("overloaded2",
+           [](const py::array_t<std::complex<double>> &) { return "double complex"; });
+    sm.def("overloaded2", [](const py::array_t<double> &) { return "double"; });
+    sm.def("overloaded2",
+           [](const py::array_t<std::complex<float>> &) { return "float complex"; });
+    sm.def("overloaded2", [](const py::array_t<float> &) { return "float"; });
 
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // Only accept the exact types:
-    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg{}.noconvert());
-    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg{}.noconvert());
+    sm.def(
+        "overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
+    sm.def(
+        "overloaded3",
+        [](const py::array_t<double> &) { return "double"; },
+        py::arg{}.noconvert());
 
     // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
     // rather that float gets converted via the safe (conversion to double) overload:
-    sm.def("overloaded4", [](py::array_t<long long, 0>) { return "long long"; });
-    sm.def("overloaded4", [](py::array_t<double, 0>) { return "double"; });
+    sm.def("overloaded4", [](const py::array_t<long long, 0> &) { return "long long"; });
+    sm.def("overloaded4", [](const py::array_t<double, 0> &) { return "double"; });
 
     // But we do allow conversion to int if forcecast is enabled (but only if no overload matches
     // without conversion)
-    sm.def("overloaded5", [](py::array_t<unsigned int>) { return "unsigned int"; });
-    sm.def("overloaded5", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded5", [](const py::array_t<unsigned int> &) { return "unsigned int"; });
+    sm.def("overloaded5", [](const py::array_t<double> &) { return "double"; });
 
     // test_greedy_string_overload
     // Issue 685: ndarray shouldn't go to std::string overload
-    sm.def("issue685", [](std::string) { return "string"; });
-    sm.def("issue685", [](py::array) { return "array"; });
-    sm.def("issue685", [](py::object) { return "other"; });
+    sm.def("issue685", [](const std::string &) { return "string"; });
+    sm.def("issue685", [](const py::array &) { return "array"; });
+    sm.def("issue685", [](const py::object &) { return "other"; });
 
     // test_array_unchecked_fixed_dims
     sm.def("proxy_add2", [](py::array_t<double> a, double v) {
@@ -306,7 +315,7 @@ TEST_SUBMODULE(numpy_array, sm) {
             r(i, j, k) = start++;
         return a;
     });
-    sm.def("proxy_squared_L2_norm", [](py::array_t<double> a) {
+    sm.def("proxy_squared_L2_norm", [](const py::array_t<double> &a) {
         auto r = a.unchecked<1>();
         double sumsq = 0;
         for (py::ssize_t i = 0; i < r.shape(0); i++)
@@ -396,45 +405,68 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-    sm.def("index_using_ellipsis", [](py::array a) {
-        return a[py::make_tuple(0, py::ellipsis(), 0)];
+    sm.def("array_view",
+           [](py::array_t<uint8_t> a, const std::string &dtype) { return a.view(dtype); });
+
+    sm.def("reshape_initializer_list", [](py::array_t<int> a, size_t N, size_t M, size_t O) {
+        return a.reshape({N, M, O});
+    });
+    sm.def("reshape_tuple", [](py::array_t<int> a, const std::vector<int> &new_shape) {
+        return a.reshape(new_shape);
     });
 
+    sm.def("index_using_ellipsis",
+           [](const py::array &a) { return a[py::make_tuple(0, py::ellipsis(), 0)]; });
+
     // test_argument_conversions
-    sm.def("accept_double",
-           [](py::array_t<double, 0>) {},
-           py::arg("a"));
-    sm.def("accept_double_forcecast",
-           [](py::array_t<double, py::array::forcecast>) {},
-           py::arg("a"));
-    sm.def("accept_double_c_style",
-           [](py::array_t<double, py::array::c_style>) {},
-           py::arg("a"));
-    sm.def("accept_double_c_style_forcecast",
-           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
-           py::arg("a"));
-    sm.def("accept_double_f_style",
-           [](py::array_t<double, py::array::f_style>) {},
-           py::arg("a"));
-    sm.def("accept_double_f_style_forcecast",
-           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
-           py::arg("a"));
-    sm.def("accept_double_noconvert",
-           [](py::array_t<double, 0>) {},
-           "a"_a.noconvert());
-    sm.def("accept_double_forcecast_noconvert",
-           [](py::array_t<double, py::array::forcecast>) {},
-           "a"_a.noconvert());
-    sm.def("accept_double_c_style_noconvert",
-           [](py::array_t<double, py::array::c_style>) {},
-           "a"_a.noconvert());
-    sm.def("accept_double_c_style_forcecast_noconvert",
-           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
-           "a"_a.noconvert());
-    sm.def("accept_double_f_style_noconvert",
-           [](py::array_t<double, py::array::f_style>) {},
-           "a"_a.noconvert());
-    sm.def("accept_double_f_style_forcecast_noconvert",
-           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
-           "a"_a.noconvert());
+    sm.def(
+        "accept_double", [](const py::array_t<double, 0> &) {}, py::arg("a"));
+    sm.def(
+        "accept_double_forcecast",
+        [](const py::array_t<double, py::array::forcecast> &) {},
+        py::arg("a"));
+    sm.def(
+        "accept_double_c_style",
+        [](const py::array_t<double, py::array::c_style> &) {},
+        py::arg("a"));
+    sm.def(
+        "accept_double_c_style_forcecast",
+        [](const py::array_t<double, py::array::forcecast | py::array::c_style> &) {},
+        py::arg("a"));
+    sm.def(
+        "accept_double_f_style",
+        [](const py::array_t<double, py::array::f_style> &) {},
+        py::arg("a"));
+    sm.def(
+        "accept_double_f_style_forcecast",
+        [](const py::array_t<double, py::array::forcecast | py::array::f_style> &) {},
+        py::arg("a"));
+    sm.def(
+        "accept_double_noconvert", [](const py::array_t<double, 0> &) {}, "a"_a.noconvert());
+    sm.def(
+        "accept_double_forcecast_noconvert",
+        [](const py::array_t<double, py::array::forcecast> &) {},
+        "a"_a.noconvert());
+    sm.def(
+        "accept_double_c_style_noconvert",
+        [](const py::array_t<double, py::array::c_style> &) {},
+        "a"_a.noconvert());
+    sm.def(
+        "accept_double_c_style_forcecast_noconvert",
+        [](const py::array_t<double, py::array::forcecast | py::array::c_style> &) {},
+        "a"_a.noconvert());
+    sm.def(
+        "accept_double_f_style_noconvert",
+        [](const py::array_t<double, py::array::f_style> &) {},
+        "a"_a.noconvert());
+    sm.def(
+        "accept_double_f_style_forcecast_noconvert",
+        [](const py::array_t<double, py::array::forcecast | py::array::f_style> &) {},
+        "a"_a.noconvert());
+
+    // Check that types returns correct npy format descriptor
+    sm.def("test_fmt_desc_float", [](const py::array_t<float> &) {});
+    sm.def("test_fmt_desc_double", [](const py::array_t<double> &) {});
+    sm.def("test_fmt_desc_const_float", [](const py::array_t<const float> &) {});
+    sm.def("test_fmt_desc_const_double", [](const py::array_t<const double> &) {});
 }

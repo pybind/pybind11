@@ -1,5 +1,6 @@
 /*
-    tests/test_constants_and_functions.cpp -- global constants and functions, enumerations, raw byte strings
+    tests/test_constants_and_functions.cpp -- global constants and functions, enumerations, raw
+    byte strings
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -33,7 +34,7 @@ py::bytes return_bytes() {
     return std::string(data, 4);
 }
 
-std::string print_bytes(py::bytes bytes) {
+std::string print_bytes(const py::bytes &bytes) {
     std::string ret = "bytes[";
     const auto value = static_cast<std::string>(bytes);
     for (size_t i = 0; i < value.length(); ++i) {
@@ -56,12 +57,13 @@ int f1(int x) noexcept { return x+1; }
 #endif
 int f2(int x) noexcept(true) { return x+2; }
 int f3(int x) noexcept(false) { return x+3; }
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
+// NOLINTNEXTLINE(modernize-use-noexcept)
 int f4(int x) throw() { return x+4; } // Deprecated equivalent to noexcept(true)
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
 struct C {
@@ -71,13 +73,15 @@ struct C {
     int m4(int x) const noexcept(true) { return x-4; }
     int m5(int x) noexcept(false) { return x-5; }
     int m6(int x) const noexcept(false) { return x-6; }
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
-    int m7(int x) throw() { return x-7; }
-    int m8(int x) const throw() { return x-8; }
-#if defined(__GNUG__)
+    // NOLINTNEXTLINE(modernize-use-noexcept)
+    int m7(int x) throw() { return x - 7; }
+    // NOLINTNEXTLINE(modernize-use-noexcept)
+    int m8(int x) const throw() { return x - 8; }
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
 };
@@ -129,7 +133,14 @@ TEST_SUBMODULE(constants_and_functions, m) {
         ;
     m.def("f1", f1);
     m.def("f2", f2);
+#if defined(__INTEL_COMPILER)
+#    pragma warning push
+#    pragma warning disable 878 // incompatible exception specifications
+#endif
     m.def("f3", f3);
+#if defined(__INTEL_COMPILER)
+#    pragma warning pop
+#endif
     m.def("f4", f4);
 
     // test_function_record_leaks
@@ -142,8 +153,13 @@ TEST_SUBMODULE(constants_and_functions, m) {
         LargeCapture capture;  // VS 2015's MSVC is acting up if we create the array here
         m.def("should_raise", [capture](int) { return capture.zeros[9] + 33; }, py::kw_only(), py::arg());
     });
-    m.def("register_with_raising_repr", [](py::module_ m, py::object default_value) {
-        m.def("should_raise", [](int, int, py::object) { return 42; }, "some docstring",
-              py::arg_v("x", 42), py::arg_v("y", 42, "<the answer>"), py::arg_v("z", default_value));
+    m.def("register_with_raising_repr", [](py::module_ m, const py::object &default_value) {
+        m.def(
+            "should_raise",
+            [](int, int, const py::object &) { return 42; },
+            "some docstring",
+            py::arg_v("x", 42),
+            py::arg_v("y", 42, "<the answer>"),
+            py::arg_v("z", default_value));
     });
 }

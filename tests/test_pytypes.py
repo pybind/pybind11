@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-import pytest
+
 import sys
 
-import env  # noqa: F401
+import pytest
 
-from pybind11_tests import pytypes as m
+import env
 from pybind11_tests import debug_enabled
+from pybind11_tests import pytypes as m
 
 
 def test_int(doc):
@@ -22,6 +23,15 @@ def test_iterable(doc):
 
 
 def test_list(capture, doc):
+    assert m.list_no_args() == []
+    assert m.list_ssize_t() == []
+    assert m.list_size_t() == []
+    lins = [1, 2]
+    m.list_insert_ssize_t(lins)
+    assert lins == [1, 83, 2]
+    m.list_insert_size_t(lins)
+    assert lins == [1, 83, 2, 57]
+
     with capture:
         lst = m.get_list()
         assert lst == ["inserted-0", "overwritten", "inserted-2"]
@@ -65,7 +75,7 @@ def test_set(capture, doc):
     """
     )
 
-    assert not m.set_contains(set([]), 42)
+    assert not m.set_contains(set(), 42)
     assert m.set_contains({42}, 42)
     assert m.set_contains({"foo"}, "foo")
 
@@ -98,7 +108,25 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
+def test_tuple():
+    assert m.tuple_no_args() == ()
+    assert m.tuple_ssize_t() == ()
+    assert m.tuple_size_t() == ()
+    assert m.get_tuple() == (42, None, "spam")
+
+
+@pytest.mark.skipif("env.PY2")
+def test_simple_namespace():
+    ns = m.get_simple_namespace()
+    assert ns.attr == 42
+    assert ns.x == "foo"
+    assert ns.right == 2
+    assert not hasattr(ns, "wrong")
+
+
 def test_str(doc):
+    assert m.str_from_char_ssize_t().encode().decode() == "red"
+    assert m.str_from_char_size_t().encode().decode() == "blue"
     assert m.str_from_string().encode().decode() == "baz"
     assert m.str_from_bytes().encode().decode() == "boo"
 
@@ -133,8 +161,18 @@ def test_str(doc):
     else:
         assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
 
+    assert m.str_from_string_from_str("this is a str") == "this is a str"
+    ucs_surrogates_str = u"\udcc3"
+    if env.PY2:
+        assert u"\udcc3" == m.str_from_string_from_str(ucs_surrogates_str)
+    else:
+        with pytest.raises(UnicodeEncodeError):
+            m.str_from_string_from_str(ucs_surrogates_str)
+
 
 def test_bytes(doc):
+    assert m.bytes_from_char_ssize_t().decode() == "green"
+    assert m.bytes_from_char_size_t().decode() == "purple"
     assert m.bytes_from_string().decode() == "foo"
     assert m.bytes_from_str().decode() == "bar"
 
@@ -144,6 +182,8 @@ def test_bytes(doc):
 
 
 def test_bytearray(doc):
+    assert m.bytearray_from_char_ssize_t().decode() == "$%"
+    assert m.bytearray_from_char_size_t().decode() == "@$!"
     assert m.bytearray_from_string().decode() == "foo"
     assert m.bytearray_size() == len("foo")
 
@@ -372,10 +412,10 @@ def test_print(capture):
 
     with pytest.raises(RuntimeError) as excinfo:
         m.print_failure()
-    assert str(excinfo.value) == "make_tuple(): unable to convert " + (
-        "argument of type 'UnregisteredType' to Python object"
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'1' of type 'UnregisteredType' to Python object"
         if debug_enabled
-        else "arguments to Python object (compile in debug mode for details)"
+        else "to Python object (compile in debug mode for details)"
     )
 
 
@@ -427,7 +467,8 @@ def test_issue2361():
     assert m.issue2361_str_implicit_copy_none() == "None"
     with pytest.raises(TypeError) as excinfo:
         assert m.issue2361_dict_implicit_copy_none()
-    assert "'NoneType' object is not iterable" in str(excinfo.value)
+    assert "NoneType" in str(excinfo.value)
+    assert "iterable" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -448,7 +489,7 @@ def test_memoryview(method, args, fmt, expected_view):
         view_as_list = list(view)
     else:
         # Using max to pick non-zero byte (big-endian vs little-endian).
-        view_as_list = [max([ord(c) for c in s]) for s in view]
+        view_as_list = [max(ord(c) for c in s) for s in view]
     assert view_as_list == list(expected_view)
 
 
@@ -569,7 +610,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    wr = create_weakref(obj)  # noqa: F841
+    wr = create_weakref(obj)
     assert getweakrefcount(obj) == 1
 
     obj = WeaklyReferenced()
@@ -581,3 +622,30 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     del obj
     pytest.gc_collect()
     assert callback.called
+
+
+def test_cpp_iterators():
+    assert m.tuple_iterator() == 12
+    assert m.dict_iterator() == 305 + 711
+    assert m.passed_iterator(iter((-7, 3))) == -4
+
+
+def test_implementation_details():
+    lst = [39, 43, 92, 49, 22, 29, 93, 98, 26, 57, 8]
+    tup = tuple(lst)
+    assert m.sequence_item_get_ssize_t(lst) == 43
+    assert m.sequence_item_set_ssize_t(lst) is None
+    assert lst[1] == "peppa"
+    assert m.sequence_item_get_size_t(lst) == 92
+    assert m.sequence_item_set_size_t(lst) is None
+    assert lst[2] == "george"
+    assert m.list_item_get_ssize_t(lst) == 49
+    assert m.list_item_set_ssize_t(lst) is None
+    assert lst[3] == "rebecca"
+    assert m.list_item_get_size_t(lst) == 22
+    assert m.list_item_set_size_t(lst) is None
+    assert lst[4] == "richard"
+    assert m.tuple_item_get_ssize_t(tup) == 29
+    assert m.tuple_item_set_ssize_t() == ("emely", "edmond")
+    assert m.tuple_item_get_size_t(tup) == 93
+    assert m.tuple_item_set_size_t() == ("candy", "cat")

@@ -26,7 +26,9 @@ The following Python snippet demonstrates the intended usage from the Python sid
         def __int__(self):
             return 123
 
+
     from example import print
+
     print(A())
 
 To register the necessary conversion routines, it is necessary to add an
