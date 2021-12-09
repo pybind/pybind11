@@ -322,16 +322,16 @@ DECL_NPY_SCALAR(signed char, NPY_BYTE);
 DECL_NPY_SCALAR(unsigned char, NPY_UBYTE);
 
 // signed integer types
-DECL_NPY_SCALAR(short, NPY_SHORT);
-DECL_NPY_SCALAR(int, NPY_INT);
+DECL_NPY_SCALAR(std::int16_t, NPY_SHORT);
+DECL_NPY_SCALAR(std::int32_t, NPY_INT);
+DECL_NPY_SCALAR(std::int64_t, NPY_LONG);
 DECL_NPY_SCALAR(long, NPY_LONG);
-DECL_NPY_SCALAR(long long, NPY_LONGLONG);
 
 // unsigned integer types
-DECL_NPY_SCALAR(unsigned short, NPY_USHORT);
-DECL_NPY_SCALAR(unsigned int, NPY_UINT);
+DECL_NPY_SCALAR(std::uint16_t, NPY_USHORT);
+DECL_NPY_SCALAR(std::uint32_t, NPY_UINT);
+DECL_NPY_SCALAR(std::uint64_t, NPY_ULONG);
 DECL_NPY_SCALAR(unsigned long, NPY_ULONG);
-DECL_NPY_SCALAR(unsigned long long, NPY_ULONGLONG);
 
 // floating point types
 DECL_NPY_SCALAR(float, NPY_FLOAT);
