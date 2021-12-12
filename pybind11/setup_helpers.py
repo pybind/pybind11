@@ -466,8 +466,12 @@ class ParallelCompile(object):
                     threads = 1
 
             if threads > 1:
-                for _ in ThreadPool(threads).imap_unordered(_single_compile, objects):
-                    pass
+                pool = ThreadPool(threads)
+                try:
+                    for _ in pool.imap_unordered(_single_compile, objects):
+                        pass
+                finally:
+                    pool.terminate()
             else:
                 for ob in objects:
                     _single_compile(ob)
