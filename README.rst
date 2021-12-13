@@ -1,7 +1,7 @@
 .. figure:: https://github.com/pybind/pybind11/raw/master/docs/pybind11-logo.png
    :alt: pybind11 logo
 
-**pybind11 — Seamless operability between C++11 and Python**
+**pybind11 — Seamless operability between C++ and Python**
 
 |Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status|
 
