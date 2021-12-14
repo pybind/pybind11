@@ -466,8 +466,14 @@ class ParallelCompile(object):
                     threads = 1
 
             if threads > 1:
-                for _ in ThreadPool(threads).imap_unordered(_single_compile, objects):
-                    pass
+                pool = ThreadPool(threads)
+                # In Python 2, ThreadPool can't be used as a context manager.
+                # Once we are no longer supporting it, this can be 'with pool:'
+                try:
+                    for _ in pool.imap_unordered(_single_compile, objects):
+                        pass
+                finally:
+                    pool.terminate()
             else:
                 for ob in objects:
                     _single_compile(ob)
