@@ -555,37 +555,37 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-11 --target test_cmake_build
 
-    - name: Configure C++20
+    - name: Configure C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake -S . -B build-20     \
+        cmake -S . -B build-14     \
         -DPYBIND11_WERROR=ON    \
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
-        -DCMAKE_CXX_STANDARD=20             \
+        -DCMAKE_CXX_STANDARD=14             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
-    - name: Build C++20
+    - name: Build C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-20 -j 2 -v
+        cmake --build build-14 -j 2 -v
 
-    - name: Python tests C++20
+    - name: Python tests C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build-20 --target check
+        cmake --build build-14 --target check
 
-    - name: C++ tests C++20
+    - name: C++ tests C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-20 --target cpptest
+        cmake --build build-14 --target cpptest
 
-    - name: Interface test C++20
+    - name: Interface test C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-20 --target test_cmake_build
+        cmake --build build-14 --target test_cmake_build
 
 
   # Testing on CentOS (manylinux uses a centos base, and this is an easy way
