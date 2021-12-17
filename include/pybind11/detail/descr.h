@@ -58,6 +58,7 @@ constexpr descr<N - 1> const_str(char const(&text)[N]) { return descr<N - 1>(tex
 constexpr descr<0> const_str(char const(&)[1]) { return {}; }
 
 // The "_" might be defined as a macro - don't define it if so.
+// Repeating the const_str code to avoid introducing a #define.
 #ifndef _
 template <size_t N>
 constexpr descr<N - 1> _(char const(&text)[N]) { return descr<N - 1>(text); }
