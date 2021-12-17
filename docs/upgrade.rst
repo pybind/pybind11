@@ -18,7 +18,7 @@ v2.9
   instead.
 
 * The use of ``_`` in custom type casters can now be replaced with the more
-  readable ``const_str`` instead. The old ``_`` shortcut has been retained
+  readable ``const_name`` instead. The old ``_`` shortcut has been retained
   unless it is being used as a macro (like for gettext).
 
 

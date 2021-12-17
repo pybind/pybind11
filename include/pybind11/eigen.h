@@ -192,20 +192,20 @@ template <typename Type_> struct EigenProps {
     static constexpr bool show_f_contiguous = !show_c_contiguous && show_order && requires_col_major;
 
     static constexpr auto descriptor =
-        const_str("numpy.ndarray[") + npy_format_descriptor<Scalar>::name +
-        const_str("[")  + const_str<fixed_rows>(const_str<(size_t) rows>(), const_str("m")) +
-        const_str(", ") + const_str<fixed_cols>(const_str<(size_t) cols>(), const_str("n")) +
-        const_str("]") +
+        const_name("numpy.ndarray[") + npy_format_descriptor<Scalar>::name +
+        const_name("[")  + const_name<fixed_rows>(const_name<(size_t) rows>(), const_name("m")) +
+        const_name(", ") + const_name<fixed_cols>(const_name<(size_t) cols>(), const_name("n")) +
+        const_name("]") +
         // For a reference type (e.g. Ref<MatrixXd>) we have other constraints that might need to be
         // satisfied: writeable=True (for a mutable reference), and, depending on the map's stride
         // options, possibly f_contiguous or c_contiguous.  We include them in the descriptor output
         // to provide some hint as to why a TypeError is occurring (otherwise it can be confusing to
         // see that a function accepts a 'numpy.ndarray[float64[3,2]]' and an error message that you
         // *gave* a numpy.ndarray of the right type and dimensions.
-        const_str<show_writeable>(", flags.writeable", "") +
-        const_str<show_c_contiguous>(", flags.c_contiguous", "") +
-        const_str<show_f_contiguous>(", flags.f_contiguous", "") +
-        const_str("]");
+        const_name<show_writeable>(", flags.writeable", "") +
+        const_name<show_c_contiguous>(", flags.c_contiguous", "") +
+        const_name<show_f_contiguous>(", flags.f_contiguous", "") +
+        const_name("]");
 };
 
 // Casts an Eigen type to numpy array.  If given a base, the numpy array references the src data,
@@ -600,8 +600,8 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         ).release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_str<(Type::IsRowMajor) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
-            + npy_format_descriptor<Scalar>::name + const_str("]"));
+    PYBIND11_TYPE_CASTER(Type, const_name<(Type::IsRowMajor) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
+            + npy_format_descriptor<Scalar>::name + const_name("]"));
 };
 
 PYBIND11_NAMESPACE_END(detail)

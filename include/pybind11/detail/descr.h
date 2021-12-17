@@ -54,11 +54,11 @@ constexpr descr<N1 + N2, Ts1..., Ts2...> operator+(const descr<N1, Ts1...> &a, c
 }
 
 template <size_t N>
-constexpr descr<N - 1> const_str(char const(&text)[N]) { return descr<N - 1>(text); }
-constexpr descr<0> const_str(char const(&)[1]) { return {}; }
+constexpr descr<N - 1> const_name(char const(&text)[N]) { return descr<N - 1>(text); }
+constexpr descr<0> const_name(char const(&)[1]) { return {}; }
 
 // The "_" might be defined as a macro - don't define it if so.
-// Repeating the const_str code to avoid introducing a #define.
+// Repeating the const_name code to avoid introducing a #define.
 #ifndef _
 template <size_t N>
 constexpr descr<N - 1> _(char const(&text)[N]) { return descr<N - 1>(text); }
@@ -72,25 +72,25 @@ template <size_t...Digits> struct int_to_str<0, Digits...> {
 
 // Ternary description (like std::conditional)
 template <bool B, size_t N1, size_t N2>
-constexpr enable_if_t<B, descr<N1 - 1>> const_str(char const(&text1)[N1], char const(&)[N2]) {
-    return const_str(text1);
+constexpr enable_if_t<B, descr<N1 - 1>> const_name(char const(&text1)[N1], char const(&)[N2]) {
+    return const_name(text1);
 }
 template <bool B, size_t N1, size_t N2>
-constexpr enable_if_t<!B, descr<N2 - 1>> const_str(char const(&)[N1], char const(&text2)[N2]) {
-    return const_str(text2);
+constexpr enable_if_t<!B, descr<N2 - 1>> const_name(char const(&)[N1], char const(&text2)[N2]) {
+    return const_name(text2);
 }
 
 template <bool B, typename T1, typename T2>
-constexpr enable_if_t<B, T1> const_str(const T1 &d, const T2 &) { return d; }
+constexpr enable_if_t<B, T1> const_name(const T1 &d, const T2 &) { return d; }
 template <bool B, typename T1, typename T2>
-constexpr enable_if_t<!B, T2> const_str(const T1 &, const T2 &d) { return d; }
+constexpr enable_if_t<!B, T2> const_name(const T1 &, const T2 &d) { return d; }
 
 template <size_t Size>
-auto constexpr const_str() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
+auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
 
-template <typename Type> constexpr descr<1, Type> const_str() { return {'%'}; }
+template <typename Type> constexpr descr<1, Type> const_name() { return {'%'}; }
 
 constexpr descr<0> concat() { return {}; }
 
@@ -100,12 +100,12 @@ constexpr descr<N, Ts...> concat(const descr<N, Ts...> &descr) { return descr; }
 template <size_t N, typename... Ts, typename... Args>
 constexpr auto concat(const descr<N, Ts...> &d, const Args &...args)
     -> decltype(std::declval<descr<N + 2, Ts...>>() + concat(args...)) {
-    return d + const_str(", ") + concat(args...);
+    return d + const_name(", ") + concat(args...);
 }
 
 template <size_t N, typename... Ts>
 constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {
-    return const_str("{") + descr + const_str("}");
+    return const_name("{") + descr + const_name("}");
 }
 
 PYBIND11_NAMESPACE_END(detail)
