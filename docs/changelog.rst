@@ -10,6 +10,8 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 IN DEVELOPMENT
 --------------
 
+This is the last version to support Python 2.7 and 3.5.
+
 New Features:
 
 * Allow ``py::args`` to be followed by other arguments; the remaining arguments
@@ -20,6 +22,16 @@ New Features:
 * Add C++ Exception type to throw and catch ``AttributeError``. Useful for
   defining custom ``__setattr__`` and ``__getattr__`` methods.
   `#3387 <https://github.com/pybind/pybind11/pull/3387>`_
+
+Changes:
+
+* Make str/bytes/memoryview more interoperable with ``std::string_view``.
+  `#3521 <https://github.com/pybind/pybind11/pull/3521>`_
+
+* Replace ``_`` with ``const_name`` in internals, avoid defining ``pybind::_``
+  if ``_`` defined as macro (common gettext usage)
+  `#3423 <https://github.com/pybind/pybind11/pull/3423>`_
+
 
 Bug fixes:
 
@@ -37,7 +49,8 @@ Bug fixes:
 * Add missing ``std::forward`` calls to some ``cpp_function`` overloads.
   `#3443 <https://github.com/pybind/pybind11/pull/3443>`_
 
-* Support PyPy 7.3.7 and the PyPy3.8 beta. Test python-3.11 on PRs with the ``python dev`` label.
+* Support PyPy 7.3.7 and the PyPy3.8 beta. Test python-3.11 on PRs with the
+  ``python dev`` label.
   `#3419 <https://github.com/pybind/pybind11/pull/3419>`_
 
 * Fix 2.8.0 regression with MSVC 2017 + C++17 mode + Python 3.
@@ -59,6 +72,9 @@ Bug fixes:
   ``std::optional`` types.
   `#3376 <https://github.com/pybind/pybind11/pull/3376>`_
 
+* Tweaks to support Microsoft Visual Studio 2022.
+  `#3497 <https://github.com/pybind/pybind11/pull/3497>`_
+
 Build system improvements:
 
 * Nicer CMake printout and IDE organisation for pybind11's own tests.
@@ -79,6 +95,8 @@ Build system improvements:
   overridden by ``.Pybind11Extension``.
   `#3436 <https://github.com/pybind/pybind11/pull/3436>`_
 
+* Ensure ThreadPool is closed in ``setup_helpers``.
+  `#3548 <https://github.com/pybind/pybind11/pull/3548>`_
 
 v2.8.1 (Oct 27, 2021)
 ---------------------
