@@ -104,7 +104,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.910-1
+  rev: v0.920
   hooks:
   - id: mypy
     # Running per-file misbehaves a bit, so just run on all files, it's fast
@@ -128,7 +128,7 @@ repos:
     args: ["-L", "nd,ot,thist"]
 
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.8.0.1
+  rev: v0.8.0.2
   hooks:
   - id: shellcheck
 
