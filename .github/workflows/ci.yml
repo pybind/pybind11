@@ -247,6 +247,8 @@ jobs:
         python -m pip install -r tests/requirements.txt
 
     - name: Configure
+      env:
+        SETUPTOOLS_USE_DISTUTILS: stdlib
       run: >
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=Debug
