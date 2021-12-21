@@ -435,7 +435,7 @@ inline void raise_from(error_already_set& err, PyObject *type, const char *messa
 
 #endif
 
-/** \defgroup python_builtins _
+/** \defgroup python_builtins const_name
     Unless stated otherwise, the following C++ functions behave the same
     as their Python counterparts.
  */
