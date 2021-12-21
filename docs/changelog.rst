@@ -98,7 +98,7 @@ Build system improvements:
 * Ensure ThreadPool is closed in ``setup_helpers``.
   `#3548 <https://github.com/pybind/pybind11/pull/3548>`_
 
-* Avoid LTS on ``mips64`` and ``ppc64le`` (reported broken).  
+* Avoid LTS on ``mips64`` and ``ppc64le`` (reported broken).
   `#3557 <https://github.com/pybind/pybind11/pull/3557>`_
 
 
