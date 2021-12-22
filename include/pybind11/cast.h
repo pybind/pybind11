@@ -230,7 +230,7 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T, _<std::is_integral<T>::value>("int", "float"));
+    PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
 };
 
 template<typename T> struct void_caster {
@@ -243,7 +243,7 @@ public:
     static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
         return none().inc_ref();
     }
-    PYBIND11_TYPE_CASTER(T, _("None"));
+    PYBIND11_TYPE_CASTER(T, const_name("None"));
 };
 
 template <> class type_caster<void_type> : public void_caster<void_type> {};
@@ -286,7 +286,7 @@ public:
 
     template <typename T> using cast_op_type = void*&;
     explicit operator void *&() { return value; }
-    static constexpr auto name = _("capsule");
+    static constexpr auto name = const_name("capsule");
 private:
     void *value = nullptr;
 };
@@ -337,7 +337,7 @@ public:
     static handle cast(bool src, return_value_policy /* policy */, handle /* parent */) {
         return handle(src ? Py_True : Py_False).inc_ref();
     }
-    PYBIND11_TYPE_CASTER(bool, _("bool"));
+    PYBIND11_TYPE_CASTER(bool, const_name("bool"));
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -427,7 +427,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
         return s;
     }
 
-    PYBIND11_TYPE_CASTER(StringType, _(PYBIND11_STRING_NAME));
+    PYBIND11_TYPE_CASTER(StringType, const_name(PYBIND11_STRING_NAME));
 
 private:
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
@@ -564,7 +564,7 @@ public:
         return one_char;
     }
 
-    static constexpr auto name = _(PYBIND11_STRING_NAME);
+    static constexpr auto name = const_name(PYBIND11_STRING_NAME);
     template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
 
@@ -601,7 +601,7 @@ public:
         return cast(*src, policy, parent);
     }
 
-    static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
+    static constexpr auto name = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
 
     template <typename T> using cast_op_type = type;
 
@@ -790,14 +790,14 @@ template <typename base, typename holder> struct is_holder_type :
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
 
-template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
-template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
-template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
-template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
-template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
-template <> struct handle_type_name<none> { static constexpr auto name = _("None"); };
-template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
-template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
+template <typename T> struct handle_type_name { static constexpr auto name = const_name<T>(); };
+template <> struct handle_type_name<bytes> { static constexpr auto name = const_name(PYBIND11_BYTES_NAME); };
+template <> struct handle_type_name<int_> { static constexpr auto name = const_name("int"); };
+template <> struct handle_type_name<iterable> { static constexpr auto name = const_name("Iterable"); };
+template <> struct handle_type_name<iterator> { static constexpr auto name = const_name("Iterator"); };
+template <> struct handle_type_name<none> { static constexpr auto name = const_name("None"); };
+template <> struct handle_type_name<args> { static constexpr auto name = const_name("*args"); };
+template <> struct handle_type_name<kwargs> { static constexpr auto name = const_name("**kwargs"); };
 
 template <typename type>
 struct pyobject_caster {
