@@ -59,7 +59,10 @@ constexpr descr<0> const_name(char const(&)[1]) { return {}; }
 
 // The "_" might be defined as a macro - don't define it if so.
 // Repeating the const_name code to avoid introducing a #define.
-#ifndef _
+#ifndef PYBIND11_UNDERSCORE_BACKWARD_COMPATIBILITY
+#define PYBIND11_UNDERSCORE_BACKWARD_COMPATIBILITY
+#endif
+#if !defined(_) && defined(PYBIND11_UNDERSCORE_BACKWARD_COMPATIBILITY)
 template <size_t N>
 constexpr descr<N - 1> _(char const(&text)[N]) { return descr<N - 1>(text); }
 constexpr descr<0> _(char const(&)[1]) { return {}; }
