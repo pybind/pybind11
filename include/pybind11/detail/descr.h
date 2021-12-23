@@ -57,14 +57,6 @@ template <size_t N>
 constexpr descr<N - 1> const_name(char const(&text)[N]) { return descr<N - 1>(text); }
 constexpr descr<0> const_name(char const(&)[1]) { return {}; }
 
-// The "_" might be defined as a macro - don't define it if so.
-// Repeating the const_name code to avoid introducing a #define.
-#ifndef _
-template <size_t N>
-constexpr descr<N - 1> _(char const(&text)[N]) { return descr<N - 1>(text); }
-constexpr descr<0> _(char const(&)[1]) { return {}; }
-#endif
-
 template <size_t Rem, size_t... Digits> struct int_to_str : int_to_str<Rem/10, Rem%10, Digits...> { };
 template <size_t...Digits> struct int_to_str<0, Digits...> {
     static constexpr auto digits = descr<sizeof...(Digits)>(('0' + Digits)...);
@@ -91,6 +83,31 @@ auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size %
 }
 
 template <typename Type> constexpr descr<1, Type> const_name() { return {'%'}; }
+
+// The "_" might be defined as a macro - don't define it if so.
+// Repeating the const_name code to avoid introducing a #define.
+#ifndef _
+template <size_t N>
+constexpr descr<N-1> _(char const(&text)[N]) { return const_name<N>(text); }
+template <bool B, size_t N1, size_t N2>
+constexpr enable_if_t<B, descr<N1 - 1>> _(char const(&text1)[N1], char const(&text2)[N2]) {
+    return const_name<B,N1,N2>(text1, text2);
+}
+template <bool B, size_t N1, size_t N2>
+constexpr enable_if_t<!B, descr<N2 - 1>> _(char const(&text1)[N1], char const(&text2)[N2]) {
+    return const_name<B,N1,N2>(text1, text2);
+}
+template <bool B, typename T1, typename T2>
+constexpr enable_if_t<B, T1> _(const T1 &d1, const T2 &d2) { return const_name<B,T1,T2>(d1, d2); }
+template <bool B, typename T1, typename T2>
+constexpr enable_if_t<!B, T2> _(const T1 &d1, const T2 &d2) { return const_name<B,T1,T2>(d1, d2); }
+
+template <size_t Size>
+auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
+    return const_name<Size>();
+}
+template <typename Type> constexpr descr<1, Type> _() { return const_name<Type>(); }
+#endif
 
 constexpr descr<0> concat() { return {}; }
 
