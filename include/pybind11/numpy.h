@@ -41,7 +41,7 @@ template<typename> struct numpy_scalar; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <> struct handle_type_name<array> { static constexpr auto name = _("numpy.ndarray"); };
+template <> struct handle_type_name<array> { static constexpr auto name = const_name("numpy.ndarray"); };
 
 template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
@@ -372,7 +372,7 @@ template <typename T> struct array_info_scalar {
     using type = T;
     static constexpr bool is_array = false;
     static constexpr bool is_empty = false;
-    static constexpr auto extents = _("");
+    static constexpr auto extents = const_name("");
     static void append_extents(list& /* shape */) { }
 };
 // Computes underlying type and a comma-separated list of extents for array
@@ -391,8 +391,8 @@ template <typename T, size_t N> struct array_info<std::array<T, N>> {
         array_info<T>::append_extents(shape);
     }
 
-    static constexpr auto extents = _<array_info<T>::is_array>(
-        concat(_<N>(), array_info<T>::extents), _<N>()
+    static constexpr auto extents = const_name<array_info<T>::is_array>(
+        concat(const_name<N>(), array_info<T>::extents), const_name<N>()
     );
 };
 // For numpy we have special handling for arrays of characters, so we don't include
@@ -1151,7 +1151,7 @@ template <typename T>
 struct format_descriptor<T, detail::enable_if_t<detail::array_info<T>::is_array>> {
     static std::string format() {
         using namespace detail;
-        static constexpr auto extents = _("(") + array_info<T>::extents + _(")");
+        static constexpr auto extents = const_name("(") + array_info<T>::extents + const_name(")");
         return extents.text + format_descriptor<remove_all_extents_t<T>>::format();
     }
 };
@@ -1205,7 +1205,7 @@ public:
 };
 
 #define PYBIND11_DECL_CHAR_FMT \
-    static constexpr auto name = _("S") + _<N>(); \
+    static constexpr auto name = const_name("S") + const_name<N>(); \
     static pybind11::dtype dtype() { return pybind11::dtype(std::string("S") + std::to_string(N)); }
 template <size_t N> struct npy_format_descriptor<char[N]> { PYBIND11_DECL_CHAR_FMT };
 template <size_t N> struct npy_format_descriptor<std::array<char, N>> { PYBIND11_DECL_CHAR_FMT };
@@ -1217,7 +1217,7 @@ private:
 public:
     static_assert(!array_info<T>::is_empty, "Zero-sized arrays are not supported");
 
-    static constexpr auto name = _("(") + array_info<T>::extents + _(")") + base_descr::name;
+    static constexpr auto name = const_name("(") + array_info<T>::extents + const_name(")") + base_descr::name;
     static pybind11::dtype dtype() {
         list shape;
         array_info<T>::append_extents(shape);
@@ -1805,7 +1805,7 @@ vectorize_extractor(const Func &f, Return (*) (Args ...)) {
 }
 
 template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
-    static constexpr auto name = _("numpy.ndarray[") + npy_format_descriptor<T>::name + _("]");
+    static constexpr auto name = const_name("numpy.ndarray[") + npy_format_descriptor<T>::name + const_name("]");
 };
 
 PYBIND11_NAMESPACE_END(detail)

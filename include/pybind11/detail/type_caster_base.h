@@ -897,7 +897,7 @@ template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
 
 public:
-    static constexpr auto name = _<type>();
+    static constexpr auto name = const_name<type>();
 
     type_caster_base() : type_caster_base(typeid(type)) { }
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
