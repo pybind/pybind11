@@ -325,13 +325,21 @@ DECL_NPY_SCALAR(unsigned char, NPY_UBYTE);
 DECL_NPY_SCALAR(std::int16_t, NPY_SHORT);
 DECL_NPY_SCALAR(std::int32_t, NPY_INT);
 DECL_NPY_SCALAR(std::int64_t, NPY_LONG);
+#if defined(__linux__)
+DECL_NPY_SCALAR(long long, NPY_LONG);
+#else
 DECL_NPY_SCALAR(long, NPY_LONG);
+#endif
 
 // unsigned integer types
 DECL_NPY_SCALAR(std::uint16_t, NPY_USHORT);
 DECL_NPY_SCALAR(std::uint32_t, NPY_UINT);
 DECL_NPY_SCALAR(std::uint64_t, NPY_ULONG);
+#if defined(__linux__)
+DECL_NPY_SCALAR(unsigned long long, NPY_ULONG);
+#else
 DECL_NPY_SCALAR(unsigned long, NPY_ULONG);
+#endif
 
 // floating point types
 DECL_NPY_SCALAR(float, NPY_FLOAT);
