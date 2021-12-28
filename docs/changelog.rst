@@ -7,8 +7,8 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
 
-IN DEVELOPMENT
---------------
+Version 2.9.0 (Dec 28, 2021)
+----------------------------
 
 This is the last version to support Python 2.7 and 3.5.
 
