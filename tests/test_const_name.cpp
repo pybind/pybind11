@@ -17,16 +17,18 @@
             case 3:                                                                               \
                 return IUT("Cef").text;                                                           \
             case 4:                                                                               \
-                return IUT<int>().text;                                                           \
+                return IUT<int>().text; /*NOLINT(bugprone-macro-parentheses)*/                    \
             case 5:                                                                               \
-                return IUT<std::string>().text;                                                   \
+                return IUT<std::string>().text; /*NOLINT(bugprone-macro-parentheses)*/            \
             case 6:                                                                               \
-                return IUT<true>("T1", "T2").text;                                                \
+                return IUT<true>("T1", "T2").text; /*NOLINT(bugprone-macro-parentheses)*/         \
             case 7:                                                                               \
-                return IUT<false>("U1", "U2").text;                                               \
+                return IUT<false>("U1", "U2").text; /*NOLINT(bugprone-macro-parentheses)*/        \
             case 8:                                                                               \
+                /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/                                    \
                 return IUT<true>(IUT("D1"), IUT("D2")).text;                                      \
             case 9:                                                                               \
+                /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/                                    \
                 return IUT<false>(IUT("E1"), IUT("E2")).text;                                     \
             case 10:                                                                              \
                 return IUT("KeepAtEnd").text;                                                     \
