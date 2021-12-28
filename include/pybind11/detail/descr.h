@@ -59,6 +59,7 @@ constexpr descr<0> const_name(char const(&)[1]) { return {}; }
 
 template <size_t Rem, size_t... Digits> struct int_to_str : int_to_str<Rem/10, Rem%10, Digits...> { };
 template <size_t...Digits> struct int_to_str<0, Digits...> {
+    // WARNING: This only works with C++17 or higher.
     static constexpr auto digits = descr<sizeof...(Digits)>(('0' + Digits)...);
 };
 

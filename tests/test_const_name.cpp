@@ -21,24 +21,14 @@
             case 5:                                                                               \
                 return IUT<std::string>().text;                                                   \
             case 6:                                                                               \
-                return IUT<0>().text;                                                             \
-            case 7:                                                                               \
-                return IUT<1>().text;                                                             \
-            case 8:                                                                               \
-                return IUT<2>().text;                                                             \
-            case 9:                                                                               \
-                return IUT<34>().text;                                                            \
-            case 10:                                                                              \
-                return IUT<567>().text;                                                           \
-            case 11:                                                                              \
                 return IUT<true>("T1", "T2").text;                                                \
-            case 12:                                                                              \
+            case 7:                                                                               \
                 return IUT<false>("U1", "U2").text;                                               \
-            case 13:                                                                              \
+            case 8:                                                                               \
                 return IUT<true>(IUT("D1"), IUT("D2")).text;                                      \
-            case 14:                                                                              \
+            case 9:                                                                               \
                 return IUT<false>(IUT("E1"), IUT("E2")).text;                                     \
-            case 15:                                                                              \
+            case 10:                                                                              \
                 return IUT("KeepAtEnd").text;                                                     \
             default:                                                                              \
                 break;                                                                            \
