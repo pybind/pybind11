@@ -146,6 +146,8 @@ with remove_output("pybind11/include", "pybind11/share"):
             "-DBUILD_TESTING=OFF",
             "-DPYBIND11_NOPYTHON=ON",
         ]
+        if "CMAKE_ARGS" in os.environ:
+            cmd += os.environ["CMAKE_ARGS"].split()
         cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
         subprocess.check_call(cmd, **cmake_opts)
         subprocess.check_call(["cmake", "--install", tmpdir], **cmake_opts)
