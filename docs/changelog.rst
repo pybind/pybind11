@@ -7,8 +7,100 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
 
-IN DEVELOPMENT
---------------
+Version 2.9.0 (Dec 28, 2021)
+----------------------------
+
+This is the last version to support Python 2.7 and 3.5.
+
+New Features:
+
+* Allow ``py::args`` to be followed by other arguments; the remaining arguments
+  are implicitly keyword-only, as if a ``py::kw_only{}`` annotation had been
+  used.
+  `#3402 <https://github.com/pybind/pybind11/pull/3402>`_
+
+* Add C++ Exception type to throw and catch ``AttributeError``. Useful for
+  defining custom ``__setattr__`` and ``__getattr__`` methods.
+  `#3387 <https://github.com/pybind/pybind11/pull/3387>`_
+
+Changes:
+
+* Make str/bytes/memoryview more interoperable with ``std::string_view``.
+  `#3521 <https://github.com/pybind/pybind11/pull/3521>`_
+
+* Replace ``_`` with ``const_name`` in internals, avoid defining ``pybind::_``
+  if ``_`` defined as macro (common gettext usage)
+  `#3423 <https://github.com/pybind/pybind11/pull/3423>`_
+
+
+Bug fixes:
+
+* Fix a regression in 2.8.0 that caused undefined behavior (typically
+  segfaults) in ``make_key_iterator``/``make_value_iterator`` if dereferencing
+  the iterator returned a temporary value instead of a reference.
+  `#3348 <https://github.com/pybind/pybind11/pull/3348>`_
+
+* Fix a rare warning about extra copy in an Eigen constructor.
+  `#3486 <https://github.com/pybind/pybind11/pull/3486>`_
+
+* Fix caching of the C++ overrides.
+  `#3465 <https://github.com/pybind/pybind11/pull/3465>`_
+
+* Add missing ``std::forward`` calls to some ``cpp_function`` overloads.
+  `#3443 <https://github.com/pybind/pybind11/pull/3443>`_
+
+* Support PyPy 7.3.7 and the PyPy3.8 beta. Test python-3.11 on PRs with the
+  ``python dev`` label.
+  `#3419 <https://github.com/pybind/pybind11/pull/3419>`_
+
+* Fix 2.8.0 regression with MSVC 2017 + C++17 mode + Python 3.
+  `#3407 <https://github.com/pybind/pybind11/pull/3407>`_
+
+* Modernize usage of ``PyCodeObject`` on Python 3.9 (toward supporting Python
+  3.11a1)
+  `#3368 <https://github.com/pybind/pybind11/pull/3368>`_
+
+* A long-standing bug in eigen.h was fixed (originally PR #3343). The bug was
+  unmasked by newly added ``static_assert``'s in the Eigen 3.4.0 release.
+  `#3352 <https://github.com/pybind/pybind11/pull/3352>`_
+
+* Replace usage of deprecated ``Eigen::MappedSparseMatrix`` with
+  ``Eigen::Map<Eigen::SparseMatrix<...>>`` for Eigen 3.3+.
+  `#3499 <https://github.com/pybind/pybind11/pull/3499>`_
+
+* Fixed the potential for dangling references when using properties with
+  ``std::optional`` types.
+  `#3376 <https://github.com/pybind/pybind11/pull/3376>`_
+
+* Tweaks to support Microsoft Visual Studio 2022.
+  `#3497 <https://github.com/pybind/pybind11/pull/3497>`_
+
+Build system improvements:
+
+* Nicer CMake printout and IDE organisation for pybind11's own tests.
+  `#3479 <https://github.com/pybind/pybind11/pull/3479>`_
+
+* CMake: report version type as part of the version string to avoid a spurious
+  space in the package status message.
+  `#3472 <https://github.com/pybind/pybind11/pull/3472>`_
+
+* Support multiple raw inclusion of CMake helper files (Conan.io does this for
+  multi-config generators).
+  `#3420 <https://github.com/pybind/pybind11/pull/3420>`_
+
+* Fix harmless warning on CMake 3.22.
+  `#3368 <https://github.com/pybind/pybind11/pull/3368>`_
+
+* Flags starting with ``-g`` in ``$CFLAGS`` and ``$CPPFLAGS`` are no longer
+  overridden by ``.Pybind11Extension``.
+  `#3436 <https://github.com/pybind/pybind11/pull/3436>`_
+
+* Ensure ThreadPool is closed in ``setup_helpers``.
+  `#3548 <https://github.com/pybind/pybind11/pull/3548>`_
+
+* Avoid LTS on ``mips64`` and ``ppc64le`` (reported broken).
+  `#3557 <https://github.com/pybind/pybind11/pull/3557>`_
+
 
 v2.8.1 (Oct 27, 2021)
 ---------------------

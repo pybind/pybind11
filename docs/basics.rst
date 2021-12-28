@@ -109,7 +109,7 @@ a file named :file:`example.cpp` with the following contents:
     PYBIND11_MODULE(example, m) {
         m.doc() = "pybind11 example plugin"; // optional module docstring
 
-        m.def("add", &add, "A function which adds two numbers");
+        m.def("add", &add, "A function that adds two numbers");
     }
 
 .. [#f1] In practice, implementation and binding code will generally be located

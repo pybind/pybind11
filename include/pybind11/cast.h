@@ -27,23 +27,6 @@
 #include <utility>
 #include <vector>
 
-#if defined(PYBIND11_CPP17)
-#  if defined(__has_include)
-#    if __has_include(<string_view>)
-#      define PYBIND11_HAS_STRING_VIEW
-#    endif
-#  elif defined(_MSC_VER)
-#    define PYBIND11_HAS_STRING_VIEW
-#  endif
-#endif
-#ifdef PYBIND11_HAS_STRING_VIEW
-#include <string_view>
-#endif
-
-#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
-#  define PYBIND11_HAS_U8STRING
-#endif
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -150,7 +133,8 @@ public:
             return false;
         } else {
             handle src_or_index = src;
-#if PY_VERSION_HEX < 0x03080000
+            // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
+#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
             object index;
             if (!PYBIND11_LONG_CHECK(src.ptr())) {  // So: index_check(src.ptr())
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
@@ -224,7 +208,7 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T, _<std::is_integral<T>::value>("int", "float"));
+    PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
 };
 
 template<typename T> struct void_caster {
@@ -237,7 +221,7 @@ public:
     static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
         return none().inc_ref();
     }
-    PYBIND11_TYPE_CASTER(T, _("None"));
+    PYBIND11_TYPE_CASTER(T, const_name("None"));
 };
 
 template <> class type_caster<void_type> : public void_caster<void_type> {};
@@ -280,7 +264,7 @@ public:
 
     template <typename T> using cast_op_type = void*&;
     explicit operator void *&() { return value; }
-    static constexpr auto name = _("capsule");
+    static constexpr auto name = const_name("capsule");
 private:
     void *value = nullptr;
 };
@@ -331,7 +315,7 @@ public:
     static handle cast(bool src, return_value_policy /* policy */, handle /* parent */) {
         return handle(src ? Py_True : Py_False).inc_ref();
     }
-    PYBIND11_TYPE_CASTER(bool, _("bool"));
+    PYBIND11_TYPE_CASTER(bool, const_name("bool"));
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -421,7 +405,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
         return s;
     }
 
-    PYBIND11_TYPE_CASTER(StringType, _(PYBIND11_STRING_NAME));
+    PYBIND11_TYPE_CASTER(StringType, const_name(PYBIND11_STRING_NAME));
 
 private:
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
@@ -558,7 +542,7 @@ public:
         return one_char;
     }
 
-    static constexpr auto name = _(PYBIND11_STRING_NAME);
+    static constexpr auto name = const_name(PYBIND11_STRING_NAME);
     template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
 
@@ -595,7 +579,7 @@ public:
         return cast(*src, policy, parent);
     }
 
-    static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
+    static constexpr auto name = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
 
     template <typename T> using cast_op_type = type;
 
@@ -780,14 +764,14 @@ template <typename base, typename holder> struct is_holder_type :
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
 
-template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
-template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
-template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
-template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
-template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
-template <> struct handle_type_name<none> { static constexpr auto name = _("None"); };
-template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
-template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
+template <typename T> struct handle_type_name { static constexpr auto name = const_name<T>(); };
+template <> struct handle_type_name<bytes> { static constexpr auto name = const_name(PYBIND11_BYTES_NAME); };
+template <> struct handle_type_name<int_> { static constexpr auto name = const_name("int"); };
+template <> struct handle_type_name<iterable> { static constexpr auto name = const_name("Iterable"); };
+template <> struct handle_type_name<iterator> { static constexpr auto name = const_name("Iterator"); };
+template <> struct handle_type_name<none> { static constexpr auto name = const_name("None"); };
+template <> struct handle_type_name<args> { static constexpr auto name = const_name("*args"); };
+template <> struct handle_type_name<kwargs> { static constexpr auto name = const_name("**kwargs"); };
 
 template <typename type>
 struct pyobject_caster {
@@ -1130,6 +1114,9 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+template <typename T> using is_kw_only = std::is_same<intrinsic_t<T>, kw_only>;
+template <typename T> using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
+
 // forward declaration (definition in attr.h)
 struct function_record;
 
@@ -1165,17 +1152,18 @@ class argument_loader {
 
     template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
     template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
-    // Get args/kwargs argument positions relative to the end of the argument list:
-    static constexpr auto args_pos = constexpr_first<argument_is_args, Args...>() - (int) sizeof...(Args),
-                        kwargs_pos = constexpr_first<argument_is_kwargs, Args...>() - (int) sizeof...(Args);
+    // Get kwargs argument position, or -1 if not present:
+    static constexpr auto kwargs_pos = constexpr_last<argument_is_kwargs, Args...>();
 
-    static constexpr bool args_kwargs_are_last = kwargs_pos >= - 1 && args_pos >= kwargs_pos - 1;
-
-    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
+    static_assert(kwargs_pos == -1 || kwargs_pos == (int) sizeof...(Args) - 1, "py::kwargs is only permitted as the last argument of a function");
 
 public:
-    static constexpr bool has_kwargs = kwargs_pos < 0;
-    static constexpr bool has_args = args_pos < 0;
+    static constexpr bool has_kwargs = kwargs_pos != -1;
+
+    // py::args argument position; -1 if not present.
+    static constexpr int args_pos = constexpr_last<argument_is_args, Args...>();
+
+    static_assert(args_pos == -1 || args_pos == constexpr_first<argument_is_args, Args...>(), "py::args cannot be specified more than once");
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 

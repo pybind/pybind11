@@ -515,3 +515,11 @@ def test_overload_ordering():
     assert "2. (arg0: {}) -> int".format(uni_name) in str(err.value)
     assert "3. (arg0: {}) -> int".format(uni_name) in str(err.value)
     assert "4. (arg0: int) -> int" in str(err.value)
+
+
+def test_rvalue_ref_param():
+    r = m.RValueRefParam()
+    assert r.func1("123") == 3
+    assert r.func2("1234") == 4
+    assert r.func3("12345") == 5
+    assert r.func4("123456") == 6

@@ -174,7 +174,7 @@ struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
           is_operator(false), is_method(false), has_args(false),
-          has_kwargs(false), has_kw_only_args(false), prepend(false) { }
+          has_kwargs(false), prepend(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -221,17 +221,15 @@ struct function_record {
     /// True if the function has a '**kwargs' argument
     bool has_kwargs : 1;
 
-    /// True once a 'py::kw_only' is encountered (any following args are keyword-only)
-    bool has_kw_only_args : 1;
-
     /// True if this function is to be inserted at the beginning of the overload resolution chain
     bool prepend : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
 
-    /// Number of trailing arguments (counted in `nargs`) that are keyword-only
-    std::uint16_t nargs_kw_only = 0;
+    /// Number of leading positional arguments, which are terminated by a py::args or py::kwargs
+    /// argument or by a py::kw_only annotation.
+    std::uint16_t nargs_pos = 0;
 
     /// Number of leading arguments (counted in `nargs`) that are positional-only
     std::uint16_t nargs_pos_only = 0;
@@ -411,20 +409,23 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
     static void init(const is_new_style_constructor &, function_record *r) { r->is_new_style_constructor = true; }
 };
 
-inline void process_kw_only_arg(const arg &a, function_record *r) {
-    if (!a.name || a.name[0] == '\0')
-        pybind11_fail("arg(): cannot specify an unnamed argument after an kw_only() annotation");
-    ++r->nargs_kw_only;
+inline void check_kw_only_arg(const arg &a, function_record *r) {
+    if (r->args.size() > r->nargs_pos && (!a.name || a.name[0] == '\0'))
+        pybind11_fail("arg(): cannot specify an unnamed argument after a kw_only() annotation or args() argument");
+}
+
+inline void append_self_arg_if_needed(function_record *r) {
+    if (r->is_method && r->args.empty())
+        r->args.emplace_back("self", nullptr, handle(), /*convert=*/ true, /*none=*/ false);
 }
 
 /// Process a keyword argument attribute (*without* a default value)
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
-        if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
+        append_self_arg_if_needed(r);
         r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none);
 
-        if (r->has_kw_only_args) process_kw_only_arg(a, r);
+        check_kw_only_arg(a, r);
     }
 };
 
@@ -432,7 +433,7 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     static void init(const arg_v &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr /*descr*/, handle() /*parent*/, true /*convert*/, false /*none not allowed*/);
+            r->args.emplace_back("self", /*descr=*/ nullptr, /*parent=*/ handle(), /*convert=*/ true, /*none=*/ false);
 
         if (!a.value) {
 #if !defined(NDEBUG)
@@ -457,21 +458,28 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);
 
-        if (r->has_kw_only_args) process_kw_only_arg(a, r);
+        check_kw_only_arg(a, r);
     }
 };
 
 /// Process a keyword-only-arguments-follow pseudo argument
 template <> struct process_attribute<kw_only> : process_attribute_default<kw_only> {
     static void init(const kw_only &, function_record *r) {
-        r->has_kw_only_args = true;
+        append_self_arg_if_needed(r);
+        if (r->has_args && r->nargs_pos != static_cast<std::uint16_t>(r->args.size()))
+            pybind11_fail("Mismatched args() and kw_only(): they must occur at the same relative argument location (or omit kw_only() entirely)");
+        r->nargs_pos = static_cast<std::uint16_t>(r->args.size());
     }
 };
 
 /// Process a positional-only-argument maker
 template <> struct process_attribute<pos_only> : process_attribute_default<pos_only> {
     static void init(const pos_only &, function_record *r) {
+        append_self_arg_if_needed(r);
         r->nargs_pos_only = static_cast<std::uint16_t>(r->args.size());
+        if (r->nargs_pos_only > r->nargs_pos)
+            pybind11_fail("pos_only(): cannot follow a py::args() argument");
+            // It also can't follow a kw_only, but a static_assert in pybind11.h checks that
     }
 };
 

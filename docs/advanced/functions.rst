@@ -306,8 +306,9 @@ The class ``py::args`` derives from ``py::tuple`` and ``py::kwargs`` derives
 from ``py::dict``.
 
 You may also use just one or the other, and may combine these with other
-arguments as long as the ``py::args`` and ``py::kwargs`` arguments are the last
-arguments accepted by the function.
+arguments.  Note, however, that ``py::kwargs`` must always be the last argument
+of the function, and ``py::args`` implies that any further arguments are
+keyword-only (see :ref:`keyword_only_arguments`).
 
 Please refer to the other examples for details on how to iterate over these,
 and on how to cast their entries into C++ objects. A demonstration is also
@@ -366,6 +367,8 @@ like so:
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = static_cast<SomeType *>(nullptr));
 
+.. _keyword_only_arguments:
+
 Keyword-only arguments
 ======================
 
@@ -396,6 +399,15 @@ Note that you currently cannot combine this with a ``py::args`` argument.  This
 feature does *not* require Python 3 to work.
 
 .. versionadded:: 2.6
+
+As of pybind11 2.9, a ``py::args`` argument implies that any following arguments
+are keyword-only, as if ``py::kw_only()`` had been specified in the same
+relative location of the argument list as the ``py::args`` argument.  The
+``py::kw_only()`` may be included to be explicit about this, but is not
+required.  (Prior to 2.9 ``py::args`` may only occur at the end of the argument
+list, or immediately before a ``py::kwargs`` argument at the end).
+
+.. versionadded:: 2.9
 
 Positional-only arguments
 =========================

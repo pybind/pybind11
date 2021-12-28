@@ -18,6 +18,10 @@
 #  include <optional>
 #endif
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+#  include <string_view>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
@@ -287,10 +291,10 @@ protected:
     struct borrowed_t { };
     struct stolen_t { };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
+    /// @cond BROKEN
     template <typename T> friend T reinterpret_borrow(handle);
     template <typename T> friend T reinterpret_steal(handle);
-#endif
+    /// @endcond
 
 public:
     // Only accessible from derived classes and the reinterpret_* functions
@@ -431,7 +435,7 @@ inline void raise_from(error_already_set& err, PyObject *type, const char *messa
 
 #endif
 
-/** \defgroup python_builtins _
+/** \defgroup python_builtins const_name
     Unless stated otherwise, the following C++ functions behave the same
     as their Python counterparts.
  */
@@ -1085,6 +1089,20 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     str(const std::string &s) : str(s.data(), s.size()) { }
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+    // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
+    template <typename T, detail::enable_if_t<std::is_same<T, std::string_view>::value, int> = 0>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    str(T s) : str(s.data(), s.size()) { }
+
+# ifdef PYBIND11_HAS_U8STRING
+    // reinterpret_cast here is safe (C++20 guarantees char8_t has the same size/alignment as char)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    str(std::u8string_view s) : str(reinterpret_cast<const char*>(s.data()), s.size()) { }
+# endif
+
+#endif
+
     explicit str(const bytes &b);
 
     /** \rst
@@ -1167,6 +1185,26 @@ public:
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
     }
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+    // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
+    template <typename T, detail::enable_if_t<std::is_same<T, std::string_view>::value, int> = 0>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    bytes(T s) : bytes(s.data(), s.size()) { }
+
+    // Obtain a string view that views the current `bytes` buffer value.  Note that this is only
+    // valid so long as the `bytes` instance remains alive and so generally should not outlive the
+    // lifetime of the `bytes` instance.
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator std::string_view() const {
+        char *buffer = nullptr;
+        ssize_t length = 0;
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
+            pybind11_fail("Unable to extract bytes contents!");
+        return {buffer, static_cast<size_t>(length)};
+    }
+#endif
+
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
 // are included in the doxygen group; close here and reopen after as a workaround
@@ -1714,10 +1752,17 @@ public:
     static memoryview from_memory(const void *mem, ssize_t size) {
         return memoryview::from_memory(const_cast<void*>(mem), size, true);
     }
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+    static memoryview from_memory(std::string_view mem) {
+        return from_memory(const_cast<char*>(mem.data()), static_cast<ssize_t>(mem.size()), true);
+    }
+#endif
+
 #endif
 };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
+/// @cond DUPLICATE
 inline memoryview memoryview::from_buffer(
     void *ptr, ssize_t itemsize, const char* format,
     detail::any_container<ssize_t> shape,
@@ -1745,7 +1790,7 @@ inline memoryview memoryview::from_buffer(
         throw error_already_set();
     return memoryview(object(obj, stolen_t{}));
 }
-#endif  // DOXYGEN_SHOULD_SKIP_THIS
+/// @endcond
 /// @} pytypes
 
 /// \addtogroup python_builtins

@@ -56,6 +56,23 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("mixed_plus_args_kwargs_defaults", mixed_plus_both,
             py::arg("i") = 1, py::arg("j") = 3.14159);
 
+    m.def("args_kwonly",
+            [](int i, double j, const py::args &args, int z) { return py::make_tuple(i, j, args, z); },
+            "i"_a, "j"_a, "z"_a);
+    m.def("args_kwonly_kwargs",
+            [](int i, double j, const py::args &args, int z, const py::kwargs &kwargs) {
+                return py::make_tuple(i, j, args, z, kwargs); },
+            "i"_a, "j"_a, py::kw_only{}, "z"_a);
+    m.def("args_kwonly_kwargs_defaults",
+            [](int i, double j, const py::args &args, int z, const py::kwargs &kwargs) {
+                return py::make_tuple(i, j, args, z, kwargs); },
+            "i"_a = 1, "j"_a = 3.14159, "z"_a = 42);
+    m.def("args_kwonly_full_monty",
+            [](int h, int i, double j, const py::args &args, int z, const py::kwargs &kwargs) {
+                return py::make_tuple(h, i, j, args, z, kwargs); },
+            py::arg() = 1, py::arg() = 2, py::pos_only{}, "j"_a = 3.14159, "z"_a = 42);
+
+
     // test_args_refcount
     // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
     #ifdef PYPY_VERSION
@@ -150,4 +167,21 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         "class_default_argument",
         [](py::object a) { return py::repr(std::move(a)); },
         "a"_a = py::module_::import("decimal").attr("Decimal"));
+
+    // Initial implementation of kw_only was broken when used on a method/constructor before any
+    // other arguments
+    // https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
+
+    struct first_arg_kw_only {};
+    py::class_<first_arg_kw_only>(m, "first_arg_kw_only")
+        .def(py::init([](int) { return first_arg_kw_only(); }),
+             py::kw_only(), // This being before any args was broken
+             py::arg("i") = 0)
+        .def("method", [](first_arg_kw_only&, int, int) {},
+             py::kw_only(), // and likewise here
+             py::arg("i") = 1, py::arg("j") = 2)
+        // Closely related: pos_only marker didn't show up properly when it was before any other
+        // arguments (although that is fairly useless in practice).
+        .def("pos_only", [](first_arg_kw_only&, int, int) {},
+                py::pos_only{}, py::arg("i"), py::arg("j"));
 }

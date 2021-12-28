@@ -206,6 +206,17 @@ def test_string_view(capture):
         """
         )
 
+    assert m.string_view_bytes() == b"abc \x80\x80 def"
+    assert m.string_view_str() == u"abc ‽ def"
+    assert m.string_view_from_bytes(u"abc ‽ def".encode("utf-8")) == u"abc ‽ def"
+    if hasattr(m, "has_u8string"):
+        assert m.string_view8_str() == u"abc ‽ def"
+    if not env.PY2:
+        assert m.string_view_memoryview() == "Have some 🎂".encode()
+
+    assert m.bytes_from_type_with_both_operator_string_and_string_view() == b"success"
+    assert m.str_from_type_with_both_operator_string_and_string_view() == "success"
+
 
 def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""
@@ -299,7 +310,8 @@ def test_int_convert():
     assert noconvert(7) == 7
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    if (3, 8) <= env.PY < (3, 10):
+    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
+    if (3, 8) <= env.PY < (3, 10) and env.CPYTHON:
         with env.deprecated_call():
             assert convert(Int()) == 42
     else:
@@ -334,7 +346,9 @@ def test_numpy_int_convert():
 
     # The implicit conversion from np.float32 is undesirable but currently accepted.
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    if (3, 8) <= env.PY < (3, 10):
+    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
+    # https://github.com/pybind/pybind11/issues/3408
+    if (3, 8) <= env.PY < (3, 10) and env.CPYTHON:
         with env.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:

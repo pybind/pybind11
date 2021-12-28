@@ -64,7 +64,7 @@ at its exception handler.
 +--------------------------------------+--------------------------------------+
 
 Exception translation is not bidirectional. That is, *catching* the C++
-exceptions defined above above will not trap exceptions that originate from
+exceptions defined above will not trap exceptions that originate from
 Python. For that, catch :class:`pybind11::error_already_set`. See :ref:`below
 <handling_python_exceptions_cpp>` for further details.
 

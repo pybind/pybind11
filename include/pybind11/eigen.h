@@ -50,8 +50,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if EIGEN_VERSION_AT_LEAST(3,3,0)
 using EigenIndex = Eigen::Index;
+template<typename Scalar, int Flags, typename StorageIndex>
+using EigenMapSparseMatrix = Eigen::Map<Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
 #else
 using EigenIndex = EIGEN_DEFAULT_DENSE_INDEX_TYPE;
+template<typename Scalar, int Flags, typename StorageIndex>
+using EigenMapSparseMatrix = Eigen::MappedSparseMatrix<Scalar, Flags, StorageIndex>;
 #endif
 
 // Matches Eigen::Map, Eigen::Ref, blocks, etc:
@@ -80,14 +84,12 @@ template <bool EigenRowMajor> struct EigenConformable {
     // Matrix type:
     EigenConformable(EigenIndex r, EigenIndex c,
             EigenIndex rstride, EigenIndex cstride) :
-        conformable{true}, rows{r}, cols{c} {
-        // TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
-        if (rstride < 0 || cstride < 0) {
-            negativestrides = true;
-        } else {
-            stride = {EigenRowMajor ? rstride : cstride /* outer stride */,
-                      EigenRowMajor ? cstride : rstride /* inner stride */ };
-        }
+        conformable{true}, rows{r}, cols{c},
+        //TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
+        stride{EigenRowMajor ? (rstride > 0 ? rstride : 0) : (cstride > 0 ? cstride : 0) /* outer stride */,
+               EigenRowMajor ? (cstride > 0 ? cstride : 0) : (rstride > 0 ? rstride : 0) /* inner stride */ },
+        negativestrides{rstride < 0 || cstride < 0} {
+
     }
     // Vector type:
     EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride)
@@ -190,20 +192,20 @@ template <typename Type_> struct EigenProps {
     static constexpr bool show_f_contiguous = !show_c_contiguous && show_order && requires_col_major;
 
     static constexpr auto descriptor =
-        _("numpy.ndarray[") + npy_format_descriptor<Scalar>::name +
-        _("[")  + _<fixed_rows>(_<(size_t) rows>(), _("m")) +
-        _(", ") + _<fixed_cols>(_<(size_t) cols>(), _("n")) +
-        _("]") +
+        const_name("numpy.ndarray[") + npy_format_descriptor<Scalar>::name +
+        const_name("[")  + const_name<fixed_rows>(const_name<(size_t) rows>(), const_name("m")) +
+        const_name(", ") + const_name<fixed_cols>(const_name<(size_t) cols>(), const_name("n")) +
+        const_name("]") +
         // For a reference type (e.g. Ref<MatrixXd>) we have other constraints that might need to be
         // satisfied: writeable=True (for a mutable reference), and, depending on the map's stride
         // options, possibly f_contiguous or c_contiguous.  We include them in the descriptor output
         // to provide some hint as to why a TypeError is occurring (otherwise it can be confusing to
         // see that a function accepts a 'numpy.ndarray[float64[3,2]]' and an error message that you
         // *gave* a numpy.ndarray of the right type and dimensions.
-        _<show_writeable>(", flags.writeable", "") +
-        _<show_c_contiguous>(", flags.c_contiguous", "") +
-        _<show_f_contiguous>(", flags.f_contiguous", "") +
-        _("]");
+        const_name<show_writeable>(", flags.writeable", "") +
+        const_name<show_c_contiguous>(", flags.c_contiguous", "") +
+        const_name<show_f_contiguous>(", flags.f_contiguous", "") +
+        const_name("]");
 };
 
 // Casts an Eigen type to numpy array.  If given a base, the numpy array references the src data,
@@ -573,9 +575,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         if (!values || !innerIndices || !outerIndices)
             return false;
 
-        value = Eigen::MappedSparseMatrix<Scalar,
-                                          Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
-                                          StorageIndex>(
+        value = EigenMapSparseMatrix<Scalar,
+                                     Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
+                                     StorageIndex>(
             shape[0].cast<Index>(), shape[1].cast<Index>(), nnz,
             outerIndices.mutable_data(), innerIndices.mutable_data(), values.mutable_data());
 
@@ -598,8 +600,8 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         ).release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, _<(Type::IsRowMajor) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
-            + npy_format_descriptor<Scalar>::name + _("]"));
+    PYBIND11_TYPE_CASTER(Type, const_name<(Type::IsRowMajor) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
+            + npy_format_descriptor<Scalar>::name + const_name("]"));
 };
 
 PYBIND11_NAMESPACE_END(detail)

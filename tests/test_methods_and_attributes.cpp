@@ -159,6 +159,14 @@ struct RefQualified {
     int constRefQualified(int other) const & { return value + other; }
 };
 
+// Test rvalue ref param
+struct RValueRefParam {
+    std::size_t func1(std::string&& s) { return s.size(); }
+    std::size_t func2(std::string&& s) const { return s.size(); }
+    std::size_t func3(std::string&& s) & { return s.size(); }
+    std::size_t func4(std::string&& s) const & { return s.size(); }
+};
+
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
@@ -409,4 +417,11 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_readonly("value", &RefQualified::value)
         .def("refQualified", &RefQualified::refQualified)
         .def("constRefQualified", &RefQualified::constRefQualified);
+
+    py::class_<RValueRefParam>(m, "RValueRefParam")
+        .def(py::init<>())
+        .def("func1", &RValueRefParam::func1)
+        .def("func2", &RValueRefParam::func2)
+        .def("func3", &RValueRefParam::func3)
+        .def("func4", &RValueRefParam::func4);
 }
