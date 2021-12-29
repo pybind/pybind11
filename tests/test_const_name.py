@@ -3,6 +3,7 @@ import itertools
 
 import pytest
 
+import env
 from pybind11_tests import const_name as m
 
 
@@ -29,7 +30,7 @@ from pybind11_tests import const_name as m
 )
 def test_const_name(func, selector_expected):
     selector, expected = selector_expected
-    if func is None:
-        pytest.skip("PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY not defined.")
+    if isinstance(func, type(u"") if env.PY2 else str):
+        pytest.skip(func)
     text = func(selector)
     assert text == expected
