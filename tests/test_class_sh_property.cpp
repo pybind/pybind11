@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace {
+namespace test_class_sh_property {
 
 struct Inner {
     int value = -99;
@@ -16,12 +16,14 @@ struct Outer {
 
 inline void DisownOuter(std::unique_ptr<Outer>) {}
 
-} // namespace
+} // namespace test_class_sh_property
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Inner)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Outer)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::Inner)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::Outer)
 
 TEST_SUBMODULE(class_sh_property, m) {
+    using namespace test_class_sh_property;
+
     py::classh<Inner>(m, "Inner")              //
         .def_readwrite("value", &Inner::value) //
         ;
