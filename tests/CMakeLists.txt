@@ -115,6 +115,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_unique_ptr_member.cpp
     test_class_sh_virtual_py_cpp_mix.cpp
     test_classh_mock.cpp
+    test_const_name.cpp
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp

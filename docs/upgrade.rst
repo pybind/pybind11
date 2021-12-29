@@ -17,6 +17,10 @@ v2.9
   converted to using ``py::module_::import("types").attr("SimpleNamespace")``
   instead.
 
+* The use of ``_`` in custom type casters can now be replaced with the more
+  readable ``const_name`` instead. The old ``_`` shortcut has been retained
+  unless it is being used as a macro (like for gettext).
+
 
 .. _upgrade-guide-2.7:
 
