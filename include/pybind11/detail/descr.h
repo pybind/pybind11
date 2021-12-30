@@ -59,6 +59,7 @@ constexpr descr<0> const_name(char const(&)[1]) { return {}; }
 
 template <size_t Rem, size_t... Digits> struct int_to_str : int_to_str<Rem/10, Rem%10, Digits...> { };
 template <size_t...Digits> struct int_to_str<0, Digits...> {
+    // WARNING: This only works with C++17 or higher.
     static constexpr auto digits = descr<sizeof...(Digits)>(('0' + Digits)...);
 };
 
@@ -84,9 +85,12 @@ auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size %
 
 template <typename Type> constexpr descr<1, Type> const_name() { return {'%'}; }
 
-// The "_" might be defined as a macro - don't define it if so.
-// Repeating the const_name code to avoid introducing a #define.
+// If "_" is defined as a macro, py::detail::_ cannot be provided.
+// It is therefore best to use py::detail::const_name universally.
+// This block is for backward compatibility only.
+// (The const_name code is repeated to avoid introducing a "_" #define ourselves.)
 #ifndef _
+#define PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY
 template <size_t N>
 constexpr descr<N-1> _(char const(&text)[N]) { return const_name<N>(text); }
 template <bool B, size_t N1, size_t N2>
@@ -107,7 +111,7 @@ auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::dig
     return const_name<Size>();
 }
 template <typename Type> constexpr descr<1, Type> _() { return const_name<Type>(); }
-#endif
+#endif  // #ifndef _
 
 constexpr descr<0> concat() { return {}; }
 
