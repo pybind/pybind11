@@ -299,10 +299,10 @@ struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::valu
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
-static constexpr auto name = const_name<std::is_same<typename T::value_type, float>::value
-                               || std::is_same<typename T::value_type, double>::value>(
+    static constexpr auto name = const_name<std::is_same<typename T::value_type, float>::value
+                                   || std::is_same<typename T::value_type, double>::value>(
         const_name("complex") + const_name<sizeof(typename T::value_type)*16>(), const_name("longcomplex")
-);
+    );
 };
 
 template<typename T> struct numpy_scalar_info {};
