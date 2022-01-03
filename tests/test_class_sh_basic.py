@@ -163,3 +163,22 @@ def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
 def test_py_type_handle_of_atyp():
     obj = m.py_type_handle_of_atyp()
     assert obj.__class__.__name__ == "pybind11_type"
+
+
+def test_function_signatures(doc):
+    assert (
+        doc(m.args_shared_ptr)
+        == "args_shared_ptr(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+    )
+    assert (
+        doc(m.args_shared_ptr_const)
+        == "args_shared_ptr_const(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+    )
+    assert (
+        doc(m.args_unique_ptr)
+        == "args_unique_ptr(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+    )
+    assert (
+        doc(m.args_unique_ptr_const)
+        == "args_unique_ptr_const(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+    )
