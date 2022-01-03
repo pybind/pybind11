@@ -154,6 +154,12 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("py_type_handle_of_atyp", []() {
         return py::type::handle_of<atyp>(); // Exercises static_cast in this function.
     });
+
+    // Checks for type names used as arguments
+    m.def("args_shared_ptr", [](std::shared_ptr<atyp> p) { return p; });
+    m.def("args_shared_ptr_const", [](std::shared_ptr<atyp const> p) { return p; });
+    m.def("args_unique_ptr", [](std::unique_ptr<atyp> p) { return p; });
+    m.def("args_unique_ptr_const", [](std::unique_ptr<atyp const> p) { return p; });
 }
 
 } // namespace class_sh_basic

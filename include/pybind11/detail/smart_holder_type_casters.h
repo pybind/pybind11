@@ -703,7 +703,7 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 template <typename T>
 struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T>,
                                                       smart_holder_type_caster_class_hooks {
-    static constexpr auto name = const_name<std::shared_ptr<T>>();
+    static constexpr auto name = const_name<T>();
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         switch (policy) {
@@ -760,7 +760,7 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
 template <typename T>
 struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T>,
                                                             smart_holder_type_caster_class_hooks {
-    static constexpr auto name = const_name<std::shared_ptr<T const>>();
+    static constexpr auto name = const_name<T>();
 
     static handle
     cast(const std::shared_ptr<T const> &src, return_value_policy policy, handle parent) {
@@ -780,7 +780,7 @@ struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_ca
 template <typename T, typename D>
 struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caster_load<T>,
                                                          smart_holder_type_caster_class_hooks {
-    static constexpr auto name = const_name<std::unique_ptr<T, D>>();
+    static constexpr auto name = const_name<T>();
 
     static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
@@ -857,7 +857,7 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
 template <typename T, typename D>
 struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     : smart_holder_type_caster_load<T>, smart_holder_type_caster_class_hooks {
-    static constexpr auto name = const_name<std::unique_ptr<T const, D>>();
+    static constexpr auto name = const_name<T>();
 
     static handle
     cast(std::unique_ptr<T const, D> &&src, return_value_policy policy, handle parent) {
