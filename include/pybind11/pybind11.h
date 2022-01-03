@@ -1377,6 +1377,32 @@ using default_holder_type = smart_holder;
         }
 
 #endif
+
+template <typename T, typename D, typename SFINAE = void>
+struct getter_cpp_function {
+    template <typename PM, typename M>
+    static cpp_function make(PM pm, M m) { return cpp_function([pm](const T &c) -> const D &{ return c.*pm; }, m); }
+};
+
+#ifdef JUNK
+template <typename T, typename D>
+struct getter_cpp_function<T, D, detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value &&
+                                                     detail::type_uses_smart_holder_type_caster<D>::value>> {
+    template <typename PM, typename M>
+    static cpp_function make(PM pm, M m) {
+        return cpp_function([pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D>{
+            const T &c = *c_sp.get();
+            if constexpr (std::is_same<std::shared_ptr<D>, decltype(c.*pm)>::value) {
+                return c.*pm;
+            }
+            D &d = const_cast<D &>(c.*pm);
+            return std::shared_ptr<D>(c_sp, &d);
+        },
+        m);
+    }
+};
+#endif
+
 // clang-format off
 
 template <typename type_, typename... options>
@@ -1577,9 +1603,12 @@ public:
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
-        cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this)),
-                     fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
-        def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
+        def_property(
+            name,
+            getter_cpp_function<type, D>::make(pm, is_method(*this)),
+            cpp_function([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this)),
+            return_value_policy::reference_internal,
+            extra...);
         return *this;
     }
 
@@ -1593,8 +1622,8 @@ public:
 
     template <typename D, typename... Extra>
     class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this)),
-            fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
+        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this));
+        cpp_function fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
         def_property_static(name, fget, fset, return_value_policy::reference, extra...);
         return *this;
     }
