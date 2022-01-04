@@ -47,6 +47,18 @@ macro(possibly_uninitialized)
   endforeach()
 endmacro()
 
+# Function to add additional targets if any of the provided tests are found.
+# Needles; Specifies the test names to look for.
+# Additions; Specifies the additional test targets to add when any of the needles are found.
+macro(tests_extra_targets needles additions)
+  # Add the index for this relation to the index extra targets map.
+  list(LENGTH PYBIND11_TEST_EXTRA_TARGETS PYBIND11_TEST_EXTRA_TARGETS_LEN)
+  list(APPEND PYBIND11_TEST_EXTRA_TARGETS ${PYBIND11_TEST_EXTRA_TARGETS_LEN})
+  # Add the test names to look for, and the associated test target additions.
+  set(PYBIND11_TEST_EXTRA_TARGETS_NEEDLES_${PYBIND11_TEST_EXTRA_TARGETS_LEN} ${needles})
+  set(PYBIND11_TEST_EXTRA_TARGETS_ADDITION_${PYBIND11_TEST_EXTRA_TARGETS_LEN} ${additions})
+endmacro()
+
 # New Python support
 if(DEFINED Python_EXECUTABLE)
   set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
@@ -167,10 +179,11 @@ string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 # Contains the set of test files that require pybind11_cross_module_tests to be
 # built; if none of these are built (i.e. because TEST_OVERRIDE is used and
 # doesn't include them) the second module doesn't get built.
-set(PYBIND11_CROSS_MODULE_TESTS test_exceptions.py test_local_bindings.py test_stl.py
-                                test_stl_binders.py)
+tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_stl_binders.py"
+                    "pybind11_cross_module_tests")
 
-set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
+# And add additional targets for other tests.
+tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
@@ -353,21 +366,17 @@ endfunction()
 
 set(test_targets pybind11_tests)
 
-# Build pybind11_cross_module_tests if any test_whatever.py are being built that require it
-foreach(t ${PYBIND11_CROSS_MODULE_TESTS})
-  list(FIND PYBIND11_PYTEST_FILES ${t} i)
-  if(i GREATER -1)
-    list(APPEND test_targets pybind11_cross_module_tests)
-    break()
-  endif()
-endforeach()
-
-foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
-  list(FIND PYBIND11_PYTEST_FILES ${t} i)
-  if(i GREATER -1)
-    list(APPEND test_targets cross_module_gil_utils)
-    break()
-  endif()
+# Check if any tests need extra targets by iterating through the mappings registered.
+foreach(i ${PYBIND11_TEST_EXTRA_TARGETS})
+  foreach(needle ${PYBIND11_TEST_EXTRA_TARGETS_NEEDLES_${i}})
+    if(${needle} IN_LIST PYBIND11_PYTEST_FILES)
+      # Add all the additional targets to the test list. List join in newer cmake.
+      foreach(extra_target ${PYBIND11_TEST_EXTRA_TARGETS_ADDITION_${i}})
+        list(APPEND test_targets ${extra_target})
+      endforeach()
+      break() # Breaks out of the needle search, continues with the next mapping.
+    endif()
+  endforeach()
 endforeach()
 
 # Support CUDA testing by forcing the target file to compile with NVCC
