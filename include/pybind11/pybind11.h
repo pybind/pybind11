@@ -1402,10 +1402,9 @@ struct getter_cpp_function<
     static cpp_function make(PM pm, M m) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
-                D &d = (*c_sp).*pm;
                 // Emulating PyCLIF approach:
                 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
-                return std::shared_ptr<D>(c_sp, &d);
+                return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
             },
             m);
     }
