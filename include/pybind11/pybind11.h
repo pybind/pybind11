@@ -1379,10 +1379,10 @@ using default_holder_type = smart_holder;
 #endif
 
 template <typename T, typename D, typename SFINAE = void>
-struct getter_cpp_function {
-    template <typename PM, typename M>
-    static cpp_function make(PM pm, M m) {
-        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, m);
+struct member_getter_cpp_function {
+    template <typename PM>
+    static cpp_function make(PM pm, const handle &hdl) {
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 };
 
@@ -1392,21 +1392,21 @@ template <class T>
 struct is_std_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T, typename D>
-struct getter_cpp_function<
+struct member_getter_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
                         && detail::type_uses_smart_holder_type_caster<D>::value
                         && !is_std_shared_ptr<D>::value>> {
-    template <typename PM, typename M>
-    static cpp_function make(PM pm, M m) {
+    template <typename PM>
+    static cpp_function make(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
                 // Emulating PyCLIF approach:
                 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
                 return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
             },
-            m);
+            is_method(hdl));
     }
 };
 
@@ -1612,7 +1612,7 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
         def_property(
             name,
-            getter_cpp_function<type, D>::make(pm, is_method(*this)),
+            member_getter_cpp_function<type, D>::make(pm, *this),
             cpp_function([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this)),
             return_value_policy::reference_internal,
             extra...);
@@ -1624,7 +1624,7 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         def_property_readonly(
             name,
-            getter_cpp_function<type, D>::make(pm, is_method(*this)),
+            member_getter_cpp_function<type, D>::make(pm, *this),
             return_value_policy::reference_internal,
             extra...);
         return *this;
