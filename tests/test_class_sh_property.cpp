@@ -30,9 +30,9 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readwrite("num", &Field::num) //
         ;
 
-    py::classh<Outer>(m, "Outer") //
-        .def(py::init<>())        //
-        .def_readwrite("m_val", &Outer::m_val) //
+    py::classh<Outer>(m, "Outer")                    //
+        .def(py::init<>())                           //
+        .def_readwrite("m_val", &Outer::m_val)       //
         .def_readwrite("m_sh_ptr", &Outer::m_sh_ptr) //
         ;
 
