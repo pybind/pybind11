@@ -24,6 +24,32 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
+def test_raise_without_throw(msg):
+    # Not setting an error and returning a non-null object
+    assert m.raise_without_throw(return_null=False, set_error=False) == 5
+
+    # Setting an error and returning a null object is an allowed alternative to
+    # throwing a C++ exception
+    with pytest.raises(FutureWarning) as excinfo:
+        m.raise_without_throw(return_null=True, set_error=True)
+    assert msg(excinfo.value) == "this is a robbery!"
+
+    # Setting an error and returning a non-null object is a Python system error
+    if not env.PY2:
+        with pytest.raises(SystemError) as excinfo:
+            m.raise_without_throw(return_null=False, set_error=True)
+
+    # Returning a null object without error being set is not allowed either, as
+    # that's also the case when function return value can't be converted to a
+    # Python type
+    with pytest.raises(TypeError) as excinfo:
+        m.raise_without_throw(return_null=True, set_error=False)
+    assert msg(excinfo.value) == (
+        "Unable to convert function return value to a Python type! The "
+        "signature was\n\t(return_null: bool, set_error: bool) -> object"
+    )
+
+
 @pytest.mark.skipif("env.PY2")
 def test_raise_from(msg):
     with pytest.raises(ValueError) as excinfo:
