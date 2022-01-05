@@ -36,7 +36,8 @@ macro(pybind11_filter_tests LISTNAME)
     list(FIND LIST_WITHOUT_EXTENSIONS ${filename_no_ext} _FILE_FOUND)
     if(_FILE_FOUND GREATER -1)
       list(REMOVE_AT ${LISTNAME} ${_FILE_FOUND}) # And remove from the list with extensions.
-      list(REMOVE_AT LIST_WITHOUT_EXTENSIONS ${_FILE_FOUND}) # And our search list, to ensure it is in sync.
+      list(REMOVE_AT LIST_WITHOUT_EXTENSIONS ${_FILE_FOUND}
+      )# And our search list, to ensure it is in sync.
       set(PYBIND11_FILTER_TESTS_FOUND ON)
     endif()
   endforeach()
@@ -166,7 +167,8 @@ if(PYBIND11_TEST_OVERRIDE)
   string(REGEX REPLACE "\\.[^.]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
-    if(NOT ${test_name} IN_LIST TEST_OVERRIDE_NO_EXT) # If not in the whitelist, add to be filtered out.
+    if(NOT ${test_name} IN_LIST TEST_OVERRIDE_NO_EXT
+    )# If not in the whitelist, add to be filtered out.
       list(APPEND PYBIND11_TEST_FILTER ${test_name})
     endif()
   endforeach()
