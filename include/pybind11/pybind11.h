@@ -1386,9 +1386,14 @@ struct member_getter_cpp_function {
     }
 };
 
-template <class T>
+template <typename T>
+struct is_std_unique_ptr : std::false_type {};
+template <typename T, typename D>
+struct is_std_unique_ptr<std::unique_ptr<T, D>> : std::true_type {};
+
+template <typename T>
 struct is_std_shared_ptr : std::false_type {};
-template <class T>
+template <typename T>
 struct is_std_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T, typename D>
@@ -1397,6 +1402,7 @@ struct member_getter_cpp_function<
     D,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
                         && detail::type_uses_smart_holder_type_caster<D>::value
+                        && !is_std_unique_ptr<D>::value //
                         && !is_std_shared_ptr<D>::value>> {
     template <typename PM>
     static cpp_function make(PM pm, const handle &hdl) {

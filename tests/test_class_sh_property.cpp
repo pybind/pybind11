@@ -11,8 +11,10 @@ struct Field {
 };
 
 struct Outer {
-    Field m_val;
-    std::shared_ptr<Field> m_sh_ptr;
+    Field m_valu;
+    Field *m_mptr;
+    std::unique_ptr<Field> m_uqmp;
+    std::shared_ptr<Field> m_shmp;
 };
 
 inline void DisownOuter(std::unique_ptr<Outer>) {}
@@ -30,10 +32,12 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readwrite("num", &Field::num) //
         ;
 
-    py::classh<Outer>(m, "Outer")                    //
-        .def(py::init<>())                           //
-        .def_readwrite("m_val", &Outer::m_val)       //
-        .def_readwrite("m_sh_ptr", &Outer::m_sh_ptr) //
+    py::classh<Outer>(m, "Outer")                //
+        .def(py::init<>())                       //
+        .def_readwrite("m_valu", &Outer::m_valu) //
+        // .def_readwrite("m_mptr", &Outer::m_mptr) //
+        // .def_readwrite("m_uqmp", &Outer::m_uqmp) //
+        .def_readwrite("m_shmp", &Outer::m_shmp) //
         ;
 
     m.def("DisownOuter", DisownOuter);
