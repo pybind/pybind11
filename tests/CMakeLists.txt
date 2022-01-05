@@ -36,6 +36,7 @@ macro(pybind11_filter_tests LISTNAME)
     list(FIND LIST_WITHOUT_EXTENSIONS ${filename_no_ext} _FILE_FOUND)
     if(_FILE_FOUND GREATER -1)
       list(REMOVE_AT ${LISTNAME} ${_FILE_FOUND}) # And remove from the list with extensions.
+      list(REMOVE_AT LIST_WITHOUT_EXTENSIONS ${_FILE_FOUND}) # And our search list, to ensure it is in sync.
       set(PYBIND11_FILTER_TESTS_FOUND ON)
     endif()
   endforeach()
@@ -120,20 +121,6 @@ set(PYBIND11_TEST_FILES
     test_callbacks
     test_chrono
     test_class
-    test_class_sh_basic
-    test_class_sh_disowning
-    test_class_sh_disowning_mi
-    test_class_sh_factory_constructors
-    test_class_sh_inheritance
-    test_class_sh_shared_ptr_copy_move
-    test_class_sh_trampoline_basic
-    test_class_sh_trampoline_self_life_support
-    test_class_sh_trampoline_shared_from_this
-    test_class_sh_trampoline_shared_ptr_cpp_arg
-    test_class_sh_trampoline_unique_ptr
-    test_class_sh_unique_ptr_member
-    test_class_sh_virtual_py_cpp_mix
-    test_classh_mock
     test_const_name
     test_constants_and_functions
     test_copy_move
@@ -173,7 +160,16 @@ set(PYBIND11_TEST_FILES
 # lets you override the tests that get compiled and run.  You can restore to all tests with:
 #     cmake -DPYBIND11_TEST_OVERRIDE= ..
 if(PYBIND11_TEST_OVERRIDE)
-  set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
+  # Instead of doing a direct override here, we iterate over the overrides without extension and
+  # match them against entries from the PYBIND11_TEST_FILES, anything that not matches goes into the filter list.
+  string(REGEX REPLACE "\\.[^.]*;" ";" TEST_OVERRIDE_NO_EXT "${PYBIND11_TEST_OVERRIDE};")
+  string(REGEX REPLACE "\\.[^.]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
+  # This allows the override to be done with extensions, preserving backwards compatibility.
+  foreach(test_name ${TEST_FILES_NO_EXT})
+    if(NOT ${test_name} IN_LIST TEST_OVERRIDE_NO_EXT) # If not in the whitelist, add to be filtered out.
+      list(APPEND PYBIND11_TEST_FILTER ${test_name})
+    endif()
+  endforeach()
 endif()
 
 # You can also filter tests:
