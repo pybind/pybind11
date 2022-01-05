@@ -12,7 +12,7 @@ struct Field {
 
 struct Outer {
     Field m_valu;
-    Field *m_mptr;
+    Field *m_mptr = nullptr;
     std::unique_ptr<Field> m_uqmp;
     std::shared_ptr<Field> m_shmp;
 };
@@ -35,8 +35,24 @@ TEST_SUBMODULE(class_sh_property, m) {
     py::classh<Outer>(m, "Outer")                //
         .def(py::init<>())                       //
         .def_readwrite("m_valu", &Outer::m_valu) //
-        // .def_readwrite("m_mptr", &Outer::m_mptr) //
-        // .def_readwrite("m_uqmp", &Outer::m_uqmp) //
+        .def_property_readonly(                  //
+            "m_mptr",
+            [](const std::shared_ptr<Outer> &self) {
+                return std::shared_ptr<Field>(self, self->m_mptr);
+            })
+        .def_property_readonly( //
+            "m_uqmp",
+            [](const std::shared_ptr<Outer> &self) {
+                return std::shared_ptr<Field>(self, self->m_uqmp.get());
+            })
+        .def_property( //
+            "m_uqmp_disown",
+            [](const std::shared_ptr<Outer> &self) {
+                return std::unique_ptr<Field>(std::move(self->m_uqmp));
+            },
+            [](Outer &self, std::unique_ptr<Field> uqmp) {
+                self.m_uqmp = std::move(uqmp); //
+            })
         .def_readwrite("m_shmp", &Outer::m_shmp) //
         ;
 
