@@ -34,6 +34,28 @@ def test_valu_setter():
     assert outer.m_valu.num == 35
 
 
+@pytest.mark.parametrize(
+    "field_type, num_default, outer_type",
+    [
+        (m.ClassicField, -88, m.ClassicOuter),
+        (m.Field, -99, m.Outer),
+    ],
+)
+def test_mptr(field_type, num_default, outer_type):
+    outer = outer_type()
+    assert outer.m_mptr is None
+    field = field_type()
+    assert field.num == num_default
+    outer.m_mptr = field
+    assert outer.m_mptr.num == num_default
+    field.num = 76
+    assert outer.m_mptr.num == 76
+    # Change to -88 or -99 to demonstrate Undefined Behavior (dangling pointer).
+    if num_default == 88:
+        del field
+    assert outer.m_mptr.num == 76
+
+
 def test_uqmp(msg):
     outer = m.Outer()
     assert outer.m_uqmp is None
