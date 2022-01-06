@@ -57,6 +57,9 @@ def test_ptr(field_type, num_default, outer_type, m_attr):
     assert getattr(outer, m_attr).num == 76
 
 
+@pytest.mark.xfail(
+    "env.PYPY", reason="gc after `del field_co_own` is apparently deferred"
+)
 @pytest.mark.parametrize("m_attr", ("m_uqmp", "m_uqcp"))
 def test_uqp(m_attr, msg):
     m_attr_disown = m_attr + "_disown"
