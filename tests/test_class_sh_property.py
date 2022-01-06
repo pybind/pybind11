@@ -41,46 +41,62 @@ def test_valu_setter():
         (m.Field, -99, m.Outer),
     ],
 )
-def test_mptr(field_type, num_default, outer_type):
+@pytest.mark.parametrize("m_attr", ("m_mptr", "m_cptr"))
+def test_ptr(field_type, num_default, outer_type, m_attr):
     outer = outer_type()
-    assert outer.m_mptr is None
+    assert getattr(outer, m_attr) is None
     field = field_type()
     assert field.num == num_default
-    outer.m_mptr = field
-    assert outer.m_mptr.num == num_default
+    setattr(outer, m_attr, field)
+    assert getattr(outer, m_attr).num == num_default
     field.num = 76
-    assert outer.m_mptr.num == 76
+    assert getattr(outer, m_attr).num == 76
     # Change to -88 or -99 to demonstrate Undefined Behavior (dangling pointer).
-    if num_default == 88:
+    if num_default == 88 and m_attr == "m_mptr":
         del field
-    assert outer.m_mptr.num == 76
+    assert getattr(outer, m_attr).num == 76
 
 
-def test_uqmp(msg):
+@pytest.mark.parametrize("m_attr", ("m_uqmp", "m_uqcp"))
+def test_uqp(m_attr, msg):
+    m_attr_disown = m_attr + "_disown"
     outer = m.Outer()
-    assert outer.m_uqmp is None
+    assert getattr(outer, m_attr) is None
+    assert getattr(outer, m_attr_disown) is None
     field = m.Field()
     field.num = 39
-    outer.m_uqmp_disown = field
+    setattr(outer, m_attr_disown, field)
     with pytest.raises(ValueError) as excinfo:
         field.num
     assert (
         msg(excinfo.value)
         == "Missing value for wrapped C++ type: Python instance was disowned."
     )
-    field_getter = outer.m_uqmp
-    assert outer.m_uqmp.num == 39
-    assert field_getter.num == 39
+    field_co_own = getattr(outer, m_attr)
+    assert getattr(outer, m_attr).num == 39
+    assert field_co_own.num == 39
+    # TODO: needs work.
+    # with pytest.raises(RuntimeError) as excinfo:
+    #     getattr(outer, m_attr_disown)
+    # assert (
+    #     msg(excinfo.value)
+    #     == "Invalid unique_ptr: another instance owns this pointer already."
+    # )
+    del field_co_own
+    field_excl_own = getattr(outer, m_attr_disown)
+    assert getattr(outer, m_attr) is None
+    assert field_excl_own.num == 39
 
 
-def test_shmp():
+@pytest.mark.parametrize("m_attr", ("m_shmp", "m_shcp"))
+def test_shp(m_attr):
     outer = m.Outer()
-    assert outer.m_shmp is None
+    assert getattr(outer, m_attr) is None
     field = m.Field()
     field.num = 43
-    outer.m_shmp = field
-    assert outer.m_shmp.num == 43
-    outer.m_shmp.num = 57
+    setattr(outer, m_attr, field)
+    assert getattr(outer, m_attr).num == 43
+    getattr(outer, m_attr).num = 57
     assert field.num == 57
     del field
-    assert outer.m_shmp.num == 57
+    assert getattr(outer, m_attr).num == 57
