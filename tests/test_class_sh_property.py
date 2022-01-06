@@ -71,3 +71,16 @@ def test_uqmp(msg):
     field_getter = outer.m_uqmp
     assert outer.m_uqmp.num == 39
     assert field_getter.num == 39
+
+
+def test_shmp():
+    outer = m.Outer()
+    assert outer.m_shmp is None
+    field = m.Field()
+    field.num = 43
+    outer.m_shmp = field
+    assert outer.m_shmp.num == 43
+    outer.m_shmp.num = 57
+    assert field.num == 57
+    del field
+    assert outer.m_shmp.num == 57
