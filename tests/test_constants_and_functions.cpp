@@ -56,7 +56,11 @@ int f1(int x) noexcept(true) { return x+1; }
 int f1(int x) noexcept { return x+1; }
 #endif
 int f2(int x) noexcept(true) { return x+2; }
+#if defined(__CUDACC__)
+int f3(int x) { return x+3; } // noexcept(false) stopped working 2022-01-07
+#else
 int f3(int x) noexcept(false) { return x+3; }
+#endif
 #if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
