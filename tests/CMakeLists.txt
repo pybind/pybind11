@@ -122,6 +122,21 @@ set(PYBIND11_TEST_FILES
     test_callbacks
     test_chrono
     test_class
+    test_class_sh_basic
+    test_class_sh_disowning
+    test_class_sh_disowning_mi
+    test_class_sh_factory_constructors
+    test_class_sh_inheritance
+    test_class_sh_module_local.py
+    test_class_sh_shared_ptr_copy_move
+    test_class_sh_trampoline_basic
+    test_class_sh_trampoline_self_life_support
+    test_class_sh_trampoline_shared_from_this
+    test_class_sh_trampoline_shared_ptr_cpp_arg
+    test_class_sh_trampoline_unique_ptr
+    test_class_sh_unique_ptr_member
+    test_class_sh_virtual_py_cpp_mix
+    test_classh_mock
     test_const_name
     test_constants_and_functions
     test_copy_move
@@ -221,6 +236,8 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 
 # And add additional targets for other tests.
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
+tests_extra_targets("test_class_sh_module_local.py"
+                    "class_sh_module_local_0;class_sh_module_local_1;class_sh_module_local_2")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
