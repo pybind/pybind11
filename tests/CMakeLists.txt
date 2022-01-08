@@ -29,7 +29,7 @@ macro(pybind11_filter_tests LISTNAME)
   set(PYBIND11_FILTER_TESTS_FOUND OFF)
   # Make a list of the test without any extensions, for easier filtering.
   set(_TMP_ACTUAL_LIST "${${LISTNAME}};") # enforce ';' at the end to allow matching last item.
-  string(REGEX REPLACE "\\.[^.]*;" ";" LIST_WITHOUT_EXTENSIONS "${_TMP_ACTUAL_LIST}")
+  string(REGEX REPLACE "\\.[^.;]*;" ";" LIST_WITHOUT_EXTENSIONS "${_TMP_ACTUAL_LIST}")
   foreach(filename IN LISTS ARG_UNPARSED_ARGUMENTS)
     string(REGEX REPLACE "\\.[^.]*$" "" filename_no_ext ${filename})
     # Search in the list without extensions.
@@ -178,8 +178,8 @@ set(PYBIND11_TEST_FILES
 if(PYBIND11_TEST_OVERRIDE)
   # Instead of doing a direct override here, we iterate over the overrides without extension and
   # match them against entries from the PYBIND11_TEST_FILES, anything that not matches goes into the filter list.
-  string(REGEX REPLACE "\\.[^.]*;" ";" TEST_OVERRIDE_NO_EXT "${PYBIND11_TEST_OVERRIDE};")
-  string(REGEX REPLACE "\\.[^.]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
+  string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_OVERRIDE_NO_EXT "${PYBIND11_TEST_OVERRIDE};")
+  string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
     if(NOT ${test_name} IN_LIST TEST_OVERRIDE_NO_EXT
