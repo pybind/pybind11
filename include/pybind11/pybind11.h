@@ -996,6 +996,13 @@ protected:
                               "Python type! The signature was\n\t";
             msg += it->signature;
             append_note_if_missing_header_is_suspected(msg);
+#if PY_VERSION_HEX >= 0x03030000
+            // Attach additional error info to the exception if supported
+            if (PyErr_Occurred()) {
+                raise_from(PyExc_TypeError, msg.c_str());
+                return nullptr;
+            }
+#endif
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
