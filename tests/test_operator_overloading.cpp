@@ -244,7 +244,7 @@ TEST_SUBMODULE(operators, m) {
         .def(py::self == py::self);
 
     // define __eq__ but not __hash__
-    py::class_<HashMe>(m, "Hashable3").def(py::self == py::self);
+    py::class_<HashMe>(m, "HashMe").def(py::self == py::self);
 
     m.def("get_unhashable_HashMe_set", []() { return std::unordered_set<HashMe>{{"one"}}; });
 }
