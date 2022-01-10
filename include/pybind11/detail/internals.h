@@ -11,7 +11,6 @@
 
 #include "../pytypes.h"
 #include <exception>
-#include <type_traits>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
@@ -287,27 +286,22 @@ inline void translate_exception(std::exception_ptr p) {
         return;
     }
     auto raise_err = PyErr_SetString;
-    try {
 #if PY_VERSION_HEX >= 0x03030000
-        // handles nested C++ exceptions if supported
-        try {
-            // Rethrow the exception_ptr to recove type info.
-            // Dereferencing an exception_ptr is UB otherwise.
-            std::rethrow_exception(p);
-        } catch (const std::exception &e) {
-            auto nep = dynamic_cast<const std::nested_exception *>(std::addressof(e));
-            std::exception_ptr nested = nullptr;
-            if (nep) {
-                nested = nep->nested_ptr();
-            }
-            if (nested != nullptr && nested != p) {
-                translate_exception(nested);
-                if (PyErr_Occurred()) {
-                    raise_err = raise_from;
-                }
-            }
+    // handles nested C++ exceptions if supported
+    try {
+        // Rethrow the exception_ptr to recove type info.
+        // Dereferencing an exception_ptr is UB otherwise.
+        std::rethrow_exception(p);
+    } catch (const std::nested_exception &nep) {
+        std::exception_ptr nested = nep.nested_ptr();
+        if (nested != nullptr && nested != p) {
+            translate_exception(nested);
+            raise_err = raise_from;
         }
+    } catch (...) {
+    }
 #endif
+    try {
         std::rethrow_exception(p);
     } catch (error_already_set &e) {
         e.restore();
