@@ -239,6 +239,13 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
+def test_throw_nested_exception():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.throw_nested_exception()
+    if not env.PY2:
+        assert str(excinfo.value.__cause__) == "Inner Exception"
+
+
 # This can often happen if you wrap a pybind11 class in a Python wrapper
 def test_invalid_repr():
     class MyRepr(object):
