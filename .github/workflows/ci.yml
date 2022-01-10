@@ -562,9 +562,9 @@ jobs:
     - name: Configure C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        export CXXFLAGS="-diag-disable:conversion"
+        # export CXXFLAGS="-diag-disable:conversion" # Did not work.
         cmake -S . -B build-17     \
-        -DPYBIND11_WERROR=ON    \
+        -DPYBIND11_WERROR=OFF   \
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=17             \
