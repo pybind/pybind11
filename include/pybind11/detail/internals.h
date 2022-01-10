@@ -282,58 +282,32 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-/*
-#if PY_VERSION_HEX >= 0x03030000
-// For nested_exception support (todo not working)
-template <class T>
-std::exception_ptr get_nested_exception_ptr_impl(const T &e, std::true_type) {
-    if (auto nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
-        return nep->nested_ptr();
-        ;
-    }
-    return nullptr;
-}
-
-template <class T>
-std::exception_ptr get_nested_exception_ptr_impl(const T &, std::false_type) {
-    return nullptr;
-}
-
-template <class T>
-std::exception_ptr get_nested_exception_ptr(const T &e) {
-    return get_nested_exception_ptr_impl(e, is_accessible_base_of<T, std::nested_exception>());
-}
-#endif
-*/
 inline void translate_exception(std::exception_ptr p) {
     if (!p) {
         return;
     }
     auto raise_err = PyErr_SetString;
-#if PY_VERSION_HEX >= 0x03030000
-    // handles nested C++ exceptions if supported
     try {
-        // std::rethrow_if_nested cannot take exception_ptr
-        // the only non-UB way to deference it is to throw it
+#if PY_VERSION_HEX >= 0x03030000
+        // handles nested C++ exceptions if supported
         try {
+            // Deference the exception_ptr by rethrowing it.
+            // Dereferencing an exception_ptr is UB otherwise.
             std::rethrow_exception(p);
         } catch (const std::exception &e) {
-            // Future performance optimization
-            // This throw can be removed with our own template
-            // that gets the nested exception_ptr directly.
-            std::rethrow_if_nested(e);
-        }
-    } catch (...) {
-        std::exception_ptr nested = std::current_exception();
-        if (nested != p) {
-            translate_exception(nested);
-            if (PyErr_Occurred()) {
-                raise_err = raise_from;
+            auto nep = dynamic_cast<const std::nested_exception *>(std::addressof(e));
+            std::exception_ptr nested = nullptr;
+            if (nep) {
+                nested = nep->nested_ptr();
+            }
+            if (nested != nullptr && nested != p) {
+                translate_exception(nested);
+                if (PyErr_Occurred()) {
+                    raise_err = raise_from;
+                }
             }
         }
-    }
 #endif
-    try {
         std::rethrow_exception(p);
     } catch (error_already_set &e) {
         e.restore();
