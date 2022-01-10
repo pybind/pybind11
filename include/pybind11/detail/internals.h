@@ -291,7 +291,7 @@ inline void translate_exception(std::exception_ptr p) {
 #if PY_VERSION_HEX >= 0x03030000
         // handles nested C++ exceptions if supported
         try {
-            // Deference the exception_ptr by rethrowing it.
+            // Rethrow the exception_ptr to recove type info.
             // Dereferencing an exception_ptr is UB otherwise.
             std::rethrow_exception(p);
         } catch (const std::exception &e) {
