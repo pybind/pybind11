@@ -330,7 +330,7 @@ function(pybind11_enable_warnings target_name)
       target_compile_options(
         ${target_name}
         PRIVATE
-          -Werror-all
+          -Werror-all -Wno-conversion
           # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
           -diag-disable 11074,11076)
     endif()
