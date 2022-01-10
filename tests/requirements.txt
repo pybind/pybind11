@@ -1,7 +1,7 @@
 numpy==1.16.6; python_version<"3.6" and sys_platform!="win32" and platform_python_implementation!="PyPy"
 numpy==1.19.0; platform_python_implementation=="PyPy" and sys_platform=="linux" and python_version=="3.6"
 numpy==1.20.0; platform_python_implementation=="PyPy" and sys_platform=="linux" and python_version=="3.7"
-numpy==1.19.3; platform_python_implementation!="PyPy" and python_version=="3.6"
+numpy==1.21.0; platform_python_implementation!="PyPy" and python_version=="3.6"
 numpy==1.21.3; platform_python_implementation!="PyPy" and python_version>="3.7" and python_version<"3.11"
 py @ git+https://github.com/pytest-dev/py; python_version>="3.11"
 pytest==4.6.9; python_version<"3.5"
