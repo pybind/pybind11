@@ -282,8 +282,8 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-#if PY_VERSION_HEX >= 0x03030000
 /*
+#if PY_VERSION_HEX >= 0x03030000
 // For nested_exception support (todo not working)
 template <class T>
 std::exception_ptr get_nested_exception_ptr_impl(const T &e, std::true_type) {
