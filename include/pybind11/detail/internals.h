@@ -10,7 +10,6 @@
 #pragma once
 
 #include "../pytypes.h"
-#include <__threading_support>
 #include <exception>
 #include <type_traits>
 
