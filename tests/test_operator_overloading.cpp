@@ -90,6 +90,7 @@ namespace std {
         size_t operator()(const Vector2 &) { return 4; }
     };
 
+    // HashMe has a hash function in C++ but no `__hash__` for Python.
     template <>
     struct hash<HashMe> {
         std::size_t operator()(const HashMe &selector) const {
