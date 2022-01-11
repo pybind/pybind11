@@ -88,7 +88,6 @@ struct PythonCallInDestructor {
 };
 
 
-
 struct PythonAlreadySetInDestructor {
     explicit PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
     ~PythonAlreadySetInDestructor() {
@@ -106,7 +105,30 @@ struct PythonAlreadySetInDestructor {
 };
 
 
+// An Exception that is going to be bound as a py:class_
+class BoundException : public std::exception {
+public:
+  BoundException(const std::string& m, int e) : message{m}, m_errorCode(e) {}
+  virtual const char * what() const noexcept override {return message.c_str();}
+  int errorCode() const noexcept { return m_errorCode;}
+private:
+  std::string message;
+  int m_errorCode;
+};
+
+
+
 TEST_SUBMODULE(exceptions, m) {
+  // Provide a class binding for BoundException. This is providing the
+  // dynamic_attr because the parent type (PyExc_Exception) permits dynamic
+  // attributes. One improvement might be to make is_except force
+  // dynamic_attr
+  auto PyBoundException = py::class_< BoundException>(m, "BoundException", py::is_except(), py::dynamic_attr())
+    .def(py::init< std::string, int>())
+    .def("getErrorCode", &BoundException::errorCode)
+    .def("getMessage", &BoundException::what)
+    .def("__str__", &BoundException::what);
+
     m.def("throw_std_exception", []() {
         throw std::runtime_error("This exception was intentionally thrown.");
     });
@@ -150,15 +172,19 @@ TEST_SUBMODULE(exceptions, m) {
     // A slightly more complicated one that declares MyException5_1 as a subclass of MyException5
     py::register_exception<MyException5_1>(m, "MyException5_1", ex5.ptr());
 
-    //py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException")
+    py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException");
 
-    py::register_local_exception_translator([](std::exception_ptr p) {
+    // An exception translator for the exception that is bound as a class
+    // This is using PyErr_SetObject instead of PyErr_SetString.
+    py::register_exception_translator([](std::exception_ptr p) {
       try {
           if (p) {
             std::rethrow_exception(p);
           }
-      } catch (const MyException6 &e) {
-        PyErr_SetString(PyExc_RuntimeError, e.what());
+      } catch (const BoundException &e) {
+        auto err = py::cast(e);
+        auto errType = err.get_type().ptr();
+        PyErr_SetObject(errType, err.ptr());
       }
     });
 
@@ -173,6 +199,7 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throws_overflow_error", []() { throw std::overflow_error(""); });
     m.def("throws_local_error", []() { throw LocalException("never caught"); });
     m.def("throws_local_simple_error", []() { throw LocalSimpleException("this mod"); });
+    m.def("throws_bound_exception", []() { throw BoundException("this error is a class", 42); });
     m.def("exception_matches", []() {
         py::dict foo;
         try {
