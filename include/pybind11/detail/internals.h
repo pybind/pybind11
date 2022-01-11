@@ -281,58 +281,109 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+inline bool raise_err(PyObject *exc_type, const char *msg) {
+    bool err_occurred = PyErr_Occurred();
+    if (err_occurred) {
+        raise_from(exc_type, msg);
+    } else {
+        PyErr_SetString(exc_type, msg);
+    }
+    return err_occurred;
+};
+
+// forward decl
+inline void translate_exception(std::exception_ptr);
+
+template <
+    class T,
+    enable_if_t<std::is_same<std::nested_exception, remove_cv_t<remove_reference_t<T>>>::value,
+                int> = 0>
+bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
+    std::exception_ptr nested = nullptr;
+    nested = exc.nested_ptr();
+    if (nested != nullptr && nested != p) {
+        translate_exception(nested);
+        return true;
+    }
+    return false;
+}
+
+template <
+    class T,
+    enable_if_t<!std::is_same<std::nested_exception, remove_cv_t<remove_reference_t<T>>>::value,
+                int> = 0>
+bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
+    if (auto nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
+        return handle_nested_exception(*nep, p);
+    }
+    return false;
+}
+#else
+template <class T>
+void handle_nested_exception(T) {
+    return;
+}
+
+inline bool raise_err(PyObject *exc_type, const char *msg) {
+    PyErr_SetString(exc_type, msg);
+    return false
+}
+#endif
+
+
 inline void translate_exception(std::exception_ptr p) {
     if (!p) {
         return;
     }
-    auto raise_err = PyErr_SetString;
-#if PY_VERSION_HEX >= 0x03030000
-    // handles nested C++ exceptions if supported
-    try {
-        // Rethrow the exception_ptr to recove type info.
-        // Dereferencing an exception_ptr is UB otherwise.
-        std::rethrow_exception(p);
-    } catch (const std::nested_exception &nep) {
-        std::exception_ptr nested = nep.nested_ptr();
-        if (nested != nullptr && nested != p) {
-            translate_exception(nested);
-            raise_err = raise_from;
-        }
-    } catch (...) {
-    }
-#endif
     try {
         std::rethrow_exception(p);
     } catch (error_already_set &e) {
+        handle_nested_exception(e, p);
         e.restore();
         return;
     } catch (const builtin_exception &e) {
+        // Could not use template since it's an abstract class.
+        if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
+            handle_nested_exception(*nep, p);
+        }
         e.set_error();
         return;
     } catch (const std::bad_alloc &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_MemoryError, e.what());
         return;
     } catch (const std::domain_error &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_ValueError, e.what());
         return;
     } catch (const std::invalid_argument &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_ValueError, e.what());
         return;
     } catch (const std::length_error &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_ValueError, e.what());
         return;
     } catch (const std::out_of_range &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_IndexError, e.what());
         return;
     } catch (const std::range_error &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_ValueError, e.what());
         return;
     } catch (const std::overflow_error &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_OverflowError, e.what());
         return;
     } catch (const std::exception &e) {
+        handle_nested_exception(e, p);
         raise_err(PyExc_RuntimeError, e.what());
         return;
+    } catch (const std::nested_exception &e) {
+        handle_nested_exception(e, p);.
+        raise_err(PyExc_RuntimeError, "Caught an unknown nested exception!");
     } catch (...) {
         raise_err(PyExc_RuntimeError, "Caught an unknown exception!");
         return;
