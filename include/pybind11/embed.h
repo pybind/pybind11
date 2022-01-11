@@ -110,7 +110,7 @@ inline wchar_t *widen_chars(const char *safe_arg) {
 #endif
 
 #    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
-    size_t count = strlen(safe_arg);
+    size_t count = std::strlen(safe_arg);
 #    else
     size_t count = mbstowcs(nullptr, safe_arg, 0);
 #    endif

@@ -106,7 +106,7 @@ inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
 #else
     static std::mutex mtx;
     std::lock_guard<std::mutex> lock(mtx);
-    std::tm *tm_ptr = localtime(time);
+    std::tm *tm_ptr = std::localtime(time);
     if (tm_ptr != nullptr) {
         *buf = *tm_ptr;
     }

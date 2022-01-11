@@ -327,8 +327,8 @@ protected:
                 a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
         }
 
-        rec->is_constructor
-            = (strcmp(rec->name, "__init__") == 0) || (strcmp(rec->name, "__setstate__") == 0);
+        rec->is_constructor = (std::strcmp(rec->name, "__init__") == 0)
+                              || (std::strcmp(rec->name, "__setstate__") == 0);
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
@@ -409,10 +409,10 @@ protected:
             pybind11_fail("Internal error while parsing type signature (2)");
 
 #if PY_MAJOR_VERSION < 3
-        if (strcmp(rec->name, "__next__") == 0) {
+        if (std::strcmp(rec->name, "__next__") == 0) {
             std::free(rec->name);
             rec->name = guarded_strdup("next");
-        } else if (strcmp(rec->name, "__bool__") == 0) {
+        } else if (std::strcmp(rec->name, "__bool__") == 0) {
             std::free(rec->name);
             rec->name = guarded_strdup("__nonzero__");
         }
@@ -1295,8 +1295,8 @@ inline void call_operator_delete(void *p, size_t s, size_t a) {
 
 inline void add_class_method(object& cls, const char *name_, const cpp_function &cf) {
     cls.attr(cf.name()) = cf;
-    if (strcmp(name_, "__eq__") == 0 && !cls.attr("__dict__").contains("__hash__")) {
-      cls.attr("__hash__") = none();
+    if (std::strcmp(name_, "__eq__") == 0 && !cls.attr("__dict__").contains("__hash__")) {
+        cls.attr("__hash__") = none();
     }
 }
 

@@ -624,9 +624,9 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     if (rec.doc && options::show_user_defined_docstrings()) {
         /* Allocate memory for docstring (using PyObject_MALLOC, since
            Python will free this later on) */
-        size_t size = strlen(rec.doc) + 1;
+        size_t size = std::strlen(rec.doc) + 1;
         tp_doc = (char *) PyObject_MALLOC(size);
-        memcpy((void *) tp_doc, rec.doc, size);
+        std::memcpy((void *) tp_doc, rec.doc, size);
     }
 
     auto &internals = get_internals();
