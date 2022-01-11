@@ -327,7 +327,7 @@ void handle_nested_exception(T, std::exception_ptr) {
 
 inline bool raise_err(PyObject *exc_type, const char *msg) {
     PyErr_SetString(exc_type, msg);
-    return false
+    return false;
 }
 #endif
 
