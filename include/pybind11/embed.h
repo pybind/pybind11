@@ -112,7 +112,7 @@ inline wchar_t *widen_chars(const char *safe_arg) {
 #    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
     size_t count = std::strlen(safe_arg);
 #    else
-    size_t count = mbstowcs(nullptr, safe_arg, 0);
+    size_t count = std::mbstowcs(nullptr, safe_arg, 0);
 #    endif
     if (count != static_cast<size_t>(-1)) {
         widened_arg = new wchar_t[count + 1];
