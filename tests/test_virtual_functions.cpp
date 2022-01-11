@@ -350,7 +350,7 @@ TEST_SUBMODULE(virtual_functions, m) {
     m.def("add3", [](const AdderBase::Data& first, const AdderBase::Data& second, const AdderBase::Data& third,
                      const AdderBase& adder, const AdderBase::DataVisitor& visitor) {
         adder(first, second, [&] (const AdderBase::Data& first_plus_second) {
-            adder(first_plus_second, third, visitor);
+            adder(first_plus_second, third, visitor); // NOLINT(readability-suspicious-call-argument)
         });
     });
 
