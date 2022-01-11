@@ -283,7 +283,7 @@ inline internals **&get_internals_pp() {
 
 #if PY_VERSION_HEX >= 0x03030000
 inline bool raise_err(PyObject *exc_type, const char *msg) {
-    bool err_occurred = PyErr_Occurred();
+    bool err_occurred = PyErr_Occurred() != nullptr;
     if (err_occurred) {
         raise_from(exc_type, msg);
     } else {
