@@ -17,8 +17,6 @@
 #include <ctime>
 #include <mutex>
 
-#include <time.h>
-
 #include <datetime.h>
 
 // Backport the PyDateTime_DELTA functions from Python3.3 if required

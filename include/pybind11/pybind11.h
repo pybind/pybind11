@@ -23,7 +23,7 @@
 #include <string>
 #include <utility>
 
-#include <string.h>
+#include <cstring>
 
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #  define PYBIND11_STD_LAUNDER std::launder
