@@ -384,6 +384,7 @@ inline void translate_exception(std::exception_ptr p) {
     } catch (const std::nested_exception &e) {
         handle_nested_exception(e, p);
         raise_err(PyExc_RuntimeError, "Caught an unknown nested exception!");
+        return;
     } catch (...) {
         raise_err(PyExc_RuntimeError, "Caught an unknown exception!");
         return;
