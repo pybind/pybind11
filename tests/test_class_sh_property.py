@@ -60,35 +60,75 @@ def test_ptr(field_type, num_default, outer_type, m_attr):
 @pytest.mark.xfail(
     "env.PYPY", reason="gc after `del field_co_own` is apparently deferred"
 )
-@pytest.mark.parametrize("m_attr", ("m_uqmp", "m_uqcp"))
-def test_uqp(m_attr, msg):
-    m_attr_disown = m_attr + "_disown"
+@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_disown", "m_uqcp_disown"))
+def test_uqp(m_attr_disown, msg):
     outer = m.Outer()
-    assert getattr(outer, m_attr) is None
     assert getattr(outer, m_attr_disown) is None
-    field = m.Field()
-    field.num = 39
-    setattr(outer, m_attr_disown, field)
+    field_orig = m.Field()
+    field_orig.num = 39
+    setattr(outer, m_attr_disown, field_orig)
     with pytest.raises(ValueError) as excinfo:
-        field.num
+        field_orig.num
     assert (
         msg(excinfo.value)
         == "Missing value for wrapped C++ type: Python instance was disowned."
     )
-    field_co_own = getattr(outer, m_attr)
-    assert getattr(outer, m_attr).num == 39
-    assert field_co_own.num == 39
-    # TODO: needs work.
-    # with pytest.raises(RuntimeError) as excinfo:
-    #     getattr(outer, m_attr_disown)
-    # assert (
-    #     msg(excinfo.value)
-    #     == "Invalid unique_ptr: another instance owns this pointer already."
-    # )
-    del field_co_own
-    field_excl_own = getattr(outer, m_attr_disown)
-    assert getattr(outer, m_attr) is None
-    assert field_excl_own.num == 39
+    field_retr1 = getattr(outer, m_attr_disown)
+    assert getattr(outer, m_attr_disown) is None
+    assert field_retr1.num == 39
+    field_retr1.num = 93
+    setattr(outer, m_attr_disown, field_retr1)
+    with pytest.raises(ValueError):
+        field_retr1.num
+    field_retr2 = getattr(outer, m_attr_disown)
+    assert field_retr2.num == 93
+
+
+def _dereference(proxy, xxxattr, *args, **kwargs):
+    obj = object.__getattribute__(proxy, "__obj")
+    field_name = object.__getattribute__(proxy, "__field_name")
+    field = getattr(obj, field_name)
+    assert field is not None
+    try:
+        return xxxattr(field, *args, **kwargs)
+    finally:
+        setattr(obj, field_name, field)
+
+
+class unique_ptr_field_proxy_poc(object):  # noqa: N801
+    def __init__(self, obj, field_name):
+        object.__setattr__(self, "__obj", obj)
+        object.__setattr__(self, "__field_name", field_name)
+
+    def __getattr__(self, *args, **kwargs):
+        return _dereference(self, getattr, *args, **kwargs)
+
+    def __setattr__(self, *args, **kwargs):
+        return _dereference(self, setattr, *args, **kwargs)
+
+    def __delattr__(self, *args, **kwargs):
+        return _dereference(self, delattr, *args, **kwargs)
+
+
+@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_disown", "m_uqcp_disown"))
+def test_unique_ptr_field_proxy_poc(m_attr_disown, msg):
+    outer = m.Outer()
+    field_orig = m.Field()
+    field_orig.num = 45
+    setattr(outer, m_attr_disown, field_orig)
+    field_proxy = unique_ptr_field_proxy_poc(outer, m_attr_disown)
+    assert field_proxy.num == 45
+    assert field_proxy.num == 45
+    with pytest.raises(AttributeError):
+        field_proxy.xyz
+    assert field_proxy.num == 45
+    field_proxy.num = 82
+    assert field_proxy.num == 82
+    field_proxy = unique_ptr_field_proxy_poc(outer, m_attr_disown)
+    assert field_proxy.num == 82
+    with pytest.raises(AttributeError):
+        del field_proxy.num
+    assert field_proxy.num == 82
 
 
 @pytest.mark.parametrize("m_attr", ("m_shmp", "m_shcp"))

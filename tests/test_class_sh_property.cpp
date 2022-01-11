@@ -75,11 +75,6 @@ TEST_SUBMODULE(class_sh_property, m) {
                 return std::shared_ptr<const Field>(self, self->m_cptr);
             },
             [](Outer &self, const Field *cptr) { self.m_cptr = cptr; })
-        .def_property_readonly( //
-            "m_uqmp",
-            [](const std::shared_ptr<Outer> &self) {
-                return std::shared_ptr<Field>(self, self->m_uqmp.get());
-            })
         .def_property( //
             "m_uqmp_disown",
             [](const std::shared_ptr<Outer> &self) {
@@ -87,11 +82,6 @@ TEST_SUBMODULE(class_sh_property, m) {
             },
             [](Outer &self, std::unique_ptr<Field> uqmp) {
                 self.m_uqmp = std::move(uqmp); //
-            })
-        .def_property_readonly( //
-            "m_uqcp",
-            [](const std::shared_ptr<Outer> &self) {
-                return std::shared_ptr<const Field>(self, self->m_uqcp.get());
             })
         .def_property( //
             "m_uqcp_disown",
