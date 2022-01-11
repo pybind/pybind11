@@ -178,6 +178,8 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
 
     // This must be a pybind11 instance
     auto instance = reinterpret_cast<detail::instance *>(self);
+    // Mark this instance as an instance of an alias class
+    instance->is_alias = instance->has_alias;
 
     // Ensure that the base __init__ function(s) were called
     for (const auto &vh : values_and_holders(instance)) {
