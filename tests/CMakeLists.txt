@@ -327,6 +327,9 @@ function(pybind11_enable_warnings target_name)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang|IntelLLVM)")
       target_compile_options(${target_name} PRIVATE -Werror)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+      if(CMAKE_CXX_STANDARD EQUAL 17) # See PR #3570
+        target_compile_options(${target_name} PRIVATE -Wno-conversion)
+      endif()
       target_compile_options(
         ${target_name}
         PRIVATE
