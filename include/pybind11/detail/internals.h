@@ -314,7 +314,7 @@ template <
     enable_if_t<!std::is_same<std::nested_exception, remove_cv_t<remove_reference_t<T>>>::value,
                 int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
-    if (auto nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
+    if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
         return handle_nested_exception(*nep, p);
     }
     return false;
