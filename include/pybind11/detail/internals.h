@@ -321,7 +321,7 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
 }
 #else
 template <class T>
-void handle_nested_exception(T, std::exception_ptr p) {
+void handle_nested_exception(T, std::exception_ptr) {
     return;
 }
 
