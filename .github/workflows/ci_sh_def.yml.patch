@@ -1,5 +1,5 @@
---- ci.yml	2021-12-29 13:23:17.380542309 -0800
-+++ ci_sh_def.yml	2021-12-29 13:25:04.832676256 -0800
+--- ci.yml	2022-01-11 17:48:37.159294931 -0800
++++ ci_sh_def.yml	2022-01-11 17:51:44.916147343 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -105,7 +105,7 @@
 @@ -568,6 +588,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
-         -DCMAKE_CXX_STANDARD=14             \
+         -DCMAKE_CXX_STANDARD=17             \
 +        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"  \
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
