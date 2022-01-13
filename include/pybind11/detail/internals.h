@@ -283,13 +283,12 @@ inline internals **&get_internals_pp() {
 
 #if PY_VERSION_HEX >= 0x03030000
 inline bool raise_err(PyObject *exc_type, const char *msg) {
-    bool err_occurred = PyErr_Occurred() != nullptr;
-    if (err_occurred) {
+    if (PyErr_Occurred()) {
         raise_from(exc_type, msg);
-    } else {
-        PyErr_SetString(exc_type, msg);
+        return true;
     }
-    return err_occurred;
+    PyErr_SetString(exc_type, msg);
+    return false;
 };
 
 // forward decl
@@ -298,8 +297,7 @@ inline void translate_exception(std::exception_ptr);
 template <class T,
           enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
-    std::exception_ptr nested = nullptr;
-    nested = exc.nested_ptr();
+    std::exception_ptr nested = exc.nested_ptr();
     if (nested != nullptr && nested != p) {
         translate_exception(nested);
         return true;
@@ -323,7 +321,7 @@ inline bool raise_err(PyObject *exc_type, const char *msg) {
 }
 
 template <class T>
-bool handle_nested_exception(const T&, std::exception_ptr) {
+bool handle_nested_exception(const T &, std::exception_ptr) {
     return false;
 }
 #endif
