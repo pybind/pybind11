@@ -295,10 +295,8 @@ inline bool raise_err(PyObject *exc_type, const char *msg) {
 // forward decl
 inline void translate_exception(std::exception_ptr);
 
-template <
-    class T,
-    enable_if_t<std::is_same<std::nested_exception, remove_cv_t<remove_reference_t<T>>>::value,
-                int> = 0>
+template <class T,
+          enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     std::exception_ptr nested = nullptr;
     nested = exc.nested_ptr();
@@ -309,28 +307,26 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     return false;
 }
 
-template <
-    class T,
-    enable_if_t<!std::is_same<std::nested_exception, remove_cv_t<remove_reference_t<T>>>::value,
-                int> = 0>
+template <class T,
+          enable_if_t<!std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
         return handle_nested_exception(*nep, p);
     }
     return false;
 }
-#else
-template <class T>
-bool handle_nested_exception(T, std::exception_ptr) {
-    return false;
-}
 
+#else
 inline bool raise_err(PyObject *exc_type, const char *msg) {
     PyErr_SetString(exc_type, msg);
     return false;
 }
-#endif
 
+template <class T>
+bool handle_nested_exception(const T&, std::exception_ptr) {
+    return false;
+}
+#endif
 
 inline void translate_exception(std::exception_ptr p) {
     if (!p) {
