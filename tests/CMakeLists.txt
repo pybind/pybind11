@@ -142,6 +142,7 @@ set(PYBIND11_TEST_FILES
     test_multiple_inheritance
     test_numpy_array
     test_numpy_dtypes
+    test_numpy_scalars
     test_numpy_vectorize
     test_opaque_types
     test_operator_overloading
