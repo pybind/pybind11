@@ -11,6 +11,8 @@
 #include "local_bindings.h"
 
 #include "pybind11_tests.h"
+#include <exception>
+#include <stdexcept>
 #include <utility>
 
 // A type that should be raised as an exception in Python
@@ -104,7 +106,6 @@ struct PythonAlreadySetInDestructor {
 
     py::str s;
 };
-
 
 TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception", []() {
@@ -281,5 +282,12 @@ TEST_SUBMODULE(exceptions, m) {
         }
     });
 
+    m.def("throw_nested_exception", []() {
+        try {
+            throw std::runtime_error("Inner Exception");
+        } catch (const std::runtime_error &) {
+            std::throw_with_nested(std::runtime_error("Outer Exception"));
+        }
+    });
 #endif
 }
