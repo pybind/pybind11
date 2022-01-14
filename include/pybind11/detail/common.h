@@ -48,7 +48,7 @@
 #    define PYBIND11_CPP14
 #    if _MSVC_LANG > 201402L && _MSC_VER >= 1910
 #      define PYBIND11_CPP17
-#      if _MSVC_LANG > 202002L
+#      if _MSVC_LANG >= 202002L
 #        define PYBIND11_CPP20
 #      endif
 #    endif
