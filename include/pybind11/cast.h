@@ -770,6 +770,7 @@ template <> struct handle_type_name<bytes> { static constexpr auto name = const_
 template <> struct handle_type_name<int_> { static constexpr auto name = const_name("int"); };
 template <> struct handle_type_name<iterable> { static constexpr auto name = const_name("Iterable"); };
 template <> struct handle_type_name<iterator> { static constexpr auto name = const_name("Iterator"); };
+template <> struct handle_type_name<float_> { static constexpr auto name = const_name("float"); };
 template <> struct handle_type_name<none> { static constexpr auto name = const_name("None"); };
 template <> struct handle_type_name<args> { static constexpr auto name = const_name("*args"); };
 template <> struct handle_type_name<kwargs> { static constexpr auto name = const_name("**kwargs"); };

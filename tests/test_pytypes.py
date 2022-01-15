@@ -26,6 +26,10 @@ def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
 
 
+def test_float(doc):
+    assert doc(m.get_float) == "get_float() -> float"
+
+
 def test_list(capture, doc):
     assert m.list_no_args() == []
     assert m.list_ssize_t() == []
