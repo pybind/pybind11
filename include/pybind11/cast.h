@@ -765,6 +765,7 @@ template <typename base, typename deleter> struct is_holder_type<base, std::uniq
     std::true_type {};
 
 template <typename T> struct handle_type_name { static constexpr auto name = const_name<T>(); };
+template <> struct handle_type_name<bool_> { static constexpr auto name = const_name("bool"); };
 template <> struct handle_type_name<bytes> { static constexpr auto name = const_name(PYBIND11_BYTES_NAME); };
 template <> struct handle_type_name<int_> { static constexpr auto name = const_name("int"); };
 template <> struct handle_type_name<iterable> { static constexpr auto name = const_name("Iterable"); };

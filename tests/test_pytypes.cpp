@@ -13,6 +13,8 @@
 
 
 TEST_SUBMODULE(pytypes, m) {
+    // test_bool
+    m.def("get_bool", []{return py::bool_(false);});
     // test_int
     m.def("get_int", []{return py::int_(0);});
     // test_iterator

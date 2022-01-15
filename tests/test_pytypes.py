@@ -10,6 +10,10 @@ from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
 
+def test_bool(doc):
+    assert doc(m.get_bool) == "get_bool() -> bool"
+
+
 def test_int(doc):
     assert doc(m.get_int) == "get_int() -> int"
 
