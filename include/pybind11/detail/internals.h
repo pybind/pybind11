@@ -11,6 +11,7 @@
 
 #include "../pytypes.h"
 #include "smart_holder_sfinae_hooks_only.h"
+#include <exception>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
@@ -291,21 +292,104 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
+#if PY_VERSION_HEX >= 0x03030000
+// forward decl
+inline void translate_exception(std::exception_ptr);
+
+template <class T,
+          enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
+bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
+    std::exception_ptr nested = exc.nested_ptr();
+    if (nested != nullptr && nested != p) {
+        translate_exception(nested);
+        return true;
+    }
+    return false;
+}
+
+template <class T,
+          enable_if_t<!std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
+bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
+    if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
+        return handle_nested_exception(*nep, p);
+    }
+    return false;
+}
+
+#else
+
+template <class T>
+bool handle_nested_exception(const T &, std::exception_ptr &) {
+    return false;
+}
+#endif
+
+inline bool raise_err(PyObject *exc_type, const char *msg) {
+#if PY_VERSION_HEX >= 0x03030000
+    if (PyErr_Occurred()) {
+        raise_from(exc_type, msg);
+        return true;
+    }
+#endif
+    PyErr_SetString(exc_type, msg);
+    return false;
+};
+
 inline void translate_exception(std::exception_ptr p) {
+    if (!p) {
+        return;
+    }
     try {
-        if (p) std::rethrow_exception(p);
-    } catch (error_already_set &e)           { e.restore();                                    return;
-    } catch (const builtin_exception &e)     { e.set_error();                                  return;
-    } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
-    } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-    } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-    } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-    } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
-    } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-    } catch (const std::overflow_error &e)   { PyErr_SetString(PyExc_OverflowError, e.what()); return;
-    } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
+        std::rethrow_exception(p);
+    } catch (error_already_set &e) {
+        handle_nested_exception(e, p);
+        e.restore();
+        return;
+    } catch (const builtin_exception &e) {
+        // Could not use template since it's an abstract class.
+        if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
+            handle_nested_exception(*nep, p);
+        }
+        e.set_error();
+        return;
+    } catch (const std::bad_alloc &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_MemoryError, e.what());
+        return;
+    } catch (const std::domain_error &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_ValueError, e.what());
+        return;
+    } catch (const std::invalid_argument &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_ValueError, e.what());
+        return;
+    } catch (const std::length_error &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_ValueError, e.what());
+        return;
+    } catch (const std::out_of_range &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_IndexError, e.what());
+        return;
+    } catch (const std::range_error &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_ValueError, e.what());
+        return;
+    } catch (const std::overflow_error &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_OverflowError, e.what());
+        return;
+    } catch (const std::exception &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_RuntimeError, e.what());
+        return;
+    } catch (const std::nested_exception &e) {
+        handle_nested_exception(e, p);
+        raise_err(PyExc_RuntimeError, "Caught an unknown nested exception!");
+        return;
     } catch (...) {
-        PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
+        raise_err(PyExc_RuntimeError, "Caught an unknown exception!");
         return;
     }
 }
