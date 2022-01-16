@@ -13,12 +13,16 @@
 
 
 TEST_SUBMODULE(pytypes, m) {
+    // test_bool
+    m.def("get_bool", []{return py::bool_(false);});
     // test_int
     m.def("get_int", []{return py::int_(0);});
     // test_iterator
     m.def("get_iterator", []{return py::iterator();});
     // test_iterable
     m.def("get_iterable", []{return py::iterable();});
+    // test_float
+    m.def("get_float", []{return py::float_(0.0f);});
     // test_list
     m.def("list_no_args", []() { return py::list{}; });
     m.def("list_ssize_t", []() { return py::list{(py::ssize_t) 0}; });
