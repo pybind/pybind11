@@ -1378,6 +1378,8 @@ using default_holder_type = smart_holder;
 
 #endif
 
+// TODO: move new code into detail namespace.
+
 template <typename T, typename D, typename SFINAE = void>
 struct member_getter_cpp_function {
     template <typename PM>
@@ -1410,6 +1412,40 @@ struct member_getter_cpp_function<
     D,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
                         && detail::type_uses_smart_holder_type_caster<D>::value
+                        && std::is_pointer<D>::value>> {
+    using drp = typename std::remove_pointer<D>::type;
+    template <typename PM>
+    static cpp_function make(PM pm, const handle &hdl) {
+        return cpp_function(
+            [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<drp> {
+                D ptr = (*c_sp).*pm;
+                return std::shared_ptr<drp>(c_sp, ptr);
+            },
+            is_method(hdl));
+    }
+};
+
+template <typename T, typename D>
+struct member_setter_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
+                        && detail::type_uses_smart_holder_type_caster<D>::value
+                        && std::is_pointer<D>::value>> {
+    using drp = typename std::remove_pointer<D>::type;
+    template <typename PM>
+    static cpp_function make(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, D value) { c.*pm = value; }, is_method(hdl));
+    }
+};
+
+template <typename T, typename D>
+struct member_getter_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
+                        && detail::type_uses_smart_holder_type_caster<D>::value
+                        && !std::is_pointer<D>::value   //
                         && !is_std_unique_ptr<D>::value //
                         && !is_std_shared_ptr<D>::value>> {
     template <typename PM>

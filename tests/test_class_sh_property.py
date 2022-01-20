@@ -35,10 +35,10 @@ def test_valu_setter():
 
 
 @pytest.mark.parametrize(
-    "field_type, num_default, outer_type, attr_suffix",
+    "field_type, num_default, outer_type, attr_suffix",  # TODO: rm attr_suffix
     [
         (m.ClassicField, -88, m.ClassicOuter, ""),
-        (m.Field, -99, m.Outer, "_property"),
+        (m.Field, -99, m.Outer, ""),
     ],
 )
 @pytest.mark.parametrize("m_attr", ("m_mptr", "m_cptr"))

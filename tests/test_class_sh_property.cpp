@@ -60,8 +60,9 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readwrite("num", &Field::num) //
         ;
 
-    py::classh<Outer>(m, "Outer")                //
-        .def(py::init<>())                       //
+    py::classh<Outer>(m, "Outer") //
+        .def(py::init<>())        //
+        // .def_readonly("m_valu_readonly", &Outer::m_valu) //
         .def_readwrite("m_valu", &Outer::m_valu) //
         .def_property(                           //
             "m_mptr_property",
@@ -75,8 +76,10 @@ TEST_SUBMODULE(class_sh_property, m) {
                 return std::shared_ptr<const Field>(self, self->m_cptr);
             },
             [](Outer &self, const Field *cptr) { self.m_cptr = cptr; })
-        // .def_readwrite("m_mptr", &Outer::m_mptr)
-        // .def_readwrite("m_cptr", &Outer::m_cptr)
+        .def_readonly("m_mptr_readonly", &Outer::m_mptr)
+        .def_readwrite("m_mptr", &Outer::m_mptr)
+        .def_readonly("m_cptr_readonly", &Outer::m_cptr)
+        .def_readwrite("m_cptr", &Outer::m_cptr)
         .def_property( //
             "m_uqmp_property",
             [](const std::shared_ptr<Outer> &self) {
