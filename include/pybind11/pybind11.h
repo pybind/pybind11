@@ -1386,6 +1386,14 @@ struct member_getter_cpp_function {
     }
 };
 
+template <typename T, typename D, typename SFINAE = void>
+struct member_setter_cpp_function {
+    template <typename PM>
+    static cpp_function make(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+    }
+};
+
 template <typename T>
 struct is_std_unique_ptr : std::false_type {};
 template <typename T, typename D>
@@ -1619,7 +1627,7 @@ public:
         def_property(
             name,
             member_getter_cpp_function<type, D>::make(pm, *this),
-            cpp_function([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this)),
+            member_setter_cpp_function<type, D>::make(pm, *this),
             return_value_policy::reference_internal,
             extra...);
         return *this;
