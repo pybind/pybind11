@@ -1381,17 +1381,14 @@ using default_holder_type = smart_holder;
 // TODO: move new code into detail namespace.
 
 template <typename T, typename D, typename SFINAE = void>
-struct member_getter_cpp_function {
+struct xetter_cpp_function {
     template <typename PM>
-    static cpp_function make(PM pm, const handle &hdl) {
+    static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
-};
 
-template <typename T, typename D, typename SFINAE = void>
-struct member_setter_cpp_function {
     template <typename PM>
-    static cpp_function make(PM pm, const handle &hdl) {
+    static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
 };
@@ -1407,15 +1404,17 @@ template <typename T>
 struct is_std_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T, typename D>
-struct member_getter_cpp_function<
+struct xetter_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
                         && detail::type_uses_smart_holder_type_caster<D>::value
                         && std::is_pointer<D>::value>> {
+
     using drp = typename std::remove_pointer<D>::type;
+
     template <typename PM>
-    static cpp_function make(PM pm, const handle &hdl) {
+    static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<drp> {
                 D ptr = (*c_sp).*pm;
@@ -1423,24 +1422,15 @@ struct member_getter_cpp_function<
             },
             is_method(hdl));
     }
-};
 
-template <typename T, typename D>
-struct member_setter_cpp_function<
-    T,
-    D,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
-                        && detail::type_uses_smart_holder_type_caster<D>::value
-                        && std::is_pointer<D>::value>> {
-    using drp = typename std::remove_pointer<D>::type;
     template <typename PM>
-    static cpp_function make(PM pm, const handle &hdl) {
+    static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, D value) { c.*pm = value; }, is_method(hdl));
     }
 };
 
 template <typename T, typename D>
-struct member_getter_cpp_function<
+struct xetter_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
@@ -1449,7 +1439,7 @@ struct member_getter_cpp_function<
                         && !is_std_unique_ptr<D>::value //
                         && !is_std_shared_ptr<D>::value>> {
     template <typename PM>
-    static cpp_function make(PM pm, const handle &hdl) {
+    static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
                 // Emulating PyCLIF approach:
@@ -1457,6 +1447,11 @@ struct member_getter_cpp_function<
                 return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
             },
             is_method(hdl));
+    }
+
+    template <typename PM>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
 };
 
@@ -1662,8 +1657,8 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
         def_property(
             name,
-            member_getter_cpp_function<type, D>::make(pm, *this),
-            member_setter_cpp_function<type, D>::make(pm, *this),
+            xetter_cpp_function<type, D>::read(pm, *this),
+            xetter_cpp_function<type, D>::write(pm, *this),
             return_value_policy::reference_internal,
             extra...);
         return *this;
@@ -1674,7 +1669,7 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         def_property_readonly(
             name,
-            member_getter_cpp_function<type, D>::make(pm, *this),
+            xetter_cpp_function<type, D>::read(pm, *this),
             return_value_policy::reference_internal,
             extra...);
         return *this;
