@@ -64,19 +64,21 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def(py::init<>())                       //
         .def_readwrite("m_valu", &Outer::m_valu) //
         .def_property(                           //
-            "m_mptr",
+            "m_mptr_property",
             [](const std::shared_ptr<Outer> &self) {
                 return std::shared_ptr<Field>(self, self->m_mptr);
             },
             [](Outer &self, Field *mptr) { self.m_mptr = mptr; })
         .def_property( //
-            "m_cptr",
+            "m_cptr_property",
             [](const std::shared_ptr<Outer> &self) {
                 return std::shared_ptr<const Field>(self, self->m_cptr);
             },
             [](Outer &self, const Field *cptr) { self.m_cptr = cptr; })
+        // .def_readwrite("m_mptr", &Outer::m_mptr)
+        // .def_readwrite("m_cptr", &Outer::m_cptr)
         .def_property( //
-            "m_uqmp_disown",
+            "m_uqmp_property",
             [](const std::shared_ptr<Outer> &self) {
                 return std::unique_ptr<Field>(std::move(self->m_uqmp));
             },
@@ -84,13 +86,15 @@ TEST_SUBMODULE(class_sh_property, m) {
                 self.m_uqmp = std::move(uqmp); //
             })
         .def_property( //
-            "m_uqcp_disown",
+            "m_uqcp_property",
             [](const std::shared_ptr<Outer> &self) {
                 return std::unique_ptr<const Field>(std::move(self->m_uqcp));
             },
             [](Outer &self, std::unique_ptr<const Field> uqcp) {
                 self.m_uqcp = std::move(uqcp); //
             })
+        // .def_readwrite("m_uqmp", &Outer::m_uqmp) //
+        // .def_readwrite("m_uqcp", &Outer::m_uqcp) //
         .def_readwrite("m_shmp", &Outer::m_shmp) //
         .def_readwrite("m_shcp", &Outer::m_shcp) //
         ;

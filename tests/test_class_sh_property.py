@@ -35,14 +35,15 @@ def test_valu_setter():
 
 
 @pytest.mark.parametrize(
-    "field_type, num_default, outer_type",
+    "field_type, num_default, outer_type, attr_suffix",
     [
-        (m.ClassicField, -88, m.ClassicOuter),
-        (m.Field, -99, m.Outer),
+        (m.ClassicField, -88, m.ClassicOuter, ""),
+        (m.Field, -99, m.Outer, "_property"),
     ],
 )
 @pytest.mark.parametrize("m_attr", ("m_mptr", "m_cptr"))
-def test_ptr(field_type, num_default, outer_type, m_attr):
+def test_ptr(field_type, num_default, outer_type, attr_suffix, m_attr):
+    m_attr += attr_suffix
     outer = outer_type()
     assert getattr(outer, m_attr) is None
     field = field_type()
@@ -57,7 +58,7 @@ def test_ptr(field_type, num_default, outer_type, m_attr):
     assert getattr(outer, m_attr).num == 76
 
 
-@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_disown", "m_uqcp_disown"))
+@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_property", "m_uqcp_property"))
 def test_uqp(m_attr_disown, msg):
     outer = m.Outer()
     assert getattr(outer, m_attr_disown) is None
@@ -107,7 +108,7 @@ class unique_ptr_field_proxy_poc(object):  # noqa: N801
         return _dereference(self, delattr, *args, **kwargs)
 
 
-@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_disown", "m_uqcp_disown"))
+@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_property", "m_uqcp_property"))
 def test_unique_ptr_field_proxy_poc(m_attr_disown, msg):
     outer = m.Outer()
     field_orig = m.Field()
