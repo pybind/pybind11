@@ -1378,8 +1378,11 @@ using default_holder_type = smart_holder;
 
 #endif
 
-// TODO: move new code into detail namespace.
-
+// Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
+// getter and setter functions.
+// WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
+// See test_ptr() in tests/test_class_sh_property.py
+// This implementation works as-is for smart_holder std::shared_ptr members.
 template <typename T, typename D, typename SFINAE = void>
 struct xetter_cpp_function {
     template <typename PM>
@@ -1398,16 +1401,12 @@ struct xetter_cpp_function {
     }
 };
 
-template <typename T>
-struct is_std_unique_ptr : std::false_type {};
-template <typename T, typename D>
-struct is_std_unique_ptr<std::unique_ptr<T, D>> : std::true_type {};
-
-template <typename T>
-struct is_std_shared_ptr : std::false_type {};
-template <typename T>
-struct is_std_shared_ptr<std::shared_ptr<T>> : std::true_type {};
-
+// smart_holder specializations for raw pointer members.
+// WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
+// See test_ptr() in tests/test_class_sh_property.py
+// However, the read functions return a shared_ptr to the member, emulating PyCLIF approach:
+// https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
+// This prevents disowning of the Python object owning the raw pointer member.
 template <typename T, typename D>
 struct xetter_cpp_function<
     T,
@@ -1439,15 +1438,19 @@ struct xetter_cpp_function<
     }
 };
 
+// smart_holder specializations for members held by-value.
+// The read functions return a shared_ptr to the member, emulating PyCLIF approach:
+// https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
+// This prevents disowning of the Python object owning the member.
 template <typename T, typename D>
 struct xetter_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
                         && detail::type_uses_smart_holder_type_caster<D>::value
-                        && !std::is_pointer<D>::value   //
-                        && !is_std_unique_ptr<D>::value //
-                        && !is_std_shared_ptr<D>::value>> {
+                        && !std::is_pointer<D>::value           //
+                        && !detail::is_std_unique_ptr<D>::value //
+                        && !detail::is_std_shared_ptr<D>::value>> {
 
     template <typename PM>
     static cpp_function readonly(PM pm, const handle &hdl) {
@@ -1463,8 +1466,6 @@ struct xetter_cpp_function<
     static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
-                // Emulating PyCLIF approach:
-                // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
                 return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
             },
             is_method(hdl));
@@ -1476,18 +1477,24 @@ struct xetter_cpp_function<
     }
 };
 
+// smart_holder specializations for std::unique_ptr members.
+// read disowns the member unique_ptr.
+// write disowns the passed Python object.
+// readonly is disabled (static_assert) because there is no safe & intuitive way to make the member
+// accessible as a Python object without disowning the member unique_ptr. A .def_readonly disowning
+// the unique_ptr member is deemed highly prone to misunderstandings.
 template <typename T, typename D>
 struct xetter_cpp_function<
     T,
     D,
     detail::enable_if_t<
         detail::type_uses_smart_holder_type_caster<T>::value //
-        && is_std_unique_ptr<D>::value
+        && detail::is_std_unique_ptr<D>::value
         && detail::type_uses_smart_holder_type_caster<typename D::element_type>::value>> {
 
     template <typename PM>
     static cpp_function readonly(PM, const handle &) {
-        static_assert(!is_std_unique_ptr<D>::value,
+        static_assert(!detail::is_std_unique_ptr<D>::value,
                       "def_readonly cannot be used for std::unique_ptr members.");
         return cpp_function{}; // Unreachable.
     }
@@ -1727,8 +1734,8 @@ public:
 
     template <typename D, typename... Extra>
     class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this));
-        cpp_function fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
+        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this)),
+            fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
         def_property_static(name, fget, fset, return_value_policy::reference, extra...);
         return *this;
     }
