@@ -62,7 +62,7 @@ TEST_SUBMODULE(class_sh_property, m) {
 
     py::classh<Outer>(m, "Outer") //
         .def(py::init<>())        //
-        // .def_readonly("m_valu_readonly", &Outer::m_valu) //
+        .def_readonly("m_valu_readonly", &Outer::m_valu) //
         .def_readwrite("m_valu", &Outer::m_valu) //
         .def_property(                           //
             "m_mptr_property",
