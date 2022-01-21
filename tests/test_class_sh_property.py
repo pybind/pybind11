@@ -6,11 +6,12 @@ from pybind11_tests import class_sh_property as m
 
 
 @pytest.mark.xfail("env.PYPY", reason="gc after `del field` is apparently deferred")
-def test_valu_getter(msg):
+@pytest.mark.parametrize("m_attr", ("m_valu_readonly", "m_valu_readwrite"))
+def test_valu_getter(msg, m_attr):
     # Reduced from PyCLIF test:
     # https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/testing/python/nested_fields_test.py#L56
     outer = m.Outer()
-    field = outer.m_valu
+    field = getattr(outer, m_attr)
     assert field.num == -99
     with pytest.raises(ValueError) as excinfo:
         m.DisownOuter(outer)
@@ -18,7 +19,7 @@ def test_valu_getter(msg):
     del field
     m.DisownOuter(outer)
     with pytest.raises(ValueError) as excinfo:
-        outer.m_valu
+        getattr(outer, m_attr)
     assert (
         msg(excinfo.value)
         == "Missing value for wrapped C++ type: Python instance was disowned."
@@ -27,58 +28,65 @@ def test_valu_getter(msg):
 
 def test_valu_setter():
     outer = m.Outer()
-    assert outer.m_valu.num == -99
+    assert outer.m_valu_readonly.num == -99
+    assert outer.m_valu_readwrite.num == -99
     field = m.Field()
     field.num = 35
-    outer.m_valu = field
-    assert outer.m_valu.num == 35
+    outer.m_valu_readwrite = field
+    assert outer.m_valu_readonly.num == 35
+    assert outer.m_valu_readwrite.num == 35
 
 
 @pytest.mark.parametrize(
-    "field_type, num_default, outer_type, attr_suffix",  # TODO: rm attr_suffix
+    "field_type, num_default, outer_type",
     [
-        (m.ClassicField, -88, m.ClassicOuter, ""),
-        (m.Field, -99, m.Outer, ""),
+        (m.ClassicField, -88, m.ClassicOuter),
+        (m.Field, -99, m.Outer),
     ],
 )
 @pytest.mark.parametrize("m_attr", ("m_mptr", "m_cptr"))
-def test_ptr(field_type, num_default, outer_type, attr_suffix, m_attr):
-    m_attr += attr_suffix
+def test_ptr(field_type, num_default, outer_type, m_attr):
+    m_attr_readonly = m_attr + "_readonly"
+    m_attr_readwrite = m_attr + "_readwrite"
     outer = outer_type()
-    assert getattr(outer, m_attr) is None
+    assert getattr(outer, m_attr_readonly) is None
+    assert getattr(outer, m_attr_readwrite) is None
     field = field_type()
     assert field.num == num_default
-    setattr(outer, m_attr, field)
-    assert getattr(outer, m_attr).num == num_default
+    setattr(outer, m_attr_readwrite, field)
+    assert getattr(outer, m_attr_readonly).num == num_default
+    assert getattr(outer, m_attr_readwrite).num == num_default
     field.num = 76
-    assert getattr(outer, m_attr).num == 76
+    assert getattr(outer, m_attr_readonly).num == 76
+    assert getattr(outer, m_attr_readwrite).num == 76
     # Change to -88 or -99 to demonstrate Undefined Behavior (dangling pointer).
     if num_default == 88 and m_attr == "m_mptr":
         del field
-    assert getattr(outer, m_attr).num == 76
+    assert getattr(outer, m_attr_readonly).num == 76
+    assert getattr(outer, m_attr_readwrite).num == 76
 
 
-@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_property", "m_uqcp_property"))
-def test_uqp(m_attr_disown, msg):
+@pytest.mark.parametrize("m_attr_readwrite", ("m_uqmp_readwrite", "m_uqcp_readwrite"))
+def test_uqp(m_attr_readwrite, msg):
     outer = m.Outer()
-    assert getattr(outer, m_attr_disown) is None
+    assert getattr(outer, m_attr_readwrite) is None
     field_orig = m.Field()
     field_orig.num = 39
-    setattr(outer, m_attr_disown, field_orig)
+    setattr(outer, m_attr_readwrite, field_orig)
     with pytest.raises(ValueError) as excinfo:
         field_orig.num
     assert (
         msg(excinfo.value)
         == "Missing value for wrapped C++ type: Python instance was disowned."
     )
-    field_retr1 = getattr(outer, m_attr_disown)
-    assert getattr(outer, m_attr_disown) is None
+    field_retr1 = getattr(outer, m_attr_readwrite)
+    assert getattr(outer, m_attr_readwrite) is None
     assert field_retr1.num == 39
     field_retr1.num = 93
-    setattr(outer, m_attr_disown, field_retr1)
+    setattr(outer, m_attr_readwrite, field_retr1)
     with pytest.raises(ValueError):
         field_retr1.num
-    field_retr2 = getattr(outer, m_attr_disown)
+    field_retr2 = getattr(outer, m_attr_readwrite)
     assert field_retr2.num == 93
 
 
@@ -108,13 +116,14 @@ class unique_ptr_field_proxy_poc(object):  # noqa: N801
         return _dereference(self, delattr, *args, **kwargs)
 
 
-@pytest.mark.parametrize("m_attr_disown", ("m_uqmp_property", "m_uqcp_property"))
-def test_unique_ptr_field_proxy_poc(m_attr_disown, msg):
+@pytest.mark.parametrize("m_attr", ("m_uqmp", "m_uqcp"))
+def test_unique_ptr_field_proxy_poc(m_attr, msg):
+    m_attr_readwrite = m_attr + "_readwrite"
     outer = m.Outer()
     field_orig = m.Field()
     field_orig.num = 45
-    setattr(outer, m_attr_disown, field_orig)
-    field_proxy = unique_ptr_field_proxy_poc(outer, m_attr_disown)
+    setattr(outer, m_attr_readwrite, field_orig)
+    field_proxy = unique_ptr_field_proxy_poc(outer, m_attr_readwrite)
     assert field_proxy.num == 45
     assert field_proxy.num == 45
     with pytest.raises(AttributeError):
@@ -122,7 +131,7 @@ def test_unique_ptr_field_proxy_poc(m_attr_disown, msg):
     assert field_proxy.num == 45
     field_proxy.num = 82
     assert field_proxy.num == 82
-    field_proxy = unique_ptr_field_proxy_poc(outer, m_attr_disown)
+    field_proxy = unique_ptr_field_proxy_poc(outer, m_attr_readwrite)
     assert field_proxy.num == 82
     with pytest.raises(AttributeError):
         del field_proxy.num
@@ -131,13 +140,19 @@ def test_unique_ptr_field_proxy_poc(m_attr_disown, msg):
 
 @pytest.mark.parametrize("m_attr", ("m_shmp", "m_shcp"))
 def test_shp(m_attr):
+    m_attr_readonly = m_attr + "_readonly"
+    m_attr_readwrite = m_attr + "_readwrite"
     outer = m.Outer()
-    assert getattr(outer, m_attr) is None
+    assert getattr(outer, m_attr_readonly) is None
+    assert getattr(outer, m_attr_readwrite) is None
     field = m.Field()
     field.num = 43
-    setattr(outer, m_attr, field)
-    assert getattr(outer, m_attr).num == 43
-    getattr(outer, m_attr).num = 57
+    setattr(outer, m_attr_readwrite, field)
+    assert getattr(outer, m_attr_readonly).num == 43
+    assert getattr(outer, m_attr_readwrite).num == 43
+    getattr(outer, m_attr_readonly).num = 57
+    getattr(outer, m_attr_readwrite).num = 57
     assert field.num == 57
     del field
-    assert getattr(outer, m_attr).num == 57
+    assert getattr(outer, m_attr_readonly).num == 57
+    assert getattr(outer, m_attr_readwrite).num == 57

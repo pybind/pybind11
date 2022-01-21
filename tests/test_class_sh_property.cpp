@@ -50,9 +50,11 @@ TEST_SUBMODULE(class_sh_property, m) {
         ;
 
     py::class_<ClassicOuter, std::unique_ptr<ClassicOuter>>(m, "ClassicOuter")
-        .def(py::init<>())                              //
-        .def_readwrite("m_mptr", &ClassicOuter::m_mptr) //
-        .def_readwrite("m_cptr", &ClassicOuter::m_cptr) //
+        .def(py::init<>())
+        .def_readonly("m_mptr_readonly", &ClassicOuter::m_mptr)
+        .def_readwrite("m_mptr_readwrite", &ClassicOuter::m_mptr)
+        .def_readwrite("m_cptr_readonly", &ClassicOuter::m_cptr)
+        .def_readwrite("m_cptr_readwrite", &ClassicOuter::m_cptr) //
         ;
 
     py::classh<Field>(m, "Field")          //
@@ -61,27 +63,18 @@ TEST_SUBMODULE(class_sh_property, m) {
         ;
 
     py::classh<Outer>(m, "Outer") //
-        .def(py::init<>())        //
-        .def_readonly("m_valu_readonly", &Outer::m_valu) //
-        .def_readwrite("m_valu", &Outer::m_valu) //
-        .def_property(                           //
-            "m_mptr_property",
-            [](const std::shared_ptr<Outer> &self) {
-                return std::shared_ptr<Field>(self, self->m_mptr);
-            },
-            [](Outer &self, Field *mptr) { self.m_mptr = mptr; })
-        .def_property( //
-            "m_cptr_property",
-            [](const std::shared_ptr<Outer> &self) {
-                return std::shared_ptr<const Field>(self, self->m_cptr);
-            },
-            [](Outer &self, const Field *cptr) { self.m_cptr = cptr; })
+        .def(py::init<>())
+
+        .def_readonly("m_valu_readonly", &Outer::m_valu)
+        .def_readwrite("m_valu_readwrite", &Outer::m_valu)
+
         .def_readonly("m_mptr_readonly", &Outer::m_mptr)
-        .def_readwrite("m_mptr", &Outer::m_mptr)
+        .def_readwrite("m_mptr_readwrite", &Outer::m_mptr)
         .def_readonly("m_cptr_readonly", &Outer::m_cptr)
-        .def_readwrite("m_cptr", &Outer::m_cptr)
+        .def_readwrite("m_cptr_readwrite", &Outer::m_cptr)
+
         .def_property( //
-            "m_uqmp_property",
+            "m_uqmp_readwrite",
             [](const std::shared_ptr<Outer> &self) {
                 return std::unique_ptr<Field>(std::move(self->m_uqmp));
             },
@@ -89,17 +82,22 @@ TEST_SUBMODULE(class_sh_property, m) {
                 self.m_uqmp = std::move(uqmp); //
             })
         .def_property( //
-            "m_uqcp_property",
+            "m_uqcp_readwrite",
             [](const std::shared_ptr<Outer> &self) {
                 return std::unique_ptr<const Field>(std::move(self->m_uqcp));
             },
             [](Outer &self, std::unique_ptr<const Field> uqcp) {
                 self.m_uqcp = std::move(uqcp); //
             })
-        // .def_readwrite("m_uqmp", &Outer::m_uqmp) //
-        // .def_readwrite("m_uqcp", &Outer::m_uqcp) //
-        .def_readwrite("m_shmp", &Outer::m_shmp) //
-        .def_readwrite("m_shcp", &Outer::m_shcp) //
+        // .def_readonly("m_uqmp_readonly", &Outer::m_uqmp) // Compilation Error.
+        // .def_readwrite("m_uqmp_readwrite", &Outer::m_uqmp)
+        // .def_readonly("m_uqcp_readonly", &Outer::m_uqcp) // Compilation Error.
+        // .def_readwrite("m_uqcp_readwrite", &Outer::m_uqcp)
+
+        .def_readwrite("m_shmp_readonly", &Outer::m_shmp)
+        .def_readwrite("m_shmp_readwrite", &Outer::m_shmp)
+        .def_readwrite("m_shcp_readonly", &Outer::m_shcp)
+        .def_readwrite("m_shcp_readwrite", &Outer::m_shcp) //
         ;
 
     m.def("DisownOuter", DisownOuter);
