@@ -37,7 +37,6 @@ struct NoCapsuleReturned: public CapsuleBase {
     int get() const { return 103; }
 
     PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned() {
-      void* vptr = static_cast<void*>(this);
       capsule_generated = true;
       Py_XINCREF(Py_None);
       return Py_None;

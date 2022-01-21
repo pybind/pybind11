@@ -548,9 +548,10 @@ private:
         std::string function_name = "as_" + std::regex_replace(
             type_name, std::regex("::"), "_");
         if (hasattr(src, function_name.c_str())) {
-          capsule c = reinterpret_borrow<capsule>(PyObject_CallMethod(
+          object obj = reinterpret_borrow<object>(PyObject_CallMethod(
               src.ptr(), function_name.c_str(), nullptr));
-          if (c.check()) {
+          if (isinstance<capsule>(obj)) {
+            capsule c(obj);
             return c.get_pointer<T>();
           }
         }
