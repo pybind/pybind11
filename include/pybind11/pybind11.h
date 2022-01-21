@@ -1383,8 +1383,13 @@ using default_holder_type = smart_holder;
 template <typename T, typename D, typename SFINAE = void>
 struct xetter_cpp_function {
     template <typename PM>
-    static cpp_function read(PM pm, const handle &hdl) {
+    static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+    }
+
+    template <typename PM>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
     }
 
     template <typename PM>
@@ -1414,13 +1419,18 @@ struct xetter_cpp_function<
     using drp = typename std::remove_pointer<D>::type;
 
     template <typename PM>
-    static cpp_function read(PM pm, const handle &hdl) {
+    static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<drp> {
                 D ptr = (*c_sp).*pm;
                 return std::shared_ptr<drp>(c_sp, ptr);
             },
             is_method(hdl));
+    }
+
+    template <typename PM>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
     }
 
     template <typename PM>
@@ -1439,7 +1449,7 @@ struct xetter_cpp_function<
                         && !is_std_unique_ptr<D>::value //
                         && !is_std_shared_ptr<D>::value>> {
     template <typename PM>
-    static cpp_function read(PM pm, const handle &hdl) {
+    static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
                 // Emulating PyCLIF approach:
@@ -1447,6 +1457,11 @@ struct xetter_cpp_function<
                 return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
             },
             is_method(hdl));
+    }
+
+    template <typename PM>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
     }
 
     template <typename PM>
@@ -1669,7 +1684,7 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         def_property_readonly(
             name,
-            xetter_cpp_function<type, D>::read(pm, *this),
+            xetter_cpp_function<type, D>::readonly(pm, *this),
             return_value_policy::reference_internal,
             extra...);
         return *this;
