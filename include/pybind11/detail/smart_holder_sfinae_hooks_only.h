@@ -30,7 +30,7 @@ struct smart_holder_type_caster_base_tag {};
 template <typename T>
 struct type_uses_smart_holder_type_caster;
 
-// Simple helpers that may eventually be a better fit for common.h:
+// Simple helpers that may eventually be a better fit for another header file:
 
 template <typename T>
 struct is_std_unique_ptr : std::false_type {};
