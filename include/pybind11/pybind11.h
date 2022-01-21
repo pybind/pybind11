@@ -1501,8 +1501,7 @@ struct xetter_cpp_function<
 
     template <typename PM>
     static cpp_function write(PM pm, const handle &hdl) {
-        return cpp_function([pm](T &c, D &&value) { (c.*pm).reset(value.release()); },
-                            is_method(hdl));
+        return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
     }
 };
 
