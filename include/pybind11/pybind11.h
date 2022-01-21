@@ -1448,6 +1448,7 @@ struct xetter_cpp_function<
                         && !std::is_pointer<D>::value   //
                         && !is_std_unique_ptr<D>::value //
                         && !is_std_shared_ptr<D>::value>> {
+
     template <typename PM>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
@@ -1472,6 +1473,36 @@ struct xetter_cpp_function<
     template <typename PM>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+    }
+};
+
+template <typename T, typename D>
+struct xetter_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<
+        detail::type_uses_smart_holder_type_caster<T>::value //
+        && is_std_unique_ptr<D>::value
+        && detail::type_uses_smart_holder_type_caster<typename D::element_type>::value>> {
+
+    template <typename PM>
+    static cpp_function readonly(PM, const handle &) {
+        static_assert(!is_std_unique_ptr<D>::value,
+                      "def_readonly cannot be used for std::unique_ptr members.");
+        return cpp_function{}; // Unreachable.
+    }
+
+    template <typename PM>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return cpp_function(
+            [pm](const std::shared_ptr<T> &c_sp) -> D { return D{std::move(c_sp.get()->*pm)}; },
+            is_method(hdl));
+    }
+
+    template <typename PM>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, D &&value) { (c.*pm).reset(value.release()); },
+                            is_method(hdl));
     }
 };
 

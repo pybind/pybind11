@@ -73,26 +73,10 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readonly("m_cptr_readonly", &Outer::m_cptr)
         .def_readwrite("m_cptr_readwrite", &Outer::m_cptr)
 
-        .def_property( //
-            "m_uqmp_readwrite",
-            [](const std::shared_ptr<Outer> &self) {
-                return std::unique_ptr<Field>(std::move(self->m_uqmp));
-            },
-            [](Outer &self, std::unique_ptr<Field> uqmp) {
-                self.m_uqmp = std::move(uqmp); //
-            })
-        .def_property( //
-            "m_uqcp_readwrite",
-            [](const std::shared_ptr<Outer> &self) {
-                return std::unique_ptr<const Field>(std::move(self->m_uqcp));
-            },
-            [](Outer &self, std::unique_ptr<const Field> uqcp) {
-                self.m_uqcp = std::move(uqcp); //
-            })
-        // .def_readonly("m_uqmp_readonly", &Outer::m_uqmp) // Compilation Error.
-        // .def_readwrite("m_uqmp_readwrite", &Outer::m_uqmp)
-        // .def_readonly("m_uqcp_readonly", &Outer::m_uqcp) // Compilation Error.
-        // .def_readwrite("m_uqcp_readwrite", &Outer::m_uqcp)
+        // .def_readonly("m_uqmp_readonly", &Outer::m_uqmp) // Custom compilation Error.
+        .def_readwrite("m_uqmp_readwrite", &Outer::m_uqmp)
+        // .def_readonly("m_uqcp_readonly", &Outer::m_uqcp) // Custom compilation Error.
+        .def_readwrite("m_uqcp_readwrite", &Outer::m_uqcp)
 
         .def_readwrite("m_shmp_readonly", &Outer::m_shmp)
         .def_readwrite("m_shmp_readwrite", &Outer::m_shmp)
