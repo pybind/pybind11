@@ -37,6 +37,26 @@ def test_valu_setter():
     assert outer.m_valu_readwrite.num == 35
 
 
+@pytest.mark.parametrize("m_attr", ("m_shmp", "m_shcp"))
+def test_shp(m_attr):
+    m_attr_readonly = m_attr + "_readonly"
+    m_attr_readwrite = m_attr + "_readwrite"
+    outer = m.Outer()
+    assert getattr(outer, m_attr_readonly) is None
+    assert getattr(outer, m_attr_readwrite) is None
+    field = m.Field()
+    field.num = 43
+    setattr(outer, m_attr_readwrite, field)
+    assert getattr(outer, m_attr_readonly).num == 43
+    assert getattr(outer, m_attr_readwrite).num == 43
+    getattr(outer, m_attr_readonly).num = 57
+    getattr(outer, m_attr_readwrite).num = 57
+    assert field.num == 57
+    del field
+    assert getattr(outer, m_attr_readonly).num == 57
+    assert getattr(outer, m_attr_readwrite).num == 57
+
+
 @pytest.mark.parametrize(
     "field_type, num_default, outer_type",
     [
@@ -90,30 +110,35 @@ def test_uqp(m_attr_readwrite, msg):
     assert field_retr2.num == 93
 
 
-def _dereference(proxy, xxxattr, *args, **kwargs):
-    obj = object.__getattribute__(proxy, "__obj")
-    field_name = object.__getattribute__(proxy, "__field_name")
-    field = getattr(obj, field_name)
-    assert field is not None
-    try:
-        return xxxattr(field, *args, **kwargs)
-    finally:
-        setattr(obj, field_name, field)
-
-
+# Proof-of-concept (POC) for safe & intuitive Python access to unique_ptr members.
+# The C++ member unique_ptr is disowned to a temporary Python object for accessing
+# an attribute of the member. After the attribute was accessed, the Python object
+# is disowned back to the C++ member unique_ptr.
+# Productizing this POC is left for a future separate PR, as needed.
 class unique_ptr_field_proxy_poc(object):  # noqa: N801
     def __init__(self, obj, field_name):
         object.__setattr__(self, "__obj", obj)
         object.__setattr__(self, "__field_name", field_name)
 
     def __getattr__(self, *args, **kwargs):
-        return _dereference(self, getattr, *args, **kwargs)
+        return _proxy_dereference(self, getattr, *args, **kwargs)
 
     def __setattr__(self, *args, **kwargs):
-        return _dereference(self, setattr, *args, **kwargs)
+        return _proxy_dereference(self, setattr, *args, **kwargs)
 
     def __delattr__(self, *args, **kwargs):
-        return _dereference(self, delattr, *args, **kwargs)
+        return _proxy_dereference(self, delattr, *args, **kwargs)
+
+
+def _proxy_dereference(proxy, xxxattr, *args, **kwargs):
+    obj = object.__getattribute__(proxy, "__obj")
+    field_name = object.__getattribute__(proxy, "__field_name")
+    field = getattr(obj, field_name)  # Disowns the C++ unique_ptr member.
+    assert field is not None
+    try:
+        return xxxattr(field, *args, **kwargs)
+    finally:
+        setattr(obj, field_name, field)  # Disowns the temporary Python object (field).
 
 
 @pytest.mark.parametrize("m_attr", ("m_uqmp", "m_uqcp"))
@@ -136,23 +161,3 @@ def test_unique_ptr_field_proxy_poc(m_attr, msg):
     with pytest.raises(AttributeError):
         del field_proxy.num
     assert field_proxy.num == 82
-
-
-@pytest.mark.parametrize("m_attr", ("m_shmp", "m_shcp"))
-def test_shp(m_attr):
-    m_attr_readonly = m_attr + "_readonly"
-    m_attr_readwrite = m_attr + "_readwrite"
-    outer = m.Outer()
-    assert getattr(outer, m_attr_readonly) is None
-    assert getattr(outer, m_attr_readwrite) is None
-    field = m.Field()
-    field.num = 43
-    setattr(outer, m_attr_readwrite, field)
-    assert getattr(outer, m_attr_readonly).num == 43
-    assert getattr(outer, m_attr_readwrite).num == 43
-    getattr(outer, m_attr_readonly).num = 57
-    getattr(outer, m_attr_readwrite).num = 57
-    assert field.num == 57
-    del field
-    assert getattr(outer, m_attr_readonly).num == 57
-    assert getattr(outer, m_attr_readwrite).num == 57
