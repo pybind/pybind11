@@ -90,7 +90,9 @@ public:
                 }
                 loaded_v_h = sub_caster.loaded_v_h;
                 loaded_v_h_cpptype = cast.first;
-                implicit_cast = cast.second;
+                // the sub_caster is being discarded, so steal its vector
+                implicit_casts = std::move(sub_caster.implicit_casts);
+                implicit_casts.emplace_back(cast.second);
                 return true;
             }
         }
@@ -149,7 +151,7 @@ public:
             }
             loaded_v_h = foreign_loader->loaded_v_h;
             loaded_v_h_cpptype = foreign_loader->loaded_v_h_cpptype;
-            implicit_cast = foreign_loader->implicit_cast;
+            implicit_casts = foreign_loader->implicit_casts; // SMART_HOLDER_WIP: should this be a copy or move?
             return true;
         }
         return false;
@@ -251,7 +253,7 @@ public:
     const std::type_info *cpptype = nullptr;
     void *unowned_void_ptr_from_direct_conversion = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
-    void *(*implicit_cast)(void *) = nullptr;
+    std::vector<void *(*)(void *)> implicit_casts;
     value_and_holder loaded_v_h;
     bool reinterpret_cast_deemed_ok = false;
     // Magic number intentionally hard-coded, to guard against class_ holder mixups.
@@ -521,8 +523,10 @@ private:
 
     T *convert_type(void *void_ptr) const {
         if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
-            && !load_impl.reinterpret_cast_deemed_ok && load_impl.implicit_cast != nullptr) {
-            void_ptr = load_impl.implicit_cast(void_ptr);
+            && !load_impl.reinterpret_cast_deemed_ok && !load_impl.implicit_casts.empty()) {
+            for (auto implicit_cast: load_impl.implicit_casts) {
+                void_ptr = implicit_cast(void_ptr);
+            }
         }
         return static_cast<T *>(void_ptr);
     }
