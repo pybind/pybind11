@@ -110,8 +110,15 @@ public:
     bool try_as_void_ptr_capsule(handle src) {
         std::string type_name = cpptype->name();
         detail::clean_type_id(type_name);
-        std::string as_void_ptr_function_name = "as_" + std::regex_replace(
-            type_name, std::regex("::"), "_");
+
+        // Convert `a::b::c` to `a_b_c`
+        size_t pos = type_name.find("::");
+        while (pos != std::string::npos) {
+            type_name.replace(pos, 2, "_");
+            pos = type_name.find("::", pos);
+        }
+
+        std::string as_void_ptr_function_name = "as_" + type_name;
         if (hasattr(src, as_void_ptr_function_name.c_str())) {
           auto void_ptr_capsule = reinterpret_borrow<object>(
               PyObject_CallMethod(src.ptr(),
