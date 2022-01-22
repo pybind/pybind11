@@ -23,6 +23,8 @@ struct Valid: public CapsuleBase {
     PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_Valid() {
       void* vptr = static_cast<void*>(this);
       capsule_generated = true;
+      // We assume vptr out lives the capsule, so we use nullptr for the
+      // destructor.
       return PyCapsule_New(
           vptr, "::pybind11_tests::class_sh_void_ptr_capsule::Valid",
           nullptr);
@@ -49,6 +51,8 @@ struct AsAnotherObject: public CapsuleBase {
     PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_Valid() {
       void* vptr = static_cast<void*>(this);
       capsule_generated = true;
+      // We assume vptr out lives the capsule, so we use nullptr for the
+      // destructor.
       return PyCapsule_New(
           vptr, "::pybind11_tests::class_sh_void_ptr_capsule::Valid",
           nullptr);

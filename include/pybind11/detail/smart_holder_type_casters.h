@@ -107,6 +107,27 @@ public:
         return false;
     }
 
+    bool try_as_void_ptr_capsule(handle src) {
+        std::string type_name = cpptype->name();
+        detail::clean_type_id(type_name);
+        std::string as_void_ptr_function_name = "as_" + std::regex_replace(
+            type_name, std::regex("::"), "_");
+        if (hasattr(src, as_void_ptr_function_name.c_str())) {
+          auto void_ptr_capsule = reinterpret_borrow<object>(
+              PyObject_CallMethod(src.ptr(),
+                  const_cast<char *>(as_void_ptr_function_name.c_str()),
+                  nullptr));
+          if (isinstance<capsule>(void_ptr_capsule)) {
+            unowned_void_ptr_from_void_ptr_capsule = static_cast<void *>(
+                PyCapsule_GetPointer(
+                    void_ptr_capsule.ptr(),
+                    PyCapsule_GetName(void_ptr_capsule.ptr())));
+            return true;
+          }
+        }
+        return false;
+    }
+
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
         std::unique_ptr<modified_type_caster_generic_load_impl> loader(
             new modified_type_caster_generic_load_impl(ti));
@@ -162,6 +183,9 @@ public:
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
         if (!src) return false;
+        if (cpptype && try_as_void_ptr_capsule(src)) {
+          return true;
+        }
         if (!typeinfo) return try_load_foreign_module_local(src);
 
         auto &this_ = static_cast<ThisT &>(*this);
@@ -251,6 +275,7 @@ public:
     const type_info *typeinfo = nullptr;
     const std::type_info *cpptype = nullptr;
     void *unowned_void_ptr_from_direct_conversion = nullptr;
+    void *unowned_void_ptr_from_void_ptr_capsule = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
     void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
@@ -361,28 +386,24 @@ struct smart_holder_type_caster_load {
     bool load(handle src, bool convert) {
         static_assert(type_uses_smart_holder_type_caster<T>::value, "Internal consistency error.");
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
-        void_ptr_capsule = try_load_as_void_ptr_capsule(src);
-        if (void_ptr_capsule) {
-          return true;
-        }
         if (!load_impl.load(src, convert))
             return false;
         return true;
     }
 
     T *loaded_as_raw_ptr_unowned() const {
-        if (void_ptr_capsule) {
-          return void_ptr_capsule;
-        }
-        void *void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
+        void *void_ptr = load_impl.unowned_void_ptr_from_void_ptr_capsule;
         if (void_ptr == nullptr) {
-            if (have_holder()) {
-                throw_if_uninitialized_or_disowned_holder();
-                void_ptr = holder().template as_raw_ptr_unowned<void>();
-            } else if (load_impl.loaded_v_h.vh != nullptr)
-                void_ptr = load_impl.loaded_v_h.value_ptr();
-            if (void_ptr == nullptr)
-                return nullptr;
+          void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
+          if (void_ptr == nullptr) {
+              if (have_holder()) {
+                  throw_if_uninitialized_or_disowned_holder();
+                  void_ptr = holder().template as_raw_ptr_unowned<void>();
+              } else if (load_impl.loaded_v_h.vh != nullptr)
+                  void_ptr = load_impl.loaded_v_h.value_ptr();
+              if (void_ptr == nullptr)
+                  return nullptr;
+          }
         }
         return convert_type(void_ptr);
     }
@@ -395,7 +416,7 @@ struct smart_holder_type_caster_load {
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr() const {
-        if (void_ptr_capsule) {
+        if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
             throw cast_error("Void pointer capsule cannot be converted to a"
                              " std::shared_ptr.");
         }
@@ -453,7 +474,7 @@ struct smart_holder_type_caster_load {
 
     template <typename D>
     std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
-        if (void_ptr_capsule) {
+        if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
             throw cast_error("Void pointer capsule cannot be converted to a"
                              " std::unique_ptr.");
         }
@@ -508,7 +529,7 @@ struct smart_holder_type_caster_load {
 
 private:
     modified_type_caster_generic_load_impl load_impl;
-    T* void_ptr_capsule = nullptr;
+
     bool have_holder() const {
         return load_impl.loaded_v_h.vh != nullptr && load_impl.loaded_v_h.holder_constructed();
     }
@@ -541,21 +562,6 @@ private:
             void_ptr = load_impl.implicit_cast(void_ptr);
         }
         return static_cast<T *>(void_ptr);
-    }
-
-    T *try_load_as_void_ptr_capsule(handle src) {
-        std::string type_name = type_id<T>();
-        std::string function_name = "as_" + std::regex_replace(
-            type_name, std::regex("::"), "_");
-        if (hasattr(src, function_name.c_str())) {
-          object obj = reinterpret_borrow<object>(PyObject_CallMethod(
-              src.ptr(), function_name.c_str(), nullptr));
-          if (isinstance<capsule>(obj)) {
-            capsule c(obj);
-            return c.get_pointer<T>();
-          }
-        }
-        return nullptr;
     }
 };
 
