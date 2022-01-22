@@ -19,7 +19,6 @@
 #include <cstddef>
 #include <memory>
 #include <new>
-#include <regex>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
