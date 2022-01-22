@@ -180,6 +180,10 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("as_type", [](const py::object &ob) { return py::type(ob); });
 
+    m.def("get_instance_type_name", [](py::object ob) {
+        return py::type::of(ob).name();
+    });
+
     // test_mismatched_holder
     struct MismatchBase1 { };
     struct MismatchDerived1 : MismatchBase1 { };

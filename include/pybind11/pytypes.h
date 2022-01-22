@@ -1060,6 +1060,20 @@ public:
     /// See https://github.com/pybind/pybind11/issues/2486
     template<typename T>
     static type of() {return type(type::handle_of<T>(), borrowed_t{}); }
+
+    /// Return the type name
+    std::string name() const {
+        const char* full_name = ((PyTypeObject*) ptr())->tp_name;
+        const char* name = strrchr(full_name, '.');
+        // Full name only contains type name, e.g. "T"
+        if (name == nullptr) {
+            name = full_name;
+        // Full name contains type and module names, e.g. "P.M.T"
+        } else {
+            name++;
+        }
+        return std::string(name);
+    }
 };
 
 class iterable : public object {
