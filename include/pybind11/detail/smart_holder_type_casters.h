@@ -113,21 +113,18 @@ public:
         // Convert `a::b::c` to `a_b_c`
         size_t pos = type_name.find("::");
         while (pos != std::string::npos) {
-            type_name.replace(pos, 2, "_");
+            type_name.replace(pos, 2, 1, '_');
             pos = type_name.find("::", pos);
         }
 
         std::string as_void_ptr_function_name = "as_" + type_name;
         if (hasattr(src, as_void_ptr_function_name.c_str())) {
-          auto void_ptr_capsule = reinterpret_borrow<object>(
-              PyObject_CallMethod(src.ptr(),
-                  const_cast<char *>(as_void_ptr_function_name.c_str()),
-                  nullptr));
+          auto as_void_ptr_function = function(
+              src.attr(as_void_ptr_function_name.c_str()));
+          auto void_ptr_capsule = as_void_ptr_function();
           if (isinstance<capsule>(void_ptr_capsule)) {
-            unowned_void_ptr_from_void_ptr_capsule = static_cast<void *>(
-                PyCapsule_GetPointer(
-                    void_ptr_capsule.ptr(),
-                    PyCapsule_GetName(void_ptr_capsule.ptr())));
+            unowned_void_ptr_from_void_ptr_capsule = reinterpret_borrow<capsule>(
+                void_ptr_capsule).get_pointer();
             return true;
           }
         }

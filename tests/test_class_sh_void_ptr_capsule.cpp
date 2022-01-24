@@ -1,7 +1,5 @@
 #include "pybind11_tests.h"
 
-#include <Python.h>
-
 #include <pybind11/smart_holder.h>
 
 #include <memory>
@@ -101,6 +99,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
              [](CapsuleBase* self) {
           Valid *obj = dynamic_cast<Valid *>(self);
+          assert(obj != nullptr);
           PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
           return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
@@ -113,6 +112,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned",
              [](CapsuleBase* self) {
           NoCapsuleReturned *obj = dynamic_cast<NoCapsuleReturned *>(self);
+          assert(obj != nullptr);
           PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
           return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
@@ -122,6 +122,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
              [](CapsuleBase* self) {
           AsAnotherObject *obj = dynamic_cast<AsAnotherObject *>(self);
+          assert(obj != nullptr);
           PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
           return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
