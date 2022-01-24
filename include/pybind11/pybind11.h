@@ -1735,7 +1735,7 @@ struct enum_base {
             }, name("name"), is_method(m_base)
         );
 
-        m_base.attr("__doc__") = static_property(cpp_function(
+        m_base.attr("__doc__") = pybind11::str(static_property(cpp_function(
             [](handle arg) -> std::string {
                 std::string docstring;
                 dict entries = arg.attr("__entries");
@@ -1751,7 +1751,7 @@ struct enum_base {
                 }
                 return docstring;
             }, name("__doc__")
-        ), none(), none(), "");
+        ), none(), none(), ""));
 
         m_base.attr("__members__") = static_property(cpp_function(
             [](handle arg) -> dict {
