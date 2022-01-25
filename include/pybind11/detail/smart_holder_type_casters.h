@@ -37,6 +37,15 @@ struct is_smart_holder_type<smart_holder> : std::true_type {};
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
+// Replace all occurrences of a character in string.
+inline void replace_all(std::string& str, const std::string& from, char to) {
+    size_t pos = str.find(from);
+    while (pos != std::string::npos) {
+        str.replace(pos, from.length(), 1, to);
+        pos = str.find(from, pos);
+    }
+}
+
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
 // vice versa. The main difference is that the original code only propagates a reference to the
 // held value, while the modified implementation propagates value_and_holder.
@@ -106,6 +115,28 @@ public:
         return false;
     }
 
+    bool try_as_void_ptr_capsule(handle src) {
+        std::string type_name = cpptype->name();
+        detail::clean_type_id(type_name);
+
+        // Convert `a::b::c` to `a_b_c`
+        replace_all(type_name, "::", '_');
+
+        std::string as_void_ptr_function_name("as_");
+        as_void_ptr_function_name += type_name;
+        if (hasattr(src, as_void_ptr_function_name.c_str())) {
+          auto as_void_ptr_function = function(
+              src.attr(as_void_ptr_function_name.c_str()));
+          auto void_ptr_capsule = as_void_ptr_function();
+          if (isinstance<capsule>(void_ptr_capsule)) {
+            unowned_void_ptr_from_void_ptr_capsule = reinterpret_borrow<capsule>(
+                void_ptr_capsule).get_pointer();
+            return true;
+          }
+        }
+        return false;
+    }
+
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
         std::unique_ptr<modified_type_caster_generic_load_impl> loader(
             new modified_type_caster_generic_load_impl(ti));
@@ -161,6 +192,9 @@ public:
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
         if (!src) return false;
+        if (cpptype && try_as_void_ptr_capsule(src)) {
+          return true;
+        }
         if (!typeinfo) return try_load_foreign_module_local(src);
 
         auto &this_ = static_cast<ThisT &>(*this);
@@ -250,6 +284,7 @@ public:
     const type_info *typeinfo = nullptr;
     const std::type_info *cpptype = nullptr;
     void *unowned_void_ptr_from_direct_conversion = nullptr;
+    void *unowned_void_ptr_from_void_ptr_capsule = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
     void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
@@ -366,7 +401,10 @@ struct smart_holder_type_caster_load {
     }
 
     T *loaded_as_raw_ptr_unowned() const {
-        void *void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
+        void *void_ptr = load_impl.unowned_void_ptr_from_void_ptr_capsule;
+        if (void_ptr == nullptr) {
+          void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
+        }
         if (void_ptr == nullptr) {
             if (have_holder()) {
                 throw_if_uninitialized_or_disowned_holder();
@@ -387,6 +425,10 @@ struct smart_holder_type_caster_load {
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr() const {
+        if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
+            throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
+                             " std::shared_ptr.");
+        }
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::shared_ptr.");
@@ -441,6 +483,10 @@ struct smart_holder_type_caster_load {
 
     template <typename D>
     std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
+        if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
+            throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
+                             " std::unique_ptr.");
+        }
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::unique_ptr.");
