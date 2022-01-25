@@ -20,6 +20,7 @@ namespace class_sh_void_ptr_capsule {
 // Conveniently, the helper also serves to keep track of `capsule_generated`.
 struct HelperBase {
     HelperBase() = default;
+    HelperBase(const HelperBase &) = delete;
     virtual ~HelperBase() = default;
 
     bool capsule_generated = false;
