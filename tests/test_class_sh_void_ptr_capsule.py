@@ -10,7 +10,7 @@ from pybind11_tests import class_sh_void_ptr_capsule as m
         (m.Valid, m.get_from_valid_capsule, 101, True),
         (m.NoConversion, m.get_from_no_conversion_capsule, 102, False),
         (m.NoCapsuleReturned, m.get_from_no_capsule_returned, 103, True),
-        (m.AsAnotherObject, m.get_from_valid_capsule, 104, True),
+        (m.AsAnotherObject, m.get_from_valid_capsule, 104, True)
     ],
 )
 def test_as_void_ptr_capsule(ctor, caller, expected, capsule_generated):
