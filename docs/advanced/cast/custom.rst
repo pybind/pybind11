@@ -101,12 +101,12 @@ There are two ways to do this:
       in every compilation unit of the Python extension module. Otherwise,
       undefined behavior can ensue.
 
-* The preferred method is to *declare* a function named `pybind11_declare_caster`,
+* The preferred method is to *declare* a function named `pybind11_select_caster`,
   its only purpose is to associate the C++ type with its caster class:
 
   .. code-block:: cpp
 
-      inty_type_caster pybind11_declare_caster(inty*);
+      inty_type_caster pybind11_select_caster(inty*);
 
   The argument is a *pointer* to the C++ type, the return type is the
   `caster_type`. This function has no implementation!
