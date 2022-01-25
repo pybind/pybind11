@@ -38,7 +38,7 @@ inline void register_instance(instance *self, void *valptr, const type_info *tin
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
 // Replace all occurrences of a character in string.
-inline void replace_all(std::string& str, std::string from, char to) {
+inline void replace_all(std::string& str, const std::string& from, char to) {
     size_t pos = str.find(from);
     while (pos != std::string::npos) {
         str.replace(pos, from.length(), 1, to);
