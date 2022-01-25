@@ -31,7 +31,10 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
-template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
+
+template <class type> type_caster<intrinsic_t<type>> pybind11_select_caster(type);
+
+template <class type> using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr)));
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
@@ -443,21 +446,41 @@ private:
     bool load_bytes(enable_if_t<!std::is_same<C, char>::value, handle>) { return false; }
 };
 
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+namespace std {
+
+// pybind11::detail::string_caster<std::string>
+// pybind11_select_caster(std::string*);
 template <typename CharT, class Traits, class Allocator>
-struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_std_char_type<CharT>::value>>
-    : string_caster<std::basic_string<CharT, Traits, Allocator>> {};
+pybind11::detail::enable_if_t<
+    pybind11::detail::is_std_char_type<CharT>::value,
+    pybind11::detail::string_caster<
+        std::basic_string<CharT, Traits, Allocator>>>
+pybind11_select_caster(std::basic_string<CharT, Traits, Allocator>*);
 
 #ifdef PYBIND11_HAS_STRING_VIEW
+// pybind11::detail::string_caster<std::string_view, true>
+// pybind11_select_caster(std::string_view*);
 template <typename CharT, class Traits>
-struct type_caster<std::basic_string_view<CharT, Traits>, enable_if_t<is_std_char_type<CharT>::value>>
-    : string_caster<std::basic_string_view<CharT, Traits>, true> {};
+pybind11::detail::enable_if_t<
+    pybind11::detail::is_std_char_type<CharT>::value,
+    pybind11::detail::string_caster<
+        std::basic_string_view<CharT, Traits>, true>>
+pybind11_select_caster(std::basic_string_view<CharT, Traits>*);
 #endif
+
+}  // namespace std
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Type caster for C-style strings.  We basically use a std::string type caster, but also add the
 // ability to use None as a nullptr char* (which the string caster doesn't allow).
 template <typename CharT> struct type_caster<CharT, enable_if_t<is_std_char_type<CharT>::value>> {
     using StringType = std::basic_string<CharT>;
-    using StringCaster = type_caster<StringType>;
+    using StringCaster = make_caster<StringType>;
     StringCaster str_caster;
     bool none = false;
     CharT one_char = 0;
@@ -863,7 +886,7 @@ template <typename Return> struct return_value_policy_override<Return,
 };
 
 // Basic python -> C++ casting; throws if casting fails
-template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+template <typename T, typename caster> caster& load_type(caster& conv, const handle& handle) {
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
@@ -874,10 +897,13 @@ template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_ca
     }
     return conv;
 }
+template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+    return load_type<T, type_caster<T, SFINAE>>(conv, handle);
+}
 // Wrapper around the above that also constructs and returns a type_caster
 template <typename T> make_caster<T> load_type(const handle &handle) {
     make_caster<T> conv;
-    load_type(conv, handle);
+    load_type<T>(conv, handle);
     return conv;
 }
 
@@ -964,7 +990,7 @@ template <typename ret_type> using override_caster_t = conditional_t<
 // Trampoline use: for reference/pointer types to value-converted values, we do a value cast, then
 // store the result in the given variable.  For other types, this is a no-op.
 template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o, make_caster<T> &caster) {
-    return cast_op<T>(load_type(caster, o));
+    return cast_op<T>(load_type<T>(caster, o));
 }
 template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&, override_unused &) {
     pybind11_fail("Internal error: cast_ref fallback invoked"); }
