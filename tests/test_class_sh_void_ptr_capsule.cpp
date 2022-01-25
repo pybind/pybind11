@@ -46,7 +46,7 @@ struct NoConversion: public HelperBase {
 };
 
 struct NoCapsuleReturned: public HelperBase {
-    int get() const { return 103; }
+    int get() const override { return 103; }
 
     PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned() {
       capsule_generated = true;
@@ -73,7 +73,7 @@ int get_from_valid_capsule(const Valid* c) {
   return c->get();
 }
 
-int get_from_shared_ptr_valid_capsule(std::shared_ptr<Valid> c) {
+int get_from_shared_ptr_valid_capsule(const std::shared_ptr<Valid> &c) {
   return c->get();
 }
 
@@ -110,7 +110,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
         .def(py::init<>())
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
              [](HelperBase* self) {
-          Valid *obj = dynamic_cast<Valid *>(self);
+          auto obj = dynamic_cast<Valid *>(self);
           assert(obj != nullptr);
           PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
           return pybind11::reinterpret_steal<py::capsule>(capsule);
@@ -123,7 +123,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
         .def(py::init<>())
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned",
              [](HelperBase* self) {
-          NoCapsuleReturned *obj = dynamic_cast<NoCapsuleReturned *>(self);
+          auto obj = dynamic_cast<NoCapsuleReturned *>(self);
           assert(obj != nullptr);
           PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
           return pybind11::reinterpret_steal<py::capsule>(capsule);
@@ -133,7 +133,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
         .def(py::init<>())
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
              [](HelperBase* self) {
-          AsAnotherObject *obj = dynamic_cast<AsAnotherObject *>(self);
+          auto obj = dynamic_cast<AsAnotherObject *>(self);
           assert(obj != nullptr);
           PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
           return pybind11::reinterpret_steal<py::capsule>(capsule);
