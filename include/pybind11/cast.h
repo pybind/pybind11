@@ -998,11 +998,16 @@ template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, 
 // Trampoline use: Having a pybind11::cast with an invalid reference type is going to static_assert, even
 // though if it's in dead code, so we provide a "trampoline" to pybind11::cast that only does anything in
 // cases where pybind11::cast is valid.
-template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&o) {
-    return pybind11::cast<T>(std::move(o)); }
-template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&) {
-    pybind11_fail("Internal error: cast_safe fallback invoked"); }
-template <> inline void cast_safe<void>(object &&) {}
+template <typename T>
+enable_if_t<!std::is_same<void, intrinsic_t<T>> &&
+            !cast_is_temporary_value_reference<T>::value, T>
+cast_safe(object &&o) { return pybind11::cast<T>(std::move(o)); }
+template <typename T>
+enable_if_t<cast_is_temporary_value_reference<T>::value, T>
+cast_safe(object &&) {  pybind11_fail("Internal error: cast_safe fallback invoked"); }
+template <typename T>
+enable_if_t<std::is_same<void, intrinsic_t<T>>, void>
+cast_safe<void>(object &&) {}
 
 PYBIND11_NAMESPACE_END(detail)
 
