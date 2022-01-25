@@ -122,7 +122,8 @@ public:
         // Convert `a::b::c` to `a_b_c`
         replace_all(type_name, "::", '_');
 
-        std::string as_void_ptr_function_name = "as_" + type_name;
+        std::string as_void_ptr_function_name("as_");
+        as_void_ptr_function_name += type_name;
         if (hasattr(src, as_void_ptr_function_name.c_str())) {
           auto as_void_ptr_function = function(
               src.attr(as_void_ptr_function_name.c_str()));
