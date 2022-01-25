@@ -32,7 +32,7 @@ The following Python snippet demonstrates the intended usage from the Python sid
     print(A())
 
 To register the necessary conversion routines, it is necessary to define a
-`type_caster` class, and register it with the other pybind11 casters:
+caster class, and register it with the other pybind11 casters:
 
 .. code-block:: cpp
 
@@ -78,12 +78,12 @@ To register the necessary conversion routines, it is necessary to define a
 
 .. note::
 
-    A `type_caster` defined with ``PYBIND11_TYPE_CASTER(T, ...)`` requires
+    A caster class defined with ``PYBIND11_TYPE_CASTER(T, ...)`` requires
     that ``T`` is default-constructible (``value`` is first default constructed
     and then ``load()`` assigns to it).
 
-The `type_caster` defined above must be registered with pybind11.
-There are two ways to do this:
+The caster defined above must be registered with pybind11.
+There are two ways to do it:
 
 * As an instantiation of the ``pybind11::detail::type_caster<T>`` template.
   Although this is an implementation detail, adding an instantiation of this
@@ -101,12 +101,13 @@ There are two ways to do this:
       in every compilation unit of the Python extension module. Otherwise,
       undefined behavior can ensue.
 
-* The preferred method is to *declare* a function named `pybind11_select_caster`,
-  its only purpose is to associate the C++ type with its caster class:
+* The preferred method is to *declare* a function named
+  ``pybind11_select_caster``, its only purpose is to associate the C++ type
+  with its caster class:
 
   .. code-block:: cpp
 
       inty_type_caster pybind11_select_caster(inty*);
 
   The argument is a *pointer* to the C++ type, the return type is the
-  `caster_type`. This function has no implementation!
+  caster type. This function has no implementation!
