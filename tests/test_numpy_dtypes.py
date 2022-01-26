@@ -434,7 +434,9 @@ def test_str_leak():
     assert d is np.dtype("f4")
     del d
     pytest.gc_collect()
-    assert getrefcount(fmt) == start
+    assert (
+        getrefcount(fmt) == start
+    )  # FAILURE https://github.com/pybind/pybind11/runs/4945486146?check_suite_focus=true
 
 
 def test_compare_buffer_info():
