@@ -304,9 +304,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def("get_e_d1", &MVE::get_e_d1)
         .def("get_e_e", &MVE::get_e_e)
         .def_readwrite("e", &MVE::e);
-    // TODO: py::multiple_inheritance is required here, but pybind11 should
-    // be able to detect this by looking at MVE which is already bound...
-    py::class_<MVF, MVE>(m, "MVF", py::multiple_inheritance())
+    py::class_<MVF, MVE>(m, "MVF")
         .def(py::init<>())
         .def("get_f_b", &MVF::get_f_b)
         .def("get_f_c", &MVF::get_f_c)
