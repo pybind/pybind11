@@ -904,8 +904,7 @@ jobs:
           - { sys: mingw64, env: x86_64 }
           - { sys: mingw32, env: i686 }
     steps:
-    # Force version because of https://github.com/msys2/setup-msys2/issues/167
-    - uses: msys2/setup-msys2@v2.4.2
+    - uses: msys2/setup-msys2@v2
       with:
         msystem: ${{matrix.sys}}
         install: >-
