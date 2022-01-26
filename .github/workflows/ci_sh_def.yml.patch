@@ -1,5 +1,5 @@
---- ci.yml	2022-01-25 16:47:53.830999786 -0800
-+++ ci_sh_def.yml	2022-01-25 16:48:45.714550945 -0800
+--- ci.yml	2022-01-26 09:58:21.687199720 -0800
++++ ci_sh_def.yml	2022-01-26 09:58:52.261291935 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -156,7 +156,7 @@
  
      steps:
      - uses: actions/checkout@v2
-@@ -927,7 +952,7 @@
+@@ -926,7 +951,7 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
@@ -165,7 +165,7 @@
  
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -945,7 +970,7 @@
+@@ -944,7 +969,7 @@
        run: git clean -fdx
  
      - name: Configure C++14
@@ -174,7 +174,7 @@
  
      - name: Build C++14
        run: cmake --build build2 -j 2
-@@ -963,7 +988,7 @@
+@@ -962,7 +987,7 @@
        run: git clean -fdx
  
      - name: Configure C++17
