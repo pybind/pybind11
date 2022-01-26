@@ -934,10 +934,10 @@ jobs:
       run: cmake --build build --target pytest -j 2
 
     - name: C++11 tests
-      run: cmake --build build --target cpptest -j 2
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
 
     - name: Interface test C++11
-      run: cmake --build build --target test_cmake_build
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -952,10 +952,10 @@ jobs:
       run: cmake --build build2 --target pytest -j 2
 
     - name: C++14 tests
-      run: cmake --build build2 --target cpptest -j 2
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
 
     - name: Interface test C++14
-      run: cmake --build build2 --target test_cmake_build
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -970,7 +970,7 @@ jobs:
       run: cmake --build build3 --target pytest -j 2
 
     - name: C++17 tests
-      run: cmake --build build3 --target cpptest -j 2
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 2
 
     - name: Interface test C++17
-      run: cmake --build build3 --target test_cmake_build
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
