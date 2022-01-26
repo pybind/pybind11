@@ -9,7 +9,7 @@ that you are already familiar with the basics from :doc:`/classes`.
 Overriding virtual functions in Python
 ======================================
 
-Suppose that a C++ class or interface has a virtual function that we'd like to
+Suppose that a C++ class or interface has a virtual function that we'd like
 to override from within Python (we'll focus on the class ``Animal``; ``Dog`` is
 given as a specific example of how one would do this with traditional C++
 code).
