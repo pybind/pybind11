@@ -1209,10 +1209,13 @@ protected:
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
             mark_parents_nonsimple(tinfo->type);
             tinfo->simple_ancestors = false;
+            tinfo->simple_type = false;
         }
         else if (rec.bases.size() == 1) {
             auto parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
             tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
+            // a child of a non-simple type can never be a simple type
+            tinfo->simple_type = parent_tinfo->simple_type;
         }
 
         if (rec.module_local) {
