@@ -1378,6 +1378,10 @@ using default_holder_type = smart_holder;
 
 #endif
 
+template <typename PM>
+using must_be_member_function_pointer
+    = detail::enable_if_t<std::is_member_pointer<PM>::value, int>;
+
 // Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
 // getter and setter functions.
 // WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
@@ -1385,17 +1389,17 @@ using default_holder_type = smart_holder;
 // This implementation works as-is for smart_holder std::shared_ptr members.
 template <typename T, typename D, typename SFINAE = void>
 struct xetter_cpp_function {
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return readonly(pm, hdl);
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
@@ -1417,7 +1421,7 @@ struct xetter_cpp_function<
 
     using drp = typename std::remove_pointer<D>::type;
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<drp> {
@@ -1427,12 +1431,12 @@ struct xetter_cpp_function<
             is_method(hdl));
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return readonly(pm, hdl);
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, D value) { c.*pm = value; }, is_method(hdl));
     }
@@ -1452,7 +1456,7 @@ struct xetter_cpp_function<
                         && !detail::is_std_unique_ptr<D>::value //
                         && !detail::is_std_shared_ptr<D>::value>> {
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp)
@@ -1462,7 +1466,7 @@ struct xetter_cpp_function<
             is_method(hdl));
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
@@ -1471,7 +1475,7 @@ struct xetter_cpp_function<
             is_method(hdl));
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
@@ -1492,21 +1496,21 @@ struct xetter_cpp_function<
         && detail::is_std_unique_ptr<D>::value
         && detail::type_uses_smart_holder_type_caster<typename D::element_type>::value>> {
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
         static_assert(!detail::is_std_unique_ptr<D>::value,
                       "def_readonly cannot be used for std::unique_ptr members.");
         return cpp_function{}; // Unreachable.
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> D { return D{std::move(c_sp.get()->*pm)}; },
             is_method(hdl));
     }
 
-    template <typename PM>
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
     }
