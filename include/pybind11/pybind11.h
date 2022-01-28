@@ -1415,9 +1415,9 @@ template <typename T, typename D>
 struct xetter_cpp_function<
     T,
     D,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
-                        && detail::type_uses_smart_holder_type_caster<D>::value
-                        && std::is_pointer<D>::value>> {
+    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
+                                       detail::type_uses_smart_holder_type_caster<D>,
+                                       std::is_pointer<D>>::value>> {
 
     using drp = typename std::remove_pointer<D>::type;
 
@@ -1450,11 +1450,11 @@ template <typename T, typename D>
 struct xetter_cpp_function<
     T,
     D,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value
-                        && detail::type_uses_smart_holder_type_caster<D>::value
-                        && !std::is_pointer<D>::value           //
-                        && !detail::is_std_unique_ptr<D>::value //
-                        && !detail::is_std_shared_ptr<D>::value>> {
+    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
+                                       detail::type_uses_smart_holder_type_caster<D>,
+                                       detail::none_of<std::is_pointer<D>,
+                                                       detail::is_std_unique_ptr<D>,
+                                                       detail::is_std_shared_ptr<D>>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
@@ -1491,10 +1491,10 @@ template <typename T, typename D>
 struct xetter_cpp_function<
     T,
     D,
-    detail::enable_if_t<
-        detail::type_uses_smart_holder_type_caster<T>::value //
-        && detail::is_std_unique_ptr<D>::value
-        && detail::type_uses_smart_holder_type_caster<typename D::element_type>::value>> {
+    detail::enable_if_t<detail::all_of<
+        detail::type_uses_smart_holder_type_caster<T>,
+        detail::is_std_unique_ptr<D>,
+        detail::type_uses_smart_holder_type_caster<typename D::element_type>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
