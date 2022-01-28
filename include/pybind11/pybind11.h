@@ -1212,7 +1212,7 @@ protected:
             assert(parent_tinfo != nullptr);
             bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
             tinfo->simple_ancestors = parent_simple_ancestors;
-            // The parent can no longer be a simple type if it has MI and has descendants
+            // The parent can no longer be a simple type if it has MI and has a child
             parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
         }
 
