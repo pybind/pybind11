@@ -1378,9 +1378,19 @@ using default_holder_type = smart_holder;
 
 #endif
 
+// Helper for the xetter_cpp_function static member functions below. xetter_cpp_function is
+// a shortcut for 'getter & setter adapters for .def_readonly & .def_readwrite'.
+// The only purpose of these adapters is to support .def_readonly & .def_readwrite.
+// In this context, the PM template parameter is certain to be a Pointer to a Member.
+// The main purpose of must_be_member_function_pointer is to make this obvious, and to guard
+// against accidents. As a side-effect, it also explains why the syntactical clutter for
+// perfect forwarding is not needed.
 template <typename PM>
 using must_be_member_function_pointer
     = detail::enable_if_t<std::is_member_pointer<PM>::value, int>;
+
+// Note that xetter_cpp_function is intentionally in the main pybind11 namespace,
+// because user-defined specializations could be useful.
 
 // Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
 // getter and setter functions.
