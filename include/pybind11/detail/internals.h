@@ -333,7 +333,7 @@ inline bool raise_err(PyObject *exc_type, const char *msg) {
 #endif
     PyErr_SetString(exc_type, msg);
     return false;
-};
+}
 
 inline void translate_exception(std::exception_ptr p) {
     if (!p) {
