@@ -475,7 +475,7 @@ def test_pr3635_diamond_f():
 
 
 def test_python_inherit_from_mi():
-    """Tests extending a Python class from a single inheritor of an MI class"""
+    """Tests extending a Python class from a single inheritor of a MI class"""
 
     class PyMVF(m.MVF):
         g = 7
