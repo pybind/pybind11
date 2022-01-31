@@ -628,7 +628,7 @@ public:
 
     template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value && !std::is_same<bool, T>::value>>
     array(const pybind11::dtype &dt, T count, const void *ptr = nullptr, handle base = handle())
-        : array(dt, {{count}}, ptr, base) { }
+        : array(dt, {count}, ptr, base) { }
 
     template <typename T>
     array(ShapeContainer shape, StridesContainer strides, const T *ptr, handle base = handle())
