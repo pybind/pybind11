@@ -110,7 +110,7 @@ if(NOT DEFINED PYTHON_MODULE_EXTENSION)
   execute_process(
     COMMAND
       "${${_Python}_EXECUTABLE}" "-c"
-      "from distutils import sysconfig as s;print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
+      "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
     OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
     ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
