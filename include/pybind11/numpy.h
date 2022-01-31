@@ -170,10 +170,10 @@ struct npy_api {
     }
 
     bool PyArray_Check_(PyObject *obj) const {
-        return (bool) PyObject_TypeCheck(obj, PyArray_Type_);
+        return PyObject_TypeCheck(obj, PyArray_Type_) != 0;
     }
     bool PyArrayDescr_Check_(PyObject *obj) const {
-        return (bool) PyObject_TypeCheck(obj, PyArrayDescr_Type_);
+        return PyObject_TypeCheck(obj, PyArrayDescr_Type_) != 0;
     }
 
     unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
