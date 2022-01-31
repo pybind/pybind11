@@ -147,7 +147,11 @@ with remove_output("pybind11/include", "pybind11/share"):
             "-DPYBIND11_NOPYTHON=ON",
         ]
         if "CMAKE_ARGS" in os.environ:
-            fcommand = [c for c in os.environ["CMAKE_ARGS"].split() if "DCMAKE_INSTALL_PREFIX" not in c]
+            fcommand = [
+                c
+                for c in os.environ["CMAKE_ARGS"].split()
+                if "DCMAKE_INSTALL_PREFIX" not in c
+            ]
             cmd += fcommand
         cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
         subprocess.check_call(cmd, **cmake_opts)
