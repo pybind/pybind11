@@ -21,7 +21,7 @@ Changes:
   equivalent using ``py::raise_from``. This attaches the nested exceptions in
   Python using the ``__cause__`` field.
   `#3608 <https://github.com/pybind/pybind11/pull/3608>`_
-  
+
 * Propagate Python exception traceback using ``raise_from`` if a pybind11
   function runs out of overloads.
   `#3671 <https://github.com/pybind/pybind11/pull/3671>`_
