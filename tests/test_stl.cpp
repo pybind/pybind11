@@ -127,9 +127,9 @@ public:
     ReferenceSensitiveOptional(T&& value) : storage{std::move(value)} {}
 
     ReferenceSensitiveOptional(const ReferenceSensitiveOptional&) = default;
-    ReferenceSensitiveOptional(ReferenceSensitiveOptional&&) = default;
+    ReferenceSensitiveOptional(ReferenceSensitiveOptional&&) noexcept = default;
     ReferenceSensitiveOptional& operator=(const ReferenceSensitiveOptional&) = default;
-    ReferenceSensitiveOptional& operator=(ReferenceSensitiveOptional&&) = default;
+    ReferenceSensitiveOptional& operator=(ReferenceSensitiveOptional&&) noexcept = default;
 
     ReferenceSensitiveOptional& operator=(const T& value) {
         storage = {value};
@@ -424,7 +424,7 @@ TEST_SUBMODULE(stl, m) {
     pybind11::class_<opt_refsensitive_props>(m, "OptionalRefSensitiveProperties")
         .def(pybind11::init<>())
         .def_property_readonly("access_by_ref", &opt_refsensitive_props::access_by_ref)
-        .def_property_readonly("access_by_copy", &opt_refsensitive_props::access_by_copy);
+        .def_property_readonly("access_by_copy", &opt_refsensitive_props::access_by_copy, py::return_value_policy::move);
 
 #ifdef PYBIND11_HAS_FILESYSTEM
     // test_fs_path
