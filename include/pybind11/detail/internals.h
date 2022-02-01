@@ -200,7 +200,9 @@ struct type_info {
     void *get_buffer_data = nullptr;
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
     /* A simple type never occurs as a (direct or indirect) parent
-     * of a class that makes use of multiple inheritance */
+     * of a class that makes use of multiple inheritance.
+     * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
+     */
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
@@ -322,7 +324,7 @@ inline bool raise_err(PyObject *exc_type, const char *msg) {
 #endif
     PyErr_SetString(exc_type, msg);
     return false;
-};
+}
 
 inline void translate_exception(std::exception_ptr p) {
     if (!p) {
