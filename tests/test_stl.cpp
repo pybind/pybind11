@@ -125,6 +125,12 @@ public:
     ReferenceSensitiveOptional(const T& value) : storage{value} {}
     // NOLINTNEXTLINE(google-explicit-constructor)
     ReferenceSensitiveOptional(T&& value) : storage{std::move(value)} {}
+
+    ReferenceSensitiveOptional(const ReferenceSensitiveOptional&) = default;
+    ReferenceSensitiveOptional(ReferenceSensitiveOptional&&) = default;
+    ReferenceSensitiveOptional& operator=(const ReferenceSensitiveOptional&) = default;
+    ReferenceSensitiveOptional& operator=(ReferenceSensitiveOptional&&) = default;
+
     ReferenceSensitiveOptional& operator=(const T& value) {
         storage = {value};
         return *this;
