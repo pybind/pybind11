@@ -34,7 +34,19 @@ template <typename type, typename SFINAE = void> class type_caster : public type
 
 template <typename IntrinsicType> type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
 
-template <typename type> using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr)));
+template <typename IntrinsicType, typename SFINAE = void>
+struct make_caster_impl;
+
+template <typename IntrinsicType>
+struct make_caster_impl<IntrinsicType, typename std::enable_if< std::is_arithmetic<IntrinsicType>::value>::type>
+: type_caster<IntrinsicType> {};
+
+template <typename IntrinsicType>
+struct make_caster_impl<IntrinsicType, typename std::enable_if<!std::is_arithmetic<IntrinsicType>::value>::type>
+: decltype(pybind11_select_caster(static_cast<IntrinsicType *>(nullptr))) {};
+
+template <typename type>
+using make_caster = make_caster_impl<intrinsic_t<type>>;
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
