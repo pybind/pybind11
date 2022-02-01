@@ -446,35 +446,15 @@ private:
     bool load_bytes(enable_if_t<!std::is_same<C, char>::value, handle>) { return false; }
 };
 
-PYBIND11_NAMESPACE_END(detail)
-PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-namespace std {
-
-// pybind11::detail::string_caster<std::string>
-// pybind11_select_caster(std::string*);
 template <typename CharT, class Traits, class Allocator>
-pybind11::detail::enable_if_t<
-    pybind11::detail::is_std_char_type<CharT>::value,
-    pybind11::detail::string_caster<
-        std::basic_string<CharT, Traits, Allocator>>>
-pybind11_select_caster(std::basic_string<CharT, Traits, Allocator>*);
+struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_std_char_type<CharT>::value>>
+    : string_caster<std::basic_string<CharT, Traits, Allocator>> {};
 
 #ifdef PYBIND11_HAS_STRING_VIEW
-// pybind11::detail::string_caster<std::string_view, true>
-// pybind11_select_caster(std::string_view*);
 template <typename CharT, class Traits>
-pybind11::detail::enable_if_t<
-    pybind11::detail::is_std_char_type<CharT>::value,
-    pybind11::detail::string_caster<
-        std::basic_string_view<CharT, Traits>, true>>
-pybind11_select_caster(std::basic_string_view<CharT, Traits>*);
+struct type_caster<std::basic_string_view<CharT, Traits>, enable_if_t<is_std_char_type<CharT>::value>>
+    : string_caster<std::basic_string_view<CharT, Traits>, true> {};
 #endif
-
-}  // namespace std
-
-PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Type caster for C-style strings.  We basically use a std::string type caster, but also add the
 // ability to use None as a nullptr char* (which the string caster doesn't allow).
