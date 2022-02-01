@@ -137,6 +137,7 @@ set(PYBIND11_TEST_FILES
     test_iostream
     test_kwargs_and_defaults
     test_local_bindings
+    test_make_caster_adl
     test_methods_and_attributes
     test_modules
     test_multiple_inheritance
