@@ -7,7 +7,7 @@ struct type_mock {};
 struct mock_caster {
     static int num() { return 101; }
 };
-mock_caster pybind11_select_caster(type_mock *);
+mock_caster pybind11_select_caster(type_mock *, mock_caster * = nullptr);
 } // namespace adl_mock
 
 namespace adl_mrc { // minimal real caster
@@ -41,7 +41,7 @@ struct minimal_real_caster {
     }
 };
 
-minimal_real_caster pybind11_select_caster(type_mrc *);
+minimal_real_caster pybind11_select_caster(type_mrc *, minimal_real_caster * = nullptr);
 
 } // namespace adl_mrc
 
