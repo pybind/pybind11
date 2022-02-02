@@ -17,6 +17,11 @@
 
 #include "../pytypes.h"
 
+#if defined(PYBIND11_TEST_BOOST)
+#    include <boost/type_index.hpp>
+#    include <boost/unordered_map.hpp>
+#endif
+
 #include <exception>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
@@ -208,6 +213,11 @@ struct internals {
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
     }
+#endif
+
+#if defined(PYBIND11_TEST_BOOST)
+    boost::unordered_map<boost::typeindex::type_index, std::vector<std::string>>
+        boost_type_index_registry;
 #endif
 };
 
