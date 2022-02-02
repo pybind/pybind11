@@ -6,6 +6,59 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+Version 2.9.1 (Feb 2, 2022)
+---------------------------
+
+Changes:
+
+* If possible, attach Python exception with ``py::raise_from`` to ``TypeError``
+  when casting from C++ to Python. This will give additional info if Python
+  exceptions occur in the caster. Adds a test case of trying to convert a set
+  from C++ to Python when the hash function is not defined in Python.
+  `#3605 <https://github.com/pybind/pybind11/pull/3605>`_
+
+* Add a mapping of C++11 nested exceptions to their Python exception
+  equivalent using ``py::raise_from``. This attaches the nested exceptions in
+  Python using the ``__cause__`` field.
+  `#3608 <https://github.com/pybind/pybind11/pull/3608>`_
+
+* Propagate Python exception traceback using ``raise_from`` if a pybind11
+  function runs out of overloads.
+  `#3671 <https://github.com/pybind/pybind11/pull/3671>`_
+
+* ``py::multiple_inheritance`` is now only needed when C++ bases are hidden
+  from pybind11.
+  `#3650 <https://github.com/pybind/pybind11/pull/3650>`_ and
+  `#3659 <https://github.com/pybind/pybind11/pull/3659>`_
+
+
+Bug fixes:
+
+* Remove a boolean cast in ``numpy.h`` that causes MSVC C4800 warnings when
+  compiling against Python 3.10 or newer.
+  `#3669 <https://github.com/pybind/pybind11/pull/3669>`_
+
+* Render ``py::bool_`` and ``py::float_`` as ``bool`` and ``float``
+  respectively.
+  `#3622 <https://github.com/pybind/pybind11/pull/3622>`_
+
+Build system improvements:
+
+* Fix CMake extension suffix computation on Python 3.10+.
+  `#3663 <https://github.com/pybind/pybind11/pull/3663>`_
+
+* Allow ``CMAKE_ARGS`` to override CMake args in pybind11's own ``setup.py``.
+  `#3577 <https://github.com/pybind/pybind11/pull/3577>`_
+
+* Remove a few deprecated c-headers.
+  `#3610 <https://github.com/pybind/pybind11/pull/3610>`_
+
+* More uniform handling of test targets.
+  `#3590 <https://github.com/pybind/pybind11/pull/3590>`_
+
+* Add clang-tidy readability check to catch potentially swapped function args.
+  `#3611 <https://github.com/pybind/pybind11/pull/3611>`_
+
 
 Version 2.9.0 (Dec 28, 2021)
 ----------------------------
