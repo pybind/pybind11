@@ -600,11 +600,11 @@ jobs:
       fail-fast: false
       matrix:
         centos:
-          - 7  # GCC 4.8
-          - 8
+          - centos7  # GCC 4.8
+          - stream8
 
     name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
-    container: "centos:${{ matrix.centos }}"
+    container: "quay.io/centos/centos:${{ matrix.centos }}"
 
     steps:
     - uses: actions/checkout@v2
@@ -619,22 +619,11 @@ jobs:
       run: |
         python3 -m pip install cmake -r tests/requirements.txt
 
-    - name: VAR_BUILD_TYPE 7
-      if: matrix.centos == 7
-      run: echo MinSizeRel > VAR_BUILD_TYPE
-
-    # Using Release to avoid segfault that appeared around 2021-06-04,
-    # apparently when the gcc version changed from 8.3 to 8.4.
-    - name: VAR_BUILD_TYPE 8
-      if: matrix.centos == 8
-      run: echo Release > VAR_BUILD_TYPE
-
-    # Temporally disabling EIGEN due to SSL issue in CentOS 7
     - name: Configure
       shell: bash
       run: >
         cmake -S . -B build
-        -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
+        -DCMAKE_BUILD_TYPE=MinSizeRel
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
