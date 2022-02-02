@@ -209,6 +209,8 @@ struct internals {
         PYBIND11_TLS_FREE(tstate);
     }
 #endif
+
+    std::unordered_map<std::type_index, std::vector<std::string>> std_type_index_registry;
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
