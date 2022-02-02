@@ -28,6 +28,7 @@ struct minimal_real_caster {
     template <typename>
     using cast_op_type = const type_mrc &;
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator type_mrc const &() {
         static type_mrc obj;
         obj.value = 303;
