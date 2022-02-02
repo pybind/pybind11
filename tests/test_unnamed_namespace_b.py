@@ -1,0 +1,6 @@
+# -*- coding: utf-8 -*-
+from pybind11_tests import unnamed_namespace_b as m
+
+
+def test_have_type():
+    assert hasattr(m, "unnamed_namespace_b_any_struct")
