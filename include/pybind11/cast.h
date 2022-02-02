@@ -34,6 +34,11 @@ template <typename type, typename SFINAE = void> class type_caster : public type
 
 template <typename IntrinsicType> type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
 
+// MSVC 2015 generates an internal compiler error for the common code (in the #else branch below).
+// MSVC 2017 in C++14 mode produces incorrect code, leading to a tests/test_stl runtime failure.
+// Luckily, the workaround for MSVC 2015 also resolves the MSVC 2017 C++14 runtime failure.
+#if defined(_MSC_VER) && _MSC_VER < 1910 || (_MSC_VER < 1920 && !defined(PYBIND11_CPP17))
+
 template <typename IntrinsicType, typename SFINAE = void>
 struct make_caster_impl;
 
@@ -47,6 +52,13 @@ struct make_caster_impl<IntrinsicType, typename std::enable_if<!std::is_arithmet
 
 template <typename type>
 using make_caster = make_caster_impl<intrinsic_t<type>>;
+
+#else
+
+template <typename type>
+using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr)));
+
+#endif
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
