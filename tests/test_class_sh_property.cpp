@@ -20,6 +20,8 @@ struct Field {
 };
 
 struct Outer {
+    // The compact 4-character naming matches that in test_class_sh_basic.cpp
+    // (c = const, m = mutable).
     Field m_valu;
     Field *m_mptr = nullptr;
     const Field *m_cptr = nullptr;
