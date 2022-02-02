@@ -43,11 +43,11 @@ template <typename IntrinsicType, typename SFINAE = void>
 struct make_caster_impl;
 
 template <typename IntrinsicType>
-struct make_caster_impl<IntrinsicType, typename std::enable_if< std::is_arithmetic<IntrinsicType>::value>::type>
+struct make_caster_impl<IntrinsicType, enable_if_t< std::is_arithmetic<IntrinsicType>::value>>
 : type_caster<IntrinsicType> {};
 
 template <typename IntrinsicType>
-struct make_caster_impl<IntrinsicType, typename std::enable_if<!std::is_arithmetic<IntrinsicType>::value>::type>
+struct make_caster_impl<IntrinsicType, enable_if_t<!std::is_arithmetic<IntrinsicType>::value>>
 : decltype(pybind11_select_caster(static_cast<IntrinsicType *>(nullptr))) {};
 
 template <typename type>
