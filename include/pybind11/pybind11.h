@@ -991,6 +991,7 @@ protected:
 #if PY_VERSION_HEX >= 0x03030000
             // Attach additional error info to the exception if supported
             if (PyErr_Occurred()) {
+                // #HelpAppreciated: unit test coverage for this branch.
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
