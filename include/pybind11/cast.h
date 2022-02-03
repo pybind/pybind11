@@ -268,7 +268,7 @@ public:
         }
 
         /* Check if this is a C++ type */
-        const const auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
+        const auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
         if (bases.size() == 1) { // Only allowing loading from a single-value type
             value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
             return true;

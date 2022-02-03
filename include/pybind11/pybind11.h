@@ -384,7 +384,7 @@ protected:
         std::string signature;
         size_t type_index = 0, arg_index = 0;
         bool is_starred = false;
-        for (const const auto *pc = text; *pc != '\0'; ++pc) {
+        for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
             if (c == '{') {
