@@ -62,10 +62,7 @@ private:
 
 public:
     /// A new patient frame is created when a function is entered
-    loader_life_support() {
-        parent = get_stack_top();
-        set_stack_top(this);
-    }
+    loader_life_support() : parent{get_stack_top()} { set_stack_top(this); }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
