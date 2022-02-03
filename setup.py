@@ -45,8 +45,11 @@ def build_expected_version_hex(matches):
     if serial is None:
         msg = 'Invalid PYBIND11_VERSION_PATCH: "{}"'.format(patch_level_serial)
         raise RuntimeError(msg)
-    return "0x{:02x}{:02x}{:02x}{}{:x}".format(
-        major, minor, patch, level[:1].upper(), serial
+    return (
+        "0x"
+        + "{:02x}{:02x}{:02x}{}{:x}".format(
+            major, minor, patch, level[:1], serial
+        ).upper()
     )
 
 
@@ -146,6 +149,13 @@ with remove_output("pybind11/include", "pybind11/share"):
             "-DBUILD_TESTING=OFF",
             "-DPYBIND11_NOPYTHON=ON",
         ]
+        if "CMAKE_ARGS" in os.environ:
+            fcommand = [
+                c
+                for c in os.environ["CMAKE_ARGS"].split()
+                if "DCMAKE_INSTALL_PREFIX" not in c
+            ]
+            cmd += fcommand
         cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
         subprocess.check_call(cmd, **cmake_opts)
         subprocess.check_call(["cmake", "--install", tmpdir], **cmake_opts)

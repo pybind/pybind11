@@ -235,7 +235,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // - functions are get_{base}_{var}, return {var}
     struct MVB {
         MVB() = default;
-        MVB(const MVB&) = default;
+        MVB(const MVB &) = default;
         virtual ~MVB() = default;
 
         int b = 1;

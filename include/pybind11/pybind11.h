@@ -990,6 +990,14 @@ protected:
             }
 
             append_note_if_missing_header_is_suspected(msg);
+#if PY_VERSION_HEX >= 0x03030000
+            // Attach additional error info to the exception if supported
+            if (PyErr_Occurred()) {
+                // #HelpAppreciated: unit test coverage for this branch.
+                raise_from(PyExc_TypeError, msg.c_str());
+                return nullptr;
+            }
+#endif
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
@@ -1209,13 +1217,14 @@ protected:
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
             mark_parents_nonsimple(tinfo->type);
             tinfo->simple_ancestors = false;
-            tinfo->simple_type = false;
         }
         else if (rec.bases.size() == 1) {
-            auto parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
-            tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
-            // a child of a non-simple type can never be a simple type
-            tinfo->simple_type = parent_tinfo->simple_type;
+            auto *parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
+            assert(parent_tinfo != nullptr);
+            bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
+            tinfo->simple_ancestors = parent_simple_ancestors;
+            // The parent can no longer be a simple type if it has MI and has a child
+            parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
         }
 
         if (rec.module_local) {
