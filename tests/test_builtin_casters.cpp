@@ -7,8 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/complex.h>
+
+#include "pybind11_tests.h"
 
 struct ConstRefCasted {
     int tag;

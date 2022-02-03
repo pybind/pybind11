@@ -7,12 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/numpy.h>
+#include <pybind11/stl_bind.h>
+
 #include "pybind11_tests.h"
 
 #include <deque>
 #include <map>
-#include <pybind11/numpy.h>
-#include <pybind11/stl_bind.h>
 #include <unordered_map>
 
 class El {

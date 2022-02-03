@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../pytypes.h"
+
 #include <exception>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.

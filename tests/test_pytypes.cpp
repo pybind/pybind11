@@ -7,9 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <utility>
-
 #include "pybind11_tests.h"
+
+#include <utility>
 
 TEST_SUBMODULE(pytypes, m) {
     // test_bool

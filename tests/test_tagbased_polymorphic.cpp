@@ -7,8 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/stl.h>
+
+#include "pybind11_tests.h"
 
 struct Animal {
     // Make this type also a "standard" polymorphic type, to confirm that

@@ -11,11 +11,13 @@
 #    pragma warning(disable : 4702)      // unreachable code in system header (xatomic.h(382))
 #endif
 
+#include <pybind11/iostream.h>
+
 #include "pybind11_tests.h"
+
 #include <atomic>
 #include <iostream>
 #include <mutex>
-#include <pybind11/iostream.h>
 #include <string>
 #include <thread>
 

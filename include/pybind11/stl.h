@@ -9,8 +9,9 @@
 
 #pragma once
 
-#include "detail/common.h"
 #include "pybind11.h"
+#include "detail/common.h"
+
 #include <deque>
 #include <iostream>
 #include <list>

@@ -8,9 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
-#include <chrono>
 #include <pybind11/chrono.h>
+
+#include "pybind11_tests.h"
+
+#include <chrono>
 
 struct different_resolutions {
     using time_point_h = std::chrono::time_point<std::chrono::system_clock, std::chrono::hours>;

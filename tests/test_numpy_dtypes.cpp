@@ -7,8 +7,9 @@
   BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/numpy.h>
+
+#include "pybind11_tests.h"
 
 #ifdef __GNUC__
 #    define PYBIND11_PACKED(cls) cls __attribute__((__packed__))

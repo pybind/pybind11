@@ -1,7 +1,7 @@
 #pragma once
-#include <utility>
-
 #include "pybind11_tests.h"
+
+#include <utility>
 
 /// Simple class used to test py::local:
 template <int>

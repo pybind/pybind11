@@ -10,20 +10,19 @@
 
 #pragma once
 
-#include "attr.h"
 #include "detail/class.h"
 #include "detail/init.h"
+#include "attr.h"
 #include "gil.h"
 #include "options.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <memory>
 #include <new>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <cstring>
 
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #    define PYBIND11_STD_LAUNDER std::launder

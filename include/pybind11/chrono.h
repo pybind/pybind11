@@ -15,9 +15,8 @@
 #include <chrono>
 #include <cmath>
 #include <ctime>
-#include <mutex>
-
 #include <datetime.h>
+#include <mutex>
 
 // Backport the PyDateTime_DELTA functions from Python3.3 if required
 #ifndef PyDateTime_DELTA_GET_DAYS

@@ -8,11 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "local_bindings.h"
-#include "pybind11_tests.h"
-
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+
+#include "local_bindings.h"
+#include "pybind11_tests.h"
 
 #include <numeric>
 #include <utility>

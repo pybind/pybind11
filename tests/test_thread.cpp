@@ -10,10 +10,10 @@
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
 
+#include "pybind11_tests.h"
+
 #include <chrono>
 #include <thread>
-
-#include "pybind11_tests.h"
 
 namespace py = pybind11;
 

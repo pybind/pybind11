@@ -9,8 +9,8 @@
 #include "test_exceptions.h"
 
 #include "local_bindings.h"
-
 #include "pybind11_tests.h"
+
 #include <exception>
 #include <stdexcept>
 #include <utility>

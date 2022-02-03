@@ -6,8 +6,9 @@
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
-#include <cstdint>
 #include <pybind11/pybind11.h>
+
+#include <cstdint>
 
 // This file mimics a DSO that makes pybind11 calls but does not define a
 // PYBIND11_MODULE. The purpose is to test that such a DSO can create a

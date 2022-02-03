@@ -9,8 +9,9 @@
 
 #pragma once
 
-#include "complex.h"
 #include "pybind11.h"
+#include "complex.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>

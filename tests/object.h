@@ -2,6 +2,7 @@
 #    define __OBJECT_H
 
 #    include "constructor_stats.h"
+
 #    include <atomic>
 
 /// Reference counted object base class

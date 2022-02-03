@@ -14,10 +14,11 @@
 #    include <aligned_new>
 #endif
 
+#include <pybind11/stl.h>
+
 #include "constructor_stats.h"
 #include "local_bindings.h"
 #include "pybind11_tests.h"
-#include <pybind11/stl.h>
 
 #include <utility>
 

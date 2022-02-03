@@ -8,10 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "constructor_stats.h"
-#include "pybind11_tests.h"
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+
+#include "constructor_stats.h"
+#include "pybind11_tests.h"
 
 #include <algorithm>
 #include <utility>

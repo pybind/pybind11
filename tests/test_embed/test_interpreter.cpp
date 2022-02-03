@@ -7,7 +7,6 @@
 #endif
 
 #include <catch.hpp>
-
 #include <cstdlib>
 #include <fstream>
 #include <functional>

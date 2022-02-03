@@ -7,8 +7,10 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/stl.h>
+
+#include "pybind11_tests.h"
+
 #include <vector>
 
 // IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures

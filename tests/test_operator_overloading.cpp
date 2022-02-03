@@ -7,11 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "constructor_stats.h"
-#include "pybind11_tests.h"
-#include <functional>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+
+#include "constructor_stats.h"
+#include "pybind11_tests.h"
+
+#include <functional>
 
 class Vector2 {
 public:
