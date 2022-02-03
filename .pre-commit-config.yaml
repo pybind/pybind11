@@ -141,6 +141,11 @@ repos:
     entry: PyBind|Numpy|Cmake|CCache|PyTest
     exclude: .pre-commit-config.yaml
 
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: "v13.0.0"
+  hooks:
+  - id: clang-format
+
 - repo: local
   hooks:
   - id: check-style
