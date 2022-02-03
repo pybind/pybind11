@@ -160,7 +160,7 @@ template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {
     auto arr = mkarray_via_buffer<S>(n);
     auto req = arr.request();
-    auto ptr = static_cast<S *>(req.ptr);
+    auto *ptr = static_cast<S *>(req.ptr);
     for (size_t i = 0; i < n; i++) {
         SET_TEST_VALS(ptr[i], i);
     }
@@ -170,7 +170,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
 template <typename S>
 py::list print_recarray(py::array_t<S, 0> arr) {
     const auto req = arr.request();
-    const auto ptr = static_cast<S *>(req.ptr);
+    const auto *ptr = static_cast<S *>(req.ptr);
     auto l = py::list();
     for (py::ssize_t i = 0; i < req.size; i++) {
         std::stringstream ss;

@@ -1605,8 +1605,8 @@ public:
             pybind11_fail("Could not allocate capsule object!");
     }
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
     template <typename T>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T *() const {
         return get_pointer<T>();
     }

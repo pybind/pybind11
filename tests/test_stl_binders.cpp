@@ -43,7 +43,7 @@ public:
 
 template <class Container>
 Container *one_to_n(int n) {
-    auto v = new Container();
+    auto *v = new Container();
     for (int i = 1; i <= n; i++)
         v->emplace_back(i);
     return v;
@@ -51,7 +51,7 @@ Container *one_to_n(int n) {
 
 template <class Map>
 Map *times_ten(int n) {
-    auto m = new Map();
+    auto *m = new Map();
     for (int i = 1; i <= n; i++)
         m->emplace(int(i), E_nc(10 * i));
     return m;
@@ -59,7 +59,7 @@ Map *times_ten(int n) {
 
 template <class NestMap>
 NestMap *times_hundred(int n) {
-    auto m = new NestMap();
+    auto *m = new NestMap();
     for (int i = 1; i <= n; i++)
         for (int j = 1; j <= n; j++)
             (*m)[i].emplace(int(j * 10), E_nc(100 * j));
