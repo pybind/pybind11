@@ -43,6 +43,7 @@ namespace accessor_policies {
     struct sequence_item;
     struct list_item;
     struct tuple_item;
+    struct dict_item;
 } // namespace accessor_policies
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
@@ -50,6 +51,7 @@ using item_accessor = accessor<accessor_policies::generic_item>;
 using sequence_accessor = accessor<accessor_policies::sequence_item>;
 using list_accessor = accessor<accessor_policies::list_item>;
 using tuple_accessor = accessor<accessor_policies::tuple_item>;
+using dict_accessor = accessor<accessor_policies::dict_item>;
 
 /// Tag and check to identify a class which implements the Python object API
 class pyobject_tag { };
@@ -723,6 +725,30 @@ struct tuple_item {
     static void set(handle obj, const IdxType &index, handle val) {
         // PyTuple_SetItem steals a reference to 'val'
         if (PyTuple_SetItem(obj.ptr(), ssize_t_cast(index), val.inc_ref().ptr()) != 0) {
+            throw error_already_set();
+        }
+    }
+};
+
+struct dict_item {
+    using key_type = object;
+
+    static object get(handle obj, handle key) {
+        if (PyObject *result = PYBIND11_DICT_GET_ITEM_WITH_ERROR(obj.ptr(), key.ptr())) {
+            return reinterpret_borrow<object>(result);
+        } else {
+            // NULL with an exception means exception occurred when calling
+            // "__hash__" or "__eq__" on the key
+            // NULL without an exception means the key wasn’t present
+            if (!PyErr_Occurred())
+                // Synthesize a KeyError with the key
+                PyErr_SetObject(PyExc_KeyError, key.ptr());
+            throw error_already_set();
+        }
+    }
+
+    static void set(handle obj, handle key, handle val) {
+        if (PyDict_SetItem(obj.ptr(), key.ptr(), val.ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -1537,11 +1563,31 @@ public:
 
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     bool empty() const { return size() == 0; }
+    detail::dict_accessor operator[](const char *key) const { return {*this, pybind11::str(key)}; }
+    detail::dict_accessor operator[](handle h) const { return {*this, reinterpret_borrow<object>(h)}; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
     void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T> bool contains(T &&key) const {
         return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
+    }
+
+    object get(handle key, handle default_ = none()) const {
+        if (PyObject *result = PYBIND11_DICT_GET_ITEM_WITH_ERROR(m_ptr, key.ptr())) {
+            return reinterpret_borrow<object>(result);
+        } else {
+            // NULL with an exception means exception occurred when calling
+            // "__hash__" or "__eq__" on the key
+            if (PyErr_Occurred())
+                throw error_already_set();
+            // NULL without an exception means the key wasn’t present
+            else
+                return reinterpret_borrow<object>(default_);
+        }
+    }
+
+    object get(const char *key, handle default_ = none()) const {
+        return get(pybind11::str(key), default_);
     }
 
 private:
