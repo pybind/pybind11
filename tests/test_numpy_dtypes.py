@@ -123,7 +123,7 @@ def test_dtype(simple_dtype):
 
     e = "<" if byteorder == "little" else ">"
 
-    assert [x.replace(' ', '') for x in m.print_dtypes()] == [
+    assert [x.replace(" ", "") for x in m.print_dtypes()] == [
         simple_dtype_fmt(),
         packed_dtype_fmt(),
         "[('a',{}),('b',{})]".format(simple_dtype_fmt(), packed_dtype_fmt()),
@@ -238,7 +238,7 @@ def test_recarray(simple_dtype, packed_dtype):
     ]
 
     arr = m.create_rec_partial(3)
-    assert str(arr.dtype).replace(' ', '') == partial_dtype_fmt()
+    assert str(arr.dtype).replace(" ", "") == partial_dtype_fmt()
     partial_dtype = arr.dtype
     assert "" not in arr.dtype.fields
     assert partial_dtype.itemsize > simple_dtype.itemsize
@@ -246,7 +246,7 @@ def test_recarray(simple_dtype, packed_dtype):
     assert_equal(arr, elements, packed_dtype)
 
     arr = m.create_rec_partial_nested(3)
-    assert str(arr.dtype).replace(' ', '') == partial_nested_fmt()
+    assert str(arr.dtype).replace(" ", "") == partial_nested_fmt()
     assert "" not in arr.dtype.fields
     assert "" not in arr.dtype.fields["a"][0].fields
     assert arr.dtype.itemsize > partial_dtype.itemsize
@@ -285,7 +285,7 @@ def test_array_array():
     e = "<" if byteorder == "little" else ">"
 
     arr = m.create_array_array(3)
-    assert str(arr.dtype).replace(' ', '') == (
+    assert str(arr.dtype).replace(" ", "") == (
         "{{'names':['a','b','c','d'],"
         + "'formats':[('S4',(3,)),('"
         + e
