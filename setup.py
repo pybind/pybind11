@@ -45,8 +45,11 @@ def build_expected_version_hex(matches):
     if serial is None:
         msg = 'Invalid PYBIND11_VERSION_PATCH: "{}"'.format(patch_level_serial)
         raise RuntimeError(msg)
-    return "0x{:02x}{:02x}{:02x}{}{:x}".format(
-        major, minor, patch, level[:1].upper(), serial
+    return (
+        "0x"
+        + "{:02x}{:02x}{:02x}{}{:x}".format(
+            major, minor, patch, level[:1], serial
+        ).upper()
     )
 
 
