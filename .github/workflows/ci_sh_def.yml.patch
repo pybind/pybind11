@@ -1,5 +1,5 @@
---- ci.yml	2022-01-26 09:58:21.687199720 -0800
-+++ ci_sh_def.yml	2022-01-26 09:58:52.261291935 -0800
+--- ci.yml	2022-02-03 15:07:04.351781701 -0800
++++ ci_sh_def.yml	2022-02-03 15:08:50.314616526 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -110,7 +110,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -640,6 +661,7 @@
+@@ -629,6 +650,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -118,7 +118,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -690,6 +712,7 @@
+@@ -679,6 +701,7 @@
          cmake ../pybind11-tests
          -DDOWNLOAD_CATCH=ON
          -DPYBIND11_WERROR=ON
@@ -126,7 +126,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -782,6 +805,7 @@
+@@ -771,6 +794,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -134,7 +134,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -829,6 +853,7 @@
+@@ -818,6 +842,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -142,7 +142,7 @@
  
      - name: Build C++14
        run: cmake --build build -j 2
-@@ -854,11 +879,11 @@
+@@ -843,11 +868,11 @@
            - python: 2.7
              std: 17
              args: >
@@ -156,7 +156,7 @@
  
      steps:
      - uses: actions/checkout@v2
-@@ -926,7 +951,7 @@
+@@ -915,7 +940,7 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
@@ -165,7 +165,7 @@
  
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -944,7 +969,7 @@
+@@ -933,7 +958,7 @@
        run: git clean -fdx
  
      - name: Configure C++14
@@ -174,7 +174,7 @@
  
      - name: Build C++14
        run: cmake --build build2 -j 2
-@@ -962,7 +987,7 @@
+@@ -951,7 +976,7 @@
        run: git clean -fdx
  
      - name: Configure C++17
