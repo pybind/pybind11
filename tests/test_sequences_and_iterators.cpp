@@ -168,7 +168,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         explicit Sequence(const std::vector<float> &value) : m_size(value.size()) {
             print_created(this, "of size", m_size, "from std::vector");
             m_data = new float[m_size];
-            memcpy(m_data, &value[0], sizeof(float) * m_size);
+            memcpy(m_data, value.data(), sizeof(float) * m_size);
         }
         Sequence(const Sequence &s) : m_size(s.m_size) {
             print_copy_created(this);
