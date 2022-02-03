@@ -44,10 +44,10 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (auto cfunc = func.cpp_function()) {
-            auto cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
+            auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
             if (isinstance<capsule>(cfunc_self)) {
                 auto c = reinterpret_borrow<capsule>(cfunc_self);
-                auto rec = (function_record *) c;
+                auto *rec = (function_record *) c;
 
                 while (rec != nullptr) {
                     if (rec->is_stateless

@@ -97,7 +97,7 @@ TEST_SUBMODULE(stl_binders, m) {
     // Issue #1885: binding nested std::map<X, Container<E>> with E non-copyable
     py::bind_map<std::map<int, std::vector<E_nc>>>(m, "MapVecENC");
     m.def("get_nvnc", [](int n) {
-        auto m = new std::map<int, std::vector<E_nc>>();
+        auto *m = new std::map<int, std::vector<E_nc>>();
         for (int i = 1; i <= n; i++)
             for (int j = 1; j <= n; j++)
                 (*m)[i].emplace_back(j);

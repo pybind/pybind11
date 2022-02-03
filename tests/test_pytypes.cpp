@@ -140,7 +140,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("return_capsule_with_name_and_destructor", []() {
         auto capsule = py::capsule((void *) 12345, "pointer type description", [](PyObject *ptr) {
             if (ptr) {
-                auto name = PyCapsule_GetName(ptr);
+                const auto *name = PyCapsule_GetName(ptr);
                 py::print("destructing capsule ({}, '{}')"_s.format(
                     (size_t) PyCapsule_GetPointer(ptr, name), name));
             }

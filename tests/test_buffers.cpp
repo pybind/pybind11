@@ -96,7 +96,7 @@ TEST_SUBMODULE(buffers, m) {
             if (info.format != py::format_descriptor<float>::format() || info.ndim != 2)
                 throw std::runtime_error("Incompatible buffer format!");
 
-            auto v = new Matrix(info.shape[0], info.shape[1]);
+            auto *v = new Matrix(info.shape[0], info.shape[1]);
             memcpy(v->data(), info.ptr, sizeof(float) * (size_t) (v->rows() * v->cols()));
             return v;
         }))
