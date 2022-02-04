@@ -81,6 +81,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests (requires CMake 3.12+)" OFF)
+option(PYBIND11_DEFINE_UNDERSCORE "Define the underscore to make sure it is safe" OFF)
+
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
@@ -435,6 +437,9 @@ foreach(target ${test_targets})
   # Create the binding library
   pybind11_add_module(${target} THIN_LTO ${target}.cpp ${test_files} ${PYBIND11_HEADERS})
   pybind11_enable_warnings(${target})
+  if(PYBIND11_DEFINE_UNDERSCORE)
+    target_compile_definitions(${target} PUBLIC -D_=1)
+  endif()
 
   if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     get_property(
