@@ -25,7 +25,6 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, windows-2022, macos-latest]
         python:
-        - '2.7'
         - '3.5'
         - '3.6'
         - '3.9'
@@ -49,13 +48,9 @@ jobs:
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
-          - runs-on: macos-latest
-            python: 'pypy-2.7'
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
-          - runs-on: windows-2019
-            python: '2.7'
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -167,22 +162,6 @@ jobs:
 
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
-
-    # Eventually Microsoft might have an action for setting up
-    # MSVC, but for now, this action works:
-    - name: Prepare compiler environment for Windows 🐍 2.7
-      if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.10.0
-      with:
-        arch: x64
-
-    # This makes two environment variables available in the following step(s)
-    - name: Set Windows 🐍 2.7 environment variables
-      if: matrix.python == 2.7 && runner.os == 'Windows'
-      shell: bash
-      run: |
-        echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
-        echo "MSSdk=1" >> $GITHUB_ENV
 
     # This makes sure the setup_helpers module can build packages using
     # setuptools
@@ -784,7 +763,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 2.7
           - 3.6
           - 3.7
           # todo: check/cpptest does not support 3.8+ yet
@@ -832,17 +810,12 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 2.7
           - 3.5
           - 3.7
         std:
           - 14
 
         include:
-          - python: 2.7
-            std: 17
-            args: >
-              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
           - python: 3.7
             std: 17
             args: >
