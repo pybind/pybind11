@@ -32,8 +32,8 @@ def dt_fmt():
     e = "<" if byteorder == "little" else ">"
     return (
         "{{'names':['bool_','uint_','float_','ldbl_'],"
-        " 'formats':['?','" + e + "u4','" + e + "f4','" + e + "f{}'],"
-        " 'offsets':[0,4,8,{}], 'itemsize':{}}}"
+        "'formats':['?','" + e + "u4','" + e + "f4','" + e + "f{}'],"
+        "'offsets':[0,4,8,{}],'itemsize':{}}}"
     )
 
 
@@ -46,7 +46,7 @@ def simple_dtype_fmt():
 def packed_dtype_fmt():
     from sys import byteorder
 
-    return "[('bool_', '?'), ('uint_', '{e}u4'), ('float_', '{e}f4'), ('ldbl_', '{e}f{}')]".format(
+    return "[('bool_','?'),('uint_','{e}u4'),('float_','{e}f4'),('ldbl_','{e}f{}')]".format(
         np.dtype("longdouble").itemsize, e="<" if byteorder == "little" else ">"
     )
 
@@ -77,7 +77,7 @@ def partial_nested_fmt():
     partial_size = partial_ld_off + ld.itemsize
     partial_end_padding = partial_size % np.dtype("uint64").alignment
     partial_nested_size = partial_nested_off * 2 + partial_size + partial_end_padding
-    return "{{'names':['a'], 'formats':[{}], 'offsets':[{}], 'itemsize':{}}}".format(
+    return "{{'names':['a'],'formats':[{}],'offsets':[{}],'itemsize':{}}}".format(
         partial_dtype_fmt(), partial_nested_off, partial_nested_size
     )
 
@@ -123,25 +123,25 @@ def test_dtype(simple_dtype):
 
     e = "<" if byteorder == "little" else ">"
 
-    assert m.print_dtypes() == [
+    assert [x.replace(" ", "") for x in m.print_dtypes()] == [
         simple_dtype_fmt(),
         packed_dtype_fmt(),
-        "[('a', {}), ('b', {})]".format(simple_dtype_fmt(), packed_dtype_fmt()),
+        "[('a',{}),('b',{})]".format(simple_dtype_fmt(), packed_dtype_fmt()),
         partial_dtype_fmt(),
         partial_nested_fmt(),
-        "[('a', 'S3'), ('b', 'S3')]",
+        "[('a','S3'),('b','S3')]",
         (
-            "{{'names':['a','b','c','d'], "
-            + "'formats':[('S4', (3,)),('"
+            "{{'names':['a','b','c','d'],"
+            + "'formats':[('S4',(3,)),('"
             + e
-            + "i4', (2,)),('u1', (3,)),('"
+            + "i4',(2,)),('u1',(3,)),('"
             + e
-            + "f4', (4, 2))], "
-            + "'offsets':[0,12,20,24], 'itemsize':56}}"
+            + "f4',(4,2))],"
+            + "'offsets':[0,12,20,24],'itemsize':56}}"
         ).format(e=e),
-        "[('e1', '" + e + "i8'), ('e2', 'u1')]",
-        "[('x', 'i1'), ('y', '" + e + "u8')]",
-        "[('cflt', '" + e + "c8'), ('cdbl', '" + e + "c16')]",
+        "[('e1','" + e + "i8'),('e2','u1')]",
+        "[('x','i1'),('y','" + e + "u8')]",
+        "[('cflt','" + e + "c8'),('cdbl','" + e + "c16')]",
     ]
 
     d1 = np.dtype(
@@ -238,7 +238,7 @@ def test_recarray(simple_dtype, packed_dtype):
     ]
 
     arr = m.create_rec_partial(3)
-    assert str(arr.dtype) == partial_dtype_fmt()
+    assert str(arr.dtype).replace(" ", "") == partial_dtype_fmt()
     partial_dtype = arr.dtype
     assert "" not in arr.dtype.fields
     assert partial_dtype.itemsize > simple_dtype.itemsize
@@ -246,7 +246,7 @@ def test_recarray(simple_dtype, packed_dtype):
     assert_equal(arr, elements, packed_dtype)
 
     arr = m.create_rec_partial_nested(3)
-    assert str(arr.dtype) == partial_nested_fmt()
+    assert str(arr.dtype).replace(" ", "") == partial_nested_fmt()
     assert "" not in arr.dtype.fields
     assert "" not in arr.dtype.fields["a"][0].fields
     assert arr.dtype.itemsize > partial_dtype.itemsize
@@ -285,12 +285,12 @@ def test_array_array():
     e = "<" if byteorder == "little" else ">"
 
     arr = m.create_array_array(3)
-    assert str(arr.dtype) == (
-        "{{'names':['a','b','c','d'], "
-        + "'formats':[('S4', (3,)),('"
+    assert str(arr.dtype).replace(" ", "") == (
+        "{{'names':['a','b','c','d'],"
+        + "'formats':[('S4',(3,)),('"
         + e
-        + "i4', (2,)),('u1', (3,)),('{e}f4', (4, 2))], "
-        + "'offsets':[0,12,20,24], 'itemsize':56}}"
+        + "i4',(2,)),('u1',(3,)),('{e}f4',(4,2))],"
+        + "'offsets':[0,12,20,24],'itemsize':56}}"
     ).format(e=e)
     assert m.print_array_array(arr) == [
         "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1},"
