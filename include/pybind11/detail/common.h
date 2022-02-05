@@ -956,9 +956,9 @@ PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
 #    pragma warning(push)
-#    pragma warning(                                                                              \
-        disable : 4275) // warning C4275: An exported class was derived from a class that wasn't
-                        // exported. Can be ignored when derived from a STL class.
+#    pragma warning(disable : 4275)
+//       warning C4275: An exported class was derived from a class that wasn't exported.
+//       Can be ignored when derived from a STL class.
 #endif
 /// C++ bindings of builtin Python exceptions
 class PYBIND11_EXPORT_EXCEPTION builtin_exception : public std::runtime_error {
