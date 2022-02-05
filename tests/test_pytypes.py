@@ -565,9 +565,11 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     class WeaklyReferenced(object):
         pass
 
+    callback_called = False
+
     def callback(wr):
-        # No `nonlocal` in Python 2
-        callback.called = True
+        nonlocal callback_called
+        callback_called = True
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
@@ -576,13 +578,12 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    callback.called = False
     wr = create_weakref_with_callback(obj, callback)  # noqa: F841
     assert getweakrefcount(obj) == 1
-    assert not callback.called
+    assert not callback_called
     del obj
     pytest.gc_collect()
-    assert callback.called
+    assert callback_called
 
 
 def test_cpp_iterators():

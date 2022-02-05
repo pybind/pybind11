@@ -2,7 +2,7 @@
 """pytest configuration
 
 Extends output capture as needed by pybind11: ignore constructors, optional unordered lines.
-Adds docstring and exceptions message sanitizers: ignore Python 2 vs 3 differences.
+Adds docstring and exceptions message sanitizers.
 """
 
 import contextlib
@@ -16,7 +16,6 @@ import pytest
 # Early diagnostic for failed imports
 import pybind11_tests  # noqa: F401
 
-_unicode_marker = re.compile(r"u(\'[^\']*\')")
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
 
@@ -145,9 +144,7 @@ class SanitizedString(object):
 def _sanitize_general(s):
     s = s.strip()
     s = s.replace("pybind11_tests.", "m.")
-    s = s.replace("unicode", "str")
     s = _long_marker.sub(r"\1", s)
-    s = _unicode_marker.sub(r"\1", s)
     return s
 
 

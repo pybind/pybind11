@@ -465,8 +465,7 @@ def test_reallocation_g(capture, msg):
 
 
 def test_invalid_self():
-    """Tests invocation of the pybind-registered base class with an invalid `self` argument.  You
-    can only actually do this on Python 3: Python 2 raises an exception itself if you try."""
+    """Tests invocation of the pybind-registered base class with an invalid `self` argument."""
 
     class NotPybindDerived(object):
         pass
