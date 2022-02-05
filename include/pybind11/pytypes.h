@@ -1832,8 +1832,7 @@ public:
 
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
-        .. _PyMemoryView_FromBuffer:
-     https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromBuffer
+        .. _PyMemoryView_FromBuffer: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromBuffer
 
         :param ptr: Pointer to the buffer.
         :param itemsize: Byte size of an element.
@@ -1894,8 +1893,7 @@ public:
 
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
-        .. _PyMemoryView_FromMemory:
-     https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory \endrst */
+        .. _PyMemoryView_FromMemory: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory \endrst */
     static memoryview from_memory(void *mem, ssize_t size, bool readonly = false) {
         PyObject *ptr = PyMemoryView_FromMemory(
             reinterpret_cast<char *>(mem), size, (readonly) ? PyBUF_READ : PyBUF_WRITE);
