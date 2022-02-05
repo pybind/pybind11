@@ -24,7 +24,6 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
-@pytest.mark.skipif("env.PY2")
 def test_raise_from(msg):
     with pytest.raises(ValueError) as excinfo:
         m.raise_from()
@@ -32,7 +31,6 @@ def test_raise_from(msg):
     assert msg(excinfo.value.__cause__) == "inner"
 
 
-@pytest.mark.skipif("env.PY2")
 def test_raise_from_already_set(msg):
     with pytest.raises(ValueError) as excinfo:
         m.raise_from_already_set()
@@ -239,7 +237,6 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
-@pytest.mark.skipif("env.PY2")
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_nested_exception()

@@ -9,7 +9,6 @@ from types import TracebackType
 from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
 
 WIN: bool
-PY2: bool
 MACOS: bool
 STD_TMPL: str
 

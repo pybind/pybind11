@@ -124,7 +124,7 @@ def test_bytes_to_string():
     # Issue #816
 
     def to_bytes(s):
-        b = s if env.PY2 else s.encode("utf8")
+        b = s.encode("utf8")
         assert isinstance(b, bytes)
         return b
 
@@ -211,8 +211,7 @@ def test_string_view(capture):
     assert m.string_view_from_bytes(u"abc ‽ def".encode("utf-8")) == u"abc ‽ def"
     if hasattr(m, "has_u8string"):
         assert m.string_view8_str() == u"abc ‽ def"
-    if not env.PY2:
-        assert m.string_view_memoryview() == "Have some 🎂".encode()
+    assert m.string_view_memoryview() == "Have some 🎂".encode()
 
     assert m.bytes_from_type_with_both_operator_string_and_string_view() == b"success"
     assert m.str_from_type_with_both_operator_string_and_string_view() == "success"
@@ -224,20 +223,8 @@ def test_integer_casting():
     assert m.i64_str(-1) == "-1"
     assert m.i32_str(2000000000) == "2000000000"
     assert m.u32_str(2000000000) == "2000000000"
-    if env.PY2:
-        assert m.i32_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
-        assert m.i64_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
-        assert (
-            m.i64_str(long(-999999999999))  # noqa: F821 undefined name 'long'
-            == "-999999999999"
-        )
-        assert (
-            m.u64_str(long(999999999999))  # noqa: F821 undefined name 'long'
-            == "999999999999"
-        )
-    else:
-        assert m.i64_str(-999999999999) == "-999999999999"
-        assert m.u64_str(999999999999) == "999999999999"
+    assert m.i64_str(-999999999999) == "-999999999999"
+    assert m.u64_str(999999999999) == "999999999999"
 
     with pytest.raises(TypeError) as excinfo:
         m.u32_str(-1)
@@ -251,14 +238,6 @@ def test_integer_casting():
     with pytest.raises(TypeError) as excinfo:
         m.i32_str(3000000000)
     assert "incompatible function arguments" in str(excinfo.value)
-
-    if env.PY2:
-        with pytest.raises(TypeError) as excinfo:
-            m.u32_str(long(-1))  # noqa: F821 undefined name 'long'
-        assert "incompatible function arguments" in str(excinfo.value)
-        with pytest.raises(TypeError) as excinfo:
-            m.u64_str(long(-1))  # noqa: F821 undefined name 'long'
-        assert "incompatible function arguments" in str(excinfo.value)
 
 
 def test_int_convert():

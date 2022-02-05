@@ -61,7 +61,6 @@ import distutils.ccompiler
 import distutils.errors
 
 WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
-PY2 = sys.version_info[0] < 3
 MACOS = sys.platform.startswith("darwin")
 STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 
@@ -198,16 +197,6 @@ class Pybind11Extension(_Extension):
             macosx_min = "-mmacosx-version-min=" + macos_string
             cflags += [macosx_min]
             ldflags += [macosx_min]
-
-        if PY2:
-            if WIN:
-                # Will be ignored on MSVC 2015, where C++17 is not supported so
-                # this flag is not valid.
-                cflags += ["/wd5033"]
-            elif level >= 17:
-                cflags += ["-Wno-register"]
-            elif level >= 14:
-                cflags += ["-Wno-deprecated-register"]
 
         self._add_cflags(cflags)
         self._add_ldflags(ldflags)

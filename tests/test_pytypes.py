@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-import env
+import env  # noqa: F401
 from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
@@ -123,7 +123,6 @@ def test_tuple():
     assert m.get_tuple() == (42, None, "spam")
 
 
-@pytest.mark.skipif("env.PY2")
 def test_simple_namespace():
     ns = m.get_simple_namespace()
     assert ns.attr == 42
@@ -158,24 +157,14 @@ def test_str(doc):
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.str_from_object(malformed_utf8) is malformed_utf8
-    elif env.PY2:
-        with pytest.raises(UnicodeDecodeError):
-            m.str_from_object(malformed_utf8)
     else:
         assert m.str_from_object(malformed_utf8) == "b'\\x80'"
-    if env.PY2:
-        with pytest.raises(UnicodeDecodeError):
-            m.str_from_handle(malformed_utf8)
-    else:
-        assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
+    assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
 
     assert m.str_from_string_from_str("this is a str") == "this is a str"
     ucs_surrogates_str = u"\udcc3"
-    if env.PY2:
-        assert u"\udcc3" == m.str_from_string_from_str(ucs_surrogates_str)
-    else:
-        with pytest.raises(UnicodeEncodeError):
-            m.str_from_string_from_str(ucs_surrogates_str)
+    with pytest.raises(UnicodeEncodeError):
+        m.str_from_string_from_str(ucs_surrogates_str)
 
 
 def test_bytes(doc):
@@ -184,9 +173,7 @@ def test_bytes(doc):
     assert m.bytes_from_string().decode() == "foo"
     assert m.bytes_from_str().decode() == "bar"
 
-    assert doc(m.bytes_from_str) == "bytes_from_str() -> {}".format(
-        "str" if env.PY2 else "bytes"
-    )
+    assert doc(m.bytes_from_str) == "bytes_from_str() -> bytes"
 
 
 def test_bytearray(doc):
@@ -278,11 +265,6 @@ def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
-    if env.PY2:
-        # Note that bytes.__name__ == 'str' in Python 2.
-        # pybind11::str is unicode even under Python 2.
-        expected["bytes"] = bytes()
-        expected["str"] = unicode()  # noqa: F821
     assert m.default_constructors() == expected
 
     data = {
@@ -300,11 +282,6 @@ def test_constructors():
     }
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
-    if env.PY2:  # Similar to the above. See comments above.
-        inputs["bytes"] = b"41"
-        inputs["str"] = 42
-        expected["bytes"] = b"41"
-        expected["str"] = u"42"
 
     assert m.converting_constructors(inputs) == expected
     assert m.cast_functions(inputs) == expected
@@ -341,7 +318,7 @@ def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
     assert cvt(u"Str") == u"Str"
-    assert cvt(b"Bytes") == u"Bytes" if env.PY2 else "b'Bytes'"
+    assert cvt(b"Bytes") == "b'Bytes'"
     assert cvt(None) == u"None"
     assert cvt(False) == u"False"
     assert cvt(True) == u"True"
@@ -354,8 +331,8 @@ def test_pybind11_str_raw_str():
     assert cvt([28]) == u"[28]"
     assert cvt({}) == u"{}"
     assert cvt({3: 4}) == u"{3: 4}"
-    assert cvt(set()) == u"set([])" if env.PY2 else "set()"
-    assert cvt({3, 3}) == u"set([3])" if env.PY2 else "{3}"
+    assert cvt(set()) == "set()"
+    assert cvt({3, 3}) == "{3}"
 
     valid_orig = u"Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
@@ -363,23 +340,16 @@ def test_pybind11_str_raw_str():
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert valid_cvt is valid_utf8
     else:
-        assert type(valid_cvt) is unicode if env.PY2 else str  # noqa: F821
-        if env.PY2:
-            assert valid_cvt == valid_orig
-        else:
-            assert valid_cvt == "b'\\xc7\\xb1'"
+        assert type(valid_cvt) is str
+        assert valid_cvt == "b'\\xc7\\xb1'"
 
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert cvt(malformed_utf8) is malformed_utf8
     else:
-        if env.PY2:
-            with pytest.raises(UnicodeDecodeError):
-                cvt(malformed_utf8)
-        else:
-            malformed_cvt = cvt(malformed_utf8)
-            assert type(malformed_cvt) is str
-            assert malformed_cvt == "b'\\x80'"
+        malformed_cvt = cvt(malformed_utf8)
+        assert type(malformed_cvt) is str
+        assert malformed_cvt == "b'\\x80'"
 
 
 def test_implicit_casting():
@@ -493,12 +463,7 @@ def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == fmt
-    if isinstance(expected_view, bytes) or not env.PY2:
-        view_as_list = list(view)
-    else:
-        # Using max to pick non-zero byte (big-endian vs little-endian).
-        view_as_list = [max(ord(c) for c in s) for s in view]
-    assert view_as_list == list(expected_view)
+    assert list(view) == list(expected_view)
 
 
 @pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
@@ -522,12 +487,7 @@ def test_memoryview_from_buffer_empty_shape():
     view = m.test_memoryview_from_buffer_empty_shape()
     assert isinstance(view, memoryview)
     assert view.format == "B"
-    if env.PY2:
-        # Python 2 behavior is weird, but Python 3 (the future) is fine.
-        # PyPy3 has <memoryview, while CPython 2 has <memory
-        assert bytes(view).startswith(b"<memory")
-    else:
-        assert bytes(view) == b""
+    assert bytes(view) == b""
 
 
 def test_test_memoryview_from_buffer_invalid_strides():
@@ -536,14 +496,10 @@ def test_test_memoryview_from_buffer_invalid_strides():
 
 
 def test_test_memoryview_from_buffer_nullptr():
-    if env.PY2:
+    with pytest.raises(ValueError):
         m.test_memoryview_from_buffer_nullptr()
-    else:
-        with pytest.raises(ValueError):
-            m.test_memoryview_from_buffer_nullptr()
 
 
-@pytest.mark.skipif("env.PY2")
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)
@@ -577,7 +533,7 @@ def test_pass_bytes_or_unicode_to_string_types():
     with pytest.raises(TypeError):
         m.pass_to_pybind11_bytes(u"Str")
 
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE") or env.PY2:
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.pass_to_pybind11_str(b"Bytes") == 5
     else:
         with pytest.raises(TypeError):
@@ -590,9 +546,6 @@ def test_pass_bytes_or_unicode_to_string_types():
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.pass_to_pybind11_str(malformed_utf8) == 1
-    elif env.PY2:
-        with pytest.raises(UnicodeDecodeError):
-            m.pass_to_pybind11_str(malformed_utf8)
     else:
         with pytest.raises(TypeError):
             m.pass_to_pybind11_str(malformed_utf8)
