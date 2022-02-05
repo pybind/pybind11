@@ -19,7 +19,7 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
 
     (tmpdir / "setup.py").write_text(
         dedent(
-            u"""\
+            """\
             import sys
             sys.path.append({MAIN_DIR!r})
 
@@ -58,7 +58,7 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
 
     (tmpdir / "main.cpp").write_text(
         dedent(
-            u"""\
+            """\
             #include <pybind11/pybind11.h>
 
             int f(int x) {
@@ -96,7 +96,7 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
 
     (tmpdir / "test.py").write_text(
         dedent(
-            u"""\
+            """\
             import simple_setup
             assert simple_setup.f(3) == 9
             """

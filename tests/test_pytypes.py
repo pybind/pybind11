@@ -162,7 +162,7 @@ def test_str(doc):
     assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
 
     assert m.str_from_string_from_str("this is a str") == "this is a str"
-    ucs_surrogates_str = u"\udcc3"
+    ucs_surrogates_str = "\udcc3"
     with pytest.raises(UnicodeEncodeError):
         m.str_from_string_from_str(ucs_surrogates_str)
 
@@ -317,24 +317,24 @@ def test_non_converting_constructors():
 def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
-    assert cvt(u"Str") == u"Str"
+    assert cvt("Str") == "Str"
     assert cvt(b"Bytes") == "b'Bytes'"
-    assert cvt(None) == u"None"
-    assert cvt(False) == u"False"
-    assert cvt(True) == u"True"
-    assert cvt(42) == u"42"
-    assert cvt(2 ** 65) == u"36893488147419103232"
-    assert cvt(-1.50) == u"-1.5"
-    assert cvt(()) == u"()"
-    assert cvt((18,)) == u"(18,)"
-    assert cvt([]) == u"[]"
-    assert cvt([28]) == u"[28]"
-    assert cvt({}) == u"{}"
-    assert cvt({3: 4}) == u"{3: 4}"
+    assert cvt(None) == "None"
+    assert cvt(False) == "False"
+    assert cvt(True) == "True"
+    assert cvt(42) == "42"
+    assert cvt(2 ** 65) == "36893488147419103232"
+    assert cvt(-1.50) == "-1.5"
+    assert cvt(()) == "()"
+    assert cvt((18,)) == "(18,)"
+    assert cvt([]) == "[]"
+    assert cvt([28]) == "[28]"
+    assert cvt({}) == "{}"
+    assert cvt({3: 4}) == "{3: 4}"
     assert cvt(set()) == "set()"
     assert cvt({3, 3}) == "{3}"
 
-    valid_orig = u"Ǳ"
+    valid_orig = "Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
     valid_cvt = cvt(valid_utf8)
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
@@ -519,9 +519,9 @@ def test_builtin_functions():
 
 def test_isinstance_string_types():
     assert m.isinstance_pybind11_bytes(b"")
-    assert not m.isinstance_pybind11_bytes(u"")
+    assert not m.isinstance_pybind11_bytes("")
 
-    assert m.isinstance_pybind11_str(u"")
+    assert m.isinstance_pybind11_str("")
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.isinstance_pybind11_str(b"")
     else:
@@ -531,17 +531,17 @@ def test_isinstance_string_types():
 def test_pass_bytes_or_unicode_to_string_types():
     assert m.pass_to_pybind11_bytes(b"Bytes") == 5
     with pytest.raises(TypeError):
-        m.pass_to_pybind11_bytes(u"Str")
+        m.pass_to_pybind11_bytes("Str")
 
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.pass_to_pybind11_str(b"Bytes") == 5
     else:
         with pytest.raises(TypeError):
             m.pass_to_pybind11_str(b"Bytes")
-    assert m.pass_to_pybind11_str(u"Str") == 3
+    assert m.pass_to_pybind11_str("Str") == 3
 
     assert m.pass_to_std_string(b"Bytes") == 5
-    assert m.pass_to_std_string(u"Str") == 3
+    assert m.pass_to_std_string("Str") == 3
 
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):

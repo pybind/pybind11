@@ -133,14 +133,14 @@ a virtual method call.
     >>> from example import *
     >>> d = Dog()
     >>> call_go(d)
-    u'woof! woof! woof! '
+    'woof! woof! woof! '
     >>> class Cat(Animal):
     ...     def go(self, n_times):
     ...         return "meow! " * n_times
     ...
     >>> c = Cat()
     >>> call_go(c)
-    u'meow! meow! meow! '
+    'meow! meow! meow! '
 
 If you are defining a custom constructor in a derived Python class, you *must*
 ensure that you explicitly call the bound C++ constructor using ``__init__``,
