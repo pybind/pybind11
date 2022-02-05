@@ -212,7 +212,7 @@
 
 #include <Python.h>
 #if PY_MAJOR_VERSION < 3
-#error BYE_BYE_GOLDEN_SNAKE
+#error "PYTHON 2 IS NO LONGER SUPPORTED. pybind11 v2.9.1 was the last to support Python 2."
 #endif
 #include <frameobject.h>
 #include <pythread.h>
