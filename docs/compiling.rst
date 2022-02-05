@@ -577,9 +577,6 @@ On Linux, you can compile an example such as the one given in
 
     $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
-The flags given here assume that you're using Python 3. For Python 2, just
-change the executable appropriately (to ``python`` or ``python2``).
-
 The ``python3 -m pybind11 --includes`` command fetches the include paths for
 both pybind11 and Python headers. This assumes that pybind11 has been installed
 using ``pip`` or ``conda``. If it hasn't, you can also manually specify
