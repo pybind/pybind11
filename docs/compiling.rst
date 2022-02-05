@@ -475,7 +475,7 @@ available in all modes. The targets provided are:
      Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython CMake 3.15+) or ``pybind11::python_link_helper``
 
    ``pybind11::embed``
-     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Embed`` (FindPython) or Python libs
+     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Python`` (FindPython) or Python libs
 
    ``pybind11::lto`` / ``pybind11::thin_lto``
      An alternative to `INTERPROCEDURAL_OPTIMIZATION` for adding link-time optimization.
