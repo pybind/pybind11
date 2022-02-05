@@ -211,6 +211,9 @@
 #endif
 
 #include <Python.h>
+#if PY_MAJOR_VERSION < 3
+#error BYE_BYE_GOLDEN_SNAKE
+#endif
 #include <frameobject.h>
 #include <pythread.h>
 
