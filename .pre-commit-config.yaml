@@ -29,13 +29,13 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
-  - id: fix-encoding-pragma
     exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
   rev: v2.31.0
   hooks:
   - id: pyupgrade
+    args: [--py3-plus]
 
 - repo: https://github.com/PyCQA/isort
   rev: 5.10.1
