@@ -9,6 +9,11 @@
 #  pragma warning(disable: 4996)
 #endif
 
+// Catch uses _ internally, which breaks gettext style defines
+#ifdef _
+#undef _
+#endif
+
 #define CATCH_CONFIG_RUNNER
 #include <catch.hpp>
 
