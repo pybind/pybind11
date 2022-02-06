@@ -395,6 +395,7 @@ jobs:
 
 
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
+  # IS THIS WORKING AGAIN?
   centos-nvhpc7:
     runs-on: ubuntu-latest
     name: "🐍 3 • CentOS7 / PGI 20.9 • x64"
