@@ -320,7 +320,7 @@ def test_pybind11_str_raw_str():
     assert cvt(False) == "False"
     assert cvt(True) == "True"
     assert cvt(42) == "42"
-    assert cvt(2 ** 65) == "36893488147419103232"
+    assert cvt(2**65) == "36893488147419103232"
     assert cvt(-1.50) == "-1.5"
     assert cvt(()) == "()"
     assert cvt((18,)) == "(18,)"
