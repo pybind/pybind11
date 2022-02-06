@@ -29,7 +29,6 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
-    exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
   rev: v2.31.0
