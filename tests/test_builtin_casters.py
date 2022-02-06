@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env
@@ -129,7 +128,7 @@ def test_bytes_to_string():
     assert m.strlen("a\x00b".encode()) == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
-    assert m.string_length("💩".encode("utf8")) == 4
+    assert m.string_length("💩".encode()) == 4
 
 
 @pytest.mark.skipif(not hasattr(m, "has_string_view"), reason="no <string_view>")
@@ -203,7 +202,7 @@ def test_string_view(capture):
 
     assert m.string_view_bytes() == b"abc \x80\x80 def"
     assert m.string_view_str() == "abc ‽ def"
-    assert m.string_view_from_bytes("abc ‽ def".encode("utf-8")) == "abc ‽ def"
+    assert m.string_view_from_bytes("abc ‽ def".encode()) == "abc ‽ def"
     if hasattr(m, "has_u8string"):
         assert m.string_view8_str() == "abc ‽ def"
     assert m.string_view_memoryview() == "Have some 🎂".encode()
@@ -236,36 +235,36 @@ def test_integer_casting():
 
 
 def test_int_convert():
-    class Int(object):
+    class Int:
         def __int__(self):
             return 42
 
-    class NotInt(object):
+    class NotInt:
         pass
 
-    class Float(object):
+    class Float:
         def __float__(self):
             return 41.99999
 
-    class Index(object):
+    class Index:
         def __index__(self):
             return 42
 
-    class IntAndIndex(object):
+    class IntAndIndex:
         def __int__(self):
             return 42
 
         def __index__(self):
             return 0
 
-    class RaisingTypeErrorOnIndex(object):
+    class RaisingTypeErrorOnIndex:
         def __index__(self):
             raise TypeError
 
         def __int__(self):
             return 42
 
-    class RaisingValueErrorOnIndex(object):
+    class RaisingValueErrorOnIndex:
         def __index__(self):
             raise ValueError
 
@@ -449,7 +448,7 @@ def test_bool_caster():
     require_implicit(None)
     assert convert(None) is False
 
-    class A(object):
+    class A:
         def __init__(self, x):
             self.x = x
 
@@ -459,7 +458,7 @@ def test_bool_caster():
         def __bool__(self):
             return self.x
 
-    class B(object):
+    class B:
         pass
 
     # Arbitrary objects are not accepted

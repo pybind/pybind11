@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """pytest configuration
 
 Extends output capture as needed by pybind11: ignore constructors, optional unordered lines.
@@ -40,7 +39,7 @@ def _make_explanation(a, b):
     ]
 
 
-class Output(object):
+class Output:
     """Basic output post-processing and comparison"""
 
     def __init__(self, string):
@@ -78,7 +77,7 @@ class Unordered(Output):
             return False
 
 
-class Capture(object):
+class Capture:
     def __init__(self, capfd):
         self.capfd = capfd
         self.out = ""
@@ -121,7 +120,7 @@ def capture(capsys):
     return Capture(capsys)
 
 
-class SanitizedString(object):
+class SanitizedString:
     def __init__(self, sanitizer):
         self.sanitizer = sanitizer
         self.string = ""

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # pybind11 documentation build configuration file, created by
 # sphinx-quickstart on Sun Oct 11 19:23:48 2015.

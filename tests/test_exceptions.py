@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 
 import pytest
@@ -247,7 +246,7 @@ def test_throw_nested_exception():
 
 # This can often happen if you wrap a pybind11 class in a Python wrapper
 def test_invalid_repr():
-    class MyRepr(object):
+    class MyRepr:
         def __repr__(self):
             raise AttributeError("Example error")
 

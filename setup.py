@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
 import contextlib
-import io
 import os
 import re
 import shutil
@@ -74,7 +72,7 @@ exec(code, loc)
 version = loc["__version__"]
 
 # Verify that the version matches the one in C++
-with io.open("include/pybind11/detail/common.h", encoding="utf8") as f:
+with open("include/pybind11/detail/common.h", encoding="utf8") as f:
     matches = dict(VERSION_REGEX.findall(f.read()))
 cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
 if version != cpp_version:

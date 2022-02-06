@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def _to_int(s):
     try:
         return int(s)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 This module provides helpers for C++11+ projects using pybind11.
 
@@ -355,7 +353,7 @@ def no_recompile(obg, src):
 # and: https://github.com/tbenthompson/cppimport/blob/stable/cppimport/build_module.py
 # and NumPy's parallel distutils module:
 #              https://github.com/numpy/numpy/blob/master/numpy/distutils/ccompiler.py
-class ParallelCompile(object):
+class ParallelCompile:
     """
     Make a parallel compile function. Inspired by
     numpy.distutils.ccompiler.CCompiler_compile and cppimport.

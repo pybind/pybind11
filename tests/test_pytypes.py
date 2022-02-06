@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import division
-
 import sys
 
 import pytest
@@ -139,7 +136,7 @@ def test_str(doc):
 
     assert doc(m.str_from_bytes) == "str_from_bytes() -> str"
 
-    class A(object):
+    class A:
         def __str__(self):
             return "this is a str"
 
@@ -398,14 +395,14 @@ def test_print(capture):
 
 
 def test_hash():
-    class Hashable(object):
+    class Hashable:
         def __init__(self, value):
             self.value = value
 
         def __hash__(self):
             return self.value
 
-    class Unhashable(object):
+    class Unhashable:
         __hash__ = None
 
     assert m.hash_function(Hashable(42)) == 42
@@ -562,7 +559,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     from weakref import getweakrefcount
 
     # Apparently, you cannot weakly reference an object()
-    class WeaklyReferenced(object):
+    class WeaklyReferenced:
         pass
 
     callback_called = False

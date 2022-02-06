@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
@@ -59,7 +58,7 @@ def test_multiple_inheritance_python():
             m.Base1.__init__(self, i)
             m.Base2.__init__(self, j)
 
-    class B1(object):
+    class B1:
         def v(self):
             return 1
 
@@ -94,7 +93,7 @@ def test_multiple_inheritance_python():
         def v(self):
             return 2
 
-    class B3(object):
+    class B3:
         def v(self):
             return 3
 

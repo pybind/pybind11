@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 import pytest
@@ -467,7 +466,7 @@ def test_reallocation_g(capture, msg):
 def test_invalid_self():
     """Tests invocation of the pybind-registered base class with an invalid `self` argument."""
 
-    class NotPybindDerived(object):
+    class NotPybindDerived:
         pass
 
     # Attempts to initialize with an invalid type passed as `self`:

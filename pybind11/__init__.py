@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from ._version import __version__, version_info
 from .commands import get_cmake_dir, get_include
 
