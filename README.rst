@@ -34,7 +34,7 @@ dependency.
 Think of this library as a tiny self-contained version of Boost.Python
 with everything stripped away that isn’t relevant for binding
 generation. Without comments, the core header files only require ~4K
-lines of code and depend on Python (2.7 or 3.5+, or PyPy) and the C++
+lines of code and depend on Python (3.5+, or PyPy) and the C++
 standard library. This compact implementation was possible thanks to
 some of the new C++11 language features (specifically: tuples, lambda
 functions and variadic templates). Since its creation, this library has

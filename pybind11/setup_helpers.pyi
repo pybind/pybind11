@@ -3,7 +3,7 @@
 
 import contextlib
 import distutils.ccompiler
-from distutils.command.build_ext import build_ext as _build_ext  # type: ignore
+from distutils.command.build_ext import build_ext as _build_ext
 from distutils.extension import Extension as _Extension
 from types import TracebackType
 from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
@@ -28,7 +28,7 @@ def tmp_chdir() -> Iterator[str]: ...
 def has_flag(compiler: distutils.ccompiler.CCompiler, flag: str) -> bool: ...
 def auto_cpp_level(compiler: distutils.ccompiler.CCompiler) -> Union[int, str]: ...
 
-class build_ext(_build_ext):  # type: ignore
+class build_ext(_build_ext):
     def build_extensions(self) -> None: ...
 
 def intree_extensions(

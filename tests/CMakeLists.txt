@@ -179,11 +179,6 @@ if(PYBIND11_TEST_FILTER)
   pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
 endif()
 
-if(PYTHON_VERSION VERSION_LESS 3.5)
-  pybind11_filter_tests(PYBIND11_TEST_FILES test_async.cpp MESSAGE
-                        "Skipping test_async on Python 2")
-endif()
-
 # Skip tests for CUDA check:
 # /pybind11/tests/test_constants_and_functions.cpp(125):
 #   error: incompatible exception specifications
