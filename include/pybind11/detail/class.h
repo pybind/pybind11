@@ -686,6 +686,11 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     if (rec.custom_type_setup_callback)
         rec.custom_type_setup_callback(heap_type);
 
+    if (PyType_IS_GC(type) && type->tp_traverse == nullptr) {
+        // cludge for MI check on 3.11.
+        type->tp_traverse = pybind11_traverse;
+    }
+
     if (PyType_Ready(type) < 0)
         pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
 
