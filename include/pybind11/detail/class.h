@@ -635,11 +635,18 @@ inline PyObject* make_new_python_type(const type_record &rec) {
                                     : bases[0].ptr();
 
     traverseproc parent_tp_traverse = nullptr;
+    auto parent_tp_clear = nullptr;
     for (auto b : bases) {
         auto *obj = (PyTypeObject *) b.ptr();
-        if (PyType_IS_GC(obj) != 0 && obj->tp_traverse != nullptr) {
-            parent_tp_traverse = obj->tp_traverse;
-            break; // Should I merge them somehow?
+        if (PyType_IS_GC(obj) != 0) {
+            if (obj->tp_traverse != nullptr) {
+                parent_tp_traverse = obj->tp_traverse;
+            }
+            if (obj->tp_clear != nullptr) {
+                parent_tp_clear = obj->tp_clear;
+            }
+            // This needs to improved and should probably combine funcs
+            break;
         }
     }
 
@@ -699,6 +706,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
         // cludge for MI check on 3.11.
         type->tp_traverse
             = (parent_tp_traverse != nullptr) ? parent_tp_traverse : pybind11_traverse;
+        type->tp_clear = (parent_tp_clear != nullptr) ? parent_tp_clear : pybind11_clear;
     }
 
     if (PyType_Ready(type) < 0)
