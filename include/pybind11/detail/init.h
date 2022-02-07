@@ -279,7 +279,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
     void execute(Class &cl, const Extra&... extra) && {
         static_assert(Class::has_alias, "The two-argument version of `py::init()` can "
                                         "only be used if the class has an alias");
-        #if defined(PYBIND11_CPP14)
+#if defined(PYBIND11_CPP14)
         cl.def(
             "__init__",
             [class_func = std::move(class_factory), alias_func = std::move(alias_factory)]
@@ -289,7 +289,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
         cl.def(
             "__init__",
             [class_func, alias_func]
-        #endif
+#endif
             (value_and_holder &v_h, CArgs... args) {
                 if (Py_TYPE(v_h.inst) == v_h.type->type) {
                     // If the instance type equals the registered type we don't have inheritance,
