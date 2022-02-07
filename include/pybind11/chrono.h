@@ -129,6 +129,16 @@ public:
         std::tm cal;
         microseconds msecs;
 
+        if (strcmp(src.ptr()->ob_type->tp_name, "numpy.datetime64") == 0) {
+            static PyObject* astype_ptr  = module::import("numpy").attr("datetime64").attr("astype").cast<object>().release().ptr();
+            static PyObject* dt_type_ptr = module::import("datetime").attr("datetime").cast<object>().release().ptr();
+
+            object astype  = reinterpret_borrow<object>(astype_ptr);
+            object dt_type = reinterpret_borrow<object>(dt_type_ptr);
+
+            src = astype(src, dt_type);
+        }
+
         if (PyDateTime_Check(src.ptr())) {
             cal.tm_sec   = PyDateTime_DATE_GET_SECOND(src.ptr());
             cal.tm_min   = PyDateTime_DATE_GET_MINUTE(src.ptr());
@@ -156,8 +166,7 @@ public:
             cal.tm_year  = 70;  // earliest available date for Python's datetime
             cal.tm_isdst = -1;
             msecs        = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
-        }
-        else return false;
+        } else return false;
 
         value = time_point_cast<Duration>(system_clock::from_time_t(std::mktime(&cal)) + msecs);
         return true;
