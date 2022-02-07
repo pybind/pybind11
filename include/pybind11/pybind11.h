@@ -188,8 +188,8 @@ protected:
                     auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
                     (void) data;
                     data->~capture();
-                }
-            };
+                };
+            }
 #if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif

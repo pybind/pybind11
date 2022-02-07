@@ -955,11 +955,11 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
         throw cast_error(
             "Unable to cast Python instance to C++ rvalue: instance has multiple references"
             " (compile in debug mode for details)");
-    }
 #else
         throw cast_error("Unable to move from Python " + (std::string) str(type::handle_of(obj)) +
                 " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
 #endif
+    }
 
     // Move into a temporary and return that, because the reference may be a local value of `conv`
     T ret = std::move(detail::load_type<T>(obj).operator T&());
@@ -1231,14 +1231,15 @@ private:
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
 #ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])) {) {
+        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
             return false;
-}
-}
+        }
 #else
-        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
-            if (!r)
+        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...}) {
+            if (!r) {
                 return false;
+            }
+        }
 #endif
         return true;
     }
@@ -1333,10 +1334,10 @@ private:
         if (!a.name) {
 #if defined(NDEBUG)
             nameless_argument_error();
-        }
 #else
             nameless_argument_error(a.type);
 #endif
+        }
 
         if (m_kwargs.contains(a.name)) {
 #if defined(NDEBUG)
