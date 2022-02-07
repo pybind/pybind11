@@ -42,10 +42,12 @@ template <typename T> struct is_fmt_numeric<std::complex<T>, detail::enable_if_t
 template <typename T> class type_caster<std::complex<T>> {
 public:
     bool load(handle src, bool convert) {
-        if (!src)
+        if (!src) {
             return false;
-        if (!convert && !PyComplex_Check(src.ptr()))
+        }
+        if (!convert && !PyComplex_Check(src.ptr())) {
             return false;
+        }
         Py_complex result = PyComplex_AsCComplex(src.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {
             PyErr_Clear();

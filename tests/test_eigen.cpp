@@ -28,8 +28,11 @@ using MatrixXdR = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::R
 // Sets/resets a testing reference matrix to have values of 10*r + c, where r and c are the
 // (1-based) row/column number.
 template <typename M> void reset_ref(M &x) {
-    for (int i = 0; i < x.rows(); i++) for (int j = 0; j < x.cols(); j++)
-        x(i, j) = 11 + 10*i + j;
+    for (int i = 0; i < x.rows(); i++) {
+        for (int j = 0; j < x.cols(); j++) {
+            x(i, j) = 11 + 10 * i + j;
+        }
+    }
 }
 
 // Returns a static, column-major matrix
@@ -63,9 +66,11 @@ double get_elem(const Eigen::Ref<const Eigen::MatrixXd> &m) { return m(2, 1); };
 // reference is referencing rows/columns correctly).
 template <typename MatrixArgType> Eigen::MatrixXd adjust_matrix(MatrixArgType m) {
     Eigen::MatrixXd ret(m);
-    for (int c = 0; c < m.cols(); c++)
-        for (int r = 0; r < m.rows(); r++)
-            ret(r, c) += 10*r + 100*c;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
+    for (int c = 0; c < m.cols(); c++) {
+        for (int r = 0; r < m.rows(); r++) {
+            ret(r, c) += 10 * r + 100 * c; // NOLINT(clang-analyzer-core.uninitialized.Assign)
+        }
+    }
     return ret;
 }
 
@@ -225,7 +230,9 @@ TEST_SUBMODULE(eigen, m) {
     // Returns a DiagonalMatrix with diagonal (1,2,3,...)
     m.def("incr_diag", [](int k) {
         Eigen::DiagonalMatrix<int, Eigen::Dynamic> m(k);
-        for (int i = 0; i < k; i++) m.diagonal()[i] = i+1;
+        for (int i = 0; i < k; i++) {
+            m.diagonal()[i] = i + 1;
+        }
         return m;
     });
 
@@ -320,8 +327,9 @@ TEST_SUBMODULE(eigen, m) {
         "matrix_multiply",
         [](const py::EigenDRef<const Eigen::MatrixXd> &A,
            const py::EigenDRef<const Eigen::MatrixXd> &B) -> Eigen::MatrixXd {
-            if (A.cols() != B.rows())
+            if (A.cols() != B.rows()) {
                 throw std::domain_error("Nonconformable matrices!");
+            }
             return A * B;
         },
         py::arg("A"),

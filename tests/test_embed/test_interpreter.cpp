@@ -307,7 +307,11 @@ TEST_CASE("Threads") {
 struct scope_exit {
     std::function<void()> f_;
     explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
-    ~scope_exit() { if (f_) f_(); }
+    ~scope_exit() {
+        if (f_) {
+            f_();
+        }
+    }
 };
 
 TEST_CASE("Reload module from file") {

@@ -27,10 +27,11 @@ public:
      */
     void decRef(bool dealloc = true) const {
         --m_refCount;
-        if (m_refCount == 0 && dealloc)
+        if (m_refCount == 0 && dealloc) {
             delete this;
-        else if (m_refCount < 0)
+        } else if (m_refCount < 0) {
             throw std::runtime_error("Internal error: reference count < 0!");
+        }
     }
 
     virtual std::string toString() const = 0;
@@ -66,7 +67,9 @@ public:
 
     /// Construct a reference from a pointer
     explicit ref(T *ptr) : m_ptr(ptr) {
-        if (m_ptr) ((Object *) m_ptr)->incRef();
+        if (m_ptr) {
+            ((Object *) m_ptr)->incRef();
+        }
 
         print_created(this, "from pointer", m_ptr); track_created((ref_tag*) this, "from pointer");
 
@@ -74,8 +77,9 @@ public:
 
     /// Copy constructor
     ref(const ref &r) : m_ptr(r.m_ptr) {
-        if (m_ptr)
+        if (m_ptr) {
             ((Object *) m_ptr)->incRef();
+        }
 
         print_copy_created(this, "with pointer", m_ptr); track_copy_created((ref_tag*) this);
     }
@@ -89,8 +93,9 @@ public:
 
     /// Destroy this reference
     ~ref() {
-        if (m_ptr)
+        if (m_ptr) {
             ((Object *) m_ptr)->decRef();
+        }
 
         print_destroyed(this); track_destroyed((ref_tag*) this);
     }
@@ -99,10 +104,12 @@ public:
     ref &operator=(ref &&r) noexcept {
         print_move_assigned(this, "pointer", r.m_ptr); track_move_assigned((ref_tag*) this);
 
-        if (*this == r)
+        if (*this == r) {
             return *this;
-        if (m_ptr)
+        }
+        if (m_ptr) {
             ((Object *) m_ptr)->decRef();
+        }
         m_ptr = r.m_ptr;
         r.m_ptr = nullptr;
         return *this;
@@ -116,13 +123,16 @@ public:
         print_copy_assigned(this, "pointer", r.m_ptr);
         track_copy_assigned((ref_tag *) this);
 
-        if (m_ptr == r.m_ptr)
+        if (m_ptr == r.m_ptr) {
             return *this;
-        if (m_ptr)
+        }
+        if (m_ptr) {
             ((Object *) m_ptr)->decRef();
+        }
         m_ptr = r.m_ptr;
-        if (m_ptr)
+        if (m_ptr) {
             ((Object *) m_ptr)->incRef();
+        }
         return *this;
     }
 
@@ -130,13 +140,16 @@ public:
     ref& operator=(T *ptr) {
         print_values(this, "assigned pointer"); track_values((ref_tag*) this, "assigned pointer");
 
-        if (m_ptr == ptr)
+        if (m_ptr == ptr) {
             return *this;
-        if (m_ptr)
+        }
+        if (m_ptr) {
             ((Object *) m_ptr)->decRef();
+        }
         m_ptr = ptr;
-        if (m_ptr)
+        if (m_ptr) {
             ((Object *) m_ptr)->incRef();
+        }
         return *this;
     }
 

@@ -22,8 +22,9 @@
 void noisy_function(const std::string &msg, bool flush) {
 
     std::cout << msg;
-    if (flush)
+    if (flush) {
         std::cout << std::flush;
+    }
 }
 
 void noisy_funct_dual(const std::string &msg, const std::string &emsg) {

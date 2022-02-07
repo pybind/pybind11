@@ -113,8 +113,9 @@ public:
     static void cleanupAllInstances() {
         auto tmp = std::move(myobject4_instances);
         myobject4_instances.clear();
-        for (auto o : tmp)
+        for (auto o : tmp) {
             delete o;
+        }
     }
 private:
     ~MyObject4() {
@@ -140,8 +141,9 @@ public:
     static void cleanupAllInstances() {
         auto tmp = std::move(myobject4a_instances);
         myobject4a_instances.clear();
-        for (auto o : tmp)
+        for (auto o : tmp) {
             delete o;
+        }
     }
 protected:
     virtual ~MyObject4a() {
@@ -445,8 +447,9 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def("add", &ElementList::add)
         .def("get", [](ElementList &el) {
             py::list list;
-            for (auto &e : el.l)
+            for (auto &e : el.l) {
                 list.append(py::cast(e));
+            }
             return list;
         });
 }
