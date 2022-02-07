@@ -2395,10 +2395,9 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
             PyObject* locals = PyEval_GetLocals();
             if (locals != nullptr) {
-                PyObject *self_caller = dict_getitem(
-                    locals,
-                    PyTuple_GET_ITEM(PyObject_GetAttrString((PyObject *) f_code, "co_varnames"),
-                                     0));
+                PyObject *self_arg = PyTuple_GET_ITEM(
+                    PyObject_GetAttrString((PyObject *) f_code, "co_varnames"), 0);
+                PyObject *self_caller = dict_getitem(locals, self_arg);
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
                     Py_DECREF(frame);
