@@ -634,6 +634,15 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     auto base = (bases.empty()) ? internals.instance_base
                                     : bases[0].ptr();
 
+    traverseproc parent_tp_traverse = nullptr;
+    for (auto b : bases) {
+        auto *obj = (PyTypeObject *) b.ptr();
+        if (PyType_IS_GC(obj) != 0 && obj->tp_traverse != nullptr) {
+            parent_tp_traverse = obj->tp_traverse;
+            break; // Should I merge them somehow?
+        }
+    }
+
     /* Danger zone: from now (and until PyType_Ready), make sure to
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
@@ -688,7 +697,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     if (PyType_IS_GC(type) && type->tp_traverse == nullptr) {
         // cludge for MI check on 3.11.
-        type->tp_traverse = pybind11_traverse;
+        type->tp_traverse
+            = (parent_tp_traverse != nullptr) ? parent_tp_traverse : pybind11_traverse;
     }
 
     if (PyType_Ready(type) < 0)
