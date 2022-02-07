@@ -669,6 +669,8 @@ public:
                 } else {
                     vptr = ::operator new(type->type_size);
                 }
+#else
+                vptr = ::operator new(type->type_size);
 #endif
             }
         }
