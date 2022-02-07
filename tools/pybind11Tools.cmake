@@ -122,13 +122,6 @@ set_property(
     INTERFACE_LINK_LIBRARIES pybind11::python_link_helper
     "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>")
 
-if(PYTHON_VERSION VERSION_LESS 3)
-  set_property(
-    TARGET pybind11::pybind11
-    APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python2_no_register)
-endif()
-
 set_property(
   TARGET pybind11::embed
   APPEND

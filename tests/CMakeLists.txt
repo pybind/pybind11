@@ -383,17 +383,6 @@ function(pybind11_enable_warnings target_name)
           -diag-disable 11074,11076)
     endif()
   endif()
-
-  # Needs to be re-added since the ordering requires these to be after the ones above
-  if(CMAKE_CXX_STANDARD
-     AND CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-     AND PYTHON_VERSION VERSION_LESS 3.0)
-    if(CMAKE_CXX_STANDARD LESS 17)
-      target_compile_options(${target_name} PUBLIC -Wno-deprecated-register)
-    else()
-      target_compile_options(${target_name} PUBLIC -Wno-register)
-    endif()
-  endif()
 endfunction()
 
 set(test_targets pybind11_tests)
