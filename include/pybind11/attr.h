@@ -330,11 +330,13 @@ struct type_record {
 
         bases.append((PyObject *) base_info->type);
 
-        if (base_info->type->tp_dictoffset != 0)
+        if (base_info->type->tp_dictoffset != 0) {
             dynamic_attr = true;
+        }
 
-        if (caster)
+        if (caster) {
             base_info->implicit_casts.emplace_back(type, caster);
+        }
     }
 };
 
@@ -410,13 +412,16 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
 };
 
 inline void check_kw_only_arg(const arg &a, function_record *r) {
-    if (r->args.size() > r->nargs_pos && (!a.name || a.name[0] == '\0'))
-        pybind11_fail("arg(): cannot specify an unnamed argument after a kw_only() annotation or args() argument");
+    if (r->args.size() > r->nargs_pos && (!a.name || a.name[0] == '\0')) {
+        pybind11_fail("arg(): cannot specify an unnamed argument after a kw_only() annotation or "
+                      "args() argument");
+    }
 }
 
 inline void append_self_arg_if_needed(function_record *r) {
-    if (r->is_method && r->args.empty())
-        r->args.emplace_back("self", nullptr, handle(), /*convert=*/ true, /*none=*/ false);
+    if (r->is_method && r->args.empty()) {
+        r->args.emplace_back("self", nullptr, handle(), /*convert=*/true, /*none=*/false);
+    }
 }
 
 /// Process a keyword argument attribute (*without* a default value)
@@ -432,8 +437,10 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 /// Process a keyword argument attribute (*with* a default value)
 template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     static void init(const arg_v &a, function_record *r) {
-        if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", /*descr=*/ nullptr, /*parent=*/ handle(), /*convert=*/ true, /*none=*/ false);
+        if (r->is_method && r->args.empty()) {
+            r->args.emplace_back(
+                "self", /*descr=*/nullptr, /*parent=*/handle(), /*convert=*/true, /*none=*/false);
+        }
 
         if (!a.value) {
 #if !defined(NDEBUG)
@@ -466,8 +473,10 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 template <> struct process_attribute<kw_only> : process_attribute_default<kw_only> {
     static void init(const kw_only &, function_record *r) {
         append_self_arg_if_needed(r);
-        if (r->has_args && r->nargs_pos != static_cast<std::uint16_t>(r->args.size()))
-            pybind11_fail("Mismatched args() and kw_only(): they must occur at the same relative argument location (or omit kw_only() entirely)");
+        if (r->has_args && r->nargs_pos != static_cast<std::uint16_t>(r->args.size())) {
+            pybind11_fail("Mismatched args() and kw_only(): they must occur at the same relative "
+                          "argument location (or omit kw_only() entirely)");
+        }
         r->nargs_pos = static_cast<std::uint16_t>(r->args.size());
     }
 };
@@ -477,8 +486,9 @@ template <> struct process_attribute<pos_only> : process_attribute_default<pos_o
     static void init(const pos_only &, function_record *r) {
         append_self_arg_if_needed(r);
         r->nargs_pos_only = static_cast<std::uint16_t>(r->args.size());
-        if (r->nargs_pos_only > r->nargs_pos)
+        if (r->nargs_pos_only > r->nargs_pos) {
             pybind11_fail("pos_only(): cannot follow a py::args() argument");
+        }
             // It also can't follow a kw_only, but a static_assert in pybind11.h checks that
     }
 };

@@ -398,8 +398,9 @@ inline void translate_local_exception(std::exception_ptr p) {
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
-    if (internals_pp && *internals_pp)
+    if (internals_pp && *internals_pp) {
         return **internals_pp;
+    }
 
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
@@ -425,7 +426,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
-        if (!internals_pp) internals_pp = new internals*();
+        if (!internals_pp) {
+            internals_pp = new internals *();
+        }
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
