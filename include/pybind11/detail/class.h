@@ -568,8 +568,8 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         view->format = const_cast<char *>(info->format.c_str());
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
         view->ndim = (int) info->ndim;
-        view->strides = &info->strides[0];
-        view->shape = &info->shape[0];
+        view->strides = info->strides.data();
+        view->shape = info->shape.data();
     }
     Py_INCREF(view->obj);
     return 0;
