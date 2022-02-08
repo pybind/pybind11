@@ -153,9 +153,6 @@
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
-#  if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 4)
-#    define HAVE_ROUND 1
-#  endif
 #  pragma warning(push)
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
 #  pragma warning(disable: 4505)
