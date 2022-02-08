@@ -65,7 +65,7 @@ inline PyTypeObject *make_static_property_type() {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
+    auto *heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
     if (!heap_type) {
         pybind11_fail("make_static_property_type(): error allocating type!");
     }
@@ -75,7 +75,7 @@ inline PyTypeObject *make_static_property_type() {
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
 #endif
 
-    auto type = &heap_type->ht_type;
+    auto *type = &heap_type->ht_type;
     type->tp_name = name;
     type->tp_base = type_incref(&PyProperty_Type);
     type->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
@@ -130,7 +130,7 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     //   1. `Type.static_prop = value`             --> descr_set: `Type.static_prop.__set__(value)`
     //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
     //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
-    const auto static_prop = (PyObject *) get_internals().static_property_type;
+    auto *const static_prop = (PyObject *) get_internals().static_property_type;
     const auto call_descr_set = (descr != nullptr) && (value != nullptr)
                                 && (PyObject_IsInstance(descr, static_prop) != 0)
                                 && (PyObject_IsInstance(value, static_prop) == 0);
@@ -179,7 +179,7 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     }
 
     // This must be a pybind11 instance
-    auto instance = reinterpret_cast<detail::instance *>(self);
+    auto *instance = reinterpret_cast<detail::instance *>(self);
 
     // Ensure that the base __init__ function(s) were called
     for (const auto &vh : values_and_holders(instance)) {
@@ -245,7 +245,7 @@ inline PyTypeObject* make_default_metaclass() {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
+    auto *heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
     if (!heap_type) {
         pybind11_fail("make_default_metaclass(): error allocating metaclass!");
     }
@@ -255,7 +255,7 @@ inline PyTypeObject* make_default_metaclass() {
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
 #endif
 
-    auto type = &heap_type->ht_type;
+    auto *type = &heap_type->ht_type;
     type->tp_name = name;
     type->tp_base = type_incref(&PyType_Type);
     type->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
@@ -285,7 +285,7 @@ inline PyTypeObject* make_default_metaclass() {
 inline void traverse_offset_bases(void *valueptr, const detail::type_info *tinfo, instance *self,
         bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
     for (handle h : reinterpret_borrow<tuple>(tinfo->type->tp_bases)) {
-        if (auto parent_tinfo = get_type_info((PyTypeObject *) h.ptr())) {
+        if (auto *parent_tinfo = get_type_info((PyTypeObject *) h.ptr())) {
             for (auto &c : parent_tinfo->implicit_casts) {
                 if (c.first == tinfo->cpptype) {
                     auto *parentptr = c.second(valueptr);
@@ -344,7 +344,7 @@ inline PyObject *make_new_instance(PyTypeObject *type) {
     }
 #endif
     PyObject *self = type->tp_alloc(type, 0);
-    auto inst = reinterpret_cast<instance *>(self);
+    auto *inst = reinterpret_cast<instance *>(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
 
@@ -369,14 +369,14 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
 
 inline void add_patient(PyObject *nurse, PyObject *patient) {
     auto &internals = get_internals();
-    auto instance = reinterpret_cast<detail::instance *>(nurse);
+    auto *instance = reinterpret_cast<detail::instance *>(nurse);
     instance->has_patients = true;
     Py_INCREF(patient);
     internals.patients[nurse].push_back(patient);
 }
 
 inline void clear_patients(PyObject *self) {
-    auto instance = reinterpret_cast<detail::instance *>(self);
+    auto *instance = reinterpret_cast<detail::instance *>(self);
     auto &internals = get_internals();
     auto pos = internals.patients.find(self);
     assert(pos != internals.patients.end());
@@ -394,7 +394,7 @@ inline void clear_patients(PyObject *self) {
 /// Clears all internal data from the instance and removes it from registered instances in
 /// preparation for deallocation.
 inline void clear_instance(PyObject *self) {
-    auto instance = reinterpret_cast<detail::instance *>(self);
+    auto *instance = reinterpret_cast<detail::instance *>(self);
 
     // Deallocate any values/holders, if present:
     for (auto &v_h : values_and_holders(instance)) {
@@ -435,7 +435,7 @@ inline void clear_instance(PyObject *self) {
 extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     clear_instance(self);
 
-    auto type = Py_TYPE(self);
+    auto *type = Py_TYPE(self);
     type->tp_free(self);
 
 #if PY_VERSION_HEX < 0x03080000
@@ -464,7 +464,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
+    auto *heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
     if (!heap_type) {
         pybind11_fail("make_object_base_type(): error allocating type!");
     }
@@ -474,7 +474,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
 #endif
 
-    auto type = &heap_type->ht_type;
+    auto *type = &heap_type->ht_type;
     type->tp_name = name;
     type->tp_base = type_incref(&PyBaseObject_Type);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
@@ -538,7 +538,7 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
-    auto type = &heap_type->ht_type;
+    auto *type = &heap_type->ht_type;
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
     type->tp_dictoffset = type->tp_basicsize; // place dict at the end
     type->tp_basicsize += (ssize_t)sizeof(PyObject *); // and allocate enough space for it
@@ -639,11 +639,11 @@ inline PyObject* make_new_python_type(const type_record &rec) {
         }
     }
 
-    auto full_name = c_str(
+    const auto *full_name = c_str(
 #if !defined(PYPY_VERSION)
         module_ ? str(module_).cast<std::string>() + "." + rec.name :
 #endif
-        rec.name);
+                rec.name);
 
     char *tp_doc = nullptr;
     if (rec.doc && options::show_user_defined_docstrings()) {
@@ -656,17 +656,16 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     auto &internals = get_internals();
     auto bases = tuple(rec.bases);
-    auto base = (bases.empty()) ? internals.instance_base
-                                    : bases[0].ptr();
+    auto *base = (bases.empty()) ? internals.instance_base : bases[0].ptr();
 
     /* Danger zone: from now (and until PyType_Ready), make sure to
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto metaclass = rec.metaclass.ptr() ? (PyTypeObject *) rec.metaclass.ptr()
-                                         : internals.default_metaclass;
+    auto *metaclass
+        = rec.metaclass.ptr() ? (PyTypeObject *) rec.metaclass.ptr() : internals.default_metaclass;
 
-    auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
+    auto *heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
     if (!heap_type) {
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
     }
@@ -676,7 +675,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     heap_type->ht_qualname = qualname.inc_ref().ptr();
 #endif
 
-    auto type = &heap_type->ht_type;
+    auto *type = &heap_type->ht_type;
     type->tp_name = full_name;
     type->tp_doc = tp_doc;
     type->tp_base = type_incref((PyTypeObject *)base);

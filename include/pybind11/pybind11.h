@@ -162,7 +162,7 @@ protected:
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
         // The unique_ptr makes sure nothing is leaked in case of an exception.
         auto unique_rec = make_function_record();
-        auto rec = unique_rec.get();
+        auto *rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
         if (PYBIND11_SILENCE_MSVC_C4127(sizeof(capture) <= sizeof(rec->data))) {
@@ -220,8 +220,8 @@ protected:
             process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
-            auto data = (sizeof(capture) <= sizeof(call.func.data)
-                         ? &call.func.data : call.func.data[0]);
+            const auto *data = (sizeof(capture) <= sizeof(call.func.data) ? &call.func.data
+                                                                          : call.func.data[0]);
             auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
@@ -287,12 +287,12 @@ protected:
     class strdup_guard {
     public:
         ~strdup_guard() {
-            for (auto s : strings) {
+            for (auto *s : strings) {
                 std::free(s);
             }
         }
         char *operator()(const char *s) {
-            auto t = PYBIND11_COMPAT_STRDUP(s);
+            auto *t = PYBIND11_COMPAT_STRDUP(s);
             strings.push_back(t);
             return t;
         }
@@ -309,7 +309,7 @@ protected:
         // Do NOT receive `unique_rec` by value. If this function fails to move out the unique_ptr,
         // we do not want this to destuct the pointer. `initialize` (the caller) still relies on the
         // pointee being alive after this call. Only move out if a `capsule` is going to keep it alive.
-        auto rec = unique_rec.get();
+        auto *rec = unique_rec.get();
 
         // Keep track of strdup'ed strings, and clean them up as long as the function's capsule
         // has not taken ownership yet (when `unique_rec.release()` is called).
@@ -355,7 +355,7 @@ protected:
         std::string signature;
         size_t type_index = 0, arg_index = 0;
         bool is_starred = false;
-        for (auto *pc = text; *pc != '\0'; ++pc) {
+        for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
             if (c == '{') {
@@ -396,7 +396,7 @@ protected:
                 if (!t) {
                     pybind11_fail("Internal error while parsing type signature (1)");
                 }
-                if (auto tinfo = detail::get_type_info(*t)) {
+                if (auto *tinfo = detail::get_type_info(*t)) {
                     handle th((PyObject *) tinfo->type);
                     signature +=
                         th.attr("__module__").cast<std::string>() + "." +
@@ -535,7 +535,7 @@ protected:
         }
         // Then specific overload signatures
         bool first_user_def = true;
-        for (auto it = chain_start; it != nullptr; it = it->next) {
+        for (auto *it = chain_start; it != nullptr; it = it->next) {
             if (options::show_function_signatures()) {
                 if (index > 0) {
                     signatures += "\n";
@@ -652,8 +652,8 @@ protected:
                 return nullptr;
             }
 
-            const auto tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
-            const auto pi = reinterpret_cast<instance *>(parent.ptr());
+            auto *const tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
+            auto *const pi = reinterpret_cast<instance *>(parent.ptr());
             self_value_and_holder = pi->get_value_and_holder(tinfo, true);
 
             // If this value is already registered it must mean __init__ is invoked multiple times;
@@ -1207,7 +1207,7 @@ public:
             /* m_clear */    nullptr,
             /* m_free */     nullptr
         };
-        auto m = PyModule_Create(def);
+        auto *m = PyModule_Create(def);
 #else
         // Ignore module_def *def; only necessary for Python 3
         (void) def;
@@ -1317,7 +1317,7 @@ protected:
     void mark_parents_nonsimple(PyTypeObject *value) {
         auto t = reinterpret_borrow<tuple>(value->tp_bases);
         for (handle h : t) {
-            auto tinfo2 = get_type_info((PyTypeObject *) h.ptr());
+            auto *tinfo2 = get_type_info((PyTypeObject *) h.ptr());
             if (tinfo2) {
                 tinfo2->simple_type = false;
             }
@@ -1329,7 +1329,7 @@ protected:
             buffer_info *(*get_buffer)(PyObject *, void *),
             void *get_buffer_data) {
         auto *type = (PyHeapTypeObject*) m_ptr;
-        auto tinfo = detail::get_type_info(&type->ht_type);
+        auto *tinfo = detail::get_type_info(&type->ht_type);
 
         if (!type->ht_type.tp_as_buffer) {
             pybind11_fail("To be able to register buffer protocol support for the type '"
@@ -2304,7 +2304,7 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
         return result;
     };
 
-    if (auto tinfo = detail::get_type_info(typeid(OutputType))) {
+    if (auto *tinfo = detail::get_type_info(typeid(OutputType))) {
         tinfo->implicit_conversions.push_back(implicit_caster);
     } else {
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
@@ -2568,7 +2568,7 @@ PYBIND11_NAMESPACE_END(detail)
   :return: The Python method by this name from the object or an empty function wrapper.
  \endrst */
 template <class T> function get_override(const T *this_ptr, const char *name) {
-    auto tinfo = detail::get_type_info(typeid(T));
+    auto *tinfo = detail::get_type_info(typeid(T));
     return tinfo ? detail::get_type_override(this_ptr, tinfo, name) : function();
 }
 

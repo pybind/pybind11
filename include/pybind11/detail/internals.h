@@ -301,7 +301,7 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
 template <class T,
           enable_if_t<!std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
-    if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
+    if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
         return handle_nested_exception(*nep, p);
     }
     return false;
@@ -338,7 +338,7 @@ inline void translate_exception(std::exception_ptr p) {
         return;
     } catch (const builtin_exception &e) {
         // Could not use template since it's an abstract class.
-        if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
+        if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
             handle_nested_exception(*nep, p);
         }
         e.set_error();

@@ -157,7 +157,7 @@ inline void set_interpreter_argv(int argc, const char *const *argv, bool add_pro
         widened_argv[ii] = widened_argv_entries.back().get();
     }
 
-    auto pysys_argv = widened_argv.get();
+    auto *pysys_argv = widened_argv.get();
 #else
     // python 2.x
     std::vector<std::string> strings{safe_argv, safe_argv + argv_size};
