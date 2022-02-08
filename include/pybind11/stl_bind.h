@@ -87,10 +87,11 @@ void vector_if_equal_operator(enable_if_t<is_comparable<Vector>::value, Class_> 
 
     cl.def("remove", [](Vector &v, const T &x) {
             auto p = std::find(v.begin(), v.end(), x);
-            if (p != v.end())
+            if (p != v.end()) {
                 v.erase(p);
-            else
+            } else {
                 throw value_error();
+            }
         },
         arg("x"),
         "Remove the first item from the list whose value is x. "
@@ -116,10 +117,12 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     using DiffType = typename Vector::difference_type;
 
     auto wrap_i = [](DiffType i, SizeType n) {
-        if (i < 0)
+        if (i < 0) {
             i += n;
-        if (i < 0 || (SizeType)i >= n)
+        }
+        if (i < 0 || (SizeType) i >= n) {
             throw index_error();
+        }
         return i;
     };
 
@@ -131,8 +134,9 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def(init([](const iterable &it) {
         auto v = std::unique_ptr<Vector>(new Vector());
         v->reserve(len_hint(it));
-        for (handle h : it)
+        for (handle h : it) {
             v->push_back(h.cast<T>());
+        }
         return v.release();
     }));
 
@@ -177,26 +181,29 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def("insert",
         [](Vector &v, DiffType i, const T &x) {
             // Can't use wrap_i; i == v.size() is OK
-            if (i < 0)
+            if (i < 0) {
                 i += v.size();
-            if (i < 0 || (SizeType)i > v.size())
+            }
+            if (i < 0 || (SizeType) i > v.size()) {
                 throw index_error();
+            }
             v.insert(v.begin() + i, x);
         },
         arg("i") , arg("x"),
         "Insert an item at a given position."
     );
 
-    cl.def("pop",
+    cl.def(
+        "pop",
         [](Vector &v) {
-            if (v.empty())
+            if (v.empty()) {
                 throw index_error();
+            }
             T t = std::move(v.back());
             v.pop_back();
             return t;
         },
-        "Remove and return the last item"
-    );
+        "Remove and return the last item");
 
     cl.def("pop",
         [wrap_i](Vector &v, DiffType i) {
@@ -222,8 +229,9 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         [](const Vector &v, slice slice) -> Vector * {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
 
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
+            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
+            }
 
             auto *seq = new Vector();
             seq->reserve((size_t) slicelength);
@@ -241,11 +249,14 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         "__setitem__",
         [](Vector &v, slice slice, const Vector &value) {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
+            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
+            }
 
-            if (slicelength != value.size())
-                throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
+            if (slicelength != value.size()) {
+                throw std::runtime_error(
+                    "Left and right hand size of slice assignment have different sizes!");
+            }
 
             for (size_t i=0; i<slicelength; ++i) {
                 v[start] = value[i];
@@ -267,8 +278,9 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         [](Vector &v, slice slice) {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
 
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
+            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
+            }
 
             if (step == 1 && false) {
                 v.erase(v.begin() + (DiffType) start, v.begin() + DiffType(start + slicelength));
@@ -296,10 +308,12 @@ void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl)
     using ItType   = typename Vector::iterator;
 
     auto wrap_i = [](DiffType i, SizeType n) {
-        if (i < 0)
+        if (i < 0) {
             i += n;
-        if (i < 0 || (SizeType)i >= n)
+        }
+        if (i < 0 || (SizeType) i >= n) {
             throw index_error();
+        }
         return i;
     };
 
@@ -328,15 +342,15 @@ void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) 
     using SizeType = typename Vector::size_type;
     using DiffType = typename Vector::difference_type;
     using ItType   = typename Vector::iterator;
-    cl.def("__getitem__",
-        [](const Vector &v, DiffType i) -> T {
-            if (i < 0 && (i += v.size()) < 0)
-                throw index_error();
-            if ((SizeType)i >= v.size())
-                throw index_error();
-            return v[(SizeType)i];
+    cl.def("__getitem__", [](const Vector &v, DiffType i) -> T {
+        if (i < 0 && (i += v.size()) < 0) {
+            throw index_error();
         }
-    );
+        if ((SizeType) i >= v.size()) {
+            throw index_error();
+        }
+        return v[(SizeType) i];
+    });
 
     cl.def("__iter__",
            [](Vector &v) {
@@ -358,8 +372,9 @@ template <typename Vector, typename Class_> auto vector_if_insertion_operator(Cl
             s << name << '[';
             for (size_type i=0; i < v.size(); ++i) {
                 s << v[i];
-                if (i != v.size() - 1)
+                if (i != v.size() - 1) {
                     s << ", ";
+                }
             }
             s << ']';
             return s.str();
@@ -402,10 +417,14 @@ void vector_buffer_impl(Class_& cl, std::true_type) {
 
     cl.def(init([](const buffer &buf) {
         auto info = buf.request();
-        if (info.ndim != 1 || info.strides[0] % static_cast<ssize_t>(sizeof(T)))
+        if (info.ndim != 1 || info.strides[0] % static_cast<ssize_t>(sizeof(T))) {
             throw type_error("Only valid 1D buffers can be copied to a vector");
-        if (!detail::compare_buffer_info<T>::compare(info) || (ssize_t) sizeof(T) != info.itemsize)
-            throw type_error("Format mismatch (Python: " + info.format + " C++: " + format_descriptor<T>::format() + ")");
+        }
+        if (!detail::compare_buffer_info<T>::compare(info)
+            || (ssize_t) sizeof(T) != info.itemsize) {
+            throw type_error("Format mismatch (Python: " + info.format
+                             + " C++: " + format_descriptor<T>::format() + ")");
+        }
 
         T *p = static_cast<T*>(info.ptr);
         ssize_t step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
@@ -415,8 +434,9 @@ void vector_buffer_impl(Class_& cl, std::true_type) {
         }
         Vector vec;
         vec.reserve((size_t) info.shape[0]);
-        for (; p != end; p += step)
+        for (; p != end; p += step) {
             vec.push_back(*p);
+        }
         return vec;
 
     }));
@@ -545,8 +565,11 @@ void map_assignment(enable_if_t<is_copy_assignable<typename Map::mapped_type>::v
     cl.def("__setitem__",
            [](Map &m, const KeyType &k, const MappedType &v) {
                auto it = m.find(k);
-               if (it != m.end()) it->second = v;
-               else m.emplace(k, v);
+               if (it != m.end()) {
+                   it->second = v;
+               } else {
+                   m.emplace(k, v);
+               }
            }
     );
 }
@@ -583,8 +606,9 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
             s << name << '{';
             bool f = false;
             for (auto const &kv : m) {
-                if (f)
+                if (f) {
                     s << ", ";
+                }
                 s << kv.first << ": " << kv.second;
                 f = true;
             }
@@ -675,8 +699,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     cl.def("__getitem__",
         [](Map &m, const KeyType &k) -> MappedType & {
             auto it = m.find(k);
-            if (it == m.end())
-              throw key_error();
+            if (it == m.end()) {
+                throw key_error();
+            }
            return it->second;
         },
         return_value_policy::reference_internal // ref + keepalive
@@ -685,8 +710,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     cl.def("__contains__",
         [](Map &m, const KeyType &k) -> bool {
             auto it = m.find(k);
-            if (it == m.end())
-              return false;
+            if (it == m.end()) {
+                return false;
+            }
            return true;
         }
     );
@@ -699,8 +725,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     cl.def("__delitem__",
            [](Map &m, const KeyType &k) {
                auto it = m.find(k);
-               if (it == m.end())
+               if (it == m.end()) {
                    throw key_error();
+               }
                m.erase(it);
            }
     );
@@ -717,8 +744,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     keys_view.def("__contains__",
         [](KeysView &view, const KeyType &k) -> bool {
             auto it = view.map.find(k);
-            if (it == view.map.end())
+            if (it == view.map.end()) {
                 return false;
+            }
             return true;
         }
     );

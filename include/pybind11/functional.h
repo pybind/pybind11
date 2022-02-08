@@ -25,12 +25,15 @@ public:
     bool load(handle src, bool convert) {
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) return false;
+            if (!convert) {
+                return false;
+            }
             return true;
         }
 
-        if (!isinstance<function>(src))
+        if (!isinstance<function>(src)) {
             return false;
+        }
 
         auto func = reinterpret_borrow<function>(src);
 
@@ -104,12 +107,14 @@ public:
 
     template <typename Func>
     static handle cast(Func &&f_, return_value_policy policy, handle /* parent */) {
-        if (!f_)
+        if (!f_) {
             return none().inc_ref();
+        }
 
         auto result = f_.template target<function_type>();
-        if (result)
+        if (result) {
             return cpp_function(*result, policy).release();
+        }
         return cpp_function(std::forward<Func>(f_), policy).release();
     }
 

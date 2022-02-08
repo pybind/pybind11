@@ -26,8 +26,9 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     std::vector<int> list{{13, 17}};
     m.def("kw_func4", [](const std::vector<int> &entries) {
         std::string ret = "{";
-        for (int i : entries)
+        for (int i : entries) {
             ret += std::to_string(i) + " ";
+        }
         ret.back() = '}';
         return ret;
     }, py::arg("myList") = list);
@@ -89,18 +90,20 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("args_refcount", [](py::args a) {
         GC_IF_NEEDED;
         py::tuple t(a.size());
-        for (size_t i = 0; i < a.size(); i++)
+        for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
             t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+        }
         return t;
     });
     m.def("mixed_args_refcount", [](const py::object &o, py::args a) {
         GC_IF_NEEDED;
         py::tuple t(a.size() + 1);
         t[0] = o.ref_count();
-        for (size_t i = 0; i < a.size(); i++)
+        for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
             t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+        }
         return t;
     });
 
