@@ -276,12 +276,13 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
         cl.def("__init__", [class_func, alias_func]
         #endif
         (value_and_holder &v_h, CArgs... args) {
-            if (Py_TYPE(v_h.inst) == v_h.type->type)
+            if (Py_TYPE(v_h.inst) == v_h.type->type) {
                 // If the instance type equals the registered type we don't have inheritance, so
                 // don't need the alias and can construct using the class function:
                 construct<Class>(v_h, class_func(std::forward<CArgs>(args)...), false);
-            else
+            } else {
                 construct<Class>(v_h, alias_func(std::forward<CArgs>(args)...), true);
+            }
         }, is_new_style_constructor(), extra...);
     }
 };

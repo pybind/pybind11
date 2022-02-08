@@ -625,12 +625,15 @@ public:
                 vptr = type->operator_new(type->type_size);
             } else {
                 #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
                         vptr = ::operator new(type->type_size,
                                               std::align_val_t(type->type_align));
-                    else
+                    } else {
+                        vptr = ::operator new(type->type_size);
+                    }
+                #else
+                    vptr = ::operator new(type->type_size);
                 #endif
-                vptr = ::operator new(type->type_size);
             }
         }
         value = vptr;
@@ -778,8 +781,9 @@ public:
     // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
     PYBIND11_NOINLINE static std::pair<const void *, const type_info *> src_and_type(
             const void *src, const std::type_info &cast_type, const std::type_info *rtti_type = nullptr) {
-        if (auto *tpi = get_type_info(cast_type))
+        if (auto *tpi = get_type_info(cast_type)) {
             return {src, const_cast<const type_info *>(tpi)};
+        }
 
         // Not found, set error:
         std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
@@ -928,8 +932,9 @@ public:
             // except via a user-provided specialization of polymorphic_type_hook,
             // and the user has promised that no this-pointer adjustment is
             // required in that case, so it's OK to use static_cast.
-            if (const auto *tpi = get_type_info(*instance_type))
+            if (const auto *tpi = get_type_info(*instance_type)) {
                 return {vsrc, tpi};
+            }
         }
         // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
         // don't do a cast
