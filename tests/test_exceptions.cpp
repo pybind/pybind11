@@ -116,7 +116,9 @@ TEST_SUBMODULE(exceptions, m) {
     static py::exception<MyException> ex(m, "MyException");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
-            if (p) std::rethrow_exception(p);
+            if (p) {
+                std::rethrow_exception(p);
+            }
         } catch (const MyException &e) {
             // Set MyException as the active python error
             ex(e.what());
@@ -128,7 +130,9 @@ TEST_SUBMODULE(exceptions, m) {
     // never by visible from Python
     py::register_exception_translator([](std::exception_ptr p) {
         try {
-            if (p) std::rethrow_exception(p);
+            if (p) {
+                std::rethrow_exception(p);
+            }
         } catch (const MyException2 &e) {
             // Translate this exception to a standard RuntimeError
             PyErr_SetString(PyExc_RuntimeError, e.what());
@@ -140,7 +144,9 @@ TEST_SUBMODULE(exceptions, m) {
     // translator for MyException by throwing a new exception
     py::register_exception_translator([](std::exception_ptr p) {
         try {
-            if (p) std::rethrow_exception(p);
+            if (p) {
+                std::rethrow_exception(p);
+            }
         } catch (const MyException4 &e) {
             throw MyException(e.what());
         }
@@ -181,7 +187,9 @@ TEST_SUBMODULE(exceptions, m) {
             py::object o = foo["bar"];
         }
         catch (py::error_already_set& ex) {
-            if (!ex.matches(PyExc_KeyError)) throw;
+            if (!ex.matches(PyExc_KeyError)) {
+                throw;
+            }
             return true;
         }
         return false;
@@ -193,7 +201,9 @@ TEST_SUBMODULE(exceptions, m) {
             py::object o = foo["bar"];
         }
         catch (py::error_already_set &ex) {
-            if (!ex.matches(PyExc_Exception)) throw;
+            if (!ex.matches(PyExc_Exception)) {
+                throw;
+            }
             return true;
         }
         return false;
@@ -204,15 +214,18 @@ TEST_SUBMODULE(exceptions, m) {
             py::module_::import("nonexistent");
         }
         catch (py::error_already_set &ex) {
-            if (!ex.matches(PyExc_ImportError)) throw;
+            if (!ex.matches(PyExc_ImportError)) {
+                throw;
+            }
             return true;
         }
         return false;
     });
 
     m.def("throw_already_set", [](bool err) {
-        if (err)
+        if (err) {
             PyErr_SetString(PyExc_ValueError, "foo");
+        }
         try {
             throw py::error_already_set();
         } catch (const std::runtime_error& e) {
@@ -224,8 +237,9 @@ TEST_SUBMODULE(exceptions, m) {
             }
         }
         PyErr_Clear();
-        if (err)
+        if (err) {
             PyErr_SetString(PyExc_ValueError, "foo");
+        }
         throw py::error_already_set();
     });
 
@@ -252,10 +266,11 @@ TEST_SUBMODULE(exceptions, m) {
               try {
                   f(*args);
               } catch (py::error_already_set &ex) {
-                  if (ex.matches(exc_type))
+                  if (ex.matches(exc_type)) {
                       py::print(ex.what());
-                  else
+                  } else {
                       throw;
+                  }
               }
           });
 

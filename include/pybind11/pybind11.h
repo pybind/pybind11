@@ -212,8 +212,9 @@ protected:
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(call))
+            if (!args_converter.load_args(call)) {
                 return PYBIND11_TRY_NEXT_OVERLOAD;
+            }
 
             /* Invoke call policy pre-call hook */
             process_attributes<Extra...>::precall(call);
@@ -286,8 +287,9 @@ protected:
     class strdup_guard {
     public:
         ~strdup_guard() {
-            for (auto s : strings)
+            for (auto s : strings) {
                 std::free(s);
+            }
         }
         char *operator()(const char *s) {
             auto t = PYBIND11_COMPAT_STRDUP(s);
@@ -318,14 +320,18 @@ protected:
 
         /* Create copies of all referenced C-style strings */
         rec->name = guarded_strdup(rec->name ? rec->name : "");
-        if (rec->doc) rec->doc = guarded_strdup(rec->doc);
+        if (rec->doc) {
+            rec->doc = guarded_strdup(rec->doc);
+        }
         for (auto &a: rec->args) {
-            if (a.name)
+            if (a.name) {
                 a.name = guarded_strdup(a.name);
-            if (a.descr)
+            }
+            if (a.descr) {
                 a.descr = guarded_strdup(a.descr);
-            else if (a.value)
+            } else if (a.value) {
                 a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
+            }
         }
 
         rec->is_constructor = (std::strcmp(rec->name, "__init__") == 0)
@@ -355,12 +361,14 @@ protected:
             if (c == '{') {
                 // Write arg name for everything except *args and **kwargs.
                 is_starred = *(pc + 1) == '*';
-                if (is_starred)
+                if (is_starred) {
                     continue;
+                }
                 // Separator for keyword-only arguments, placed before the kw
                 // arguments start (unless we are already putting an *args)
-                if (!rec->has_args && arg_index == rec->nargs_pos)
+                if (!rec->has_args && arg_index == rec->nargs_pos) {
                     signature += "*, ";
+                }
                 if (arg_index < rec->args.size() && rec->args[arg_index].name) {
                     signature += rec->args[arg_index].name;
                 } else if (arg_index == 0 && rec->is_method) {
@@ -377,14 +385,17 @@ protected:
                 }
                 // Separator for positional-only arguments (placed after the
                 // argument, rather than before like *
-                if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only)
+                if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only) {
                     signature += ", /";
-                if (!is_starred)
+                }
+                if (!is_starred) {
                     arg_index++;
+                }
             } else if (c == '%') {
                 const std::type_info *t = types[type_index++];
-                if (!t)
+                if (!t) {
                     pybind11_fail("Internal error while parsing type signature (1)");
+                }
                 if (auto tinfo = detail::get_type_info(*t)) {
                     handle th((PyObject *) tinfo->type);
                     signature +=
@@ -406,8 +417,9 @@ protected:
             }
         }
 
-        if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr)
+        if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr) {
             pybind11_fail("Internal error while parsing type signature (2)");
+        }
 
 #if PY_MAJOR_VERSION < 3
         if (std::strcmp(rec->name, "__next__") == 0) {
@@ -422,8 +434,9 @@ protected:
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
 
-        if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr()))
+        if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr())) {
             rec->sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(rec->sibling.ptr());
+        }
 
         detail::function_record *chain = nullptr, *chain_start = rec;
         if (rec->sibling) {
@@ -433,13 +446,16 @@ protected:
                 chain = (detail::function_record *) rec_capsule;
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
-                if (!chain->scope.is(rec->scope))
+                if (!chain->scope.is(rec->scope)) {
                     chain = nullptr;
+                }
             }
-            // Don't trigger for things like the default __init__, which are wrapper_descriptors that we are intentionally replacing
-            else if (!rec->sibling.is_none() && rec->name[0] != '_')
-                pybind11_fail("Cannot overload existing non-function object \"" + std::string(rec->name) +
-                        "\" with a function of the same name");
+            // Don't trigger for things like the default __init__, which are wrapper_descriptors
+            // that we are intentionally replacing
+            else if (!rec->sibling.is_none() && rec->name[0] != '_') {
+                pybind11_fail("Cannot overload existing non-function object \""
+                              + std::string(rec->name) + "\" with a function of the same name");
+            }
         }
 
         if (!chain) {
@@ -466,21 +482,26 @@ protected:
             }
 
             m_ptr = PyCFunction_NewEx(rec->def, rec_capsule.ptr(), scope_module.ptr());
-            if (!m_ptr)
+            if (!m_ptr) {
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
+            }
         } else {
             /* Append at the beginning or end of the overload chain */
             m_ptr = rec->sibling.ptr();
             inc_ref();
-            if (chain->is_method != rec->is_method)
-                pybind11_fail("overloading a method with both static and instance methods is not supported; "
-                    #if defined(NDEBUG)
-                        "compile in debug mode for more details"
+            if (chain->is_method != rec->is_method) {
+                pybind11_fail(
+                    "overloading a method with both static and instance methods is not supported; "
+#if defined(NDEBUG)
+                    "compile in debug mode for more details"
                     #else
-                        "error while attempting to bind " + std::string(rec->is_method ? "instance" : "static") + " method " +
-                        std::string(pybind11::str(rec->scope.attr("__name__"))) + "." + std::string(rec->name) + signature
+                    "error while attempting to bind "
+                    + std::string(rec->is_method ? "instance" : "static") + " method "
+                    + std::string(pybind11::str(rec->scope.attr("__name__"))) + "."
+                    + std::string(rec->name) + signature
                     #endif
                 );
+            }
 
             if (rec->prepend) {
                 // Beginning of chain; we need to replace the capsule's current head-of-the-chain
@@ -494,8 +515,9 @@ protected:
             } else {
                 // Or end of chain (normal behavior)
                 chain_start = chain;
-                while (chain->next)
+                while (chain->next) {
                     chain = chain->next;
+                }
                 chain->next = unique_rec.release();
                 guarded_strdup.release();
             }
@@ -515,9 +537,12 @@ protected:
         bool first_user_def = true;
         for (auto it = chain_start; it != nullptr; it = it->next) {
             if (options::show_function_signatures()) {
-                if (index > 0) signatures += "\n";
-                if (chain)
+                if (index > 0) {
+                    signatures += "\n";
+                }
+                if (chain) {
                     signatures += std::to_string(++index) + ". ";
+                }
                 signatures += rec->name;
                 signatures += it->signature;
                 signatures += "\n";
@@ -526,12 +551,19 @@ protected:
                 // If we're appending another docstring, and aren't printing function signatures, we
                 // need to append a newline first:
                 if (!options::show_function_signatures()) {
-                    if (first_user_def) first_user_def = false;
-                    else signatures += "\n";
+                    if (first_user_def) {
+                        first_user_def = false;
+                    } else {
+                        signatures += "\n";
+                    }
                 }
-                if (options::show_function_signatures()) signatures += "\n";
+                if (options::show_function_signatures()) {
+                    signatures += "\n";
+                }
                 signatures += it->doc;
-                if (options::show_function_signatures()) signatures += "\n";
+                if (options::show_function_signatures()) {
+                    signatures += "\n";
+                }
             }
         }
 
@@ -544,8 +576,10 @@ protected:
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
-            if (!m_ptr)
-                pybind11_fail("cpp_function::cpp_function(): Could not allocate instance method object");
+            if (!m_ptr) {
+                pybind11_fail(
+                    "cpp_function::cpp_function(): Could not allocate instance method object");
+            }
             Py_DECREF(func);
         }
     }
@@ -560,8 +594,9 @@ protected:
 
         while (rec) {
             detail::function_record *next = rec->next;
-            if (rec->free_data)
+            if (rec->free_data) {
                 rec->free_data(rec);
+            }
             // During initialization, these strings might not have been copied yet,
             // so they cannot be freed. Once the function has been created, they can.
             // Check `make_function_record` for more details.
@@ -574,17 +609,19 @@ protected:
                     std::free(const_cast<char *>(arg.descr));
                 }
             }
-            for (auto &arg: rec->args)
+            for (auto &arg : rec->args) {
                 arg.value.dec_ref();
+            }
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
                 // Python 3.9.0 decref's these in the wrong order; rec->def
                 // If loaded on 3.9.0, let these leak (use Python 3.9.1 at runtime to fix)
                 // See https://github.com/python/cpython/pull/22670
                 #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
-                    if (!is_zero)
-                        delete rec->def;
-                #else
+                if (!is_zero) {
+                    delete rec->def;
+                }
+#else
                     delete rec->def;
                 #endif
             }
@@ -621,8 +658,9 @@ protected:
 
             // If this value is already registered it must mean __init__ is invoked multiple times;
             // we really can't support that in C++, so just ignore the second __init__.
-            if (self_value_and_holder.instance_registered())
+            if (self_value_and_holder.instance_registered()) {
                 return none().release().ptr();
+            }
         }
 
         try {
@@ -658,15 +696,22 @@ protected:
 
                 const function_record &func = *it;
                 size_t num_args = func.nargs;    // Number of positional arguments that we need
-                if (func.has_args) --num_args;   // (but don't count py::args
-                if (func.has_kwargs) --num_args; //  or py::kwargs)
+                if (func.has_args) {
+                    --num_args; // (but don't count py::args
+                }
+                if (func.has_kwargs) {
+                    --num_args; //  or py::kwargs)
+                }
                 size_t pos_args = func.nargs_pos;
 
-                if (!func.has_args && n_args_in > pos_args)
+                if (!func.has_args && n_args_in > pos_args) {
                     continue; // Too many positional arguments for this overload
+                }
 
-                if (n_args_in < pos_args && func.args.size() < pos_args)
-                    continue; // Not enough positional arguments given, and not enough defaults to fill in the blanks
+                if (n_args_in < pos_args && func.args.size() < pos_args) {
+                    continue; // Not enough positional arguments given, and not enough defaults to
+                              // fill in the blanks
+                }
 
                 function_call call(func, parent);
 
@@ -677,8 +722,9 @@ protected:
                 if (func.is_new_style_constructor) {
                     // The `value` may have been preallocated by an old-style `__init__`
                     // if it was a preceding candidate for overload resolution.
-                    if (self_value_and_holder)
+                    if (self_value_and_holder) {
                         self_value_and_holder.type->dealloc(self_value_and_holder);
+                    }
 
                     call.init_self = PyTuple_GET_ITEM(args_in, 0);
                     call.args.emplace_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
@@ -703,8 +749,9 @@ protected:
                     call.args.push_back(arg);
                     call.args_convert.push_back(arg_rec ? arg_rec->convert : true);
                 }
-                if (bad_arg)
+                if (bad_arg) {
                     continue; // Maybe it was meant for another overload (issue #688)
+                }
 
                 // Keep track of how many position args we copied out in case we need to come back
                 // to copy the rest into a py::args argument.
@@ -725,12 +772,14 @@ protected:
                         if (value) {
                             call.args.push_back(value);
                             call.args_convert.push_back(arg_rec.convert);
-                        } else
+                        } else {
                             break;
+                        }
                     }
 
-                    if (args_copied < func.nargs_pos_only)
+                    if (args_copied < func.nargs_pos_only) {
                         continue; // Not enough defaults to fill the positional arguments
+                    }
                 }
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
@@ -741,8 +790,9 @@ protected:
                         const auto &arg_rec = func.args[args_copied];
 
                         handle value;
-                        if (kwargs_in && arg_rec.name)
+                        if (kwargs_in && arg_rec.name) {
                             value = dict_getitemstring(kwargs.ptr(), arg_rec.name);
+                        }
 
                         if (value) {
                             // Consume a kwargs value
@@ -763,23 +813,27 @@ protected:
 
                         if (value) {
                             // If we're at the py::args index then first insert a stub for it to be replaced later
-                            if (func.has_args && call.args.size() == func.nargs_pos)
+                            if (func.has_args && call.args.size() == func.nargs_pos) {
                                 call.args.push_back(none());
+                            }
 
                             call.args.push_back(value);
                             call.args_convert.push_back(arg_rec.convert);
-                        }
-                        else
+                        } else {
                             break;
+                        }
                     }
 
-                    if (args_copied < num_args)
-                        continue; // Not enough arguments, defaults, or kwargs to fill the positional arguments
+                    if (args_copied < num_args) {
+                        continue; // Not enough arguments, defaults, or kwargs to fill the
+                                  // positional arguments
+                    }
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (kwargs && !kwargs.empty() && !func.has_kwargs)
+                if (kwargs && !kwargs.empty() && !func.has_kwargs) {
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
+                }
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
                 if (func.has_args) {
@@ -797,18 +851,20 @@ protected:
                             extra_args[i] = PyTuple_GET_ITEM(args_in, positional_args_copied + i);
                         }
                     }
-                    if (call.args.size() <= func.nargs_pos)
+                    if (call.args.size() <= func.nargs_pos) {
                         call.args.push_back(extra_args);
-                    else
+                    } else {
                         call.args[func.nargs_pos] = extra_args;
+                    }
                     call.args_convert.push_back(false);
                     call.args_ref = std::move(extra_args);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
                 if (func.has_kwargs) {
-                    if (!kwargs.ptr())
+                    if (!kwargs.ptr()) {
                         kwargs = dict(); // If we didn't get one, send an empty one
+                    }
                     call.args.push_back(kwargs);
                     call.args_convert.push_back(false);
                     call.kwargs_ref = std::move(kwargs);
@@ -838,8 +894,9 @@ protected:
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
 
-                if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
+                if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
                     break;
+                }
 
                 if (overloaded) {
                     // The (overloaded) call failed; if the call has at least one argument that
@@ -870,8 +927,9 @@ protected:
                     if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
                         // The error reporting logic below expects 'it' to be valid, as it would be
                         // if we'd encountered this failure in the first-pass loop.
-                        if (!result)
+                        if (!result) {
                             it = &call.func;
+                        }
                         break;
                     }
                 }
@@ -923,8 +981,9 @@ protected:
         };
 
         if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
-            if (overloads->is_operator)
+            if (overloads->is_operator) {
                 return handle(Py_NotImplemented).inc_ref().ptr();
+            }
 
             std::string msg = std::string(overloads->name) + "(): incompatible " +
                 std::string(overloads->is_constructor ? "constructor" : "function") +
@@ -944,7 +1003,9 @@ protected:
                         size_t end = sig.find(", "), next = end + 2;
                         size_t ret = sig.rfind(" -> ");
                         // Or the ), if there is no comma:
-                        if (end >= sig.size()) next = end = sig.find(')');
+                        if (end >= sig.size()) {
+                            next = end = sig.find(')');
+                        }
                         if (start < end && next < sig.size()) {
                             msg.append(sig, start, end - start);
                             msg += '(';
@@ -953,7 +1014,9 @@ protected:
                         }
                     }
                 }
-                if (!wrote_sig) msg += it2->signature;
+                if (!wrote_sig) {
+                    msg += it2->signature;
+                }
 
                 msg += "\n";
             }
@@ -961,8 +1024,11 @@ protected:
             auto args_ = reinterpret_borrow<tuple>(args_in);
             bool some_args = false;
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
-                if (!some_args) some_args = true;
-                else msg += ", ";
+                if (!some_args) {
+                    some_args = true;
+                } else {
+                    msg += ", ";
+                }
                 try {
                     msg += pybind11::repr(args_[ti]);
                 } catch (const error_already_set&) {
@@ -972,12 +1038,17 @@ protected:
             if (kwargs_in) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);
                 if (!kwargs.empty()) {
-                    if (some_args) msg += "; ";
+                    if (some_args) {
+                        msg += "; ";
+                    }
                     msg += "kwargs: ";
                     bool first = true;
                     for (auto kwarg : kwargs) {
-                        if (first) first = false;
-                        else msg += ", ";
+                        if (first) {
+                            first = false;
+                        } else {
+                            msg += ", ";
+                        }
                         msg += pybind11::str("{}=").format(kwarg.first);
                         try {
                             msg += pybind11::repr(kwarg.second);
@@ -1068,8 +1139,9 @@ public:
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
         auto result = reinterpret_borrow<module_>(PyImport_AddModule(full_name.c_str()));
-        if (doc && options::show_user_defined_docstrings())
+        if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
+        }
         attr(name) = result;
         return result;
     }
@@ -1077,16 +1149,18 @@ public:
     /// Import and return a module or throws `error_already_set`.
     static module_ import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
-        if (!obj)
+        if (!obj) {
             throw error_already_set();
+        }
         return reinterpret_steal<module_>(obj);
     }
 
     /// Reload the module or throws `error_already_set`.
     void reload() {
         PyObject *obj = PyImport_ReloadModule(ptr());
-        if (!obj)
+        if (!obj) {
             throw error_already_set();
+        }
         *this = reinterpret_steal<module_>(obj);
     }
 
@@ -1098,9 +1172,11 @@ public:
         established will, in most cases, break things.
     \endrst */
     PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
-        if (!overwrite && hasattr(*this, name))
-            pybind11_fail("Error during initialization: multiple incompatible definitions with name \"" +
-                    std::string(name) + "\"");
+        if (!overwrite && hasattr(*this, name)) {
+            pybind11_fail(
+                "Error during initialization: multiple incompatible definitions with name \""
+                + std::string(name) + "\"");
+        }
 
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
@@ -1138,8 +1214,9 @@ public:
         auto m = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
 #endif
         if (m == nullptr) {
-            if (PyErr_Occurred())
+            if (PyErr_Occurred()) {
                 throw error_already_set();
+            }
             pybind11_fail("Internal error in module_::create_extension_module()");
         }
         // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when returned from PyInit_...
@@ -1177,14 +1254,17 @@ public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
     void initialize(const type_record &rec) {
-        if (rec.scope && hasattr(rec.scope, "__dict__") && rec.scope.attr("__dict__").contains(rec.name))
-            pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
-                          "\": an object with that name is already defined");
+        if (rec.scope && hasattr(rec.scope, "__dict__")
+            && rec.scope.attr("__dict__").contains(rec.name)) {
+            pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name)
+                          + "\": an object with that name is already defined");
+        }
 
         if ((rec.module_local ? get_local_type_info(*rec.type) : get_global_type_info(*rec.type))
-            != nullptr)
-            pybind11_fail("generic_type: type \"" + std::string(rec.name) +
-                          "\" is already registered!");
+            != nullptr) {
+            pybind11_fail("generic_type: type \"" + std::string(rec.name)
+                          + "\" is already registered!");
+        }
 
         m_ptr = make_new_python_type(rec);
 
@@ -1206,10 +1286,11 @@ protected:
         auto &internals = get_internals();
         auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
-        if (rec.module_local)
+        if (rec.module_local) {
             get_local_internals().registered_types_cpp[tindex] = tinfo;
-        else
+        } else {
             internals.registered_types_cpp[tindex] = tinfo;
+        }
         internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -1237,8 +1318,9 @@ protected:
         auto t = reinterpret_borrow<tuple>(value->tp_bases);
         for (handle h : t) {
             auto tinfo2 = get_type_info((PyTypeObject *) h.ptr());
-            if (tinfo2)
+            if (tinfo2) {
                 tinfo2->simple_type = false;
+            }
             mark_parents_nonsimple((PyTypeObject *) h.ptr());
         }
     }
@@ -1249,12 +1331,12 @@ protected:
         auto *type = (PyHeapTypeObject*) m_ptr;
         auto tinfo = detail::get_type_info(&type->ht_type);
 
-        if (!type->ht_type.tp_as_buffer)
-            pybind11_fail(
-                "To be able to register buffer protocol support for the type '" +
-                get_fully_qualified_tp_name(tinfo->type) +
-                "' the associated class<>(..) invocation must "
-                "include the pybind11::buffer_protocol() annotation!");
+        if (!type->ht_type.tp_as_buffer) {
+            pybind11_fail("To be able to register buffer protocol support for the type '"
+                          + get_fully_qualified_tp_name(tinfo->type)
+                          + "' the associated class<>(..) invocation must "
+                            "include the pybind11::buffer_protocol() annotation!");
+        }
 
         tinfo->get_buffer = get_buffer;
         tinfo->get_buffer_data = get_buffer_data;
@@ -1475,8 +1557,9 @@ public:
         auto *ptr = new capture { std::forward<Func>(func) };
         install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
             detail::make_caster<type> caster;
-            if (!caster.load(obj, false))
+            if (!caster.load(obj, false)) {
                 return nullptr;
+            }
             return new buffer_info(((capture *) ptr)->func(caster));
         }, ptr);
         weakref(m_ptr, cpp_function([ptr](handle wr) {
@@ -1598,7 +1681,9 @@ public:
                 std::free(doc_prev);
                 rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
             }
-            if (! rec_active) rec_active = rec_fset;
+            if (!rec_active) {
+                rec_active = rec_fset;
+            }
         }
         def_property_static_impl(name, fget, fset, rec_active);
         return *this;
@@ -1716,8 +1801,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline str enum_name(handle arg) {
     dict entries = arg.get_type().attr("__entries");
     for (auto kv : entries) {
-        if (handle(kv.second[int_(0)]).equal(arg))
+        if (handle(kv.second[int_(0)]).equal(arg)) {
             return pybind11::str(kv.first);
+        }
     }
     return "???";
 }
@@ -1752,15 +1838,17 @@ struct enum_base {
             [](handle arg) -> std::string {
                 std::string docstring;
                 dict entries = arg.attr("__entries");
-                if (((PyTypeObject *) arg.ptr())->tp_doc)
+                if (((PyTypeObject *) arg.ptr())->tp_doc) {
                     docstring += std::string(((PyTypeObject *) arg.ptr())->tp_doc) + "\n\n";
+                }
                 docstring += "Members:";
                 for (auto kv : entries) {
                     auto key = std::string(pybind11::str(kv.first));
                     auto comment = kv.second[int_(1)];
                     docstring += "\n\n  " + key;
-                    if (!comment.is_none())
+                    if (!comment.is_none()) {
                         docstring += " : " + (std::string) pybind11::str(comment);
+                    }
                 }
                 return docstring;
             }, name("__doc__")
@@ -1769,8 +1857,9 @@ struct enum_base {
         m_base.attr("__members__") = static_property(cpp_function(
             [](handle arg) -> dict {
                 dict entries = arg.attr("__entries"), m;
-                for (auto kv : entries)
+                for (auto kv : entries) {
                     m[kv.first] = kv.second[int_(0)];
+                }
                 return m;
             }, name("__members__")), none(), none(), ""
         );
@@ -1865,8 +1954,9 @@ struct enum_base {
 
     PYBIND11_NOINLINE void export_values() {
         dict entries = m_base.attr("__entries");
-        for (auto kv : entries)
+        for (auto kv : entries) {
             m_parent.attr(kv.first) = kv.second[int_(0)];
+        }
     }
 
     handle m_base;
@@ -1944,11 +2034,13 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 
 PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
-    if (!nurse || !patient)
+    if (!nurse || !patient) {
         pybind11_fail("Could not activate keep_alive!");
+    }
 
-    if (patient.is_none() || nurse.is_none())
+    if (patient.is_none() || nurse.is_none()) {
         return; /* Nothing to keep alive or nothing to be kept alive by */
+    }
 
     auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
     if (!tinfo.empty()) {
@@ -1972,12 +2064,15 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
 
 PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
     auto get_arg = [&](size_t n) {
-        if (n == 0)
+        if (n == 0) {
             return ret;
-        if (n == 1 && call.init_self)
+        }
+        if (n == 1 && call.init_self) {
             return call.init_self;
-        if (n <= call.args.size())
+        }
+        if (n <= call.args.size()) {
             return call.args[n - 1];
+        }
         return handle();
     };
 
@@ -2000,10 +2095,11 @@ inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_t
             // TODO consolidate the erasure code in pybind11_meta_dealloc() in class.h
             auto &cache = get_internals().inactive_override_cache;
             for (auto it = cache.begin(), last = cache.end(); it != last; ) {
-                if (it->first == reinterpret_cast<PyObject *>(type))
+                if (it->first == reinterpret_cast<PyObject *>(type)) {
                     it = cache.erase(it);
-                else
+                } else {
                     ++it;
+                }
             }
 
             wr.dec_ref();
@@ -2089,19 +2185,24 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&... extra) {
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> ValueType {
-                if (!s.first_or_done)
-                    ++s.it;
-                else
-                    s.first_or_done = false;
-                if (s.it == s.end) {
-                    s.first_or_done = true;
-                    throw stop_iteration();
-                }
-                return Access()(s.it);
-            // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
-            }, std::forward<Extra>(extra)..., Policy);
+            .def("__iter__", [](state &s) -> state & { return s; })
+            .def(
+                "__next__",
+                [](state &s) -> ValueType {
+                    if (!s.first_or_done) {
+                        ++s.it;
+                    } else {
+                        s.first_or_done = false;
+                    }
+                    if (s.it == s.end) {
+                        s.first_or_done = true;
+                        throw stop_iteration();
+                    }
+                    return Access()(s.it);
+                    // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
+                },
+                std::forward<Extra>(extra)...,
+                Policy);
     }
 
     return cast(state{first, last, true});
@@ -2187,23 +2288,27 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
         static bool currently_used = false;
-        if (currently_used) // implicit conversions are non-reentrant
+        if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
+        }
         set_flag flag_helper(currently_used);
-        if (!detail::make_caster<InputType>().load(obj, false))
+        if (!detail::make_caster<InputType>().load(obj, false)) {
             return nullptr;
+        }
         tuple args(1);
         args[0] = obj;
         PyObject *result = PyObject_Call((PyObject *) type, args.ptr(), nullptr);
-        if (result == nullptr)
+        if (result == nullptr) {
             PyErr_Clear();
+        }
         return result;
     };
 
-    if (auto tinfo = detail::get_type_info(typeid(OutputType)))
+    if (auto tinfo = detail::get_type_info(typeid(OutputType))) {
         tinfo->implicit_conversions.push_back(implicit_caster);
-    else
+    } else {
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
+    }
 }
 
 
@@ -2239,9 +2344,11 @@ public:
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
         m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), NULL);
-        if (hasattr(scope, "__dict__") && scope.attr("__dict__").contains(name))
+        if (hasattr(scope, "__dict__") && scope.attr("__dict__").contains(name)) {
             pybind11_fail("Error during initialization: multiple incompatible "
-                          "definitions with name \"" + std::string(name) + "\"");
+                          "definitions with name \""
+                          + std::string(name) + "\"");
+        }
         scope.attr(name) = *this;
     }
 
@@ -2265,13 +2372,17 @@ exception<CppException> &register_exception_impl(handle scope,
                                                 handle base,
                                                 bool isLocal) {
     auto &ex = detail::get_exception_object<CppException>();
-    if (!ex) ex = exception<CppException>(scope, name, base);
+    if (!ex) {
+        ex = exception<CppException>(scope, name, base);
+    }
 
     auto register_func = isLocal ? &register_local_exception_translator
                                  : &register_exception_translator;
 
     register_func([](std::exception_ptr p) {
-        if (!p) return;
+        if (!p) {
+            return;
+        }
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
@@ -2339,8 +2450,9 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     write(line);
     write(kwargs.contains("end") ? kwargs["end"] : cast("\n"));
 
-    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>())
+    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
         file.attr("flush")();
+    }
 }
 PYBIND11_NAMESPACE_END(detail)
 
@@ -2363,16 +2475,18 @@ error_already_set::~error_already_set() {
 PYBIND11_NAMESPACE_BEGIN(detail)
 inline function get_type_override(const void *this_ptr, const type_info *this_type, const char *name)  {
     handle self = get_object_handle(this_ptr, this_type);
-    if (!self)
+    if (!self) {
         return function();
+    }
     handle type = type::handle_of(self);
     auto key = std::make_pair(type.ptr(), name);
 
     /* Cache functions that aren't overridden in Python to avoid
        many costly Python dictionary lookups below */
     auto &cache = get_internals().inactive_override_cache;
-    if (cache.find(key) != cache.end())
+    if (cache.find(key) != cache.end()) {
         return function();
+    }
 
     function override = getattr(self, name, function());
     if (override.is_cpp_function()) {

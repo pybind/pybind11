@@ -19,9 +19,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
     auto ndim = shape.size();
     std::vector<ssize_t> strides(ndim, itemsize);
-    if (ndim > 0)
-        for (size_t i = ndim - 1; i > 0; --i)
+    if (ndim > 0) {
+        for (size_t i = ndim - 1; i > 0; --i) {
             strides[i - 1] = strides[i] * shape[i];
+        }
+    }
     return strides;
 }
 
@@ -29,8 +31,9 @@ inline std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t
 inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
     auto ndim = shape.size();
     std::vector<ssize_t> strides(ndim, itemsize);
-    for (size_t i = 1; i < ndim; ++i)
+    for (size_t i = 1; i < ndim; ++i) {
         strides[i] = strides[i - 1] * shape[i - 1];
+    }
     return strides;
 }
 
@@ -53,10 +56,12 @@ struct buffer_info {
                 detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in, bool readonly=false)
     : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
       shape(std::move(shape_in)), strides(std::move(strides_in)), readonly(readonly) {
-        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size())
+        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size()) {
             pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
-        for (size_t i = 0; i < (size_t) ndim; ++i)
+        }
+        for (size_t i = 0; i < (size_t) ndim; ++i) {
             size *= shape[i];
+        }
     }
 
     template <typename T>

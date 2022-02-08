@@ -145,8 +145,9 @@ template <typename Type_> struct EigenProps {
     // (preferring the latter if it will fit in either, i.e. for a fully dynamic matrix type).
     static EigenConformable<row_major> conformable(const array &a) {
         const auto dims = a.ndim();
-        if (dims < 1 || dims > 2)
+        if (dims < 1 || dims > 2) {
             return false;
+        }
 
         if (dims == 2) { // Matrix type: require exact match (or dynamic)
 
@@ -155,9 +156,10 @@ template <typename Type_> struct EigenProps {
                 np_cols = a.shape(1),
                 np_rstride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar)),
                 np_cstride = a.strides(1) / static_cast<ssize_t>(sizeof(Scalar));
-            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows) ||
-                (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols))
+            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows)
+                || (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols)) {
                 return false;
+            }
 
             return {np_rows, np_cols, np_rstride, np_cstride};
         }
@@ -168,8 +170,9 @@ template <typename Type_> struct EigenProps {
               stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
 
         if (vector) { // Eigen type is a compile-time vector
-            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n)
+            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n) {
                 return false; // Vector size mismatch
+            }
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
         }
         if (fixed) {
@@ -179,10 +182,14 @@ template <typename Type_> struct EigenProps {
         if (fixed_cols) {
             // Since this isn't a vector, cols must be != 1.  We allow this only if it exactly
             // equals the number of elements (rows is Dynamic, and so 1 row is allowed).
-            if (cols != n) return false;
+            if (cols != n) {
+                return false;
+            }
             return {1, n, stride};
         } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
-            if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) return false;
+        if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) {
+            return false;
+        }
             return {n, 1, stride};
     }
 
@@ -213,14 +220,18 @@ template <typename Type_> struct EigenProps {
 template <typename props> handle eigen_array_cast(typename props::Type const &src, handle base = handle(), bool writeable = true) {
     constexpr ssize_t elem_size = sizeof(typename props::Scalar);
     array a;
-    if (props::vector)
+    if (props::vector) {
         a = array({ src.size() }, { elem_size * src.innerStride() }, src.data(), base);
-    else
-        a = array({ src.rows(), src.cols() }, { elem_size * src.rowStride(), elem_size * src.colStride() },
-                  src.data(), base);
+    } else {
+        a = array({src.rows(), src.cols()},
+                  {elem_size * src.rowStride(), elem_size * src.colStride()},
+                  src.data(),
+                  base);
+    }
 
-    if (!writeable)
+    if (!writeable) {
         array_proxy(a.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
+    }
 
     return a.release();
 }
@@ -255,28 +266,35 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
 
     bool load(handle src, bool convert) {
         // If we're in no-convert mode, only load if given an array of the correct type
-        if (!convert && !isinstance<array_t<Scalar>>(src))
+        if (!convert && !isinstance<array_t<Scalar>>(src)) {
             return false;
+        }
 
         // Coerce into an array, but don't do type conversion yet; the copy below handles it.
         auto buf = array::ensure(src);
 
-        if (!buf)
+        if (!buf) {
             return false;
+        }
 
         auto dims = buf.ndim();
-        if (dims < 1 || dims > 2)
+        if (dims < 1 || dims > 2) {
             return false;
+        }
 
         auto fits = props::conformable(buf);
-        if (!fits)
+        if (!fits) {
             return false;
+        }
 
         // Allocate the new type, then build a numpy reference into it
         value = Type(fits.rows, fits.cols);
         auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
-        if (dims == 1) ref = ref.squeeze();
-        else if (ref.ndim() == 1) buf = buf.squeeze();
+        if (dims == 1) {
+            ref = ref.squeeze();
+        } else if (ref.ndim() == 1) {
+            buf = buf.squeeze();
+        }
 
         int result = detail::npy_api::get().PyArray_CopyInto_(ref.ptr(), buf.ptr());
 
@@ -323,14 +341,18 @@ public:
     }
     // lvalue reference return; default (automatic) becomes copy
     static handle cast(Type &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
+        }
         return cast_impl(&src, policy, parent);
     }
     // const lvalue reference return; default (automatic) becomes copy
     static handle cast(const Type &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
+        }
         return cast(&src, policy, parent);
     }
     // non-const pointer return
@@ -439,11 +461,14 @@ public:
 
             if (aref && (!need_writeable || aref.writeable())) {
                 fits = props::conformable(aref);
-                if (!fits) return false; // Incompatible dimensions
-                if (!fits.template stride_compatible<props>())
+                if (!fits) {
+                    return false; // Incompatible dimensions
+                }
+                if (!fits.template stride_compatible<props>()) {
                     need_copy = true;
-                else
+                } else {
                     copy_or_ref = std::move(aref);
+                }
             }
             else {
                 need_copy = true;
@@ -454,13 +479,18 @@ public:
             // We need to copy: If we need a mutable reference, or we're not supposed to convert
             // (either because we're in the no-convert overload pass, or because we're explicitly
             // instructed not to copy (via `py::arg().noconvert()`) we have to fail loading.
-            if (!convert || need_writeable) return false;
+            if (!convert || need_writeable) {
+                return false;
+            }
 
             Array copy = Array::ensure(src);
-            if (!copy) return false;
-            fits = props::conformable(copy);
-            if (!fits || !fits.template stride_compatible<props>())
+            if (!copy) {
                 return false;
+            }
+            fits = props::conformable(copy);
+            if (!fits || !fits.template stride_compatible<props>()) {
+                return false;
+            }
             copy_or_ref = std::move(copy);
             loader_life_support::add_patient(copy_or_ref);
         }
@@ -550,8 +580,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     static constexpr bool rowMajor = Type::IsRowMajor;
 
     bool load(handle src, bool) {
-        if (!src)
+        if (!src) {
             return false;
+        }
 
         auto obj = reinterpret_borrow<object>(src);
         object sparse_module = module_::import("scipy.sparse");
@@ -572,8 +603,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         auto shape = pybind11::tuple((pybind11::object) obj.attr("shape"));
         auto nnz = obj.attr("nnz").cast<Index>();
 
-        if (!values || !innerIndices || !outerIndices)
+        if (!values || !innerIndices || !outerIndices) {
             return false;
+        }
 
         value = EigenMapSparseMatrix<Scalar,
                                      Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),
