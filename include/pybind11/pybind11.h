@@ -183,12 +183,13 @@ protected:
 #endif
             // UB without std::launder, but without breaking ABI and/or
             // a significant refactoring it's "impossible" to solve.
-            if (!std::is_trivially_destructible<capture>::value)
+            if (!std::is_trivially_destructible<capture>::value) {
                 rec->free_data = [](function_record *r) {
                     auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
                     (void) data;
                     data->~capture();
                 };
+            }
 #if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
