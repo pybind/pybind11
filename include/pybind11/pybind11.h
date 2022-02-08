@@ -1911,12 +1911,10 @@ public:
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
         def_property_readonly("value", [](Type value) { return (Scalar) value; });
         def("__int__", [](Type value) { return (Scalar) value; });
+        def("__index__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
-        #elif PY_VERSION_HEX >= 0x03080000
-            def("__index__", [](Type value) { return (Scalar) value; });
         #endif
-
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(v_h, static_cast<Type>(arg),
