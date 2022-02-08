@@ -1913,8 +1913,7 @@ public:
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
-        #endif
-        #if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 8)
+        #else
             def("__index__", [](Type value) { return (Scalar) value; });
         #endif
 
