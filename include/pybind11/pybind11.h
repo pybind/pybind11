@@ -1913,7 +1913,7 @@ public:
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
-        #else
+        #elif PY_VERSION_HEX >= 0x03080000
             def("__index__", [](Type value) { return (Scalar) value; });
         #endif
 
