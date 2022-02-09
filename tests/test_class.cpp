@@ -255,7 +255,7 @@ TEST_SUBMODULE(class_, m) {
             return py::str().release().ptr();
         };
 
-        auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
+        auto *def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
         py::capsule def_capsule(def, [](void *ptr) { delete reinterpret_cast<PyMethodDef *>(ptr); });
         return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, def_capsule.ptr(), m.ptr()));
     }());

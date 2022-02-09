@@ -137,6 +137,8 @@ public:
         auto &internals = detail::get_internals();
         tstate = PyEval_SaveThread();
         if (disassoc) {
+            // Python >= 3.7 can remove this, it's an int before 3.7
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto key = internals.tstate;
             PYBIND11_TLS_DELETE_VALUE(key);
         }
@@ -160,6 +162,8 @@ public:
             PyEval_RestoreThread(tstate);
         }
         if (disassoc) {
+            // Python >= 3.7 can remove this, it's an int before 3.7
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto key = detail::get_internals().tstate;
             PYBIND11_TLS_REPLACE_VALUE(key, tstate);
         }

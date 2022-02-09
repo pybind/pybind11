@@ -1130,7 +1130,7 @@ public:
     static constexpr int value = values[detail::is_fmt_numeric<T>::index];
 
     static pybind11::dtype dtype() {
-        if (auto ptr = npy_api::get().PyArray_DescrFromType_(value)) {
+        if (auto *ptr = npy_api::get().PyArray_DescrFromType_(value)) {
             return reinterpret_steal<pybind11::dtype>(ptr);
         }
         pybind11_fail("Unsupported buffer format!");
@@ -1200,7 +1200,7 @@ PYBIND11_NOINLINE void register_structured_dtype(
         formats.append(field.descr);
         offsets.append(pybind11::int_(field.offset));
     }
-    auto dtype_ptr
+    auto *dtype_ptr
         = pybind11::dtype(std::move(names), std::move(formats), std::move(offsets), itemsize)
               .release()
               .ptr();
@@ -1699,7 +1699,7 @@ private:
         }
 
         /* Call the function */
-        auto mutable_data = returned_array::mutable_data(result);
+        auto *mutable_data = returned_array::mutable_data(result);
         if (trivial == broadcast_trivial::non_trivial) {
             apply_broadcast(buffers, params, mutable_data, size, shape, i_seq, vi_seq, bi_seq);
         } else {

@@ -109,7 +109,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
 
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
-        auto type = check[i];
+        auto *type = check[i];
         // Ignore Python2 old-style class super type:
         if (!PyType_Check((PyObject *) type)) {
             continue;
@@ -178,7 +178,7 @@ inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type)
  * `all_type_info` instead if you want to support multiple bases.
  */
 PYBIND11_NOINLINE detail::type_info* get_type_info(PyTypeObject *type) {
-    auto &bases = all_type_info(type);
+    const auto &bases = all_type_info(type);
     if (bases.empty()) {
         return nullptr;
     }
@@ -210,10 +210,10 @@ inline detail::type_info *get_global_type_info(const std::type_index &tp) {
 /// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
 PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_index &tp,
                                                           bool throw_if_missing = false) {
-    if (auto ltype = get_local_type_info(tp)) {
+    if (auto *ltype = get_local_type_info(tp)) {
         return ltype;
     }
-    if (auto gtype = get_global_type_info(tp)) {
+    if (auto *gtype = get_global_type_info(tp)) {
         return gtype;
     }
 
@@ -235,7 +235,7 @@ PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
                                                                 const detail::type_info *tinfo) {
     auto it_instances = get_internals().registered_instances.equal_range(src);
     for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-        for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+        for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
             if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
                 return handle((PyObject *) it_i->second).inc_ref();
             }
@@ -397,7 +397,7 @@ PYBIND11_NOINLINE value_and_holder instance::get_value_and_holder(const type_inf
 }
 
 PYBIND11_NOINLINE void instance::allocate_layout() {
-    auto &tinfo = all_type_info(Py_TYPE(this));
+    const auto &tinfo = all_type_info(Py_TYPE(this));
 
     const size_t n_types = tinfo.size();
 
@@ -421,7 +421,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // values that tracks whether each associated holder has been initialized.  Each [block] is
         // padded, if necessary, to an integer multiple of sizeof(void *).
         size_t space = 0;
-        for (auto t : tinfo) {
+        for (auto *t : tinfo) {
             space += 1; // value pointer
             space += t->holder_size_in_ptrs; // holder instance
         }
@@ -582,7 +582,7 @@ public:
         }
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
+        auto *wrapper = reinterpret_cast<instance *>(inst.ptr());
         wrapper->owned = false;
         void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 
@@ -656,7 +656,7 @@ public:
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
-            auto *type = v_h.type ? v_h.type : typeinfo;
+            const auto *type = v_h.type ? v_h.type : typeinfo;
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
             } else {
@@ -675,7 +675,7 @@ public:
         value = vptr;
     }
     bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
+        for (const auto &cast : typeinfo->implicit_casts) {
             type_caster_generic sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
@@ -718,7 +718,7 @@ public:
             return false;
         }
 
-        if (auto result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
+        if (auto *result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
             value = result;
             return true;
         }
@@ -750,7 +750,7 @@ public:
         }
         // Case 2: We have a derived class
         if (PyType_IsSubtype(srctype, typeinfo->type)) {
-            auto &bases = all_type_info(srctype);
+            const auto &bases = all_type_info(srctype);
             bool no_cpp_mi = typeinfo->simple_type;
 
             // Case 2a: the python type is a Python-inherited derived class that inherits from just
@@ -767,7 +767,7 @@ public:
             // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
             // can safely reinterpret_cast to the relevant pointer.
             if (bases.size() > 1) {
-                for (auto base : bases) {
+                for (auto *base : bases) {
                     if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
                         this_.load_value(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
                         return true;
@@ -785,7 +785,7 @@ public:
 
         // Perform an implicit conversion
         if (convert) {
-            for (auto &converter : typeinfo->implicit_conversions) {
+            for (const auto &converter : typeinfo->implicit_conversions) {
                 auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
                 if (load_impl<ThisT>(temp, false)) {
                     loader_life_support::add_patient(temp);
@@ -799,7 +799,7 @@ public:
 
         // Failed to match local typeinfo. Try again with global.
         if (typeinfo->module_local) {
-            if (auto gtype = get_global_type_info(*typeinfo->cpptype)) {
+            if (auto *gtype = get_global_type_info(*typeinfo->cpptype)) {
                 typeinfo = gtype;
                 return load(src, false);
             }
@@ -970,7 +970,7 @@ public:
     // polymorphic type (using RTTI by default, but can be overridden by specializing
     // polymorphic_type_hook). If the instance isn't derived, returns the base version.
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        auto &cast_type = typeid(itype);
+        const auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;
         const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
         if (instance_type && !same_type(cast_type, *instance_type)) {

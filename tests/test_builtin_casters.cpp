@@ -277,7 +277,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("refwrap_list", [](bool copy) {
         static IncType x1(1), x2(2);
         py::list l;
-        for (auto &f : {std::ref(x1), std::ref(x2)}) {
+        for (const auto &f : {std::ref(x1), std::ref(x2)}) {
             l.append(py::cast(f, copy ? py::return_value_policy::copy
                                       : py::return_value_policy::reference));
         }

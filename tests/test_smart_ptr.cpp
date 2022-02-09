@@ -113,7 +113,7 @@ public:
     static void cleanupAllInstances() {
         auto tmp = std::move(myobject4_instances);
         myobject4_instances.clear();
-        for (auto o : tmp) {
+        for (auto *o : tmp) {
             delete o;
         }
     }
@@ -141,7 +141,7 @@ public:
     static void cleanupAllInstances() {
         auto tmp = std::move(myobject4a_instances);
         myobject4a_instances.clear();
-        for (auto o : tmp) {
+        for (auto *o : tmp) {
             delete o;
         }
     }
