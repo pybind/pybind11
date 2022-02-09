@@ -1168,8 +1168,8 @@ public:
         Adds an object to the module using the given name.  Throws if an object with the given name
         already exists.
 
-        ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11 has
-        established will, in most cases, break things.
+        ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11
+        has established will, in most cases, break things.
     \endrst */
     PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
         if (!overwrite && hasattr(*this, name)) {
@@ -2560,10 +2560,11 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
 PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
-  Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
+  Try to retrieve a python method by the provided name from the instance pointed to by the
+  this_ptr.
 
-  :this_ptr: The pointer to the object the overridden method should be retrieved for. This should be
-             the first non-trampoline class encountered in the inheritance chain.
+  :this_ptr: The pointer to the object the overridden method should be retrieved for. This should
+             be the first non-trampoline class encountered in the inheritance chain.
   :name: The name of the overridden Python method to retrieve.
   :return: The Python method by this name from the object or an empty function wrapper.
  \endrst */
@@ -2588,9 +2589,10 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     } while (false)
 
 /** \rst
-    Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
-    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
-    the appropriate type. See :ref:`overriding_virtuals` for more information. This macro should be used when the method
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up a
+    method named 'fn' from the Python side, deals with the :ref:`gil` and necessary argument
+    conversions to call this method and return the appropriate type.
+    See :ref:`overriding_virtuals` for more information. This macro should be used when the method
     name in C is not the same as the method name in Python. For example with `__str__`.
 
     .. code-block:: cpp
@@ -2611,8 +2613,8 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     } while (false)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it
-    throws if no override can be found.
+    Macro for pure virtual functions, this function is identical to
+    :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it throws if no override can be found.
 \endrst */
 #define PYBIND11_OVERRIDE_PURE_NAME(ret_type, cname, name, fn, ...) \
     do { \
@@ -2621,9 +2623,10 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     } while (false)
 
 /** \rst
-    Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
-    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
-    the appropriate type. This macro should be used if the method name in C and in Python are identical.
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up the
+    method from the Python side, deals with the :ref:`gil` and necessary argument conversions to
+    call this method and return the appropriate type. This macro should be used if the method name
+    in C and in Python are identical.
     See :ref:`overriding_virtuals` for more information.
 
     .. code-block:: cpp
@@ -2648,8 +2651,8 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`, except that it throws
-    if no override can be found.
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`,
+    except that it throws if no override can be found.
 \endrst */
 #define PYBIND11_OVERRIDE_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
