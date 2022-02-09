@@ -345,10 +345,10 @@ template <typename StringType, bool IsView = false> struct string_caster {
         }
         if (!PyUnicode_Check(load_src.ptr())) {
 #if PY_MAJOR_VERSION >= 3
-            return load_bytes(load_src);
+            return load_raw(load_src);
 #else
             if (std::is_same<CharT, char>::value) {
-                return load_bytes(load_src);
+                return load_raw(load_src);
             }
 
             // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
@@ -421,11 +421,11 @@ private:
 #endif
     }
 
-    // When loading into a std::string or char*, accept a bytes object as-is (i.e.
+    // When loading into a std::string or char*, accept a bytes/bytearray object as-is (i.e.
     // without any encoding/decoding attempt).  For other C++ char sizes this is a no-op.
     // which supports loading a unicode from a str, doesn't take this path.
     template <typename C = CharT>
-    bool load_bytes(enable_if_t<std::is_same<C, char>::value, handle> src) {
+    bool load_raw(enable_if_t<std::is_same<C, char>::value, handle> src) {
         if (PYBIND11_BYTES_CHECK(src.ptr())) {
             // We were passed a Python 3 raw bytes; accept it into a std::string or char*
             // without any encoding attempt.
@@ -435,12 +435,21 @@ private:
                 return true;
             }
         }
+        if (PyByteArray_Check(src.ptr())) {
+            // We were passed a bytearray; accept it into a std::string or char*
+            // without any encoding attempt.
+            const char *bytes = PyByteArray_AsString(src.ptr());
+            if (bytes) {
+                value = StringType(bytes, (size_t) PyByteArray_Size(src.ptr()));
+                return true;
+            }
+        }
 
         return false;
     }
 
     template <typename C = CharT>
-    bool load_bytes(enable_if_t<!std::is_same<C, char>::value, handle>) { return false; }
+    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) { return false; }
 };
 
 template <typename CharT, class Traits, class Allocator>
