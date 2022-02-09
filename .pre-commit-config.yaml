@@ -145,12 +145,3 @@ repos:
   rev: "v13.0.0"
   hooks:
   - id: clang-format
-
-- repo: local
-  hooks:
-  - id: check-style
-    name: Classic check-style
-    language: system
-    types:
-    - c++
-    entry: ./tools/check-style.sh
