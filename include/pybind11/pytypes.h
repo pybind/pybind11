@@ -1516,8 +1516,8 @@ public:
         }
     }
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    template <typename T> operator T *() const {
+    template <typename T>
+    operator T *() const { // NOLINT(google-explicit-constructor)
         return get_pointer<T>();
     }
 
