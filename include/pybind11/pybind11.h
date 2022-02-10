@@ -431,9 +431,8 @@ protected:
                 }
                 if (auto *tinfo = detail::get_type_info(*t)) {
                     handle th((PyObject *) tinfo->type);
-                    signature += th.attr("__module__").cast<std::string>() + "." +
-                                 // Python 3.3+, but we backport it to earlier versions
-                                 th.attr("__qualname__").cast<std::string>();
+                    signature += th.attr("__module__").cast<std::string>() + "."
+                                 + th.attr("__qualname__").cast<std::string>();
                 } else if (rec->is_new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.

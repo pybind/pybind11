@@ -269,7 +269,7 @@
 // If UNDEFINED, pybind11::str can only hold PyUnicodeObject, and
 //               pybind11::isinstance<str>() is true only for pybind11::str.
 //               However, for Python 2 only (!), the pybind11::str caster
-//               implicitly decodes bytes to PyUnicodeObject. This is to ease
+//               implicitly decoded bytes to PyUnicodeObject. This was to ease
 //               the transition from the legacy behavior to the non-permissive
 //               behavior.
 

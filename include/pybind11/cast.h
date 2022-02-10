@@ -325,7 +325,7 @@ public:
                 res = 0; // None is implicitly converted to False
             }
 #if defined(PYPY_VERSION)
-            // On PyPy, check that "__bool__" (or "__nonzero__" on Python 2.7) attr exists
+            // On PyPy, check that "__bool__" attr exists
             else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
                 res = PyObject_IsTrue(src.ptr());
             }
@@ -383,8 +383,8 @@ struct string_caster {
             return load_bytes(load_src);
         }
 
-        // On Python 3.3, for UTF-8 we avoid the need for a temporary `bytes`
-        // object by using `PyUnicode_AsUTF8AndSize`.
+        // For UTF-8 we avoid the need for a temporary `bytes` object by using
+        // `PyUnicode_AsUTF8AndSize`.
         if (PYBIND11_SILENCE_MSVC_C4127(UTF_N == 8)) {
             Py_ssize_t size = -1;
             const auto *buffer
@@ -464,7 +464,7 @@ private:
     template <typename C = CharT>
     bool load_bytes(enable_if_t<std::is_same<C, char>::value, handle> src) {
         if (PYBIND11_BYTES_CHECK(src.ptr())) {
-            // We were passed a Python 3 raw bytes; accept it into a std::string or char*
+            // We were passed raw bytes; accept it into a std::string or char*
             // without any encoding attempt.
             const char *bytes = PYBIND11_BYTES_AS_STRING(src.ptr());
             if (bytes) {
@@ -1279,7 +1279,7 @@ public:
 
 /// \ingroup annotations
 /// Annotation indicating that all following arguments are keyword-only; the is the equivalent of
-/// an unnamed '*' argument (in Python 3)
+/// an unnamed '*' argument
 struct kw_only {};
 
 /// \ingroup annotations

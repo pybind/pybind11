@@ -1903,8 +1903,6 @@ public:
         managed by Python. The caller is responsible for managing the lifetime
         of ``mem``, which MUST outlive the memoryview constructed here.
 
-        This method is not available in Python 2.
-
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
         .. _PyMemoryView_FromMemory:

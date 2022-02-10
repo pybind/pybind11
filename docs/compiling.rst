@@ -462,11 +462,8 @@ available in all modes. The targets provided are:
    ``pybind11::headers``
      Just the pybind11 headers and minimum compile requirements
 
-   ``pybind11::python2_no_register``
-     Quiets the warning/error when mixing C++14 or higher and Python 2
-
    ``pybind11::pybind11``
-     Python headers + ``pybind11::headers`` + ``pybind11::python2_no_register`` (Python 2 only)
+     Python headers + ``pybind11::headers``
 
    ``pybind11::python_link_helper``
      Just the "linking" part of pybind11:module
@@ -582,12 +579,6 @@ both pybind11 and Python headers. This assumes that pybind11 has been installed
 using ``pip`` or ``conda``. If it hasn't, you can also manually specify
 ``-I <path-to-pybind11>/include`` together with the Python includes path
 ``python3-config --includes``.
-
-Note that Python 2.7 modules don't use a special suffix, so you should simply
-use ``example.so`` instead of ``example$(python3-config --extension-suffix)``.
-Besides, the ``--extension-suffix`` option may or may not be available, depending
-on the distribution; in the latter case, the module extension can be manually
-set to ``.so``.
 
 On macOS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
