@@ -9,10 +9,10 @@
 
 #include "pybind11_tests.h"
 
-#include <pybind11/stl_bind.h>
-#include <pybind11/numpy.h>
-#include <map>
 #include <deque>
+#include <map>
+#include <pybind11/numpy.h>
+#include <pybind11/stl_bind.h>
 #include <unordered_map>
 
 class El {
@@ -23,7 +23,7 @@ public:
     int a;
 };
 
-std::ostream & operator<<(std::ostream &s, El const&v) {
+std::ostream &operator<<(std::ostream &s, El const &v) {
     s << "El{" << v.a << '}';
     return s;
 }
@@ -40,7 +40,8 @@ public:
     int value;
 };
 
-template <class Container> Container *one_to_n(int n) {
+template <class Container>
+Container *one_to_n(int n) {
     auto *v = new Container();
     for (int i = 1; i <= n; i++) {
         v->emplace_back(i);
@@ -48,7 +49,8 @@ template <class Container> Container *one_to_n(int n) {
     return v;
 }
 
-template <class Map> Map *times_ten(int n) {
+template <class Map>
+Map *times_ten(int n) {
     auto *m = new Map();
     for (int i = 1; i <= n; i++) {
         m->emplace(int(i), E_nc(10 * i));
@@ -56,7 +58,8 @@ template <class Map> Map *times_ten(int n) {
     return m;
 }
 
-template <class NestMap> NestMap *times_hundred(int n) {
+template <class NestMap>
+NestMap *times_hundred(int n) {
     auto *m = new NestMap();
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
@@ -71,8 +74,7 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
 
     // test_vector_custom
-    py::class_<El>(m, "El")
-        .def(py::init<int>());
+    py::class_<El>(m, "El").def(py::init<int>());
     py::bind_vector<std::vector<El>>(m, "VectorEl");
     py::bind_vector<std::vector<std::vector<El>>>(m, "VectorVectorEl");
 
@@ -82,11 +84,10 @@ TEST_SUBMODULE(stl_binders, m) {
 
     // test_map_string_double_const
     py::bind_map<std::map<std::string, double const>>(m, "MapStringDoubleConst");
-    py::bind_map<std::unordered_map<std::string, double const>>(m, "UnorderedMapStringDoubleConst");
+    py::bind_map<std::unordered_map<std::string, double const>>(m,
+                                                                "UnorderedMapStringDoubleConst");
 
-    py::class_<E_nc>(m, "ENC")
-        .def(py::init<int>())
-        .def_readwrite("value", &E_nc::value);
+    py::class_<E_nc>(m, "ENC").def(py::init<int>()).def_readwrite("value", &E_nc::value);
 
     // test_noncopyable_containers
     py::bind_vector<std::vector<E_nc>>(m, "VectorENC");
@@ -116,17 +117,31 @@ TEST_SUBMODULE(stl_binders, m) {
     // test_vector_buffer
     py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
     // no dtype declared for this version:
-    struct VUndeclStruct { bool w; uint32_t x; double y; bool z; };
-    m.def("create_undeclstruct", [m] () mutable {
-        py::bind_vector<std::vector<VUndeclStruct>>(m, "VectorUndeclStruct", py::buffer_protocol());
+    struct VUndeclStruct {
+        bool w;
+        uint32_t x;
+        double y;
+        bool z;
+    };
+    m.def("create_undeclstruct", [m]() mutable {
+        py::bind_vector<std::vector<VUndeclStruct>>(
+            m, "VectorUndeclStruct", py::buffer_protocol());
     });
 
     // The rest depends on numpy:
-    try { py::module_::import("numpy"); }
-    catch (...) { return; }
+    try {
+        py::module_::import("numpy");
+    } catch (...) {
+        return;
+    }
 
     // test_vector_buffer_numpy
-    struct VStruct { bool w; uint32_t x; double y; bool z; };
+    struct VStruct {
+        bool w;
+        uint32_t x;
+        double y;
+        bool z;
+    };
     PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
     py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
     py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());

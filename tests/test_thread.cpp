@@ -20,10 +20,10 @@ namespace py = pybind11;
 namespace {
 
 struct IntStruct {
-    explicit IntStruct(int v) : value(v) {};
+    explicit IntStruct(int v) : value(v){};
     ~IntStruct() { value = -value; }
-    IntStruct(const IntStruct&) = default;
-    IntStruct& operator=(const IntStruct&) = default;
+    IntStruct(const IntStruct &) = default;
+    IntStruct &operator=(const IntStruct &) = default;
 
     int value;
 };
