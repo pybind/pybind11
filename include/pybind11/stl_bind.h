@@ -44,7 +44,8 @@ struct is_comparable<
                    container_traits<T>::is_comparable>>
     : std::true_type { };
 
-/* For a vector/map data structure, recursively check the value type (which is std::pair for maps) */
+/* For a vector/map data structure, recursively check the value type
+   (which is std::pair for maps) */
 template <typename T>
 struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>> {
     static constexpr const bool value =
@@ -384,7 +385,8 @@ template <typename Vector, typename Class_> auto vector_if_insertion_operator(Cl
 }
 
 // Provide the buffer interface for vectors if we have data() and we have a format for it
-// GCC seems to have "void std::vector<bool>::data()" - doing SFINAE on the existence of data() is insufficient, we need to check it returns an appropriate pointer
+// GCC seems to have "void std::vector<bool>::data()" - doing SFINAE on the existence of data()
+// is insufficient, we need to check it returns an appropriate pointer
 template <typename Vector, typename = void>
 struct vector_has_data_and_format : std::false_type {};
 template <typename Vector>
@@ -408,7 +410,8 @@ void vector_buffer_impl(Class_& cl, std::true_type) {
 
     static_assert(vector_has_data_and_format<Vector>::value, "There is not an appropriate format descriptor for this vector");
 
-    // numpy.h declares this for arbitrary types, but it may raise an exception and crash hard at runtime if PYBIND11_NUMPY_DTYPE hasn't been called, so check here
+    // numpy.h declares this for arbitrary types, but it may raise an exception and crash hard
+    // at runtime if PYBIND11_NUMPY_DTYPE hasn't been called, so check here
     format_descriptor<T>::format();
 
     cl.def_buffer([](Vector& v) -> buffer_info {

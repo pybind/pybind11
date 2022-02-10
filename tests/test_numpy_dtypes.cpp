@@ -308,10 +308,12 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     PYBIND11_NUMPY_DTYPE_EX(StructWithUglyNames, __x__, "x", __y__, "y");
 
-    // If uncommented, this should produce a static_assert failure telling the user that the struct
+#ifdef PYBIND11_NEVER_DEFINED_EVER
+    // If enabled, this should produce a static_assert failure telling the user that the struct
     // is not a POD type
-//    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
-//    PYBIND11_NUMPY_DTYPE(NotPOD, v);
+    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
+    PYBIND11_NUMPY_DTYPE(NotPOD, v);
+#endif
 
     // Check that dtypes can be registered programmatically, both from
     // initializer lists of field descriptors and from other containers.

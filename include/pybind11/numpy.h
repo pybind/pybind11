@@ -325,7 +325,8 @@ template <typename T, size_t N> struct array_info<T[N]> : array_info<std::array<
 template <typename T> using remove_all_extents_t = typename array_info<T>::type;
 
 template <typename T> using is_pod_struct = all_of<
-    std::is_standard_layout<T>,     // since we're accessing directly in memory we need a standard layout type
+    std::is_standard_layout<T>,     // since we're accessing directly in memory
+                                    // we need a standard layout type
 #if defined(__GLIBCXX__) && (__GLIBCXX__ < 20150422 || __GLIBCXX__ == 20150426 || __GLIBCXX__ == 20150623 || __GLIBCXX__ == 20150626 || __GLIBCXX__ == 20160803)
     // libstdc++ < 5 (including versions 4.8.5, 4.9.3 and 4.9.4 which were released after 5)
     // don't implement is_trivially_copyable, so approximate it

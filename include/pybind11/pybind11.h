@@ -242,7 +242,8 @@ protected:
 
         rec->nargs_pos = cast_in::args_pos >= 0
             ? static_cast<std::uint16_t>(cast_in::args_pos)
-            : sizeof...(Args) - cast_in::has_kwargs; // Will get reduced more if we have a kw_only
+            : sizeof...(Args) - cast_in::has_kwargs; // Will get reduced more if
+                                                     // we have a kw_only
         rec->has_args = cast_in::args_pos >= 0;
         rec->has_kwargs = cast_in::has_kwargs;
 
@@ -263,7 +264,8 @@ protected:
             static_assert(!(has_kw_only_args && has_pos_only_args) || pos_only_pos < kw_only_pos, "py::pos_only must come before py::kw_only");
         }
 
-        /* Generate a readable signature describing the function's arguments and return value types */
+        /* Generate a readable signature describing the function's arguments and return
+           value types */
         static constexpr auto signature = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
@@ -400,7 +402,8 @@ protected:
                     handle th((PyObject *) tinfo->type);
                     signature +=
                         th.attr("__module__").cast<std::string>() + "." +
-                        th.attr("__qualname__").cast<std::string>(); // Python 3.3+, but we backport it to earlier versions
+                        // Python 3.3+, but we backport it to earlier versions
+                        th.attr("__qualname__").cast<std::string>();
                 } else if (rec->is_new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.
@@ -639,7 +642,8 @@ protected:
         const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
                               *it = overloads;
 
-        /* Need to know how many arguments + keyword arguments there are to pick the right overload */
+        /* Need to know how many arguments + keyword arguments there are to pick the right
+           overload */
         const auto n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
 
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
@@ -715,7 +719,8 @@ protected:
 
                 function_call call(func, parent);
 
-                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
+                // Protect std::min with parentheses
+                size_t args_to_copy = (std::min)(pos_args, n_args_in);
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -956,7 +961,8 @@ protected:
                 - catch the exception and call PyErr_SetString or PyErr_SetObject
                   to set a standard (or custom) Python exception, or
                 - do nothing and let the exception fall through to the next translator, or
-                - delegate translation to the next translator by throwing a new type of exception. */
+                - delegate translation to the next translator by throwing a new type of exception.
+             */
 
             auto &local_exception_translators = get_local_internals().registered_exception_translators;
             if (detail::apply_exception_translators(local_exception_translators)) {
@@ -1197,7 +1203,8 @@ public:
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
 #if PY_MAJOR_VERSION >= 3
         // module_def is PyModuleDef
-        def = new (def) PyModuleDef {  // Placement new (not an allocation).
+        // Placement new (not an allocation).
+        def = new (def) PyModuleDef {
             /* m_base */     PyModuleDef_HEAD_INIT,
             /* m_name */     name,
             /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
@@ -1456,7 +1463,8 @@ public:
             none_of<is_pyobject<Extra>...>::value || // no base class arguments, or:
             (   constexpr_sum(is_pyobject<Extra>::value...) == 1 && // Exactly one base
                 constexpr_sum(is_base<options>::value...)   == 0 && // no template option bases
-                none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
+                // no multiple_inheritance attr
+                none_of<std::is_same<multiple_inheritance, Extra>...>::value),
             "Error: multiple inheritance bases must be specified via class_ template options");
 
         type_record record;

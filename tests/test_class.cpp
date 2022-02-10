@@ -22,7 +22,8 @@
 #include <utility>
 
 #if defined(_MSC_VER)
-#  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
+#  pragma warning(disable: 4324)
+//     warning C4324: structure was padded due to alignment specifier
 #endif
 
 // test_brace_initialization
@@ -534,22 +535,24 @@ CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 #define CHECK_BROKEN(N) static_assert(std::is_same<typename Breaks##N::type, BreaksBase<-(N)>>::value, \
         "Breaks1 has wrong type!");
 
-//// Two holder classes:
-//typedef py::class_<BreaksBase<-1>, std::unique_ptr<BreaksBase<-1>>, std::unique_ptr<BreaksBase<-1>>> Breaks1;
-//CHECK_BROKEN(1);
-//// Two aliases:
-//typedef py::class_<BreaksBase<-2>, BreaksTramp<-2>, BreaksTramp<-2>> Breaks2;
-//CHECK_BROKEN(2);
-//// Holder + 2 aliases
-//typedef py::class_<BreaksBase<-3>, std::unique_ptr<BreaksBase<-3>>, BreaksTramp<-3>, BreaksTramp<-3>> Breaks3;
-//CHECK_BROKEN(3);
-//// Alias + 2 holders
-//typedef py::class_<BreaksBase<-4>, std::unique_ptr<BreaksBase<-4>>, BreaksTramp<-4>, std::shared_ptr<BreaksBase<-4>>> Breaks4;
-//CHECK_BROKEN(4);
-//// Invalid option (not a subclass or holder)
-//typedef py::class_<BreaksBase<-5>, BreaksTramp<-4>> Breaks5;
-//CHECK_BROKEN(5);
-//// Invalid option: multiple inheritance not supported:
-//template <> struct BreaksBase<-8> : BreaksBase<-6>, BreaksBase<-7> {};
-//typedef py::class_<BreaksBase<-8>, BreaksBase<-6>, BreaksBase<-7>> Breaks8;
-//CHECK_BROKEN(8);
+#ifdef PYBIND11_NEVER_DEFINED_EVER
+// Two holder classes:
+typedef py::class_<BreaksBase<-1>, std::unique_ptr<BreaksBase<-1>>, std::unique_ptr<BreaksBase<-1>>> Breaks1;
+CHECK_BROKEN(1);
+// Two aliases:
+typedef py::class_<BreaksBase<-2>, BreaksTramp<-2>, BreaksTramp<-2>> Breaks2;
+CHECK_BROKEN(2);
+// Holder + 2 aliases
+typedef py::class_<BreaksBase<-3>, std::unique_ptr<BreaksBase<-3>>, BreaksTramp<-3>, BreaksTramp<-3>> Breaks3;
+CHECK_BROKEN(3);
+// Alias + 2 holders
+typedef py::class_<BreaksBase<-4>, std::unique_ptr<BreaksBase<-4>>, BreaksTramp<-4>, std::shared_ptr<BreaksBase<-4>>> Breaks4;
+CHECK_BROKEN(4);
+// Invalid option (not a subclass or holder)
+typedef py::class_<BreaksBase<-5>, BreaksTramp<-4>> Breaks5;
+CHECK_BROKEN(5);
+// Invalid option: multiple inheritance not supported:
+template <> struct BreaksBase<-8> : BreaksBase<-6>, BreaksBase<-7> {};
+typedef py::class_<BreaksBase<-8>, BreaksBase<-6>, BreaksBase<-7>> Breaks8;
+CHECK_BROKEN(8);
+#endif

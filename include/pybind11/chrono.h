@@ -38,7 +38,8 @@ public:
     using rep = typename type::rep;
     using period = typename type::period;
 
-    using days = std::chrono::duration<int_least32_t, std::ratio<86400>>; // signed 25 bits required by the standard.
+    // signed 25 bits required by the standard.
+    using days = std::chrono::duration<int_least32_t, std::ratio<86400>>;
 
     bool load(handle src, bool) {
         using namespace std::chrono;
