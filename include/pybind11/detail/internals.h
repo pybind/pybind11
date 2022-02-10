@@ -301,7 +301,7 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
 template <class T,
           enable_if_t<!std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
-    if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
+    if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
         return handle_nested_exception(*nep, p);
     }
     return false;
@@ -338,7 +338,7 @@ inline void translate_exception(std::exception_ptr p) {
         return;
     } catch (const builtin_exception &e) {
         // Could not use template since it's an abstract class.
-        if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
+        if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
             handle_nested_exception(*nep, p);
         }
         e.set_error();
@@ -398,8 +398,9 @@ inline void translate_local_exception(std::exception_ptr p) {
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
-    if (internals_pp && *internals_pp)
+    if (internals_pp && *internals_pp) {
         return **internals_pp;
+    }
 
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
@@ -425,7 +426,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
-        if (!internals_pp) internals_pp = new internals*();
+        if (!internals_pp) {
+            internals_pp = new internals *();
+        }
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)

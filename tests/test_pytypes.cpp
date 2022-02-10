@@ -40,8 +40,9 @@ TEST_SUBMODULE(pytypes, m) {
     });
     m.def("print_list", [](const py::list &list) {
         int index = 0;
-        for (auto item : list)
+        for (auto item : list) {
             py::print("list item {}: {}"_s.format(index++, item));
+        }
     });
     // test_none
     m.def("get_none", []{return py::none();});
@@ -56,8 +57,9 @@ TEST_SUBMODULE(pytypes, m) {
         return set;
     });
     m.def("print_set", [](const py::set &set) {
-        for (auto item : set)
+        for (auto item : set) {
             py::print("key:", item);
+        }
     });
     m.def("set_contains",
           [](const py::set &set, const py::object &key) { return set.contains(key); });
@@ -66,8 +68,9 @@ TEST_SUBMODULE(pytypes, m) {
     // test_dict
     m.def("get_dict", []() { return py::dict("key"_a="value"); });
     m.def("print_dict", [](const py::dict &dict) {
-        for (auto item : dict)
+        for (auto item : dict) {
             py::print("key: {}, value={}"_s.format(item.first, item.second));
+        }
     });
     m.def("dict_keyword_constructor", []() {
         auto d1 = py::dict("x"_a=1, "y"_a=2);
@@ -143,7 +146,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("return_capsule_with_name_and_destructor", []() {
         auto capsule = py::capsule((void *) 12345, "pointer type description", [](PyObject *ptr) {
             if (ptr) {
-                auto name = PyCapsule_GetName(ptr);
+                const auto *name = PyCapsule_GetName(ptr);
                 py::print("destructing capsule ({}, '{}')"_s.format(
                     (size_t) PyCapsule_GetPointer(ptr, name), name
                 ));
@@ -405,9 +408,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("test_memoryview_from_buffer", [](bool is_unsigned) {
         static const int16_t si16[] = { 3, 1, 4, 1, 5 };
         static const uint16_t ui16[] = { 2, 7, 1, 8 };
-        if (is_unsigned)
-            return py::memoryview::from_buffer(
-                ui16, { 4 }, { sizeof(uint16_t) });
+        if (is_unsigned) {
+            return py::memoryview::from_buffer(ui16, {4}, {sizeof(uint16_t)});
+        }
         return py::memoryview::from_buffer(si16, {5}, {sizeof(int16_t)});
     });
 

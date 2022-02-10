@@ -99,8 +99,9 @@ public:
                     pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             #endif
             PyThreadState_Clear(tstate);
-            if (active)
+            if (active) {
                 PyThreadState_DeleteCurrent();
+            }
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
         }
@@ -117,8 +118,9 @@ public:
 
     PYBIND11_NOINLINE ~gil_scoped_acquire() {
         dec_ref();
-        if (release)
-           PyEval_SaveThread();
+        if (release) {
+            PyEval_SaveThread();
+        }
     }
 private:
     PyThreadState *tstate = nullptr;
@@ -135,6 +137,8 @@ public:
         auto &internals = detail::get_internals();
         tstate = PyEval_SaveThread();
         if (disassoc) {
+            // Python >= 3.7 can remove this, it's an int before 3.7
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto key = internals.tstate;
             PYBIND11_TLS_DELETE_VALUE(key);
         }
@@ -150,12 +154,16 @@ public:
     }
 
     ~gil_scoped_release() {
-        if (!tstate)
+        if (!tstate) {
             return;
+        }
         // `PyEval_RestoreThread()` should not be called if runtime is finalizing
-        if (active)
+        if (active) {
             PyEval_RestoreThread(tstate);
+        }
         if (disassoc) {
+            // Python >= 3.7 can remove this, it's an int before 3.7
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto key = detail::get_internals().tstate;
             PYBIND11_TLS_REPLACE_VALUE(key, tstate);
         }

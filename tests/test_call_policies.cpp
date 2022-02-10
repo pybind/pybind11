@@ -95,8 +95,9 @@ TEST_SUBMODULE(call_policies, m) {
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
     auto report_gil_status = []() {
         auto is_gil_held = false;
-        if (auto tstate = py::detail::get_thread_state_unchecked())
+        if (auto *tstate = py::detail::get_thread_state_unchecked()) {
             is_gil_held = (tstate == PyGILState_GetThisThreadState());
+        }
 
         return is_gil_held ? "GIL held" : "GIL released";
     };

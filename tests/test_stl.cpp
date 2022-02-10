@@ -400,10 +400,11 @@ TEST_SUBMODULE(stl, m) {
     m.def("half_or_none_refsensitive", [](int x) -> refsensitive_opt_int {
         return x != 0 ? refsensitive_opt_int(x / 2) : refsensitive_opt_int();
     });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("test_nullopt_refsensitive", [](refsensitive_opt_int x) {
-        return x ? x.value() : 42;
-    }, py::arg_v("x", refsensitive_opt_int(), "None"));
+    m.def(
+        "test_nullopt_refsensitive",
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [](refsensitive_opt_int x) { return x ? x.value() : 42; },
+        py::arg_v("x", refsensitive_opt_int(), "None"));
     m.def("test_no_assign_refsensitive", [](const refsensitive_opt_no_assign &x) {
         return x ? x->value : 42;
     }, py::arg_v("x", refsensitive_opt_no_assign(), "None"));

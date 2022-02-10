@@ -139,9 +139,13 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("return_class_1", []() -> BaseClass* { return new DerivedClass1(); });
     m.def("return_class_2", []() -> BaseClass* { return new DerivedClass2(); });
-    m.def("return_class_n", [](int n) -> BaseClass* {
-        if (n == 1) return new DerivedClass1();
-        if (n == 2) return new DerivedClass2();
+    m.def("return_class_n", [](int n) -> BaseClass * {
+        if (n == 1) {
+            return new DerivedClass1();
+        }
+        if (n == 2) {
+            return new DerivedClass2();
+        }
         return new BaseClass();
     });
     m.def("return_none", []() -> BaseClass* { return nullptr; });
@@ -167,8 +171,9 @@ TEST_SUBMODULE(class_, m) {
         // See https://github.com/pybind/pybind11/issues/2486
         // if (category == 2)
         //     return py::type::of<int>();
-        if (category == 1)
+        if (category == 1) {
             return py::type::of<DerivedClass1>();
+        }
         return py::type::of<Invalid>();
     });
 
@@ -250,7 +255,7 @@ TEST_SUBMODULE(class_, m) {
             return py::str().release().ptr();
         };
 
-        auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
+        auto *def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
         py::capsule def_capsule(def, [](void *ptr) { delete reinterpret_cast<PyMethodDef *>(ptr); });
         return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, def_capsule.ptr(), m.ptr()));
     }());

@@ -24,7 +24,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline void erase_all(std::string &string, const std::string &search) {
     for (size_t pos = 0;;) {
         pos = string.find(search, pos);
-        if (pos == std::string::npos) break;
+        if (pos == std::string::npos) {
+            break;
+        }
         string.erase(pos, search.length());
     }
 }
@@ -34,8 +36,9 @@ PYBIND11_NOINLINE void clean_type_id(std::string &name) {
     int status = 0;
     std::unique_ptr<char, void (*)(void *)> res {
         abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), std::free };
-    if (status == 0)
+    if (status == 0) {
         name = res.get();
+    }
 #else
     detail::erase_all(name, "class ");
     detail::erase_all(name, "struct ");

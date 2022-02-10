@@ -136,14 +136,19 @@ TEST_SUBMODULE(callbacks, m) {
     m.def("dummy_function_overloaded", [](int i, int j) { return i + j; });
     m.def("dummy_function_overloaded", &dummy_function);
     m.def("dummy_function2", [](int i, int j) { return i + j; });
-    m.def("roundtrip", [](std::function<int(int)> f, bool expect_none = false) {
-        if (expect_none && f)
-            throw std::runtime_error("Expected None to be converted to empty std::function");
-        return f;
-    }, py::arg("f"), py::arg("expect_none")=false);
+    m.def(
+        "roundtrip",
+        [](std::function<int(int)> f, bool expect_none = false) {
+            if (expect_none && f) {
+                throw std::runtime_error("Expected None to be converted to empty std::function");
+            }
+            return f;
+        },
+        py::arg("f"),
+        py::arg("expect_none") = false);
     m.def("test_dummy_function", [](const std::function<int(int)> &f) -> std::string {
         using fn_type = int (*)(int);
-        auto result = f.target<fn_type>();
+        const auto *result = f.target<fn_type>();
         if (!result) {
             auto r = f(1);
             return "can't convert to function pointer: eval(1) = " + std::to_string(r);
@@ -215,8 +220,9 @@ TEST_SUBMODULE(callbacks, m) {
         };
 
         // spawn worker threads
-        for (auto i : work)
+        for (auto i : work) {
             start_f(py::cast<int>(i));
+        }
     });
 
     m.def("callback_num_times", [](const py::function &f, std::size_t num) {

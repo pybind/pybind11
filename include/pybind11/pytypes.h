@@ -242,7 +242,11 @@ class object : public handle {
 public:
     object() = default;
     PYBIND11_DEPRECATED("Use reinterpret_borrow<object>() or reinterpret_steal<object>()")
-    object(handle h, bool is_borrowed) : handle(h) { if (is_borrowed) inc_ref(); }
+    object(handle h, bool is_borrowed) : handle(h) {
+        if (is_borrowed) {
+            inc_ref();
+        }
+    }
     /// Copy constructor; always increases the reference count
     object(const object &o) : handle(o) { inc_ref(); }
     /// Move constructor; steals the object from ``other`` and preserves its reference count
@@ -458,8 +462,9 @@ template <> inline bool isinstance<object>(handle obj) { return obj.ptr() != nul
 /// Return true if ``obj`` is an instance of the ``type``.
 inline bool isinstance(handle obj, handle type) {
     const auto result = PyObject_IsInstance(obj.ptr(), type.ptr());
-    if (result == -1)
+    if (result == -1) {
         throw error_already_set();
+    }
     return result != 0;
 }
 
@@ -529,12 +534,13 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value) {
     if (value) {
 #if PY_MAJOR_VERSION >= 3
-        if (PyInstanceMethod_Check(value.ptr()))
+        if (PyInstanceMethod_Check(value.ptr())) {
             value = PyInstanceMethod_GET_FUNCTION(value.ptr());
-        else
+        } else
 #endif
-        if (PyMethod_Check(value.ptr()))
+            if (PyMethod_Check(value.ptr())) {
             value = PyMethod_GET_FUNCTION(value.ptr());
+        }
     }
     return value;
 }
@@ -1076,14 +1082,18 @@ public:
     template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
     str(const char *c, const SzType &n)
         : object(PyUnicode_FromStringAndSize(c, ssize_t_cast(n)), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate string object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate string object!");
+        }
     }
 
     // 'explicit' is explicitly omitted from the following constructors to allow implicit conversion to py::str from C++ string-like objects
     // NOLINTNEXTLINE(google-explicit-constructor)
     str(const char *c = "")
         : object(PyUnicode_FromString(c), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate string object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate string object!");
+        }
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
@@ -1109,20 +1119,26 @@ public:
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
-    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
+    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) {
+        if (!m_ptr) {
+            throw error_already_set();
+        }
+    }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator std::string() const {
         object temp = *this;
         if (PyUnicode_Check(m_ptr)) {
             temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(m_ptr));
-            if (!temp)
+            if (!temp) {
                 throw error_already_set();
+            }
         }
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
             pybind11_fail("Unable to extract string contents! (invalid type)");
+        }
         return std::string(buffer, (size_t) length);
     }
 
@@ -1162,13 +1178,17 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     bytes(const char *c = "")
         : object(PYBIND11_BYTES_FROM_STRING(c), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate bytes object!");
+        }
     }
 
     template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
     bytes(const char *c, const SzType &n)
         : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, ssize_t_cast(n)), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate bytes object!");
+        }
     }
 
     // Allow implicit conversion:
@@ -1181,8 +1201,9 @@ public:
     operator std::string() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
             pybind11_fail("Unable to extract bytes contents!");
+        }
         return std::string(buffer, (size_t) length);
     }
 
@@ -1199,8 +1220,9 @@ public:
     operator std::string_view() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
             pybind11_fail("Unable to extract bytes contents!");
+        }
         return {buffer, static_cast<size_t>(length)};
     }
 #endif
@@ -1214,27 +1236,32 @@ inline bytes::bytes(const pybind11::str &s) {
     object temp = s;
     if (PyUnicode_Check(s.ptr())) {
         temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(s.ptr()));
-        if (!temp)
+        if (!temp) {
             pybind11_fail("Unable to extract string contents! (encoding issue)");
+        }
     }
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
         pybind11_fail("Unable to extract string contents! (invalid type)");
+    }
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
-    if (!obj)
+    if (!obj) {
         pybind11_fail("Could not allocate bytes object!");
+    }
     m_ptr = obj.release().ptr();
 }
 
 inline str::str(const bytes& b) {
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length)) {
         pybind11_fail("Unable to extract bytes contents!");
+    }
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
-    if (!obj)
+    if (!obj) {
         pybind11_fail("Could not allocate string object!");
+    }
     m_ptr = obj.release().ptr();
 }
 
@@ -1247,7 +1274,9 @@ public:
     template <typename SzType, detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
     bytearray(const char *c, const SzType &n)
         : object(PyByteArray_FromStringAndSize(c, ssize_t_cast(n)), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate bytearray object!");
+        }
     }
 
     bytearray()
@@ -1295,7 +1324,9 @@ private:
     /// Return the truth value of an object -- always returns a new reference
     static PyObject *raw_bool(PyObject *op) {
         const auto value = PyObject_IsTrue(op);
-        if (value == -1) return nullptr;
+        if (value == -1) {
+            return nullptr;
+        }
         return handle(value != 0 ? Py_True : Py_False).inc_ref().ptr();
     }
 };
@@ -1330,17 +1361,21 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     int_(T value) {
         if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
-            if (std::is_signed<T>::value)
+            if (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLong((long) value);
-            else
+            } else {
                 m_ptr = PyLong_FromUnsignedLong((unsigned long) value);
+            }
         } else {
-            if (std::is_signed<T>::value)
+            if (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLongLong((long long) value);
-            else
+            } else {
                 m_ptr = PyLong_FromUnsignedLongLong((unsigned long long) value);
+            }
         }
-        if (!m_ptr) pybind11_fail("Could not allocate int object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate int object!");
+        }
     }
 
     template <typename T,
@@ -1361,11 +1396,15 @@ public:
     // Allow implicit conversion from float/double:
     // NOLINTNEXTLINE(google-explicit-constructor)
     float_(float value) : object(PyFloat_FromDouble((double) value), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate float object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate float object!");
+        }
     }
     // NOLINTNEXTLINE(google-explicit-constructor)
     float_(double value = .0) : object(PyFloat_FromDouble((double) value), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate float object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate float object!");
+        }
     }
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
@@ -1378,7 +1417,9 @@ public:
     PYBIND11_OBJECT_CVT_DEFAULT(weakref, object, PyWeakref_Check, raw_weakref)
     explicit weakref(handle obj, handle callback = {})
         : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate weak reference!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate weak reference!");
+        }
     }
 
 private:
@@ -1392,8 +1433,9 @@ public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
     slice(handle start, handle stop, handle step) {
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
-        if (!m_ptr)
+        if (!m_ptr) {
             pybind11_fail("Could not allocate slice object!");
+        }
     }
 
 #ifdef PYBIND11_HAS_OPTIONAL
@@ -1434,15 +1476,17 @@ public:
 
     explicit capsule(const void *value, const char *name = nullptr, void (*destructor)(PyObject *) = nullptr)
         : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
-        if (!m_ptr)
+        if (!m_ptr) {
             pybind11_fail("Could not allocate capsule object!");
+        }
     }
 
     PYBIND11_DEPRECATED("Please pass a destructor that takes a void pointer as input")
     capsule(const void *value, void (*destruct)(PyObject *))
         : object(PyCapsule_New(const_cast<void*>(value), nullptr, destruct), stolen_t{}) {
-        if (!m_ptr)
+        if (!m_ptr) {
             pybind11_fail("Could not allocate capsule object!");
+        }
     }
 
     capsule(const void *value, void (*destructor)(void *)) {
@@ -1452,11 +1496,13 @@ public:
             destructor(ptr);
         });
 
-        if (!m_ptr)
+        if (!m_ptr) {
             pybind11_fail("Could not allocate capsule object!");
+        }
 
-        if (PyCapsule_SetContext(m_ptr, (void *) destructor) != 0)
+        if (PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
             pybind11_fail("Could not set capsule context!");
+        }
     }
 
     explicit capsule(void (*destructor)()) {
@@ -1465,19 +1511,20 @@ public:
             destructor();
         });
 
-        if (!m_ptr)
+        if (!m_ptr) {
             pybind11_fail("Could not allocate capsule object!");
+        }
     }
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    template <typename T> operator T *() const {
+    template <typename T>
+    operator T *() const { // NOLINT(google-explicit-constructor)
         return get_pointer<T>();
     }
 
     /// Get the pointer the capsule holds.
     template<typename T = void>
     T* get_pointer() const {
-        auto name = this->name();
+        const auto *name = this->name();
         T *result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
         if (!result) {
             PyErr_Clear();
@@ -1504,7 +1551,9 @@ public:
               detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
     // Some compilers generate link errors when using `const SzType &` here:
     explicit tuple(SzType size = 0) : object(PyTuple_New(ssize_t_cast(size)), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate tuple object!");
+        }
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     bool empty() const { return size() == 0; }
@@ -1527,7 +1576,9 @@ class dict : public object {
 public:
     PYBIND11_OBJECT_CVT(dict, object, PyDict_Check, raw_dict)
     dict() : object(PyDict_New(), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate dict object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate dict object!");
+        }
     }
     template <typename... Args,
               typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>,
@@ -1547,8 +1598,9 @@ public:
 private:
     /// Call the `dict` Python type -- always returns a new reference
     static PyObject *raw_dict(PyObject *op) {
-        if (PyDict_Check(op))
+        if (PyDict_Check(op)) {
             return handle(op).inc_ref().ptr();
+        }
         return PyObject_CallFunctionObjArgs((PyObject *) &PyDict_Type, op, nullptr);
     }
 };
@@ -1558,8 +1610,9 @@ public:
     PYBIND11_OBJECT_DEFAULT(sequence, object, PySequence_Check)
     size_t size() const {
         ssize_t result = PySequence_Size(m_ptr);
-        if (result == -1)
+        if (result == -1) {
             throw error_already_set();
+        }
         return (size_t) result;
     }
     bool empty() const { return size() == 0; }
@@ -1576,7 +1629,9 @@ public:
               detail::enable_if_t<std::is_integral<SzType>::value, int> = 0>
     // Some compilers generate link errors when using `const SzType &` here:
     explicit list(SzType size = 0) : object(PyList_New(ssize_t_cast(size)), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate list object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate list object!");
+        }
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     bool empty() const { return size() == 0; }
@@ -1603,7 +1658,9 @@ class set : public object {
 public:
     PYBIND11_OBJECT_CVT(set, object, PySet_Check, PySet_New)
     set() : object(PySet_New(nullptr), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate set object!");
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate set object!");
+        }
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
@@ -1621,8 +1678,9 @@ public:
     PYBIND11_OBJECT_DEFAULT(function, object, PyCallable_Check)
     handle cpp_function() const {
         handle fun = detail::get_function(m_ptr);
-        if (fun && PyCFunction_Check(fun.ptr()))
+        if (fun && PyCFunction_Check(fun.ptr())) {
             return fun;
+        }
         return handle();
     }
     bool is_cpp_function() const { return (bool) cpp_function(); }
@@ -1639,7 +1697,9 @@ public:
 
     buffer_info request(bool writable = false) const {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
-        if (writable) flags |= PyBUF_WRITABLE;
+        if (writable) {
+            flags |= PyBUF_WRITABLE;
+        }
         auto *view = new Py_buffer();
         if (PyObject_GetBuffer(m_ptr, view, flags) != 0) {
             delete view;
@@ -1663,14 +1723,16 @@ public:
         use ``memoryview(const object& obj)`` instead of this constructor.
      \endrst */
     explicit memoryview(const buffer_info& info) {
-        if (!info.view())
+        if (!info.view()) {
             pybind11_fail("Prohibited to create memoryview without Py_buffer");
+        }
         // Note: PyMemoryView_FromBuffer never increments obj reference.
         m_ptr = (info.view()->obj) ?
             PyMemoryView_FromObject(info.view()->obj) :
             PyMemoryView_FromBuffer(info.view());
-        if (!m_ptr)
+        if (!m_ptr) {
             pybind11_fail("Unable to create memoryview from buffer descriptor");
+        }
     }
 
     /** \rst
@@ -1744,8 +1806,9 @@ public:
         PyObject* ptr = PyMemoryView_FromMemory(
             reinterpret_cast<char*>(mem), size,
             (readonly) ? PyBUF_READ : PyBUF_WRITE);
-        if (!ptr)
+        if (!ptr) {
             pybind11_fail("Could not allocate memoryview object!");
+        }
         return memoryview(object(ptr, stolen_t{}));
     }
 
@@ -1768,11 +1831,13 @@ inline memoryview memoryview::from_buffer(
     detail::any_container<ssize_t> shape,
     detail::any_container<ssize_t> strides, bool readonly) {
     size_t ndim = shape->size();
-    if (ndim != strides->size())
+    if (ndim != strides->size()) {
         pybind11_fail("memoryview: shape length doesn't match strides length");
+    }
     ssize_t size = ndim != 0u ? 1 : 0;
-    for (size_t i = 0; i < ndim; ++i)
+    for (size_t i = 0; i < ndim; ++i) {
         size *= (*shape)[i];
+    }
     Py_buffer view;
     view.buf = ptr;
     view.obj = nullptr;
@@ -1786,8 +1851,9 @@ inline memoryview memoryview::from_buffer(
     view.suboffsets = nullptr;
     view.internal = nullptr;
     PyObject* obj = PyMemoryView_FromBuffer(&view);
-    if (!obj)
+    if (!obj) {
         throw error_already_set();
+    }
     return memoryview(object(obj, stolen_t{}));
 }
 /// @endcond
@@ -1799,8 +1865,9 @@ inline memoryview memoryview::from_buffer(
 /// Get the length of a Python object.
 inline size_t len(handle h) {
     ssize_t result = PyObject_Length(h.ptr());
-    if (result < 0)
+    if (result < 0) {
         throw error_already_set();
+    }
     return (size_t) result;
 }
 
@@ -1823,7 +1890,9 @@ inline size_t len_hint(handle h) {
 
 inline str repr(handle h) {
     PyObject *str_value = PyObject_Repr(h.ptr());
-    if (!str_value) throw error_already_set();
+    if (!str_value) {
+        throw error_already_set();
+    }
 #if PY_MAJOR_VERSION < 3
     PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
     Py_XDECREF(str_value); str_value = unicode;
@@ -1873,8 +1942,9 @@ handle object_api<D>::get_type() const { return type::handle_of(derived()); }
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {
     int rv = PyObject_RichCompareBool(derived().ptr(), other.derived().ptr(), value);
-    if (rv == -1)
+    if (rv == -1) {
         throw error_already_set();
+    }
     return rv == 1;
 }
 

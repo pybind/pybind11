@@ -104,7 +104,9 @@ public:
     bool load(handle src, bool) { value = CopyOnlyInt(src.cast<int>()); return true; }
     static handle cast(const CopyOnlyInt &m, return_value_policy r, handle p) { return pybind11::cast(m.value, r, p); }
     static handle cast(const CopyOnlyInt *src, return_value_policy policy, handle parent) {
-        if (!src) return none().release();
+        if (!src) {
+            return none().release();
+        }
         return cast(*src, policy, parent);
     }
     explicit operator CopyOnlyInt *() { return &value; }
@@ -203,8 +205,9 @@ TEST_SUBMODULE(copy_move_policies, m) {
     private:
         void *operator new(size_t bytes) {
             void *ptr = std::malloc(bytes);
-            if (ptr)
+            if (ptr) {
                 return ptr;
+            }
             throw std::bad_alloc{};
         }
     };
