@@ -9,6 +9,7 @@ BinPackParameters: false
 BreakBeforeBinaryOperators: All
 BreakConstructorInitializers: BeforeColon
 ColumnLimit: 99
+CommentPragmas: 'NOLINT:.*|^ IWYU pragma:'
 IncludeBlocks: Regroup
 IndentCaseLabels: true
 IndentPPDirectives: AfterHash
