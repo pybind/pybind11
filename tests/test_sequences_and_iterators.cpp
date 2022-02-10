@@ -170,8 +170,8 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         }
         Sequence(Sequence &&s) noexcept : m_size(s.m_size), m_data(s.m_data) {
             print_move_created(this);
-            // NOTLINENEXTLINE(cppcoreguidelines-prefer-member-initializer)
             s.m_size = 0;
+            s.m_data = nullptr;
         }
 
         ~Sequence() { print_destroyed(this); delete[] m_data; }
@@ -239,7 +239,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
 
     private:
         size_t m_size;
-        float *m_data = nullptr;
+        float *m_data;
     };
     py::class_<Sequence>(m, "Sequence")
         .def(py::init<size_t>())
