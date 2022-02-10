@@ -65,9 +65,10 @@ public:
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
             #if !defined(NDEBUG)
-                if (!tstate)
-                    pybind11_fail("scoped_acquire: could not create thread state!");
-            #endif
+            if (!tstate) {
+                pybind11_fail("scoped_acquire: could not create thread state!");
+            }
+#endif
             tstate->gilstate_counter = 0;
             PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
         } else {
@@ -88,16 +89,19 @@ public:
     PYBIND11_NOINLINE void dec_ref() {
         --tstate->gilstate_counter;
         #if !defined(NDEBUG)
-            if (detail::get_thread_state_unchecked() != tstate)
-                pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
-            if (tstate->gilstate_counter < 0)
-                pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
-        #endif
+        if (detail::get_thread_state_unchecked() != tstate) {
+            pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
+        }
+        if (tstate->gilstate_counter < 0) {
+            pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
+        }
+#endif
         if (tstate->gilstate_counter == 0) {
             #if !defined(NDEBUG)
-                if (!release)
-                    pybind11_fail("scoped_acquire::dec_ref(): internal error!");
-            #endif
+            if (!release) {
+                pybind11_fail("scoped_acquire::dec_ref(): internal error!");
+            }
+#endif
             PyThreadState_Clear(tstate);
             if (active) {
                 PyThreadState_DeleteCurrent();

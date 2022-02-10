@@ -628,9 +628,11 @@ protected:
             return false;
         }
 #else
-        for (bool r : {std::get<Is>(subcasters).load(seq[Is], convert)...})
-            if (!r)
+        for (bool r : {std::get<Is>(subcasters).load(seq[Is], convert)...}) {
+            if (!r) {
                 return false;
+            }
+        }
 #endif
         return true;
     }
