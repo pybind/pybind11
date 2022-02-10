@@ -399,7 +399,8 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     // test_initializer_list
     // Issue (unnumbered; reported in #788): regression: initializer lists can be ambiguous
-    sm.def("array_initializer_list1", []() { return py::array_t<float>(1); }); // { 1 } also works, but clang warns about it
+    sm.def("array_initializer_list1", []() { return py::array_t<float>(1); });
+    // { 1 } also works for the above, but clang warns about it
     sm.def("array_initializer_list2", []() { return py::array_t<float>({ 1, 2 }); });
     sm.def("array_initializer_list3", []() { return py::array_t<float>({ 1, 2, 3 }); });
     sm.def("array_initializer_list4", []() { return py::array_t<float>({ 1, 2, 3, 4 }); });

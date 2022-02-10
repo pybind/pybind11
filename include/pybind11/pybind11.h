@@ -242,7 +242,8 @@ protected:
 
         rec->nargs_pos = cast_in::args_pos >= 0
             ? static_cast<std::uint16_t>(cast_in::args_pos)
-            : sizeof...(Args) - cast_in::has_kwargs; // Will get reduced more if we have a kw_only
+            : sizeof...(Args) - cast_in::has_kwargs; // Will get reduced more if
+                                                     // we have a kw_only
         rec->has_args = cast_in::args_pos >= 0;
         rec->has_kwargs = cast_in::has_kwargs;
 
@@ -263,7 +264,8 @@ protected:
             static_assert(!(has_kw_only_args && has_pos_only_args) || pos_only_pos < kw_only_pos, "py::pos_only must come before py::kw_only");
         }
 
-        /* Generate a readable signature describing the function's arguments and return value types */
+        /* Generate a readable signature describing the function's arguments and return
+           value types */
         static constexpr auto signature = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
@@ -400,7 +402,8 @@ protected:
                     handle th((PyObject *) tinfo->type);
                     signature +=
                         th.attr("__module__").cast<std::string>() + "." +
-                        th.attr("__qualname__").cast<std::string>(); // Python 3.3+, but we backport it to earlier versions
+                        // Python 3.3+, but we backport it to earlier versions
+                        th.attr("__qualname__").cast<std::string>();
                 } else if (rec->is_new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.
@@ -639,7 +642,8 @@ protected:
         const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
                               *it = overloads;
 
-        /* Need to know how many arguments + keyword arguments there are to pick the right overload */
+        /* Need to know how many arguments + keyword arguments there are to pick the right
+           overload */
         const auto n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
 
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
@@ -715,7 +719,8 @@ protected:
 
                 function_call call(func, parent);
 
-                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
+                // Protect std::min with parentheses
+                size_t args_to_copy = (std::min)(pos_args, n_args_in);
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -956,7 +961,8 @@ protected:
                 - catch the exception and call PyErr_SetString or PyErr_SetObject
                   to set a standard (or custom) Python exception, or
                 - do nothing and let the exception fall through to the next translator, or
-                - delegate translation to the next translator by throwing a new type of exception. */
+                - delegate translation to the next translator by throwing a new type of exception.
+             */
 
             auto &local_exception_translators = get_local_internals().registered_exception_translators;
             if (detail::apply_exception_translators(local_exception_translators)) {
@@ -1169,8 +1175,8 @@ public:
         Adds an object to the module using the given name.  Throws if an object with the given name
         already exists.
 
-        ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11 has
-        established will, in most cases, break things.
+        ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11
+        has established will, in most cases, break things.
     \endrst */
     PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
         if (!overwrite && hasattr(*this, name)) {
@@ -1197,7 +1203,8 @@ public:
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
 #if PY_MAJOR_VERSION >= 3
         // module_def is PyModuleDef
-        def = new (def) PyModuleDef {  // Placement new (not an allocation).
+        // Placement new (not an allocation).
+        def = new (def) PyModuleDef {
             /* m_base */     PyModuleDef_HEAD_INIT,
             /* m_name */     name,
             /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
@@ -1456,7 +1463,8 @@ public:
             none_of<is_pyobject<Extra>...>::value || // no base class arguments, or:
             (   constexpr_sum(is_pyobject<Extra>::value...) == 1 && // Exactly one base
                 constexpr_sum(is_base<options>::value...)   == 0 && // no template option bases
-                none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
+                // no multiple_inheritance attr
+                none_of<std::is_same<multiple_inheritance, Extra>...>::value),
             "Error: multiple inheritance bases must be specified via class_ template options");
 
         type_record record;
@@ -2562,10 +2570,11 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
 PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
-  Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
+  Try to retrieve a python method by the provided name from the instance pointed to by the
+  this_ptr.
 
-  :this_ptr: The pointer to the object the overridden method should be retrieved for. This should be
-             the first non-trampoline class encountered in the inheritance chain.
+  :this_ptr: The pointer to the object the overridden method should be retrieved for. This should
+             be the first non-trampoline class encountered in the inheritance chain.
   :name: The name of the overridden Python method to retrieve.
   :return: The Python method by this name from the object or an empty function wrapper.
  \endrst */
@@ -2590,9 +2599,10 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     } while (false)
 
 /** \rst
-    Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
-    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
-    the appropriate type. See :ref:`overriding_virtuals` for more information. This macro should be used when the method
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up a
+    method named 'fn' from the Python side, deals with the :ref:`gil` and necessary argument
+    conversions to call this method and return the appropriate type.
+    See :ref:`overriding_virtuals` for more information. This macro should be used when the method
     name in C is not the same as the method name in Python. For example with `__str__`.
 
     .. code-block:: cpp
@@ -2613,8 +2623,8 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     } while (false)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it
-    throws if no override can be found.
+    Macro for pure virtual functions, this function is identical to
+    :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it throws if no override can be found.
 \endrst */
 #define PYBIND11_OVERRIDE_PURE_NAME(ret_type, cname, name, fn, ...) \
     do { \
@@ -2623,9 +2633,10 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     } while (false)
 
 /** \rst
-    Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
-    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
-    the appropriate type. This macro should be used if the method name in C and in Python are identical.
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up the
+    method from the Python side, deals with the :ref:`gil` and necessary argument conversions to
+    call this method and return the appropriate type. This macro should be used if the method name
+    in C and in Python are identical.
     See :ref:`overriding_virtuals` for more information.
 
     .. code-block:: cpp
@@ -2650,8 +2661,8 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
     PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`, except that it throws
-    if no override can be found.
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`,
+    except that it throws if no override can be found.
 \endrst */
 #define PYBIND11_OVERRIDE_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)

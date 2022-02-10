@@ -161,7 +161,8 @@ public:
     /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
 
-    // TODO PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
+    // TODO PYBIND11_DEPRECATED(
+    //     "Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
     handle get_type() const;
 
 private:
@@ -337,7 +338,9 @@ PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable: 4275 4251) // warning C4275: An exported class was derived from a class that wasn't exported. Can be ignored when derived from a STL class.
+#  pragma warning(disable: 4275 4251)
+//     warning C4275: An exported class was derived from a class that wasn't exported.
+//     Can be ignored when derived from a STL class.
 #endif
 /// Fetch and hold an error which was already set in Python.  An instance of this is typically
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
@@ -1745,7 +1748,8 @@ public:
 
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
-        .. _PyMemoryView_FromBuffer: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromBuffer
+        .. _PyMemoryView_FromBuffer:
+           https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromBuffer
 
         :param ptr: Pointer to the buffer.
         :param itemsize: Byte size of an element.
@@ -1800,7 +1804,8 @@ public:
 
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
-        .. _PyMemoryView_FromMemory: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
+        .. _PyMemoryView_FromMemory:
+           https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
     static memoryview from_memory(void *mem, ssize_t size, bool readonly = false) {
         PyObject* ptr = PyMemoryView_FromMemory(
