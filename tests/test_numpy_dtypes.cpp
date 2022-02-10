@@ -7,13 +7,14 @@
   BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/numpy.h>
 
+#include "pybind11_tests.h"
+
 #ifdef __GNUC__
-#define PYBIND11_PACKED(cls) cls __attribute__((__packed__))
+#    define PYBIND11_PACKED(cls) cls __attribute__((__packed__))
 #else
-#define PYBIND11_PACKED(cls) __pragma(pack(push, 1)) cls __pragma(pack(pop))
+#    define PYBIND11_PACKED(cls) __pragma(pack(push, 1)) cls __pragma(pack(pop))
 #endif
 
 namespace py = pybind11;
@@ -25,7 +26,7 @@ struct SimpleStruct {
     long double ldbl_;
 };
 
-std::ostream& operator<<(std::ostream& os, const SimpleStruct& v) {
+std::ostream &operator<<(std::ostream &os, const SimpleStruct &v) {
     return os << "s:" << v.bool_ << "," << v.uint_ << "," << v.float_ << "," << v.ldbl_;
 }
 
@@ -43,7 +44,7 @@ PYBIND11_PACKED(struct PackedStruct {
     long double ldbl_;
 });
 
-std::ostream& operator<<(std::ostream& os, const PackedStruct& v) {
+std::ostream &operator<<(std::ostream &os, const PackedStruct &v) {
     return os << "p:" << v.bool_ << "," << v.uint_ << "," << v.float_ << "," << v.ldbl_;
 }
 
@@ -52,7 +53,7 @@ PYBIND11_PACKED(struct NestedStruct {
     PackedStruct b;
 });
 
-std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
+std::ostream &operator<<(std::ostream &os, const NestedStruct &v) {
     return os << "n:a=" << v.a << ";b=" << v.b;
 }
 
@@ -70,7 +71,7 @@ struct PartialNestedStruct {
     uint64_t dummy2;
 };
 
-struct UnboundStruct { };
+struct UnboundStruct {};
 
 struct StringStruct {
     char a[3];
@@ -82,7 +83,7 @@ struct ComplexStruct {
     std::complex<double> cdbl;
 };
 
-std::ostream& operator<<(std::ostream& os, const ComplexStruct& v) {
+std::ostream &operator<<(std::ostream &os, const ComplexStruct &v) {
     return os << "c:" << v.cflt << "," << v.cdbl;
 }
 
@@ -106,7 +107,7 @@ PYBIND11_PACKED(struct EnumStruct {
     E2 e2;
 });
 
-std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
+std::ostream &operator<<(std::ostream &os, const StringStruct &v) {
     os << "a='";
     for (size_t i = 0; i < 3 && (v.a[i] != 0); i++) {
         os << v.a[i];
@@ -118,7 +119,7 @@ std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
     return os << "'";
 }
 
-std::ostream& operator<<(std::ostream& os, const ArrayStruct& v) {
+std::ostream &operator<<(std::ostream &os, const ArrayStruct &v) {
     os << "a={";
     for (int i = 0; i < 3; i++) {
         if (i > 0) {
@@ -142,15 +143,14 @@ std::ostream& operator<<(std::ostream& os, const ArrayStruct& v) {
     return os << '}';
 }
 
-std::ostream& operator<<(std::ostream& os, const EnumStruct& v) {
+std::ostream &operator<<(std::ostream &os, const EnumStruct &v) {
     return os << "e1=" << (v.e1 == E1::A ? "A" : "B") << ",e2=" << (v.e2 == E2::X ? "X" : "Y");
 }
 
 template <typename T>
 py::array mkarray_via_buffer(size_t n) {
-    return py::array(py::buffer_info(nullptr, sizeof(T),
-                                     py::format_descriptor<T>::format(),
-                                     1, { n }, { sizeof(T) }));
+    return py::array(py::buffer_info(
+        nullptr, sizeof(T), py::format_descriptor<T>::format(), 1, {n}, {sizeof(T)}));
 }
 
 #define SET_TEST_VALS(s, i)                                                                       \
@@ -188,9 +188,9 @@ py::list print_recarray(py::array_t<S, 0> arr) {
 py::array_t<int32_t, 0> test_array_ctors(int i) {
     using arr_t = py::array_t<int32_t, 0>;
 
-    std::vector<int32_t> data { 1, 2, 3, 4, 5, 6 };
-    std::vector<py::ssize_t> shape { 3, 2 };
-    std::vector<py::ssize_t> strides { 8, 4 };
+    std::vector<int32_t> data{1, 2, 3, 4, 5, 6};
+    std::vector<py::ssize_t> shape{3, 2};
+    std::vector<py::ssize_t> strides{8, 4};
 
     auto *ptr = data.data();
     auto *vptr = (void *) ptr;
@@ -210,36 +210,62 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     };
 
     switch (i) {
-    // shape: (3, 2)
-    case 10: return arr_t(shape, strides, ptr);
-    case 11: return py::array(shape, strides, ptr);
-    case 12: return py::array(dtype, shape, strides, vptr);
-    case 13: return arr_t(shape, ptr);
-    case 14: return py::array(shape, ptr);
-    case 15: return py::array(dtype, shape, vptr);
-    case 16: return arr_t(buf_ndim2);
-    case 17: return py::array(buf_ndim2);
-    // shape: (3, 2) - post-fill
-    case 20: return fill(arr_t(shape, strides));
-    case 21: return py::array(shape, strides, ptr); // can't have nullptr due to templated ctor
-    case 22: return fill(py::array(dtype, shape, strides));
-    case 23: return fill(arr_t(shape));
-    case 24: return py::array(shape, ptr); // can't have nullptr due to templated ctor
-    case 25: return fill(py::array(dtype, shape));
-    case 26: return fill(arr_t(buf_ndim2_null));
-    case 27: return fill(py::array(buf_ndim2_null));
-    // shape: (6, )
-    case 30: return arr_t(6, ptr);
-    case 31: return py::array(6, ptr);
-    case 32: return py::array(dtype, 6, vptr);
-    case 33: return arr_t(buf_ndim1);
-    case 34: return py::array(buf_ndim1);
-    // shape: (6, )
-    case 40: return fill(arr_t(6));
-    case 41: return py::array(6, ptr);  // can't have nullptr due to templated ctor
-    case 42: return fill(py::array(dtype, 6));
-    case 43: return fill(arr_t(buf_ndim1_null));
-    case 44: return fill(py::array(buf_ndim1_null));
+        // shape: (3, 2)
+        case 10:
+            return arr_t(shape, strides, ptr);
+        case 11:
+            return py::array(shape, strides, ptr);
+        case 12:
+            return py::array(dtype, shape, strides, vptr);
+        case 13:
+            return arr_t(shape, ptr);
+        case 14:
+            return py::array(shape, ptr);
+        case 15:
+            return py::array(dtype, shape, vptr);
+        case 16:
+            return arr_t(buf_ndim2);
+        case 17:
+            return py::array(buf_ndim2);
+        // shape: (3, 2) - post-fill
+        case 20:
+            return fill(arr_t(shape, strides));
+        case 21:
+            return py::array(shape, strides, ptr); // can't have nullptr due to templated ctor
+        case 22:
+            return fill(py::array(dtype, shape, strides));
+        case 23:
+            return fill(arr_t(shape));
+        case 24:
+            return py::array(shape, ptr); // can't have nullptr due to templated ctor
+        case 25:
+            return fill(py::array(dtype, shape));
+        case 26:
+            return fill(arr_t(buf_ndim2_null));
+        case 27:
+            return fill(py::array(buf_ndim2_null));
+        // shape: (6, )
+        case 30:
+            return arr_t(6, ptr);
+        case 31:
+            return py::array(6, ptr);
+        case 32:
+            return py::array(dtype, 6, vptr);
+        case 33:
+            return arr_t(buf_ndim1);
+        case 34:
+            return py::array(buf_ndim1);
+        // shape: (6, )
+        case 40:
+            return fill(arr_t(6));
+        case 41:
+            return py::array(6, ptr); // can't have nullptr due to templated ctor
+        case 42:
+            return fill(py::array(dtype, 6));
+        case 43:
+            return fill(arr_t(buf_ndim1_null));
+        case 44:
+            return fill(py::array(buf_ndim1_null));
     }
     return arr_t();
 }
@@ -251,9 +277,15 @@ py::list test_dtype_ctors() {
     list.append(py::dtype::from_args(py::str("bool")));
     py::list names, offsets, formats;
     py::dict dict;
-    names.append(py::str("a")); names.append(py::str("b")); dict["names"] = names;
-    offsets.append(py::int_(1)); offsets.append(py::int_(10)); dict["offsets"] = offsets;
-    formats.append(py::dtype("int32")); formats.append(py::dtype("float64")); dict["formats"] = formats;
+    names.append(py::str("a"));
+    names.append(py::str("b"));
+    dict["names"] = names;
+    offsets.append(py::int_(1));
+    offsets.append(py::int_(10));
+    dict["offsets"] = offsets;
+    formats.append(py::dtype("int32"));
+    formats.append(py::dtype("float64"));
+    dict["formats"] = formats;
     dict["itemsize"] = py::int_(20);
     list.append(py::dtype::from_args(dict));
     list.append(py::dtype(names, formats, offsets, 20));
@@ -266,8 +298,11 @@ struct A {};
 struct B {};
 
 TEST_SUBMODULE(numpy_dtypes, m) {
-    try { py::module_::import("numpy"); }
-    catch (...) { return; }
+    try {
+        py::module_::import("numpy");
+    } catch (...) {
+        return;
+    }
 
     // typeinfo may be registered before the dtype descriptor for scalar casts to work...
     py::class_<SimpleStruct>(m, "SimpleStruct")
@@ -285,11 +320,10 @@ TEST_SUBMODULE(numpy_dtypes, m) {
             if (py::len(tup) != 4) {
                 throw py::cast_error("Invalid size");
             }
-            return SimpleStruct{
-                tup[0].cast<bool>(),
-                tup[1].cast<uint32_t>(),
-                tup[2].cast<float>(),
-                tup[3].cast<long double>()};
+            return SimpleStruct{tup[0].cast<bool>(),
+                                tup[1].cast<uint32_t>(),
+                                tup[2].cast<float>(),
+                                tup[3].cast<long double>()};
         });
 
     PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_);
@@ -311,18 +345,18 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 #ifdef PYBIND11_NEVER_DEFINED_EVER
     // If enabled, this should produce a static_assert failure telling the user that the struct
     // is not a POD type
-    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
+    struct NotPOD {
+        std::string v;
+        NotPOD() : v("hi"){};
+    };
     PYBIND11_NUMPY_DTYPE(NotPOD, v);
 #endif
 
     // Check that dtypes can be registered programmatically, both from
     // initializer lists of field descriptors and from other containers.
-    py::detail::npy_format_descriptor<A>::register_dtype(
-        {}
-    );
+    py::detail::npy_format_descriptor<A>::register_dtype({});
     py::detail::npy_format_descriptor<B>::register_dtype(
-        std::vector<py::detail::field_descriptor>{}
-    );
+        std::vector<py::detail::field_descriptor>{});
 
     // test_recarray, test_scalar_conversion
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
@@ -355,17 +389,15 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("get_format_unbound", []() { return py::format_descriptor<UnboundStruct>::format(); });
     m.def("print_format_descriptors", []() {
         py::list l;
-        for (const auto &fmt : {
-            py::format_descriptor<SimpleStruct>::format(),
-            py::format_descriptor<PackedStruct>::format(),
-            py::format_descriptor<NestedStruct>::format(),
-            py::format_descriptor<PartialStruct>::format(),
-            py::format_descriptor<PartialNestedStruct>::format(),
-            py::format_descriptor<StringStruct>::format(),
-            py::format_descriptor<ArrayStruct>::format(),
-            py::format_descriptor<EnumStruct>::format(),
-            py::format_descriptor<ComplexStruct>::format()
-        }) {
+        for (const auto &fmt : {py::format_descriptor<SimpleStruct>::format(),
+                                py::format_descriptor<PackedStruct>::format(),
+                                py::format_descriptor<NestedStruct>::format(),
+                                py::format_descriptor<PartialStruct>::format(),
+                                py::format_descriptor<PartialNestedStruct>::format(),
+                                py::format_descriptor<StringStruct>::format(),
+                                py::format_descriptor<ArrayStruct>::format(),
+                                py::format_descriptor<EnumStruct>::format(),
+                                py::format_descriptor<ComplexStruct>::format()}) {
             l.append(py::cast(fmt));
         }
         return l;
@@ -373,12 +405,9 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // test_dtype
     std::vector<const char *> dtype_names{
-        "byte", "short", "intc", "int_", "longlong",
-        "ubyte", "ushort", "uintc", "uint", "ulonglong",
-        "half", "single", "double", "longdouble",
-        "csingle", "cdouble", "clongdouble",
-        "bool_", "datetime64", "timedelta64", "object_"
-    };
+        "byte",    "short",   "intc",        "int_",  "longlong",   "ubyte",       "ushort",
+        "uintc",   "uint",    "ulonglong",   "half",  "single",     "double",      "longdouble",
+        "csingle", "cdouble", "clongdouble", "bool_", "datetime64", "timedelta64", "object_"};
 
     m.def("print_dtypes", []() {
         py::list l;
@@ -415,9 +444,12 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         py::list list;
         auto dt1 = py::dtype::of<int32_t>();
         auto dt2 = py::dtype::of<SimpleStruct>();
-        list.append(dt1); list.append(dt2);
-        list.append(py::bool_(dt1.has_fields())); list.append(py::bool_(dt2.has_fields()));
-        list.append(py::int_(dt1.itemsize())); list.append(py::int_(dt2.itemsize()));
+        list.append(dt1);
+        list.append(dt2);
+        list.append(py::bool_(dt1.has_fields()));
+        list.append(py::bool_(dt2.has_fields()));
+        list.append(py::int_(dt1.itemsize()));
+        list.append(py::int_(dt2.itemsize()));
         return list;
     });
     struct TrailingPaddingStruct {
@@ -436,14 +468,20 @@ TEST_SUBMODULE(numpy_dtypes, m) {
             for (py::ssize_t i = 0; i < req.size * req.itemsize; i++) {
                 static_cast<char *>(req.ptr)[i] = 0;
             }
-            ptr[1].a[0] = 'a'; ptr[1].b[0] = 'a';
-            ptr[2].a[0] = 'a'; ptr[2].b[0] = 'a';
-            ptr[3].a[0] = 'a'; ptr[3].b[0] = 'a';
+            ptr[1].a[0] = 'a';
+            ptr[1].b[0] = 'a';
+            ptr[2].a[0] = 'a';
+            ptr[2].b[0] = 'a';
+            ptr[3].a[0] = 'a';
+            ptr[3].b[0] = 'a';
 
-            ptr[2].a[1] = 'b'; ptr[2].b[1] = 'b';
-            ptr[3].a[1] = 'b'; ptr[3].b[1] = 'b';
+            ptr[2].a[1] = 'b';
+            ptr[2].b[1] = 'b';
+            ptr[3].a[1] = 'b';
+            ptr[3].b[1] = 'b';
 
-            ptr[3].a[2] = 'c'; ptr[3].b[2] = 'c';
+            ptr[3].a[2] = 'c';
+            ptr[3].b[2] = 'c';
         }
         return arr;
     });
@@ -513,14 +551,19 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     PYBIND11_NUMPY_DTYPE(CompareStruct, x, y, z);
     m.def("compare_buffer_info", []() {
         py::list list;
-        list.append(py::bool_(py::detail::compare_buffer_info<float>::compare(py::buffer_info(nullptr, sizeof(float), "f", 1))));
-        list.append(py::bool_(py::detail::compare_buffer_info<unsigned>::compare(py::buffer_info(nullptr, sizeof(int), "I", 1))));
-        list.append(py::bool_(py::detail::compare_buffer_info<long>::compare(py::buffer_info(nullptr, sizeof(long), "l", 1))));
-        list.append(py::bool_(py::detail::compare_buffer_info<long>::compare(py::buffer_info(nullptr, sizeof(long), sizeof(long) == sizeof(int) ? "i" : "q", 1))));
-        list.append(py::bool_(py::detail::compare_buffer_info<CompareStruct>::compare(py::buffer_info(nullptr, sizeof(CompareStruct), "T{?:x:3xI:y:f:z:}", 1))));
+        list.append(py::bool_(py::detail::compare_buffer_info<float>::compare(
+            py::buffer_info(nullptr, sizeof(float), "f", 1))));
+        list.append(py::bool_(py::detail::compare_buffer_info<unsigned>::compare(
+            py::buffer_info(nullptr, sizeof(int), "I", 1))));
+        list.append(py::bool_(py::detail::compare_buffer_info<long>::compare(
+            py::buffer_info(nullptr, sizeof(long), "l", 1))));
+        list.append(py::bool_(py::detail::compare_buffer_info<long>::compare(
+            py::buffer_info(nullptr, sizeof(long), sizeof(long) == sizeof(int) ? "i" : "q", 1))));
+        list.append(py::bool_(py::detail::compare_buffer_info<CompareStruct>::compare(
+            py::buffer_info(nullptr, sizeof(CompareStruct), "T{?:x:3xI:y:f:z:}", 1))));
         return list;
     });
-    m.def("buffer_to_dtype", [](py::buffer& buf) { return py::dtype(buf.request()); });
+    m.def("buffer_to_dtype", [](py::buffer &buf) { return py::dtype(buf.request()); });
 
     // test_scalar_conversion
     auto f_simple = [](SimpleStruct s) { return s.uint_ * 10; };
@@ -534,7 +577,8 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("f_simple_pass_thru_vectorized", py::vectorize(f_simple_pass_thru));
 
     // test_register_dtype
-    m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
+    m.def("register_dtype",
+          []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
 
     // test_str_leak
     m.def("dtype_wrapper", [](py::object d) { return py::dtype::from_args(std::move(d)); });
