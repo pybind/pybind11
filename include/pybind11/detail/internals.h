@@ -118,8 +118,9 @@ struct type_hash {
     size_t operator()(const std::type_index &t) const {
         size_t hash = 5381;
         const char *ptr = t.name();
-        while (auto c = static_cast<unsigned char>(*ptr++))
+        while (auto c = static_cast<unsigned char>(*ptr++)) {
             hash = (hash * 33) ^ c;
+        }
         return hash;
     }
 };
@@ -388,7 +389,9 @@ inline void translate_exception(std::exception_ptr p) {
 #if !defined(__GLIBCXX__)
 inline void translate_local_exception(std::exception_ptr p) {
     try {
-        if (p) std::rethrow_exception(p);
+        if (p) {
+            std::rethrow_exception(p);
+        }
     } catch (error_already_set &e)       { e.restore();   return;
     } catch (const builtin_exception &e) { e.set_error(); return;
     }

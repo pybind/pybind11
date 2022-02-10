@@ -873,9 +873,10 @@ protected:
                 // 5. Put everything in a vector.  Not technically step 5, we've been building it
                 // in `call.args` all along.
                 #if !defined(NDEBUG)
-                if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs)
+                if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs) {
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
-                #endif
+                }
+#endif
 
                 std::vector<bool> second_pass_convert;
                 if (overloaded) {
@@ -2527,8 +2528,9 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
         PyFrame_FastToLocals(frame);
         PyObject *self_caller = dict_getitem(
             frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
-        if (self_caller == self.ptr())
+        if (self_caller == self.ptr()) {
             return function();
+        }
     }
 #endif
 

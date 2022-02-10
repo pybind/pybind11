@@ -445,13 +445,16 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
         if (!a.value) {
 #if !defined(NDEBUG)
             std::string descr("'");
-            if (a.name) descr += std::string(a.name) + ": ";
+            if (a.name) {
+                descr += std::string(a.name) + ": ";
+            }
             descr += a.type + "'";
             if (r->is_method) {
-                if (r->name)
+                if (r->name) {
                     descr += " in method '" + (std::string) str(r->scope) + "." + (std::string) r->name + "'";
-                else
+                } else {
                     descr += " in method of '" + (std::string) str(r->scope) + "'";
+                }
             } else if (r->name) {
                 descr += " in function '" + (std::string) r->name + "'";
             }
