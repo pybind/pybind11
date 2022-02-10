@@ -199,7 +199,7 @@ def test_stl_caster_vs_stl_bind(msg):
         1. (arg0: pybind11_cross_module_tests.VectorInt) -> int
 
     Invoked with: [1, 2, 3]
-    """  # noqa: E501 line too long
+    """
     )
 
 

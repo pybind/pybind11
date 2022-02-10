@@ -129,13 +129,13 @@ def test_qualname(doc):
         doc(m.NestBase.Nested.fn)
         == """
         fn(self: m.class_.NestBase.Nested, arg0: int, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         doc(m.NestBase.Nested.fa)
         == """
         fa(self: m.class_.NestBase.Nested, a: int, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
-    """  # noqa: E501 line too long
+    """
     )
     assert m.NestBase.__module__ == "pybind11_tests.class_"
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"

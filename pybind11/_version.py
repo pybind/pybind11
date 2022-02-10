@@ -1,4 +1,7 @@
-def _to_int(s):
+from typing import Union
+
+
+def _to_int(s: str) -> Union[int, str]:
     try:
         return int(s)
     except ValueError:

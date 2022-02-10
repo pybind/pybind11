@@ -40,7 +40,7 @@ def test_override(capture, msg):
         capture
         == """
         Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
-    """  # noqa: E501 line too long
+    """
     )
 
     with pytest.raises(RuntimeError) as excinfo:
@@ -58,7 +58,7 @@ def test_override(capture, msg):
         == """
         ExtendedExampleVirt::run(20), calling parent..
         Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
-    """  # noqa: E501 line too long
+    """
     )
     with capture:
         assert m.runExampleVirtBool(ex12p) is False
@@ -75,7 +75,7 @@ def test_override(capture, msg):
         == """
         ExtendedExampleVirt::run(50), calling parent..
         Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
-    """  # noqa: E501 line too long
+    """
     )
 
     cstats = ConstructorStats.get(m.ExampleVirt)

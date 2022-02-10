@@ -22,8 +22,11 @@ known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
 profile = "black"
 
 [tool.mypy]
-files = "pybind11"
-python_version = "3.5"
+files = ["pybind11"]
+python_version = "3.6"
 warn_unused_configs = true
-
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["ghapi.*", "setuptools.*"]
+ignore_missing_imports = true

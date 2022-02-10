@@ -80,7 +80,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (arg0: int, arg1: float, *args) -> tuple
 
         Invoked with: 1
-    """  # noqa: E501 line too long
+    """
     )
     with pytest.raises(TypeError) as excinfo:
         assert mpa()
@@ -91,7 +91,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (arg0: int, arg1: float, *args) -> tuple
 
         Invoked with:
-    """  # noqa: E501 line too long
+    """
     )
 
     assert mpk(-2, 3.5, pi=3.14159, e=2.71828) == (
@@ -125,7 +125,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (i: int = 1, j: float = 3.14159, *args, **kwargs) -> tuple
 
         Invoked with: 1; kwargs: i=1
-    """  # noqa: E501 line too long
+    """
     )
     with pytest.raises(TypeError) as excinfo:
         assert mpakd(1, 2, j=1)
@@ -136,7 +136,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (i: int = 1, j: float = 3.14159, *args, **kwargs) -> tuple
 
         Invoked with: 1, 2; kwargs: j=1
-    """  # noqa: E501 line too long
+    """
     )
 
     # Arguments after a py::args are automatically keyword-only (pybind 2.9+)

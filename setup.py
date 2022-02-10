@@ -11,6 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Dict, Iterator, List, Union
 
 import setuptools.command.sdist
 
@@ -22,36 +23,30 @@ VERSION_FILE = Path("pybind11/_version.py")
 COMMON_FILE = Path("include/pybind11/detail/common.h")
 
 
-def build_expected_version_hex(matches):
+def build_expected_version_hex(matches: Dict[str, str]) -> str:
     patch_level_serial = matches["PATCH"]
     serial = None
-    try:
-        major = int(matches["MAJOR"])
-        minor = int(matches["MINOR"])
-        flds = patch_level_serial.split(".")
-        if flds:
-            patch = int(flds[0])
-            level = None
-            if len(flds) == 1:
-                level = "0"
-                serial = 0
-            elif len(flds) == 2:
-                level_serial = flds[1]
-                for level in ("a", "b", "c", "dev"):
-                    if level_serial.startswith(level):
-                        serial = int(level_serial[len(level) :])
-                        break
-    except ValueError:
-        pass
+    major = int(matches["MAJOR"])
+    minor = int(matches["MINOR"])
+    flds = patch_level_serial.split(".")
+    if flds:
+        patch = int(flds[0])
+        if len(flds) == 1:
+            level = "0"
+            serial = 0
+        elif len(flds) == 2:
+            level_serial = flds[1]
+            for level in ("a", "b", "c", "dev"):
+                if level_serial.startswith(level):
+                    serial = int(level_serial[len(level) :])
+                    break
     if serial is None:
         msg = 'Invalid PYBIND11_VERSION_PATCH: "{}"'.format(patch_level_serial)
         raise RuntimeError(msg)
-    return (
-        "0x"
-        + "{:02x}{:02x}{:02x}{}{:x}".format(
-            major, minor, patch, level[:1], serial
-        ).upper()
+    version_hex_str = "{:02x}{:02x}{:02x}{}{:x}".format(
+        major, minor, patch, level[:1], serial
     )
+    return "0x{}".format(version_hex_str.upper())
 
 
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
@@ -71,7 +66,7 @@ to_src = (
 
 
 # Read the listed version
-loc = {}
+loc = {}  # type: Dict[str, str]
 code = compile(VERSION_FILE.read_text(encoding="utf-8"), "pybind11/_version.py", "exec")
 exec(code, loc)
 version = loc["__version__"]
@@ -94,19 +89,21 @@ if version_hex != exp_version_hex:
     raise RuntimeError(msg)
 
 
-def get_and_replace(filename: Path, binary: bool = False, **opts: str):
+# TODO: use literals & overload (typing extensions or Python 3.8)
+def get_and_replace(
+    filename: Path, binary: bool = False, **opts: str
+) -> Union[bytes, str]:
     if binary:
         contents = filename.read_bytes()
         return string.Template(contents.decode()).substitute(opts).encode()
 
-    contents = filename.read_text()
-    return string.Template(contents).substitute(opts)
+    return string.Template(filename.read_text()).substitute(opts)
 
 
 # Use our input files instead when making the SDist (and anything that depends
 # on it, like a wheel)
-class SDist(setuptools.command.sdist.sdist):
-    def make_release_tree(self, base_dir, files):
+class SDist(setuptools.command.sdist.sdist):  # type: ignore[misc]
+    def make_release_tree(self, base_dir: str, files: List[str]) -> None:
         super().make_release_tree(base_dir, files)
 
         for to, src in to_src:
@@ -116,12 +113,12 @@ class SDist(setuptools.command.sdist.sdist):
 
             # This is normally linked, so unlink before writing!
             dest.unlink()
-            dest.write_bytes(txt)
+            dest.write_bytes(txt)  # type: ignore[arg-type]
 
 
 # Remove the CMake install directory when done
 @contextlib.contextmanager
-def remove_output(*sources):
+def remove_output(*sources: str) -> Iterator[None]:
     try:
         yield
     finally:
@@ -144,9 +141,14 @@ with remove_output("pybind11/include", "pybind11/share"):
                 if "DCMAKE_INSTALL_PREFIX" not in c
             ]
             cmd += fcommand
-        cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
-        subprocess.run(cmd, check=True, **cmake_opts)
-        subprocess.run(["cmake", "--install", tmpdir], check=True, **cmake_opts)
+        subprocess.run(cmd, check=True, cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
+        subprocess.run(
+            ["cmake", "--install", tmpdir],
+            check=True,
+            cwd=DIR,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        )
 
     txt = get_and_replace(setup_py, version=version, extra_cmd=extra_cmd)
     code = compile(txt, setup_py, "exec")
