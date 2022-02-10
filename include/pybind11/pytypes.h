@@ -434,8 +434,6 @@ private:
 #    pragma warning(pop)
 #endif
 
-#if PY_VERSION_HEX >= 0x03030000
-
 /// Replaces the current Python error indicator with the chosen error, performing a
 /// 'raise from' to indicate that the chosen error was caused by the original error.
 inline void raise_from(PyObject *type, const char *message) {
@@ -472,8 +470,6 @@ inline void raise_from(error_already_set &err, PyObject *type, const char *messa
     err.restore();
     raise_from(type, message);
 }
-
-#endif
 
 /** \defgroup python_builtins const_name
     Unless stated otherwise, the following C++ functions behave the same
@@ -591,12 +587,9 @@ inline ssize_t hash(handle obj) {
 PYBIND11_NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value) {
     if (value) {
-#if PY_MAJOR_VERSION >= 3
         if (PyInstanceMethod_Check(value.ptr())) {
             value = PyInstanceMethod_GET_FUNCTION(value.ptr());
-        } else
-#endif
-            if (PyMethod_Check(value.ptr())) {
+        } else if (PyMethod_Check(value.ptr())) {
             value = PyMethod_GET_FUNCTION(value.ptr());
         }
     }
@@ -608,7 +601,6 @@ inline handle get_function(handle value) {
 
 // copied from cpython _PyDict_GetItemStringWithError
 inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
-#if PY_MAJOR_VERSION >= 3
     PyObject *kv = nullptr, *rv = nullptr;
     kv = PyUnicode_FromString(key);
     if (kv == NULL) {
@@ -621,21 +613,14 @@ inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
         throw error_already_set();
     }
     return rv;
-#else
-    return PyDict_GetItemString(v, key);
-#endif
 }
 
 inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
-#if PY_MAJOR_VERSION >= 3
     PyObject *rv = PyDict_GetItemWithError(v, key);
     if (rv == NULL && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;
-#else
-    return PyDict_GetItem(v, key);
-#endif
 }
 
 // Helper aliases/functions to support implicit casting of values given to python
@@ -1273,13 +1258,6 @@ private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
         PyObject *str_value = PyObject_Str(op);
-#if PY_MAJOR_VERSION < 3
-        if (!str_value)
-            throw error_already_set();
-        PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
-        Py_XDECREF(str_value);
-        str_value = unicode;
-#endif
         return str_value;
     }
 };
@@ -1459,11 +1437,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))
-#if PY_VERSION_HEX < 0x03000000
-        || PyInt_Check(o)
-#endif
-    ) {
+    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))) {
         unsigned long v = PyLong_AsUnsignedLong(o);
         return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
@@ -1922,7 +1896,6 @@ public:
         return memoryview::from_buffer(const_cast<T *>(ptr), shape, strides, true);
     }
 
-#if PY_MAJOR_VERSION >= 3
     /** \rst
         Creates ``memoryview`` from static memory.
 
@@ -1950,12 +1923,10 @@ public:
         return memoryview::from_memory(const_cast<void *>(mem), size, true);
     }
 
-#    ifdef PYBIND11_HAS_STRING_VIEW
+#ifdef PYBIND11_HAS_STRING_VIEW
     static memoryview from_memory(std::string_view mem) {
         return from_memory(const_cast<char *>(mem.data()), static_cast<ssize_t>(mem.size()), true);
     }
-#    endif
-
 #endif
 };
 
@@ -2010,11 +1981,7 @@ inline size_t len(handle h) {
 /// Get the length hint of a Python object.
 /// Returns 0 when this cannot be determined.
 inline size_t len_hint(handle h) {
-#if PY_VERSION_HEX >= 0x03040000
     ssize_t result = PyObject_LengthHint(h.ptr(), 0);
-#else
-    ssize_t result = PyObject_Length(h.ptr());
-#endif
     if (result < 0) {
         // Sometimes a length can't be determined at all (eg generators)
         // In which case simply return 0
@@ -2029,13 +1996,6 @@ inline str repr(handle h) {
     if (!str_value) {
         throw error_already_set();
     }
-#if PY_MAJOR_VERSION < 3
-    PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
-    Py_XDECREF(str_value);
-    str_value = unicode;
-    if (!str_value)
-        throw error_already_set();
-#endif
     return reinterpret_steal<str>(str_value);
 }
 

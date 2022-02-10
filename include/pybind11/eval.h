@@ -94,7 +94,7 @@ void exec(const char (&s)[N], object global = globals(), object local = object()
     eval<eval_statements>(s, global, local);
 }
 
-#if defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x03000000
+#if defined(PYPY_VERSION)
 template <eval_mode mode = eval_statements>
 object eval_file(str, object, object) {
     pybind11_fail("eval_file not supported in PyPy3. Use eval");
@@ -133,40 +133,18 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 
     int closeFile = 1;
     std::string fname_str = (std::string) fname;
-#    if PY_VERSION_HEX >= 0x03040000
     FILE *f = _Py_fopen_obj(fname.ptr(), "r");
-#    elif PY_VERSION_HEX >= 0x03000000
-    FILE *f = _Py_fopen(fname.ptr(), "r");
-#    else
-    /* No unicode support in open() :( */
-    auto fobj = reinterpret_steal<object>(
-        PyFile_FromString(const_cast<char *>(fname_str.c_str()), const_cast<char *>("r")));
-    FILE *f = nullptr;
-    if (fobj)
-        f = PyFile_AsFile(fobj.ptr());
-    closeFile = 0;
-#    endif
     if (!f) {
         PyErr_Clear();
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
 
-    // In Python2, this should be encoded by getfilesystemencoding.
-    // We don't boher setting it since Python2 is past EOL anyway.
-    // See PR#3233
-#    if PY_VERSION_HEX >= 0x03000000
     if (!global.contains("__file__")) {
         global["__file__"] = std::move(fname);
     }
-#    endif
 
-#    if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
-    PyObject *result = PyRun_File(f, fname_str.c_str(), start, global.ptr(), local.ptr());
-    (void) closeFile;
-#    else
     PyObject *result
         = PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(), local.ptr(), closeFile);
-#    endif
 
     if (!result) {
         throw error_already_set();

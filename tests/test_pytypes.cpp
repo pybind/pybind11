@@ -87,7 +87,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("tuple_size_t", []() { return py::tuple{(py::size_t) 0}; });
     m.def("get_tuple", []() { return py::make_tuple(42, py::none(), "spam"); });
 
-#if PY_VERSION_HEX >= 0x03030000
     // test_simple_namespace
     m.def("get_simple_namespace", []() {
         auto ns = py::module_::import("types").attr("SimpleNamespace")(
@@ -96,7 +95,6 @@ TEST_SUBMODULE(pytypes, m) {
         py::setattr(ns, "right", py::int_(2));
         return ns;
     });
-#endif
 
     // test_str
     m.def("str_from_char_ssize_t", []() { return py::str{"red", (py::ssize_t) 3}; });
@@ -423,12 +421,10 @@ TEST_SUBMODULE(pytypes, m) {
         return py::memoryview::from_buffer(static_cast<void *>(nullptr), 1, "B", {}, {});
     });
 
-#if PY_MAJOR_VERSION >= 3
     m.def("test_memoryview_from_memory", []() {
         const char *buf = "\xff\xe1\xab\x37";
         return py::memoryview::from_memory(buf, static_cast<py::ssize_t>(strlen(buf)));
     });
-#endif
 
     // test_builtin_functions
     m.def("get_len", [](py::handle h) { return py::len(h); });

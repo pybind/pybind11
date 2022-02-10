@@ -15,12 +15,12 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#if PY_VERSION_HEX >= 0x03030000 && !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION)
 #    define PYBIND11_BUILTIN_QUALNAME
 #    define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)
 #else
-// In pre-3.3 Python, we still set __qualname__ so that we can produce reliable function type
-// signatures; in 3.3+ this macro expands to nothing:
+// In PyPy, we still set __qualname__ so that we can produce reliable function type
+// signatures; in CPython this macro expands to nothing:
 #    define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)                                             \
         setattr((PyObject *) obj, "__qualname__", nameobj)
 #endif
@@ -155,7 +155,6 @@ extern "C" inline int pybind11_meta_setattro(PyObject *obj, PyObject *name, PyOb
     }
 }
 
-#if PY_MAJOR_VERSION >= 3
 /**
  * Python 3's PyInstanceMethod_Type hides itself via its tp_descr_get, which prevents aliasing
  * methods via cls.attr("m2") = cls.attr("m1"): instead the tp_descr_get returns a plain function,
@@ -170,7 +169,6 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
     }
     return PyType_Type.tp_getattro(obj, name);
 }
-#endif
 
 /// metaclass `__call__` function that is used to create all pybind11 objects.
 extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
@@ -266,9 +264,7 @@ inline PyTypeObject *make_default_metaclass() {
     type->tp_call = pybind11_meta_call;
 
     type->tp_setattro = pybind11_meta_setattro;
-#if PY_MAJOR_VERSION >= 3
     type->tp_getattro = pybind11_meta_getattro;
-#endif
 
     type->tp_dealloc = pybind11_meta_dealloc;
 
@@ -613,9 +609,6 @@ extern "C" inline void pybind11_releasebuffer(PyObject *, Py_buffer *view) {
 /// Give this type a buffer interface.
 inline void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
     heap_type->ht_type.tp_as_buffer = &heap_type->as_buffer;
-#if PY_MAJOR_VERSION < 3
-    heap_type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_NEWBUFFER;
-#endif
 
     heap_type->as_buffer.bf_getbuffer = pybind11_getbuffer;
     heap_type->as_buffer.bf_releasebuffer = pybind11_releasebuffer;
@@ -628,12 +621,8 @@ inline PyObject *make_new_python_type(const type_record &rec) {
 
     auto qualname = name;
     if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
-#if PY_MAJOR_VERSION >= 3
         qualname = reinterpret_steal<object>(
             PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), name.ptr()));
-#else
-        qualname = str(rec.scope.attr("__qualname__").cast<std::string>() + "." + rec.name);
-#endif
     }
 
     object module_;
@@ -697,15 +686,10 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     type->tp_as_number = &heap_type->as_number;
     type->tp_as_sequence = &heap_type->as_sequence;
     type->tp_as_mapping = &heap_type->as_mapping;
-#if PY_VERSION_HEX >= 0x03050000
     type->tp_as_async = &heap_type->as_async;
-#endif
 
     /* Flags */
     type->tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE;
-#if PY_MAJOR_VERSION < 3
-    type->tp_flags |= Py_TPFLAGS_CHECKTYPES;
-#endif
     if (!rec.is_final) {
         type->tp_flags |= Py_TPFLAGS_BASETYPE;
     }

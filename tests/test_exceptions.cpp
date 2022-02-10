@@ -276,8 +276,6 @@ TEST_SUBMODULE(exceptions, m) {
 
     m.def("throw_should_be_translated_to_key_error", []() { throw shared_exception(); });
 
-#if PY_VERSION_HEX >= 0x03030000
-
     m.def("raise_from", []() {
         PyErr_SetString(PyExc_ValueError, "inner");
         py::raise_from(PyExc_ValueError, "outer");
@@ -301,5 +299,4 @@ TEST_SUBMODULE(exceptions, m) {
             std::throw_with_nested(std::runtime_error("Outer Exception"));
         }
     });
-#endif
 }

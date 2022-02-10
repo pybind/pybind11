@@ -453,15 +453,6 @@ protected:
             pybind11_fail("Internal error while parsing type signature (2)");
         }
 
-#if PY_MAJOR_VERSION < 3
-        if (std::strcmp(rec->name, "__next__") == 0) {
-            std::free(rec->name);
-            rec->name = guarded_strdup("next");
-        } else if (std::strcmp(rec->name, "__bool__") == 0) {
-            std::free(rec->name);
-            rec->name = guarded_strdup("__nonzero__");
-        }
-#endif
         rec->signature = guarded_strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
@@ -1107,14 +1098,12 @@ protected:
             }
 
             append_note_if_missing_header_is_suspected(msg);
-#if PY_VERSION_HEX >= 0x03030000
             // Attach additional error info to the exception if supported
             if (PyErr_Occurred()) {
                 // #HelpAppreciated: unit test coverage for this branch.
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
-#endif
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
@@ -1123,13 +1112,11 @@ protected:
                               "Python type! The signature was\n\t";
             msg += it->signature;
             append_note_if_missing_header_is_suspected(msg);
-#if PY_VERSION_HEX >= 0x03030000
             // Attach additional error info to the exception if supported
             if (PyErr_Occurred()) {
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
-#endif
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
@@ -1149,11 +1136,7 @@ public:
     /// Create a new top-level Python module with the given name and docstring
     PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
     explicit module_(const char *name, const char *doc = nullptr) {
-#if PY_MAJOR_VERSION >= 3
         *this = create_extension_module(name, doc, new PyModuleDef());
-#else
-        *this = create_extension_module(name, doc, nullptr);
-#endif
     }
 
     /** \rst
@@ -1231,20 +1214,14 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-#if PY_MAJOR_VERSION >= 3
     using module_def = PyModuleDef;
-#else
-    struct module_def {};
-#endif
 
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
-        For Python 3, ``def`` should point to a statically allocated module_def.
-        For Python 2, ``def`` can be a nullptr and is completely ignored.
+        ``def`` should point to a statically allocated module_def.
     \endrst */
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
-#if PY_MAJOR_VERSION >= 3
         // module_def is PyModuleDef
         // Placement new (not an allocation).
         def = new (def)
@@ -1258,12 +1235,6 @@ public:
                         /* m_clear */ nullptr,
                         /* m_free */ nullptr};
         auto *m = PyModule_Create(def);
-#else
-        // Ignore module_def *def; only necessary for Python 3
-        (void) def;
-        auto m = Py_InitModule3(
-            name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
-#endif
         if (m == nullptr) {
             if (PyErr_Occurred()) {
                 throw error_already_set();
@@ -1290,14 +1261,12 @@ inline dict globals() {
     return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
 }
 
-#if PY_VERSION_HEX >= 0x03030000
 template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
 PYBIND11_DEPRECATED("make_simple_namespace should be replaced with "
                     "py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
 object make_simple_namespace(Args &&...args_) {
     return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
 }
-#endif
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
@@ -2173,9 +2142,6 @@ public:
         def_property_readonly("value", [](Type value) { return (Scalar) value; });
         def("__int__", [](Type value) { return (Scalar) value; });
         def("__index__", [](Type value) { return (Scalar) value; });
-#if PY_MAJOR_VERSION < 3
-        def("__long__", [](Type value) { return (Scalar) value; });
-#endif
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(
