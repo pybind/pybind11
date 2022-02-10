@@ -1,13 +1,12 @@
 #include <pybind11/embed.h>
 
 #ifdef _MSC_VER
-// Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to catch
-// 2.0.1; this should be fixed in the next catch release after 2.0.1).
-#  pragma warning(disable: 4996)
+// Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
+// catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
+#    pragma warning(disable : 4996)
 #endif
 
 #include <catch.hpp>
-
 #include <cstdlib>
 #include <fstream>
 #include <functional>
@@ -62,14 +61,14 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m) {
 }
 
 PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
-    py::class_<test_override_cache_helper, test_override_cache_helper_trampoline, std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
+    py::class_<test_override_cache_helper,
+               test_override_cache_helper_trampoline,
+               std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
         .def(py::init_alias<>())
         .def("func", &test_override_cache_helper::func);
 }
 
-PYBIND11_EMBEDDED_MODULE(throw_exception, ) {
-    throw std::runtime_error("C++ Error");
-}
+PYBIND11_EMBEDDED_MODULE(throw_exception, ) { throw std::runtime_error("C++ Error"); }
 
 PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
     auto d = py::dict();
@@ -80,11 +79,13 @@ TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
     auto module_ = py::module_::import("test_interpreter");
     REQUIRE(py::hasattr(module_, "DerivedWidget"));
 
-    auto locals = py::dict("hello"_a="Hello, World!", "x"_a=5, **module_.attr("__dict__"));
+    auto locals = py::dict("hello"_a = "Hello, World!", "x"_a = 5, **module_.attr("__dict__"));
     py::exec(R"(
         widget = DerivedWidget("{} - {}".format(hello, x))
         message = widget.the_message
-    )", py::globals(), locals);
+    )",
+             py::globals(),
+             locals);
     REQUIRE(locals["message"].cast<std::string>() == "Hello, World! - 5");
 
     auto py_widget = module_.attr("DerivedWidget")("The question");
@@ -124,20 +125,21 @@ TEST_CASE("Override cache") {
 
 TEST_CASE("Import error handling") {
     REQUIRE_NOTHROW(py::module_::import("widget_module"));
-    REQUIRE_THROWS_WITH(py::module_::import("throw_exception"),
-                        "ImportError: C++ Error");
+    REQUIRE_THROWS_WITH(py::module_::import("throw_exception"), "ImportError: C++ Error");
 #if PY_VERSION_HEX >= 0x03030000
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: initialization failed"));
 
-    auto locals = py::dict("is_keyerror"_a=false, "message"_a="not set");
+    auto locals = py::dict("is_keyerror"_a = false, "message"_a = "not set");
     py::exec(R"(
         try:
             import throw_error_already_set
         except ImportError as e:
             is_keyerror = type(e.__cause__) == KeyError
             message = str(e.__cause__)
-    )", py::globals(), locals);
+    )",
+             py::globals(),
+             locals);
     REQUIRE(locals["is_keyerror"].cast<bool>() == true);
     REQUIRE(locals["message"].cast<std::string>() == "'missing'");
 #else
@@ -179,11 +181,12 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
-    REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>() == 123);
+    REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>()
+            == 123);
 
     // local and foreign module internals should point to the same internals:
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) ==
-            py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
+    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
+            == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
     py::finalize_interpreter();
@@ -198,16 +201,19 @@ TEST_CASE("Restart the interpreter") {
     pybind11::detail::get_internals();
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) ==
-            py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
+    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
+            == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
     // internals destroyed
     py::finalize_interpreter();
     py::initialize_interpreter();
     bool ran = false;
-    py::module_::import("__main__").attr("internals_destroy_test") =
-        py::capsule(&ran, [](void *ran) { py::detail::get_internals(); *static_cast<bool *>(ran) = true; });
+    py::module_::import("__main__").attr("internals_destroy_test")
+        = py::capsule(&ran, [](void *ran) {
+              py::detail::get_internals();
+              *static_cast<bool *>(ran) = true;
+          });
     REQUIRE_FALSE(has_pybind11_internals_builtin());
     REQUIRE_FALSE(has_pybind11_internals_static());
     REQUIRE_FALSE(ran);
@@ -281,7 +287,7 @@ TEST_CASE("Threads") {
     REQUIRE_FALSE(has_pybind11_internals_static());
 
     constexpr auto num_threads = 10;
-    auto locals = py::dict("count"_a=0);
+    auto locals = py::dict("count"_a = 0);
 
     {
         py::gil_scoped_release gil_release{};
@@ -322,9 +328,8 @@ TEST_CASE("Reload module from file") {
     bool dont_write_bytecode = sys.attr("dont_write_bytecode").cast<bool>();
     sys.attr("dont_write_bytecode") = true;
     // Reset the value at scope exit
-    scope_exit reset_dont_write_bytecode([&]() {
-        sys.attr("dont_write_bytecode") = dont_write_bytecode;
-    });
+    scope_exit reset_dont_write_bytecode(
+        [&]() { sys.attr("dont_write_bytecode") = dont_write_bytecode; });
 
     std::string module_name = "test_module_reload";
     std::string module_file = module_name + ".py";
@@ -335,9 +340,7 @@ TEST_CASE("Reload module from file") {
     test_module << "    return 1\n";
     test_module.close();
     // Delete the file at scope exit
-    scope_exit delete_module_file([&]() {
-        std::remove(module_file.c_str());
-    });
+    scope_exit delete_module_file([&]() { std::remove(module_file.c_str()); });
 
     // Import the module from file
     auto module_ = py::module_::import(module_name.c_str());

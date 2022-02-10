@@ -56,7 +56,8 @@ from the ConstructorStats instance `.values()` method.
 In some cases, when you need to track instances of a C++ class not registered with pybind11, you
 need to add a function returning the ConstructorStats for the C++ class; this can be done with:
 
-    m.def("get_special_cstats", &ConstructorStats::get<SpecialClass>, py::return_value_policy::reference)
+    m.def("get_special_cstats", &ConstructorStats::get<SpecialClass>,
+py::return_value_policy::reference)
 
 Finally, you can suppress the output messages, but keep the constructor tracking (for
 inspection/testing in python) by using the functions with `print_` replaced with `track_` (e.g.
@@ -65,17 +66,18 @@ inspection/testing in python) by using the functions with `print_` replaced with
 */
 
 #include "pybind11_tests.h"
-#include <unordered_map>
+
 #include <list>
-#include <typeindex>
 #include <sstream>
+#include <typeindex>
+#include <unordered_map>
 
 class ConstructorStats {
 protected:
-    std::unordered_map<void*, int> _instances; // Need a map rather than set because members can
-                                               // shared address with parents
-    std::list<std::string> _values; // Used to track values
-                                    // (e.g. of value constructors)
+    std::unordered_map<void *, int> _instances; // Need a map rather than set because members can
+                                                // shared address with parents
+    std::list<std::string> _values;             // Used to track values
+                                                // (e.g. of value constructors)
 public:
     int default_constructions = 0;
     int copy_constructions = 0;
@@ -98,9 +100,7 @@ public:
         default_constructions++;
     }
 
-    void created(void *inst) {
-        ++_instances[inst];
-    }
+    void created(void *inst) { ++_instances[inst]; }
 
     void destroyed(void *inst) {
         if (--_instances[inst] < 0) {
@@ -114,11 +114,12 @@ public:
         // Force garbage collection to ensure any pending destructors are invoked:
 #if defined(PYPY_VERSION)
         PyObject *globals = PyEval_GetGlobals();
-        PyObject *result = PyRun_String(
-            "import gc\n"
-            "for i in range(2):"
-            "    gc.collect()\n",
-            Py_file_input, globals, globals);
+        PyObject *result = PyRun_String("import gc\n"
+                                        "for i in range(2):"
+                                        "    gc.collect()\n",
+                                        Py_file_input,
+                                        globals,
+                                        globals);
         if (result == nullptr)
             throw py::error_already_set();
         Py_DECREF(result);
@@ -140,7 +141,8 @@ public:
 
     void value() {} // Recursion terminator
     // Takes one or more values, converts them to strings, then stores them.
-    template <typename T, typename... Tmore> void value(const T &v, Tmore &&...args) {
+    template <typename T, typename... Tmore>
+    void value(const T &v, Tmore &&...args) {
         std::ostringstream oss;
         oss << v;
         _values.push_back(oss.str());
@@ -158,13 +160,14 @@ public:
     }
 
     // Gets constructor stats from a C++ type index
-    static ConstructorStats& get(std::type_index type) {
+    static ConstructorStats &get(std::type_index type) {
         static std::unordered_map<std::type_index, ConstructorStats> all_cstats;
         return all_cstats[type];
     }
 
     // Gets constructor stats from a C++ type
-    template <typename T> static ConstructorStats& get() {
+    template <typename T>
+    static ConstructorStats &get() {
 #if defined(PYPY_VERSION)
         gc();
 #endif
@@ -172,11 +175,12 @@ public:
     }
 
     // Gets constructor stats from a Python class
-    static ConstructorStats& get(py::object class_) {
+    static ConstructorStats &get(py::object class_) {
         auto &internals = py::detail::get_internals();
         const std::type_index *t1 = nullptr, *t2 = nullptr;
         try {
-            auto *type_info = internals.registered_types_py.at((PyTypeObject *) class_.ptr()).at(0);
+            auto *type_info
+                = internals.registered_types_py.at((PyTypeObject *) class_.ptr()).at(0);
             for (auto &p : internals.registered_types_cpp) {
                 if (p.second == type_info) {
                     if (t1) {
@@ -186,18 +190,20 @@ public:
                     t1 = &p.first;
                 }
             }
+        } catch (const std::out_of_range &) {
         }
-        catch (const std::out_of_range&) {}
         if (!t1) {
             throw std::runtime_error("Unknown class passed to ConstructorStats::get()");
         }
         auto &cs1 = get(*t1);
-        // If we have both a t1 and t2 match, one is probably the trampoline class; return whichever
-        // has more constructions (typically one or the other will be 0)
+        // If we have both a t1 and t2 match, one is probably the trampoline class; return
+        // whichever has more constructions (typically one or the other will be 0)
         if (t2) {
             auto &cs2 = get(*t2);
-            int cs1_total = cs1.default_constructions + cs1.copy_constructions + cs1.move_constructions + (int) cs1._values.size();
-            int cs2_total = cs2.default_constructions + cs2.copy_constructions + cs2.move_constructions + (int) cs2._values.size();
+            int cs1_total = cs1.default_constructions + cs1.copy_constructions
+                            + cs1.move_constructions + (int) cs1._values.size();
+            int cs2_total = cs2.default_constructions + cs2.copy_constructions
+                            + cs2.move_constructions + (int) cs2._values.size();
             if (cs2_total > cs1_total) {
                 return cs2;
             }
@@ -209,78 +215,108 @@ public:
 // To track construction/destruction, you need to call these methods from the various
 // constructors/operators.  The ones that take extra values record the given values in the
 // constructor stats values for later inspection.
-template <class T> void track_copy_created(T *inst) { ConstructorStats::get<T>().copy_created(inst); }
-template <class T> void track_move_created(T *inst) { ConstructorStats::get<T>().move_created(inst); }
-template <class T, typename... Values> void track_copy_assigned(T *, Values &&...values) {
+template <class T>
+void track_copy_created(T *inst) {
+    ConstructorStats::get<T>().copy_created(inst);
+}
+template <class T>
+void track_move_created(T *inst) {
+    ConstructorStats::get<T>().move_created(inst);
+}
+template <class T, typename... Values>
+void track_copy_assigned(T *, Values &&...values) {
     auto &cst = ConstructorStats::get<T>();
     cst.copy_assignments++;
     cst.value(std::forward<Values>(values)...);
 }
-template <class T, typename... Values> void track_move_assigned(T *, Values &&...values) {
+template <class T, typename... Values>
+void track_move_assigned(T *, Values &&...values) {
     auto &cst = ConstructorStats::get<T>();
     cst.move_assignments++;
     cst.value(std::forward<Values>(values)...);
 }
-template <class T, typename... Values> void track_default_created(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void track_default_created(T *inst, Values &&...values) {
     auto &cst = ConstructorStats::get<T>();
     cst.default_created(inst);
     cst.value(std::forward<Values>(values)...);
 }
-template <class T, typename... Values> void track_created(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void track_created(T *inst, Values &&...values) {
     auto &cst = ConstructorStats::get<T>();
     cst.created(inst);
     cst.value(std::forward<Values>(values)...);
 }
-template <class T, typename... Values> void track_destroyed(T *inst) {
+template <class T, typename... Values>
+void track_destroyed(T *inst) {
     ConstructorStats::get<T>().destroyed(inst);
 }
-template <class T, typename... Values> void track_values(T *, Values &&...values) {
+template <class T, typename... Values>
+void track_values(T *, Values &&...values) {
     ConstructorStats::get<T>().value(std::forward<Values>(values)...);
 }
 
 /// Don't cast pointers to Python, print them as strings
 inline const char *format_ptrs(const char *p) { return p; }
 template <typename T>
-py::str format_ptrs(T *p) { return "{:#x}"_s.format(reinterpret_cast<std::uintptr_t>(p)); }
+py::str format_ptrs(T *p) {
+    return "{:#x}"_s.format(reinterpret_cast<std::uintptr_t>(p));
+}
 template <typename T>
-auto format_ptrs(T &&x) -> decltype(std::forward<T>(x)) { return std::forward<T>(x); }
+auto format_ptrs(T &&x) -> decltype(std::forward<T>(x)) {
+    return std::forward<T>(x);
+}
 
 template <class T, typename... Output>
 void print_constr_details(T *inst, const std::string &action, Output &&...output) {
-    py::print("###", py::type_id<T>(), "@", format_ptrs(inst), action,
+    py::print("###",
+              py::type_id<T>(),
+              "@",
+              format_ptrs(inst),
+              action,
               format_ptrs(std::forward<Output>(output))...);
 }
 
 // Verbose versions of the above:
-template <class T, typename... Values> void print_copy_created(T *inst, Values &&...values) { // NB: this prints, but doesn't store, given values
+template <class T, typename... Values>
+void print_copy_created(T *inst,
+                        Values &&...values) { // NB: this prints, but doesn't store, given values
     print_constr_details(inst, "created via copy constructor", values...);
     track_copy_created(inst);
 }
-template <class T, typename... Values> void print_move_created(T *inst, Values &&...values) { // NB: this prints, but doesn't store, given values
+template <class T, typename... Values>
+void print_move_created(T *inst,
+                        Values &&...values) { // NB: this prints, but doesn't store, given values
     print_constr_details(inst, "created via move constructor", values...);
     track_move_created(inst);
 }
-template <class T, typename... Values> void print_copy_assigned(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void print_copy_assigned(T *inst, Values &&...values) {
     print_constr_details(inst, "assigned via copy assignment", values...);
     track_copy_assigned(inst, values...);
 }
-template <class T, typename... Values> void print_move_assigned(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void print_move_assigned(T *inst, Values &&...values) {
     print_constr_details(inst, "assigned via move assignment", values...);
     track_move_assigned(inst, values...);
 }
-template <class T, typename... Values> void print_default_created(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void print_default_created(T *inst, Values &&...values) {
     print_constr_details(inst, "created via default constructor", values...);
     track_default_created(inst, values...);
 }
-template <class T, typename... Values> void print_created(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void print_created(T *inst, Values &&...values) {
     print_constr_details(inst, "created", values...);
     track_created(inst, values...);
 }
-template <class T, typename... Values> void print_destroyed(T *inst, Values &&...values) { // Prints but doesn't store given values
+template <class T, typename... Values>
+void print_destroyed(T *inst, Values &&...values) { // Prints but doesn't store given values
     print_constr_details(inst, "destroyed", values...);
     track_destroyed(inst);
 }
-template <class T, typename... Values> void print_values(T *inst, Values &&...values) {
+template <class T, typename... Values>
+void print_values(T *inst, Values &&...values) {
     print_constr_details(inst, ":", values...);
     track_values(inst, values...);
 }

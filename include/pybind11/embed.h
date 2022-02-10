@@ -16,21 +16,17 @@
 #include <vector>
 
 #if defined(PYPY_VERSION)
-#  error Embedding the interpreter is not supported with PyPy
+#    error Embedding the interpreter is not supported with PyPy
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-#  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
-      extern "C" PyObject *pybind11_init_impl_##name();  \
-      extern "C" PyObject *pybind11_init_impl_##name() { \
-          return pybind11_init_wrapper_##name();         \
-      }
+#    define PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                   \
+        extern "C" PyObject *pybind11_init_impl_##name();                                         \
+        extern "C" PyObject *pybind11_init_impl_##name() { return pybind11_init_wrapper_##name(); }
 #else
-#  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
-      extern "C" void pybind11_init_impl_##name();       \
-      extern "C" void pybind11_init_impl_##name() {      \
-          pybind11_init_wrapper_##name();                \
-      }
+#    define PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                   \
+        extern "C" void pybind11_init_impl_##name();                                              \
+        extern "C" void pybind11_init_impl_##name() { pybind11_init_wrapper_##name(); }
 #endif
 
 /** \rst
@@ -72,7 +68,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /// Python 2.7/3.x compatible version of `PyImport_AppendInittab` and error checks.
 struct embedded_module {
 #if PY_MAJOR_VERSION >= 3
-    using init_t = PyObject *(*)();
+    using init_t = PyObject *(*) ();
 #else
     using init_t = void (*)();
 #endif
@@ -106,10 +102,10 @@ inline wchar_t *widen_chars(const char *safe_arg) {
     wchar_t *widened_arg = nullptr;
 
 // warning C4996: 'mbstowcs': This function or variable may be unsafe.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4996)
-#endif
+#    if defined(_MSC_VER)
+#        pragma warning(push)
+#        pragma warning(disable : 4996)
+#    endif
 
 #    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
     size_t count = std::strlen(safe_arg);
@@ -121,9 +117,9 @@ inline wchar_t *widen_chars(const char *safe_arg) {
         std::mbstowcs(widened_arg, safe_arg, count + 1);
     }
 
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
+#    if defined(_MSC_VER)
+#        pragma warning(pop)
+#    endif
 
 #endif
     return widened_arg;
