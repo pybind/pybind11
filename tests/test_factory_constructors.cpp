@@ -38,8 +38,7 @@ class TestFactory2 {
     explicit TestFactory2(std::string v) : value(std::move(v)) { print_created(this, value); }
 
 public:
-    TestFactory2(TestFactory2 &&m) noexcept {
-        value = std::move(m.value);
+    TestFactory2(TestFactory2 &&m) noexcept : value{std::move(m.value)} {
         print_move_created(this);
     }
     TestFactory2 &operator=(TestFactory2 &&m) noexcept {
@@ -59,8 +58,7 @@ protected:
 
 public:
     explicit TestFactory3(std::string v) : value(std::move(v)) { print_created(this, value); }
-    TestFactory3(TestFactory3 &&m) noexcept {
-        value = std::move(m.value);
+    TestFactory3(TestFactory3 &&m) noexcept : value{std::move(m.value)} {
         print_move_created(this);
     }
     TestFactory3 &operator=(TestFactory3 &&m) noexcept {
@@ -93,10 +91,18 @@ public:
     explicit TestFactory6(int i) : value{i} { print_created(this, i); }
     TestFactory6(TestFactory6 &&f) noexcept {
         print_move_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         alias = f.alias;
     }
-    TestFactory6(const TestFactory6 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
+    TestFactory6(const TestFactory6 &f) {
+        print_copy_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        alias = f.alias;
+    }
     virtual ~TestFactory6() { print_destroyed(this); }
     virtual int get() { return value; }
     bool has_alias() const { return alias; }
@@ -131,10 +137,18 @@ public:
     explicit TestFactory7(int i) : value{i} { print_created(this, i); }
     TestFactory7(TestFactory7 &&f) noexcept {
         print_move_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         alias = f.alias;
     }
-    TestFactory7(const TestFactory7 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
+    TestFactory7(const TestFactory7 &f) {
+        print_copy_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        alias = f.alias;
+    }
     virtual ~TestFactory7() { print_destroyed(this); }
     virtual int get() { return value; }
     bool has_alias() const { return alias; }
@@ -142,6 +156,7 @@ public:
 class PyTF7 : public TestFactory7 {
 public:
     explicit PyTF7(int i) : TestFactory7(i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         alias = true;
         print_created(this, i);
     }

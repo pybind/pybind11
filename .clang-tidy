@@ -5,6 +5,7 @@ Checks: '
 cppcoreguidelines-init-variables,
 cppcoreguidelines-pro-type-static-cast-downcast,
 cppcoreguidelines-slicing,
+clang-analyzer-optin.performance.Padding,
 clang-analyzer-optin.cplusplus.VirtualCall,
 google-explicit-constructor,
 llvm-namespace-comment,
@@ -65,6 +66,6 @@ CheckOptions:
 - key:             readability-implicit-bool-conversion.AllowPointerConditions
   value:           true
 
-HeaderFilterRegex: 'pybind11/.*h'
+HeaderFilterRegex: '(^(include/pybind11/.*h | tests/*.h))'
 
 WarningsAsErrors: '*'

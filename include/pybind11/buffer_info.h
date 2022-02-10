@@ -89,7 +89,9 @@ struct buffer_info {
             ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
             : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
             (view->readonly != 0)) {
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         this->m_view = view;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         this->ownview = ownview;
     }
 

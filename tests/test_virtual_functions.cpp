@@ -103,10 +103,7 @@ public:
 class NonCopyable {
 public:
     NonCopyable(int a, int b) : value{new int(a*b)} { print_created(this, a, b); }
-    NonCopyable(NonCopyable &&o) noexcept {
-        value = std::move(o.value);
-        print_move_created(this);
-    }
+    NonCopyable(NonCopyable &&o) noexcept : value{std::move(o.value)} { print_move_created(this); }
     NonCopyable(const NonCopyable &) = delete;
     NonCopyable() = delete;
     void operator=(const NonCopyable &) = delete;
@@ -128,11 +125,8 @@ private:
 class Movable {
 public:
     Movable(int a, int b) : value{a+b} { print_created(this, a, b); }
-    Movable(const Movable &m) { value = m.value; print_copy_created(this); }
-    Movable(Movable &&m) noexcept {
-        value = m.value;
-        print_move_created(this);
-    }
+    Movable(const Movable &m) : value{m.value} { print_copy_created(this); }
+    Movable(Movable &&m) noexcept : value{m.value} { print_move_created(this); }
     std::string get_value() const { return std::to_string(value); }
     ~Movable() { print_destroyed(this); }
 private:

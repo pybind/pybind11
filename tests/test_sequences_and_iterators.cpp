@@ -152,23 +152,26 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     public:
         explicit Sequence(size_t size) : m_size(size) {
             print_created(this, "of size", m_size);
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[size];
             memset(m_data, 0, sizeof(float) * size);
         }
         explicit Sequence(const std::vector<float> &value) : m_size(value.size()) {
             print_created(this, "of size", m_size, "from std::vector");
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[m_size];
             memcpy(m_data, &value[0], sizeof(float) * m_size);
         }
         Sequence(const Sequence &s) : m_size(s.m_size) {
             print_copy_created(this);
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[m_size];
             memcpy(m_data, s.m_data, sizeof(float)*m_size);
         }
         Sequence(Sequence &&s) noexcept : m_size(s.m_size), m_data(s.m_data) {
             print_move_created(this);
+            // NOTLINENEXTLINE(cppcoreguidelines-prefer-member-initializer)
             s.m_size = 0;
-            s.m_data = nullptr;
         }
 
         ~Sequence() { print_destroyed(this); delete[] m_data; }
@@ -236,7 +239,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
 
     private:
         size_t m_size;
-        float *m_data;
+        float *m_data = nullptr;
     };
     py::class_<Sequence>(m, "Sequence")
         .def(py::init<size_t>())

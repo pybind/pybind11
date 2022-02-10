@@ -131,8 +131,7 @@ class MyObject4a;
 std::unordered_set<MyObject4a *> myobject4a_instances;
 class MyObject4a {
 public:
-    explicit MyObject4a(int i) {
-        value = i;
+    explicit MyObject4a(int i) : value{i} {
         print_created(this);
         myobject4a_instances.insert(this);
     };
