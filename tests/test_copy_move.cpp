@@ -66,7 +66,11 @@ public:
         std::swap(value, m.value);
         return *this;
     }
-    MoveOrCopyInt(const MoveOrCopyInt &c) { print_copy_created(this, c.value); value = c.value; }
+    MoveOrCopyInt(const MoveOrCopyInt &c) {
+        print_copy_created(this, c.value);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = c.value;
+    }
     MoveOrCopyInt &operator=(const MoveOrCopyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~MoveOrCopyInt() { print_destroyed(this); }
 
@@ -76,7 +80,11 @@ class CopyOnlyInt {
 public:
     CopyOnlyInt() { print_default_created(this); }
     explicit CopyOnlyInt(int v) : value{v} { print_created(this, value); }
-    CopyOnlyInt(const CopyOnlyInt &c) { print_copy_created(this, c.value); value = c.value; }
+    CopyOnlyInt(const CopyOnlyInt &c) {
+        print_copy_created(this, c.value);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = c.value;
+    }
     CopyOnlyInt &operator=(const CopyOnlyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~CopyOnlyInt() { print_destroyed(this); }
 

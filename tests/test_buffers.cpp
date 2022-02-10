@@ -17,12 +17,14 @@ TEST_SUBMODULE(buffers, m) {
     public:
         Matrix(py::ssize_t rows, py::ssize_t cols) : m_rows(rows), m_cols(cols) {
             print_created(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
-            m_data = new float[(size_t) (rows*cols)];
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+            m_data = new float[(size_t) (rows * cols)];
             memset(m_data, 0, sizeof(float) * (size_t) (rows * cols));
         }
 
         Matrix(const Matrix &s) : m_rows(s.m_rows), m_cols(s.m_cols) {
             print_copy_created(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[(size_t) (m_rows * m_cols)];
             memcpy(m_data, s.m_data, sizeof(float) * (size_t) (m_rows * m_cols));
         }
