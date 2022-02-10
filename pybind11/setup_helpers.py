@@ -47,6 +47,8 @@ import sysconfig
 import tempfile
 import threading
 import warnings
+from functools import lru_cache
+from pathlib import Path
 
 try:
     from setuptools import Extension as _Extension
@@ -92,9 +94,6 @@ class Pybind11Extension(_Extension):
 
     If you want to add pybind11 headers manually, for example for an exact
     git checkout, then set ``include_pybind11=False``.
-
-    Warning: do not use property-based access to the instance on Python 2 -
-    this is an ugly old-style class due to Distutils.
     """
 
     # flags are prepended, so that they can be further overridden, e.g. by
@@ -116,9 +115,7 @@ class Pybind11Extension(_Extension):
 
         include_pybind11 = kwargs.pop("include_pybind11", True)
 
-        # Can't use super here because distutils has old-style classes in
-        # Python 2!
-        _Extension.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Include the installed package pybind11 headers
         if include_pybind11:
@@ -130,11 +127,10 @@ class Pybind11Extension(_Extension):
 
                 if pyinc not in self.include_dirs:
                     self.include_dirs.append(pyinc)
-            except ImportError:
+            except ModuleNotFoundError:
                 pass
 
-        # Have to use the accessor manually to support Python 2 distutils
-        Pybind11Extension.cxx_std.__set__(self, cxx_std)
+        self.cxx_std = cxx_std
 
         cflags = []
         ldflags = []
@@ -156,11 +152,11 @@ class Pybind11Extension(_Extension):
     @property
     def cxx_std(self):
         """
-        The CXX standard level. If set, will add the required flags. If left
-        at 0, it will trigger an automatic search when pybind11's build_ext
-        is used. If None, will have no effect.  Besides just the flags, this
-        may add a register warning/error fix for Python 2 or macos-min 10.9
-        or 10.14.
+        The CXX standard level. If set, will add the required flags. If left at
+        0, it will trigger an automatic search when pybind11's build_ext is
+        used. If None, will have no effect.  Besides just the flags, this may
+        add a macos-min 10.9 or 10.14 flag if MACOSX_DEPLOYMENT_TARGET is
+        unset.
         """
         return self._cxx_level
 
@@ -192,7 +188,7 @@ class Pybind11Extension(_Extension):
             current_macos = tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2])
             desired_macos = (10, 9) if level < 17 else (10, 14)
             macos_string = ".".join(str(x) for x in min(current_macos, desired_macos))
-            macosx_min = "-mmacosx-version-min=" + macos_string
+            macosx_min = "-mmacosx-version-min={}".format(macos_string)
             cflags += [macosx_min]
             ldflags += [macosx_min]
 
@@ -202,7 +198,6 @@ class Pybind11Extension(_Extension):
 
 # Just in case someone clever tries to multithread
 tmp_chdir_lock = threading.Lock()
-cpp_cache_lock = threading.Lock()
 
 
 @contextlib.contextmanager
@@ -230,13 +225,12 @@ def has_flag(compiler, flag):
     """
 
     with tmp_chdir():
-        fname = "flagcheck.cpp"
-        with open(fname, "w") as f:
-            # Don't trigger -Wunused-parameter.
-            f.write("int main (int, char **) { return 0; }")
+        fname = Path("flagcheck.cpp")
+        # Don't trigger -Wunused-parameter.
+        fname.write_text("int main (int, char **) { return 0; }")
 
         try:
-            compiler.compile([fname], extra_postargs=[flag])
+            compiler.compile([str(fname)], extra_postargs=[flag])
         except distutils.errors.CompileError:
             return False
         return True
@@ -246,6 +240,7 @@ def has_flag(compiler, flag):
 cpp_flag_cache = None
 
 
+@lru_cache()
 def auto_cpp_level(compiler):
     """
     Return the max supported C++ std level (17, 14, or 11). Returns latest on Windows.
@@ -254,19 +249,10 @@ def auto_cpp_level(compiler):
     if WIN:
         return "latest"
 
-    global cpp_flag_cache
-
-    # If this has been previously calculated with the same args, return that
-    with cpp_cache_lock:
-        if cpp_flag_cache:
-            return cpp_flag_cache
-
     levels = [17, 14, 11]
 
     for level in levels:
         if has_flag(compiler, STD_TMPL.format(level)):
-            with cpp_cache_lock:
-                cpp_flag_cache = level
             return level
 
     msg = "Unsupported compiler -- at least C++11 support is needed!"
@@ -287,12 +273,9 @@ class build_ext(_build_ext):  # noqa: N801
 
         for ext in self.extensions:
             if hasattr(ext, "_cxx_level") and ext._cxx_level == 0:
-                # Python 2 syntax - old-style distutils class
-                ext.__class__.cxx_std.__set__(ext, auto_cpp_level(self.compiler))
+                ext.cxx_std = auto_cpp_level(self.compiler)
 
-        # Python 2 doesn't allow super here, since distutils uses old-style
-        # classes!
-        _build_ext.build_extensions(self)
+        super().build_extensions()
 
 
 def intree_extensions(paths, package_dir=None):
@@ -324,10 +307,11 @@ def intree_extensions(paths, package_dir=None):
                         qualified_name = prefix + "." + qualified_name
                     exts.append(Pybind11Extension(qualified_name, [path]))
             if not found:
-                raise ValueError(
-                    "path {} is not a child of any of the directories listed "
-                    "in 'package_dir' ({})".format(path, package_dir)
-                )
+                msg = (
+                    "path {path} is not a child of any of the directories listed "
+                    "in 'package_dir' ({package_dir})"
+                ).format(path=path, package_dir=package_dir)
+                raise ValueError(msg)
     return exts
 
 
@@ -453,14 +437,9 @@ class ParallelCompile:
                     threads = 1
 
             if threads > 1:
-                pool = ThreadPool(threads)
-                # In Python 2, ThreadPool can't be used as a context manager.
-                # Once we are no longer supporting it, this can be 'with pool:'
-                try:
+                with ThreadPool(threads) as pool:
                     for _ in pool.imap_unordered(_single_compile, objects):
                         pass
-                finally:
-                    pool.terminate()
             else:
                 for ob in objects:
                     _single_compile(ob)

@@ -9,14 +9,17 @@ import shutil
 import string
 import subprocess
 import sys
-import tempfile
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import setuptools.command.sdist
 
-DIR = os.path.abspath(os.path.dirname(__file__))
+DIR = Path(__file__).parent.absolute()
 VERSION_REGEX = re.compile(
     r"^\s*#\s*define\s+PYBIND11_VERSION_([A-Z]+)\s+(.*)$", re.MULTILINE
 )
+VERSION_FILE = Path("pybind11/_version.py")
+COMMON_FILE = Path("include/pybind11/detail/common.h")
 
 
 def build_expected_version_hex(matches):
@@ -56,24 +59,25 @@ def build_expected_version_hex(matches):
 
 global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
 
-setup_py = "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
+setup_py = Path(
+    "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
+)
 extra_cmd = 'cmdclass["sdist"] = SDist\n'
 
 to_src = (
-    ("pyproject.toml", "tools/pyproject.toml"),
-    ("setup.py", setup_py),
+    (Path("pyproject.toml"), Path("tools/pyproject.toml")),
+    (Path("setup.py"), setup_py),
 )
 
+
 # Read the listed version
-with open("pybind11/_version.py") as f:
-    code = compile(f.read(), "pybind11/_version.py", "exec")
 loc = {}
+code = compile(VERSION_FILE.read_text(encoding="utf-8"), "pybind11/_version.py", "exec")
 exec(code, loc)
 version = loc["__version__"]
 
 # Verify that the version matches the one in C++
-with open("include/pybind11/detail/common.h", encoding="utf8") as f:
-    matches = dict(VERSION_REGEX.findall(f.read()))
+matches = dict(VERSION_REGEX.findall(COMMON_FILE.read_text(encoding="utf8")))
 cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
 if version != cpp_version:
     msg = "Python version {} does not match C++ version {}!".format(
@@ -82,51 +86,37 @@ if version != cpp_version:
     raise RuntimeError(msg)
 
 version_hex = matches.get("HEX", "MISSING")
-expected_version_hex = build_expected_version_hex(matches)
-if version_hex != expected_version_hex:
+exp_version_hex = build_expected_version_hex(matches)
+if version_hex != exp_version_hex:
     msg = "PYBIND11_VERSION_HEX {} does not match expected value {}!".format(
-        version_hex,
-        expected_version_hex,
+        version_hex, exp_version_hex
     )
     raise RuntimeError(msg)
 
 
-def get_and_replace(filename, binary=False, **opts):
-    with open(filename, "rb" if binary else "r") as f:
-        contents = f.read()
-    # Replacement has to be done on text in Python 3 (both work in Python 2)
+def get_and_replace(filename: Path, binary: bool = False, **opts: str):
     if binary:
+        contents = filename.read_bytes()
         return string.Template(contents.decode()).substitute(opts).encode()
-    else:
-        return string.Template(contents).substitute(opts)
+
+    contents = filename.read_text()
+    return string.Template(contents).substitute(opts)
 
 
 # Use our input files instead when making the SDist (and anything that depends
 # on it, like a wheel)
 class SDist(setuptools.command.sdist.sdist):
     def make_release_tree(self, base_dir, files):
-        setuptools.command.sdist.sdist.make_release_tree(self, base_dir, files)
+        super().make_release_tree(base_dir, files)
 
         for to, src in to_src:
             txt = get_and_replace(src, binary=True, version=version, extra_cmd="")
 
-            dest = os.path.join(base_dir, to)
+            dest = Path(base_dir) / to
 
             # This is normally linked, so unlink before writing!
-            os.unlink(dest)
-            with open(dest, "wb") as f:
-                f.write(txt)
-
-
-# Backport from Python 3
-@contextlib.contextmanager
-def TemporaryDirectory():  # noqa: N802
-    "Prepare a temporary directory, cleanup when done"
-    try:
-        tmpdir = tempfile.mkdtemp()
-        yield tmpdir
-    finally:
-        shutil.rmtree(tmpdir)
+            dest.unlink()
+            dest.write_bytes(txt)
 
 
 # Remove the CMake install directory when done
@@ -155,8 +145,8 @@ with remove_output("pybind11/include", "pybind11/share"):
             ]
             cmd += fcommand
         cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
-        subprocess.check_call(cmd, **cmake_opts)
-        subprocess.check_call(["cmake", "--install", tmpdir], **cmake_opts)
+        subprocess.run(cmd, check=True, **cmake_opts)
+        subprocess.run(["cmake", "--install", tmpdir], check=True, **cmake_opts)
 
     txt = get_and_replace(setup_py, version=version, extra_cmd=extra_cmd)
     code = compile(txt, setup_py, "exec")
