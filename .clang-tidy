@@ -3,6 +3,7 @@ FormatStyle: file
 Checks: '
 *bugprone*,
 cppcoreguidelines-init-variables,
+cppcoreguidelines-prefer-member-initializer,
 cppcoreguidelines-pro-type-static-cast-downcast,
 cppcoreguidelines-slicing,
 clang-analyzer-optin.performance.Padding,
@@ -66,6 +67,6 @@ CheckOptions:
 - key:             readability-implicit-bool-conversion.AllowPointerConditions
   value:           true
 
-HeaderFilterRegex: '(^(include/pybind11/.*h | tests/*.h))'
+HeaderFilterRegex: 'pybind11/.*h'
 
 WarningsAsErrors: '*'
