@@ -15,5 +15,6 @@ IndentWidth: 4
 Language: Cpp
 SpaceAfterCStyleCast: true
 Standard: Cpp11
+StatementMacros: ['PyObject_HEAD']
 TabWidth: 4
 ...

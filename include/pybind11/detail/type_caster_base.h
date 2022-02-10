@@ -426,7 +426,8 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
             space += t->holder_size_in_ptrs; // holder instance
         }
         size_t flags_at = space;
-        space += size_in_ptrs(n_types); // status bytes (holder_constructed and instance_registered)
+        space += size_in_ptrs(n_types); // status bytes (holder_constructed and
+                                        // instance_registered)
 
         // Allocate space for flags, values, and holders, and initialize it to 0 (flags and values,
         // in particular, need to be 0).  Use Python's memory allocation functions: in Python 3.6

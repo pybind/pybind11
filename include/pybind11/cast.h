@@ -994,7 +994,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
 object object_or_cast(T &&o) { return pybind11::cast(std::forward<T>(o)); }
 
-struct override_unused {}; // Placeholder type for the unneeded (and dead code) static variable in the PYBIND11_OVERRIDE_OVERRIDE macro
+// Placeholder type for the unneeded (and dead code) static variable in the
+// PYBIND11_OVERRIDE_OVERRIDE macro
+struct override_unused {};
 template <typename ret_type> using override_caster_t = conditional_t<
     cast_is_temporary_value_reference<ret_type>::value, make_caster<ret_type>, override_unused>;
 
@@ -1461,7 +1463,8 @@ handle type::handle_of() {
     }}
 
 /// Lets you pass a type containing a `,` through a macro parameter without needing a separate
-/// typedef, e.g.: `PYBIND11_OVERRIDE(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
+/// typedef, e.g.:
+/// `PYBIND11_OVERRIDE(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
 #define PYBIND11_TYPE(...) __VA_ARGS__
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

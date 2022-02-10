@@ -153,10 +153,12 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
 
     // These should fail to compile:
+#ifdef PYBIND11_NEVER_DEFINED_EVER
     // argument annotations are required when using kw_only
-//    m.def("bad_kw_only1", [](int) {}, py::kw_only());
+    m.def("bad_kw_only1", [](int) {}, py::kw_only());
     // can't specify both `py::kw_only` and a `py::args` argument
-//    m.def("bad_kw_only2", [](int i, py::args) {}, py::kw_only(), "i"_a);
+    m.def("bad_kw_only2", [](int i, py::args) {}, py::kw_only(), "i"_a);
+#endif
 
     // test_function_signatures (along with most of the above)
     struct KWClass { void foo(int, float) {} };

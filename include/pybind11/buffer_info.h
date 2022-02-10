@@ -44,10 +44,12 @@ struct buffer_info {
     void *ptr = nullptr;          // Pointer to the underlying storage
     ssize_t itemsize = 0;         // Size of individual items in bytes
     ssize_t size = 0;             // Total number of entries
-    std::string format;           // For homogeneous buffers, this should be set to format_descriptor<T>::format()
+    std::string format; // For homogeneous buffers, this should be set to
+                        // format_descriptor<T>::format()
     ssize_t ndim = 0;             // Number of dimensions
     std::vector<ssize_t> shape;   // Shape of the tensor (1 entry per dimension)
-    std::vector<ssize_t> strides; // Number of bytes between adjacent entries (for each per dimension)
+    std::vector<ssize_t> strides; // Number of bytes between adjacent entries
+                                  // (for each per dimension)
     bool readonly = false;        // flag to indicate if the underlying storage may be written to
 
     buffer_info() = default;
