@@ -18,9 +18,7 @@ def test_dtypes():
         assert check.numpy == check.pybind11, check
         if check.numpy.num != check.pybind11.num:
             print(
-                "NOTE: typenum mismatch for {}: {} != {}".format(
-                    check, check.numpy.num, check.pybind11.num
-                )
+                f"NOTE: typenum mismatch for {check}: {check.numpy.num} != {check.pybind11.num}"
             )
 
 
@@ -116,9 +114,7 @@ def test_at_fail(arr, dim):
     for func in m.at_t, m.mutate_at_t:
         with pytest.raises(IndexError) as excinfo:
             func(arr, *([0] * dim))
-        assert str(excinfo.value) == "index dimension mismatch: {} (ndim = 2)".format(
-            dim
-        )
+        assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
 
 
 def test_at(arr):

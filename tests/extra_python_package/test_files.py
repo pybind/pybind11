@@ -241,9 +241,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
         names = z.namelist()
 
     trimmed = {n for n in names if "dist-info" not in n}
-    trimmed |= {
-        "dist-info/{}".format(n.split("/", 1)[-1]) for n in names if "dist-info" in n
-    }
+    trimmed |= {f"dist-info/{n.split('/', 1)[-1]}" for n in names if "dist-info" in n}
     assert files == trimmed
 
 

@@ -322,9 +322,9 @@ def intree_extensions(
 
     if not exts:
         msg = (
-            "path {path} is not a child of any of the directories listed "
-            "in 'package_dir' ({package_dir})"
-        ).format(path=path, package_dir=package_dir)
+            f"path {path} is not a child of any of the directories listed "
+            f"in 'package_dir' ({package_dir})"
+        )
         raise ValueError(msg)
 
     return exts

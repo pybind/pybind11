@@ -13,7 +13,7 @@ def test_override(capture, msg):
             self.data = "Hello world"
 
         def run(self, value):
-            print("ExtendedExampleVirt::run(%i), calling parent.." % value)
+            print(f"ExtendedExampleVirt::run({value}), calling parent..")
             return super().run(value + 1)
 
         def run_bool(self):
@@ -24,7 +24,7 @@ def test_override(capture, msg):
             return "override1"
 
         def pure_virtual(self):
-            print("ExtendedExampleVirt::pure_virtual(): %s" % self.data)
+            print(f"ExtendedExampleVirt::pure_virtual(): {self.data}")
 
     class ExtendedExampleVirt2(ExtendedExampleVirt):
         def __init__(self, state):
