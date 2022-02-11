@@ -1,6 +1,59 @@
 [build-system]
-requires = ["setuptools @ git+https://github.com/pypa/setuptools@add-some-type-hints", "cmake>=3.18", "ninja"]
+requires = [
+    "setuptools @ git+https://github.com/pypa/setuptools@add-some-type-hints",
+    "cmake>=3.18",
+    "ninja"
+]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pybind11"
+description = "Seamless operability between C++11 and Python"
+authors = [{name = "Wenzel Jakob", email = "wenzel.jakob@epfl.ch"}]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: C++",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = [
+    "C++11",
+    "Python bindings",
+]
+dynamic = ["license", "version"]
+requires-python = ">=3.6"
+
+[project.readme]
+file = "README.rst"
+content-type = "text/x-rst"
+
+[project.urls]
+Homepage = "https://github.com/pybind/pybind11"
+Documentation = "https://pybind11.readthedocs.io/"
+"Bug Tracker" = "https://github.com/pybind/pybind11/issues"
+Discussions = "https://github.com/pybind/pybind11/discussions"
+Changelog = "https://pybind11.readthedocs.io/en/latest/changelog.html"
+Chat = "https://gitter.im/pybind/Lobby"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = false
+
+[tool.setuptools.dynamic]
+license = "BSD"
+license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*", "AUTHORS*"]
 
 [tool.check-manifest]
 ignore = [
