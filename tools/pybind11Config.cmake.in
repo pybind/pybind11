@@ -88,7 +88,7 @@ you can either use the basic targets, or use the FindPython tools:
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
                                   CXX_VISIBILITY_PRESET ON
-                                  VISIBLITY_INLINES_HIDDEN ON)
+                                  VISIBILITY_INLINES_HIDDEN ON)
 
 If you build targets yourself, you may be interested in stripping the output
 for reduced size; this is the one other feature that the helper function gives you.
