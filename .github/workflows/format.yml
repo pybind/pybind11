@@ -12,6 +12,9 @@ on:
     - stable
     - "v*"
 
+env:
+  FORCE_COLOR: 3
+
 jobs:
   pre-commit:
     name: Format
@@ -23,6 +26,10 @@ jobs:
       with:
         # Slow hooks are marked with manual - slow is okay here, run them too
         extra_args: --hook-stage manual --all-files
+    - name: PyLint
+      run: |
+        echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
+        pipx run nox -s pylint
 
   clang-tidy:
     # When making changes here, please also review the "Clang-Tidy" section
