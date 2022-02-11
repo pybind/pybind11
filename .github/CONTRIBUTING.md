@@ -93,7 +93,7 @@ cmake --build build -j4
 
 Tips:
 
-* You can use `virtualenv` (faster, from PyPI) instead of `venv`
+* You can use `virtualenv` (faster, from PyPI) instead of `venv`.
 * You can select any name for your environment folder; if it contains "env" it
   will be ignored by git.
 * If you don't have CMake 3.14+, just add "cmake" to the pip install command.
