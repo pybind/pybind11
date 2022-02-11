@@ -120,10 +120,11 @@ def test_intree_extensions(monkeypatch, tmpdir):
     subdir.ensure_dir()
     src = subdir / "ext.cpp"
     src.ensure()
-    (ext,) = intree_extensions([src.relto(tmpdir)])
+    relpath = src.relto(tmpdir)
+    (ext,) = intree_extensions([relpath])
     assert ext.name == "ext"
     subdir.ensure("__init__.py")
-    (ext,) = intree_extensions([src.relto(tmpdir)])
+    (ext,) = intree_extensions([relpath])
     assert ext.name == "dir.ext"
 
 

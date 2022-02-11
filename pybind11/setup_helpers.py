@@ -303,24 +303,22 @@ def intree_extensions(
     """
     exts = []
 
-    for path_str in paths:
-        path = Path(path_str)
-
-        if package_dir is not None:
-            local_package_dir = package_dir
+    for path in paths:
+        if package_dir is None:
+            parent, _ = os.path.split(path)
+            while os.path.exists(os.path.join(parent, "__init__.py")):
+                parent, _ = os.path.split(parent)
+            relname, _ = os.path.splitext(os.path.relpath(path, parent))
+            qualified_name = relname.replace(os.path.sep, ".")
+            exts.append(Pybind11Extension(qualified_name, [path]))
         else:
-            parent = path.parent
-            while parent.joinpath("__init__.py").exists():
-                parent = path.parent
-            local_package_dir = {"": str(parent)}
-
-        for prefix, str_parent in local_package_dir.items():
-            if path_str.startswith(str_parent):
-                relpath = path.relative_to(str_parent).with_suffix("")
-                qualified_name = ".".join(relpath.parts)
-                if prefix:
-                    qualified_name = "{}.{}".format(prefix, qualified_name)
-                exts.append(Pybind11Extension(qualified_name, [path_str]))
+            for prefix, parent in package_dir.items():
+                if path.startswith(parent):
+                    relname, _ = os.path.splitext(os.path.relpath(path, parent))
+                    qualified_name = relname.replace(os.path.sep, ".")
+                    if prefix:
+                        qualified_name = prefix + "." + qualified_name
+                    exts.append(Pybind11Extension(qualified_name, [path]))
 
     if not exts:
         msg = (
