@@ -193,7 +193,7 @@ Using ``find_package`` with version info is not recommended except for release v
 .. code-block:: cmake
 
   find_package(pybind11 CONFIG)
-  find_package(pybind11 2.0 EXACT CONFIG REQUIRED)
+  find_package(pybind11 2.9 EXACT CONFIG REQUIRED)
 
 #]=============================================================================]
 @PACKAGE_INIT@

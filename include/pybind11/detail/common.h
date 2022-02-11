@@ -211,8 +211,8 @@
 #endif
 
 #include <Python.h>
-#if PY_VERSION_HEX < 0x030500f0
-#    error "PYTHON 2 IS NO LONGER SUPPORTED. pybind11 v2.9 was the last to support Python 2."
+#if PY_VERSION_HEX < 0x03060000
+#    error "PYTHON < 3.6 IS UNSUPPORTED. pybind11 v2.9 was the last to support Python 2 and 3.5."
 #endif
 #include <frameobject.h>
 #include <pythread.h>
@@ -300,15 +300,6 @@
 #define PYBIND11_PLUGIN_IMPL(name)                                                                \
     extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();                   \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
-
-#if PY_VERSION_HEX >= 0x03050000 && PY_VERSION_HEX < 0x03050200
-extern "C" {
-struct _Py_atomic_address {
-    void *value;
-};
-PyAPI_DATA(_Py_atomic_address) _PyThreadState_Current;
-}
-#endif
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
 #define PYBIND11_STRINGIFY(x) #x

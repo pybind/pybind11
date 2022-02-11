@@ -2,7 +2,7 @@ import nox
 
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
 
-PYTHON_VERSIONS = ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
+PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
 
 
 @nox.session(reuse_venv=True)

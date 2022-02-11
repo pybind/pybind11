@@ -17,7 +17,7 @@ def test_callbacks():
         return "func2", a, b, c, d
 
     def func3(a):
-        return "func3({})".format(a)
+        return f"func3({a})"
 
     assert m.test_callback1(func1) == "func1"
     assert m.test_callback2(func2) == ("func2", "Hello", "x", True, 5)

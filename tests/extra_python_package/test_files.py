@@ -145,9 +145,9 @@ def test_build_sdist(monkeypatch, tmpdir):
             contents = f.read().decode("utf8")
         assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in contents
 
-    files = {"pybind11/{}".format(n) for n in all_files}
+    files = {f"pybind11/{n}" for n in all_files}
     files |= sdist_files
-    files |= {"pybind11{}".format(n) for n in local_sdist_files}
+    files |= {f"pybind11{n}" for n in local_sdist_files}
     files.add("pybind11.egg-info/entry_points.txt")
     files.add("pybind11.egg-info/requires.txt")
     assert simpler == files
@@ -200,9 +200,9 @@ def test_build_global_dist(monkeypatch, tmpdir):
         ) as f:
             pyproject_toml = f.read()
 
-    files = {"pybind11/{}".format(n) for n in all_files}
+    files = {f"pybind11/{n}" for n in all_files}
     files |= sdist_files
-    files |= {"pybind11_global{}".format(n) for n in local_sdist_files}
+    files |= {f"pybind11_global{n}" for n in local_sdist_files}
     assert simpler == files
 
     with open(os.path.join(MAIN_DIR, "tools", "setup_global.py.in"), "rb") as f:
@@ -227,7 +227,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
     (wheel,) = tmpdir.visit("*.whl")
 
-    files = {"pybind11/{}".format(n) for n in all_files}
+    files = {f"pybind11/{n}" for n in all_files}
     files |= {
         "dist-info/LICENSE",
         "dist-info/METADATA",
@@ -257,8 +257,8 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
 
     (wheel,) = tmpdir.visit("*.whl")
 
-    files = {"data/data/{}".format(n) for n in src_files}
-    files |= {"data/headers/{}".format(n[8:]) for n in headers}
+    files = {f"data/data/{n}" for n in src_files}
+    files |= {f"data/headers/{n[8:]}" for n in headers}
     files |= {
         "dist-info/LICENSE",
         "dist-info/METADATA",

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
@@ -41,12 +41,10 @@ def build_expected_version_hex(matches: Dict[str, str]) -> str:
                     serial = int(level_serial[len(level) :])
                     break
     if serial is None:
-        msg = 'Invalid PYBIND11_VERSION_PATCH: "{}"'.format(patch_level_serial)
+        msg = f'Invalid PYBIND11_VERSION_PATCH: "{patch_level_serial}"'
         raise RuntimeError(msg)
-    version_hex_str = "{:02x}{:02x}{:02x}{}{:x}".format(
-        major, minor, patch, level[:1], serial
-    )
-    return "0x{}".format(version_hex_str.upper())
+    version_hex_str = f"{major:02x}{minor:02x}{patch:02x}{level[:1]}{serial:x}"
+    return f"0x{version_hex_str.upper()}"
 
 
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
@@ -66,7 +64,7 @@ to_src = (
 
 
 # Read the listed version
-loc = {}  # type: Dict[str, str]
+loc: Dict[str, str] = {}
 code = compile(VERSION_FILE.read_text(encoding="utf-8"), "pybind11/_version.py", "exec")
 exec(code, loc)
 version = loc["__version__"]
@@ -75,17 +73,13 @@ version = loc["__version__"]
 matches = dict(VERSION_REGEX.findall(COMMON_FILE.read_text(encoding="utf8")))
 cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
 if version != cpp_version:
-    msg = "Python version {} does not match C++ version {}!".format(
-        version, cpp_version
-    )
+    msg = f"Python version {version} does not match C++ version {cpp_version}!"
     raise RuntimeError(msg)
 
 version_hex = matches.get("HEX", "MISSING")
 exp_version_hex = build_expected_version_hex(matches)
 if version_hex != exp_version_hex:
-    msg = "PYBIND11_VERSION_HEX {} does not match expected value {}!".format(
-        version_hex, exp_version_hex
-    )
+    msg = f"PYBIND11_VERSION_HEX {version_hex} does not match expected value {exp_version_hex}!"
     raise RuntimeError(msg)
 
 

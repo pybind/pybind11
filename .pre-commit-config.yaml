@@ -35,7 +35,7 @@ repos:
   rev: v2.31.0
   hooks:
   - id: pyupgrade
-    args: [--py3-plus]
+    args: [--py36-plus]
 
 # Nicely sort includes
 - repo: https://github.com/PyCQA/isort
@@ -76,8 +76,7 @@ repos:
   - id: python-check-blanket-noqa
   - id: python-check-blanket-type-ignore
   - id: python-no-log-warn
-  # Python 3.6
-  # - id: python-use-type-annotations
+  - id: python-use-type-annotations
   - id: rst-backticks
   - id: rst-directive-colons
   - id: rst-inline-touching-normal

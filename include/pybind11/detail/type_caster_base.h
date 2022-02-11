@@ -439,10 +439,11 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
                                         // instance_registered)
 
         // Allocate space for flags, values, and holders, and initialize it to 0 (flags and values,
-        // in particular, need to be 0).  Use Python's memory allocation functions: in Python 3.6
-        // they default to using pymalloc, which is designed to be efficient for small allocations
-        // like the one we're doing here; in earlier versions (and for larger allocations) they are
-        // just wrappers around malloc.
+        // in particular, need to be 0).  Use Python's memory allocation
+        // functions: Python is using pymalloc, which is designed to be
+        // efficient for small allocations like the one we're doing here;
+        // for larger allocations they are just wrappers around malloc.
+        // TODO: is this still true for pure Python 3.6?
         nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
         if (!nonsimple.values_and_holders) {
             throw std::bad_alloc();
@@ -538,8 +539,6 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION)
     return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x03050200
-    return (PyThreadState *) _PyThreadState_Current.value;
 #else
     return _PyThreadState_UncheckedGet();
 #endif

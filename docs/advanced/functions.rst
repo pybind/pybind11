@@ -372,7 +372,7 @@ like so:
 Keyword-only arguments
 ======================
 
-Python 3 introduced keyword-only arguments by specifying an unnamed ``*``
+Python implements keyword-only arguments by specifying an unnamed ``*``
 argument in a function definition:
 
 .. code-block:: python
@@ -395,8 +395,7 @@ argument annotations when registering the function:
     m.def("f", [](int a, int b) { /* ... */ },
           py::arg("a"), py::kw_only(), py::arg("b"));
 
-Note that you currently cannot combine this with a ``py::args`` argument.  This
-feature does *not* require Python 3 to work.
+Note that you currently cannot combine this with a ``py::args`` argument.
 
 .. versionadded:: 2.6
 

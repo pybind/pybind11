@@ -221,9 +221,7 @@ def test_nonunit_stride_to_python():
     assert np.all(m.diagonal(ref) == ref.diagonal())
     assert np.all(m.diagonal_1(ref) == ref.diagonal(1))
     for i in range(-5, 7):
-        assert np.all(
-            m.diagonal_n(ref, i) == ref.diagonal(i)
-        ), "m.diagonal_n({})".format(i)
+        assert np.all(m.diagonal_n(ref, i) == ref.diagonal(i)), f"m.diagonal_n({i})"
 
     assert np.all(m.block(ref, 2, 1, 3, 3) == ref[2:5, 1:4])
     assert np.all(m.block(ref, 1, 4, 4, 2) == ref[1:, 4:])
@@ -236,7 +234,7 @@ def test_eigen_ref_to_python():
         mymat = chol(np.array([[1.0, 2, 4], [2, 13, 23], [4, 23, 77]]))
         assert np.all(
             mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])
-        ), "cholesky{}".format(i)
+        ), f"cholesky{i}"
 
 
 def assign_both(a1, a2, r, c, v):

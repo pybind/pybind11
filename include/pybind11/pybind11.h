@@ -1242,7 +1242,7 @@ public:
         }
         // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
         // returned from PyInit_...
-        //       For Python 2, reinterpret_borrow is correct.
+        //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
     }
 };

@@ -200,7 +200,7 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
             current_macos = tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2])
             desired_macos = (10, 9) if level < 17 else (10, 14)
             macos_string = ".".join(str(x) for x in min(current_macos, desired_macos))
-            macosx_min = "-mmacosx-version-min={}".format(macos_string)
+            macosx_min = f"-mmacosx-version-min={macos_string}"
             cflags += [macosx_min]
             ldflags += [macosx_min]
 
@@ -419,7 +419,7 @@ class ParallelCompile:
         self.default = default
         self.max = max
         self.needs_recompile = needs_recompile
-        self._old = []  # type: List[CCompilerMethod]
+        self._old: List[CCompilerMethod] = []
 
     def function(self) -> CCompilerMethod:
         """

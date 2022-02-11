@@ -395,7 +395,7 @@ uses of ``py::array``:
 Ellipsis
 ========
 
-Python 3 provides a convenient ``...`` ellipsis notation that is often used to
+Python provides a convenient ``...`` ellipsis notation that is often used to
 slice multidimensional arrays. For instance, the following snippet extracts the
 middle dimensions of a tensor with the first and last index set to zero.
 

@@ -13,8 +13,7 @@
 #include <string>
 
 #ifdef __has_include
-#    if defined(PYBIND11_CPP17) && __has_include(<filesystem>) && \
-      PY_VERSION_HEX >= 0x03060000
+#    if defined(PYBIND11_CPP17) && __has_include(<filesystem>)
 #        include <filesystem>
 #        define PYBIND11_HAS_FILESYSTEM 1
 #    endif

@@ -1,7 +1,7 @@
 import sys
 
-if sys.version_info < (3, 5):
-    msg = "pybind11 does not support Python < 3.5. 2.9 was the last release supporting older Pythons."
+if sys.version_info < (3, 6):
+    msg = "pybind11 does not support Python < 3.6. 2.9 was the last release supporting Python 2.7 and 3.5."
     raise ImportError(msg)
 
 
