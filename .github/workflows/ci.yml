@@ -27,7 +27,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, windows-2022, macos-latest]
         python:
-        - '3.6'
+        - '3.7'
         - '3.9'
         - '3.10'
         - 'pypy-3.7'
@@ -41,12 +41,12 @@ jobs:
         include:
           # Just add a key
           - runs-on: ubuntu-latest
-            python: '3.6'
+            python: '3.7'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
           - runs-on: windows-2019
-            python: '3.6'
+            python: '3.7'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           # Inject a couple Windows 2019 runs
@@ -66,7 +66,7 @@ jobs:
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
-      if: runner.os == 'Linux' && matrix.python != '3.6'
+      if: runner.os == 'Linux' && matrix.python != '3.7'
       run: sudo apt-get install libboost-dev
 
     - name: Setup Boost (macOS)
@@ -705,7 +705,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - 3.6
         - 3.7
         - 3.8
         - 3.9
@@ -762,7 +761,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 3.6
           - 3.7
         std:
           - 14
