@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import ConstructorStats, UserType
@@ -283,7 +282,7 @@ def test_stl_pass_by_pointer(msg):
             1. (v: List[int] = None) -> List[int]
 
         Invoked with:
-    """  # noqa: E501 line too long
+    """
     )
 
     with pytest.raises(TypeError) as excinfo:
@@ -295,7 +294,7 @@ def test_stl_pass_by_pointer(msg):
             1. (v: List[int] = None) -> List[int]
 
         Invoked with: None
-    """  # noqa: E501 line too long
+    """
     )
 
     assert m.stl_pass_by_pointer([1, 2, 3]) == [1, 2, 3]

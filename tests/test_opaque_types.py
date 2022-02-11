@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import ConstructorStats, UserType
@@ -40,7 +39,7 @@ def test_pointers(msg):
             1. (arg0: capsule) -> int
 
         Invoked with: [1, 2, 3]
-    """  # noqa: E501 line too long
+    """
     )
 
     assert m.return_null_str() is None

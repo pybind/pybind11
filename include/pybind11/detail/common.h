@@ -211,6 +211,9 @@
 #endif
 
 #include <Python.h>
+#if PY_VERSION_HEX < 0x030500f0
+#    error "PYTHON 2 IS NO LONGER SUPPORTED. pybind11 v2.9 was the last to support Python 2."
+#endif
 #include <frameobject.h>
 #include <pythread.h>
 
@@ -266,69 +269,37 @@
 // If UNDEFINED, pybind11::str can only hold PyUnicodeObject, and
 //               pybind11::isinstance<str>() is true only for pybind11::str.
 //               However, for Python 2 only (!), the pybind11::str caster
-//               implicitly decodes bytes to PyUnicodeObject. This is to ease
+//               implicitly decoded bytes to PyUnicodeObject. This was to ease
 //               the transition from the legacy behavior to the non-permissive
 //               behavior.
 
-#if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
-#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
-#    define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
-#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
-#    define PYBIND11_BYTES_CHECK PyBytes_Check
-#    define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
-#    define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
-#    define PYBIND11_BYTES_AS_STRING_AND_SIZE PyBytes_AsStringAndSize
-#    define PYBIND11_BYTES_AS_STRING PyBytes_AsString
-#    define PYBIND11_BYTES_SIZE PyBytes_Size
-#    define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
-#    define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
-#    define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
-#    define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
-#    define PYBIND11_BYTES_NAME "bytes"
-#    define PYBIND11_STRING_NAME "str"
-#    define PYBIND11_SLICE_OBJECT PyObject
-#    define PYBIND11_FROM_STRING PyUnicode_FromString
-#    define PYBIND11_STR_TYPE ::pybind11::str
-#    define PYBIND11_BOOL_ATTR "__bool__"
-#    define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
-#    define PYBIND11_BUILTINS_MODULE "builtins"
+/// Compatibility macros for Python 2 / Python 3 versions TODO: remove
+#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
+#define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
+#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
+#define PYBIND11_BYTES_CHECK PyBytes_Check
+#define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
+#define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
+#define PYBIND11_BYTES_AS_STRING_AND_SIZE PyBytes_AsStringAndSize
+#define PYBIND11_BYTES_AS_STRING PyBytes_AsString
+#define PYBIND11_BYTES_SIZE PyBytes_Size
+#define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+#define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
+#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
+#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
+#define PYBIND11_BYTES_NAME "bytes"
+#define PYBIND11_STRING_NAME "str"
+#define PYBIND11_SLICE_OBJECT PyObject
+#define PYBIND11_FROM_STRING PyUnicode_FromString
+#define PYBIND11_STR_TYPE ::pybind11::str
+#define PYBIND11_BOOL_ATTR "__bool__"
+#define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
+#define PYBIND11_BUILTINS_MODULE "builtins"
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
-#    define PYBIND11_PLUGIN_IMPL(name)                                                            \
-        extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();               \
-        extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
-
-#else
-#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyMethod_New(ptr, nullptr, class_)
-#    define PYBIND11_INSTANCE_METHOD_CHECK PyMethod_Check
-#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyMethod_GET_FUNCTION
-#    define PYBIND11_BYTES_CHECK PyString_Check
-#    define PYBIND11_BYTES_FROM_STRING PyString_FromString
-#    define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyString_FromStringAndSize
-#    define PYBIND11_BYTES_AS_STRING_AND_SIZE PyString_AsStringAndSize
-#    define PYBIND11_BYTES_AS_STRING PyString_AsString
-#    define PYBIND11_BYTES_SIZE PyString_Size
-#    define PYBIND11_LONG_CHECK(o) (PyInt_Check(o) || PyLong_Check(o))
-#    define PYBIND11_LONG_AS_LONGLONG(o)                                                          \
-        (PyInt_Check(o) ? (long long) PyLong_AsLong(o) : PyLong_AsLongLong(o))
-#    define PYBIND11_LONG_FROM_SIGNED(o) PyInt_FromSsize_t((ssize_t) o) // Returns long if needed.
-#    define PYBIND11_LONG_FROM_UNSIGNED(o) PyInt_FromSize_t((size_t) o) // Returns long if needed.
-#    define PYBIND11_BYTES_NAME "str"
-#    define PYBIND11_STRING_NAME "unicode"
-#    define PYBIND11_SLICE_OBJECT PySliceObject
-#    define PYBIND11_FROM_STRING PyString_FromString
-#    define PYBIND11_STR_TYPE ::pybind11::bytes
-#    define PYBIND11_BOOL_ATTR "__nonzero__"
-#    define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_nonzero)
-#    define PYBIND11_BUILTINS_MODULE "__builtin__"
-// Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy.
-// See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
-#    define PYBIND11_PLUGIN_IMPL(name)                                                            \
-        static PyObject *pybind11_init_wrapper();                                                 \
-        extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT void init##name();                       \
-        extern "C" PYBIND11_EXPORT void init##name() { (void) pybind11_init_wrapper(); }          \
-        PyObject *pybind11_init_wrapper()
-#endif
+#define PYBIND11_PLUGIN_IMPL(name)                                                                \
+    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();                   \
+    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #if PY_VERSION_HEX >= 0x03050000 && PY_VERSION_HEX < 0x03050200
 extern "C" {
@@ -362,31 +333,15 @@ PyAPI_DATA(_Py_atomic_address) _PyThreadState_Current;
         }                                                                                         \
     }
 
-#if PY_VERSION_HEX >= 0x03030000
-
-#    define PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
-        catch (pybind11::error_already_set & e) {                                                 \
-            pybind11::raise_from(e, PyExc_ImportError, "initialization failed");                  \
-            return nullptr;                                                                       \
-        }                                                                                         \
-        catch (const std::exception &e) {                                                         \
-            PyErr_SetString(PyExc_ImportError, e.what());                                         \
-            return nullptr;                                                                       \
-        }
-
-#else
-
-#    define PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
-        catch (pybind11::error_already_set & e) {                                                 \
-            PyErr_SetString(PyExc_ImportError, e.what());                                         \
-            return nullptr;                                                                       \
-        }                                                                                         \
-        catch (const std::exception &e) {                                                         \
-            PyErr_SetString(PyExc_ImportError, e.what());                                         \
-            return nullptr;                                                                       \
-        }
-
-#endif
+#define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    catch (pybind11::error_already_set & e) {                                                     \
+        pybind11::raise_from(e, PyExc_ImportError, "initialization failed");                      \
+        return nullptr;                                                                           \
+    }                                                                                             \
+    catch (const std::exception &e) {                                                             \
+        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        return nullptr;                                                                           \
+    }
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***

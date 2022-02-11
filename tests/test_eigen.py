@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import ConstructorStats
@@ -201,7 +200,7 @@ def test_negative_stride_from_python(msg):
         double_threer(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float32[1, 3], flags.writeable]) -> None
 
-        Invoked with: """  # noqa: E501 line too long
+        Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
     )
 
@@ -213,7 +212,7 @@ def test_negative_stride_from_python(msg):
         double_threec(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float32[3, 1], flags.writeable]) -> None
 
-        Invoked with: """  # noqa: E501 line too long
+        Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
     )
 
@@ -724,13 +723,13 @@ def test_sparse_signature(doc):
         doc(m.sparse_copy_r)
         == """
         sparse_copy_r(arg0: scipy.sparse.csr_matrix[numpy.float32]) -> scipy.sparse.csr_matrix[numpy.float32]
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         doc(m.sparse_copy_c)
         == """
         sparse_copy_c(arg0: scipy.sparse.csc_matrix[numpy.float32]) -> scipy.sparse.csc_matrix[numpy.float32]
-    """  # noqa: E501 line too long
+    """
     )
 
 

@@ -443,17 +443,10 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // they default to using pymalloc, which is designed to be efficient for small allocations
         // like the one we're doing here; in earlier versions (and for larger allocations) they are
         // just wrappers around malloc.
-#if PY_VERSION_HEX >= 0x03050000
         nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
         if (!nonsimple.values_and_holders) {
             throw std::bad_alloc();
         }
-#else
-        nonsimple.values_and_holders = (void **) PyMem_New(void *, space);
-        if (!nonsimple.values_and_holders)
-            throw std::bad_alloc();
-        std::memset(nonsimple.values_and_holders, 0, space * sizeof(void *));
-#endif
         nonsimple.status
             = reinterpret_cast<std::uint8_t *>(&nonsimple.values_and_holders[flags_at]);
     }
@@ -494,11 +487,9 @@ PYBIND11_NOINLINE std::string error_string() {
 
     PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
 
-#if PY_MAJOR_VERSION >= 3
     if (scope.trace != nullptr) {
         PyException_SetTraceback(scope.value, scope.trace);
     }
-#endif
 
 #if !defined(PYPY_VERSION)
     if (scope.trace) {
@@ -547,10 +538,6 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION)
     return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x03000000
-    return _PyThreadState_Current;
-#elif PY_VERSION_HEX < 0x03050000
-    return (PyThreadState *) _Py_atomic_load_relaxed(&_PyThreadState_Current);
 #elif PY_VERSION_HEX < 0x03050200
     return (PyThreadState *) _PyThreadState_Current.value;
 #else

@@ -325,7 +325,7 @@ public:
                 res = 0; // None is implicitly converted to False
             }
 #if defined(PYPY_VERSION)
-            // On PyPy, check that "__bool__" (or "__nonzero__" on Python 2.7) attr exists
+            // On PyPy, check that "__bool__" attr exists
             else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
                 res = PyObject_IsTrue(src.ptr());
             }
@@ -375,37 +375,16 @@ struct string_caster {
     static constexpr size_t UTF_N = 8 * sizeof(CharT);
 
     bool load(handle src, bool) {
-#if PY_MAJOR_VERSION < 3
-        object temp;
-#endif
         handle load_src = src;
         if (!src) {
             return false;
         }
         if (!PyUnicode_Check(load_src.ptr())) {
-#if PY_MAJOR_VERSION >= 3
             return load_bytes(load_src);
-#else
-            if (std::is_same<CharT, char>::value) {
-                return load_bytes(load_src);
-            }
-
-            // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
-            if (!PYBIND11_BYTES_CHECK(load_src.ptr()))
-                return false;
-
-            temp = reinterpret_steal<object>(PyUnicode_FromObject(load_src.ptr()));
-            if (!temp) {
-                PyErr_Clear();
-                return false;
-            }
-            load_src = temp;
-#endif
         }
 
-#if PY_VERSION_HEX >= 0x03030000
-        // On Python >= 3.3, for UTF-8 we avoid the need for a temporary `bytes`
-        // object by using `PyUnicode_AsUTF8AndSize`.
+        // For UTF-8 we avoid the need for a temporary `bytes` object by using
+        // `PyUnicode_AsUTF8AndSize`.
         if (PYBIND11_SILENCE_MSVC_C4127(UTF_N == 8)) {
             Py_ssize_t size = -1;
             const auto *buffer
@@ -417,7 +396,6 @@ struct string_caster {
             value = StringType(buffer, static_cast<size_t>(size));
             return true;
         }
-#endif
 
         auto utfNbytes
             = reinterpret_steal<object>(PyUnicode_AsEncodedString(load_src.ptr(),
@@ -486,7 +464,7 @@ private:
     template <typename C = CharT>
     bool load_bytes(enable_if_t<std::is_same<C, char>::value, handle> src) {
         if (PYBIND11_BYTES_CHECK(src.ptr())) {
-            // We were passed a Python 3 raw bytes; accept it into a std::string or char*
+            // We were passed raw bytes; accept it into a std::string or char*
             // without any encoding attempt.
             const char *bytes = PYBIND11_BYTES_AS_STRING(src.ptr());
             if (bytes) {
@@ -922,18 +900,6 @@ struct pyobject_caster {
 
     template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
     bool load(handle src, bool /* convert */) {
-#if PY_MAJOR_VERSION < 3 && !defined(PYBIND11_STR_LEGACY_PERMISSIVE)
-        // For Python 2, without this implicit conversion, Python code would
-        // need to be cluttered with six.ensure_text() or similar, only to be
-        // un-cluttered later after Python 2 support is dropped.
-        if (PYBIND11_SILENCE_MSVC_C4127(std::is_same<T, str>::value) && isinstance<bytes>(src)) {
-            PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
-            if (!str_from_bytes)
-                throw error_already_set();
-            value = reinterpret_steal<type>(str_from_bytes);
-            return true;
-        }
-#endif
         if (!isinstance<type>(src)) {
             return false;
         }
@@ -1313,7 +1279,7 @@ public:
 
 /// \ingroup annotations
 /// Annotation indicating that all following arguments are keyword-only; the is the equivalent of
-/// an unnamed '*' argument (in Python 3)
+/// an unnamed '*' argument
 struct kw_only {};
 
 /// \ingroup annotations
