@@ -96,7 +96,7 @@ Tips:
 * You can use `virtualenv` (faster, from PyPI) instead of `venv`
 * You can select any name for your environment folder; if it contains "env" it
   will be ignored by git.
-* If you don’t have CMake 3.14+, just add "cmake" to the pip install command.
+* If you don't have CMake 3.14+, just add "cmake" to the pip install command.
 * You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython on CMake 3.12+
 * In classic mode, you may need to set `-DPYTHON_EXECUTABLE=/path/to/python`.
   FindPython uses `-DPython_ROOT_DIR=/path/to` or
@@ -104,7 +104,7 @@ Tips:
 
 ### Configuration options
 
-In CMake, configuration options are given with “-D”. Options are stored in the
+In CMake, configuration options are given with "-D". Options are stored in the
 build directory, in the `CMakeCache.txt` file, so they are remembered for each
 build directory. Two selections are special - the generator, given with `-G`,
 and the compiler, which is selected based on environment variables `CXX` and
@@ -114,7 +114,7 @@ after the initial run.
 The valid options are:
 
 * `-DCMAKE_BUILD_TYPE`: Release, Debug, MinSizeRel, RelWithDebInfo
-* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+’s FindPython instead of the
+* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+'s FindPython instead of the
   classic, deprecated, custom FindPythonLibs
 * `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
 * `-DBUILD_TESTING=ON`: Enable the tests

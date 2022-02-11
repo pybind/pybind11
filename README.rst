@@ -32,7 +32,7 @@ this heavy machinery has become an excessively large and unnecessary
 dependency.
 
 Think of this library as a tiny self-contained version of Boost.Python
-with everything stripped away that isn’t relevant for binding
+with everything stripped away that isn't relevant for binding
 generation. Without comments, the core header files only require ~4K
 lines of code and depend on Python (3.6+, or PyPy) and the C++
 standard library. This compact implementation was possible thanks to
@@ -88,8 +88,8 @@ goodies:
 - pybind11 uses C++11 move constructors and move assignment operators
   whenever possible to efficiently transfer custom data types.
 
-- It’s easy to expose the internal storage of custom data types through
-  Pythons’ buffer protocols. This is handy e.g. for fast conversion
+- It's easy to expose the internal storage of custom data types through
+  Pythons' buffer protocols. This is handy e.g. for fast conversion
   between C++ matrix classes like Eigen and NumPy without expensive
   copy operations.
 
@@ -119,7 +119,7 @@ goodies:
 Supported compilers
 -------------------
 
-1. Clang/LLVM 3.3 or newer (for Apple Xcode’s clang, this is 5.0.0 or
+1. Clang/LLVM 3.3 or newer (for Apple Xcode's clang, this is 5.0.0 or
    newer)
 2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 Update 3 or newer

@@ -145,7 +145,7 @@ using C++14 template metaprogramming.
 
 .. _`faq:hidden_visibility`:
 
-"‘SomeClass’ declared with greater visibility than the type of its field ‘SomeClass::member’ [-Wattributes]"
+"'SomeClass' declared with greater visibility than the type of its field 'SomeClass::member' [-Wattributes]"
 ============================================================================================================
 
 This error typically indicates that you are compiling without the required

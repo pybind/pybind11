@@ -429,7 +429,7 @@ enum class return_value_policy : uint8_t {
 
     /** Reference an existing object (i.e. do not create a new copy) and take
         ownership. Python will call the destructor and delete operator when the
-        object’s reference count reaches zero. Undefined behavior ensues when
+        object's reference count reaches zero. Undefined behavior ensues when
         the C++ side does the same.. */
     take_ownership,
 
@@ -445,7 +445,7 @@ enum class return_value_policy : uint8_t {
     move,
 
     /** Reference an existing object, but do not take ownership. The C++ side
-        is responsible for managing the object’s lifetime and deallocating it
+        is responsible for managing the object's lifetime and deallocating it
         when it is no longer used. Warning: undefined behavior will ensue when
         the C++ side deletes an object that is still referenced and used by
         Python. */
@@ -454,7 +454,7 @@ enum class return_value_policy : uint8_t {
     /** This policy only applies to methods and properties. It references the
         object without taking ownership similar to the above
         return_value_policy::reference policy. In contrast to that policy, the
-        function or property’s implicit this argument (called the parent) is
+        function or property's implicit this argument (called the parent) is
         considered to be the the owner of the return value (the child).
         pybind11 then couples the lifetime of the parent to the child via a
         reference relationship that ensures that the parent cannot be garbage
