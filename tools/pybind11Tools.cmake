@@ -43,7 +43,7 @@ endif()
 
 # A user can set versions manually too
 set(Python_ADDITIONAL_VERSIONS
-    "3.11;3.10;3.9;3.8;3.7;3.6;3.5;3.4"
+    "3.11;3.10;3.9;3.8;3.7;3.6"
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
@@ -121,13 +121,6 @@ set_property(
   PROPERTY
     INTERFACE_LINK_LIBRARIES pybind11::python_link_helper
     "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>")
-
-if(PYTHON_VERSION VERSION_LESS 3)
-  set_property(
-    TARGET pybind11::pybind11
-    APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python2_no_register)
-endif()
 
 set_property(
   TARGET pybind11::embed

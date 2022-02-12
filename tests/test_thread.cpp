@@ -10,20 +10,20 @@
 #include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
 
+#include "pybind11_tests.h"
+
 #include <chrono>
 #include <thread>
-
-#include "pybind11_tests.h"
 
 namespace py = pybind11;
 
 namespace {
 
 struct IntStruct {
-    explicit IntStruct(int v) : value(v) {};
+    explicit IntStruct(int v) : value(v){};
     ~IntStruct() { value = -value; }
-    IntStruct(const IntStruct&) = default;
-    IntStruct& operator=(const IntStruct&) = default;
+    IntStruct(const IntStruct &) = default;
+    IntStruct &operator=(const IntStruct &) = default;
 
     int value;
 };

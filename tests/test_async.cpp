@@ -11,12 +11,11 @@
 
 TEST_SUBMODULE(async_module, m) {
     struct DoesNotSupportAsync {};
-    py::class_<DoesNotSupportAsync>(m, "DoesNotSupportAsync")
-        .def(py::init<>());
+    py::class_<DoesNotSupportAsync>(m, "DoesNotSupportAsync").def(py::init<>());
     struct SupportsAsync {};
     py::class_<SupportsAsync>(m, "SupportsAsync")
         .def(py::init<>())
-        .def("__await__", [](const SupportsAsync& self) -> py::object {
+        .def("__await__", [](const SupportsAsync &self) -> py::object {
             static_cast<void>(self);
             py::object loop = py::module_::import("asyncio.events").attr("get_event_loop")();
             py::object f = loop.attr("create_future")();

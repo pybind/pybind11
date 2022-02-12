@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
+from typing import Union
 
 
-def _to_int(s):
+def _to_int(s: str) -> Union[int, str]:
     try:
         return int(s)
     except ValueError:

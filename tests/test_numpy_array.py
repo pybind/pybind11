@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
@@ -19,9 +18,7 @@ def test_dtypes():
         assert check.numpy == check.pybind11, check
         if check.numpy.num != check.pybind11.num:
             print(
-                "NOTE: typenum mismatch for {}: {} != {}".format(
-                    check, check.numpy.num, check.pybind11.num
-                )
+                f"NOTE: typenum mismatch for {check}: {check.numpy.num} != {check.pybind11.num}"
             )
 
 
@@ -117,9 +114,7 @@ def test_at_fail(arr, dim):
     for func in m.at_t, m.mutate_at_t:
         with pytest.raises(IndexError) as excinfo:
             func(arr, *([0] * dim))
-        assert str(excinfo.value) == "index dimension mismatch: {} (ndim = 2)".format(
-            dim
-        )
+        assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
 
 
 def test_at(arr):
@@ -193,8 +188,6 @@ def test_make_empty_shaped_array():
 
 def test_wrap():
     def assert_references(a, b, base=None):
-        from distutils.version import LooseVersion
-
         if base is None:
             base = a
         assert a is not b
@@ -205,7 +198,8 @@ def test_wrap():
         assert a.flags.f_contiguous == b.flags.f_contiguous
         assert a.flags.writeable == b.flags.writeable
         assert a.flags.aligned == b.flags.aligned
-        if LooseVersion(np.__version__) >= LooseVersion("1.14.0"):
+        # 1.13 supported Python 3.6
+        if tuple(int(x) for x in np.__version__.split(".")[:2]) >= (1, 14):
             assert a.flags.writebackifcopy == b.flags.writebackifcopy
         else:
             assert a.flags.updateifcopy == b.flags.updateifcopy
