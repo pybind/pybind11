@@ -82,8 +82,7 @@ struct metaclass {
     handle value;
 
     PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
-    // NOLINTNEXTLINE(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
-    metaclass() {}
+    metaclass() = default;
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) {}
