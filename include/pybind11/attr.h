@@ -61,7 +61,7 @@ struct base {
 
     PYBIND11_DEPRECATED(
         "base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
-    base() {} // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    base() = default;
 };
 
 /// Keep patient alive while nurse lives
@@ -82,8 +82,7 @@ struct metaclass {
     handle value;
 
     PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
-    // NOLINTNEXTLINE(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
-    metaclass() {}
+    metaclass() = default;
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) {}

@@ -154,8 +154,7 @@ class NCVirtTrampoline : public NCVirt {
 };
 
 struct Base {
-    /* for some reason MSVC2015 can't compile this if the function is pure virtual */
-    virtual std::string dispatch() const { return {}; };
+    virtual std::string dispatch() const = 0;
     virtual ~Base() = default;
     Base() = default;
     Base(const Base &) = delete;
