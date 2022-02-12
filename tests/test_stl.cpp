@@ -37,7 +37,7 @@ struct type_caster<boost::none_t> : void_caster<boost::none_t> {};
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if defined(PYBIND11_HAS_VARIANT)
 using std::variant;
-#elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#elif defined(PYBIND11_TEST_BOOST)
 #    include <boost/variant.hpp>
 #    define PYBIND11_HAS_VARIANT 1
 using boost::variant;
