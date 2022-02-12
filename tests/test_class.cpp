@@ -354,9 +354,7 @@ TEST_SUBMODULE(class_, m) {
         using ProtectedA::foo;
     };
 
-    py::class_<ProtectedA>(m, "ProtectedA")
-        .def(py::init<>())
-        .def("foo", &PublicistA::foo);
+    py::class_<ProtectedA>(m, "ProtectedA").def(py::init<>()).def("foo", &PublicistA::foo);
 
     class ProtectedB {
     public:
