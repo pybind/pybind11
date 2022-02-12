@@ -1000,9 +1000,6 @@ struct nodelete {
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    // NOLINTNEXTLINE(modernize-use-equals-default):  MSVC 2015 needs this
-    constexpr overload_cast_impl() {}
-
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept -> decltype(pf) {
         return pf;
