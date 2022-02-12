@@ -411,7 +411,7 @@ error is raised if the compiler does not meet the requirements:
 
 * GCC >= 4.8
 * clang >= 3.3 (appleclang >= 5.0)
-* MSVC >= 2015u3
+* MSVC >= 2017
 * Intel C++ >= 15.0
 
 

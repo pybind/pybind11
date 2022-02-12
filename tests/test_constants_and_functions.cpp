@@ -143,7 +143,7 @@ TEST_SUBMODULE(constants_and_functions, m) {
         uint64_t zeros[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     };
     m.def("register_large_capture_with_invalid_arguments", [](py::module_ m) {
-        LargeCapture capture; // VS 2015's MSVC is acting up if we create the array here
+        LargeCapture capture; // VS 2015's MSVC was acting up when creating the array here
         m.def(
             "should_raise",
             [capture](int) { return capture.zeros[9] + 33; },
