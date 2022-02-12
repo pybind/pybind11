@@ -166,6 +166,8 @@ to the terms and conditions of this license.
    :target: https://gitter.im/pybind/Lobby
 .. |CI| image:: https://github.com/pybind/pybind11/workflows/CI/badge.svg
    :target: https://github.com/pybind/pybind11/actions
+.. |Build status| image:: https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true
+   :target: https://ci.appveyor.com/project/wjakob/pybind11
 .. |PyPI package| image:: https://img.shields.io/pypi/v/pybind11.svg
    :target: https://pypi.org/project/pybind11/
 .. |Conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/pybind11.svg
