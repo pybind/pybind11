@@ -822,8 +822,14 @@ struct is_template_base_of_impl {
 /// Check if a template is the base of a type. For example:
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template <typename...> class Base, typename T>
+#if !defined(_MSC_VER)
 using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
+#else // MSVC2015 has trouble with decltype in template aliases
+struct is_template_base_of
+    : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr)) {
+};
+#endif
 
 /// Check if T is an instantiation of the template `Class`. For example:
 /// `is_instantiation<shared_ptr, T>` is true if `T == shared_ptr<U>` where U can be anything.
@@ -994,9 +1000,6 @@ struct nodelete {
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    // NOLINTNEXTLINE(modernize-use-equals-default):  MSVC 2015 needs this
-    constexpr overload_cast_impl() {}
-
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept -> decltype(pf) {
         return pf;
