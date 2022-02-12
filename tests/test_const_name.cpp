@@ -4,13 +4,6 @@
 
 #include "pybind11_tests.h"
 
-#if defined(_MSC_VER) && _MSC_VER < 1910
-
-// MSVC 2015 fails in bizarre ways.
-#    define PYBIND11_SKIP_TEST_CONST_NAME
-
-#else // Only test with MSVC 2017 or newer.
-
 // IUT = Implementation Under Test
 #    define CONST_NAME_TESTS(TEST_FUNC, IUT)                                                      \
         std::string TEST_FUNC(int selector) {                                                     \
@@ -51,18 +44,10 @@ CONST_NAME_TESTS(const_name_tests, py::detail::const_name)
 CONST_NAME_TESTS(underscore_tests, py::detail::_)
 #    endif
 
-#endif // MSVC >= 2017
-
 TEST_SUBMODULE(const_name, m) {
-#ifdef PYBIND11_SKIP_TEST_CONST_NAME
-    m.attr("const_name_tests") = "PYBIND11_SKIP_TEST_CONST_NAME";
-#else
     m.def("const_name_tests", const_name_tests);
-#endif
 
-#ifdef PYBIND11_SKIP_TEST_CONST_NAME
-    m.attr("underscore_tests") = "PYBIND11_SKIP_TEST_CONST_NAME";
-#elif defined(PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY)
+#if defined(PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY)
     m.def("underscore_tests", underscore_tests);
 #else
     m.attr("underscore_tests") = "PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY not defined.";

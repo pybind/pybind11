@@ -47,7 +47,7 @@
 // or newer.
 #    if _MSVC_LANG >= 201402L
 #        define PYBIND11_CPP14
-#        if _MSVC_LANG > 201402L && _MSC_VER >= 1910
+#        if _MSVC_LANG > 201402L
 #            define PYBIND11_CPP17
 #            if _MSVC_LANG >= 202002L
 #                define PYBIND11_CPP20
@@ -147,7 +147,7 @@
 
 /* Don't let Python.h #define (v)snprintf as macro because they are implemented
    properly in Visual Studio since 2015. */
-#if defined(_MSC_VER) && _MSC_VER >= 1900
+#if defined(_MSC_VER)
 #    define HAVE_SNPRINTF 1
 #endif
 
@@ -559,7 +559,7 @@ static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
 
 /// from __cpp_future__ import (convenient aliases from C++14/17)
-#if defined(PYBIND11_CPP14) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#if defined(PYBIND11_CPP14)
 using std::conditional_t;
 using std::enable_if_t;
 using std::remove_cv_t;
@@ -1116,7 +1116,7 @@ try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
 
 // For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
-#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920 // MSVC 2017
+#if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
     inline void
