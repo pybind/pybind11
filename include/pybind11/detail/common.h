@@ -1029,8 +1029,7 @@ PYBIND11_NAMESPACE_END(detail)
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
-static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
-// MSVC 2015 only accepts this particular initialization syntax for this variable template.
+static constexpr detail::overload_cast_impl<Args...> overload_cast;
 #endif
 
 /// Const member function selector for overload_cast
