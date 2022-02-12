@@ -18,7 +18,7 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
 
     (tmpdir / "setup.py").write_text(
         dedent(
-            """\
+            f"""\
             import sys
             sys.path.append({MAIN_DIR!r})
 
@@ -51,7 +51,7 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
                 ext_modules=ext_modules,
             )
             """
-        ).format(MAIN_DIR=MAIN_DIR, std=std, parallel=parallel),
+        ),
         encoding="ascii",
     )
 

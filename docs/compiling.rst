@@ -417,10 +417,10 @@ existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.19)
+    cmake_minimum_required(VERSION 3.15...3.22)
     project(example LANGUAGES CXX)
 
-    find_package(Python COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.6 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
@@ -433,9 +433,8 @@ algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
 
 .. warning::
 
-    If you use FindPython2 and FindPython3 to dual-target Python, use the
-    individual targets listed below, and avoid targets that directly include
-    Python parts.
+    If you use FindPython to multi-target Python versions, use the individual
+    targets listed below, and avoid targets that directly include Python parts.
 
 There are `many ways to hint or force a discovery of a specific Python
 installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),

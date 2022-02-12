@@ -15,7 +15,7 @@
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.1.0
+  rev: "v4.1.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -32,26 +32,26 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.31.0
+  rev: "v2.31.0"
   hooks:
   - id: pyupgrade
-    args: [--py3-plus]
+    args: [--py36-plus]
 
 # Nicely sort includes
 - repo: https://github.com/PyCQA/isort
-  rev: 5.10.1
+  rev: "5.10.1"
   hooks:
   - id: isort
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 22.1.0 # Keep in sync with blacken-docs
+  rev: "22.1.0" # Keep in sync with blacken-docs
   hooks:
   - id: black
 
 # Also code format the docs
 - repo: https://github.com/asottile/blacken-docs
-  rev: v1.12.1
+  rev: "v1.12.1"
   hooks:
   - id: blacken-docs
     additional_dependencies:
@@ -59,32 +59,37 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.1.11
+  rev: "v1.1.11"
   hooks:
   - id: remove-tabs
 
+- repo: https://github.com/sirosen/texthooks
+  rev: "0.2.2"
+  hooks:
+  - id: fix-ligatures
+  - id: fix-smartquotes
+
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: v1.1.0
+  rev: "v1.1.0"
   hooks:
   - id: pycln
 
 # Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.9.0
+  rev: "v1.9.0"
   hooks:
   - id: python-check-blanket-noqa
   - id: python-check-blanket-type-ignore
   - id: python-no-log-warn
-  # Python 3.6
-  # - id: python-use-type-annotations
+  - id: python-use-type-annotations
   - id: rst-backticks
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
-  rev: 4.0.1
+  rev: "4.0.1"
   hooks:
   - id: flake8
     additional_dependencies: &flake8_dependencies
@@ -94,14 +99,14 @@ repos:
 
 # Automatically remove noqa that are not used
 - repo: https://github.com/asottile/yesqa
-  rev: v1.3.0
+  rev: "v1.3.0"
   hooks:
   - id: yesqa
     additional_dependencies: *flake8_dependencies
 
 # CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: v0.6.13
+  rev: "v0.6.13"
   hooks:
   - id: cmake-format
     additional_dependencies: [pyyaml]
@@ -110,7 +115,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.931
+  rev: "v0.931"
   hooks:
   - id: mypy
     args: [--show-error-codes]
@@ -128,7 +133,7 @@ repos:
 
 # Check for spelling
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.1.0
+  rev: "v2.1.0"
   hooks:
   - id: codespell
     exclude: ".supp$"
@@ -136,7 +141,7 @@ repos:
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.8.0.4
+  rev: "v0.8.0.4"
   hooks:
   - id: shellcheck
 

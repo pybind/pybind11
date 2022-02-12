@@ -11,20 +11,20 @@ def generate_dummy_code_pybind11(nclasses=10):
     bindings = ""
 
     for cl in range(nclasses):
-        decl += "class cl%03i;\n" % cl
+        decl += f"class cl{cl:03};\n"
     decl += "\n"
 
     for cl in range(nclasses):
-        decl += "class cl%03i {\n" % cl
+        decl += f"class {cl:03} {{\n"
         decl += "public:\n"
-        bindings += '    py::class_<cl%03i>(m, "cl%03i")\n' % (cl, cl)
+        bindings += f'    py::class_<cl{cl:03}>(m, "cl{cl:03}")\n'
         for fn in range(nfns):
             ret = random.randint(0, nclasses - 1)
             params = [random.randint(0, nclasses - 1) for i in range(nargs)]
-            decl += "    cl%03i *fn_%03i(" % (ret, fn)
-            decl += ", ".join("cl%03i *" % p for p in params)
+            decl += f"    cl{ret:03} *fn_{fn:03}("
+            decl += ", ".join(f"cl{p:03} *" for p in params)
             decl += ");\n"
-            bindings += '        .def("fn_%03i", &cl%03i::fn_%03i)\n' % (fn, cl, fn)
+            bindings += f'        .def("fn_{fn:03}", &cl{cl:03}::fn_{fn:03})\n'
         decl += "};\n\n"
         bindings += "        ;\n"
 
@@ -42,23 +42,20 @@ def generate_dummy_code_boost(nclasses=10):
     bindings = ""
 
     for cl in range(nclasses):
-        decl += "class cl%03i;\n" % cl
+        decl += f"class cl{cl:03};\n"
     decl += "\n"
 
     for cl in range(nclasses):
         decl += "class cl%03i {\n" % cl
         decl += "public:\n"
-        bindings += '    py::class_<cl%03i>("cl%03i")\n' % (cl, cl)
+        bindings += f'    py::class_<cl{cl:03}>("cl{cl:03}")\n'
         for fn in range(nfns):
             ret = random.randint(0, nclasses - 1)
             params = [random.randint(0, nclasses - 1) for i in range(nargs)]
-            decl += "    cl%03i *fn_%03i(" % (ret, fn)
-            decl += ", ".join("cl%03i *" % p for p in params)
+            decl += f"    cl{ret:03} *fn_{fn:03}("
+            decl += ", ".join(f"cl{p:03} *" for p in params)
             decl += ");\n"
-            bindings += (
-                '        .def("fn_%03i", &cl%03i::fn_%03i, py::return_value_policy<py::manage_new_object>())\n'
-                % (fn, cl, fn)
-            )
+            bindings += f'        .def("fn_{fn:03}", &cl{cl:03}::fn_{fn:03}, py::return_value_policy<py::manage_new_object>())\n'
         decl += "};\n\n"
         bindings += "        ;\n"
 

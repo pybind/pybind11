@@ -32,7 +32,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
-  find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development ${_pybind11_quiet})
+  find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development ${_pybind11_quiet})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.

@@ -1213,7 +1213,7 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-    using module_def = PyModuleDef;
+    using module_def = PyModuleDef; // TODO: Can this be removed (it was needed only for Python 2)?
 
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
@@ -1241,8 +1241,8 @@ public:
             pybind11_fail("Internal error in module_::create_extension_module()");
         }
         // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
-        // returned from PyInit_...
-        //       For Python 2, reinterpret_borrow is correct.
+        //       returned from PyInit_...
+        //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
     }
 };
