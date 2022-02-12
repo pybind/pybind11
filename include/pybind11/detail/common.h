@@ -825,7 +825,7 @@ template <template <typename...> class Base, typename T>
 #if !defined(_MSC_VER)
 using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
-#else // MSVC2015 has trouble with decltype in template aliases
+#else // TODO Dropping MSVC 2015
 struct is_template_base_of
     : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr)) {
 };
@@ -1026,8 +1026,12 @@ PYBIND11_NAMESPACE_END(detail)
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
+#    if (defined(_MSC_VER) && _MSC_VER < 1920) /* MSVC 2017 */                                    \
+        || (defined(__clang__) && __clang_major__ == 5)
 static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
-// MSVC 2015 only accepts this particular initialization syntax for this variable template.
+#    else
+static constexpr detail::overload_cast_impl<Args...> overload_cast;
+#    endif
 #endif
 
 /// Const member function selector for overload_cast
