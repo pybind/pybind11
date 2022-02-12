@@ -14,14 +14,12 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // forward declarations
 PyThreadState *get_thread_state_unchecked();
 
 PYBIND11_NAMESPACE_END(detail)
-
 
 #if defined(WITH_THREAD) && !defined(PYPY_VERSION)
 
@@ -64,10 +62,11 @@ public:
 
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
-            #if !defined(NDEBUG)
-                if (!tstate)
-                    pybind11_fail("scoped_acquire: could not create thread state!");
-            #endif
+#    if !defined(NDEBUG)
+            if (!tstate) {
+                pybind11_fail("scoped_acquire: could not create thread state!");
+            }
+#    endif
             tstate->gilstate_counter = 0;
             PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
         } else {
@@ -81,26 +80,28 @@ public:
         inc_ref();
     }
 
-    void inc_ref() {
-        ++tstate->gilstate_counter;
-    }
+    void inc_ref() { ++tstate->gilstate_counter; }
 
     PYBIND11_NOINLINE void dec_ref() {
         --tstate->gilstate_counter;
-        #if !defined(NDEBUG)
-            if (detail::get_thread_state_unchecked() != tstate)
-                pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
-            if (tstate->gilstate_counter < 0)
-                pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
-        #endif
+#    if !defined(NDEBUG)
+        if (detail::get_thread_state_unchecked() != tstate) {
+            pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
+        }
+        if (tstate->gilstate_counter < 0) {
+            pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
+        }
+#    endif
         if (tstate->gilstate_counter == 0) {
-            #if !defined(NDEBUG)
-                if (!release)
-                    pybind11_fail("scoped_acquire::dec_ref(): internal error!");
-            #endif
+#    if !defined(NDEBUG)
+            if (!release) {
+                pybind11_fail("scoped_acquire::dec_ref(): internal error!");
+            }
+#    endif
             PyThreadState_Clear(tstate);
-            if (active)
+            if (active) {
                 PyThreadState_DeleteCurrent();
+            }
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
         }
@@ -111,15 +112,15 @@ public:
     /// could be shutting down when this is called, as thread deletion is not
     /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
     /// protect subsequent code.
-    PYBIND11_NOINLINE void disarm() {
-        active = false;
-    }
+    PYBIND11_NOINLINE void disarm() { active = false; }
 
     PYBIND11_NOINLINE ~gil_scoped_acquire() {
         dec_ref();
-        if (release)
-           PyEval_SaveThread();
+        if (release) {
+            PyEval_SaveThread();
+        }
     }
+
 private:
     PyThreadState *tstate = nullptr;
     bool release = true;
@@ -133,8 +134,11 @@ public:
         // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
         // initialization race could occur as multiple threads try `gil_scoped_acquire`.
         auto &internals = detail::get_internals();
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         tstate = PyEval_SaveThread();
         if (disassoc) {
+            // Python >= 3.7 can remove this, it's an int before 3.7
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto key = internals.tstate;
             PYBIND11_TLS_DELETE_VALUE(key);
         }
@@ -145,21 +149,24 @@ public:
     /// could be shutting down when this is called, as thread deletion is not
     /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
     /// protect subsequent code.
-    PYBIND11_NOINLINE void disarm() {
-        active = false;
-    }
+    PYBIND11_NOINLINE void disarm() { active = false; }
 
     ~gil_scoped_release() {
-        if (!tstate)
+        if (!tstate) {
             return;
+        }
         // `PyEval_RestoreThread()` should not be called if runtime is finalizing
-        if (active)
+        if (active) {
             PyEval_RestoreThread(tstate);
+        }
         if (disassoc) {
+            // Python >= 3.7 can remove this, it's an int before 3.7
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto key = detail::get_internals().tstate;
             PYBIND11_TLS_REPLACE_VALUE(key, tstate);
         }
     }
+
 private:
     PyThreadState *tstate;
     bool disassoc;
@@ -168,6 +175,7 @@ private:
 #elif defined(PYPY_VERSION)
 class gil_scoped_acquire {
     PyGILState_STATE state;
+
 public:
     gil_scoped_acquire() { state = PyGILState_Ensure(); }
     ~gil_scoped_acquire() { PyGILState_Release(state); }
@@ -176,6 +184,7 @@ public:
 
 class gil_scoped_release {
     PyThreadState *state;
+
 public:
     gil_scoped_release() { state = PyEval_SaveThread(); }
     ~gil_scoped_release() { PyEval_RestoreThread(state); }

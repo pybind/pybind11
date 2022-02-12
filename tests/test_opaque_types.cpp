@@ -7,8 +7,10 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/stl.h>
+
+#include "pybind11_tests.h"
+
 #include <vector>
 
 // IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures
@@ -26,12 +28,13 @@ TEST_SUBMODULE(opaque_types, m) {
         .def(py::init<>())
         .def("pop_back", &StringList::pop_back)
         /* There are multiple versions of push_back(), etc. Select the right ones. */
-        .def("push_back", (void (StringList::*)(const std::string &)) &StringList::push_back)
-        .def("back", (std::string &(StringList::*)()) &StringList::back)
+        .def("push_back", (void(StringList::*)(const std::string &)) & StringList::push_back)
+        .def("back", (std::string & (StringList::*) ()) & StringList::back)
         .def("__len__", [](const StringList &v) { return v.size(); })
-        .def("__iter__", [](StringList &v) {
-           return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>());
+        .def(
+            "__iter__",
+            [](StringList &v) { return py::make_iterator(v.begin(), v.end()); },
+            py::keep_alive<0, 1>());
 
     class ClassWithSTLVecProperty {
     public:
@@ -45,8 +48,9 @@ TEST_SUBMODULE(opaque_types, m) {
         std::string ret = "Opaque list: [";
         bool first = true;
         for (const auto &entry : l) {
-            if (!first)
+            if (!first) {
                 ret += ", ";
+            }
             ret += entry;
             first = false;
         }

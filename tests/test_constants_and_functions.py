@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 m = pytest.importorskip("pybind11_tests.constants_and_functions")

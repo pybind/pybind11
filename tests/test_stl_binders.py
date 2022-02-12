@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import pytest
 
-import env
 from pybind11_tests import stl_binders as m
 
 
@@ -74,18 +72,13 @@ def test_vector_buffer():
     assert v[1] == 2
     v[2] = 5
     mv = memoryview(v)  # We expose the buffer interface
-    if not env.PY2:
-        assert mv[2] == 5
-        mv[2] = 6
-    else:
-        assert mv[2] == "\x05"
-        mv[2] = "\x06"
+    assert mv[2] == 5
+    mv[2] = 6
     assert v[2] == 6
 
-    if not env.PY2:
-        mv = memoryview(b)
-        v = m.VectorUChar(mv[::2])
-        assert v[1] == 3
+    mv = memoryview(b)
+    v = m.VectorUChar(mv[::2])
+    assert v[1] == 3
 
     with pytest.raises(RuntimeError) as excinfo:
         m.create_undeclstruct()  # Undeclared struct contents, no buffer interface

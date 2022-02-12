@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
@@ -7,7 +6,6 @@ from pybind11_tests import class_ as m
 
 
 def test_repr():
-    # In Python 3.3+, repr() accesses __qualname__
     assert "pybind11_type" in repr(type(UserType))
     assert "UserType" in repr(UserType)
 
@@ -103,8 +101,8 @@ def test_docstrings(doc):
 
 
 def test_qualname(doc):
-    """Tests that a properly qualified name is set in __qualname__ (even in pre-3.3, where we
-    backport the attribute) and that generated docstrings properly use it and the module name"""
+    """Tests that a properly qualified name is set in __qualname__ and that
+    generated docstrings properly use it and the module name"""
     assert m.NestBase.__qualname__ == "NestBase"
     assert m.NestBase.Nested.__qualname__ == "NestBase.Nested"
 
@@ -130,13 +128,13 @@ def test_qualname(doc):
         doc(m.NestBase.Nested.fn)
         == """
         fn(self: m.class_.NestBase.Nested, arg0: int, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         doc(m.NestBase.Nested.fa)
         == """
         fa(self: m.class_.NestBase.Nested, a: int, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
-    """  # noqa: E501 line too long
+    """
     )
     assert m.NestBase.__module__ == "pybind11_tests.class_"
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
