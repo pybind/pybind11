@@ -99,7 +99,8 @@ public:
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 object retval(hfunc.f(std::forward<Args>(args)...));
-                return retval.template cast<Return>();
+                /* Visual studio 2015 parser issue: need parentheses around this expression */
+                return (retval.template cast<Return>());
             }
         };
 
