@@ -653,22 +653,6 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     auto bases = tuple(rec.bases);
     auto *base = (bases.empty()) ? internals.instance_base : bases[0].ptr();
 
-    traverseproc parent_tp_traverse = nullptr;
-    auto parent_tp_clear = nullptr;
-    for (auto b : bases) {
-        auto *obj = (PyTypeObject *) b.ptr();
-        if (PyType_IS_GC(obj) != 0) {
-            if (obj->tp_traverse != nullptr) {
-                parent_tp_traverse = obj->tp_traverse;
-            }
-            if (obj->tp_clear != nullptr) {
-                parent_tp_clear = obj->tp_clear;
-            }
-            // This needs to improved and should probably combine funcs
-            break;
-        }
-    }
-
     /* Danger zone: from now (and until PyType_Ready), make sure to
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
@@ -726,6 +710,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
         pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
     }
 
+    assert(type->tp_traverse != nullptr || !PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
     assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */
