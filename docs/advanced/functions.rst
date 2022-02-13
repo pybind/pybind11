@@ -17,7 +17,7 @@ bindings for functions that return a non-trivial type. Just by looking at the
 type information, it is not clear whether Python should take charge of the
 returned value and eventually free its resources, or if this is handled on the
 C++ side. For this reason, pybind11 provides a several *return value policy*
-annotations that can be passed to the :func:`module::def` and
+annotations that can be passed to the :func:`module_::def` and
 :func:`class_::def` functions. The default policy is
 :enum:`return_value_policy::automatic`.
 
@@ -50,7 +50,7 @@ implied transfer of ownership, i.e.:
 
 .. code-block:: cpp
 
-    m.def("get_data", &get_data, return_value_policy::reference);
+    m.def("get_data", &get_data, py::return_value_policy::reference);
 
 On the other hand, this is not the right policy for many other situations,
 where ignoring ownership could lead to resource leaks.
@@ -90,17 +90,18 @@ The following table provides an overview of available policies:
 |                                                  | return value is referenced by Python. This is the default policy for       |
 |                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.     |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::automatic`           | **Default policy.** This policy falls back to the policy                   |
+| :enum:`return_value_policy::automatic`           | This policy falls back to the policy                                       |
 |                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
 |                                                  | pointer. Otherwise, it uses :enum:`return_value_policy::move` or           |
 |                                                  | :enum:`return_value_policy::copy` for rvalue and lvalue references,        |
 |                                                  | respectively. See above for a description of what all of these different   |
-|                                                  | policies do.                                                               |
+|                                                  | policies do. This is the default policy for ``py::class_``-wrapped types.  |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
 |                                                  | return value is a pointer. This is the default conversion policy for       |
 |                                                  | function arguments when calling Python functions manually from C++ code    |
-|                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
+|                                                  | (i.e. via ``handle::operator()``) and the casters in ``pybind11/stl.h``.   |
+|                                                  | You probably won't need to use this explicitly.                            |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 Return value policies can also be applied to properties:
@@ -119,7 +120,7 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 .. code-block:: cpp
 
     class_<MyClass>(m, "MyClass")
-        .def_property("data"
+        .def_property("data",
             py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
             py::cpp_function(&MyClass::setData)
         );
@@ -182,6 +183,9 @@ relies on the ability to create a *weak reference* to the nurse object. When
 the nurse object is not a pybind11-registered type and does not support weak
 references, an exception will be thrown.
 
+If you use an incorrect argument index, you will get a ``RuntimeError`` saying
+``Could not activate keep_alive!``. You should review the indices you're using.
+
 Consider the following example: here, the binding code for a list append
 operation ties the lifetime of the newly added element to the underlying
 container:
@@ -228,7 +232,7 @@ is equivalent to the following pseudocode:
     });
 
 The only requirement is that ``T`` is default-constructible, but otherwise any
-scope guard will work. This is very useful in combination with `gil_scoped_release`.
+scope guard will work. This is very useful in combination with ``gil_scoped_release``.
 See :ref:`gil`.
 
 Multiple guards can also be specified as ``py::call_guard<T1, T2, T3...>``. The
@@ -251,7 +255,7 @@ For instance, the following statement iterates over a Python ``dict``:
 
 .. code-block:: cpp
 
-    void print_dict(py::dict dict) {
+    void print_dict(const py::dict& dict) {
         /* Easily interact with Python types */
         for (auto item : dict)
             std::cout << "key=" << std::string(py::str(item.first)) << ", "
@@ -268,7 +272,7 @@ And used in Python as usual:
 
 .. code-block:: pycon
 
-    >>> print_dict({'foo': 123, 'bar': 'hello'})
+    >>> print_dict({"foo": 123, "bar": "hello"})
     key=foo, value=123
     key=bar, value=hello
 
@@ -289,7 +293,7 @@ Such functions can also be created using pybind11:
 
 .. code-block:: cpp
 
-   void generic(py::args args, py::kwargs kwargs) {
+   void generic(py::args args, const py::kwargs& kwargs) {
        /// .. do something with args
        if (kwargs)
            /// .. do something with kwargs
@@ -302,8 +306,9 @@ The class ``py::args`` derives from ``py::tuple`` and ``py::kwargs`` derives
 from ``py::dict``.
 
 You may also use just one or the other, and may combine these with other
-arguments as long as the ``py::args`` and ``py::kwargs`` arguments are the last
-arguments accepted by the function.
+arguments.  Note, however, that ``py::kwargs`` must always be the last argument
+of the function, and ``py::args`` implies that any further arguments are
+keyword-only (see :ref:`keyword_only_arguments`).
 
 Please refer to the other examples for details on how to iterate over these,
 and on how to cast their entries into C++ objects. A demonstration is also
@@ -360,7 +365,66 @@ like so:
 .. code-block:: cpp
 
     py::class_<MyClass>("MyClass")
-        .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+        .def("myFunction", py::arg("arg") = static_cast<SomeType *>(nullptr));
+
+.. _keyword_only_arguments:
+
+Keyword-only arguments
+======================
+
+Python implements keyword-only arguments by specifying an unnamed ``*``
+argument in a function definition:
+
+.. code-block:: python
+
+    def f(a, *, b):  # a can be positional or via keyword; b must be via keyword
+        pass
+
+
+    f(a=1, b=2)  # good
+    f(b=2, a=1)  # good
+    f(1, b=2)  # good
+    f(1, 2)  # TypeError: f() takes 1 positional argument but 2 were given
+
+Pybind11 provides a ``py::kw_only`` object that allows you to implement
+the same behaviour by specifying the object between positional and keyword-only
+argument annotations when registering the function:
+
+.. code-block:: cpp
+
+    m.def("f", [](int a, int b) { /* ... */ },
+          py::arg("a"), py::kw_only(), py::arg("b"));
+
+.. versionadded:: 2.6
+
+A ``py::args`` argument implies that any following arguments are keyword-only,
+as if ``py::kw_only()`` had been specified in the same relative location of the
+argument list as the ``py::args`` argument.  The ``py::kw_only()`` may be
+included to be explicit about this, but is not required.
+
+.. versionchanged:: 2.9
+   This can now be combined with ``py::args``. Before, ``py::args`` could only
+   occur at the end of the argument list, or immediately before a ``py::kwargs``
+   argument at the end.
+
+
+Positional-only arguments
+=========================
+
+Python 3.8 introduced a new positional-only argument syntax, using ``/`` in the
+function definition (note that this has been a convention for CPython
+positional arguments, such as in ``pow()``, since Python 2). You can
+do the same thing in any version of Python using ``py::pos_only()``:
+
+.. code-block:: cpp
+
+   m.def("f", [](int a, int b) { /* ... */ },
+          py::arg("a"), py::pos_only(), py::arg("b"));
+
+You now cannot give argument ``a`` by keyword. This can be combined with
+keyword-only arguments, as well.
+
+.. versionadded:: 2.6
 
 .. _nonconverting_arguments:
 
@@ -476,6 +540,8 @@ The default behaviour when the tag is unspecified is to allow ``None``.
     not allow ``None`` as argument.  To pass optional argument of these copied types consider
     using ``std::optional<T>``
 
+.. _overload_resolution:
+
 Overload resolution order
 =========================
 
@@ -492,11 +558,13 @@ an explicit ``py::arg().noconvert()`` attribute in the function definition).
 If the second pass also fails a ``TypeError`` is raised.
 
 Within each pass, overloads are tried in the order they were registered with
-pybind11.
+pybind11. If the ``py::prepend()`` tag is added to the definition, a function
+can be placed at the beginning of the overload sequence instead, allowing user
+overloads to proceed built in functions.
 
 What this means in practice is that pybind11 will prefer any overload that does
-not require conversion of arguments to an overload that does, but otherwise prefers
-earlier-defined overloads to later-defined ones.
+not require conversion of arguments to an overload that does, but otherwise
+prefers earlier-defined overloads to later-defined ones.
 
 .. note::
 
@@ -505,3 +573,42 @@ earlier-defined overloads to later-defined ones.
     requiring one conversion over one requiring three, but only prioritizes
     overloads requiring no conversion at all to overloads that require
     conversion of at least one argument.
+
+.. versionadded:: 2.6
+
+    The ``py::prepend()`` tag.
+
+Binding functions with template parameters
+==========================================
+
+You can bind functions that have template parameters. Here's a function:
+
+.. code-block:: cpp
+
+    template <typename T>
+    void set(T t);
+
+C++ templates cannot be instantiated at runtime, so you cannot bind the
+non-instantiated function:
+
+.. code-block:: cpp
+
+    // BROKEN (this will not compile)
+    m.def("set", &set);
+
+You must bind each instantiated function template separately. You may bind
+each instantiation with the same name, which will be treated the same as
+an overloaded function:
+
+.. code-block:: cpp
+
+    m.def("set", &set<int>);
+    m.def("set", &set<std::string>);
+
+Sometimes it's more clear to bind them with separate names, which is also
+an option:
+
+.. code-block:: cpp
+
+    m.def("setInt", &set<int>);
+    m.def("setString", &set<std::string>);

@@ -18,3 +18,4 @@ ALIASES               += "endrst=\endverbatim"
 QUIET                  = YES
 WARNINGS               = YES
 WARN_IF_UNDOCUMENTED   = NO
+PREDEFINED             = PYBIND11_NOINLINE

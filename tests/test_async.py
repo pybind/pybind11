@@ -1,6 +1,7 @@
-import asyncio
 import pytest
-from pybind11_tests import async_module as m
+
+asyncio = pytest.importorskip("asyncio")
+m = pytest.importorskip("pybind11_tests.async_module")
 
 
 @pytest.fixture

@@ -18,7 +18,7 @@ information, see :doc:`/compiling`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.0)
+    cmake_minimum_required(VERSION 3.4)
     project(example)
 
     find_package(pybind11 REQUIRED)  # or `add_subdirectory(pybind11)`
@@ -40,15 +40,15 @@ The essential structure of the ``main.cpp`` file looks like this:
     }
 
 The interpreter must be initialized before using any Python API, which includes
-all the functions and classes in pybind11. The RAII guard class `scoped_interpreter`
+all the functions and classes in pybind11. The RAII guard class ``scoped_interpreter``
 takes care of the interpreter lifetime. After the guard is destroyed, the interpreter
 shuts down and clears its memory. No Python functions can be called after this.
 
 Executing Python code
 =====================
 
-There are a few different ways to run Python code. One option is to use `eval`,
-`exec` or `eval_file`, as explained in :ref:`eval`. Here is a quick example in
+There are a few different ways to run Python code. One option is to use ``eval``,
+``exec`` or ``eval_file``, as explained in :ref:`eval`. Here is a quick example in
 the context of an executable with an embedded interpreter:
 
 .. code-block:: cpp
@@ -108,11 +108,11 @@ The two approaches can also be combined:
 Importing modules
 =================
 
-Python modules can be imported using `module::import()`:
+Python modules can be imported using ``module_::import()``:
 
 .. code-block:: cpp
 
-    py::module sys = py::module::import("sys");
+    py::module_ sys = py::module_::import("sys");
     py::print(sys.attr("path"));
 
 For convenience, the current working directory is included in ``sys.path`` when
@@ -122,18 +122,19 @@ embedding the interpreter. This makes it easy to import local Python files:
 
     """calc.py located in the working directory"""
 
+
     def add(i, j):
         return i + j
 
 
 .. code-block:: cpp
 
-    py::module calc = py::module::import("calc");
+    py::module_ calc = py::module_::import("calc");
     py::object result = calc.attr("add")(1, 2);
     int n = result.cast<int>();
     assert(n == 3);
 
-Modules can be reloaded using `module::reload()` if the source is modified e.g.
+Modules can be reloaded using ``module_::reload()`` if the source is modified e.g.
 by an external process. This can be useful in scenarios where the application
 imports a user defined data processing script which needs to be updated after
 changes by the user. Note that this function does not reload modules recursively.
@@ -143,7 +144,7 @@ changes by the user. Note that this function does not reload modules recursively
 Adding embedded modules
 =======================
 
-Embedded binary modules can be added using the `PYBIND11_EMBEDDED_MODULE` macro.
+Embedded binary modules can be added using the ``PYBIND11_EMBEDDED_MODULE`` macro.
 Note that the definition must be placed at global scope. They can be imported
 like any other module.
 
@@ -153,7 +154,7 @@ like any other module.
     namespace py = pybind11;
 
     PYBIND11_EMBEDDED_MODULE(fast_calc, m) {
-        // `m` is a `py::module` which is used to bind functions and classes
+        // `m` is a `py::module_` which is used to bind functions and classes
         m.def("add", [](int i, int j) {
             return i + j;
         });
@@ -162,14 +163,14 @@ like any other module.
     int main() {
         py::scoped_interpreter guard{};
 
-        auto fast_calc = py::module::import("fast_calc");
+        auto fast_calc = py::module_::import("fast_calc");
         auto result = fast_calc.attr("add")(1, 2).cast<int>();
         assert(result == 3);
     }
 
 Unlike extension modules where only a single binary module can be created, on
 the embedded side an unlimited number of modules can be added using multiple
-`PYBIND11_EMBEDDED_MODULE` definitions (as long as they have unique names).
+``PYBIND11_EMBEDDED_MODULE`` definitions (as long as they have unique names).
 
 These modules are added to Python's list of builtins, so they can also be
 imported in pure Python files loaded by the interpreter. Everything interacts
@@ -196,7 +197,7 @@ naturally:
     int main() {
         py::scoped_interpreter guard{};
 
-        auto py_module = py::module::import("py_module");
+        auto py_module = py::module_::import("py_module");
 
         auto locals = py::dict("fmt"_a="{} + {} = {}", **py_module.attr("__dict__"));
         assert(locals["a"].cast<int>() == 1);
@@ -215,9 +216,9 @@ naturally:
 Interpreter lifetime
 ====================
 
-The Python interpreter shuts down when `scoped_interpreter` is destroyed. After
+The Python interpreter shuts down when ``scoped_interpreter`` is destroyed. After
 this, creating a new instance will restart the interpreter. Alternatively, the
-`initialize_interpreter` / `finalize_interpreter` pair of functions can be used
+``initialize_interpreter`` / ``finalize_interpreter`` pair of functions can be used
 to directly set the state at any time.
 
 Modules created with pybind11 can be safely re-initialized after the interpreter
@@ -229,8 +230,8 @@ global data. All the details can be found in the CPython documentation.
 
 .. warning::
 
-    Creating two concurrent `scoped_interpreter` guards is a fatal error. So is
-    calling `initialize_interpreter` for a second time after the interpreter
+    Creating two concurrent ``scoped_interpreter`` guards is a fatal error. So is
+    calling ``initialize_interpreter`` for a second time after the interpreter
     has already been initialized.
 
     Do not use the raw CPython API functions ``Py_Initialize`` and
@@ -241,7 +242,7 @@ global data. All the details can be found in the CPython documentation.
 Sub-interpreter support
 =======================
 
-Creating multiple copies of `scoped_interpreter` is not possible because it
+Creating multiple copies of ``scoped_interpreter`` is not possible because it
 represents the main Python interpreter. Sub-interpreters are something different
 and they do permit the existence of multiple interpreters. This is an advanced
 feature of the CPython API and should be handled with care. pybind11 does not
@@ -257,5 +258,5 @@ We'll just mention a couple of caveats the sub-interpreters support in pybind11:
  2. Managing multiple threads, multiple interpreters and the GIL can be
     challenging and there are several caveats here, even within the pure
     CPython API (please refer to the Python docs for details). As for
-    pybind11, keep in mind that `gil_scoped_release` and `gil_scoped_acquire`
+    pybind11, keep in mind that ``gil_scoped_release`` and ``gil_scoped_acquire``
     do not take sub-interpreters into account.

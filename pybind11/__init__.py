@@ -1,36 +1,16 @@
-from ._version import version_info, __version__  # noqa: F401 imported but unused
+import sys
+
+if sys.version_info < (3, 6):
+    msg = "pybind11 does not support Python < 3.6. 2.9 was the last release supporting Python 2.7 and 3.5."
+    raise ImportError(msg)
 
 
-def get_include(user=False):
-    from distutils.dist import Distribution
-    import os
-    import sys
+from ._version import __version__, version_info
+from .commands import get_cmake_dir, get_include
 
-    # Are we running in a virtual environment?
-    virtualenv = hasattr(sys, 'real_prefix') or \
-        sys.prefix != getattr(sys, "base_prefix", sys.prefix)
-
-    # Are we running in a conda environment?
-    conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta'))
-
-    if virtualenv:
-        return os.path.join(sys.prefix, 'include', 'site',
-                            'python' + sys.version[:3])
-    elif conda:
-        if os.name == 'nt':
-            return os.path.join(sys.prefix, 'Library', 'include')
-        else:
-            return os.path.join(sys.prefix, 'include')
-    else:
-        dist = Distribution({'name': 'pybind11'})
-        dist.parse_config_files()
-
-        dist_cobj = dist.get_command_obj('install', create=True)
-
-        # Search for packages in user's home directory?
-        if user:
-            dist_cobj.user = user
-            dist_cobj.prefix = ""
-        dist_cobj.finalize_options()
-
-        return os.path.dirname(dist_cobj.install_headers)
+__all__ = (
+    "version_info",
+    "__version__",
+    "get_include",
+    "get_cmake_dir",
+)

@@ -1,6 +1,7 @@
 import pytest
-from pybind11_tests import opaque_types as m
+
 from pybind11_tests import ConstructorStats, UserType
+from pybind11_tests import opaque_types as m
 
 
 def test_string_list():
@@ -11,7 +12,7 @@ def test_string_list():
     assert lst.back() == "Element 2"
 
     for i, k in enumerate(lst, start=1):
-        assert k == "Element {}".format(i)
+        assert k == f"Element {i}"
     lst.pop_back()
     assert m.print_opaque_list(lst) == "Opaque list: [Element 1]"
 
@@ -31,12 +32,15 @@ def test_pointers(msg):
 
     with pytest.raises(TypeError) as excinfo:
         m.get_void_ptr_value([1, 2, 3])  # This should not work
-    assert msg(excinfo.value) == """
+    assert (
+        msg(excinfo.value)
+        == """
         get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
             1. (arg0: capsule) -> int
 
         Invoked with: [1, 2, 3]
-    """  # noqa: E501 line too long
+    """
+    )
 
     assert m.return_null_str() is None
     assert m.get_null_str_value(m.return_null_str()) is not None
@@ -44,3 +48,11 @@ def test_pointers(msg):
     ptr = m.return_unique_ptr()
     assert "StringList" in repr(ptr)
     assert m.print_opaque_list(ptr) == "Opaque list: [some value]"
+
+
+def test_unions():
+    int_float_union = m.IntFloat()
+    int_float_union.i = 42
+    assert int_float_union.i == 42
+    int_float_union.f = 3.0
+    assert int_float_union.f == 3.0

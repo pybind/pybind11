@@ -6,13 +6,1061 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+IN DEVELOPMENT
+--------------
 
-v2.3.1 (Not yet released)
+Changes will be added here periodically.
+
+
+Version 2.9.1 (Feb 2, 2022)
+---------------------------
+
+Changes:
+
+* If possible, attach Python exception with ``py::raise_from`` to ``TypeError``
+  when casting from C++ to Python. This will give additional info if Python
+  exceptions occur in the caster. Adds a test case of trying to convert a set
+  from C++ to Python when the hash function is not defined in Python.
+  `#3605 <https://github.com/pybind/pybind11/pull/3605>`_
+
+* Add a mapping of C++11 nested exceptions to their Python exception
+  equivalent using ``py::raise_from``. This attaches the nested exceptions in
+  Python using the ``__cause__`` field.
+  `#3608 <https://github.com/pybind/pybind11/pull/3608>`_
+
+* Propagate Python exception traceback using ``raise_from`` if a pybind11
+  function runs out of overloads.
+  `#3671 <https://github.com/pybind/pybind11/pull/3671>`_
+
+* ``py::multiple_inheritance`` is now only needed when C++ bases are hidden
+  from pybind11.
+  `#3650 <https://github.com/pybind/pybind11/pull/3650>`_ and
+  `#3659 <https://github.com/pybind/pybind11/pull/3659>`_
+
+
+Bug fixes:
+
+* Remove a boolean cast in ``numpy.h`` that causes MSVC C4800 warnings when
+  compiling against Python 3.10 or newer.
+  `#3669 <https://github.com/pybind/pybind11/pull/3669>`_
+
+* Render ``py::bool_`` and ``py::float_`` as ``bool`` and ``float``
+  respectively.
+  `#3622 <https://github.com/pybind/pybind11/pull/3622>`_
+
+Build system improvements:
+
+* Fix CMake extension suffix computation on Python 3.10+.
+  `#3663 <https://github.com/pybind/pybind11/pull/3663>`_
+
+* Allow ``CMAKE_ARGS`` to override CMake args in pybind11's own ``setup.py``.
+  `#3577 <https://github.com/pybind/pybind11/pull/3577>`_
+
+* Remove a few deprecated c-headers.
+  `#3610 <https://github.com/pybind/pybind11/pull/3610>`_
+
+* More uniform handling of test targets.
+  `#3590 <https://github.com/pybind/pybind11/pull/3590>`_
+
+* Add clang-tidy readability check to catch potentially swapped function args.
+  `#3611 <https://github.com/pybind/pybind11/pull/3611>`_
+
+
+Version 2.9.0 (Dec 28, 2021)
+----------------------------
+
+This is the last version to support Python 2.7 and 3.5.
+
+New Features:
+
+* Allow ``py::args`` to be followed by other arguments; the remaining arguments
+  are implicitly keyword-only, as if a ``py::kw_only{}`` annotation had been
+  used.
+  `#3402 <https://github.com/pybind/pybind11/pull/3402>`_
+
+Changes:
+
+* Make str/bytes/memoryview more interoperable with ``std::string_view``.
+  `#3521 <https://github.com/pybind/pybind11/pull/3521>`_
+
+* Replace ``_`` with ``const_name`` in internals, avoid defining ``pybind::_``
+  if ``_`` defined as macro (common gettext usage)
+  `#3423 <https://github.com/pybind/pybind11/pull/3423>`_
+
+
+Bug fixes:
+
+* Fix a rare warning about extra copy in an Eigen constructor.
+  `#3486 <https://github.com/pybind/pybind11/pull/3486>`_
+
+* Fix caching of the C++ overrides.
+  `#3465 <https://github.com/pybind/pybind11/pull/3465>`_
+
+* Add missing ``std::forward`` calls to some ``cpp_function`` overloads.
+  `#3443 <https://github.com/pybind/pybind11/pull/3443>`_
+
+* Support PyPy 7.3.7 and the PyPy3.8 beta. Test python-3.11 on PRs with the
+  ``python dev`` label.
+  `#3419 <https://github.com/pybind/pybind11/pull/3419>`_
+
+* Replace usage of deprecated ``Eigen::MappedSparseMatrix`` with
+  ``Eigen::Map<Eigen::SparseMatrix<...>>`` for Eigen 3.3+.
+  `#3499 <https://github.com/pybind/pybind11/pull/3499>`_
+
+* Tweaks to support Microsoft Visual Studio 2022.
+  `#3497 <https://github.com/pybind/pybind11/pull/3497>`_
+
+Build system improvements:
+
+* Nicer CMake printout and IDE organisation for pybind11's own tests.
+  `#3479 <https://github.com/pybind/pybind11/pull/3479>`_
+
+* CMake: report version type as part of the version string to avoid a spurious
+  space in the package status message.
+  `#3472 <https://github.com/pybind/pybind11/pull/3472>`_
+
+* Flags starting with ``-g`` in ``$CFLAGS`` and ``$CPPFLAGS`` are no longer
+  overridden by ``.Pybind11Extension``.
+  `#3436 <https://github.com/pybind/pybind11/pull/3436>`_
+
+* Ensure ThreadPool is closed in ``setup_helpers``.
+  `#3548 <https://github.com/pybind/pybind11/pull/3548>`_
+
+* Avoid LTS on ``mips64`` and ``ppc64le`` (reported broken).
+  `#3557 <https://github.com/pybind/pybind11/pull/3557>`_
+
+
+v2.8.1 (Oct 27, 2021)
+---------------------
+
+Changes and additions:
+
+* The simple namespace creation shortcut added in 2.8.0 was deprecated due to
+  usage of CPython internal API, and will be removed soon. Use
+  ``py::module_::import("types").attr("SimpleNamespace")``.
+  `#3374 <https://github.com/pybinyyd/pybind11/pull/3374>`_
+
+* Add C++ Exception type to throw and catch ``AttributeError``. Useful for
+  defining custom ``__setattr__`` and ``__getattr__`` methods.
+  `#3387 <https://github.com/pybind/pybind11/pull/3387>`_
+
+Fixes:
+
+* Fixed the potential for dangling references when using properties with
+  ``std::optional`` types.
+  `#3376 <https://github.com/pybind/pybind11/pull/3376>`_
+
+* Modernize usage of ``PyCodeObject`` on Python 3.9+ (moving toward support for
+  Python 3.11a1)
+  `#3368 <https://github.com/pybind/pybind11/pull/3368>`_
+
+* A long-standing bug in ``eigen.h`` was fixed (originally PR #3343). The bug
+  was unmasked by newly added ``static_assert``'s in the Eigen 3.4.0 release.
+  `#3352 <https://github.com/pybind/pybind11/pull/3352>`_
+
+* Support multiple raw inclusion of CMake helper files (Conan.io does this for
+  multi-config generators).
+  `#3420 <https://github.com/pybind/pybind11/pull/3420>`_
+
+* Fix harmless warning on upcoming CMake 3.22.
+  `#3368 <https://github.com/pybind/pybind11/pull/3368>`_
+
+* Fix 2.8.0 regression with MSVC 2017 + C++17 mode + Python 3.
+  `#3407 <https://github.com/pybind/pybind11/pull/3407>`_
+
+* Fix 2.8.0 regression that caused undefined behavior (typically
+  segfaults) in ``make_key_iterator``/``make_value_iterator`` if dereferencing
+  the iterator returned a temporary value instead of a reference.
+  `#3348 <https://github.com/pybind/pybind11/pull/3348>`_
+
+
+v2.8.0 (Oct 4, 2021)
+--------------------
+
+New features:
+
+* Added ``py::raise_from`` to enable chaining exceptions.
+  `#3215 <https://github.com/pybind/pybind11/pull/3215>`_
+
+* Allow exception translators to be optionally registered local to a module
+  instead of applying globally across all pybind11 modules. Use
+  ``register_local_exception_translator(ExceptionTranslator&& translator)``
+  instead of  ``register_exception_translator(ExceptionTranslator&&
+  translator)`` to keep your exception remapping code local to the module.
+  `#2650 <https://github.com/pybinyyd/pybind11/pull/2650>`_
+
+* Add ``make_simple_namespace`` function for instantiating Python
+  ``SimpleNamespace`` objects. **Deprecated in 2.8.1.**
+  `#2840 <https://github.com/pybind/pybind11/pull/2840>`_
+
+* ``pybind11::scoped_interpreter`` and ``initialize_interpreter`` have new
+  arguments to allow ``sys.argv`` initialization.
+  `#2341 <https://github.com/pybind/pybind11/pull/2341>`_
+
+* Allow Python builtins to be used as callbacks in CPython.
+  `#1413 <https://github.com/pybind/pybind11/pull/1413>`_
+
+* Added ``view`` to view arrays with a different datatype.
+  `#987 <https://github.com/pybind/pybind11/pull/987>`_
+
+* Implemented ``reshape`` on arrays.
+  `#984 <https://github.com/pybind/pybind11/pull/984>`_
+
+* Enable defining custom ``__new__`` methods on classes by fixing bug
+  preventing overriding methods if they have non-pybind11 siblings.
+  `#3265 <https://github.com/pybind/pybind11/pull/3265>`_
+
+* Add ``make_value_iterator()``, and fix ``make_key_iterator()`` to return
+  references instead of copies.
+  `#3293 <https://github.com/pybind/pybind11/pull/3293>`_
+
+* Improve the classes generated by ``bind_map``: `#3310 <https://github.com/pybind/pybind11/pull/3310>`_
+
+  * Change ``.items`` from an iterator to a dictionary view.
+  * Add ``.keys`` and ``.values`` (both dictionary views).
+  * Allow ``__contains__`` to take any object.
+
+* ``pybind11::custom_type_setup`` was added, for customizing the
+  ``PyHeapTypeObject`` corresponding to a class, which may be useful for
+  enabling garbage collection support, among other things.
+  `#3287 <https://github.com/pybind/pybind11/pull/3287>`_
+
+
+Changes:
+
+* Set ``__file__`` constant when running ``eval_file`` in an embedded interpreter.
+  `#3233 <https://github.com/pybind/pybind11/pull/3233>`_
+
+* Python objects and (C++17) ``std::optional`` now accepted in ``py::slice``
+  constructor.
+  `#1101 <https://github.com/pybind/pybind11/pull/1101>`_
+
+* The pybind11 proxy types ``str``, ``bytes``, ``bytearray``, ``tuple``,
+  ``list`` now consistently support passing ``ssize_t`` values for sizes and
+  indexes. Previously, only ``size_t`` was accepted in several interfaces.
+  `#3219 <https://github.com/pybind/pybind11/pull/3219>`_
+
+* Avoid evaluating ``PYBIND11_TLS_REPLACE_VALUE`` arguments more than once.
+  `#3290 <https://github.com/pybind/pybind11/pull/3290>`_
+
+Fixes:
+
+* Bug fix: enum value's ``__int__`` returning non-int when underlying type is
+  bool or of char type.
+  `#1334 <https://github.com/pybind/pybind11/pull/1334>`_
+
+* Fixes bug in setting error state in Capsule's pointer methods.
+  `#3261 <https://github.com/pybind/pybind11/pull/3261>`_
+
+* A long-standing memory leak in ``py::cpp_function::initialize`` was fixed.
+  `#3229 <https://github.com/pybind/pybind11/pull/3229>`_
+
+* Fixes thread safety for some ``pybind11::type_caster`` which require lifetime
+  extension, such as for ``std::string_view``.
+  `#3237 <https://github.com/pybind/pybind11/pull/3237>`_
+
+* Restore compatibility with gcc 4.8.4 as distributed by ubuntu-trusty, linuxmint-17.
+  `#3270 <https://github.com/pybind/pybind11/pull/3270>`_
+
+
+Build system improvements:
+
+* Fix regression in CMake Python package config: improper use of absolute path.
+  `#3144 <https://github.com/pybind/pybind11/pull/3144>`_
+
+* Cached Python version information could become stale when CMake was re-run
+  with a different Python version. The build system now detects this and
+  updates this information.
+  `#3299 <https://github.com/pybind/pybind11/pull/3299>`_
+
+* Specified UTF8-encoding in setup.py calls of open().
+  `#3137 <https://github.com/pybind/pybind11/pull/3137>`_
+
+* Fix a harmless warning from CMake 3.21 with the classic Python discovery.
+  `#3220 <https://github.com/pybind/pybind11/pull/3220>`_
+
+* Eigen repo and version can now be specified as cmake options.
+  `#3324 <https://github.com/pybind/pybind11/pull/3324>`_
+
+
+Backend and tidying up:
+
+* Reduced thread-local storage required for keeping alive temporary data for
+  type conversion to one key per ABI version, rather than one key per extension
+  module.  This makes the total thread-local storage required by pybind11 2
+  keys per ABI version.
+  `#3275 <https://github.com/pybind/pybind11/pull/3275>`_
+
+* Optimize NumPy array construction with additional moves.
+  `#3183 <https://github.com/pybind/pybind11/pull/3183>`_
+
+* Conversion to ``std::string`` and ``std::string_view`` now avoids making an
+  extra copy of the data on Python >= 3.3.
+  `#3257 <https://github.com/pybind/pybind11/pull/3257>`_
+
+* Remove const modifier from certain C++ methods on Python collections
+  (``list``, ``set``, ``dict``) such as (``clear()``, ``append()``,
+  ``insert()``, etc...) and annotated them with ``py-non-const``.
+
+* Enable readability ``clang-tidy-const-return`` and remove useless consts.
+  `#3254 <https://github.com/pybind/pybind11/pull/3254>`_
+  `#3194 <https://github.com/pybind/pybind11/pull/3194>`_
+
+* The clang-tidy ``google-explicit-constructor`` option was enabled.
+  `#3250 <https://github.com/pybind/pybind11/pull/3250>`_
+
+* Mark a pytype move constructor as noexcept (perf).
+  `#3236 <https://github.com/pybind/pybind11/pull/3236>`_
+
+* Enable clang-tidy check to guard against inheritance slicing.
+  `#3210 <https://github.com/pybind/pybind11/pull/3210>`_
+
+* Legacy warning suppression pragma were removed from eigen.h. On Unix
+  platforms, please use -isystem for Eigen include directories, to suppress
+  compiler warnings originating from Eigen headers. Note that CMake does this
+  by default. No adjustments are needed for Windows.
+  `#3198 <https://github.com/pybind/pybind11/pull/3198>`_
+
+* Format pybind11 with isort consistent ordering of imports
+  `#3195 <https://github.com/pybind/pybind11/pull/3195>`_
+
+* The warnings-suppression "pragma clamp" at the top/bottom of pybind11 was
+  removed, clearing the path to refactoring and IWYU cleanup.
+  `#3186 <https://github.com/pybind/pybind11/pull/3186>`_
+
+* Enable most bugprone checks in clang-tidy and fix the found potential bugs
+  and poor coding styles.
+  `#3166 <https://github.com/pybind/pybind11/pull/3166>`_
+
+* Add ``clang-tidy-readability`` rules to make boolean casts explicit improving
+  code readability. Also enabled other misc and readability clang-tidy checks.
+  `#3148 <https://github.com/pybind/pybind11/pull/3148>`_
+
+* Move object in ``.pop()`` for list.
+  `#3116 <https://github.com/pybind/pybind11/pull/3116>`_
+
+
+
+
+v2.7.1 (Aug 3, 2021)
+---------------------
+
+Minor missing functionality added:
+
+* Allow Python builtins to be used as callbacks in CPython.
+  `#1413 <https://github.com/pybind/pybind11/pull/1413>`_
+
+Bug fixes:
+
+* Fix regression in CMake Python package config: improper use of absolute path.
+  `#3144 <https://github.com/pybind/pybind11/pull/3144>`_
+
+* Fix Mingw64 and add to the CI testing matrix.
+  `#3132 <https://github.com/pybind/pybind11/pull/3132>`_
+
+* Specified UTF8-encoding in setup.py calls of open().
+  `#3137 <https://github.com/pybind/pybind11/pull/3137>`_
+
+* Add clang-tidy-readability rules to make boolean casts explicit improving
+  code readability. Also enabled other misc and readability clang-tidy checks.
+  `#3148 <https://github.com/pybind/pybind11/pull/3148>`_
+
+* Move object in ``.pop()`` for list.
+  `#3116 <https://github.com/pybind/pybind11/pull/3116>`_
+
+Backend and tidying up:
+
+* Removed and fixed warning suppressions.
+  `#3127 <https://github.com/pybind/pybind11/pull/3127>`_
+  `#3129 <https://github.com/pybind/pybind11/pull/3129>`_
+  `#3135 <https://github.com/pybind/pybind11/pull/3135>`_
+  `#3141 <https://github.com/pybind/pybind11/pull/3141>`_
+  `#3142 <https://github.com/pybind/pybind11/pull/3142>`_
+  `#3150 <https://github.com/pybind/pybind11/pull/3150>`_
+  `#3152 <https://github.com/pybind/pybind11/pull/3152>`_
+  `#3160 <https://github.com/pybind/pybind11/pull/3160>`_
+  `#3161 <https://github.com/pybind/pybind11/pull/3161>`_
+
+
+v2.7.0 (Jul 16, 2021)
+---------------------
+
+New features:
+
+* Enable ``py::implicitly_convertible<py::none, ...>`` for
+  ``py::class_``-wrapped types.
+  `#3059 <https://github.com/pybind/pybind11/pull/3059>`_
+
+* Allow function pointer extraction from overloaded functions.
+  `#2944 <https://github.com/pybind/pybind11/pull/2944>`_
+
+* NumPy: added ``.char_()`` to type which gives the NumPy public ``char``
+  result, which also distinguishes types by bit length (unlike ``.kind()``).
+  `#2864 <https://github.com/pybind/pybind11/pull/2864>`_
+
+* Add ``pybind11::bytearray`` to manipulate ``bytearray`` similar to ``bytes``.
+  `#2799 <https://github.com/pybind/pybind11/pull/2799>`_
+
+* ``pybind11/stl/filesystem.h`` registers a type caster that, on C++17/Python
+  3.6+, converts ``std::filesystem::path`` to ``pathlib.Path`` and any
+  ``os.PathLike`` to ``std::filesystem::path``.
+  `#2730 <https://github.com/pybind/pybind11/pull/2730>`_
+
+* A ``PYBIND11_VERSION_HEX`` define was added, similar to ``PY_VERSION_HEX``.
+  `#3120 <https://github.com/pybind/pybind11/pull/3120>`_
+
+
+
+Changes:
+
+* ``py::str`` changed to exclusively hold ``PyUnicodeObject``. Previously
+  ``py::str`` could also hold ``bytes``, which is probably surprising, was
+  never documented, and can mask bugs (e.g. accidental use of ``py::str``
+  instead of ``py::bytes``).
+  `#2409 <https://github.com/pybind/pybind11/pull/2409>`_
+
+* Add a safety guard to ensure that the Python GIL is held when C++ calls back
+  into Python via ``object_api<>::operator()`` (e.g. ``py::function``
+  ``__call__``).  (This feature is available for Python 3.6+ only.)
+  `#2919 <https://github.com/pybind/pybind11/pull/2919>`_
+
+* Catch a missing ``self`` argument in calls to ``__init__()``.
+  `#2914 <https://github.com/pybind/pybind11/pull/2914>`_
+
+* Use ``std::string_view`` if available to avoid a copy when passing an object
+  to a ``std::ostream``.
+  `#3042 <https://github.com/pybind/pybind11/pull/3042>`_
+
+* An important warning about thread safety was added to the ``iostream.h``
+  documentation; attempts to make ``py::scoped_ostream_redirect`` thread safe
+  have been removed, as it was only partially effective.
+  `#2995 <https://github.com/pybind/pybind11/pull/2995>`_
+
+
+Fixes:
+
+* Performance: avoid unnecessary strlen calls.
+  `#3058 <https://github.com/pybind/pybind11/pull/3058>`_
+
+* Fix auto-generated documentation string when using ``const T`` in
+  ``pyarray_t``.
+  `#3020 <https://github.com/pybind/pybind11/pull/3020>`_
+
+* Unify error messages thrown by ``simple_collector``/``unpacking_collector``.
+  `#3013 <https://github.com/pybind/pybind11/pull/3013>`_
+
+* ``pybind11::builtin_exception`` is now explicitly exported, which means the
+  types included/defined in different modules are identical, and exceptions
+  raised in different modules can be caught correctly. The documentation was
+  updated to explain that custom exceptions that are used across module
+  boundaries need to be explicitly exported as well.
+  `#2999 <https://github.com/pybind/pybind11/pull/2999>`_
+
+* Fixed exception when printing UTF-8 to a ``scoped_ostream_redirect``.
+  `#2982 <https://github.com/pybind/pybind11/pull/2982>`_
+
+* Pickle support enhancement: ``setstate`` implementation will attempt to
+  ``setattr`` ``__dict__`` only if the unpickled ``dict`` object is not empty,
+  to not force use of ``py::dynamic_attr()`` unnecessarily.
+  `#2972 <https://github.com/pybind/pybind11/pull/2972>`_
+
+* Allow negative timedelta values to roundtrip.
+  `#2870 <https://github.com/pybind/pybind11/pull/2870>`_
+
+* Fix unchecked errors could potentially swallow signals/other exceptions.
+  `#2863 <https://github.com/pybind/pybind11/pull/2863>`_
+
+* Add null pointer check with ``std::localtime``.
+  `#2846 <https://github.com/pybind/pybind11/pull/2846>`_
+
+* Fix the ``weakref`` constructor from ``py::object`` to create a new
+  ``weakref`` on conversion.
+  `#2832 <https://github.com/pybind/pybind11/pull/2832>`_
+
+* Avoid relying on exceptions in C++17 when getting a ``shared_ptr`` holder
+  from a ``shared_from_this`` class.
+  `#2819 <https://github.com/pybind/pybind11/pull/2819>`_
+
+* Allow the codec's exception to be raised instead of :code:`RuntimeError` when
+  casting from :code:`py::str` to :code:`std::string`.
+  `#2903 <https://github.com/pybind/pybind11/pull/2903>`_
+
+
+Build system improvements:
+
+* In ``setup_helpers.py``, test for platforms that have some multiprocessing
+  features but lack semaphores, which ``ParallelCompile`` requires.
+  `#3043 <https://github.com/pybind/pybind11/pull/3043>`_
+
+* Fix ``pybind11_INCLUDE_DIR`` in case ``CMAKE_INSTALL_INCLUDEDIR`` is
+  absolute.
+  `#3005 <https://github.com/pybind/pybind11/pull/3005>`_
+
+* Fix bug not respecting ``WITH_SOABI`` or ``WITHOUT_SOABI`` to CMake.
+  `#2938 <https://github.com/pybind/pybind11/pull/2938>`_
+
+* Fix the default ``Pybind11Extension`` compilation flags with a Mingw64 python.
+  `#2921 <https://github.com/pybind/pybind11/pull/2921>`_
+
+* Clang on Windows: do not pass ``/MP`` (ignored flag).
+  `#2824 <https://github.com/pybind/pybind11/pull/2824>`_
+
+* ``pybind11.setup_helpers.intree_extensions`` can be used to generate
+  ``Pybind11Extension`` instances from cpp files placed in the Python package
+  source tree.
+  `#2831 <https://github.com/pybind/pybind11/pull/2831>`_
+
+Backend and tidying up:
+
+* Enable clang-tidy performance, readability, and modernization checks
+  throughout the codebase to enforce best coding practices.
+  `#3046 <https://github.com/pybind/pybind11/pull/3046>`_,
+  `#3049 <https://github.com/pybind/pybind11/pull/3049>`_,
+  `#3051 <https://github.com/pybind/pybind11/pull/3051>`_,
+  `#3052 <https://github.com/pybind/pybind11/pull/3052>`_,
+  `#3080 <https://github.com/pybind/pybind11/pull/3080>`_, and
+  `#3094 <https://github.com/pybind/pybind11/pull/3094>`_
+
+
+* Checks for common misspellings were added to the pre-commit hooks.
+  `#3076 <https://github.com/pybind/pybind11/pull/3076>`_
+
+* Changed ``Werror`` to stricter ``Werror-all`` for Intel compiler and fixed
+  minor issues.
+  `#2948 <https://github.com/pybind/pybind11/pull/2948>`_
+
+* Fixed compilation with GCC < 5 when the user defines ``_GLIBCXX_USE_CXX11_ABI``.
+  `#2956 <https://github.com/pybind/pybind11/pull/2956>`_
+
+* Added nox support for easier local testing and linting of contributions.
+  `#3101 <https://github.com/pybind/pybind11/pull/3101>`_ and
+  `#3121 <https://github.com/pybind/pybind11/pull/3121>`_
+
+* Avoid RTD style issue with docutils 0.17+.
+  `#3119 <https://github.com/pybind/pybind11/pull/3119>`_
+
+* Support pipx run, such as ``pipx run pybind11 --include`` for a quick compile.
+  `#3117 <https://github.com/pybind/pybind11/pull/3117>`_
+
+
+
+v2.6.2 (Jan 26, 2021)
+---------------------
+
+Minor missing functionality added:
+
+* enum: add missing Enum.value property.
+  `#2739 <https://github.com/pybind/pybind11/pull/2739>`_
+
+* Allow thread termination to be avoided during shutdown for CPython 3.7+ via
+  ``.disarm`` for ``gil_scoped_acquire``/``gil_scoped_release``.
+  `#2657 <https://github.com/pybind/pybind11/pull/2657>`_
+
+Fixed or improved behavior in a few special cases:
+
+* Fix bug where the constructor of ``object`` subclasses would not throw on
+  being passed a Python object of the wrong type.
+  `#2701 <https://github.com/pybind/pybind11/pull/2701>`_
+
+* The ``type_caster`` for integers does not convert Python objects with
+  ``__int__`` anymore with ``noconvert`` or during the first round of trying
+  overloads.
+  `#2698 <https://github.com/pybind/pybind11/pull/2698>`_
+
+* When casting to a C++ integer, ``__index__`` is always called and not
+  considered as conversion, consistent with Python 3.8+.
+  `#2801 <https://github.com/pybind/pybind11/pull/2801>`_
+
+Build improvements:
+
+* Setup helpers: ``extra_compile_args`` and ``extra_link_args`` automatically set by
+  Pybind11Extension are now prepended, which allows them to be overridden
+  by user-set ``extra_compile_args`` and ``extra_link_args``.
+  `#2808 <https://github.com/pybind/pybind11/pull/2808>`_
+
+* Setup helpers: Don't trigger unused parameter warning.
+  `#2735 <https://github.com/pybind/pybind11/pull/2735>`_
+
+* CMake: Support running with ``--warn-uninitialized`` active.
+  `#2806 <https://github.com/pybind/pybind11/pull/2806>`_
+
+* CMake: Avoid error if included from two submodule directories.
+  `#2804 <https://github.com/pybind/pybind11/pull/2804>`_
+
+* CMake: Fix ``STATIC`` / ``SHARED`` being ignored in FindPython mode.
+  `#2796 <https://github.com/pybind/pybind11/pull/2796>`_
+
+* CMake: Respect the setting for ``CMAKE_CXX_VISIBILITY_PRESET`` if defined.
+  `#2793 <https://github.com/pybind/pybind11/pull/2793>`_
+
+* CMake: Fix issue with FindPython2/FindPython3 not working with ``pybind11::embed``.
+  `#2662 <https://github.com/pybind/pybind11/pull/2662>`_
+
+* CMake: mixing local and installed pybind11's would prioritize the installed
+  one over the local one (regression in 2.6.0).
+  `#2716 <https://github.com/pybind/pybind11/pull/2716>`_
+
+
+Bug fixes:
+
+* Fixed segfault in multithreaded environments when using
+  ``scoped_ostream_redirect``.
+  `#2675 <https://github.com/pybind/pybind11/pull/2675>`_
+
+* Leave docstring unset when all docstring-related options are disabled, rather
+  than set an empty string.
+  `#2745 <https://github.com/pybind/pybind11/pull/2745>`_
+
+* The module key in builtins that pybind11 uses to store its internals changed
+  from std::string to a python str type (more natural on Python 2, no change on
+  Python 3).
+  `#2814 <https://github.com/pybind/pybind11/pull/2814>`_
+
+* Fixed assertion error related to unhandled (later overwritten) exception in
+  CPython 3.8 and 3.9 debug builds.
+  `#2685 <https://github.com/pybind/pybind11/pull/2685>`_
+
+* Fix ``py::gil_scoped_acquire`` assert with CPython 3.9 debug build.
+  `#2683 <https://github.com/pybind/pybind11/pull/2683>`_
+
+* Fix issue with a test failing on pytest 6.2.
+  `#2741 <https://github.com/pybind/pybind11/pull/2741>`_
+
+Warning fixes:
+
+* Fix warning modifying constructor parameter 'flag' that shadows a field of
+  'set_flag' ``[-Wshadow-field-in-constructor-modified]``.
+  `#2780 <https://github.com/pybind/pybind11/pull/2780>`_
+
+* Suppressed some deprecation warnings about old-style
+  ``__init__``/``__setstate__`` in the tests.
+  `#2759 <https://github.com/pybind/pybind11/pull/2759>`_
+
+Valgrind work:
+
+* Fix invalid access when calling a pybind11 ``__init__`` on a non-pybind11
+  class instance.
+  `#2755 <https://github.com/pybind/pybind11/pull/2755>`_
+
+* Fixed various minor memory leaks in pybind11's test suite.
+  `#2758 <https://github.com/pybind/pybind11/pull/2758>`_
+
+* Resolved memory leak in cpp_function initialization when exceptions occurred.
+  `#2756 <https://github.com/pybind/pybind11/pull/2756>`_
+
+* Added a Valgrind build, checking for leaks and memory-related UB, to CI.
+  `#2746 <https://github.com/pybind/pybind11/pull/2746>`_
+
+Compiler support:
+
+* Intel compiler was not activating C++14 support due to a broken define.
+  `#2679 <https://github.com/pybind/pybind11/pull/2679>`_
+
+* Support ICC and NVIDIA HPC SDK in C++17 mode.
+  `#2729 <https://github.com/pybind/pybind11/pull/2729>`_
+
+* Support Intel OneAPI compiler (ICC 20.2) and add to CI.
+  `#2573 <https://github.com/pybind/pybind11/pull/2573>`_
+
+
+
+v2.6.1 (Nov 11, 2020)
+---------------------
+
+* ``py::exec``, ``py::eval``, and ``py::eval_file`` now add the builtins module
+  as ``"__builtins__"`` to their ``globals`` argument, better matching ``exec``
+  and ``eval`` in pure Python.
+  `#2616 <https://github.com/pybind/pybind11/pull/2616>`_
+
+* ``setup_helpers`` will no longer set a minimum macOS version higher than the
+  current version.
+  `#2622 <https://github.com/pybind/pybind11/pull/2622>`_
+
+* Allow deleting static properties.
+  `#2629 <https://github.com/pybind/pybind11/pull/2629>`_
+
+* Seal a leak in ``def_buffer``, cleaning up the ``capture`` object after the
+  ``class_`` object goes out of scope.
+  `#2634 <https://github.com/pybind/pybind11/pull/2634>`_
+
+* ``pybind11_INCLUDE_DIRS`` was incorrect, potentially causing a regression if
+  it was expected to include ``PYTHON_INCLUDE_DIRS`` (please use targets
+  instead).
+  `#2636 <https://github.com/pybind/pybind11/pull/2636>`_
+
+* Added parameter names to the ``py::enum_`` constructor and methods, avoiding
+  ``arg0`` in the generated docstrings.
+  `#2637 <https://github.com/pybind/pybind11/pull/2637>`_
+
+* Added ``needs_recompile`` optional function to the ``ParallelCompiler``
+  helper, to allow a recompile to be skipped based on a user-defined function.
+  `#2643 <https://github.com/pybind/pybind11/pull/2643>`_
+
+
+v2.6.0 (Oct 21, 2020)
+---------------------
+
+See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
+
+New features:
+
+* Keyword-only arguments supported in Python 2 or 3 with ``py::kw_only()``.
+  `#2100 <https://github.com/pybind/pybind11/pull/2100>`_
+
+* Positional-only arguments supported in Python 2 or 3 with ``py::pos_only()``.
+  `#2459 <https://github.com/pybind/pybind11/pull/2459>`_
+
+* ``py::is_final()`` class modifier to block subclassing (CPython only).
+  `#2151 <https://github.com/pybind/pybind11/pull/2151>`_
+
+* Added ``py::prepend()``, allowing a function to be placed at the beginning of
+  the overload chain.
+  `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
+
+* Access to the type object now provided with ``py::type::of<T>()`` and
+  ``py::type::of(h)``.
+  `#2364 <https://github.com/pybind/pybind11/pull/2364>`_
+
+* Perfect forwarding support for methods.
+  `#2048 <https://github.com/pybind/pybind11/pull/2048>`_
+
+* Added ``py::error_already_set::discard_as_unraisable()``.
+  `#2372 <https://github.com/pybind/pybind11/pull/2372>`_
+
+* ``py::hash`` is now public.
+  `#2217 <https://github.com/pybind/pybind11/pull/2217>`_
+
+* ``py::class_<union_type>`` is now supported. Note that writing to one data
+  member of the union and reading another (type punning) is UB in C++. Thus
+  pybind11-bound enums should never be used for such conversions.
+  `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
+
+* Classes now check local scope when registering members, allowing a subclass
+  to have a member with the same name as a parent (such as an enum).
+  `#2335 <https://github.com/pybind/pybind11/pull/2335>`_
+
+Code correctness features:
+
+* Error now thrown when ``__init__`` is forgotten on subclasses.
+  `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
+
+* Throw error if conversion to a pybind11 type if the Python object isn't a
+  valid instance of that type, such as ``py::bytes(o)`` when ``py::object o``
+  isn't a bytes instance.
+  `#2349 <https://github.com/pybind/pybind11/pull/2349>`_
+
+* Throw if conversion to ``str`` fails.
+  `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
+
+
+API changes:
+
+* ``py::module`` was renamed ``py::module_`` to avoid issues with C++20 when
+  used unqualified, but an alias ``py::module`` is provided for backward
+  compatibility.
+  `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
+
+* Public constructors for ``py::module_`` have been deprecated; please use
+  ``pybind11::module_::create_extension_module`` if you were using the public
+  constructor (fairly rare after ``PYBIND11_MODULE`` was introduced).
+  `#2552 <https://github.com/pybind/pybind11/pull/2552>`_
+
+* ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
+  correctly-named ``PYBIND11_OVERRIDE*`` and ``get_override``, fixing
+  inconsistencies in the presence of a closing ``;`` in these macros.
+  ``get_type_overload`` is deprecated.
+  `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
+
+Packaging / building improvements:
+
+* The Python package was reworked to be more powerful and useful.
+  `#2433 <https://github.com/pybind/pybind11/pull/2433>`_
+
+  * :ref:`build-setuptools` is easier thanks to a new
+    ``pybind11.setup_helpers`` module, which provides utilities to use
+    setuptools with pybind11. It can be used via PEP 518, ``setup_requires``,
+    or by directly importing or copying ``setup_helpers.py`` into your project.
+
+  * CMake configuration files are now included in the Python package. Use
+    ``pybind11.get_cmake_dir()`` or ``python -m pybind11 --cmakedir`` to get
+    the directory with the CMake configuration files, or include the
+    site-packages location in your ``CMAKE_MODULE_PATH``. Or you can use the
+    new ``pybind11[global]`` extra when you install ``pybind11``, which
+    installs the CMake files and headers into your base environment in the
+    standard location.
+
+  * ``pybind11-config`` is another way to write ``python -m pybind11`` if you
+    have your PATH set up.
+
+  * Added external typing support to the helper module, code from
+    ``import pybind11`` can now be type checked.
+    `#2588 <https://github.com/pybind/pybind11/pull/2588>`_
+
+* Minimum CMake required increased to 3.4.
+  `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
+  `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
+
+  * Full integration with CMake's C++ standard system and compile features
+    replaces ``PYBIND11_CPP_STANDARD``.
+
+  * Generated config file is now portable to different Python/compiler/CMake
+    versions.
+
+  * Virtual environments prioritized if ``PYTHON_EXECUTABLE`` is not set
+    (``venv``, ``virtualenv``, and ``conda``) (similar to the new FindPython
+    mode).
+
+  * Other CMake features now natively supported, like
+    ``CMAKE_INTERPROCEDURAL_OPTIMIZATION``, ``set(CMAKE_CXX_VISIBILITY_PRESET
+    hidden)``.
+
+  * ``CUDA`` as a language is now supported.
+
+  * Helper functions ``pybind11_strip``, ``pybind11_extension``,
+    ``pybind11_find_import`` added, see :doc:`cmake/index`.
+
+  * Optional :ref:`find-python-mode` and :ref:`nopython-mode` with CMake.
+    `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
+
+* Uninstall target added.
+  `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
+  `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
+
+* ``pybind11_add_module()`` now accepts an optional ``OPT_SIZE`` flag that
+  switches the binding target to size-based optimization if the global build
+  type can not always be fixed to ``MinSizeRel`` (except in debug mode, where
+  optimizations remain disabled).  ``MinSizeRel`` or this flag reduces binary
+  size quite substantially (~25% on some platforms).
+  `#2463 <https://github.com/pybind/pybind11/pull/2463>`_
+
+Smaller or developer focused features and fixes:
+
+* Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_. There are no longer
+  submodules in the main repo.
+
+* ``py::memoryview`` segfault fix and update, with new
+  ``py::memoryview::from_memory`` in Python 3, and documentation.
+  `#2223 <https://github.com/pybind/pybind11/pull/2223>`_
+
+* Fix for ``buffer_info`` on Python 2.
+  `#2503 <https://github.com/pybind/pybind11/pull/2503>`_
+
+* If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
+  ``None``.
+  `#2291 <https://github.com/pybind/pybind11/pull/2291>`_
+
+* ``py::ellipsis`` now also works on Python 2.
+  `#2360 <https://github.com/pybind/pybind11/pull/2360>`_
+
+* Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
+  `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
+
+* Small fixes in NumPy support. ``py::array`` now uses ``py::ssize_t`` as first
+  argument type.
+  `#2293 <https://github.com/pybind/pybind11/pull/2293>`_
+
+* Added missing signature for ``py::array``.
+  `#2363 <https://github.com/pybind/pybind11/pull/2363>`_
+
+* ``unchecked_mutable_reference`` has access to operator ``()`` and ``[]`` when
+  const.
+  `#2514 <https://github.com/pybind/pybind11/pull/2514>`_
+
+* ``py::vectorize`` is now supported on functions that return void.
+  `#1969 <https://github.com/pybind/pybind11/pull/1969>`_
+
+* ``py::capsule`` supports ``get_pointer`` and ``set_pointer``.
+  `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
+
+* Fix crash when different instances share the same pointer of the same type.
+  `#2252 <https://github.com/pybind/pybind11/pull/2252>`_
+
+* Fix for ``py::len`` not clearing Python's error state when it fails and throws.
+  `#2575 <https://github.com/pybind/pybind11/pull/2575>`_
+
+* Bugfixes related to more extensive testing, new GitHub Actions CI.
+  `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
+
+* Bug in timezone issue in Eastern hemisphere midnight fixed.
+  `#2438 <https://github.com/pybind/pybind11/pull/2438>`_
+
+* ``std::chrono::time_point`` now works when the resolution is not the same as
+  the system.
+  `#2481 <https://github.com/pybind/pybind11/pull/2481>`_
+
+* Bug fixed where ``py::array_t`` could accept arrays that did not match the
+  requested ordering.
+  `#2484 <https://github.com/pybind/pybind11/pull/2484>`_
+
+* Avoid a segfault on some compilers when types are removed in Python.
+  `#2564 <https://github.com/pybind/pybind11/pull/2564>`_
+
+* ``py::arg::none()`` is now also respected when passing keyword arguments.
+  `#2611 <https://github.com/pybind/pybind11/pull/2611>`_
+
+* PyPy fixes, PyPy 7.3.x now supported, including PyPy3. (Known issue with
+  PyPy2 and Windows `#2596 <https://github.com/pybind/pybind11/issues/2596>`_).
+  `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
+
+* CPython 3.9.0 workaround for undefined behavior (macOS segfault).
+  `#2576 <https://github.com/pybind/pybind11/pull/2576>`_
+
+* CPython 3.9 warning fixes.
+  `#2253 <https://github.com/pybind/pybind11/pull/2253>`_
+
+* Improved C++20 support, now tested in CI.
+  `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
+  `#2599 <https://github.com/pybind/pybind11/pull/2599>`_
+
+* Improved but still incomplete debug Python interpreter support.
+  `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
+
+* NVCC (CUDA 11) now supported and tested in CI.
+  `#2461 <https://github.com/pybind/pybind11/pull/2461>`_
+
+* NVIDIA PGI compilers now supported and tested in CI.
+  `#2475 <https://github.com/pybind/pybind11/pull/2475>`_
+
+* At least Intel 18 now explicitly required when compiling with Intel.
+  `#2577 <https://github.com/pybind/pybind11/pull/2577>`_
+
+* Extensive style checking in CI, with `pre-commit`_ support. Code
+  modernization, checked by clang-tidy.
+
+* Expanded docs, including new main page, new installing section, and CMake
+  helpers page, along with over a dozen new sections on existing pages.
+
+* In GitHub, new docs for contributing and new issue templates.
+
+.. _pre-commit: https://pre-commit.com
+
+.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
+
+v2.5.0 (Mar 31, 2020)
 -----------------------------------------------------
 
+* Use C++17 fold expressions in type casters, if available. This can
+  improve performance during overload resolution when functions have
+  multiple arguments.
+  `#2043 <https://github.com/pybind/pybind11/pull/2043>`_.
+
+* Changed include directory resolution in ``pybind11/__init__.py``
+  and installation in ``setup.py``. This fixes a number of open issues
+  where pybind11 headers could not be found in certain environments.
+  `#1995 <https://github.com/pybind/pybind11/pull/1995>`_.
+
+* C++20 ``char8_t`` and ``u8string`` support. `#2026
+  <https://github.com/pybind/pybind11/pull/2026>`_.
+
+* CMake: search for Python 3.9. `bb9c91
+  <https://github.com/pybind/pybind11/commit/bb9c91>`_.
+
+* Fixes for MSYS-based build environments.
+  `#2087 <https://github.com/pybind/pybind11/pull/2087>`_,
+  `#2053 <https://github.com/pybind/pybind11/pull/2053>`_.
+
+* STL bindings for ``std::vector<...>::clear``. `#2074
+  <https://github.com/pybind/pybind11/pull/2074>`_.
+
+* Read-only flag for ``py::buffer``. `#1466
+  <https://github.com/pybind/pybind11/pull/1466>`_.
+
+* Exception handling during module initialization.
+  `bf2b031 <https://github.com/pybind/pybind11/commit/bf2b031>`_.
+
+* Support linking against a CPython debug build.
+  `#2025 <https://github.com/pybind/pybind11/pull/2025>`_.
+
+* Fixed issues involving the availability and use of aligned ``new`` and
+  ``delete``. `#1988 <https://github.com/pybind/pybind11/pull/1988>`_,
+  `759221 <https://github.com/pybind/pybind11/commit/759221>`_.
+
+* Fixed a resource leak upon interpreter shutdown.
+  `#2020 <https://github.com/pybind/pybind11/pull/2020>`_.
+
+* Fixed error handling in the boolean caster.
+  `#1976 <https://github.com/pybind/pybind11/pull/1976>`_.
+
+v2.4.3 (Oct 15, 2019)
+-----------------------------------------------------
+
+* Adapt pybind11 to a C API convention change in Python 3.8. `#1950
+  <https://github.com/pybind/pybind11/pull/1950>`_.
+
+v2.4.2 (Sep 21, 2019)
+-----------------------------------------------------
+
+* Replaced usage of a C++14 only construct. `#1929
+  <https://github.com/pybind/pybind11/pull/1929>`_.
+
+* Made an ifdef future-proof for Python >= 4. `f3109d
+  <https://github.com/pybind/pybind11/commit/f3109d>`_.
+
+v2.4.1 (Sep 20, 2019)
+-----------------------------------------------------
+
+* Fixed a problem involving implicit conversion from enumerations to integers
+  on Python 3.8. `#1780 <https://github.com/pybind/pybind11/pull/1780>`_.
+
+v2.4.0 (Sep 19, 2019)
+-----------------------------------------------------
+
+* Try harder to keep pybind11-internal data structures separate when there
+  are potential ABI incompatibilities. Fixes crashes that occurred when loading
+  multiple pybind11 extensions that were e.g. compiled by GCC (libstdc++)
+  and Clang (libc++).
+  `#1588 <https://github.com/pybind/pybind11/pull/1588>`_ and
+  `c9f5a <https://github.com/pybind/pybind11/commit/c9f5a>`_.
+
+* Added support for ``__await__``, ``__aiter__``, and ``__anext__`` protocols.
+  `#1842 <https://github.com/pybind/pybind11/pull/1842>`_.
+
+* ``pybind11_add_module()``: don't strip symbols when compiling in
+  ``RelWithDebInfo`` mode. `#1980
+  <https://github.com/pybind/pybind11/pull/1980>`_.
+
+* ``enum_``: Reproduce Python behavior when comparing against invalid values
+  (e.g. ``None``, strings, etc.). Add back support for ``__invert__()``.
+  `#1912 <https://github.com/pybind/pybind11/pull/1912>`_,
+  `#1907 <https://github.com/pybind/pybind11/pull/1907>`_.
+
+* List insertion operation for ``py::list``.
+  Added ``.empty()`` to all collection types.
+  Added ``py::set::contains()`` and ``py::dict::contains()``.
+  `#1887 <https://github.com/pybind/pybind11/pull/1887>`_,
+  `#1884 <https://github.com/pybind/pybind11/pull/1884>`_,
+  `#1888 <https://github.com/pybind/pybind11/pull/1888>`_.
+
 * ``py::details::overload_cast_impl`` is available in C++11 mode, can be used
-  like ``overload_cast`` with an additional set of parantheses.
-  `1581 <https://github.com/pybind/pybind11/pull/1581>`_.
+  like ``overload_cast`` with an additional set of parentheses.
+  `#1581 <https://github.com/pybind/pybind11/pull/1581>`_.
+
+* Fixed ``get_include()`` on Conda.
+  `#1877 <https://github.com/pybind/pybind11/pull/1877>`_.
+
+* ``stl_bind.h``: negative indexing support.
+  `#1882 <https://github.com/pybind/pybind11/pull/1882>`_.
+
+* Minor CMake fix to add MinGW compatibility.
+  `#1851 <https://github.com/pybind/pybind11/pull/1851>`_.
+
+* GIL-related fixes.
+  `#1836 <https://github.com/pybind/pybind11/pull/1836>`_,
+  `8b90b <https://github.com/pybind/pybind11/commit/8b90b>`_.
+
+* Other very minor/subtle fixes and improvements.
+  `#1329 <https://github.com/pybind/pybind11/pull/1329>`_,
+  `#1910 <https://github.com/pybind/pybind11/pull/1910>`_,
+  `#1863 <https://github.com/pybind/pybind11/pull/1863>`_,
+  `#1847 <https://github.com/pybind/pybind11/pull/1847>`_,
+  `#1890 <https://github.com/pybind/pybind11/pull/1890>`_,
+  `#1860 <https://github.com/pybind/pybind11/pull/1860>`_,
+  `#1848 <https://github.com/pybind/pybind11/pull/1848>`_,
+  `#1821 <https://github.com/pybind/pybind11/pull/1821>`_,
+  `#1837 <https://github.com/pybind/pybind11/pull/1837>`_,
+  `#1833 <https://github.com/pybind/pybind11/pull/1833>`_,
+  `#1748 <https://github.com/pybind/pybind11/pull/1748>`_,
+  `#1852 <https://github.com/pybind/pybind11/pull/1852>`_.
 
 v2.3.0 (June 11, 2019)
 -----------------------------------------------------
@@ -243,7 +1291,7 @@ v2.2.2 (February 7, 2018)
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
 
-* Added ``py::module::reload()`` member function for reloading a module.
+* Added ``py::module_::reload()`` member function for reloading a module.
   `#1040 <https://github.com/pybind/pybind11/pull/1040>`_.
 
 * Fixed a reference leak in the number converter.
@@ -305,6 +1353,7 @@ v2.2.0 (August 31, 2017)
   .. code-block:: python
 
       from cpp_module import CppBase1, CppBase2
+
 
       class PyDerived(CppBase1, CppBase2):
           def __init__(self):
@@ -418,7 +1467,7 @@ v2.2.0 (August 31, 2017)
   in reference cycles.
   `#856 <https://github.com/pybind/pybind11/pull/856>`_.
 
-* Numpy and buffer protocol related improvements:
+* NumPy and buffer protocol related improvements:
 
   1. Support for negative strides in Python buffer objects/numpy arrays. This
      required changing integers from unsigned to signed for the related C++ APIs.
@@ -518,7 +1567,7 @@ v2.2.0 (August 31, 2017)
 * Intel C++ compiler compatibility fixes.
   `#937 <https://github.com/pybind/pybind11/pull/937>`_.
 
-* Fixed implicit conversion of `py::enum_` to integer types on Python 2.7.
+* Fixed implicit conversion of ``py::enum_`` to integer types on Python 2.7.
   `#821 <https://github.com/pybind/pybind11/pull/821>`_.
 
 * Added ``py::hash`` to fetch the hash value of Python objects, and
@@ -1149,7 +2198,7 @@ Happy Christmas!
 * Improved support for ``std::shared_ptr<>`` conversions
 * Initial support for ``std::set<>`` conversions
 * Fixed type resolution issue for types defined in a separate plugin module
-* Cmake build system improvements
+* CMake build system improvements
 * Factored out generic functionality to non-templated code (smaller code size)
 * Added a code size / compile time benchmark vs Boost.Python
 * Added an appveyor CI script

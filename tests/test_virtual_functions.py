@@ -1,32 +1,34 @@
 import pytest
 
-from pybind11_tests import virtual_functions as m
-from pybind11_tests import ConstructorStats
+import env  # noqa: F401
+
+m = pytest.importorskip("pybind11_tests.virtual_functions")
+from pybind11_tests import ConstructorStats  # noqa: E402
 
 
 def test_override(capture, msg):
     class ExtendedExampleVirt(m.ExampleVirt):
         def __init__(self, state):
-            super(ExtendedExampleVirt, self).__init__(state + 1)
+            super().__init__(state + 1)
             self.data = "Hello world"
 
         def run(self, value):
-            print('ExtendedExampleVirt::run(%i), calling parent..' % value)
-            return super(ExtendedExampleVirt, self).run(value + 1)
+            print(f"ExtendedExampleVirt::run({value}), calling parent..")
+            return super().run(value + 1)
 
         def run_bool(self):
-            print('ExtendedExampleVirt::run_bool()')
+            print("ExtendedExampleVirt::run_bool()")
             return False
 
         def get_string1(self):
             return "override1"
 
         def pure_virtual(self):
-            print('ExtendedExampleVirt::pure_virtual(): %s' % self.data)
+            print(f"ExtendedExampleVirt::pure_virtual(): {self.data}")
 
     class ExtendedExampleVirt2(ExtendedExampleVirt):
         def __init__(self, state):
-            super(ExtendedExampleVirt2, self).__init__(state + 1)
+            super().__init__(state + 1)
 
         def get_string2(self):
             return "override2"
@@ -34,21 +36,30 @@ def test_override(capture, msg):
     ex12 = m.ExampleVirt(10)
     with capture:
         assert m.runExampleVirt(ex12, 20) == 30
-    assert capture == """
+    assert (
+        capture
+        == """
         Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
-    """  # noqa: E501 line too long
+    """
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.runExampleVirtVirtual(ex12)
-    assert msg(excinfo.value) == 'Tried to call pure virtual function "ExampleVirt::pure_virtual"'
+    assert (
+        msg(excinfo.value)
+        == 'Tried to call pure virtual function "ExampleVirt::pure_virtual"'
+    )
 
     ex12p = ExtendedExampleVirt(10)
     with capture:
         assert m.runExampleVirt(ex12p, 20) == 32
-    assert capture == """
+    assert (
+        capture
+        == """
         ExtendedExampleVirt::run(20), calling parent..
         Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
-    """  # noqa: E501 line too long
+    """
+    )
     with capture:
         assert m.runExampleVirtBool(ex12p) is False
     assert capture == "ExtendedExampleVirt::run_bool()"
@@ -59,16 +70,19 @@ def test_override(capture, msg):
     ex12p2 = ExtendedExampleVirt2(15)
     with capture:
         assert m.runExampleVirt(ex12p2, 50) == 68
-    assert capture == """
+    assert (
+        capture
+        == """
         ExtendedExampleVirt::run(50), calling parent..
         Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
-    """  # noqa: E501 line too long
+    """
+    )
 
     cstats = ConstructorStats.get(m.ExampleVirt)
     assert cstats.alive() == 3
     del ex12, ex12p, ex12p2
     assert cstats.alive() == 0
-    assert cstats.values() == ['10', '11', '17']
+    assert cstats.values() == ["10", "11", "17"]
     assert cstats.copy_constructions == 0
     assert cstats.move_constructions >= 0
 
@@ -79,9 +93,10 @@ def test_alias_delay_initialization1(capture):
     If we just create and use an A instance directly, the trampoline initialization is
     bypassed and we only initialize an A() instead (for performance reasons).
     """
+
     class B(m.A):
         def __init__(self):
-            super(B, self).__init__()
+            super().__init__()
 
         def f(self):
             print("In python f()")
@@ -100,12 +115,15 @@ def test_alias_delay_initialization1(capture):
         m.call_f(b)
         del b
         pytest.gc_collect()
-    assert capture == """
+    assert (
+        capture
+        == """
         PyA.PyA()
         PyA.f()
         In python f()
         PyA.~PyA()
     """
+    )
 
 
 def test_alias_delay_initialization2(capture):
@@ -115,9 +133,10 @@ def test_alias_delay_initialization2(capture):
     performance penalty, it also allows us to do more things with the trampoline
     class such as defining local variables and performing construction/destruction.
     """
+
     class B2(m.A2):
         def __init__(self):
-            super(B2, self).__init__()
+            super().__init__()
 
         def f(self):
             print("In python B2.f()")
@@ -132,7 +151,9 @@ def test_alias_delay_initialization2(capture):
         m.call_f(a3)
         del a3
         pytest.gc_collect()
-    assert capture == """
+    assert (
+        capture
+        == """
         PyA2.PyA2()
         PyA2.f()
         A2.f()
@@ -142,6 +163,7 @@ def test_alias_delay_initialization2(capture):
         A2.f()
         PyA2.~PyA2()
     """
+    )
 
     # Python subclass version
     with capture:
@@ -149,18 +171,23 @@ def test_alias_delay_initialization2(capture):
         m.call_f(b2)
         del b2
         pytest.gc_collect()
-    assert capture == """
+    assert (
+        capture
+        == """
         PyA2.PyA2()
         PyA2.f()
         In python B2.f()
         PyA2.~PyA2()
     """
+    )
 
 
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
-@pytest.unsupported_on_pypy
-@pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
+@pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif(
+    not hasattr(m, "NCVirt"), reason="NCVirt does not work on Intel/PGI/NVCC compilers"
+)
 def test_move_support():
     class NCVirtExt(m.NCVirt):
         def get_noncopyable(self, a, b):
@@ -199,8 +226,8 @@ def test_move_support():
     del ncv1, ncv2
     assert nc_stats.alive() == 0
     assert mv_stats.alive() == 0
-    assert nc_stats.values() == ['4', '9', '9', '9']
-    assert mv_stats.values() == ['4', '5', '7', '7']
+    assert nc_stats.values() == ["4", "9", "9", "9"]
+    assert mv_stats.values() == ["4", "5", "7", "7"]
     assert nc_stats.copy_constructions == 0
     assert mv_stats.copy_constructions == 1
     assert nc_stats.move_constructions >= 0
@@ -209,6 +236,7 @@ def test_move_support():
 
 def test_dispatch_issue(msg):
     """#159: virtual function dispatch has problems with similar-named functions"""
+
     class PyClass1(m.DispatchIssue):
         def dispatch(self):
             return "Yay.."
@@ -216,14 +244,49 @@ def test_dispatch_issue(msg):
     class PyClass2(m.DispatchIssue):
         def dispatch(self):
             with pytest.raises(RuntimeError) as excinfo:
-                super(PyClass2, self).dispatch()
-            assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
+                super().dispatch()
+            assert (
+                msg(excinfo.value)
+                == 'Tried to call pure virtual function "Base::dispatch"'
+            )
 
-            p = PyClass1()
-            return m.dispatch_issue_go(p)
+            return m.dispatch_issue_go(PyClass1())
 
     b = PyClass2()
     assert m.dispatch_issue_go(b) == "Yay.."
+
+
+def test_recursive_dispatch_issue(msg):
+    """#3357: Recursive dispatch fails to find python function override"""
+
+    class Data(m.Data):
+        def __init__(self, value):
+            super().__init__()
+            self.value = value
+
+    class Adder(m.Adder):
+        def __call__(self, first, second, visitor):
+            # lambda is a workaround, which adds extra frame to the
+            # current CPython thread. Removing lambda reveals the bug
+            # [https://github.com/pybind/pybind11/issues/3357]
+            (lambda: visitor(Data(first.value + second.value)))()
+
+    class StoreResultVisitor:
+        def __init__(self):
+            self.result = None
+
+        def __call__(self, data):
+            self.result = data.value
+
+    store = StoreResultVisitor()
+
+    m.add2(Data(1), Data(2), Adder(), store)
+    assert store.result == 3
+
+    # without lambda in Adder class, this function fails with
+    # RuntimeError: Tried to call pure virtual function "AdderBase::__call__"
+    m.add3(Data(1), Data(2), Data(3), Adder(), store)
+    assert store.result == 6
 
 
 def test_override_ref():
@@ -333,7 +396,7 @@ def test_inherited_virtuals():
 
     class DT(m.D_Tpl):
         def say_something(self, times):
-            return "DT says:" + (' quack' * times)
+            return "DT says:" + (" quack" * times)
 
         def unlucky_number(self):
             return 1234
@@ -349,7 +412,7 @@ def test_inherited_virtuals():
 
     class DT2(DT):
         def say_something(self, times):
-            return "DT2: " + ('QUACK' * times)
+            return "DT2: " + ("QUACK" * times)
 
         def unlucky_number(self):
             return -3
@@ -375,3 +438,22 @@ def test_issue_1454():
     # Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.test_gil()
     m.test_gil_from_thread()
+
+
+def test_python_override():
+    def func():
+        class Test(m.test_override_cache_helper):
+            def func(self):
+                return 42
+
+        return Test()
+
+    def func2():
+        class Test(m.test_override_cache_helper):
+            pass
+
+        return Test()
+
+    for _ in range(1500):
+        assert m.test_override_cache(func()) == 42
+        assert m.test_override_cache(func2()) == 0
