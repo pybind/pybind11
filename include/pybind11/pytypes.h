@@ -363,8 +363,8 @@ T reinterpret_steal(handle h) {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-inline std::string error_string();
-inline std::string error_string(PyObject *, PyObject *, PyObject *);
+std::string error_string();
+std::string error_string(PyObject *, PyObject *, PyObject *);
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
