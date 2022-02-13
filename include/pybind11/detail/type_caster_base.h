@@ -482,8 +482,8 @@ PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyOb
         result += str(value).cast<std::string>();
     }
 
-    if (trace) {
 #if !defined(PYPY_VERSION)
+    if (trace) {
         auto *tb = (PyTracebackObject *) trace;
 
         // Get the deepest trace possible.
@@ -507,8 +507,8 @@ PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyOb
             frame = frame->f_back;
             Py_DECREF(f_code);
         }
-#endif
     }
+#endif
 
     return result;
 }
@@ -520,6 +520,7 @@ PYBIND11_NOINLINE std::string error_string() {
     }
     return error_string(scope.type, scope.value, scope.trace);
 }
+
 PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_info *type) {
     auto &instances = get_internals().registered_instances;
     auto range = instances.equal_range(ptr);
