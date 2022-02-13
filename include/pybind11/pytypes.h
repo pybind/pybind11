@@ -398,6 +398,7 @@ public:
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (...) {
+                PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
                 return "Unknown internal error occurred";
             }
         }
