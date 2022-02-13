@@ -141,6 +141,9 @@ TEST_SUBMODULE(constants_and_functions, m) {
         // This should always be enough to trigger the alternative branch
         // where `sizeof(capture) > sizeof(rec->data)`
         uint64_t capture[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+#if defined(__GNUC__) && __GNUC__ == 4 // CentOS7
+        py::detail::silence_unused_warnings(capture);
+#endif
         m.def(
             "should_raise", [capture](int) { return capture[9] + 33; }, py::kw_only(), py::arg());
     });
