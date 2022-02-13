@@ -381,7 +381,7 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error("") {
+    error_already_set() : std::runtime_error(""), m_lazy_what() {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (m_type) {
             PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
@@ -398,7 +398,6 @@ public:
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (...) {
-                PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
                 return "Unknown internal error occurred";
             }
         }
