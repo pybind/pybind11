@@ -503,8 +503,9 @@ PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyOb
             int lineno = PyFrame_GetLineNumber(frame);
             result += "  " + handle(f_code->co_filename).cast<std::string>() + "("
                       + std::to_string(lineno)
-                      + "): " + handle(frame->f_code->co_name).cast<std::string>() + "\n";
+                      + "): " + handle(f_code->co_name).cast<std::string>() + "\n";
             frame = frame->f_back;
+            Py_DECREF(f_code);
         }
 #endif
     }
