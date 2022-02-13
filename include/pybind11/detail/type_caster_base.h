@@ -475,7 +475,7 @@ PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyOb
         return "Unknown internal error occurred";
     }
 
-    std::string result = handle(type).attr("__name__").cast<std::string>();
+    auto result = handle(type).attr("__name__").cast<std::string>();
     result += ": ";
 
     if (value) {
