@@ -7,29 +7,32 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
-#include "constructor_stats.h"
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 
+#include "constructor_stats.h"
+#include "pybind11_tests.h"
+
 #if defined(_MSC_VER)
-#if _MSC_VER < 1910  // VS 2015's MSVC
-#  pragma warning(disable: 4127) // C4127: conditional expression is constant
-#endif
-#  pragma warning(disable: 4996) // C4996: std::unary_negation is deprecated
+#    if _MSC_VER < 1910                 // VS 2015's MSVC
+#        pragma warning(disable : 4127) // C4127: conditional expression is constant
+#    endif
+#    pragma warning(disable : 4996) // C4996: std::unary_negation is deprecated
 #endif
 
 #include <Eigen/Cholesky>
 
 using MatrixXdR = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
-
-
 // Sets/resets a testing reference matrix to have values of 10*r + c, where r and c are the
 // (1-based) row/column number.
-template <typename M> void reset_ref(M &x) {
-    for (int i = 0; i < x.rows(); i++) for (int j = 0; j < x.cols(); j++)
-        x(i, j) = 11 + 10*i + j;
+template <typename M>
+void reset_ref(M &x) {
+    for (int i = 0; i < x.rows(); i++) {
+        for (int j = 0; j < x.cols(); j++) {
+            x(i, j) = 11 + 10 * i + j;
+        }
+    }
 }
 
 // Returns a static, column-major matrix
@@ -61,11 +64,14 @@ double get_elem(const Eigen::Ref<const Eigen::MatrixXd> &m) { return m(2, 1); };
 
 // Returns a matrix with 10*r + 100*c added to each matrix element (to help test that the matrix
 // reference is referencing rows/columns correctly).
-template <typename MatrixArgType> Eigen::MatrixXd adjust_matrix(MatrixArgType m) {
+template <typename MatrixArgType>
+Eigen::MatrixXd adjust_matrix(MatrixArgType m) {
     Eigen::MatrixXd ret(m);
-    for (int c = 0; c < m.cols(); c++)
-        for (int r = 0; r < m.rows(); r++)
-            ret(r, c) += 10*r + 100*c;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
+    for (int c = 0; c < m.cols(); c++) {
+        for (int r = 0; r < m.rows(); r++) {
+            ret(r, c) += 10 * r + 100 * c; // NOLINT(clang-analyzer-core.uninitialized.Assign)
+        }
+    }
     return ret;
 }
 
@@ -92,8 +98,10 @@ TEST_SUBMODULE(eigen, m) {
 
     // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
-    m.def("double_row", [](const Eigen::RowVectorXf &x) -> Eigen::RowVectorXf { return 2.0f * x; });
-    m.def("double_complex", [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
+    m.def("double_row",
+          [](const Eigen::RowVectorXf &x) -> Eigen::RowVectorXf { return 2.0f * x; });
+    m.def("double_complex",
+          [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
     m.def("double_threec", [](py::EigenDRef<Eigen::Vector3f> x) { x *= 2; });
     m.def("double_threer", [](py::EigenDRef<Eigen::RowVector3f> x) { x *= 2; });
     m.def("double_mat_cm", [](const Eigen::MatrixXf &x) -> Eigen::MatrixXf { return 2.0f * x; });
@@ -103,19 +111,22 @@ TEST_SUBMODULE(eigen, m) {
     // Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
     m.def("cholesky1",
           [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
-    m.def("cholesky2", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
-    m.def("cholesky3", [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky2", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd {
+        return x.llt().matrixL();
+    });
+    m.def("cholesky3",
+          [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky4", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd {
         return x.llt().matrixL();
     });
 
     // test_eigen_ref_mutators
-    // Mutators: these add some value to the given element using Eigen, but Eigen should be mapping into
-    // the numpy array data and so the result should show up there.  There are three versions: one that
-    // works on a contiguous-row matrix (numpy's default), one for a contiguous-column matrix, and one
-    // for any matrix.
-    auto add_rm = [](Eigen::Ref<MatrixXdR> x, int r, int c, double v) { x(r,c) += v; };
-    auto add_cm = [](Eigen::Ref<Eigen::MatrixXd> x, int r, int c, double v) { x(r,c) += v; };
+    // Mutators: these add some value to the given element using Eigen, but Eigen should be mapping
+    // into the numpy array data and so the result should show up there.  There are three versions:
+    // one that works on a contiguous-row matrix (numpy's default), one for a contiguous-column
+    // matrix, and one for any matrix.
+    auto add_rm = [](Eigen::Ref<MatrixXdR> x, int r, int c, double v) { x(r, c) += v; };
+    auto add_cm = [](Eigen::Ref<Eigen::MatrixXd> x, int r, int c, double v) { x(r, c) += v; };
 
     // Mutators (Eigen maps into numpy variables):
     m.def("add_rm", add_rm); // Only takes row-contiguous
@@ -126,7 +137,8 @@ TEST_SUBMODULE(eigen, m) {
     m.def("add2", add_cm);
     m.def("add2", add_rm);
     // This one accepts a matrix of any stride:
-    m.def("add_any", [](py::EigenDRef<Eigen::MatrixXd> x, int r, int c, double v) { x(r,c) += v; });
+    m.def("add_any",
+          [](py::EigenDRef<Eigen::MatrixXd> x, int r, int c, double v) { x(r, c) += v; });
 
     // Return mutable references (numpy maps into eigen variables)
     m.def("get_cm_ref", []() { return Eigen::Ref<Eigen::MatrixXd>(get_cm()); });
@@ -138,45 +150,67 @@ TEST_SUBMODULE(eigen, m) {
     m.def("reset_refs", reset_refs); // Restores get_{cm,rm}_ref to original values
 
     // Increments and returns ref to (same) matrix
-    m.def("incr_matrix", [](Eigen::Ref<Eigen::MatrixXd> m, double v) {
-        m += Eigen::MatrixXd::Constant(m.rows(), m.cols(), v);
-        return m;
-    }, py::return_value_policy::reference);
+    m.def(
+        "incr_matrix",
+        [](Eigen::Ref<Eigen::MatrixXd> m, double v) {
+            m += Eigen::MatrixXd::Constant(m.rows(), m.cols(), v);
+            return m;
+        },
+        py::return_value_policy::reference);
 
     // Same, but accepts a matrix of any strides
-    m.def("incr_matrix_any", [](py::EigenDRef<Eigen::MatrixXd> m, double v) {
-        m += Eigen::MatrixXd::Constant(m.rows(), m.cols(), v);
-        return m;
-    }, py::return_value_policy::reference);
+    m.def(
+        "incr_matrix_any",
+        [](py::EigenDRef<Eigen::MatrixXd> m, double v) {
+            m += Eigen::MatrixXd::Constant(m.rows(), m.cols(), v);
+            return m;
+        },
+        py::return_value_policy::reference);
 
     // Returns an eigen slice of even rows
-    m.def("even_rows", [](py::EigenDRef<Eigen::MatrixXd> m) {
-        return py::EigenDMap<Eigen::MatrixXd>(
-                m.data(), (m.rows() + 1) / 2, m.cols(),
+    m.def(
+        "even_rows",
+        [](py::EigenDRef<Eigen::MatrixXd> m) {
+            return py::EigenDMap<Eigen::MatrixXd>(
+                m.data(),
+                (m.rows() + 1) / 2,
+                m.cols(),
                 py::EigenDStride(m.outerStride(), 2 * m.innerStride()));
-    }, py::return_value_policy::reference);
+        },
+        py::return_value_policy::reference);
 
     // Returns an eigen slice of even columns
-    m.def("even_cols", [](py::EigenDRef<Eigen::MatrixXd> m) {
-        return py::EigenDMap<Eigen::MatrixXd>(
-                m.data(), m.rows(), (m.cols() + 1) / 2,
+    m.def(
+        "even_cols",
+        [](py::EigenDRef<Eigen::MatrixXd> m) {
+            return py::EigenDMap<Eigen::MatrixXd>(
+                m.data(),
+                m.rows(),
+                (m.cols() + 1) / 2,
                 py::EigenDStride(2 * m.outerStride(), m.innerStride()));
-    }, py::return_value_policy::reference);
+        },
+        py::return_value_policy::reference);
 
     // Returns diagonals: a vector-like object with an inner stride != 1
     m.def("diagonal", [](const Eigen::Ref<const Eigen::MatrixXd> &x) { return x.diagonal(); });
-    m.def("diagonal_1", [](const Eigen::Ref<const Eigen::MatrixXd> &x) { return x.diagonal<1>(); });
-    m.def("diagonal_n", [](const Eigen::Ref<const Eigen::MatrixXd> &x, int index) { return x.diagonal(index); });
+    m.def("diagonal_1",
+          [](const Eigen::Ref<const Eigen::MatrixXd> &x) { return x.diagonal<1>(); });
+    m.def("diagonal_n",
+          [](const Eigen::Ref<const Eigen::MatrixXd> &x, int index) { return x.diagonal(index); });
 
     // Return a block of a matrix (gives non-standard strides)
-    m.def("block", [](const Eigen::Ref<const Eigen::MatrixXd> &x, int start_row, int start_col, int block_rows, int block_cols) {
-        return x.block(start_row, start_col, block_rows, block_cols);
-    });
+    m.def("block",
+          [](const Eigen::Ref<const Eigen::MatrixXd> &x,
+             int start_row,
+             int start_col,
+             int block_rows,
+             int block_cols) { return x.block(start_row, start_col, block_rows, block_cols); });
 
     // test_eigen_return_references, test_eigen_keepalive
     // return value referencing/copying tests:
     class ReturnTester {
         Eigen::MatrixXd mat = create();
+
     public:
         ReturnTester() { print_created(this); }
         ~ReturnTester() { print_destroyed(this); }
@@ -189,12 +223,24 @@ TEST_SUBMODULE(eigen, m) {
         const Eigen::MatrixXd *viewPtr() { return &mat; }
         Eigen::Ref<Eigen::MatrixXd> ref() { return mat; }
         Eigen::Ref<const Eigen::MatrixXd> refConst() { return mat; }
-        Eigen::Block<Eigen::MatrixXd> block(int r, int c, int nrow, int ncol) { return mat.block(r, c, nrow, ncol); }
-        Eigen::Block<const Eigen::MatrixXd> blockConst(int r, int c, int nrow, int ncol) const { return mat.block(r, c, nrow, ncol); }
-        py::EigenDMap<Eigen::Matrix2d> corners() { return py::EigenDMap<Eigen::Matrix2d>(mat.data(),
-                    py::EigenDStride(mat.outerStride() * (mat.outerSize()-1), mat.innerStride() * (mat.innerSize()-1))); }
-        py::EigenDMap<const Eigen::Matrix2d> cornersConst() const { return py::EigenDMap<const Eigen::Matrix2d>(mat.data(),
-                    py::EigenDStride(mat.outerStride() * (mat.outerSize()-1), mat.innerStride() * (mat.innerSize()-1))); }
+        Eigen::Block<Eigen::MatrixXd> block(int r, int c, int nrow, int ncol) {
+            return mat.block(r, c, nrow, ncol);
+        }
+        Eigen::Block<const Eigen::MatrixXd> blockConst(int r, int c, int nrow, int ncol) const {
+            return mat.block(r, c, nrow, ncol);
+        }
+        py::EigenDMap<Eigen::Matrix2d> corners() {
+            return py::EigenDMap<Eigen::Matrix2d>(
+                mat.data(),
+                py::EigenDStride(mat.outerStride() * (mat.outerSize() - 1),
+                                 mat.innerStride() * (mat.innerSize() - 1)));
+        }
+        py::EigenDMap<const Eigen::Matrix2d> cornersConst() const {
+            return py::EigenDMap<const Eigen::Matrix2d>(
+                mat.data(),
+                py::EigenDStride(mat.outerStride() * (mat.outerSize() - 1),
+                                 mat.innerStride() * (mat.innerSize() - 1)));
+        }
     };
     using rvp = py::return_value_policy;
     py::class_<ReturnTester>(m, "ReturnTester")
@@ -205,9 +251,9 @@ TEST_SUBMODULE(eigen, m) {
         .def("get_ptr", &ReturnTester::getPtr, rvp::reference_internal)
         .def("view", &ReturnTester::view, rvp::reference_internal)
         .def("view_ptr", &ReturnTester::view, rvp::reference_internal)
-        .def("copy_get", &ReturnTester::get)   // Default rvp: copy
-        .def("copy_view", &ReturnTester::view) //         "
-        .def("ref", &ReturnTester::ref) // Default for Ref is to reference
+        .def("copy_get", &ReturnTester::get)       // Default rvp: copy
+        .def("copy_view", &ReturnTester::view)     //         "
+        .def("ref", &ReturnTester::ref)            // Default for Ref is to reference
         .def("ref_const", &ReturnTester::refConst) // Likewise, but const
         .def("ref_safe", &ReturnTester::ref, rvp::reference_internal)
         .def("ref_const_safe", &ReturnTester::refConst, rvp::reference_internal)
@@ -218,33 +264,29 @@ TEST_SUBMODULE(eigen, m) {
         .def("block_const", &ReturnTester::blockConst, rvp::reference_internal)
         .def("copy_block", &ReturnTester::block, rvp::copy)
         .def("corners", &ReturnTester::corners, rvp::reference_internal)
-        .def("corners_const", &ReturnTester::cornersConst, rvp::reference_internal)
-        ;
+        .def("corners_const", &ReturnTester::cornersConst, rvp::reference_internal);
 
     // test_special_matrix_objects
     // Returns a DiagonalMatrix with diagonal (1,2,3,...)
     m.def("incr_diag", [](int k) {
         Eigen::DiagonalMatrix<int, Eigen::Dynamic> m(k);
-        for (int i = 0; i < k; i++) m.diagonal()[i] = i+1;
+        for (int i = 0; i < k; i++) {
+            m.diagonal()[i] = i + 1;
+        }
         return m;
     });
 
     // Returns a SelfAdjointView referencing the lower triangle of m
-    m.def("symmetric_lower", [](const Eigen::MatrixXi &m) {
-            return m.selfadjointView<Eigen::Lower>();
-    });
+    m.def("symmetric_lower",
+          [](const Eigen::MatrixXi &m) { return m.selfadjointView<Eigen::Lower>(); });
     // Returns a SelfAdjointView referencing the lower triangle of m
-    m.def("symmetric_upper", [](const Eigen::MatrixXi &m) {
-            return m.selfadjointView<Eigen::Upper>();
-    });
+    m.def("symmetric_upper",
+          [](const Eigen::MatrixXi &m) { return m.selfadjointView<Eigen::Upper>(); });
 
     // Test matrix for various functions below.
     Eigen::MatrixXf mat(5, 6);
-    mat << 0,  3,  0,  0,  0, 11,
-           22, 0,  0,  0, 17, 11,
-           7,  5,  0,  1,  0, 11,
-           0,  0,  0,  0,  0, 11,
-           0,  0, 14,  0,  8, 11;
+    mat << 0, 3, 0, 0, 0, 11, 22, 0, 0, 0, 17, 11, 7, 5, 0, 1, 0, 11, 0, 0, 0, 0, 0, 11, 0, 0, 14,
+        0, 8, 11;
 
     // test_fixed, and various other tests
     m.def("fixed_r", [mat]() -> FixedMatrixR { return FixedMatrixR(mat); });
@@ -269,7 +311,8 @@ TEST_SUBMODULE(eigen, m) {
         // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
         return Eigen::SparseView<Eigen::MatrixXf>(mat);
     });
-    m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
+    m.def("sparse_c",
+          [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
     // test_partially_fixed
@@ -283,7 +326,8 @@ TEST_SUBMODULE(eigen, m) {
     m.def("cpp_copy", [](py::handle m) { return m.cast<Eigen::MatrixXd>()(1, 0); });
     m.def("cpp_ref_c", [](py::handle m) { return m.cast<Eigen::Ref<Eigen::MatrixXd>>()(1, 0); });
     m.def("cpp_ref_r", [](py::handle m) { return m.cast<Eigen::Ref<MatrixXdR>>()(1, 0); });
-    m.def("cpp_ref_any", [](py::handle m) { return m.cast<py::EigenDRef<Eigen::MatrixXd>>()(1, 0); });
+    m.def("cpp_ref_any",
+          [](py::handle m) { return m.cast<py::EigenDRef<Eigen::MatrixXd>>()(1, 0); });
 
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
@@ -297,15 +341,23 @@ TEST_SUBMODULE(eigen, m) {
         [](const Eigen::Ref<const Eigen::MatrixXd> &m) -> double { return get_elem(m); },
         py::arg{}.noconvert());
     // Also test a row-major-only no-copy const ref:
-    m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
-            py::arg{}.noconvert());
+    m.def(
+        "get_elem_rm_nocopy",
+        [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long {
+            return m(2, 1);
+        },
+        py::arg{}.noconvert());
 
     // test_issue738
     // Issue #738: 1xN or Nx1 2D matrices were neither accepted nor properly copied with an
     // incompatible stride value on the length-1 dimension--but that should be allowed (without
     // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
-    m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg{}.noconvert());
-    m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg{}.noconvert());
+    m.def("iss738_f1",
+          &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>,
+          py::arg{}.noconvert());
+    m.def("iss738_f2",
+          &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>,
+          py::arg{}.noconvert());
 
     // test_issue1105
     // Issue #1105: when converting from a numpy two-dimensional (Nx1) or (1xN) value into a dense
@@ -320,8 +372,9 @@ TEST_SUBMODULE(eigen, m) {
         "matrix_multiply",
         [](const py::EigenDRef<const Eigen::MatrixXd> &A,
            const py::EigenDRef<const Eigen::MatrixXd> &B) -> Eigen::MatrixXd {
-            if (A.cols() != B.rows())
+            if (A.cols() != B.rows()) {
                 throw std::domain_error("Nonconformable matrices!");
+            }
             return A * B;
         },
         py::arg("A"),

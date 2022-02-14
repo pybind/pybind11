@@ -1,19 +1,8 @@
-# -*- coding: utf-8 -*-
 import pytest
+from pytest import approx
 
 from pybind11_tests import ConstructorStats
 from pybind11_tests import sequences_and_iterators as m
-
-
-def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
-    """Like math.isclose() from Python 3.5"""
-    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-
-
-def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
-    return all(
-        isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol) for a, b in zip(a_list, b_list)
-    )
 
 
 def test_slice_constructors():
@@ -118,7 +107,8 @@ def test_sequence():
     assert 12.34 not in s
     s[0], s[3] = 12.34, 56.78
     assert 12.34 in s
-    assert isclose(s[0], 12.34) and isclose(s[3], 56.78)
+    assert s[0] == approx(12.34, rel=1e-05)
+    assert s[3] == approx(56.78, rel=1e-05)
 
     rev = reversed(s)
     assert cstats.values() == ["of size", "5"]
@@ -133,14 +123,14 @@ def test_sequence():
     assert cstats.values() == ["of size", "0"]
 
     expected = [0, 56.78, 0, 0, 12.34]
-    assert allclose(rev, expected)
-    assert allclose(rev2, expected)
+    assert rev == approx(expected, rel=1e-05)
+    assert rev2 == approx(expected, rel=1e-05)
     assert rev == rev2
 
     rev[0::2] = m.Sequence([2.0, 2.0, 2.0])
     assert cstats.values() == ["of size", "3", "from std::vector"]
 
-    assert allclose(rev, [2, 56.78, 2, 0, 2])
+    assert rev == approx([2, 56.78, 2, 0, 2], rel=1e-05)
 
     assert cstats.alive() == 4
     del it

@@ -179,11 +179,6 @@ if(PYBIND11_TEST_FILTER)
   pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
 endif()
 
-if(PYTHON_VERSION VERSION_LESS 3.5)
-  pybind11_filter_tests(PYBIND11_TEST_FILES test_async.cpp MESSAGE
-                        "Skipping test_async on Python 2")
-endif()
-
 # Skip tests for CUDA check:
 # /pybind11/tests/test_constants_and_functions.cpp(125):
 #   error: incompatible exception specifications
@@ -386,17 +381,6 @@ function(pybind11_enable_warnings target_name)
           -Werror-all
           # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
           -diag-disable 11074,11076)
-    endif()
-  endif()
-
-  # Needs to be re-added since the ordering requires these to be after the ones above
-  if(CMAKE_CXX_STANDARD
-     AND CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-     AND PYTHON_VERSION VERSION_LESS 3.0)
-    if(CMAKE_CXX_STANDARD LESS 17)
-      target_compile_options(${target_name} PUBLIC -Wno-deprecated-register)
-    else()
-      target_compile_options(${target_name} PUBLIC -Wno-register)
     endif()
   endif()
 endfunction()

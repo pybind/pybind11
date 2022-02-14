@@ -11,8 +11,6 @@ environment:
   matrix:
   - PYTHON: 36
     CONFIG: Debug
-  - PYTHON: 27
-    CONFIG: Debug
 install:
 - ps: |
     $env:CMAKE_GENERATOR = "Visual Studio 14 2015"

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 
 import pytest
@@ -24,7 +23,6 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
-@pytest.mark.skipif("env.PY2")
 def test_raise_from(msg):
     with pytest.raises(ValueError) as excinfo:
         m.raise_from()
@@ -32,7 +30,6 @@ def test_raise_from(msg):
     assert msg(excinfo.value.__cause__) == "inner"
 
 
-@pytest.mark.skipif("env.PY2")
 def test_raise_from_already_set(msg):
     with pytest.raises(ValueError) as excinfo:
         m.raise_from_already_set()
@@ -91,7 +88,7 @@ def test_python_call_in_catch():
 def ignore_pytest_unraisable_warning(f):
     unraisable = "PytestUnraisableExceptionWarning"
     if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
-        dec = pytest.mark.filterwarnings("ignore::pytest.{}".format(unraisable))
+        dec = pytest.mark.filterwarnings(f"ignore::pytest.{unraisable}")
         return dec(f)
     else:
         return f
@@ -102,7 +99,7 @@ def ignore_pytest_unraisable_warning(f):
 @ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     hooked = False
-    triggered = [False]  # mutable, so Python 2.7 closure can modify it
+    triggered = False
 
     if hasattr(sys, "unraisablehook"):  # Python 3.8+
         hooked = True
@@ -112,7 +109,8 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
         def hook(unraisable_hook_args):
             exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
             if obj == "already_set demo":
-                triggered[0] = True
+                nonlocal triggered
+                triggered = True
             default_hook(unraisable_hook_args)
             return
 
@@ -121,11 +119,11 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
 
     assert m.python_alreadyset_in_destructor("already_set demo") is True
     if hooked:
-        assert triggered[0] is True
+        assert triggered is True
 
     _, captured_stderr = capsys.readouterr()
-    # Error message is different in Python 2 and 3, check for words that appear in both
-    assert "ignored" in captured_stderr and "already_set demo" in captured_stderr
+    assert captured_stderr.startswith("Exception ignored in: 'already_set demo'")
+    assert captured_stderr.rstrip().endswith("KeyError: 'bar'")
 
 
 def test_exception_matches():
@@ -239,7 +237,6 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
-@pytest.mark.skipif("env.PY2")
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_nested_exception()
@@ -249,7 +246,7 @@ def test_throw_nested_exception():
 
 # This can often happen if you wrap a pybind11 class in a Python wrapper
 def test_invalid_repr():
-    class MyRepr(object):
+    class MyRepr:
         def __repr__(self):
             raise AttributeError("Example error")
 
