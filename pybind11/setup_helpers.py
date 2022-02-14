@@ -313,20 +313,21 @@ def intree_extensions(
             exts.append(Pybind11Extension(qualified_name, [path]))
         return exts
 
-    for prefix, parent in package_dir.items():
-        if path.startswith(parent):
-            relname, _ = os.path.splitext(os.path.relpath(path, parent))
-            qualified_name = relname.replace(os.path.sep, ".")
-            if prefix:
-                qualified_name = prefix + "." + qualified_name
-            exts.append(Pybind11Extension(qualified_name, [path]))
-            break
-    else:
-        msg = (
-            f"path {path} is not a child of any of the directories listed "
-            f"in 'package_dir' ({package_dir})"
-        )
-        raise ValueError(msg)
+    for path in paths:
+        for prefix, parent in package_dir.items():
+            if path.startswith(parent):
+                relname, _ = os.path.splitext(os.path.relpath(path, parent))
+                qualified_name = relname.replace(os.path.sep, ".")
+                if prefix:
+                    qualified_name = prefix + "." + qualified_name
+                exts.append(Pybind11Extension(qualified_name, [path]))
+                break
+        else:
+            msg = (
+                f"path {path} is not a child of any of the directories listed "
+                f"in 'package_dir' ({package_dir})"
+            )
+            raise ValueError(msg)
 
     return exts
 
