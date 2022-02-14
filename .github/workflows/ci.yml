@@ -852,6 +852,51 @@ jobs:
     - name: Run all checks
       run: cmake --build build -t check
 
+  windows-2022:
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+        - 3.9
+
+    name: "🐍 ${{ matrix.python }} • MSVC 2022 C++20 • x64"
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Prepare env
+      run: |
+        python3 -m pip install -r tests/requirements.txt
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.12
+
+    - name: Configure C++20
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=OFF
+        -DCMAKE_CXX_STANDARD=20
+
+    - name: Build C++20
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++20 tests
+      run: cmake --build build --target cpptest -j 2
+
+    - name: Interface test C++20
+      run: cmake --build build --target test_cmake_build
+
   mingw:
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
