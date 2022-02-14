@@ -344,21 +344,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
             return false;
         }
         if (!PyUnicode_Check(load_src.ptr())) {
-#if PY_MAJOR_VERSION >= 3
             return load_raw(load_src);
-#else
-            if (std::is_same<CharT, char>::value) {
-                return load_raw(load_src);
-            }
-
-            // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
-            if (!PYBIND11_BYTES_CHECK(load_src.ptr()))
-                return false;
-
-            temp = reinterpret_steal<object>(PyUnicode_FromObject(load_src.ptr()));
-            if (!temp) { PyErr_Clear(); return false; }
-            load_src = temp;
-#endif
         }
 
 #if PY_VERSION_HEX >= 0x03030000
@@ -438,9 +424,9 @@ private:
         if (PyByteArray_Check(src.ptr())) {
             // We were passed a bytearray; accept it into a std::string or char*
             // without any encoding attempt.
-            const char *bytes = PyByteArray_AsString(src.ptr());
-            if (bytes) {
-                value = StringType(bytes, (size_t) PyByteArray_Size(src.ptr()));
+            const char *bytearray = PyByteArray_AsString(src.ptr());
+            if (bytearray) {
+                value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
                 return true;
             }
         }
@@ -449,7 +435,9 @@ private:
     }
 
     template <typename C = CharT>
-    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) { return false; }
+    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) { 
+        return false; 
+    }
 };
 
 template <typename CharT, class Traits, class Allocator>
