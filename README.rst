@@ -122,7 +122,7 @@ Supported compilers
 1. Clang/LLVM 3.3 or newer (for Apple Xcode's clang, this is 5.0.0 or
    newer)
 2. GCC 4.8 or newer
-3. Microsoft Visual Studio 2015 Update 3 or newer
+3. Microsoft Visual Studio 2017 or newer
 4. Intel classic C++ compiler 18 or newer (ICC 20.2 tested in CI)
 5. Cygwin/GCC (previously tested on 2.5.1)
 6. NVCC (CUDA 11.0 tested in CI)
