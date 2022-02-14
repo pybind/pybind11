@@ -486,8 +486,8 @@ private:
     }
 
     template <typename C = CharT>
-    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) { 
-        return false; 
+    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) {
+        return false;
     }
 };
 
