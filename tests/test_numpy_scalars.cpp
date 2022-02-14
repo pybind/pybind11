@@ -7,26 +7,29 @@
   BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/numpy.h>
+
+#include "pybind11_tests.h"
+
 #include <complex>
 #include <cstdint>
 
-#include "pybind11_tests.h"
-#include <pybind11/numpy.h>
-
 namespace py = pybind11;
 
-template<typename T>
+template <typename T>
 struct add {
     T x;
     add(T x) : x(x) {}
     T operator()(T y) const { return static_cast<T>(x + y); }
 };
 
-template<typename T, typename F>
-void register_test(py::module& m, const char *name, F&& func) {
-    m.def((std::string("test_") + name).c_str(), [=](py::numpy_scalar<T> v) {
-        return std::make_tuple(name, py::make_scalar(static_cast<T>(func(v.value))));
-    }, py::arg("x"));
+template <typename T, typename F>
+void register_test(py::module &m, const char *name, F &&func) {
+    m.def((std::string("test_") + name).c_str(),
+          [=](py::numpy_scalar<T> v) {
+              return std::make_tuple(name, py::make_scalar(static_cast<T>(func(v.value))));
+          },
+          py::arg("x"));
 }
 
 TEST_SUBMODULE(numpy_scalars, m) {
