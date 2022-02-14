@@ -32,8 +32,7 @@ The last line will both compile and run the tests.
 Windows
 -------
 
-On Windows, only **Visual Studio 2015** and newer are supported since pybind11 relies
-on various C++11 language features that break older versions of Visual Studio.
+On Windows, only **Visual Studio 2017** and newer are supported.
 
 .. Note::
 
@@ -166,12 +165,12 @@ load and execute the example:
 .. code-block:: pycon
 
     $ python
-    Python 2.7.10 (default, Aug 22 2015, 20:33:39)
-    [GCC 4.2.1 Compatible Apple LLVM 7.0.0 (clang-700.0.59.1)] on darwin
+    Python 3.9.10 (main, Jan 15 2022, 11:48:04)
+    [Clang 13.0.0 (clang-1300.0.29.3)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import example
     >>> example.add(1, 2)
-    3L
+    3
     >>>
 
 .. _keyword_args:

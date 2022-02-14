@@ -4,9 +4,14 @@
 #include <pybind11/embed.h>
 
 #ifdef _MSC_VER
-// Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to catch
-// 2.0.1; this should be fixed in the next catch release after 2.0.1).
-#  pragma warning(disable: 4996)
+// Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
+// catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
+#    pragma warning(disable : 4996)
+#endif
+
+// Catch uses _ internally, which breaks gettext style defines
+#ifdef _
+#    undef _
 #endif
 
 #define CATCH_CONFIG_RUNNER

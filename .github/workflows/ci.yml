@@ -16,6 +16,8 @@ concurrency:
 
 env:
   PIP_ONLY_BINARY: numpy
+  FORCE_COLOR: 3
+  PYTEST_TIMEOUT: 300
 
 jobs:
   # This is the "main" test suite, which tests a large number of different
@@ -26,8 +28,6 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, windows-2022, macos-latest]
         python:
-        - '2.7'
-        - '3.5'
         - '3.6'
         - '3.9'
         - '3.10'
@@ -50,13 +50,9 @@ jobs:
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
-          - runs-on: macos-latest
-            python: 'pypy-2.7'
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
-          - runs-on: windows-2019
-            python: '2.7'
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -169,27 +165,11 @@ jobs:
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
 
-    # Eventually Microsoft might have an action for setting up
-    # MSVC, but for now, this action works:
-    - name: Prepare compiler environment for Windows 🐍 2.7
-      if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.10.0
-      with:
-        arch: x64
-
-    # This makes two environment variables available in the following step(s)
-    - name: Set Windows 🐍 2.7 environment variables
-      if: matrix.python == 2.7 && runner.os == 'Windows'
-      shell: bash
-      run: |
-        echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
-        echo "MSSdk=1" >> $GITHUB_ENV
-
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
-      if: "!(matrix.python == '3.5' && matrix.runs-on == 'windows-2022')"
+      if: "!(matrix.runs-on == 'windows-2022')"
 
 
   deadsnakes:
@@ -646,9 +626,9 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
-    name: "🐍 3.5 • Debian • x86 •  Install"
+    name: "🐍 3.7 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
-    container: i386/debian:stretch
+    container: i386/debian:buster
 
     steps:
     - uses: actions/checkout@v1
@@ -657,7 +637,7 @@ jobs:
       run: |
         apt-get update
         apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pip
-        pip3 install "pytest==3.1.*"
+        pip3 install "pytest==6.*"
 
     - name: Configure for install
       run: >
@@ -726,12 +706,10 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - 3.5
         - 3.6
         - 3.7
         - 3.8
         - 3.9
-        - pypy-3.6
 
         include:
           - python: 3.9
@@ -778,54 +756,6 @@ jobs:
     - name: Python tests
       run: cmake --build build -t pytest
 
-  win32-msvc2015:
-    name: "🐍 ${{ matrix.python }} • MSVC 2015 • x64"
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python:
-          - 2.7
-          - 3.6
-          - 3.7
-          # todo: check/cpptest does not support 3.8+ yet
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Setup 🐍 ${{ matrix.python }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python }}
-
-    - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.12
-
-    - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.10.0
-      with:
-        toolset: 14.0
-
-    - name: Prepare env
-      run: |
-        python -m pip install -r tests/requirements.txt
-
-    # First build - C++11 mode and inplace
-    - name: Configure
-      run: >
-        cmake -S . -B build
-        -G "Visual Studio 14 2015" -A x64
-        -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=ON
-
-    - name: Build C++14
-      run: cmake --build build -j 2
-
-    - name: Run all checks
-      run: cmake --build build -t check
-
-
   win32-msvc2017:
     name: "🐍 ${{ matrix.python }} • MSVC 2017 • x64"
     runs-on: windows-2016
@@ -833,17 +763,12 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 2.7
-          - 3.5
+          - 3.6
           - 3.7
         std:
           - 14
 
         include:
-          - python: 2.7
-            std: 17
-            args: >
-              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
           - python: 3.7
             std: 17
             args: >
@@ -881,6 +806,51 @@ jobs:
     - name: Run all checks
       run: cmake --build build -t check
 
+  windows-2022:
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+        - 3.9
+
+    name: "🐍 ${{ matrix.python }} • MSVC 2022 C++20 • x64"
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Prepare env
+      run: |
+        python3 -m pip install -r tests/requirements.txt
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.12
+
+    - name: Configure C++20
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=OFF
+        -DCMAKE_CXX_STANDARD=20
+
+    - name: Build C++20
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++20 tests
+      run: cmake --build build --target cpptest -j 2
+
+    - name: Interface test C++20
+      run: cmake --build build --target test_cmake_build
+
   mingw:
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
@@ -915,7 +885,7 @@ jobs:
     - name: Configure C++11
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -S . -B build
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DDOWNLOAD_CATCH=ON -S . -B build
 
     - name: Build C++11
       run: cmake --build build -j 2
@@ -933,7 +903,7 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++14
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -S . -B build2
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DDOWNLOAD_CATCH=ON -S . -B build2
 
     - name: Build C++14
       run: cmake --build build2 -j 2
@@ -951,7 +921,7 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++17
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -S . -B build3
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DDOWNLOAD_CATCH=ON -S . -B build3
 
     - name: Build C++17
       run: cmake --build build3 -j 2
