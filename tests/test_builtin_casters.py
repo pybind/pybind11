@@ -130,8 +130,7 @@ def test_bytes_to_string():
     assert m.strlen("a\x00b".encode()) == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
-<<<<<<< HEAD
-    assert m.string_length(u"   ".encode("utf8")) == 4
+    assert m.string_length("💩".encode()) == 4
 
 def test_bytearray_to_string():
     """Tests the ability to pass bytearray to C++ string-accepting functions"""
@@ -140,18 +139,6 @@ def test_bytearray_to_string():
     assert m.string_length(bytearray()) == 0
     assert m.string_length(bytearray(u"🦜", "utf-8", "strict")) == 4
     assert m.string_length(bytearray(b"\x80")) == 1
-=======
-    assert m.string_length("💩".encode()) == 4
-
-
-def test_bytearray_to_string():
-    """Tests the ability to pass bytearray to C++ string-accepting functions.  Note that this is
-    one-way: the only way to return bytes to Python is via the pybind11::bytearray class."""
-    # Issue #2799
-    assert m.string_length(bytearray(b"Hi")) == 2
-    assert m.strlen(bytearray(b"bytearray")) == 9
-
->>>>>>> ac37829e7b1c12184f95c5633f102cf77b513c94
 
 @pytest.mark.skipif(not hasattr(m, "has_string_view"), reason="no <string_view>")
 def test_string_view(capture):
