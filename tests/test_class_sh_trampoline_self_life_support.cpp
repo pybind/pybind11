@@ -54,7 +54,7 @@ TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
         py::object o2 = py::none();
         // This is very unusual, but needed to directly exercise the trampoline_self_life_support
         // CpCtor, MvCtor, operator= lvalue, operator= rvalue.
-        auto obj_trampoline = dynamic_cast<Big5Trampoline *>(obj.get());
+        auto *obj_trampoline = dynamic_cast<Big5Trampoline *>(obj.get());
         if (obj_trampoline != nullptr) {
             switch (action_id) {
                 case 0: { // CpCtor

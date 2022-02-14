@@ -17,7 +17,7 @@ struct SpBase {
 
     // returns true if there's an associated python instance
     bool has_python_instance() {
-        auto tinfo = py::detail::get_type_info(typeid(SpBase));
+        auto *tinfo = py::detail::get_type_info(typeid(SpBase));
         return (bool) py::detail::get_object_handle(this, tinfo);
     }
 
