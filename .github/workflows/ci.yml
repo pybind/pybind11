@@ -753,7 +753,7 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests
-      run: cmake --build build -t pytest
+      run: cmake --build build -t pytest -- --no-fancy-progress
 
   win32-msvc2015:
     name: "🐍 ${{ matrix.python }} • MSVC 2015 • x64"
