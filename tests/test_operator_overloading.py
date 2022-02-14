@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import pytest
 
-import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import operators as m
 
@@ -151,5 +149,4 @@ def test_overriding_eq_reset_hash():
 def test_return_set_of_unhashable():
     with pytest.raises(TypeError) as excinfo:
         m.get_unhashable_HashMe_set()
-    if not env.PY2:
-        assert str(excinfo.value.__cause__).startswith("unhashable type:")
+    assert str(excinfo.value.__cause__).startswith("unhashable type:")

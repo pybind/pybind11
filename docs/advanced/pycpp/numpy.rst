@@ -435,11 +435,9 @@ uses of ``py::array``:
 Ellipsis
 ========
 
-Python 3 provides a convenient ``...`` ellipsis notation that is often used to
+Python provides a convenient ``...`` ellipsis notation that is often used to
 slice multidimensional arrays. For instance, the following snippet extracts the
 middle dimensions of a tensor with the first and last index set to zero.
-In Python 2, the syntactic sugar ``...`` is not available, but the singleton
-``Ellipsis`` (of type ``ellipsis``) can still be used directly.
 
 .. code-block:: python
 
@@ -454,8 +452,6 @@ operation on the C++ side:
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
 
-.. versionchanged:: 2.6
-   ``py::ellipsis()`` is now also available in Python 2.
 
 Memory view
 ===========
@@ -494,10 +490,6 @@ We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
             sizeof(uint8_t) * 8   // buffer size
         );
     })
-
-.. note::
-
-    ``memoryview::from_memory`` is not available in Python 2.
 
 .. versionchanged:: 2.6
     ``memoryview::from_memory`` added.

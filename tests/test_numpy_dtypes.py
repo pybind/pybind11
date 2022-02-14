@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 import pytest
@@ -15,7 +14,7 @@ def simple_dtype():
     return np.dtype(
         {
             "names": ["bool_", "uint_", "float_", "ldbl_"],
-            "formats": ["?", "u4", "f4", "f{}".format(ld.itemsize)],
+            "formats": ["?", "u4", "f4", f"f{ld.itemsize}"],
             "offsets": [0, 4, 8, (16 if ld.alignment > 4 else 12)],
         }
     )
@@ -126,7 +125,7 @@ def test_dtype(simple_dtype):
     assert [x.replace(" ", "") for x in m.print_dtypes()] == [
         simple_dtype_fmt(),
         packed_dtype_fmt(),
-        "[('a',{}),('b',{})]".format(simple_dtype_fmt(), packed_dtype_fmt()),
+        f"[('a',{simple_dtype_fmt()}),('b',{packed_dtype_fmt()})]",
         partial_dtype_fmt(),
         partial_nested_fmt(),
         "[('a','S3'),('b','S3')]",

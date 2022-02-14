@@ -8,9 +8,7 @@ Frequently asked questions
 filename of the extension library (without suffixes such as ``.so``).
 
 2. If the above did not fix the issue, you are likely using an incompatible
-version of Python (for instance, the extension library was compiled against
-Python 2, while the interpreter is running on top of some version of Python
-3, or vice versa).
+version of Python that does not match what you compiled with.
 
 "Symbol not found: ``__Py_ZeroStruct`` / ``_PyInstanceMethod_Type``"
 ========================================================================
@@ -147,7 +145,7 @@ using C++14 template metaprogramming.
 
 .. _`faq:hidden_visibility`:
 
-"‘SomeClass’ declared with greater visibility than the type of its field ‘SomeClass::member’ [-Wattributes]"
+"'SomeClass' declared with greater visibility than the type of its field 'SomeClass::member' [-Wattributes]"
 ============================================================================================================
 
 This error typically indicates that you are compiling without the required
@@ -222,20 +220,6 @@ In addition to decreasing binary size, ``-fvisibility=hidden`` also avoids
 potential serious issues when loading multiple modules and is required for
 proper pybind operation.  See the previous FAQ entry for more details.
 
-Working with ancient Visual Studio 2008 builds on Windows
-=========================================================
-
-The official Windows distributions of Python are compiled using truly
-ancient versions of Visual Studio that lack good C++11 support. Some users
-implicitly assume that it would be impossible to load a plugin built with
-Visual Studio 2015 into a Python distribution that was compiled using Visual
-Studio 2008. However, no such issue exists: it's perfectly legitimate to
-interface DLLs that are built with different compilers and/or C libraries.
-Common gotchas to watch out for involve not ``free()``-ing memory region
-that that were ``malloc()``-ed in another shared library, using data
-structures with incompatible ABIs, and so on. pybind11 is very careful not
-to make these types of mistakes.
-
 How can I properly handle Ctrl-C in long-running functions?
 ===========================================================
 
@@ -289,27 +273,7 @@ Conflicts can arise, however, when using pybind11 in a project that *also* uses
 the CMake Python detection in a system with several Python versions installed.
 
 This difference may cause inconsistencies and errors if *both* mechanisms are
-used in the same project. Consider the following CMake code executed in a
-system with Python 2.7 and 3.x installed:
-
-.. code-block:: cmake
-
-    find_package(PythonInterp)
-    find_package(PythonLibs)
-    find_package(pybind11)
-
-It will detect Python 2.7 and pybind11 will pick it as well.
-
-In contrast this code:
-
-.. code-block:: cmake
-
-    find_package(pybind11)
-    find_package(PythonInterp)
-    find_package(PythonLibs)
-
-will detect Python 3.x for pybind11 and may crash on
-``find_package(PythonLibs)`` afterwards.
+used in the same project.
 
 There are three possible solutions:
 
