@@ -49,7 +49,6 @@ inline void replace_all(std::string& str, const std::string& from, char to) {
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
 // vice versa. The main difference is that the original code only propagates a reference to the
 // held value, while the modified implementation propagates value_and_holder.
-// clang-format off
 class modified_type_caster_generic_load_impl {
 public:
     PYBIND11_NOINLINE explicit modified_type_caster_generic_load_impl(const std::type_info &type_info)
@@ -76,12 +75,15 @@ public:
                     vptr = type->operator_new(type->type_size);
                 } else {
                     #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-                        if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                        if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
                             vptr = ::operator new(type->type_size,
                                                   std::align_val_t(type->type_align));
-                        else
+                        } else {
+                            vptr = ::operator new(type->type_size);
+                        }
+                    #else
+                        vptr = ::operator new(type->type_size);
                     #endif
-                    vptr = ::operator new(type->type_size);
                 }
             }
             // type_caster_generic::load_value END
@@ -182,7 +184,8 @@ public:
             }
             loaded_v_h = foreign_loader->loaded_v_h;
             loaded_v_h_cpptype = foreign_loader->loaded_v_h_cpptype;
-            implicit_casts = foreign_loader->implicit_casts; // SMART_HOLDER_WIP: should this be a copy or move?
+            // SMART_HOLDER_WIP: should this be a copy or move?
+            implicit_casts = foreign_loader->implicit_casts;
             return true;
         }
         return false;
@@ -297,7 +300,6 @@ public:
     // set/reset this value in ctor/dtor, mark volatile.
     std::size_t local_load_safety_guard = 1887406645; // 32-bit compatible value for portability.
 };
-// clang-format on
 
 struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag {
     static decltype(&modified_type_caster_generic_load_impl::local_load)
@@ -595,19 +597,15 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 
     static handle cast(T &&src, return_value_policy /*policy*/, handle parent) {
         // type_caster_base BEGIN
-        // clang-format off
         return cast(&src, return_value_policy::move, parent);
-        // clang-format on
         // type_caster_base END
     }
 
     static handle cast(T const &src, return_value_policy policy, handle parent) {
         // type_caster_base BEGIN
-        // clang-format off
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
             policy = return_value_policy::copy;
         return cast(&src, policy, parent);
-        // clang-format on
         // type_caster_base END
     }
 
@@ -630,12 +628,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         return cast(const_cast<T const *>(src), policy, parent); // Mutbl2Const
     }
 
-#if defined(_MSC_VER) && _MSC_VER < 1910
-    // Working around MSVC 2015 bug. const-correctness is lost.
-    // SMART_HOLDER_WIP: IMPROVABLE: make common code work with MSVC 2015.
-    template <typename T_>
-    using cast_op_type = detail::cast_op_type<T_>;
-#else
     template <typename T_>
     using cast_op_type = conditional_t<
         std::is_same<remove_reference_t<T_>, T const *>::value,
@@ -643,7 +635,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         conditional_t<std::is_same<remove_reference_t<T_>, T *>::value,
                       T *,
                       conditional_t<std::is_same<T_, T const &>::value, T const &, T &>>>;
-#endif
 
     // The const operators here prove that the existing type_caster mechanism already supports
     // const-correctness. However, fully implementing const-correctness inside this type_caster

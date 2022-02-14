@@ -2,25 +2,24 @@
 """Simple comparison of holder performances, relative to unique_ptr holder."""
 
 from __future__ import absolute_import, division, print_function
-
 import collections
 import sys
 import time
+from typing import Any, Callable, Dict, List
 
-import pybind11_ubench_holder_comparison as m
+import pybind11_ubench_holder_comparison as m  # type: ignore
 
 number_bucket_pc = None
 
 
-def pflush(*args, **kwargs):
-    result = print(*args, **kwargs)
+def pflush(*args: Any, **kwargs: Any) -> None:
+    print(*args, **kwargs)
     # Using "file" here because it is the name of the built-in keyword argument.
     file = kwargs.get("file", sys.stdout)  # pylint: disable=redefined-builtin
     file.flush()  # file object must have a flush method.
-    return result
 
 
-def run(args):
+def run(args: List[str]) -> None:
     if not args:
         size_exponent_min = 0
         size_exponent_max = 16
@@ -55,12 +54,12 @@ def run(args):
     pflush("sizeof_smart_holder:", m.sizeof_smart_holder())
 
     def find_call_repetitions(
-        callable,
-        time_delta_floor=1.0e-6,
-        target_elapsed_secs_multiplier=1.05,  # Empirical.
-        target_elapsed_secs_tolerance=0.05,
-        max_iterations=100,
-    ):
+        callable: Callable[[int], float],
+        time_delta_floor: float = 1.0e-6,
+        target_elapsed_secs_multiplier: float = 1.05,  # Empirical.
+        target_elapsed_secs_tolerance: float = 0.05,
+        max_iterations: int = 100,
+    ) -> int:
         td_target = (
             call_repetitions_target_elapsed_secs * target_elapsed_secs_multiplier
         )
@@ -77,7 +76,7 @@ def run(args):
     ):
         data_size = 2 ** size_exponent
         pflush(data_size, "data_size")
-        ratios = collections.defaultdict(list)
+        ratios: Dict[str, List[float]] = collections.defaultdict(list)
         call_repetitions = None
         for _ in range(num_samples):
             row_0 = None
@@ -92,17 +91,17 @@ def run(args):
                     continue
                 if selected_holder_type != "all" and nb_label != selected_holder_type:
                     continue
-                nb1 = nb_type(data_size)
-                nb2 = nb_type(data_size)
+                nb1 = nb_type(data_size)  # type: ignore
+                nb2 = nb_type(data_size)  # type: ignore
 
-                def many_sum(call_repetitions):
+                def many_sum(call_repetitions: int) -> float:
                     assert int(round(nb1.sum())) == data_size
                     t0 = time.time()
                     for _ in range(call_repetitions):
                         nb1.sum()
                     return time.time() - t0
 
-                def many_add(call_repetitions):
+                def many_add(call_repetitions: int) -> float:
                     assert nb1.add(nb2) == data_size
                     t0 = time.time()
                     for _ in range(call_repetitions):

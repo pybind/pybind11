@@ -83,6 +83,7 @@ repos:
   hooks:
   - id: python-check-blanket-noqa
   - id: python-check-blanket-type-ignore
+    exclude: ubench/holder_comparison.py
   - id: python-no-log-warn
   - id: python-use-type-annotations
   - id: rst-backticks

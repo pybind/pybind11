@@ -147,8 +147,7 @@ class MI8b(B3, MI6):
         MI6.__init__(self, i)
 
 
-@pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2")
+@pytest.mark.xfail("env.PYPY")
 def test_multiple_inheritance_python():
     # Based on test_multiple_inheritance.py:test_multiple_inheritance_python.
     # Exercises values_and_holders with 2 value_and_holder instances.
@@ -203,8 +202,7 @@ DISOWN_CLS_I_J_V_LIST = [
 ]
 
 
-@pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2", strict=False)
+@pytest.mark.xfail("env.PYPY", strict=False)
 @pytest.mark.parametrize("cls, i, j, v", DISOWN_CLS_I_J_V_LIST)
 def test_disown_base1_first(cls, i, j, v):
     obj = cls(i, j)
@@ -218,8 +216,7 @@ def test_disown_base1_first(cls, i, j, v):
         assert obj.v() == v
 
 
-@pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2", strict=False)
+@pytest.mark.xfail("env.PYPY", strict=False)
 @pytest.mark.parametrize("cls, i, j, v", DISOWN_CLS_I_J_V_LIST)
 def test_disown_base2_first(cls, i, j, v):
     obj = cls(i, j)
@@ -233,8 +230,7 @@ def test_disown_base2_first(cls, i, j, v):
         assert obj.v() == v
 
 
-@pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2", strict=False)
+@pytest.mark.xfail("env.PYPY", strict=False)
 @pytest.mark.parametrize(
     "cls, j, v",
     [

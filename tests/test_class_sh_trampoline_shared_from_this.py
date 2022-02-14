@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import weakref
 
 import pytest
@@ -213,7 +214,7 @@ def test_multiple_registered_instances_for_same_pointee_recursive():
 
 
 # As of 2021-07-10 the pybind11 GitHub Actions valgrind build uses Python 3.9.
-WORKAROUND_ENABLING_ROLLBACK_OF_PR3068 = env.LINUX and env.PY[:2] == (3, 9)
+WORKAROUND_ENABLING_ROLLBACK_OF_PR3068 = env.LINUX and sys.version_info == (3, 9)
 
 
 def test_std_make_shared_factory():
