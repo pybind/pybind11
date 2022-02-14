@@ -22,14 +22,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
+    - name: Add matchers
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
     - uses: pre-commit/action@v2.0.3
       with:
         # Slow hooks are marked with manual - slow is okay here, run them too
         extra_args: --hook-stage manual --all-files
-    - name: PyLint
-      run: |
-        echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
-        pipx run nox -s pylint
 
   clang-tidy:
     # When making changes here, please also review the "Clang-Tidy" section

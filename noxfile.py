@@ -19,16 +19,6 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", "-a")
 
 
-@nox.session
-def pylint(session: nox.Session) -> None:
-    """
-    Run the pylint process.
-    """
-    session.install(".")
-    session.install("pylint==2.12.2")
-    session.run("pylint", "pybind11", *session.posargs)
-
-
 @nox.session(python=PYTHON_VERISONS)
 def tests(session: nox.Session) -> None:
     """
