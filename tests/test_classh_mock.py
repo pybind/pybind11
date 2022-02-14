@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from pybind11_tests import classh_mock as m
 
 

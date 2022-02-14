@@ -38,7 +38,7 @@ inline void register_instance(instance *self, void *valptr, const type_info *tin
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
 // Replace all occurrences of a character in string.
-inline void replace_all(std::string& str, const std::string& from, char to) {
+inline void replace_all(std::string &str, const std::string &from, char to) {
     size_t pos = str.find(from);
     while (pos != std::string::npos) {
         str.replace(pos, from.length(), 1, to);
@@ -405,7 +405,7 @@ struct smart_holder_type_caster_load {
     T *loaded_as_raw_ptr_unowned() const {
         void *void_ptr = load_impl.unowned_void_ptr_from_void_ptr_capsule;
         if (void_ptr == nullptr) {
-          void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
+            void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
         }
         if (void_ptr == nullptr) {
             if (have_holder()) {
@@ -570,7 +570,7 @@ private:
     T *convert_type(void *void_ptr) const {
         if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
             && !load_impl.reinterpret_cast_deemed_ok && !load_impl.implicit_casts.empty()) {
-            for (auto implicit_cast: load_impl.implicit_casts) {
+            for (auto implicit_cast : load_impl.implicit_casts) {
                 void_ptr = implicit_cast(void_ptr);
             }
         }

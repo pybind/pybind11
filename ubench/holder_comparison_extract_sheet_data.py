@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 """Extract mean ratios from holder_comparison.py output."""
 
-from __future__ import absolute_import, division, print_function
 
 import sys
+from typing import List, Optional
 
 
-def run(args):
+def run(args: List[str]) -> None:
     assert len(args) == 1, "log_holder_comparison.txt"
 
     log_lines = open(args[0]).read().splitlines()
@@ -16,9 +15,9 @@ def run(args):
         header = None
         header_row = None
         data_row = None
-        data_row_buffer = []
+        data_row_buffer: List[List[str]] = []
 
-        def show():
+        def show() -> Optional[List[str]]:
             if header_row:
                 if header is None:
                     print(",".join(header_row))
@@ -39,6 +38,8 @@ def run(args):
             elif line.endswith(" call_repetitions"):
                 flds = line.split()
                 assert len(flds) == 2
+                assert header_row is not None
+                assert data_row is not None
                 header_row.append("calls")
                 data_row.append(flds[0])
                 header_row.append("up")
@@ -46,10 +47,13 @@ def run(args):
             elif line[2:].startswith(ratx):
                 flds = line.split()
                 assert len(flds) == 4
+                assert header_row is not None
+                assert data_row is not None
                 header_row.append(line[:2])
                 data_row.append(flds[2])
         show()
 
+        assert header_row is not None
         print("Scaled to last column:")
         print(",".join(header_row))
         for data_row in data_row_buffer:

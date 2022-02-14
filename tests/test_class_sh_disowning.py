@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
 import pytest
 
 from pybind11_tests import class_sh_disowning as m

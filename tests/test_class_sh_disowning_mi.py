@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
@@ -77,7 +76,7 @@ class MI1(m.Base1, m.Base2):
         m.Base2.__init__(self, j)
 
 
-class B1(object):
+class B1:
     def v(self):
         return 1
 
@@ -119,7 +118,7 @@ class B2(B1):
         return 2
 
 
-class B3(object):
+class B3:
     def v(self):
         return 3
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import pybind11_tests.class_sh_trampoline_self_life_support as m

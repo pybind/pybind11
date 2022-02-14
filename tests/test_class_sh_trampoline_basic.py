@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import class_sh_trampoline_basic as m
@@ -6,7 +5,7 @@ from pybind11_tests import class_sh_trampoline_basic as m
 
 class PyDrvd0(m.Abase0):
     def __init__(self, val):
-        super(PyDrvd0, self).__init__(val)
+        super().__init__(val)
 
     def Add(self, other_val):  # noqa:  N802
         return self.Get() * 100 + other_val
@@ -14,7 +13,7 @@ class PyDrvd0(m.Abase0):
 
 class PyDrvd1(m.Abase1):
     def __init__(self, val):
-        super(PyDrvd1, self).__init__(val)
+        super().__init__(val)
 
     def Add(self, other_val):  # noqa:  N802
         return self.Get() * 200 + other_val

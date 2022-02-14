@@ -1,6 +1,6 @@
-#include "pybind11_tests.h"
-
 #include <pybind11/smart_holder.h>
+
+#include "pybind11_tests.h"
 
 #include <memory>
 
@@ -27,67 +27,53 @@ struct HelperBase {
     virtual int get() const { return 100; }
 };
 
-struct Valid: public HelperBase {
+struct Valid : public HelperBase {
     int get() const override { return 101; }
 
-    PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_Valid() {
-      void* vptr = dynamic_cast<void*>(this);
-      capsule_generated = true;
-      // We assume vptr out lives the capsule, so we use nullptr for the
-      // destructor.
-      return PyCapsule_New(
-          vptr, "::pybind11_tests::class_sh_void_ptr_capsule::Valid",
-          nullptr);
+    PyObject *as_pybind11_tests_class_sh_void_ptr_capsule_Valid() {
+        void *vptr = dynamic_cast<void *>(this);
+        capsule_generated = true;
+        // We assume vptr out lives the capsule, so we use nullptr for the
+        // destructor.
+        return PyCapsule_New(vptr, "::pybind11_tests::class_sh_void_ptr_capsule::Valid", nullptr);
     }
 };
 
-struct NoConversion: public HelperBase {
+struct NoConversion : public HelperBase {
     int get() const override { return 102; }
 };
 
-struct NoCapsuleReturned: public HelperBase {
+struct NoCapsuleReturned : public HelperBase {
     int get() const override { return 103; }
 
-    PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned() {
-      capsule_generated = true;
-      Py_XINCREF(Py_None);
-      return Py_None;
+    PyObject *as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned() {
+        capsule_generated = true;
+        Py_XINCREF(Py_None);
+        return Py_None;
     }
 };
 
-struct AsAnotherObject: public HelperBase {
+struct AsAnotherObject : public HelperBase {
     int get() const override { return 104; }
 
-    PyObject* as_pybind11_tests_class_sh_void_ptr_capsule_Valid() {
-      void* vptr = dynamic_cast<void*>(this);
-      capsule_generated = true;
-      // We assume vptr out lives the capsule, so we use nullptr for the
-      // destructor.
-      return PyCapsule_New(
-          vptr, "::pybind11_tests::class_sh_void_ptr_capsule::Valid",
-          nullptr);
+    PyObject *as_pybind11_tests_class_sh_void_ptr_capsule_Valid() {
+        void *vptr = dynamic_cast<void *>(this);
+        capsule_generated = true;
+        // We assume vptr out lives the capsule, so we use nullptr for the
+        // destructor.
+        return PyCapsule_New(vptr, "::pybind11_tests::class_sh_void_ptr_capsule::Valid", nullptr);
     }
 };
 
-int get_from_valid_capsule(const Valid* c) {
-  return c->get();
-}
+int get_from_valid_capsule(const Valid *c) { return c->get(); }
 
-int get_from_shared_ptr_valid_capsule(const std::shared_ptr<Valid> &c) {
-  return c->get();
-}
+int get_from_shared_ptr_valid_capsule(const std::shared_ptr<Valid> &c) { return c->get(); }
 
-int get_from_unique_ptr_valid_capsule(std::unique_ptr<Valid> c) {
-  return c->get();
-}
+int get_from_unique_ptr_valid_capsule(std::unique_ptr<Valid> c) { return c->get(); }
 
-int get_from_no_conversion_capsule(const NoConversion* c) {
-  return c->get();
-}
+int get_from_no_conversion_capsule(const NoConversion *c) { return c->get(); }
 
-int get_from_no_capsule_returned(const NoCapsuleReturned* c) {
-  return c->get();
-}
+int get_from_no_capsule_returned(const NoCapsuleReturned *c) { return c->get(); }
 
 } // namespace class_sh_void_ptr_capsule
 } // namespace pybind11_tests
@@ -108,35 +94,33 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
 
     py::classh<Valid, HelperBase>(m, "Valid")
         .def(py::init<>())
-        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
-             [](HelperBase* self) {
-          auto obj = dynamic_cast<Valid *>(self);
-          assert(obj != nullptr);
-          PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
-          return pybind11::reinterpret_steal<py::capsule>(capsule);
+        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](HelperBase *self) {
+            auto obj = dynamic_cast<Valid *>(self);
+            assert(obj != nullptr);
+            PyObject *capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
+            return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
 
-    py::classh<NoConversion, HelperBase>(m, "NoConversion")
-        .def(py::init<>());
+    py::classh<NoConversion, HelperBase>(m, "NoConversion").def(py::init<>());
 
     py::classh<NoCapsuleReturned, HelperBase>(m, "NoCapsuleReturned")
         .def(py::init<>())
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned",
-             [](HelperBase* self) {
-          auto obj = dynamic_cast<NoCapsuleReturned *>(self);
-          assert(obj != nullptr);
-          PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
-          return pybind11::reinterpret_steal<py::capsule>(capsule);
-        });
+             [](HelperBase *self) {
+                 auto obj = dynamic_cast<NoCapsuleReturned *>(self);
+                 assert(obj != nullptr);
+                 PyObject *capsule
+                     = obj->as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
+                 return pybind11::reinterpret_steal<py::capsule>(capsule);
+             });
 
     py::classh<AsAnotherObject, HelperBase>(m, "AsAnotherObject")
         .def(py::init<>())
-        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
-             [](HelperBase* self) {
-          auto obj = dynamic_cast<AsAnotherObject *>(self);
-          assert(obj != nullptr);
-          PyObject* capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
-          return pybind11::reinterpret_steal<py::capsule>(capsule);
+        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](HelperBase *self) {
+            auto obj = dynamic_cast<AsAnotherObject *>(self);
+            assert(obj != nullptr);
+            PyObject *capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
+            return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
 
     m.def("get_from_valid_capsule", &get_from_valid_capsule);
