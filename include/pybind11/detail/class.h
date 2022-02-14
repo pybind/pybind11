@@ -66,8 +66,9 @@ inline PyTypeObject *make_static_property_type() {
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
     auto heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
-    if (!heap_type)
+    if (!heap_type) {
         pybind11_fail("make_static_property_type(): error allocating type!");
+    }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
 #ifdef PYBIND11_BUILTIN_QUALNAME
@@ -81,8 +82,9 @@ inline PyTypeObject *make_static_property_type() {
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
 
-    if (PyType_Ready(type) < 0)
+    if (PyType_Ready(type) < 0) {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
+    }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
@@ -209,19 +211,21 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         auto tindex = std::type_index(*tinfo->cpptype);
         internals.direct_conversions.erase(tindex);
 
-        if (tinfo->module_local)
+        if (tinfo->module_local) {
             get_local_internals().registered_types_cpp.erase(tindex);
-        else
+        } else {
             internals.registered_types_cpp.erase(tindex);
+        }
         internals.registered_types_py.erase(tinfo->type);
 
         // Actually just `std::erase_if`, but that's only available in C++20
         auto &cache = internals.inactive_override_cache;
         for (auto it = cache.begin(), last = cache.end(); it != last; ) {
-            if (it->first == (PyObject *) tinfo->type)
+            if (it->first == (PyObject *) tinfo->type) {
                 it = cache.erase(it);
-            else
+            } else {
                 ++it;
+            }
         }
 
         delete tinfo;
@@ -242,8 +246,9 @@ inline PyTypeObject* make_default_metaclass() {
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
     auto heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
-    if (!heap_type)
+    if (!heap_type) {
         pybind11_fail("make_default_metaclass(): error allocating metaclass!");
+    }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
 #ifdef PYBIND11_BUILTIN_QUALNAME
@@ -264,8 +269,9 @@ inline PyTypeObject* make_default_metaclass() {
 
     type->tp_dealloc = pybind11_meta_dealloc;
 
-    if (PyType_Ready(type) < 0)
+    if (PyType_Ready(type) < 0) {
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
+    }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
@@ -283,8 +289,9 @@ inline void traverse_offset_bases(void *valueptr, const detail::type_info *tinfo
             for (auto &c : parent_tinfo->implicit_casts) {
                 if (c.first == tinfo->cpptype) {
                     auto *parentptr = c.second(valueptr);
-                    if (parentptr != valueptr)
+                    if (parentptr != valueptr) {
                         f(parentptr, self);
+                    }
                     traverse_offset_bases(parentptr, parent_tinfo, self, f);
                     break;
                 }
@@ -311,14 +318,16 @@ inline bool deregister_instance_impl(void *ptr, instance *self) {
 
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo) {
     register_instance_impl(valptr, self);
-    if (!tinfo->simple_ancestors)
+    if (!tinfo->simple_ancestors) {
         traverse_offset_bases(valptr, tinfo, self, register_instance_impl);
+    }
 }
 
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo) {
     bool ret = deregister_instance_impl(valptr, self);
-    if (!tinfo->simple_ancestors)
+    if (!tinfo->simple_ancestors) {
         traverse_offset_bases(valptr, tinfo, self, deregister_instance_impl);
+    }
     return ret;
 }
 
@@ -377,8 +386,9 @@ inline void clear_patients(PyObject *self) {
     auto patients = std::move(pos->second);
     internals.patients.erase(pos);
     instance->has_patients = false;
-    for (PyObject *&patient : patients)
+    for (PyObject *&patient : patients) {
         Py_CLEAR(patient);
+    }
 }
 
 /// Clears all internal data from the instance and removes it from registered instances in
@@ -392,25 +402,32 @@ inline void clear_instance(PyObject *self) {
 
             // We have to deregister before we call dealloc because, for virtual MI types, we still
             // need to be able to get the parent pointers.
-            if (v_h.instance_registered() && !deregister_instance(instance, v_h.value_ptr(), v_h.type))
-                pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
+            if (v_h.instance_registered()
+                && !deregister_instance(instance, v_h.value_ptr(), v_h.type)) {
+                pybind11_fail(
+                    "pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
+            }
 
-            if (instance->owned || v_h.holder_constructed())
+            if (instance->owned || v_h.holder_constructed()) {
                 v_h.type->dealloc(v_h);
+            }
         }
     }
     // Deallocate the value/holder layout internals:
     instance->deallocate_layout();
 
-    if (instance->weakrefs)
+    if (instance->weakrefs) {
         PyObject_ClearWeakRefs(self);
+    }
 
     PyObject **dict_ptr = _PyObject_GetDictPtr(self);
-    if (dict_ptr)
+    if (dict_ptr) {
         Py_CLEAR(*dict_ptr);
+    }
 
-    if (instance->has_patients)
+    if (instance->has_patients) {
         clear_patients(self);
+    }
 }
 
 /// Instance destructor function for all pybind11 types. It calls `type_info.dealloc`
@@ -448,8 +465,9 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
     auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
-    if (!heap_type)
+    if (!heap_type) {
         pybind11_fail("make_object_base_type(): error allocating type!");
+    }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
 #ifdef PYBIND11_BUILTIN_QUALNAME
@@ -469,8 +487,9 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     /* Support weak references (needed for the keep_alive feature) */
     type->tp_weaklistoffset = offsetof(instance, weakrefs);
 
-    if (PyType_Ready(type) < 0)
+    if (PyType_Ready(type) < 0) {
         pybind11_fail("PyType_Ready failed in make_object_base_type():" + error_string());
+    }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
@@ -482,8 +501,9 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
 /// dynamic_attr: Support for `d = instance.__dict__`.
 extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
     PyObject *&dict = *_PyObject_GetDictPtr(self);
-    if (!dict)
+    if (!dict) {
         dict = PyDict_New();
+    }
     Py_XINCREF(dict);
     return dict;
 }
@@ -538,12 +558,14 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     type_info *tinfo = nullptr;
     for (auto type : reinterpret_borrow<tuple>(Py_TYPE(obj)->tp_mro)) {
         tinfo = get_type_info((PyTypeObject *) type.ptr());
-        if (tinfo && tinfo->get_buffer)
+        if (tinfo && tinfo->get_buffer) {
             break;
+        }
     }
     if (view == nullptr || !tinfo || !tinfo->get_buffer) {
-        if (view)
+        if (view) {
             view->obj = nullptr;
+        }
         PyErr_SetString(PyExc_BufferError, "pybind11_getbuffer(): Internal error");
         return -1;
     }
@@ -561,11 +583,13 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     view->buf = info->ptr;
     view->itemsize = info->itemsize;
     view->len = view->itemsize;
-    for (auto s : info->shape)
+    for (auto s : info->shape) {
         view->len *= s;
+    }
     view->readonly = static_cast<int>(info->readonly);
-    if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
+    if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
         view->format = const_cast<char *>(info->format.c_str());
+    }
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
         view->ndim = (int) info->ndim;
         view->strides = info->strides.data();
@@ -608,10 +632,11 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     object module_;
     if (rec.scope) {
-        if (hasattr(rec.scope, "__module__"))
+        if (hasattr(rec.scope, "__module__")) {
             module_ = rec.scope.attr("__module__");
-        else if (hasattr(rec.scope, "__name__"))
+        } else if (hasattr(rec.scope, "__name__")) {
             module_ = rec.scope.attr("__name__");
+        }
     }
 
     auto full_name = c_str(
@@ -642,8 +667,9 @@ inline PyObject* make_new_python_type(const type_record &rec) {
                                          : internals.default_metaclass;
 
     auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
-    if (!heap_type)
+    if (!heap_type) {
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
+    }
 
     heap_type->ht_name = name.release().ptr();
 #ifdef PYBIND11_BUILTIN_QUALNAME
@@ -655,8 +681,9 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     type->tp_doc = tp_doc;
     type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
-    if (!bases.empty())
+    if (!bases.empty()) {
         type->tp_bases = bases.release().ptr();
+    }
 
     /* Don't inherit base __init__ */
     type->tp_init = pybind11_object_init;
@@ -674,31 +701,38 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 #if PY_MAJOR_VERSION < 3
     type->tp_flags |= Py_TPFLAGS_CHECKTYPES;
 #endif
-    if (!rec.is_final)
+    if (!rec.is_final) {
         type->tp_flags |= Py_TPFLAGS_BASETYPE;
+    }
 
-    if (rec.dynamic_attr)
+    if (rec.dynamic_attr) {
         enable_dynamic_attributes(heap_type);
+    }
 
-    if (rec.buffer_protocol)
+    if (rec.buffer_protocol) {
         enable_buffer_protocol(heap_type);
+    }
 
-    if (rec.custom_type_setup_callback)
+    if (rec.custom_type_setup_callback) {
         rec.custom_type_setup_callback(heap_type);
+    }
 
-    if (PyType_Ready(type) < 0)
+    if (PyType_Ready(type) < 0) {
         pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
+    }
 
     assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */
-    if (rec.scope)
+    if (rec.scope) {
         setattr(rec.scope, rec.name, (PyObject *) type);
-    else
+    } else {
         Py_INCREF(type); // Keep it alive forever (reference leak)
+    }
 
-    if (module_) // Needed by pydoc
+    if (module_) { // Needed by pydoc
         setattr((PyObject *) type, "__module__", module_);
+    }
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
 

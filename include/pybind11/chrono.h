@@ -46,7 +46,9 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        if (!src) return false;
+        if (!src) {
+            return false;
+        }
         // If invoked with datetime.delta object
         if (PyDelta_Check(src.ptr())) {
             value = type(duration_cast<duration<rep, period>>(
@@ -124,7 +126,9 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        if (!src) return false;
+        if (!src) {
+            return false;
+        }
 
         std::tm cal;
         microseconds msecs;
@@ -156,8 +160,9 @@ public:
             cal.tm_year  = 70;  // earliest available date for Python's datetime
             cal.tm_isdst = -1;
             msecs        = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
+        } else {
+            return false;
         }
-        else return false;
 
         value = time_point_cast<Duration>(system_clock::from_time_t(std::mktime(&cal)) + msecs);
         return true;
@@ -173,8 +178,9 @@ public:
         // (cfr. https://github.com/pybind/pybind11/issues/2417)
         using us_t = duration<int, std::micro>;
         auto us = duration_cast<us_t>(src.time_since_epoch() % seconds(1));
-        if (us.count() < 0)
+        if (us.count() < 0) {
             us += seconds(1);
+        }
 
         // Subtract microseconds BEFORE `system_clock::to_time_t`, because:
         // > If std::time_t has lower precision, it is implementation-defined whether the value is rounded or truncated.
@@ -183,8 +189,9 @@ public:
 
         std::tm localtime;
         std::tm *localtime_ptr = localtime_thread_safe(&tt, &localtime);
-        if (!localtime_ptr)
+        if (!localtime_ptr) {
             throw cast_error("Unable to represent system_clock in local time");
+        }
         return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
                                           localtime.tm_mon + 1,
                                           localtime.tm_mday,
