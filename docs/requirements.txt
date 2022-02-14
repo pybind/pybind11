@@ -1,5 +1,5 @@
-breathe==4.31.0
-sphinx==3.5.4
+breathe==4.32.0
+sphinx==4.4.0
 sphinx_rtd_theme==1.0.0
-sphinxcontrib-moderncmakedomain==3.19
-sphinxcontrib-svg2pdfconverter==1.1.1
+sphinxcontrib-moderncmakedomain==3.21.4
+sphinxcontrib-svg2pdfconverter==1.2.0

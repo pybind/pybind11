@@ -800,7 +800,7 @@ Packaging / building improvements:
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
 
-  * Full integration with CMake’s C++ standard system and compile features
+  * Full integration with CMake's C++ standard system and compile features
     replaces ``PYBIND11_CPP_STANDARD``.
 
   * Generated config file is now portable to different Python/compiler/CMake
