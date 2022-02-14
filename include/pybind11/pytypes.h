@@ -398,7 +398,7 @@ public:
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (...) {
-                return "Unknown internal error occurred";
+                m_lazy_what = "Unknown internal error occurred";
             }
         }
         return m_lazy_what.c_str();
