@@ -822,7 +822,7 @@ struct is_template_base_of_impl {
 /// Check if a template is the base of a type. For example:
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template <typename...> class Base, typename T>
-#if !defined(_MSC_VER) // Sadly, all MSVC versions incl. 2022 need this.
+#if defined(PYBIND11_CPP20) || !defined(_MSC_VER) // Sadly, all MSVC versions incl. 2022 need this.
 using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
 #else
