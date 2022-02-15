@@ -59,7 +59,7 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.1.11"
+  rev: "v1.1.12"
   hooks:
   - id: remove-tabs
 

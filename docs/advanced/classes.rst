@@ -1118,13 +1118,6 @@ described trampoline:
     py::class_<A, Trampoline>(m, "A") // <-- `Trampoline` here
         .def("foo", &Publicist::foo); // <-- `Publicist` here, not `Trampoline`!
 
-.. note::
-
-    MSVC 2015 has a compiler bug (fixed in version 2017) which
-    requires a more explicit function binding in the form of
-    ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
-    where ``int (A::*)() const`` is the type of ``A::foo``.
-
 Binding final classes
 =====================
 
