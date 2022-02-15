@@ -59,7 +59,7 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.1.11"
+  rev: "v1.1.12"
   hooks:
   - id: remove-tabs
 
@@ -87,22 +87,29 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
-# Flake8 also supports pre-commit natively (same author)
-- repo: https://github.com/PyCQA/flake8
-  rev: "4.0.1"
-  hooks:
-  - id: flake8
-    additional_dependencies: &flake8_dependencies
-      - flake8-bugbear
-      - pep8-naming
-    exclude: ^(docs/.*|tools/.*)$
-
 # Automatically remove noqa that are not used
 - repo: https://github.com/asottile/yesqa
   rev: "v1.3.0"
   hooks:
   - id: yesqa
+    additional_dependencies: &flake8_dependencies
+      - flake8-bugbear
+      - pep8-naming
+
+# Flake8 also supports pre-commit natively (same author)
+- repo: https://github.com/PyCQA/flake8
+  rev: "4.0.1"
+  hooks:
+  - id: flake8
+    exclude: ^(docs/.*|tools/.*)$
     additional_dependencies: *flake8_dependencies
+
+# PyLint has native support - not always usable, but works for us
+- repo: https://github.com/PyCQA/pylint
+  rev: "v2.12.2"
+  hooks:
+  - id: pylint
+    files: ^pybind11
 
 # CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit
