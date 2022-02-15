@@ -45,7 +45,7 @@ jobs:
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
-              -DCMAKE_CXX_FLAGS="-D_=1"
+# BREAKS      -DCMAKE_CXX_FLAGS="-D_=1"
           - runs-on: windows-latest
             python: '3.6'
             args: >
