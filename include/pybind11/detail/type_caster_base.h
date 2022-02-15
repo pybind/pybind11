@@ -479,7 +479,7 @@ PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyOb
     result += ": ";
 
     if (value) {
-        result += str(value).cast<std::string>();
+        result += (std::string) str(value);
     }
 
     if (trace) {
@@ -517,6 +517,9 @@ PYBIND11_NOINLINE std::string error_string() {
     error_scope scope; // Preserve error state.
     if (scope.type) {
         PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+        /*if (scope.trace != nullptr){
+            PyErr_SetTraceback(scope.value, scope.trace);
+        }*/
     }
     return error_string(scope.type, scope.value, scope.trace);
 }

@@ -12,6 +12,7 @@
 #include "detail/common.h"
 #include "buffer_info.h"
 
+#include <exception>
 #include <type_traits>
 #include <utility>
 
@@ -397,9 +398,15 @@ public:
     inline ~error_already_set() override;
 
     const char *what() const noexcept override {
-        if (m_lazy_what.empty() && m_type) {
+        if (m_lazy_what.empty()) {
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+            } catch (const std::exception &e) {
+                m_lazy_what
+                    = std::string(
+                          "Unknown internal error occurred while constructing error_string:")
+                      + e.what();
+                return m_lazy_what.c_str();
             } catch (...) {
                 m_lazy_what = "Unknown internal error occurred";
             }
