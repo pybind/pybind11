@@ -49,14 +49,14 @@ inline void replace_all(std::string &str, const std::string &from, char to) {
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
 // vice versa. The main difference is that the original code only propagates a reference to the
 // held value, while the modified implementation propagates value_and_holder.
-// clang-format off
 class modified_type_caster_generic_load_impl {
 public:
-    PYBIND11_NOINLINE explicit modified_type_caster_generic_load_impl(const std::type_info &type_info)
-        : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
+    PYBIND11_NOINLINE explicit modified_type_caster_generic_load_impl(
+        const std::type_info &type_info)
+        : typeinfo(get_type_info(type_info)), cpptype(&type_info) {}
 
     explicit modified_type_caster_generic_load_impl(const type_info *typeinfo = nullptr)
-        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) { }
+        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) {}
 
     bool load(handle src, bool convert) {
         return load_impl<modified_type_caster_generic_load_impl>(src, convert);
@@ -75,14 +75,13 @@ public:
                 if (type->operator_new) {
                     vptr = type->operator_new(type->type_size);
                 } else {
-                    #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-                        if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-                            vptr = ::operator new(type->type_size,
-                                                  std::align_val_t(type->type_align));
-                        } else {
-                    #endif
-                    vptr = ::operator new(type->type_size);
-}
+#if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+                        vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
+                    } else {
+#endif
+                        vptr = ::operator new(type->type_size);
+                    }
                 }
             }
             // type_caster_generic::load_value END
@@ -128,14 +127,13 @@ public:
         std::string as_void_ptr_function_name("as_");
         as_void_ptr_function_name += type_name;
         if (hasattr(src, as_void_ptr_function_name.c_str())) {
-          auto as_void_ptr_function = function(
-              src.attr(as_void_ptr_function_name.c_str()));
-          auto void_ptr_capsule = as_void_ptr_function();
-          if (isinstance<capsule>(void_ptr_capsule)) {
-            unowned_void_ptr_from_void_ptr_capsule = reinterpret_borrow<capsule>(
-                void_ptr_capsule).get_pointer();
-            return true;
-          }
+            auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
+            auto void_ptr_capsule = as_void_ptr_function();
+            if (isinstance<capsule>(void_ptr_capsule)) {
+                unowned_void_ptr_from_void_ptr_capsule
+                    = reinterpret_borrow<capsule>(void_ptr_capsule).get_pointer();
+                return true;
+            }
         }
         return false;
     }
@@ -160,32 +158,33 @@ public:
         const auto pytype = type::handle_of(src);
         if (!hasattr(pytype, local_key)) {
             return false;
-}
+        }
 
         type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
-        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp type
+        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp
+        // type
         if (foreign_typeinfo->module_local_load == &local_load
             || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
             return false;
-}
+        }
 
-        void* foreign_loader_void_ptr =
-            foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
+        void *foreign_loader_void_ptr
+            = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
         if (foreign_loader_void_ptr != nullptr) {
             auto foreign_loader = std::unique_ptr<modified_type_caster_generic_load_impl>(
                 static_cast<modified_type_caster_generic_load_impl *>(foreign_loader_void_ptr));
             // Magic number intentionally hard-coded for simplicity and maximum robustness.
             if (foreign_loader->local_load_safety_guard != 1887406645) {
-                pybind11_fail(
-                    "smart_holder_type_casters: Unexpected local_load_safety_guard,"
-                    " possibly due to py::class_ holder mixup.");
+                pybind11_fail("smart_holder_type_casters: Unexpected local_load_safety_guard,"
+                              " possibly due to py::class_ holder mixup.");
             }
             if (loaded_v_h_cpptype != nullptr) {
                 pybind11_fail("smart_holder_type_casters: try_load_foreign_module_local failure.");
             }
             loaded_v_h = foreign_loader->loaded_v_h;
             loaded_v_h_cpptype = foreign_loader->loaded_v_h_cpptype;
-            implicit_casts = foreign_loader->implicit_casts; // SMART_HOLDER_WIP: should this be a copy or move?
+            // SMART_HOLDER_WIP: should this be a copy or move?
+            implicit_casts = foreign_loader->implicit_casts;
             return true;
         }
         return false;
@@ -196,13 +195,15 @@ public:
     // logic (without having to resort to virtual inheritance).
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
-        if (!src) { return false;
-}
-        if (cpptype && try_as_void_ptr_capsule(src)) {
-          return true;
+        if (!src) {
+            return false;
         }
-        if (!typeinfo) { return try_load_foreign_module_local(src);
-}
+        if (cpptype && try_as_void_ptr_capsule(src)) {
+            return true;
+        }
+        if (!typeinfo) {
+            return try_load_foreign_module_local(src);
+        }
 
         auto &this_ = static_cast<ThisT &>(*this);
 
@@ -211,7 +212,8 @@ public:
         // Case 1: If src is an exact type match for the target type then we can reinterpret_cast
         // the instance's value pointer to the target type:
         if (srctype == typeinfo->type) {
-            this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+            this_.load_value_and_holder(
+                reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
             return true;
         }
         // Case 2: We have a derived class
@@ -226,18 +228,21 @@ public:
             // is extremely common, we handle it specially to avoid the loop iterator and type
             // pointer lookup overhead)
             if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
-                this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+                this_.load_value_and_holder(
+                    reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
                 loaded_v_h_cpptype = bases.front()->cpptype;
                 reinterpret_cast_deemed_ok = true;
                 return true;
             }
-            // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
-            // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
-            // can safely reinterpret_cast to the relevant pointer.
+            // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see
+            // if we can find an exact match (or, for a simple C++ type, an inherited match); if
+            // so, we can safely reinterpret_cast to the relevant pointer.
             if (bases.size() > 1) {
                 for (auto *base : bases) {
-                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
-                        this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type)
+                                  : base->type == typeinfo->type) {
+                        this_.load_value_and_holder(
+                            reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
                         loaded_v_h_cpptype = base->cpptype;
                         reinterpret_cast_deemed_ok = true;
                         return true;
@@ -245,9 +250,9 @@ public:
                 }
             }
 
-            // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type match
-            // in the registered bases, above, so try implicit casting (needed for proper C++ casting
-            // when MI is involved).
+            // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type
+            // match in the registered bases, above, so try implicit casting (needed for proper C++
+            // casting when MI is involved).
             if (this_.try_implicit_casts(src, convert)) {
                 return true;
             }
@@ -264,7 +269,7 @@ public:
             }
             if (this_.try_direct_conversions(src)) {
                 return true;
-}
+            }
         }
 
         // Failed to match local typeinfo. Try again with global.
@@ -278,12 +283,13 @@ public:
         // Global typeinfo has precedence over foreign module_local
         if (try_load_foreign_module_local(src)) {
             return true;
-}
+        }
 
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) { return false;
-}
+            if (!convert) {
+                return false;
+            }
             loaded_v_h = value_and_holder();
             return true;
         }
@@ -296,7 +302,7 @@ public:
     void *unowned_void_ptr_from_direct_conversion = nullptr;
     void *unowned_void_ptr_from_void_ptr_capsule = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
-    std::vector<void *(*)(void *)> implicit_casts;
+    std::vector<void *(*) (void *)> implicit_casts;
     value_and_holder loaded_v_h;
     bool reinterpret_cast_deemed_ok = false;
     // Magic number intentionally hard-coded, to guard against class_ holder mixups.
@@ -305,7 +311,6 @@ public:
     // set/reset this value in ctor/dtor, mark volatile.
     std::size_t local_load_safety_guard = 1887406645; // 32-bit compatible value for portability.
 };
-// clang-format on
 
 struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag {
     static decltype(&modified_type_caster_generic_load_impl::local_load)
@@ -613,20 +618,17 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 
     static handle cast(T &&src, return_value_policy /*policy*/, handle parent) {
         // type_caster_base BEGIN
-        // clang-format off
         return cast(&src, return_value_policy::move, parent);
-        // clang-format on
         // type_caster_base END
     }
 
     static handle cast(T const &src, return_value_policy policy, handle parent) {
         // type_caster_base BEGIN
-        // clang-format off
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference) {
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
-}
+        }
         return cast(&src, policy, parent);
-        // clang-format on
         // type_caster_base END
     }
 
