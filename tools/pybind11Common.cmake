@@ -353,12 +353,12 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       set_property(
         TARGET ${target}
         APPEND
-        PROPERTY INTERFACE_LINK_LIBRARIES "$<${not_debug}:${PYBIND11_LTO_LINKER_FLAGS}>")
+        PROPERTY INTERFACE_LINK_LIBRARIES "$<${genex}:${PYBIND11_LTO_LINKER_FLAGS}>")
     else()
       set_property(
         TARGET ${target}
         APPEND
-        PROPERTY INTERFACE_LINK_OPTIONS "$<${not_debug}:${PYBIND11_LTO_LINKER_FLAGS}>")
+        PROPERTY INTERFACE_LINK_OPTIONS "$<${genex}:${PYBIND11_LTO_LINKER_FLAGS}>")
     endif()
   endif()
 endfunction()
