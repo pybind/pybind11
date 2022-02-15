@@ -108,19 +108,19 @@ def test_build_sdist(monkeypatch, tmpdir):
     out = subprocess.check_output(
         [
             sys.executable,
-            "setup.py",
-            "sdist",
-            "--formats=tar",
-            "--dist-dir",
+            "-m",
+            "build",
+            "--sdist",
+            "--outdir",
             str(tmpdir),
         ]
     )
     if hasattr(out, "decode"):
         out = out.decode()
 
-    (sdist,) = tmpdir.visit("*.tar")
+    (sdist,) = tmpdir.visit("*.tar.gz")
 
-    with tarfile.open(str(sdist)) as tar:
+    with tarfile.open(str(sdist), "r:gz") as tar:
         start = tar.getnames()[0] + "/"
         version = start[9:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
@@ -169,23 +169,23 @@ def test_build_global_dist(monkeypatch, tmpdir):
 
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
-
     out = subprocess.check_output(
         [
             sys.executable,
-            "setup.py",
-            "sdist",
-            "--formats=tar",
-            "--dist-dir",
+            "-m",
+            "build",
+            "--sdist",
+            "--outdir",
             str(tmpdir),
         ]
     )
+
     if hasattr(out, "decode"):
         out = out.decode()
 
-    (sdist,) = tmpdir.visit("*.tar")
+    (sdist,) = tmpdir.visit("*.tar.gz")
 
-    with tarfile.open(str(sdist)) as tar:
+    with tarfile.open(str(sdist), "r:gz") as tar:
         start = tar.getnames()[0] + "/"
         version = start[16:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
