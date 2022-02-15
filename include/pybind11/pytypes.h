@@ -409,6 +409,7 @@ public:
                 return m_lazy_what.c_str();
             } catch (...) {
                 m_lazy_what = "Unknown internal error occurred";
+                return m_lazy_what.c_str();
             }
         }
         return m_lazy_what.c_str();
