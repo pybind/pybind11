@@ -835,7 +835,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=OFF
+        -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
 
     - name: Build C++20
