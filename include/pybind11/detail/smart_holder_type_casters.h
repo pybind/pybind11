@@ -79,9 +79,11 @@ public:
                     if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
                         vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
                     } else {
-#endif
                         vptr = ::operator new(type->type_size);
                     }
+#else
+                    vptr = ::operator new(type->type_size);
+#endif
                 }
             }
             // type_caster_generic::load_value END
