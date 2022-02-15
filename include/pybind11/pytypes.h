@@ -397,7 +397,7 @@ public:
     inline ~error_already_set() override;
 
     const char *what() const noexcept override {
-        if (m_lazy_what.empty()) {
+        if (m_lazy_what.empty() && m_type) {
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (...) {
