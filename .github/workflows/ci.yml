@@ -712,7 +712,7 @@ jobs:
 
         include:
           - python: 3.9
-            args: -DCMAKE_CXX_STANDARD=20 -DDOWNLOAD_EIGEN=OFF
+            args: -DCMAKE_CXX_STANDARD=20 -DDOWNLOAD_EIGEN=ON
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
 
