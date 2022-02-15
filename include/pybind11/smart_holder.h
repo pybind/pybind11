@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include "pybind11.h"
 #include "detail/common.h"
 #include "detail/smart_holder_type_casters.h"
-#include "pybind11.h"
 
 #undef PYBIND11_SH_AVL // Undoing #define in pybind11.h
 

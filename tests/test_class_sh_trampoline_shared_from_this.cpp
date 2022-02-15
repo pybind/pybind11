@@ -57,13 +57,15 @@ struct SftSharedPtrStash {
         stash.push_back(sft);
     }
     std::string history(unsigned i) {
-        if (i < stash.size())
+        if (i < stash.size()) {
             return stash[i]->history;
+        }
         return "OutOfRange";
     }
     long use_count(unsigned i) {
-        if (i < stash.size())
+        if (i < stash.size()) {
             return stash[i].use_count();
+        }
         return -1;
     }
 };

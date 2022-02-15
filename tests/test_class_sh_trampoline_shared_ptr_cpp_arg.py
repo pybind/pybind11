@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import pybind11_tests.class_sh_trampoline_shared_ptr_cpp_arg as m
@@ -136,7 +135,7 @@ def test_infinite():
 def test_std_make_shared_factory():
     class PyChild(m.SpBase):
         def __init__(self):
-            super(PyChild, self).__init__(0)
+            super().__init__(0)
 
     obj = PyChild()
     while True:

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 """Extract mean ratios from holder_comparison.py output."""
 
-from __future__ import absolute_import, division, print_function
 
 import sys
 from typing import List, Optional

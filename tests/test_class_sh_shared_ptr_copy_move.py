@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from pybind11_tests import class_sh_shared_ptr_copy_move as m
 
 
@@ -25,8 +23,8 @@ def test_smhld_move():
 
 def _check_property(foo_typ, prop_typ, policy):
     o = m.Outer()
-    name = "{}_{}_{}".format(foo_typ, prop_typ, policy)
-    history = "Foo{}_Outer".format(foo_typ)
+    name = f"{foo_typ}_{prop_typ}_{policy}"
+    history = f"Foo{foo_typ}_Outer"
     f = getattr(o, name)
     assert f.get_history() == history
     # and try again to check that o did not get changed

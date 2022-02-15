@@ -74,8 +74,9 @@ struct guarded_delete {
     guarded_delete(void (*del_ptr)(void *), bool armed_flag)
         : del_ptr{del_ptr}, armed_flag{armed_flag} {}
     void operator()(void *raw_ptr) const {
-        if (armed_flag)
+        if (armed_flag) {
             (*del_ptr)(raw_ptr);
+        }
     }
 };
 
@@ -138,9 +139,10 @@ struct smart_holder {
 
     template <typename T>
     static void ensure_pointee_is_destructible(const char *context) {
-        if (!std::is_destructible<T>::value)
+        if (!std::is_destructible<T>::value) {
             throw std::invalid_argument(std::string("Pointee is not destructible (") + context
                                         + ").");
+        }
     }
 
     void ensure_is_populated(const char *context) const {
@@ -207,7 +209,7 @@ struct smart_holder {
     }
 
     void reset_vptr_deleter_armed_flag(bool armed_flag) const {
-        auto vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
+        auto *vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
         if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
@@ -249,10 +251,11 @@ struct smart_holder {
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
         auto gd = make_guarded_builtin_delete<T>(true);
-        if (void_cast_raw_ptr)
+        if (void_cast_raw_ptr) {
             hld.vptr.reset(static_cast<void *>(raw_ptr), std::move(gd));
-        else
+        } else {
             hld.vptr.reset(raw_ptr, std::move(gd));
+        }
         hld.vptr_is_using_builtin_delete = true;
         hld.is_populated = true;
         return hld;
@@ -301,14 +304,16 @@ struct smart_holder {
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
         guarded_delete gd{nullptr, false};
-        if (hld.vptr_is_using_builtin_delete)
+        if (hld.vptr_is_using_builtin_delete) {
             gd = make_guarded_builtin_delete<T>(true);
-        else
+        } else {
             gd = make_guarded_custom_deleter<T, D>(true);
-        if (void_cast_raw_ptr)
+        }
+        if (void_cast_raw_ptr) {
             hld.vptr.reset(static_cast<void *>(unq_ptr.get()), std::move(gd));
-        else
+        } else {
             hld.vptr.reset(unq_ptr.get(), std::move(gd));
+        }
         (void) unq_ptr.release();
         hld.is_populated = true;
         return hld;

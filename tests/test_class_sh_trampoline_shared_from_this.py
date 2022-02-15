@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 import weakref
 
@@ -220,7 +219,7 @@ WORKAROUND_ENABLING_ROLLBACK_OF_PR3068 = env.LINUX and sys.version_info == (3, 9
 def test_std_make_shared_factory():
     class PySftMakeShared(m.Sft):
         def __init__(self, history):
-            super(PySftMakeShared, self).__init__(history, 0)
+            super().__init__(history, 0)
 
     obj = PySftMakeShared("PySftMakeShared")
     assert obj.history == "PySftMakeShared"

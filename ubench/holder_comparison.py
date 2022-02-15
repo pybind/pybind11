@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 """Simple comparison of holder performances, relative to unique_ptr holder."""
 
-from __future__ import absolute_import, division, print_function
 import collections
 import sys
 import time
@@ -74,7 +72,7 @@ def run(args: List[str]) -> None:
     for size_exponent in range(
         size_exponent_min, size_exponent_max + 1, size_exponent_step
     ):
-        data_size = 2 ** size_exponent
+        data_size = 2**size_exponent
         pflush(data_size, "data_size")
         ratios: Dict[str, List[float]] = collections.defaultdict(list)
         call_repetitions = None

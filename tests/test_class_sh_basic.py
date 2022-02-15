@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Importing re before pytest after observing a PyPy CI flake when importing pytest first.
 import re
 

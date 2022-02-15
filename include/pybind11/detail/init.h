@@ -206,9 +206,10 @@ void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, 
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = unq_ptr.get();
     no_nullptr(ptr);
-    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr))
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
         throw type_error("pybind11::init(): construction failed: returned std::unique_ptr pointee "
                          "is not an alias instance");
+    }
     // Here and below: if the new object is a trampoline, the shared_from_this mechanism needs
     // to be prevented from accessing the smart_holder vptr, because it does not keep the
     // trampoline Python object alive. For types that don't inherit from enable_shared_from_this
@@ -242,9 +243,10 @@ void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, boo
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = shd_ptr.get();
     no_nullptr(ptr);
-    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr))
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
         throw type_error("pybind11::init(): construction failed: returned std::shared_ptr pointee "
                          "is not an alias instance");
+    }
     auto smhldr = type_caster<Cpp<Class>>::template smart_holder_from_shared_ptr(shd_ptr);
     v_h.value_ptr() = ptr;
     v_h.type->init_instance(v_h.inst, &smhldr);

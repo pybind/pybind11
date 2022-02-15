@@ -38,7 +38,7 @@ inline void register_instance(instance *self, void *valptr, const type_info *tin
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
 // Replace all occurrences of a character in string.
-inline void replace_all(std::string& str, const std::string& from, char to) {
+inline void replace_all(std::string &str, const std::string &from, char to) {
     size_t pos = str.find(from);
     while (pos != std::string::npos) {
         str.replace(pos, from.length(), 1, to);
@@ -51,11 +51,12 @@ inline void replace_all(std::string& str, const std::string& from, char to) {
 // held value, while the modified implementation propagates value_and_holder.
 class modified_type_caster_generic_load_impl {
 public:
-    PYBIND11_NOINLINE explicit modified_type_caster_generic_load_impl(const std::type_info &type_info)
-        : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
+    PYBIND11_NOINLINE explicit modified_type_caster_generic_load_impl(
+        const std::type_info &type_info)
+        : typeinfo(get_type_info(type_info)), cpptype(&type_info) {}
 
     explicit modified_type_caster_generic_load_impl(const type_info *typeinfo = nullptr)
-        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) { }
+        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) {}
 
     bool load(handle src, bool convert) {
         return load_impl<modified_type_caster_generic_load_impl>(src, convert);
@@ -70,20 +71,19 @@ public:
             // Lazy allocation for unallocated values:
             if (vptr == nullptr) {
                 // Lazy allocation for unallocated values:
-                auto *type = v_h.type ? v_h.type : typeinfo;
+                const auto *type = v_h.type ? v_h.type : typeinfo;
                 if (type->operator_new) {
                     vptr = type->operator_new(type->type_size);
                 } else {
-                    #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-                        if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-                            vptr = ::operator new(type->type_size,
-                                                  std::align_val_t(type->type_align));
-                        } else {
-                            vptr = ::operator new(type->type_size);
-                        }
-                    #else
+#if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+                        vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
+                    } else {
                         vptr = ::operator new(type->type_size);
-                    #endif
+                    }
+#else
+                    vptr = ::operator new(type->type_size);
+#endif
                 }
             }
             // type_caster_generic::load_value END
@@ -93,7 +93,7 @@ public:
     }
 
     bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
+        for (const auto &cast : typeinfo->implicit_casts) {
             modified_type_caster_generic_load_impl sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 if (loaded_v_h_cpptype != nullptr) {
@@ -129,14 +129,13 @@ public:
         std::string as_void_ptr_function_name("as_");
         as_void_ptr_function_name += type_name;
         if (hasattr(src, as_void_ptr_function_name.c_str())) {
-          auto as_void_ptr_function = function(
-              src.attr(as_void_ptr_function_name.c_str()));
-          auto void_ptr_capsule = as_void_ptr_function();
-          if (isinstance<capsule>(void_ptr_capsule)) {
-            unowned_void_ptr_from_void_ptr_capsule = reinterpret_borrow<capsule>(
-                void_ptr_capsule).get_pointer();
-            return true;
-          }
+            auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
+            auto void_ptr_capsule = as_void_ptr_function();
+            if (isinstance<capsule>(void_ptr_capsule)) {
+                unowned_void_ptr_from_void_ptr_capsule
+                    = reinterpret_borrow<capsule>(void_ptr_capsule).get_pointer();
+                return true;
+            }
         }
         return false;
     }
@@ -159,25 +158,27 @@ public:
     PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = type::handle_of(src);
-        if (!hasattr(pytype, local_key))
+        if (!hasattr(pytype, local_key)) {
             return false;
+        }
 
         type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
-        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp type
+        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp
+        // type
         if (foreign_typeinfo->module_local_load == &local_load
-            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype)))
+            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
             return false;
+        }
 
-        void* foreign_loader_void_ptr =
-            foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
+        void *foreign_loader_void_ptr
+            = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
         if (foreign_loader_void_ptr != nullptr) {
             auto foreign_loader = std::unique_ptr<modified_type_caster_generic_load_impl>(
                 static_cast<modified_type_caster_generic_load_impl *>(foreign_loader_void_ptr));
             // Magic number intentionally hard-coded for simplicity and maximum robustness.
             if (foreign_loader->local_load_safety_guard != 1887406645) {
-                pybind11_fail(
-                    "smart_holder_type_casters: Unexpected local_load_safety_guard,"
-                    " possibly due to py::class_ holder mixup.");
+                pybind11_fail("smart_holder_type_casters: Unexpected local_load_safety_guard,"
+                              " possibly due to py::class_ holder mixup.");
             }
             if (loaded_v_h_cpptype != nullptr) {
                 pybind11_fail("smart_holder_type_casters: try_load_foreign_module_local failure.");
@@ -196,11 +197,15 @@ public:
     // logic (without having to resort to virtual inheritance).
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
-        if (!src) return false;
-        if (cpptype && try_as_void_ptr_capsule(src)) {
-          return true;
+        if (!src) {
+            return false;
         }
-        if (!typeinfo) return try_load_foreign_module_local(src);
+        if (cpptype && try_as_void_ptr_capsule(src)) {
+            return true;
+        }
+        if (!typeinfo) {
+            return try_load_foreign_module_local(src);
+        }
 
         auto &this_ = static_cast<ThisT &>(*this);
 
@@ -209,12 +214,13 @@ public:
         // Case 1: If src is an exact type match for the target type then we can reinterpret_cast
         // the instance's value pointer to the target type:
         if (srctype == typeinfo->type) {
-            this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+            this_.load_value_and_holder(
+                reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
             return true;
         }
         // Case 2: We have a derived class
         if (PyType_IsSubtype(srctype, typeinfo->type)) {
-            auto &bases = all_type_info(srctype); // subtype bases
+            const auto &bases = all_type_info(srctype); // subtype bases
             bool no_cpp_mi = typeinfo->simple_type;
 
             // Case 2a: the python type is a Python-inherited derived class that inherits from just
@@ -224,18 +230,21 @@ public:
             // is extremely common, we handle it specially to avoid the loop iterator and type
             // pointer lookup overhead)
             if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
-                this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+                this_.load_value_and_holder(
+                    reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
                 loaded_v_h_cpptype = bases.front()->cpptype;
                 reinterpret_cast_deemed_ok = true;
                 return true;
             }
-            // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
-            // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
-            // can safely reinterpret_cast to the relevant pointer.
+            // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see
+            // if we can find an exact match (or, for a simple C++ type, an inherited match); if
+            // so, we can safely reinterpret_cast to the relevant pointer.
             if (bases.size() > 1) {
-                for (auto base : bases) {
-                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
-                        this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                for (auto *base : bases) {
+                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type)
+                                  : base->type == typeinfo->type) {
+                        this_.load_value_and_holder(
+                            reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
                         loaded_v_h_cpptype = base->cpptype;
                         reinterpret_cast_deemed_ok = true;
                         return true;
@@ -243,9 +252,9 @@ public:
                 }
             }
 
-            // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type match
-            // in the registered bases, above, so try implicit casting (needed for proper C++ casting
-            // when MI is involved).
+            // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type
+            // match in the registered bases, above, so try implicit casting (needed for proper C++
+            // casting when MI is involved).
             if (this_.try_implicit_casts(src, convert)) {
                 return true;
             }
@@ -253,32 +262,36 @@ public:
 
         // Perform an implicit conversion
         if (convert) {
-            for (auto &converter : typeinfo->implicit_conversions) {
+            for (const auto &converter : typeinfo->implicit_conversions) {
                 auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
                 if (load_impl<ThisT>(temp, false)) {
                     loader_life_support::add_patient(temp);
                     return true;
                 }
             }
-            if (this_.try_direct_conversions(src))
+            if (this_.try_direct_conversions(src)) {
                 return true;
+            }
         }
 
         // Failed to match local typeinfo. Try again with global.
         if (typeinfo->module_local) {
-            if (auto gtype = get_global_type_info(*typeinfo->cpptype)) {
+            if (auto *gtype = get_global_type_info(*typeinfo->cpptype)) {
                 typeinfo = gtype;
                 return load(src, false);
             }
         }
 
         // Global typeinfo has precedence over foreign module_local
-        if (try_load_foreign_module_local(src))
+        if (try_load_foreign_module_local(src)) {
             return true;
+        }
 
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) return false;
+            if (!convert) {
+                return false;
+            }
             loaded_v_h = value_and_holder();
             return true;
         }
@@ -291,7 +304,7 @@ public:
     void *unowned_void_ptr_from_direct_conversion = nullptr;
     void *unowned_void_ptr_from_void_ptr_capsule = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
-    std::vector<void *(*)(void *)> implicit_casts;
+    std::vector<void *(*) (void *)> implicit_casts;
     value_and_holder loaded_v_h;
     bool reinterpret_cast_deemed_ok = false;
     // Magic number intentionally hard-coded, to guard against class_ holder mixups.
@@ -326,8 +339,9 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         const std::enable_shared_from_this<SomeBaseOfWrappedType> *) {
         auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
             detail::try_get_shared_from_this(value_ptr_w_t));
-        if (!shd_ptr)
+        if (!shd_ptr) {
             return false;
+        }
         // Note: inst->owned ignored.
         new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
         return true;
@@ -337,20 +351,20 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
         // void (*init_instance)(instance *, const void *);
-        auto holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
+        auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
 
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(WrappedType)));
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
         }
-        auto uninitialized_location = std::addressof(v_h.holder<holder_type>());
-        auto value_ptr_w_t = v_h.value_ptr<WrappedType>();
+        auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
+        auto *value_ptr_w_t = v_h.value_ptr<WrappedType>();
         bool pointee_depends_on_holder_owner
             = dynamic_raw_ptr_cast_if_possible<AliasType>(value_ptr_w_t) != nullptr;
         if (holder_void_ptr) {
             // Note: inst->owned ignored.
-            auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
+            auto *holder_ptr = static_cast<holder_type *>(holder_void_ptr);
             new (uninitialized_location) holder_type(std::move(*holder_ptr));
         } else if (!try_initialization_using_shared_from_this(
                        uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
@@ -399,32 +413,36 @@ struct smart_holder_type_caster_load {
     bool load(handle src, bool convert) {
         static_assert(type_uses_smart_holder_type_caster<T>::value, "Internal consistency error.");
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
-        if (!load_impl.load(src, convert))
+        if (!load_impl.load(src, convert)) {
             return false;
+        }
         return true;
     }
 
     T *loaded_as_raw_ptr_unowned() const {
         void *void_ptr = load_impl.unowned_void_ptr_from_void_ptr_capsule;
         if (void_ptr == nullptr) {
-          void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
+            void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
         }
         if (void_ptr == nullptr) {
             if (have_holder()) {
                 throw_if_uninitialized_or_disowned_holder();
                 void_ptr = holder().template as_raw_ptr_unowned<void>();
-            } else if (load_impl.loaded_v_h.vh != nullptr)
+            } else if (load_impl.loaded_v_h.vh != nullptr) {
                 void_ptr = load_impl.loaded_v_h.value_ptr();
-            if (void_ptr == nullptr)
+            }
+            if (void_ptr == nullptr) {
                 return nullptr;
+            }
         }
         return convert_type(void_ptr);
     }
 
     T &loaded_as_lvalue_ref() const {
         T *raw_ptr = loaded_as_raw_ptr_unowned();
-        if (raw_ptr == nullptr)
+        if (raw_ptr == nullptr) {
             throw reference_cast_error();
+        }
         return *raw_ptr;
     }
 
@@ -433,32 +451,35 @@ struct smart_holder_type_caster_load {
             throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
                              " std::shared_ptr.");
         }
-        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr) {
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::shared_ptr.");
-        if (!have_holder())
+        }
+        if (!have_holder()) {
             return nullptr;
+        }
         throw_if_uninitialized_or_disowned_holder();
         holder_type &hld = holder();
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
-        auto void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
-        auto type_raw_ptr = convert_type(void_raw_ptr);
+        auto *void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
+        auto *type_raw_ptr = convert_type(void_raw_ptr);
         if (hld.pointee_depends_on_holder_owner) {
-            auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
+            auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
-                if (released_ptr)
+                if (released_ptr) {
                     return std::shared_ptr<T>(released_ptr, type_raw_ptr);
+                }
                 std::shared_ptr<T> to_be_released(
                     type_raw_ptr,
                     shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
                 vptr_gd_ptr->released_ptr = to_be_released;
                 return to_be_released;
             }
-            auto sptsls_ptr = std::get_deleter<shared_ptr_trampoline_self_life_support>(hld.vptr);
+            auto *sptsls_ptr = std::get_deleter<shared_ptr_trampoline_self_life_support>(hld.vptr);
             if (sptsls_ptr != nullptr) {
                 // This code is reachable only if there are multiple registered_instances for the
                 // same pointee.
@@ -491,11 +512,13 @@ struct smart_holder_type_caster_load {
             throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
                              " std::unique_ptr.");
         }
-        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr) {
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::unique_ptr.");
-        if (!have_holder())
+        }
+        if (!have_holder()) {
             return nullptr;
+        }
         throw_if_uninitialized_or_disowned_holder();
         throw_if_instance_is_currently_owned_by_shared_ptr();
         holder().ensure_is_not_disowned(context);
@@ -572,7 +595,7 @@ private:
     T *convert_type(void *void_ptr) const {
         if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
             && !load_impl.reinterpret_cast_deemed_ok && !load_impl.implicit_casts.empty()) {
-            for (auto implicit_cast: load_impl.implicit_casts) {
+            for (auto implicit_cast : load_impl.implicit_casts) {
                 void_ptr = implicit_cast(void_ptr);
             }
         }
@@ -603,8 +626,10 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 
     static handle cast(T const &src, return_value_policy policy, handle parent) {
         // type_caster_base BEGIN
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
+        }
         return cast(&src, policy, parent);
         // type_caster_base END
     }
@@ -660,18 +685,21 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                                                        void *(*copy_constructor)(const void *),
                                                        void *(*move_constructor)(const void *),
                                                        const void *existing_holder = nullptr) {
-        if (!tinfo) // no type info: error will be set already
+        if (!tinfo) { // no type info: error will be set already
             return handle();
+        }
 
         void *src = const_cast<void *>(_src);
-        if (src == nullptr)
+        if (src == nullptr) {
             return none().release();
+        }
 
-        if (handle existing_inst = find_registered_python_instance(src, tinfo))
+        if (handle existing_inst = find_registered_python_instance(src, tinfo)) {
             return existing_inst;
+        }
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
+        auto *wrapper = reinterpret_cast<instance *>(inst.ptr());
         wrapper->owned = false;
         void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 
@@ -689,9 +717,9 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 break;
 
             case return_value_policy::copy:
-                if (copy_constructor)
+                if (copy_constructor) {
                     valueptr = copy_constructor(src);
-                else {
+                } else {
 #if defined(NDEBUG)
                     throw cast_error("return_value_policy = copy, but type is "
                                      "non-copyable! (compile in debug mode for details)");
@@ -706,11 +734,11 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 break;
 
             case return_value_policy::move:
-                if (move_constructor)
+                if (move_constructor) {
                     valueptr = move_constructor(src);
-                else if (copy_constructor)
+                } else if (copy_constructor) {
                     valueptr = copy_constructor(src);
-                else {
+                } else {
 #if defined(NDEBUG)
                     throw cast_error("return_value_policy = move, but type is neither "
                                      "movable nor copyable! "
@@ -761,20 +789,23 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
             case return_value_policy::reference_internal:
                 break;
         }
-        if (!src)
+        if (!src) {
             return none().release();
+        }
 
         auto src_raw_ptr = src.get();
         auto st = type_caster_base<T>::src_and_type(src_raw_ptr);
-        if (st.second == nullptr)
+        if (st.second == nullptr) {
             return handle(); // no type info: error will be set already
+        }
 
         void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo))
+        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
             // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
             // SMART_HOLDER_WIP: MISSING: keep_alive.
             return existing_inst;
+        }
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
@@ -785,8 +816,9 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
         auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(src);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
-        if (policy == return_value_policy::reference_internal)
+        if (policy == return_value_policy::reference_internal) {
             keep_alive_impl(inst, parent);
+        }
 
         return inst.release();
     }
@@ -830,13 +862,15 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
             // SMART_HOLDER_WIP: IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for unique_ptr.");
         }
-        if (!src)
+        if (!src) {
             return none().release();
+        }
 
         auto src_raw_ptr = src.get();
         auto st = type_caster_base<T>::src_and_type(src_raw_ptr);
-        if (st.second == nullptr)
+        if (st.second == nullptr) {
             return handle(); // no type info: error will be set already
+        }
 
         void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
@@ -872,19 +906,23 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
                                                                       /*void_cast_raw_ptr*/ false);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
-        if (policy == return_value_policy::reference_internal)
+        if (policy == return_value_policy::reference_internal) {
             keep_alive_impl(inst, parent);
+        }
 
         return inst.release();
     }
     static handle
     cast(const std::unique_ptr<T, D> &src, return_value_policy policy, handle parent) {
-        if (!src)
+        if (!src) {
             return none().release();
-        if (policy == return_value_policy::automatic)
+        }
+        if (policy == return_value_policy::automatic) {
             policy = return_value_policy::reference_internal;
-        if (policy != return_value_policy::reference_internal)
+        }
+        if (policy != return_value_policy::reference_internal) {
             throw cast_error("Invalid return_value_policy for unique_ptr&");
+        }
         return smart_holder_type_caster<T>::cast(src.get(), policy, parent);
     }
 
