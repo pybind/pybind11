@@ -328,11 +328,12 @@ function(_pybind11_generate_lto target prefer_thin_lto)
     # CONFIG takes multiple values in CMake 3.19+, until then we have to use OR
     set(is_debug "$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>")
     set(not_debug "$<NOT:${is_debug}>")
+    set(not_optout "$<NOT:$<BOOL:$<TARGET_PROPERTY:PYBIND11_NO_IPO>>>")
     set(cxx_lang "$<COMPILE_LANGUAGE:CXX>")
     if(MSVC AND CMAKE_VERSION VERSION_LESS 3.11)
-      set(genex "${not_debug}")
+      set(genex "$<AND:${not_debug},${not_optout}>")
     else()
-      set(genex "$<AND:${not_debug},${cxx_lang}>")
+      set(genex "$<AND:${not_debug},${cxx_lang},${not_optout}>")
     endif()
     set_property(
       TARGET ${target}
