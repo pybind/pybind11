@@ -1,8 +1,9 @@
+import contextlib
 import sys
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
@@ -593,6 +594,8 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     ],
 )
 def test_weakref_err(create_weakref, has_callback):
+    from weakref import getweakrefcount
+
     class C:
         __slots__ = []
 
@@ -600,7 +603,9 @@ def test_weakref_err(create_weakref, has_callback):
         pass
 
     ob = C()
-    with pytest.raises(TypeError):
+    assert getweakrefcount(ob) == 0
+    # Should raise TypeError on CPython
+    with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
         if has_callback:
             _ = create_weakref(ob, callback)
         else:

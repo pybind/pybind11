@@ -1512,7 +1512,7 @@ public:
             if (PyErr_Occurred()) {
                 throw error_already_set();
             }
-            throw type_error("Could not allocate weak reference!");
+            pybind11_fail("Could not allocate weak reference!");
         }
     }
 
