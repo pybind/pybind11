@@ -1511,9 +1511,8 @@ public:
         if (!m_ptr) {
             if (PyErr_Occurred()) {
                 throw error_already_set();
-            } else {
-                pybind11_fail("Could not allocate weak reference!");
             }
+            throw type_error("Could not allocate weak reference!");
         }
     }
 
