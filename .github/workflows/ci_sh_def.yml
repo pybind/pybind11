@@ -736,7 +736,7 @@ jobs:
 
         include:
           - python: 3.9
-            args: -DCMAKE_CXX_STANDARD=20 -DDOWNLOAD_EIGEN=OFF
+            args: -DCMAKE_CXX_STANDARD=20
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
 
@@ -860,7 +860,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=OFF
+        -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
         -DCMAKE_CXX_FLAGS="/GR /EHsc /DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
 
