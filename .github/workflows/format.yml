@@ -13,6 +13,9 @@ on:
     - smart_holder
     - "v*"
 
+env:
+  FORCE_COLOR: 3
+
 jobs:
   pre-commit:
     name: Format
@@ -20,6 +23,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
+    - name: Add matchers
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
     - uses: pre-commit/action@v2.0.3
       with:
         # Slow hooks are marked with manual - slow is okay here, run them too

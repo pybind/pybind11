@@ -239,7 +239,7 @@ def has_flag(compiler: Any, flag: str) -> bool:
     with tmp_chdir():
         fname = Path("flagcheck.cpp")
         # Don't trigger -Wunused-parameter.
-        fname.write_text("int main (int, char **) { return 0; }")
+        fname.write_text("int main (int, char **) { return 0; }", encoding="utf-8")
 
         try:
             compiler.compile([str(fname)], extra_postargs=[flag])
@@ -303,29 +303,31 @@ def intree_extensions(
     """
     exts = []
 
-    for path in paths:
-        if package_dir is None:
+    if package_dir is None:
+        for path in paths:
             parent, _ = os.path.split(path)
             while os.path.exists(os.path.join(parent, "__init__.py")):
                 parent, _ = os.path.split(parent)
             relname, _ = os.path.splitext(os.path.relpath(path, parent))
             qualified_name = relname.replace(os.path.sep, ".")
             exts.append(Pybind11Extension(qualified_name, [path]))
-        else:
-            for prefix, parent in package_dir.items():
-                if path.startswith(parent):
-                    relname, _ = os.path.splitext(os.path.relpath(path, parent))
-                    qualified_name = relname.replace(os.path.sep, ".")
-                    if prefix:
-                        qualified_name = prefix + "." + qualified_name
-                    exts.append(Pybind11Extension(qualified_name, [path]))
+        return exts
 
-    if not exts:
-        msg = (
-            f"path {path} is not a child of any of the directories listed "
-            f"in 'package_dir' ({package_dir})"
-        )
-        raise ValueError(msg)
+    for path in paths:
+        for prefix, parent in package_dir.items():
+            if path.startswith(parent):
+                relname, _ = os.path.splitext(os.path.relpath(path, parent))
+                qualified_name = relname.replace(os.path.sep, ".")
+                if prefix:
+                    qualified_name = prefix + "." + qualified_name
+                exts.append(Pybind11Extension(qualified_name, [path]))
+                break
+        else:
+            msg = (
+                f"path {path} is not a child of any of the directories listed "
+                f"in 'package_dir' ({package_dir})"
+            )
+            raise ValueError(msg)
 
     return exts
 
@@ -339,7 +341,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:
+def no_recompile(obg: str, src: str) -> bool:  # pylint: disable=unused-argument
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.
@@ -412,7 +414,7 @@ class ParallelCompile:
         self,
         envvar: Optional[str] = None,
         default: int = 0,
-        max: int = 0,
+        max: int = 0,  # pylint: disable=redefined-builtin
         needs_recompile: Callable[[str, str], bool] = no_recompile,
     ) -> None:
         self.envvar = envvar
@@ -488,6 +490,9 @@ class ParallelCompile:
         return compile_function
 
     def install(self: S) -> S:
+        """
+        Installs the compile function into distutils.ccompiler.CCompiler.compile.
+        """
         distutils.ccompiler.CCompiler.compile = self.function()  # type: ignore[assignment]
         return self
 
