@@ -1,11 +1,26 @@
 import os
+import sys
+from pathlib import Path
 
 import nox
 
 nox.needs_version = ">=2022.1.7"
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
 
-PYTHON_VERISONS = ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.7", "pypy3.8"]
+DIR = Path(__file__).parent.resolve()
+
+PYTHON_VERISONS = [
+    "3.6",
+    "3.7",
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "pypy3.7",
+    "pypy3.8",
+    "pypy3.9",
+]
+PYPY_VERSIONS = ["3.7", "3.8", "3.9"]
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
@@ -95,3 +110,58 @@ def build(session: nox.Session) -> None:
     session.run(
         "python", "-m", "build", *session.posargs, env={"PYBIND11_GLOBAL_SDIST": "1"}
     )
+
+
+@nox.session
+@nox.parametrize("pypy", PYPY_VERSIONS, ids=PYPY_VERSIONS)
+def pypy_upstream(session: nox.Session, pypy: str) -> None:
+    """
+    Test against upstream PyPy (64-bit UNIX only)
+    """
+    import tarfile
+    import urllib.request
+
+    binary = "linux64" if sys.platform.startswith("linux") else "osx64"
+    url = (
+        f"https://buildbot.pypy.org/nightly/py{pypy}/pypy-c-jit-latest-{binary}.tar.bz2"
+    )
+
+    tmpdir = session.create_tmp()
+    with session.chdir(tmpdir):
+        urllib.request.urlretrieve(url, "pypy.tar.bz2")
+        with tarfile.open("pypy.tar.bz2", "r:bz2") as tar:
+            tar.extractall()
+    (found,) = Path(tmpdir).glob("*/bin/pypy3")
+    pypy_prog = str(found.resolve())
+    pypy_dir = found.parent.parent
+
+    session.run(pypy_prog, "-m", "ensurepip", external=True)
+    session.run(pypy_prog, "-m", "pip", "install", "--upgrade", "pip", external=True)
+    session.run(
+        pypy_prog,
+        "-m",
+        "pip",
+        "install",
+        "pytest",
+        "numpy;python_version<'3.9' and platform_system=='Linux'",
+        "--only-binary=:all:",
+        external=True,
+    )
+
+    session.install("cmake", "ninja")
+    build_dir = session.create_tmp()
+    tmpdir = session.create_tmp()
+    session.run(
+        "cmake",
+        f"-S{DIR}",
+        f"-B{build_dir}",
+        "-DPYBIND11_FINDPYTHON=ON",
+        f"-DPython_ROOT={pypy_dir}",
+        "-GNinja",
+        "-DPYBIND11_WERROR=ON",
+        "-DDOWNLOAD_EIGEN=ON",
+        *session.posargs,
+    )
+    session.run("cmake", "--build", build_dir)
+    session.run("cmake", "--build", build_dir, "--target", "pytest")
+    session.run("cmake", "--build", build_dir, "--target", "test_cmake_build")
