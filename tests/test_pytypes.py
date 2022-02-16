@@ -584,15 +584,27 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
 
 @pytest.mark.parametrize(
-    "create_weakref", (m.weakref_from_handle, m.weakref_from_object)
+    "create_weakref, has_callback",
+    [
+        (m.weakref_from_handle, False),
+        (m.weakref_from_object, False),
+        (m.weakref_from_handle_and_function, True),
+        (m.weakref_from_object_and_function, True),
+    ],
 )
-def test_weakref_err(create_weakref):
+def test_weakref_err(create_weakref, has_callback):
     class C:
         __slots__ = []
 
+    def callback(_):
+        pass
+
     ob = C()
-    with pytest.raises(RuntimeError):
-        create_weakref(ob)
+    with pytest.raises(TypeError):
+        if has_callback:
+            _ = create_weakref(ob, callback)
+        else:
+            _ = create_weakref(ob)
 
 
 def test_cpp_iterators():
