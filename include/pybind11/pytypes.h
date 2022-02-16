@@ -13,6 +13,7 @@
 #include "buffer_info.h"
 
 #include <exception>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -382,13 +383,13 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error(""), m_lazy_what() {
+    error_already_set() : std::runtime_error("") {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (m_type) {
             PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-            if (m_trace) {
+            /*if (m_trace) {
                 PyException_SetTraceback(m_value.ptr(), m_trace.ptr());
-            }
+            }*/
         }
     }
 
@@ -404,7 +405,7 @@ public:
             } catch (const std::exception &e) {
                 m_lazy_what
                     = std::string(
-                          "Unknown internal error occurred while constructing error_string:")
+                          "Unknown internal error occurred while constructing error_string: ")
                       + e.what();
                 return m_lazy_what.c_str();
             } catch (...) {
@@ -412,6 +413,7 @@ public:
                 return m_lazy_what.c_str();
             }
         }
+        assert(!m_lazy_what.empty());
         return m_lazy_what.c_str();
     }
 
@@ -458,7 +460,7 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
-    mutable std::string m_lazy_what;
+    mutable std::string m_lazy_what{};
     mutable object m_type, m_value, m_trace;
 };
 #if defined(_MSC_VER)
