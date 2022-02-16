@@ -583,6 +583,18 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     assert callback_called
 
 
+@pytest.mark.parametrize(
+    "create_weakref", (m.weakref_from_handle, m.weakref_from_object)
+)
+def test_weakref_err(create_weakref):
+    class C:
+        __slots__ = []
+
+    ob = C()
+    with pytest.raises(RuntimeError):
+        create_weakref(ob)
+
+
 def test_cpp_iterators():
     assert m.tuple_iterator() == 12
     assert m.dict_iterator() == 305 + 711
