@@ -375,3 +375,20 @@ TEST_CASE("sys.argv gets initialized properly") {
     }
     py::initialize_interpreter();
 }
+
+TEST_CASE("make_iterator can be called before then after finalizing an interpreter") {
+    py::finalize_interpreter();
+
+    std::vector<int> container;
+    {
+        pybind11::scoped_interpreter g;
+        auto iter = pybind11::make_iterator(container.begin(), container.end());
+    }
+
+    REQUIRE_NOTHROW([&]() {
+        pybind11::scoped_interpreter g;
+        auto iter = pybind11::make_iterator(container.begin(), container.end());
+    }());
+
+    py::initialize_interpreter();
+}

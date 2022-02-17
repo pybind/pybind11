@@ -199,6 +199,9 @@ inline void finalize_interpreter() {
         internals_ptr_ptr = capsule(builtins[id]);
     }
 
+    detail::get_local_internals().registered_types_cpp.clear();
+    detail::get_local_internals().registered_exception_translators.clear();
+
     Py_Finalize();
 
     if (internals_ptr_ptr) {
