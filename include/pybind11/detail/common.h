@@ -936,9 +936,11 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 

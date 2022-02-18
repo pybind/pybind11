@@ -1,8 +1,9 @@
+import contextlib
 import sys
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
@@ -581,6 +582,31 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     del obj
     pytest.gc_collect()
     assert callback_called
+
+
+@pytest.mark.parametrize(
+    "create_weakref, has_callback",
+    [
+        (m.weakref_from_handle, False),
+        (m.weakref_from_object, False),
+        (m.weakref_from_handle_and_function, True),
+        (m.weakref_from_object_and_function, True),
+    ],
+)
+def test_weakref_err(create_weakref, has_callback):
+    class C:
+        __slots__ = []
+
+    def callback(_):
+        pass
+
+    ob = C()
+    # Should raise TypeError on CPython
+    with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
+        if has_callback:
+            _ = create_weakref(ob, callback)
+        else:
+            _ = create_weakref(ob)
 
 
 def test_cpp_iterators():
