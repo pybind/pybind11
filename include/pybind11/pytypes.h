@@ -1509,6 +1509,9 @@ public:
     explicit weakref(handle obj, handle callback = {})
         : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
         if (!m_ptr) {
+            if (PyErr_Occurred()) {
+                throw error_already_set();
+            }
             pybind11_fail("Could not allocate weak reference!");
         }
     }
