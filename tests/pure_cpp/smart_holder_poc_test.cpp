@@ -1,5 +1,10 @@
 #include "pybind11/detail/smart_holder_poc.h"
 
+// Catch uses _ internally, which breaks gettext style defines
+#ifdef _
+#    undef _
+#endif
+
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
