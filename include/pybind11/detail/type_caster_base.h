@@ -943,8 +943,8 @@ template <typename itype>
 struct polymorphic_type_hook_base<itype, detail::enable_if_t<std::is_polymorphic<itype>::value>> {
     static const void *get(const itype *src, const std::type_info *&type) {
         type = src ? &typeid(*src) : nullptr;
-        const auto *downcasted = dynamic_cast<const void *>(src);
-        if (downcasted == nullptr && src != nullptr) {
+        auto *downcasted = dynamic_cast<const void *>(src);
+        if (downcasted == nullptr) {
             // Downacasting failed
             // Should we throw a cast error here instead?
             return src;
