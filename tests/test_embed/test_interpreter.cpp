@@ -377,6 +377,7 @@ TEST_CASE("sys.argv gets initialized properly") {
 }
 
 TEST_CASE("make_iterator can be called before then after finalizing an interpreter") {
+    // Reproduction of issue #2101 (https://github.com/pybind/pybind11/issues/2101)
     py::finalize_interpreter();
 
     std::vector<int> container;
