@@ -469,22 +469,23 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyObject *trace) {
-    if (!type) {
+PYBIND11_NOINLINE std::string
+error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
+    if (!exc_type) {
         PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
         return "Unknown internal error occurred";
     }
 
-    auto result = handle(type).attr("__name__").cast<std::string>();
+    auto result = handle(exc_type).attr("__name__").cast<std::string>();
     result += ": ";
 
-    if (value) {
-        result += (std::string) str(value);
+    if (exc_value) {
+        result += (std::string) str(exc_value);
     }
 
-    if (trace) {
+    if (exc_trace) {
 #if !defined(PYPY_VERSION)
-        auto *tb = (PyTracebackObject *) trace;
+        auto *tb = (PyTracebackObject *) exc_trace;
 
         // Get the deepest trace possible.
         while (tb->tb_next) {
@@ -507,7 +508,7 @@ PYBIND11_NOINLINE std::string error_string(PyObject *type, PyObject *value, PyOb
             frame = frame->f_back;
             Py_DECREF(f_code);
         }
-#endif
+#endif //! defined(PYPY_VERSION)
     }
 
     return result;
@@ -517,9 +518,6 @@ PYBIND11_NOINLINE std::string error_string() {
     error_scope scope; // Preserve error state.
     if (scope.type) {
         PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
-        /*if (scope.trace != nullptr){
-            PyErr_SetTraceback(scope.value, scope.trace);
-        }*/
     }
     return error_string(scope.type, scope.value, scope.trace);
 }

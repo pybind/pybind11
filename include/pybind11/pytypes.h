@@ -387,9 +387,6 @@ public:
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (m_type) {
             PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-            /*if (m_trace) {
-                PyException_SetTraceback(m_value.ptr(), m_trace.ptr());
-            }*/
         }
     }
 
