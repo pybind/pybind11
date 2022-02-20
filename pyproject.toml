@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools @ git+https://github.com/pypa/setuptools@add-some-type-hints",
+    "setuptools @ git+https://github.com/pypa/setuptools@experimental/support-pyproject",
     "cmake>=3.18",
     "ninja"
 ]
