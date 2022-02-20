@@ -198,6 +198,10 @@ inline void finalize_interpreter() {
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_ptr_ptr = capsule(builtins[id]);
     }
+    // Local internals contains data managed by the current interpreter, so we must clear them to
+    // avoid undefined behaviors when initializing another interpreter
+    detail::get_local_internals().registered_types_cpp.clear();
+    detail::get_local_internals().registered_exception_translators.clear();
 
     Py_Finalize();
 
