@@ -457,7 +457,7 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
-    mutable std::string m_lazy_what{};
+    mutable std::string m_lazy_what;
     mutable object m_type, m_value, m_trace;
 };
 #if defined(_MSC_VER)
