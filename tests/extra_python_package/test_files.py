@@ -270,11 +270,11 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
 def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
-    monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
 
-    subprocess.check_output(
-        [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)]
-    )
+    with global_package(monkeypatch):
+        subprocess.check_output(
+            [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)]
+        )
 
     (wheel,) = tmpdir.visit("*.whl")
 
