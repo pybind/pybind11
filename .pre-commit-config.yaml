@@ -166,3 +166,4 @@ repos:
   rev: "v13.0.1"
   hooks:
   - id: clang-format
+    types_or: [c++, c, cuda]
