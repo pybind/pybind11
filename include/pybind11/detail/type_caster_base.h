@@ -502,9 +502,13 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
             Py_INCREF(f_code);
 #    endif
             int lineno = PyFrame_GetLineNumber(frame);
-            result += std::string("  ") + handle(f_code->co_filename).cast<std::string>() + '('
-                      + std::to_string(lineno)
-                      + "): " + handle(f_code->co_name).cast<std::string>() + '\n';
+            result += "  ";
+            result += handle(f_code->co_filename).cast<std::string>();
+            result += '(';
+            result += std::to_string(lineno);
+            result += "):) ";
+            result += handle(f_code->co_name).cast<std::string>();
+            result += '\n';
             frame = frame->f_back;
             Py_DECREF(f_code);
         }
