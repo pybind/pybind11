@@ -391,7 +391,7 @@ public:
     }
 
     error_already_set(const error_already_set &) = default;
-    error_already_set(error_already_set &&) = default;
+    error_already_set(error_already_set &&) noexcept = default;
 
     inline ~error_already_set() override;
 
@@ -419,6 +419,9 @@ public:
     /// error variables (but the `.what()` string is still available).
     void restore() {
         what(); // Force-build `.what()`.
+        if (m_lazy_what.empty()) {
+            pybind11_fail("Critical error building lazy error_string().");
+        }
         if (m_type) {
             PyErr_Restore(
                 m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
