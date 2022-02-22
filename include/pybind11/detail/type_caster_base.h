@@ -506,7 +506,7 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
             result += handle(f_code->co_filename).cast<std::string>();
             result += '(';
             result += std::to_string(lineno);
-            result += "):) ";
+            result += "): ";
             result += handle(f_code->co_name).cast<std::string>();
             result += '\n';
             frame = frame->f_back;
