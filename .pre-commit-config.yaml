@@ -73,7 +73,7 @@ repos:
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v1.1.0"
+  rev: "v1.2.0"
   hooks:
   - id: pycln
 
@@ -166,6 +166,7 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v13.0.0"
+  rev: "v13.0.1"
   hooks:
   - id: clang-format
+    types_or: [c++, c, cuda]
