@@ -133,6 +133,15 @@ def test_bytes_to_string():
     assert m.string_length("💩".encode()) == 4
 
 
+def test_bytearray_to_string():
+    """Tests the ability to pass bytearray to C++ string-accepting functions"""
+    assert m.string_length(bytearray(b"Hi")) == 2
+    assert m.strlen(bytearray(b"bytearray")) == 9
+    assert m.string_length(bytearray()) == 0
+    assert m.string_length(bytearray("🦜", "utf-8", "strict")) == 4
+    assert m.string_length(bytearray(b"\x80")) == 1
+
+
 @pytest.mark.skipif(not hasattr(m, "has_string_view"), reason="no <string_view>")
 def test_string_view(capture):
     """Tests support for C++17 string_view arguments and return values"""
