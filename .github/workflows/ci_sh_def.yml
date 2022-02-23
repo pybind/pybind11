@@ -58,7 +58,7 @@ jobs:
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
-          - runs-on: windows-latest
+          - runs-on: windows-2019
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
@@ -741,7 +741,7 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=17
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
