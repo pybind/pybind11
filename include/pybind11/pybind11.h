@@ -1245,6 +1245,28 @@ public:
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
     }
+
+    struct strip_leading_underscore_from_name;
+
+    static module_ make_alias(const char *name) {
+        module_ ret = *this;
+        ret.attr("__name__") = this.attr(name);
+        return ret;
+    }
+
+    static module_ make_alias(strip_leading_underscore_from_name) {
+        const char *name = PyModule_GetName(*this);
+        size_t n = strlen(name);
+        if (n == 0) {
+            return this->make_alias(name);
+        }
+        if (name[0] != "_") {
+            return this->make_alias(name);
+        }
+        char alias[n - 1];
+        std::copy(&name[1], &name[n - 1], &alias[0]);
+        return this->make_alias(alias);
+    }
 };
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
