@@ -17,6 +17,6 @@
 #endif
 
 TEST_SUBMODULE(_make_alias, m) {
-    ma = m.make_alias(pybind11::module::strip_leading_underscore_from_name);
+    ma = m.make_alias(pybind11::module::strip_leading_underscore_from_name{});
     ma.def("foo", []() -> {});
 }
