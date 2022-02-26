@@ -1258,14 +1258,14 @@ public:
         const char *name = PyModule_GetName(*this);
         size_t n = strlen(name);
         if (n == 0) {
-            return this->make_alias(name);
+            return make_alias(name);
         }
-        if (name[0] != "_") {
-            return this->make_alias(name);
+        if (strcmp(name[0], "_") != 0) {
+            return make_alias(name);
         }
         char alias[n - 1];
         std::copy(&name[1], &name[n - 1], &alias[0]);
-        return this->make_alias(alias);
+        return make_alias(alias);
     }
 };
 
