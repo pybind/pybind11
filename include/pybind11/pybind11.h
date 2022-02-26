@@ -1256,16 +1256,9 @@ public:
 
     module_ make_alias(strip_leading_underscore_from_name) {
         const char *name = PyModule_GetName(*this);
-        size_t n = strlen(name);
-        if (n == 0) {
-            return make_alias(name);
-        }
-        if (strcmp(&name[0], "_") != 0) {
-            return make_alias(name);
-        }
-        char alias[n - 1];
-        std::copy(&name[1], &name[n - 1], &alias[0]);
-        return make_alias(alias);
+        if (name && name[0] == '_')
+            name += 1;
+        return make_alias(name);
     }
 };
 
