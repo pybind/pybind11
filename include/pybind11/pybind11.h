@@ -1246,21 +1246,21 @@ public:
         return reinterpret_borrow<module_>(m);
     }
 
-    struct strip_leading_underscore_from_name;
+    struct strip_leading_underscore_from_name {};
 
-    static module_ make_alias(const char *name) {
+    module_ make_alias(const char *name) {
         module_ ret = *this;
-        ret.attr("__name__") = this.attr(name);
+        ret.attr("__name__") = name;
         return ret;
     }
 
-    static module_ make_alias(strip_leading_underscore_from_name) {
+    module_ make_alias(strip_leading_underscore_from_name) {
         const char *name = PyModule_GetName(*this);
         size_t n = strlen(name);
         if (n == 0) {
             return make_alias(name);
         }
-        if (strcmp(name[0], "_") != 0) {
+        if (strcmp(&name[0], "_") != 0) {
             return make_alias(name);
         }
         char alias[n - 1];
