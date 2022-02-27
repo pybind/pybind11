@@ -213,6 +213,9 @@
 #    error "PYTHON < 3.6 IS UNSUPPORTED. pybind11 v2.9 was the last to support Python 2 and 3.5."
 #endif
 #include <frameobject.h>
+#if PY_VERSION_HEX >= 0x030b00A5
+#include "internal/pycore_frame.h"
+#endif
 #include <pythread.h>
 
 /* Python #defines overrides on all sorts of core functions, which
