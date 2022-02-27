@@ -214,7 +214,7 @@
 #endif
 #include <frameobject.h>
 #if PY_VERSION_HEX >= 0x030b00A5
-#include "internal/pycore_frame.h"
+#    include "internal/pycore_frame.h"
 #endif
 #include <pythread.h>
 
