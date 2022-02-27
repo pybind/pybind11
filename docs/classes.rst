@@ -434,8 +434,7 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
         .def("set", overload_cast_<int>()(&Pet::set), "Set the pet's age")
         .def("set", overload_cast_<const std::string &>()(&Pet::set), "Set the pet's name");
 
-.. [#cpp14] A compiler which supports the ``-std=c++14`` flag
-            or Visual Studio 2015 Update 2 and newer.
+.. [#cpp14] A compiler which supports the ``-std=c++14`` flag.
 
 .. note::
 

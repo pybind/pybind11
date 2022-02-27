@@ -32,8 +32,7 @@ The last line will both compile and run the tests.
 Windows
 -------
 
-On Windows, only **Visual Studio 2015** and newer are supported since pybind11 relies
-on various C++11 language features that break older versions of Visual Studio.
+On Windows, only **Visual Studio 2017** and newer are supported.
 
 .. Note::
 

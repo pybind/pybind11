@@ -85,11 +85,15 @@ protected:                                                                      
                                                                                                   \
 public:                                                                                           \
     static constexpr auto name = py_name;                                                         \
-    template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0>      \
-    static handle cast(T_ *src, return_value_policy policy, handle parent) {                      \
+    template <typename T_,                                                                        \
+              ::pybind11::detail::enable_if_t<                                                    \
+                  std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
+                  int> = 0>                                                                       \
+    static ::pybind11::handle cast(                                                               \
+        T_ *src, ::pybind11::return_value_policy policy, ::pybind11::handle parent) {             \
         if (!src)                                                                                 \
-            return none().release();                                                              \
-        if (policy == return_value_policy::take_ownership) {                                      \
+            return ::pybind11::none().release();                                                  \
+        if (policy == ::pybind11::return_value_policy::take_ownership) {                          \
             auto h = cast(std::move(*src), policy, parent);                                       \
             delete src;                                                                           \
             return h;                                                                             \
@@ -100,7 +104,7 @@ public:                                                                         
     operator type &() { return value; }                /* NOLINT(bugprone-macro-parentheses) */   \
     operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
     template <typename T_>                                                                        \
-    using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
+    using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
 
 template <typename CharT>
 using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
@@ -380,7 +384,7 @@ struct string_caster {
             return false;
         }
         if (!PyUnicode_Check(load_src.ptr())) {
-            return load_bytes(load_src);
+            return load_raw(load_src);
         }
 
         // For UTF-8 we avoid the need for a temporary `bytes` object by using
@@ -458,26 +462,37 @@ private:
 #endif
     }
 
-    // When loading into a std::string or char*, accept a bytes object as-is (i.e.
+    // When loading into a std::string or char*, accept a bytes/bytearray object as-is (i.e.
     // without any encoding/decoding attempt).  For other C++ char sizes this is a no-op.
     // which supports loading a unicode from a str, doesn't take this path.
     template <typename C = CharT>
-    bool load_bytes(enable_if_t<std::is_same<C, char>::value, handle> src) {
+    bool load_raw(enable_if_t<std::is_same<C, char>::value, handle> src) {
         if (PYBIND11_BYTES_CHECK(src.ptr())) {
             // We were passed raw bytes; accept it into a std::string or char*
             // without any encoding attempt.
             const char *bytes = PYBIND11_BYTES_AS_STRING(src.ptr());
-            if (bytes) {
-                value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
-                return true;
+            if (!bytes) {
+                pybind11_fail("Unexpected PYBIND11_BYTES_AS_STRING() failure.");
             }
+            value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
+            return true;
+        }
+        if (PyByteArray_Check(src.ptr())) {
+            // We were passed a bytearray; accept it into a std::string or char*
+            // without any encoding attempt.
+            const char *bytearray = PyByteArray_AsString(src.ptr());
+            if (!bytearray) {
+                pybind11_fail("Unexpected PyByteArray_AsString() failure.");
+            }
+            value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
+            return true;
         }
 
         return false;
     }
 
     template <typename C = CharT>
-    bool load_bytes(enable_if_t<!std::is_same<C, char>::value, handle>) {
+    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) {
         return false;
     }
 };

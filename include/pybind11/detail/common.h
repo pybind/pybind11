@@ -47,7 +47,7 @@
 // or newer.
 #    if _MSVC_LANG >= 201402L
 #        define PYBIND11_CPP14
-#        if _MSVC_LANG > 201402L && _MSC_VER >= 1910
+#        if _MSVC_LANG > 201402L
 #            define PYBIND11_CPP17
 #            if _MSVC_LANG >= 202002L
 #                define PYBIND11_CPP20
@@ -81,10 +81,8 @@
 #        error pybind11 requires gcc 4.8 or newer
 #    endif
 #elif defined(_MSC_VER)
-// Pybind hits various compiler bugs in 2015u2 and earlier, and also makes use of some stl features
-// (e.g. std::negation) added in 2015u3:
-#    if _MSC_FULL_VER < 190024210
-#        error pybind11 requires MSVC 2015 update 3 or newer
+#    if _MSC_VER < 1910
+#        error pybind11 2.10+ requires MSVC 2017 or newer
 #    endif
 #endif
 
@@ -149,7 +147,7 @@
 
 /* Don't let Python.h #define (v)snprintf as macro because they are implemented
    properly in Visual Studio since 2015. */
-#if defined(_MSC_VER) && _MSC_VER >= 1900
+#if defined(_MSC_VER)
 #    define HAVE_SNPRINTF 1
 #endif
 
@@ -561,7 +559,7 @@ static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
 
 /// from __cpp_future__ import (convenient aliases from C++14/17)
-#if defined(PYBIND11_CPP14) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#if defined(PYBIND11_CPP14)
 using std::conditional_t;
 using std::enable_if_t;
 using std::remove_cv_t;
@@ -824,10 +822,12 @@ struct is_template_base_of_impl {
 /// Check if a template is the base of a type. For example:
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template <typename...> class Base, typename T>
+// Sadly, all MSVC versions incl. 2022 need the workaround, even in C++20 mode.
+// See also: https://github.com/pybind/pybind11/pull/3741
 #if !defined(_MSC_VER)
 using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
-#else // MSVC2015 has trouble with decltype in template aliases
+#else
 struct is_template_base_of
     : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr)) {
 };
@@ -936,9 +936,11 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 
@@ -1002,9 +1004,6 @@ struct nodelete {
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    // NOLINTNEXTLINE(modernize-use-equals-default):  MSVC 2015 needs this
-    constexpr overload_cast_impl() {}
-
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept -> decltype(pf) {
         return pf;
@@ -1031,8 +1030,12 @@ PYBIND11_NAMESPACE_END(detail)
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
+#    if (defined(_MSC_VER) && _MSC_VER < 1920) /* MSVC 2017 */                                    \
+        || (defined(__clang__) && __clang_major__ == 5)
 static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
-// MSVC 2015 only accepts this particular initialization syntax for this variable template.
+#    else
+static constexpr detail::overload_cast_impl<Args...> overload_cast;
+#    endif
 #endif
 
 /// Const member function selector for overload_cast
@@ -1118,7 +1121,7 @@ try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
 
 // For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
-#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920 // MSVC 2017
+#if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
     inline void

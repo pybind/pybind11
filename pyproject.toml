@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "cmake>=3.18", "ninja"]
+requires = ["setuptools>=42", "cmake>=3.18", "ninja"]
 build-backend = "setuptools.build_meta"
 
 [tool.check-manifest]
@@ -30,3 +30,30 @@ strict = true
 [[tool.mypy.overrides]]
 module = ["ghapi.*", "setuptools.*"]
 ignore_missing_imports = true
+
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+log_cli_level = "info"
+testpaths = [
+    "tests",
+]
+timeout=300
+
+
+[tool.pylint]
+master.py-version = "3.6"
+reports.output-format = "colorized"
+messages_control.disable = [
+  "design",
+  "fixme",
+  "imports",
+  "line-too-long",
+  "imports",
+  "invalid-name",
+  "protected-access",
+  "missing-module-docstring",
+]
