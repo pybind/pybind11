@@ -204,9 +204,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     m.def("i801e_b2", []() -> I801B2 * { return new I801E(); });
 
     // test_mi_static_properties
-    py::class_<Vanilla>(m, "Vanilla", py::dynamic_attr())
-        .def(py::init<>())
-        .def("vanilla", &Vanilla::vanilla);
+    py::class_<Vanilla>(m, "Vanilla").def(py::init<>()).def("vanilla", &Vanilla::vanilla);
 
     py::class_<WithStatic1>(m, "WithStatic1")
         .def(py::init<>())

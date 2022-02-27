@@ -653,16 +653,6 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     auto bases = tuple(rec.bases);
     auto *base = (bases.empty()) ? internals.instance_base : bases[0].ptr();
 
-    bool has_dynamic_base = false;
-    for (auto b : bases) {
-        auto *obj = (PyTypeObject *) b.ptr();
-        // hack to see if enable_dynamic_attrs if any of the bases do.
-        if (obj->tp_traverse == pybind11_traverse) {
-            has_dynamic_base = true;
-            break;
-        }
-    }
-
     /* Danger zone: from now (and until PyType_Ready), make sure to
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
@@ -704,7 +694,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
         type->tp_flags |= Py_TPFLAGS_BASETYPE;
     }
 
-    if (rec.dynamic_attr || has_dynamic_base) {
+    if (rec.dynamic_attr) {
         enable_dynamic_attributes(heap_type);
     }
 
@@ -720,8 +710,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
         pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
     }
 
-    assert(type->tp_traverse != nullptr || !PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
-    // assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */
     if (rec.scope) {
