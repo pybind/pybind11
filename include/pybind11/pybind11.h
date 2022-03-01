@@ -334,7 +334,7 @@ protected:
                             const std::type_info *const *types,
                             size_t args) {
         // Do NOT receive `unique_rec` by value. If this function fails to move out the unique_ptr,
-        // we do not want this to destuct the pointer. `initialize` (the caller) still relies on
+        // we do not want this to destruct the pointer. `initialize` (the caller) still relies on
         // the pointee being alive after this call. Only move out if a `capsule` is going to keep
         // it alive.
         auto *rec = unique_rec.get();
