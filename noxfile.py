@@ -2,6 +2,7 @@ import os
 
 import nox
 
+nox.needs_version = ">=2022.1.7"
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
 
 PYTHON_VERISONS = ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.7", "pypy3.8"]
@@ -29,14 +30,12 @@ def tests(session: nox.Session) -> None:
     session.install("-r", "tests/requirements.txt")
     session.run(
         "cmake",
-        "-S",
-        ".",
-        "-B",
-        tmpdir,
+        "-S.",
+        f"-B{tmpdir}",
         "-DPYBIND11_WERROR=ON",
         "-DDOWNLOAD_CATCH=ON",
         "-DDOWNLOAD_EIGEN=ON",
-        *session.posargs
+        *session.posargs,
     )
     session.run("cmake", "--build", tmpdir)
     session.run("cmake", "--build", tmpdir, "--config=Release", "--target", "check")
