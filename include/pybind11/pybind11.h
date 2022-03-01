@@ -2645,8 +2645,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
             PyObject *locals = PyEval_GetLocals();
             if (locals != nullptr) {
-                PyObject *co_varnames = 
-                    PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
+                PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
                 PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
                 Py_DECREF(co_varnames);
