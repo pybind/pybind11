@@ -515,6 +515,7 @@ PYBIND11_NOINLINE std::string error_string() {
             errorString += "  " + handle(f_code->co_filename).cast<std::string>() + "("
                            + std::to_string(lineno)
                            + "): " + handle(f_code->co_name).cast<std::string>() + "\n";
+            Py_DECREF(f_code);
 #    if PY_VERSION_HEX >= 0x030900B1
             auto *b_frame = PyFrame_GetBack(frame);
 #    else
@@ -523,7 +524,6 @@ PYBIND11_NOINLINE std::string error_string() {
 #    endif
             Py_DECREF(frame);
             frame = b_frame;
-            Py_DECREF(f_code);
         }
     }
 #endif
