@@ -2729,9 +2729,9 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
                        d.ptr());
     if (result == nullptr)
         throw error_already_set();
+    Py_DECREF(result);
     if (d["self"].is_none())
         return function();
-    Py_DECREF(result);
 #endif
 
     return override;
