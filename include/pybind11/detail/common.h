@@ -822,7 +822,9 @@ struct is_template_base_of_impl {
 /// Check if a template is the base of a type. For example:
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template <typename...> class Base, typename T>
-#if defined(PYBIND11_CPP20) || !defined(_MSC_VER) // Sadly, all MSVC versions incl. 2022 need this.
+// Sadly, all MSVC versions incl. 2022 need the workaround, even in C++20 mode.
+// See also: https://github.com/pybind/pybind11/pull/3741
+#if !defined(_MSC_VER)
 using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
 #else
@@ -934,9 +936,11 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 

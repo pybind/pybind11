@@ -21,10 +21,12 @@
 // make it version specific, or even remove it later, but considering that
 // 1. C4127 is generally far more distracting than useful for modern template code, and
 // 2. we definitely want to ignore any MSVC warnings originating from Eigen code,
-// it is probably best to keep this around indefinitely.
+//    it is probably best to keep this around indefinitely.
 #if defined(_MSC_VER)
 #    pragma warning(push)
 #    pragma warning(disable : 4127) // C4127: conditional expression is constant
+#    pragma warning(disable : 5054) // https://github.com/pybind/pybind11/pull/3741
+//       C5054: operator '&': deprecated between enumerations of different types
 #endif
 
 #include <Eigen/Core>

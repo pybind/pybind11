@@ -1,8 +1,14 @@
+import os
+
 import nox
 
+nox.needs_version = ">=2022.1.7"
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
 
-PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
+PYTHON_VERISONS = ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.7", "pypy3.8"]
+
+if os.environ.get("CI", None):
+    nox.options.error_on_missing_interpreters = True
 
 
 @nox.session(reuse_venv=True)
@@ -14,7 +20,7 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", "-a")
 
 
-@nox.session(python=PYTHON_VERSIONS)
+@nox.session(python=PYTHON_VERISONS)
 def tests(session: nox.Session) -> None:
     """
     Run the tests (requires a compiler).
@@ -24,14 +30,12 @@ def tests(session: nox.Session) -> None:
     session.install("-r", "tests/requirements.txt")
     session.run(
         "cmake",
-        "-S",
-        ".",
-        "-B",
-        tmpdir,
+        "-S.",
+        f"-B{tmpdir}",
         "-DPYBIND11_WERROR=ON",
         "-DDOWNLOAD_CATCH=ON",
         "-DDOWNLOAD_EIGEN=ON",
-        *session.posargs
+        *session.posargs,
     )
     session.run("cmake", "--build", tmpdir)
     session.run("cmake", "--build", tmpdir, "--config=Release", "--target", "check")

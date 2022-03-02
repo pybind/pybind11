@@ -493,9 +493,10 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
         }
 
         PyFrameObject *frame = tb->tb_frame;
+        Py_XINCREF(frame);
         result += "\n\nAt:\n";
         while (frame) {
-#    if PY_VERSION_HEX >= 0x03090000
+#    if PY_VERSION_HEX >= 0x030900B1
             PyCodeObject *f_code = PyFrame_GetCode(frame);
 #    else
             PyCodeObject *f_code = frame->f_code;
@@ -511,6 +512,14 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
             result += '\n';
             frame = frame->f_back;
             Py_DECREF(f_code);
+#    if PY_VERSION_HEX >= 0x030900B1
+            auto *b_frame = PyFrame_GetBack(frame);
+#    else
+            auto *b_frame = frame->f_back;
+            Py_XINCREF(b_frame);
+#    endif
+            Py_DECREF(frame);
+            frame = b_frame;
         }
 #endif //! defined(PYPY_VERSION)
     }

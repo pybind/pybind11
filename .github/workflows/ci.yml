@@ -30,8 +30,8 @@ jobs:
         - '3.6'
         - '3.9'
         - '3.10'
-        - 'pypy-3.7-v7.3.7'
-        - 'pypy-3.8-v7.3.7'
+        - 'pypy-3.7'
+        - 'pypy-3.8'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -45,7 +45,7 @@ jobs:
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
-          - runs-on: windows-latest
+          - runs-on: windows-2019
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
@@ -713,12 +713,12 @@ jobs:
 
         include:
           - python: 3.9
-            args: -DCMAKE_CXX_STANDARD=20 -DDOWNLOAD_EIGEN=OFF
+            args: -DCMAKE_CXX_STANDARD=20
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -836,7 +836,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=OFF
+        -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
 
     - name: Build C++20
