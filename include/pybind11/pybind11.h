@@ -2646,8 +2646,9 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
             PyObject *locals = PyEval_GetLocals();
             if (locals != nullptr) {
                 PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
-                PyObject *self_caller = dict_getitem(locals, PyTuple_GET_ITEM(co_varnames, 0));
+                PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
                 Py_DECREF(co_varnames);
+                PyObject *self_caller = dict_getitem(locals, self_arg);
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
                     Py_DECREF(frame);
