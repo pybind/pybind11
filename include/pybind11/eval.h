@@ -82,7 +82,7 @@ template <eval_mode mode = eval_expr, size_t N>
 object eval(const char (&s)[N], object global = globals(), object local = object()) {
     /* Support raw string literals by removing common leading whitespace */
     auto expr = (s[0] == '\n') ? str(module_::import("textwrap").attr("dedent")(s)) : str(s);
-    return eval<mode>(expr, global, local);
+    return eval<mode>(expr, std::move(global), std::move(local));
 }
 
 inline void exec(const str &expr, object global = globals(), object local = object()) {
@@ -91,7 +91,7 @@ inline void exec(const str &expr, object global = globals(), object local = obje
 
 template <size_t N>
 void exec(const char (&s)[N], object global = globals(), object local = object()) {
-    eval<eval_statements>(s, global, local);
+    eval<eval_statements>(s, std::move(global), std::move(local));
 }
 
 #if defined(PYPY_VERSION)
