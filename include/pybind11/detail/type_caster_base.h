@@ -510,7 +510,6 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
             result += "): ";
             result += handle(f_code->co_name).cast<std::string>();
             result += '\n';
-            frame = frame->f_back;
             Py_DECREF(f_code);
 #    if PY_VERSION_HEX >= 0x030900B1
             auto *b_frame = PyFrame_GetBack(frame);
