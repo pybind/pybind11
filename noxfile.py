@@ -107,7 +107,7 @@ def build(session: nox.Session) -> None:
             "-m",
             "build",
             *session.posargs,
-            env={"PYBIND11_GLOBAL_SDIST": "1"}
+            env={"PYBIND11_GLOBAL_SDIST": "1"},
         )
     finally:
         pyproject.unlink()
