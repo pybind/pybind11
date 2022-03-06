@@ -10,6 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "pybind11"
 description = "Seamless operability between C++11 and Python"
 authors = [{name = "Wenzel Jakob", email = "wenzel.jakob@epfl.ch"}]
+readme = "README.rst"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -35,10 +36,6 @@ keywords = [
 dynamic = ["license", "version"]
 requires-python = ">=3.6"
 
-[project.readme]
-file = "README.rst"
-content-type = "text/x-rst"
-
 [project.urls]
 Homepage = "https://github.com/pybind/pybind11"
 Documentation = "https://pybind11.readthedocs.io/"
@@ -49,7 +46,6 @@ Chat = "https://gitter.im/pybind/Lobby"
 
 [tool.setuptools]
 zip-safe = false
-include-package-data = false
 
 [tool.setuptools.dynamic]
 license = "BSD"
@@ -94,7 +90,7 @@ log_cli_level = "info"
 testpaths = [
     "tests",
 ]
-timeout=300
+timeout = 300
 
 
 [tool.pylint]
