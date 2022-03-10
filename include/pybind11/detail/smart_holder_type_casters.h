@@ -292,11 +292,9 @@ public:
             loaded_v_h = value_and_holder();
             return true;
         }
-
-        if (cpptype && try_as_void_ptr_capsule(src)) {
+        if (convert && cpptype && try_as_void_ptr_capsule(src)) {
             return true;
         }
-
         return false;
     }
 
