@@ -101,7 +101,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<NoCapsuleReturned, HelperBase>(m, "NoCapsuleReturned")
         .def(py::init<>())
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned",
-             [](NoCapsuleReturned& self) {
+             [](NoCapsuleReturned &self) {
                  PyObject *capsule
                      = self.as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
                  return pybind11::reinterpret_steal<py::capsule>(capsule);
@@ -109,8 +109,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
 
     py::classh<AsAnotherObject, HelperBase>(m, "AsAnotherObject")
         .def(py::init<>())
-        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid",
-             [](AsAnotherObject& self) {
+        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](AsAnotherObject &self) {
             PyObject *capsule = self.as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
             return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
