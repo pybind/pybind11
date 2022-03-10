@@ -60,7 +60,7 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.1.12"
+  rev: "v1.1.13"
   hooks:
   - id: remove-tabs
     exclude: (^docs/.*|\.patch)?$
@@ -73,7 +73,7 @@ repos:
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v1.2.0"
+  rev: "v1.2.4"
   hooks:
   - id: pycln
 
