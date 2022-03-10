@@ -31,3 +31,9 @@ def test_as_void_ptr_capsule_unsupported(ctor, caller, pointer_type, capsule_gen
         caller(obj)
     assert pointer_type in str(excinfo.value)
     assert obj.capsule_generated == capsule_generated
+
+
+def test_type_with_getattr():
+    obj = m.TypeWithGetattr()
+    assert obj.get_42() == 42
+    assert obj.something == "GetAttr: something"

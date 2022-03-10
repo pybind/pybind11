@@ -75,6 +75,12 @@ int get_from_no_conversion_capsule(const NoConversion *c) { return c->get(); }
 
 int get_from_no_capsule_returned(const NoCapsuleReturned *c) { return c->get(); }
 
+// https://github.com/pybind/pybind11/issues/3788
+struct TypeWithGetattr {
+    TypeWithGetattr() = default;
+    int get_42() const { return 42; }
+};
+
 } // namespace class_sh_void_ptr_capsule
 } // namespace pybind11_tests
 
@@ -83,6 +89,7 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Va
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::NoConversion)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::NoCapsuleReturned)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::AsAnotherObject)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::TypeWithGetattr)
 
 TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     using namespace pybind11_tests::class_sh_void_ptr_capsule;
@@ -128,4 +135,10 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     m.def("get_from_unique_ptr_valid_capsule", &get_from_unique_ptr_valid_capsule);
     m.def("get_from_no_conversion_capsule", &get_from_no_conversion_capsule);
     m.def("get_from_no_capsule_returned", &get_from_no_capsule_returned);
+
+    py::classh<TypeWithGetattr>(m, "TypeWithGetattr")
+        .def(py::init<>())
+        .def("get_42", &TypeWithGetattr::get_42)
+        .def("__getattr__",
+             [](TypeWithGetattr &, const std::string &key) { return "GetAttr: " + key; });
 }
