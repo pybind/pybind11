@@ -21,7 +21,7 @@ PyObject *conv(PyObject *o) {
         double v = PyLong_AsDouble(o);
         if (!(v == -1.0 && PyErr_Occurred())) {
             ret = PyFloat_FromDouble(v);
-	}
+        }
     } else {
         PyErr_SetString(PyExc_TypeError, "Unexpected type");
     }
