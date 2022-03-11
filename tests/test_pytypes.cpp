@@ -35,12 +35,12 @@ namespace external {
 	}
     }
     class float_ : public py::object {
-	PYBIND11_OBJECT_CVT(float_, py::object, ::detail::check, ::detail::conv)
+	PYBIND11_OBJECT_CVT(float_, py::object, external::detail::check, external::detail::conv)
 
-	float_() : py::object(::detail::default_constructed(), borrowed_t{}) {}
+	float_() : py::object(external::detail::default_constructed(), borrowed_t{}) {}
 
 	double get_value() const { return PyFloat_AsDouble(this->ptr()); }
-    }
+    };
 }
 
 TEST_SUBMODULE(pytypes, m) {

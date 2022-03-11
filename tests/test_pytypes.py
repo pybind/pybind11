@@ -639,5 +639,3 @@ def test_implementation_details():
 def test_external_float_():
     r1 = m.square_float_(2.0)
     assert r1 == 4.0
-    r2 = m.square_float_(4)
-    assert r2 == 16.0
