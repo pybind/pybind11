@@ -200,9 +200,6 @@ public:
         if (!src) {
             return false;
         }
-        if (cpptype && try_as_void_ptr_capsule(src)) {
-            return true;
-        }
         if (!typeinfo) {
             return try_load_foreign_module_local(src);
         }
@@ -295,7 +292,9 @@ public:
             loaded_v_h = value_and_holder();
             return true;
         }
-
+        if (convert && cpptype && try_as_void_ptr_capsule(src)) {
+            return true;
+        }
         return false;
     }
 

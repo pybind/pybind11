@@ -6,9 +6,9 @@ from pybind11_tests import class_sh_void_ptr_capsule as m
 @pytest.mark.parametrize(
     "ctor, caller, expected, capsule_generated",
     [
-        (m.Valid, m.get_from_valid_capsule, 101, True),
+        (m.Valid, m.get_from_valid_capsule, 101, False),
         (m.NoConversion, m.get_from_no_conversion_capsule, 102, False),
-        (m.NoCapsuleReturned, m.get_from_no_capsule_returned, 103, True),
+        (m.NoCapsuleReturned, m.get_from_no_capsule_returned, 103, False),
         (m.AsAnotherObject, m.get_from_valid_capsule, 104, True),
     ],
 )
@@ -31,3 +31,9 @@ def test_as_void_ptr_capsule_unsupported(ctor, caller, pointer_type, capsule_gen
         caller(obj)
     assert pointer_type in str(excinfo.value)
     assert obj.capsule_generated == capsule_generated
+
+
+def test_type_with_getattr():
+    obj = m.TypeWithGetattr()
+    assert obj.get_42() == 42
+    assert obj.something == "GetAttr: something"

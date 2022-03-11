@@ -7,17 +7,7 @@
 namespace pybind11_tests {
 namespace class_sh_void_ptr_capsule {
 
-// Without the helper we will run into a type_caster::load recursion.
-// This is because whenever the type_caster::load is called, it checks
-// whether the object defines an `as_` method that returns the void pointer
-// capsule. If yes, it calls the method. But in the following testcases, those
-// `as_` methods are defined with pybind11, which implicitly takes the object
-// itself as the first parameter. Therefore calling those methods causes loading
-// the object again, which causes infinite recursion.
-// This test is unusual in the sense that the void pointer capsules are meant to
-// be provided by objects wrapped with systems other than pybind11
-// (i.e. having to avoid the recursion is an artificial problem, not the norm).
-// Conveniently, the helper also serves to keep track of `capsule_generated`.
+// Conveniently, the helper serves to keep track of `capsule_generated`.
 struct HelperBase {
     HelperBase() = default;
     HelperBase(const HelperBase &) = delete;
@@ -65,6 +55,12 @@ struct AsAnotherObject : public HelperBase {
     }
 };
 
+// https://github.com/pybind/pybind11/issues/3788
+struct TypeWithGetattr {
+    TypeWithGetattr() = default;
+    int get_42() const { return 42; }
+};
+
 int get_from_valid_capsule(const Valid *c) { return c->get(); }
 
 int get_from_shared_ptr_valid_capsule(const std::shared_ptr<Valid> &c) { return c->get(); }
@@ -83,6 +79,7 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Va
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::NoConversion)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::NoCapsuleReturned)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::AsAnotherObject)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::TypeWithGetattr)
 
 TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     using namespace pybind11_tests::class_sh_void_ptr_capsule;
@@ -94,10 +91,8 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
 
     py::classh<Valid, HelperBase>(m, "Valid")
         .def(py::init<>())
-        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](HelperBase *self) {
-            auto *obj = dynamic_cast<Valid *>(self);
-            assert(obj != nullptr);
-            PyObject *capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
+        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](Valid &self) {
+            PyObject *capsule = self.as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
             return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
 
@@ -106,20 +101,16 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<NoCapsuleReturned, HelperBase>(m, "NoCapsuleReturned")
         .def(py::init<>())
         .def("as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned",
-             [](HelperBase *self) {
-                 auto *obj = dynamic_cast<NoCapsuleReturned *>(self);
-                 assert(obj != nullptr);
+             [](NoCapsuleReturned &self) {
                  PyObject *capsule
-                     = obj->as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
+                     = self.as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned();
                  return pybind11::reinterpret_steal<py::capsule>(capsule);
              });
 
     py::classh<AsAnotherObject, HelperBase>(m, "AsAnotherObject")
         .def(py::init<>())
-        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](HelperBase *self) {
-            auto *obj = dynamic_cast<AsAnotherObject *>(self);
-            assert(obj != nullptr);
-            PyObject *capsule = obj->as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
+        .def("as_pybind11_tests_class_sh_void_ptr_capsule_Valid", [](AsAnotherObject &self) {
+            PyObject *capsule = self.as_pybind11_tests_class_sh_void_ptr_capsule_Valid();
             return pybind11::reinterpret_steal<py::capsule>(capsule);
         });
 
@@ -128,4 +119,10 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     m.def("get_from_unique_ptr_valid_capsule", &get_from_unique_ptr_valid_capsule);
     m.def("get_from_no_conversion_capsule", &get_from_no_conversion_capsule);
     m.def("get_from_no_capsule_returned", &get_from_no_capsule_returned);
+
+    py::classh<TypeWithGetattr>(m, "TypeWithGetattr")
+        .def(py::init<>())
+        .def("get_42", &TypeWithGetattr::get_42)
+        .def("__getattr__",
+             [](TypeWithGetattr &, const std::string &key) { return "GetAttr: " + key; });
 }
