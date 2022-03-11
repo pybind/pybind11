@@ -11,6 +11,34 @@
 
 #include <utility>
 
+namespace external {
+namespace detail {
+bool check(PyObject *o) { return PyFloat_Check(o) != 0; }
+
+PyObject *conv(PyObject *o) {
+    PyObject *ret = nullptr;
+    if (PyLong_Check(o)) {
+        double v = PyLong_AsDouble(o);
+        if (!(v == -1.0 && PyErr_Occurred())) {
+            ret = PyFloat_FromDouble(v);
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "Unexpected type");
+    }
+    return ret;
+}
+
+PyObject *default_constructed() { return PyFloat_FromDouble(0.0); }
+} // namespace detail
+class float_ : public py::object {
+    PYBIND11_OBJECT_CVT(float_, py::object, external::detail::check, external::detail::conv)
+
+    float_() : py::object(external::detail::default_constructed(), stolen_t{}) {}
+
+    double get_value() const { return PyFloat_AsDouble(this->ptr()); }
+};
+} // namespace external
+
 TEST_SUBMODULE(pytypes, m) {
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });
@@ -548,5 +576,10 @@ TEST_SUBMODULE(pytypes, m) {
         py::detail::accessor_policies::tuple_item::set(o, (py::size_t) 1, s1);
         py::detail::accessor_policies::tuple_item::set(o, (py::size_t) 0, s0);
         return o;
+    });
+
+    m.def("square_float_", [](const external::float_ &x) -> double {
+        double v = x.get_value();
+        return v * v;
     });
 }

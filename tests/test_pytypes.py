@@ -657,3 +657,8 @@ def test_implementation_details():
     assert m.tuple_item_set_ssize_t() == ("emely", "edmond")
     assert m.tuple_item_get_size_t(tup) == 93
     assert m.tuple_item_set_size_t() == ("candy", "cat")
+
+
+def test_external_float_():
+    r1 = m.square_float_(2.0)
+    assert r1 == 4.0

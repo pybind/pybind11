@@ -1053,12 +1053,12 @@ public:                                                                         
     Name(const object &o)                                                                         \
         : Parent(check_(o) ? o.inc_ref().ptr() : ConvertFun(o.ptr()), stolen_t{}) {               \
         if (!m_ptr)                                                                               \
-            throw error_already_set();                                                            \
+            throw ::pybind11::error_already_set();                                                \
     }                                                                                             \
     /* NOLINTNEXTLINE(google-explicit-constructor) */                                             \
     Name(object &&o) : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) {  \
         if (!m_ptr)                                                                               \
-            throw error_already_set();                                                            \
+            throw ::pybind11::error_already_set();                                                \
     }
 
 #define PYBIND11_OBJECT_CVT_DEFAULT(Name, Parent, CheckFun, ConvertFun)                           \
