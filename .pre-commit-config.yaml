@@ -32,7 +32,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.31.0"
+  rev: "v2.31.1"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -64,14 +64,14 @@ repos:
   - id: remove-tabs
 
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.2.2"
+  rev: "0.3.1"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v1.2.4"
+  rev: "v1.2.5"
   hooks:
   - id: pycln
 
@@ -122,7 +122,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v0.931"
+  rev: "v0.940"
   hooks:
   - id: mypy
     args: [--show-error-codes]
@@ -131,7 +131,7 @@ repos:
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
-  rev: "0.47"
+  rev: "0.48"
   hooks:
   - id: check-manifest
     # This is a slow hook, so only run this if --hook-stage manual is passed
