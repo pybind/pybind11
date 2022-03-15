@@ -84,7 +84,7 @@ could be realized as follows (important changes highlighted):
         });
     }
 
-The ``call_go`` wrapper can also be simplified using the `call_guard` policy
+The ``call_go`` wrapper can also be simplified using the ``call_guard`` policy
 (see :ref:`call_policies`) which yields the same result:
 
 .. code-block:: cpp

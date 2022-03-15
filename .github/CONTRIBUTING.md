@@ -53,6 +53,33 @@ derivative works thereof, in binary and source code form.
 
 ## Development of pybind11
 
+### Quick setup
+
+To setup a quick development environment, use [`nox`](https://nox.thea.codes).
+This will allow you to do some common tasks with minimal setup effort, but will
+take more time to run and be less flexible than a full development environment.
+If you use [`pipx run nox`](https://pipx.pypa.io), you don't even need to
+install `nox`. Examples:
+
+```bash
+# List all available sessions
+nox -l
+
+# Run linters
+nox -s lint
+
+# Run tests on Python 3.9
+nox -s tests-3.9
+
+# Build and preview docs
+nox -s docs -- serve
+
+# Build SDists and wheels
+nox -s build
+```
+
+### Full setup
+
 To setup an ideal development environment, run the following commands on a
 system with CMake 3.14+:
 
@@ -66,11 +93,10 @@ cmake --build build -j4
 
 Tips:
 
-* You can use `virtualenv` (from PyPI) instead of `venv` (which is Python 3
-  only).
+* You can use `virtualenv` (faster, from PyPI) instead of `venv`.
 * You can select any name for your environment folder; if it contains "env" it
   will be ignored by git.
-* If you don’t have CMake 3.14+, just add “cmake” to the pip install command.
+* If you don't have CMake 3.14+, just add "cmake" to the pip install command.
 * You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython on CMake 3.12+
 * In classic mode, you may need to set `-DPYTHON_EXECUTABLE=/path/to/python`.
   FindPython uses `-DPython_ROOT_DIR=/path/to` or
@@ -78,7 +104,7 @@ Tips:
 
 ### Configuration options
 
-In CMake, configuration options are given with “-D”. Options are stored in the
+In CMake, configuration options are given with "-D". Options are stored in the
 build directory, in the `CMakeCache.txt` file, so they are remembered for each
 build directory. Two selections are special - the generator, given with `-G`,
 and the compiler, which is selected based on environment variables `CXX` and
@@ -88,12 +114,12 @@ after the initial run.
 The valid options are:
 
 * `-DCMAKE_BUILD_TYPE`: Release, Debug, MinSizeRel, RelWithDebInfo
-* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+’s FindPython instead of the
+* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+'s FindPython instead of the
   classic, deprecated, custom FindPythonLibs
 * `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
 * `-DBUILD_TESTING=ON`: Enable the tests
 * `-DDOWNLOAD_CATCH=ON`: Download catch to build the C++ tests
-* `-DOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
+* `-DDOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
 * `-DPYBIND11_INSTALL=ON/OFF`: Enable the install target (on by default for the
   master project)
 * `-DUSE_PYTHON_INSTALL_DIR=ON`: Try to install into the python dir
@@ -132,8 +158,9 @@ tests with these targets:
 * `test_cmake_build`: Install / subdirectory tests
 
 If you want to build just a subset of tests, use
-`-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp"`. If this is
-empty, all tests will be built.
+`-DPYBIND11_TEST_OVERRIDE="test_callbacks;test_pickling"`. If this is
+empty, all tests will be built. Tests are specified without an extension if they need both a .py and
+.cpp file.
 
 You may also pass flags to the `pytest` target by editing `tests/pytest.ini` or
 by using the `PYTEST_ADDOPTS` environment variable
@@ -203,14 +230,15 @@ of the pybind11 repo.
 [`clang-tidy`][clang-tidy] performs deeper static code analyses and is
 more complex to run, compared to `clang-format`, but support for `clang-tidy`
 is built into the pybind11 CMake configuration. To run `clang-tidy`, the
-following recipe should work. Files will be modified in place, so you can
-use git to monitor the changes.
+following recipe should work. Run the `docker` command from the top-level
+directory inside your pybind11 git clone. Files will be modified in place,
+so you can use git to monitor the changes.
 
 ```bash
-docker run --rm -v $PWD:/pybind11 -it silkeh/clang:10
-apt-get update && apt-get install python3-dev python3-pytest
-cmake -S pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix"
-cmake --build build
+docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:12
+apt-get update && apt-get install -y python3-dev python3-pytest
+cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
+cmake --build build -j 2 -- --keep-going
 ```
 
 ### Include what you use
@@ -228,7 +256,7 @@ The report is sent to stderr; you can pipe it into a file if you wish.
 ### Build recipes
 
 This builds with the Intel compiler (assuming it is in your path, along with a
-recent CMake and Python 3):
+recent CMake and Python):
 
 ```bash
 python3 -m venv venv

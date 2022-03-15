@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import pytest
+
 from pybind11_tests import custom_type_casters as m
 
 
@@ -18,7 +18,7 @@ def test_noconvert_args(msg):
         loading ArgInspector1 argument WITH conversion allowed.  Argument value = this is b
         13
         loading ArgInspector2 argument WITH conversion allowed.  Argument value = (default arg inspector 2)
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         msg(a.g("this is a", "this is b", 42))
@@ -27,7 +27,7 @@ def test_noconvert_args(msg):
         loading ArgInspector1 argument WITH conversion allowed.  Argument value = this is b
         42
         loading ArgInspector2 argument WITH conversion allowed.  Argument value = (default arg inspector 2)
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         msg(a.g("this is a", "this is b", 42, "this is d"))
@@ -75,7 +75,7 @@ def test_noconvert_args(msg):
             1. (i: int) -> int
 
         Invoked with: 4.0
-    """  # noqa: E501 line too long
+    """
     )
 
     assert m.ints_only(4) == 2
@@ -114,3 +114,7 @@ def test_custom_caster_destruction():
 
     # Make sure we still only have the original object (from ..._no_destroy()) alive:
     assert cstats.alive() == 1
+
+
+def test_custom_caster_other_lib():
+    assert m.other_lib_type(True)

@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import re
 
 import ghapi.all
-
 from rich import print
 from rich.syntax import Syntax
-
 
 ENTRY = re.compile(
     r"""
@@ -27,7 +24,10 @@ print()
 
 api = ghapi.all.GhApi(owner="pybind", repo="pybind11")
 
-issues = api.issues.list_for_repo(labels="needs changelog", state="closed")
+issues_pages = ghapi.page.paged(
+    api.issues.list_for_repo, labels="needs changelog", state="closed"
+)
+issues = (issue for page in issues_pages for issue in page)
 missing = []
 
 for issue in issues:
@@ -41,7 +41,7 @@ for issue in issues:
 
         msg += f"\n  `#{issue.number} <{issue.html_url}>`_"
 
-        print(Syntax(msg, "rst", theme="ansi_light"))
+        print(Syntax(msg, "rst", theme="ansi_light", word_wrap=True))
         print()
 
     else:

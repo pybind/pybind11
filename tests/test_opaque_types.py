@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 import pytest
-from pybind11_tests import opaque_types as m
+
 from pybind11_tests import ConstructorStats, UserType
+from pybind11_tests import opaque_types as m
 
 
 def test_string_list():
@@ -12,7 +12,7 @@ def test_string_list():
     assert lst.back() == "Element 2"
 
     for i, k in enumerate(lst, start=1):
-        assert k == "Element {}".format(i)
+        assert k == f"Element {i}"
     lst.pop_back()
     assert m.print_opaque_list(lst) == "Opaque list: [Element 1]"
 
@@ -39,7 +39,7 @@ def test_pointers(msg):
             1. (arg0: capsule) -> int
 
         Invoked with: [1, 2, 3]
-    """  # noqa: E501 line too long
+    """
     )
 
     assert m.return_null_str() is None

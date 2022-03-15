@@ -63,6 +63,9 @@ Convenience functions converting to Python types
 .. doxygenfunction:: make_key_iterator(Iterator, Sentinel, Extra &&...)
 .. doxygenfunction:: make_key_iterator(Type &, Extra&&...)
 
+.. doxygenfunction:: make_value_iterator(Iterator, Sentinel, Extra &&...)
+.. doxygenfunction:: make_value_iterator(Type &, Extra&&...)
+
 .. _extras:
 
 Passing extra arguments to ``def`` or ``class_``

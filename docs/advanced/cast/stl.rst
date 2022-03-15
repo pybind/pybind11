@@ -87,8 +87,6 @@ included to tell pybind11 how to visit the variant.
 
     pybind11 only supports the modern implementation of ``boost::variant``
     which makes use of variadic templates. This requires Boost 1.56 or newer.
-    Additionally, on Windows, MSVC 2017 is required because ``boost::variant``
-    falls back to the old non-variadic implementation on MSVC 2015.
 
 .. _opaque:
 

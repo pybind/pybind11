@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
-
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
 
@@ -14,8 +12,7 @@ def test_multiple_inheritance_cpp():
     assert mt.bar() == 4
 
 
-@pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2")
+@pytest.mark.xfail("env.PYPY")
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -54,15 +51,14 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
-@pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2")
+@pytest.mark.xfail("env.PYPY")
 def test_multiple_inheritance_python():
     class MI1(m.Base1, m.Base2):
         def __init__(self, i, j):
             m.Base1.__init__(self, i)
             m.Base2.__init__(self, j)
 
-    class B1(object):
+    class B1:
         def v(self):
             return 1
 
@@ -97,7 +93,7 @@ def test_multiple_inheritance_python():
         def v(self):
             return 2
 
-    class B3(object):
+    class B3:
         def v(self):
             return 3
 
@@ -359,3 +355,139 @@ def test_diamond_inheritance():
     assert d is d.c0().b()
     assert d is d.c1().b()
     assert d is d.c0().c1().b().c0().b()
+
+
+def test_pr3635_diamond_b():
+    o = m.MVB()
+    assert o.b == 1
+
+    assert o.get_b_b() == 1
+
+
+def test_pr3635_diamond_c():
+    o = m.MVC()
+    assert o.b == 1
+    assert o.c == 2
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+
+    assert o.get_c_c() == 2
+
+
+def test_pr3635_diamond_d0():
+    o = m.MVD0()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d0_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d0_c() == 2
+
+    assert o.get_d0_d0() == 3
+
+
+def test_pr3635_diamond_d1():
+    o = m.MVD1()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d1 == 4
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d1_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d1_c() == 2
+
+    assert o.get_d1_d1() == 4
+
+
+def test_pr3635_diamond_e():
+    o = m.MVE()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+    assert o.d1 == 4
+    assert o.e == 5
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d0_b() == 1
+    assert o.get_d1_b() == 1
+    assert o.get_e_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d0_c() == 2
+    assert o.get_d1_c() == 2
+    assert o.get_e_c() == 2
+
+    assert o.get_d0_d0() == 3
+    assert o.get_e_d0() == 3
+
+    assert o.get_d1_d1() == 4
+    assert o.get_e_d1() == 4
+
+    assert o.get_e_e() == 5
+
+
+def test_pr3635_diamond_f():
+    o = m.MVF()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+    assert o.d1 == 4
+    assert o.e == 5
+    assert o.f == 6
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d0_b() == 1
+    assert o.get_d1_b() == 1
+    assert o.get_e_b() == 1
+    assert o.get_f_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d0_c() == 2
+    assert o.get_d1_c() == 2
+    assert o.get_e_c() == 2
+    assert o.get_f_c() == 2
+
+    assert o.get_d0_d0() == 3
+    assert o.get_e_d0() == 3
+    assert o.get_f_d0() == 3
+
+    assert o.get_d1_d1() == 4
+    assert o.get_e_d1() == 4
+    assert o.get_f_d1() == 4
+
+    assert o.get_e_e() == 5
+    assert o.get_f_e() == 5
+
+    assert o.get_f_f() == 6
+
+
+def test_python_inherit_from_mi():
+    """Tests extending a Python class from a single inheritor of a MI class"""
+
+    class PyMVF(m.MVF):
+        g = 7
+
+        def get_g_g(self):
+            return self.g
+
+    o = PyMVF()
+
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+    assert o.d1 == 4
+    assert o.e == 5
+    assert o.f == 6
+    assert o.g == 7
+
+    assert o.get_g_g() == 7

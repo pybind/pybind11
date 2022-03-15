@@ -16,11 +16,11 @@ check_style_errors=0
 IFS=$'\n'
 
 
-found="$(grep '\<\(if\|for\|while\|catch\)(\|){' $@ -rn --color=always)"
+found="$(grep '\<\(if\|for\|while\|catch\)(\|){' "$@" -rn --color=always)"
 if [ -n "$found" ]; then
     echo -e '\033[31;01mError: found the following coding style problems:\033[0m'
     check_style_errors=1
-    echo "$found" | sed -e 's/^/    /'
+    echo "${found//^/    /}"
 fi
 
 found="$(awk '
@@ -34,7 +34,7 @@ last && /^\s*{/ {
     last=""
 }
 { last = /(if|for|while|catch|switch)\s*\(.*\)\s*$/ ? $0 : "" }
-' $(find include -type f) $@)"
+' "$(find include -type f)" "$@")"
 if [ -n "$found" ]; then
     check_style_errors=1
     echo -e '\033[31;01mError: braces should occur on the same line as the if/while/.. statement. Found issues in the following files:\033[0m'

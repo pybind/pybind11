@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
+import ctypes
 import io
 import struct
-import ctypes
 
 import pytest
 
-import env  # noqa: F401
-
-from pybind11_tests import buffers as m
+import env
 from pybind11_tests import ConstructorStats
+from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
 
@@ -37,6 +35,10 @@ def test_from_python():
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2444
+# TODO: fix on recent PyPy
+@pytest.mark.xfail(
+    env.PYPY, reason="PyPy 7.3.7 doesn't clear this anymore", strict=False
+)
 def test_to_python():
     mat = m.Matrix(5, 4)
     assert memoryview(mat).shape == (5, 4)
@@ -90,16 +92,16 @@ def test_pointer_to_member_fn():
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
-    assert view[0] == b"d" if env.PY2 else 0x64
+    assert view[0] == 0x64
     assert view.readonly
     with pytest.raises(TypeError):
-        view[0] = b"\0" if env.PY2 else 0
+        view[0] = 0
 
 
 def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 
-    memoryview(buf)[0] = b"d" if env.PY2 else 0x64
+    memoryview(buf)[0] = 0x64
     assert buf.value == 0x64
 
     io.BytesIO(b"A").readinto(buf)
@@ -107,7 +109,7 @@ def test_selective_readonly_buffer():
 
     buf.readonly = True
     with pytest.raises(TypeError):
-        memoryview(buf)[0] = b"\0" if env.PY2 else 0
+        memoryview(buf)[0] = 0
     with pytest.raises(TypeError):
         io.BytesIO(b"1").readinto(buf)
 
@@ -142,9 +144,6 @@ def test_ctypes_array_2d():
         assert not info.readonly
 
 
-@pytest.mark.skipif(
-    "env.PYPY and env.PY2", reason="PyPy2 bytes buffer not reported as readonly"
-)
 def test_ctypes_from_buffer():
     test_pystr = b"0123456789"
     for pyarray in (test_pystr, bytearray(test_pystr)):

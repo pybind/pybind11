@@ -1,3 +1,59 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "cmake>=3.18", "ninja"]
+requires = ["setuptools>=42", "cmake>=3.18", "ninja"]
 build-backend = "setuptools.build_meta"
+
+[tool.check-manifest]
+ignore = [
+    "tests/**",
+    "docs/**",
+    "tools/**",
+    "include/**",
+    ".*",
+    "pybind11/include/**",
+    "pybind11/share/**",
+    "CMakeLists.txt",
+    "noxfile.py",
+]
+
+[tool.isort]
+# Needs the compiled .so modules and env.py from tests
+known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
+# For black compatibility
+profile = "black"
+
+[tool.mypy]
+files = ["pybind11"]
+python_version = "3.6"
+warn_unused_configs = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["ghapi.*", "setuptools.*"]
+ignore_missing_imports = true
+
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+log_cli_level = "info"
+testpaths = [
+    "tests",
+]
+timeout=300
+
+
+[tool.pylint]
+master.py-version = "3.6"
+reports.output-format = "colorized"
+messages_control.disable = [
+  "design",
+  "fixme",
+  "imports",
+  "line-too-long",
+  "imports",
+  "invalid-name",
+  "protected-access",
+  "missing-module-docstring",
+]

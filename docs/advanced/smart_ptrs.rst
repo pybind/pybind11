@@ -77,6 +77,7 @@ segmentation fault).
 .. code-block:: python
 
    from example import Parent
+
    print(Parent().get_child())
 
 The problem is that ``Parent::get_child()`` returns a pointer to an instance of

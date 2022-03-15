@@ -26,7 +26,9 @@ The following Python snippet demonstrates the intended usage from the Python sid
         def __int__(self):
             return 123
 
+
     from example import print
+
     print(A())
 
 To register the necessary conversion routines, it is necessary to add an
@@ -44,7 +46,7 @@ type is explicitly allowed.
              * function signatures and declares a local variable
              * 'value' of type inty
              */
-            PYBIND11_TYPE_CASTER(inty, _("inty"));
+            PYBIND11_TYPE_CASTER(inty, const_name("inty"));
 
             /**
              * Conversion part 1 (Python->C++): convert a PyObject into a inty

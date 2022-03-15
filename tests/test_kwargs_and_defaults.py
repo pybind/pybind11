@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 import pytest
-
-import env  # noqa: F401
 
 from pybind11_tests import kwargs_and_defaults as m
 
@@ -83,7 +80,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (arg0: int, arg1: float, *args) -> tuple
 
         Invoked with: 1
-    """  # noqa: E501 line too long
+    """
     )
     with pytest.raises(TypeError) as excinfo:
         assert mpa()
@@ -94,7 +91,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (arg0: int, arg1: float, *args) -> tuple
 
         Invoked with:
-    """  # noqa: E501 line too long
+    """
     )
 
     assert mpk(-2, 3.5, pi=3.14159, e=2.71828) == (
@@ -128,7 +125,7 @@ def test_mixed_args_and_kwargs(msg):
             1. (i: int = 1, j: float = 3.14159, *args, **kwargs) -> tuple
 
         Invoked with: 1; kwargs: i=1
-    """  # noqa: E501 line too long
+    """
     )
     with pytest.raises(TypeError) as excinfo:
         assert mpakd(1, 2, j=1)
@@ -139,8 +136,55 @@ def test_mixed_args_and_kwargs(msg):
             1. (i: int = 1, j: float = 3.14159, *args, **kwargs) -> tuple
 
         Invoked with: 1, 2; kwargs: j=1
-    """  # noqa: E501 line too long
+    """
     )
+
+    # Arguments after a py::args are automatically keyword-only (pybind 2.9+)
+    assert m.args_kwonly(2, 2.5, z=22) == (2, 2.5, (), 22)
+    assert m.args_kwonly(2, 2.5, "a", "b", "c", z=22) == (2, 2.5, ("a", "b", "c"), 22)
+    assert m.args_kwonly(z=22, i=4, j=16) == (4, 16, (), 22)
+
+    with pytest.raises(TypeError) as excinfo:
+        assert m.args_kwonly(2, 2.5, 22)  # missing z= keyword
+    assert (
+        msg(excinfo.value)
+        == """
+        args_kwonly(): incompatible function arguments. The following argument types are supported:
+            1. (i: int, j: float, *args, z: int) -> tuple
+
+        Invoked with: 2, 2.5, 22
+    """
+    )
+
+    assert m.args_kwonly_kwargs(i=1, k=4, j=10, z=-1, y=9) == (
+        1,
+        10,
+        (),
+        -1,
+        {"k": 4, "y": 9},
+    )
+    assert m.args_kwonly_kwargs(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, z=11, y=12) == (
+        1,
+        2,
+        (3, 4, 5, 6, 7, 8, 9, 10),
+        11,
+        {"y": 12},
+    )
+    assert (
+        m.args_kwonly_kwargs.__doc__
+        == "args_kwonly_kwargs(i: int, j: float, *args, z: int, **kwargs) -> tuple\n"
+    )
+
+    assert (
+        m.args_kwonly_kwargs_defaults.__doc__
+        == "args_kwonly_kwargs_defaults(i: int = 1, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
+    )
+    assert m.args_kwonly_kwargs_defaults() == (1, 3.14159, (), 42, {})
+    assert m.args_kwonly_kwargs_defaults(2) == (2, 3.14159, (), 42, {})
+    assert m.args_kwonly_kwargs_defaults(z=-99) == (1, 3.14159, (), -99, {})
+    assert m.args_kwonly_kwargs_defaults(5, 6, 7, 8) == (5, 6, (7, 8), 42, {})
+    assert m.args_kwonly_kwargs_defaults(5, 6, 7, m=8) == (5, 6, (7,), 42, {"m": 8})
+    assert m.args_kwonly_kwargs_defaults(5, 6, 7, m=8, z=9) == (5, 6, (7,), 9, {"m": 8})
 
 
 def test_keyword_only_args(msg):
@@ -179,8 +223,21 @@ def test_keyword_only_args(msg):
     assert (
         msg(excinfo.value)
         == """
-        arg(): cannot specify an unnamed argument after an kw_only() annotation
+        arg(): cannot specify an unnamed argument after a kw_only() annotation or args() argument
     """
+    )
+
+    # https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
+    x = m.first_arg_kw_only(i=1)
+    x.method()
+    x.method(i=1, j=2)
+    assert (
+        m.first_arg_kw_only.__init__.__doc__
+        == "__init__(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 0) -> None\n"  # noqa: E501 line too long
+    )
+    assert (
+        m.first_arg_kw_only.method.__doc__
+        == "method(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 1, j: int = 2) -> None\n"  # noqa: E501 line too long
     )
 
 
@@ -223,6 +280,55 @@ def test_positional_only_args(msg):
         m.pos_only_def_mix(1, j=4)
     assert "incompatible function arguments" in str(excinfo.value)
 
+    # Mix it with args and kwargs:
+    assert (
+        m.args_kwonly_full_monty.__doc__
+        == "args_kwonly_full_monty(arg0: int = 1, arg1: int = 2, /, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
+    )
+    assert m.args_kwonly_full_monty() == (1, 2, 3.14159, (), 42, {})
+    assert m.args_kwonly_full_monty(8) == (8, 2, 3.14159, (), 42, {})
+    assert m.args_kwonly_full_monty(8, 9) == (8, 9, 3.14159, (), 42, {})
+    assert m.args_kwonly_full_monty(8, 9, 10) == (8, 9, 10.0, (), 42, {})
+    assert m.args_kwonly_full_monty(3, 4, 5, 6, 7, m=8, z=9) == (
+        3,
+        4,
+        5.0,
+        (
+            6,
+            7,
+        ),
+        9,
+        {"m": 8},
+    )
+    assert m.args_kwonly_full_monty(3, 4, 5, 6, 7, m=8, z=9) == (
+        3,
+        4,
+        5.0,
+        (
+            6,
+            7,
+        ),
+        9,
+        {"m": 8},
+    )
+    assert m.args_kwonly_full_monty(5, j=7, m=8, z=9) == (5, 2, 7.0, (), 9, {"m": 8})
+    assert m.args_kwonly_full_monty(i=5, j=7, m=8, z=9) == (
+        1,
+        2,
+        7.0,
+        (),
+        9,
+        {"i": 5, "m": 8},
+    )
+
+    # pos_only at the beginning of the argument list was "broken" in how it was displayed (though
+    # this is fairly useless in practice).  Related to:
+    # https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
+    assert (
+        m.first_arg_kw_only.pos_only.__doc__
+        == "pos_only(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, /, i: int, j: int) -> None\n"  # noqa: E501 line too long
+    )
+
 
 def test_signatures():
     assert "kw_only_all(*, i: int, j: int) -> tuple\n" == m.kw_only_all.__doc__
@@ -235,7 +341,6 @@ def test_signatures():
     )
 
 
-@pytest.mark.xfail("env.PYPY and env.PY2", reason="PyPy2 doesn't double count")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular
     arguments"""
