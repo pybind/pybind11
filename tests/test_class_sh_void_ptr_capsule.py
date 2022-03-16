@@ -23,7 +23,9 @@ class NoCapsuleReturned:
 
     capsule_generated = False
 
-    def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(self):  # noqa: N802
+    def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(
+        self,
+    ):
         return
 
 
@@ -45,7 +47,9 @@ class AsAnotherObject:
         (AsAnotherObject, m.get_from_valid_capsule, 1, True),
     ],
 )
-def test_valid_as_void_ptr_capsule_function(ctor, caller, expected, capsule_generated):  # noqa: N802
+def test_valid_as_void_ptr_capsule_function(
+    ctor, caller, expected, capsule_generated
+):
     obj = ctor()
     assert caller(obj) == expected
     assert obj.capsule_generated == capsule_generated
