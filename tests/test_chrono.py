@@ -73,7 +73,7 @@ def test_chrono_system_clock_roundtrip_date():
 
 def test_chrono_system_clock_roundtrip_daylight_savings():
     # naive datetime - AEDST clock will change
-    datetime1 = datetime.datetime(2021, 10, 3, 2, 18, 46, 677734) 
+    datetime1 = datetime.datetime(2021, 10, 3, 2, 18, 46, 677734)
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(datetime1)
