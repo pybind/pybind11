@@ -47,9 +47,7 @@ class AsAnotherObject:
         (AsAnotherObject, m.get_from_valid_capsule, 1, True),
     ],
 )
-def test_valid_as_void_ptr_capsule_function(
-    ctor, caller, expected, capsule_generated
-):
+def test_valid_as_void_ptr_capsule_function(ctor, caller, expected, capsule_generated):
     obj = ctor()
     assert caller(obj) == expected
     assert obj.capsule_generated == capsule_generated
