@@ -94,7 +94,8 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<Base12, Base1, Base2>(m, "Base12")
         .def(py::init<>())
         .def("foo", &Base12::foo)
-        .def("__getattr__", [](Base12 &, const std::string &key) { return "Base GetAttr: " + key; });
+        .def("__getattr__",
+             [](Base12 &, const std::string &key) { return "Base GetAttr: " + key; });
 
     py::classh<Derived1, Base12>(m, "Derived1").def(py::init<>()).def("bar", &Derived1::bar);
 
