@@ -108,6 +108,10 @@ public:                                                                         
 
 template <typename CharT>
 using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
+#if defined(PYBIND11_CPP17)
+                                std::is_same<CharT, std::byte>, /* std::byte */
+#endif
+                                std::is_same<CharT, uint8_t>, /* uint8_t */
 #if defined(PYBIND11_HAS_U8STRING)
                                 std::is_same<CharT, char8_t>, /* std::u8string */
 #endif
@@ -434,11 +438,19 @@ struct string_caster {
     cast(const StringType &src, return_value_policy /* policy */, handle /* parent */) {
         const char *buffer = reinterpret_cast<const char *>(src.data());
         auto nbytes = ssize_t(src.size() * sizeof(CharT));
-        handle s = decode_utfN(buffer, nbytes);
-        if (!s) {
-            throw error_already_set();
+        if (std::is_same_v<CharT, uint8_t>
+#if defined(PYBIND11_CPP17)
+            or std::is_same_v<CharT, std::byte>
+#endif
+        ) {
+            return PyBytes_FromStringAndSize(buffer, nbytes);
+        } else {
+            handle s = decode_utfN(buffer, nbytes);
+            if (!s) {
+                throw error_already_set();
+            }
+            return s;
         }
-        return s;
     }
 
     PYBIND11_TYPE_CASTER(StringType, const_name(PYBIND11_STRING_NAME));
@@ -461,12 +473,18 @@ private:
                                 nullptr);
 #endif
     }
+    template<typename C>
+    using accept_bytes_as_is = any_of<std::is_same<C, char>,
+#if defined(PYBIND11_CPP17)
+                                      std::is_same<C, std::byte>,
+#endif
+                                      std::is_same<C, uint8_t>>;
 
     // When loading into a std::string or char*, accept a bytes/bytearray object as-is (i.e.
     // without any encoding/decoding attempt).  For other C++ char sizes this is a no-op.
     // which supports loading a unicode from a str, doesn't take this path.
     template <typename C = CharT>
-    bool load_raw(enable_if_t<std::is_same<C, char>::value, handle> src) {
+    bool load_raw(enable_if_t<accept_bytes_as_is<C>::value, handle> src) {
         if (PYBIND11_BYTES_CHECK(src.ptr())) {
             // We were passed raw bytes; accept it into a std::string or char*
             // without any encoding attempt.
@@ -474,7 +492,7 @@ private:
             if (!bytes) {
                 pybind11_fail("Unexpected PYBIND11_BYTES_AS_STRING() failure.");
             }
-            value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
+            value = StringType((const C *) bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
             return true;
         }
         if (PyByteArray_Check(src.ptr())) {
@@ -492,7 +510,7 @@ private:
     }
 
     template <typename C = CharT>
-    bool load_raw(enable_if_t<!std::is_same<C, char>::value, handle>) {
+    bool load_raw(enable_if_t<!accept_bytes_as_is<C>::value, handle>) {
         return false;
     }
 };
