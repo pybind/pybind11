@@ -15,7 +15,7 @@ struct NoCapsuleReturned {};
 
 struct AsAnotherObject {};
 
-py::object create_void_ptr_capsule(py::object obj, std::string class_name) {
+py::object create_void_ptr_capsule(py::object obj, const std::string& class_name) {
     void *vptr = static_cast<void *>(obj.ptr());
     // We assume vptr out lives the capsule, so we use nullptr for the
     // destructor.
@@ -48,7 +48,6 @@ struct Base2 {
 };
 
 struct Base12 : Base1, Base2 {
-    virtual ~Base12() = default;
     int foo() const { return 0; }
 };
 
