@@ -5,7 +5,8 @@ from pybind11_tests import class_sh_void_ptr_capsule as m
 
 class Valid:
 
-    capsule_generated = False
+    def __init__(self):
+        self.capsule_generated = False
 
     def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):  # noqa: N802
         self.capsule_generated = True
@@ -16,12 +17,14 @@ class Valid:
 
 class NoConversion:
 
-    capsule_generated = False
+    def __init__(self):
+        self.capsule_generated = False
 
 
 class NoCapsuleReturned:
 
-    capsule_generated = False
+    def __init__(self):
+        self.capsule_generated = False
 
     def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(  # noqa: N802
         self,
@@ -31,7 +34,8 @@ class NoCapsuleReturned:
 
 class AsAnotherObject:
 
-    capsule_generated = False
+    def __init__(self):
+        self.capsule_generated = False
 
     def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):  # noqa: N802
         self.capsule_generated = True

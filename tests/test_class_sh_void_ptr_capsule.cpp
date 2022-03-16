@@ -23,15 +23,15 @@ py::object create_void_ptr_capsule(py::object obj, std::string class_name) {
         PyCapsule_New(vptr, class_name.c_str(), nullptr));
 }
 
-int get_from_valid_capsule(const Valid *c) { return 1; }
+int get_from_valid_capsule(const Valid *) { return 1; }
 
-int get_from_shared_ptr_valid_capsule(const std::shared_ptr<Valid> &c) { return 2; }
+int get_from_shared_ptr_valid_capsule(std::shared_ptr<Valid>) { return 2; }
 
-int get_from_unique_ptr_valid_capsule(std::unique_ptr<Valid> c) { return 3; }
+int get_from_unique_ptr_valid_capsule(std::unique_ptr<Valid>) { return 3; }
 
-int get_from_no_conversion_capsule(const NoConversion *c) { return 4; }
+int get_from_no_conversion_capsule(const NoConversion *) { return 4; }
 
-int get_from_no_capsule_returned(const NoCapsuleReturned *c) { return 5; }
+int get_from_no_capsule_returned(const NoCapsuleReturned *) { return 5; }
 
 // https://github.com/pybind/pybind11/issues/3788
 struct TypeWithGetattr {
