@@ -502,7 +502,7 @@ private:
             if (!bytearray) {
                 pybind11_fail("Unexpected PyByteArray_AsString() failure.");
             }
-            value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
+            value = StringType((const C *) bytearray, (size_t) PyByteArray_Size(src.ptr()));
             return true;
         }
 
