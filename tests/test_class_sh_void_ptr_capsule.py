@@ -4,7 +4,6 @@ from pybind11_tests import class_sh_void_ptr_capsule as m
 
 
 class Valid:
-
     def __init__(self):
         self.capsule_generated = False
 
@@ -16,13 +15,11 @@ class Valid:
 
 
 class NoConversion:
-
     def __init__(self):
         self.capsule_generated = False
 
 
 class NoCapsuleReturned:
-
     def __init__(self):
         self.capsule_generated = False
 
@@ -33,7 +30,6 @@ class NoCapsuleReturned:
 
 
 class AsAnotherObject:
-
     def __init__(self):
         self.capsule_generated = False
 
