@@ -292,7 +292,8 @@ public:
             loaded_v_h = value_and_holder();
             return true;
         }
-        if (convert && cpptype && try_as_void_ptr_capsule(src)) {
+        const auto &bases = all_type_info(srctype);
+        if (convert && cpptype && bases.empty() && try_as_void_ptr_capsule(src)) {
             return true;
         }
         return false;
