@@ -23,7 +23,7 @@ class NoCapsuleReturned:
 
     capsule_generated = False
 
-    def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(
+    def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(  # noqa: N802
         self,
     ):
         return
