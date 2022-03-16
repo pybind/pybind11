@@ -438,9 +438,9 @@ struct string_caster {
     cast(const StringType &src, return_value_policy /* policy */, handle /* parent */) {
         const char *buffer = reinterpret_cast<const char *>(src.data());
         auto nbytes = ssize_t(src.size() * sizeof(CharT));
-        if (std::is_same_v<CharT, uint8_t>
+        if (std::is_same<CharT, uint8_t>::value
 #if defined(PYBIND11_CPP17)
-            or std::is_same_v<CharT, std::byte>
+            || std::is_same<CharT, std::byte>::value
 #endif
         ) {
             return PyBytes_FromStringAndSize(buffer, nbytes);
