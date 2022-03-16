@@ -473,7 +473,7 @@ private:
                                 nullptr);
 #endif
     }
-    template<typename C>
+    template <typename C>
     using accept_bytes_as_is = any_of<std::is_same<C, char>,
 #if defined(PYBIND11_CPP17)
                                       std::is_same<C, std::byte>,
