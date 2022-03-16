@@ -25,7 +25,7 @@ py::object create_void_ptr_capsule(py::object obj, const std::string &class_name
 
 int get_from_valid_capsule(const Valid *) { return 1; }
 
-int get_from_shared_ptr_valid_capsule(std::shared_ptr<Valid>) { return 2; }
+int get_from_shared_ptr_valid_capsule(const std::shared_ptr<Valid> &) { return 2; }
 
 int get_from_unique_ptr_valid_capsule(std::unique_ptr<Valid>) { return 3; }
 
@@ -94,7 +94,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<Base12, Base1, Base2>(m, "Base12")
         .def(py::init<>())
         .def("foo", &Base12::foo)
-        .def("__getattr__", [](Base12 &, std::string key) { return "Base GetAttr: " + key; });
+        .def("__getattr__", [](Base12 &, const std::string &key) { return "Base GetAttr: " + key; });
 
     py::classh<Derived1, Base12>(m, "Derived1").def(py::init<>()).def("bar", &Derived1::bar);
 
