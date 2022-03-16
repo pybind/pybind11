@@ -7,13 +7,13 @@
 namespace pybind11_tests {
 namespace class_sh_void_ptr_capsule {
 
-struct Valid { };
+struct Valid {};
 
-struct NoConversion { };
+struct NoConversion {};
 
-struct NoCapsuleReturned { };
+struct NoCapsuleReturned {};
 
-struct AsAnotherObject { };
+struct AsAnotherObject {};
 
 py::object create_void_ptr_capsule(py::object obj, std::string class_name) {
     void *vptr = static_cast<void *>(obj.ptr());
@@ -40,8 +40,12 @@ struct TypeWithGetattr {
 };
 
 // https://github.com/pybind/pybind11/issues/3804
-struct Base1 {int a1{};};
-struct Base2 {int a2{};};
+struct Base1 {
+    int a1{};
+};
+struct Base2 {
+    int a2{};
+};
 
 struct Base12 : Base1, Base2 {
     virtual ~Base12() = default;
@@ -91,15 +95,9 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<Base12, Base1, Base2>(m, "Base12")
         .def(py::init<>())
         .def("foo", &Base12::foo)
-        .def("__getattr__", [](Base12&, std::string key) {
-             return "Base GetAttr: " + key;
-         });
+        .def("__getattr__", [](Base12 &, std::string key) { return "Base GetAttr: " + key; });
 
-    py::classh<Derived1, Base12>(m, "Derived1")
-        .def(py::init<>())
-        .def("bar", &Derived1::bar);
+    py::classh<Derived1, Base12>(m, "Derived1").def(py::init<>()).def("bar", &Derived1::bar);
 
-    py::classh<Derived2, Base12>(m, "Derived2")
-        .def(py::init<>())
-        .def("bar", &Derived2::bar);
+    py::classh<Derived2, Base12>(m, "Derived2").def(py::init<>()).def("bar", &Derived2::bar);
 }

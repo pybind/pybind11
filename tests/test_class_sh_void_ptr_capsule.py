@@ -5,35 +5,37 @@ from pybind11_tests import class_sh_void_ptr_capsule as m
 
 class Valid:
 
-  capsule_generated = False
+    capsule_generated = False
 
-  def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):
-    self.capsule_generated = True
-    return m.create_void_ptr_capsule(
-        self, "::pybind11_tests::class_sh_void_ptr_capsule::Valid")
+    def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):
+        self.capsule_generated = True
+        return m.create_void_ptr_capsule(
+            self, "::pybind11_tests::class_sh_void_ptr_capsule::Valid"
+        )
 
 
 class NoConversion:
 
-  capsule_generated = False
+    capsule_generated = False
 
 
 class NoCapsuleReturned:
 
-  capsule_generated = False
+    capsule_generated = False
 
-  def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(self):
-    return
+    def as_pybind11_tests_class_sh_void_ptr_capsule_NoCapsuleReturned(self):
+        return
 
 
 class AsAnotherObject:
 
-  capsule_generated = False
+    capsule_generated = False
 
-  def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):
-    self.capsule_generated = True
-    return m.create_void_ptr_capsule(
-        self, "::pybind11_tests::class_sh_void_ptr_capsule::Valid")
+    def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):
+        self.capsule_generated = True
+        return m.create_void_ptr_capsule(
+            self, "::pybind11_tests::class_sh_void_ptr_capsule::Valid"
+        )
 
 
 @pytest.mark.parametrize(
@@ -56,7 +58,9 @@ def test_valid_as_void_ptr_capsule_function(ctor, caller, expected, capsule_gene
         (NoCapsuleReturned, m.get_from_no_capsule_returned, 3, False),
     ],
 )
-def test_invalid_as_void_ptr_capsule_function(ctor, caller, expected, capsule_generated):
+def test_invalid_as_void_ptr_capsule_function(
+    ctor, caller, expected, capsule_generated
+):
     obj = ctor()
     with pytest.raises(TypeError) as excinfo:
         caller(obj)
@@ -88,9 +92,9 @@ def test_multiple_inheritance_getattr():
     d1 = m.Derived1()
     assert d1.foo() == 0
     assert d1.bar() == 1
-    assert d1.prop1 == 'Base GetAttr: prop1'
+    assert d1.prop1 == "Base GetAttr: prop1"
 
     d2 = m.Derived2()
     assert d2.foo() == 0
     assert d2.bar() == 2
-    assert d2.prop2 == 'Base GetAttr: prop2'
+    assert d2.prop2 == "Base GetAttr: prop2"
