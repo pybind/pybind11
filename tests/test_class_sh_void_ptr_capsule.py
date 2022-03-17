@@ -9,9 +9,7 @@ class Valid:
 
     def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):  # noqa: N802
         self.capsule_generated = True
-        return m.create_void_ptr_capsule(
-            self, "::pybind11_tests::class_sh_void_ptr_capsule::Valid"
-        )
+        return m.create_test_void_ptr_capsule()
 
 
 class NoConversion:
@@ -35,9 +33,7 @@ class AsAnotherObject:
 
     def as_pybind11_tests_class_sh_void_ptr_capsule_Valid(self):  # noqa: N802
         self.capsule_generated = True
-        return m.create_void_ptr_capsule(
-            self, "::pybind11_tests::class_sh_void_ptr_capsule::Valid"
-        )
+        return m.create_test_void_ptr_capsule()
 
 
 @pytest.mark.parametrize(

@@ -15,12 +15,8 @@ struct NoCapsuleReturned {};
 
 struct AsAnotherObject {};
 
-py::object create_void_ptr_capsule(py::object obj, const std::string &class_name) {
-    void *vptr = static_cast<void *>(obj.ptr());
-    // We assume vptr out lives the capsule, so we use nullptr for the
-    // destructor.
-    return pybind11::reinterpret_steal<py::capsule>(
-        PyCapsule_New(vptr, class_name.c_str(), nullptr));
+py::handle create_test_void_ptr_capsule() {
+    return pybind11::capsule((void *) 12345, "int").release();
 }
 
 int get_from_valid_capsule(const Valid *) { return 1; }
@@ -80,7 +76,7 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     m.def("get_from_unique_ptr_valid_capsule", &get_from_unique_ptr_valid_capsule);
     m.def("get_from_no_conversion_capsule", &get_from_no_conversion_capsule);
     m.def("get_from_no_capsule_returned", &get_from_no_capsule_returned);
-    m.def("create_void_ptr_capsule", &create_void_ptr_capsule);
+    m.def("create_test_void_ptr_capsule", &create_test_void_ptr_capsule);
 
     py::classh<TypeWithGetattr>(m, "TypeWithGetattr")
         .def(py::init<>())
