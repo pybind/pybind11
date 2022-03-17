@@ -687,7 +687,7 @@ jobs:
 
 
   # This verifies that the documentation is not horribly broken, and does a
-  # basic sanity check on the SDist.
+  # basic validation check on the SDist.
   doxygen:
     name: "Documentation build test"
     runs-on: ubuntu-latest
