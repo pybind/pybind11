@@ -87,7 +87,7 @@ buffer objects (e.g. a NumPy matrix).
             /* Request a buffer descriptor from Python */
             py::buffer_info info = b.request();
 
-            /* Some sanity checks ... */
+            /* Some basic validation checks ... */
             if (info.format != py::format_descriptor<Scalar>::format())
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
