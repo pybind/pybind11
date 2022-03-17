@@ -15,6 +15,8 @@ struct NoCapsuleReturned {};
 
 struct AsAnotherObject {};
 
+// Create a void pointer capsule for test. The encapsulated object does not
+// matter for this test case.
 py::handle create_test_void_ptr_capsule() {
     return pybind11::capsule((void *) 12345, "int").release();
 }
