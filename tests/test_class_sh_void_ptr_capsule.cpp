@@ -17,11 +17,9 @@ struct AsAnotherObject {};
 
 // Create a void pointer capsule for test. The encapsulated object does not
 // matter for this test case.
-PyObject* create_test_void_ptr_capsule() {
+PyObject *create_test_void_ptr_capsule() {
     static int just_to_have_something_to_point_to = 0;
-    return PyCapsule_New(
-        static_cast<void *>(&just_to_have_something_to_point_to), "int",
-        nullptr);
+    return PyCapsule_New(static_cast<void *>(&just_to_have_something_to_point_to), "int", nullptr);
 }
 
 int get_from_valid_capsule(const Valid *) { return 1; }
@@ -82,8 +80,8 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     m.def("get_from_no_conversion_capsule", &get_from_no_conversion_capsule);
     m.def("get_from_no_capsule_returned", &get_from_no_capsule_returned);
     m.def("create_test_void_ptr_capsule", []() {
-      PyObject *capsule = create_test_void_ptr_capsule();
-      return pybind11::reinterpret_steal<py::capsule>(capsule);
+        PyObject *capsule = create_test_void_ptr_capsule();
+        return pybind11::reinterpret_steal<py::capsule>(capsule);
     });
 
     py::classh<TypeWithGetattr>(m, "TypeWithGetattr")
