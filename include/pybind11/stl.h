@@ -372,7 +372,7 @@ struct variant_caster<V<Ts...>> {
     bool load_alternative(handle src, bool convert, type_list<U, Us...>) {
         auto caster = make_caster<U>();
         if (caster.load(src, convert)) {
-            value = cast_op<U>(caster);
+            value = cast_op<U>(std::move(caster));
             return true;
         }
         return load_alternative(src, convert, type_list<Us...>{});
