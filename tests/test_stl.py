@@ -266,7 +266,7 @@ def test_variant(doc):
 @pytest.mark.skipif(
     not hasattr(m, "load_monostate_variant"), reason="no std::monostate"
 )
-def test_variant(doc):
+def test_variant_monostate(doc):
     assert m.load_monostate_variant(None) == "std::monostate"
     assert m.load_monostate_variant(1) == "int"
     assert m.load_monostate_variant("1") == "std::string"
