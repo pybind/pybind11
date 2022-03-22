@@ -274,7 +274,7 @@ def test_variant_monostate(doc):
     assert m.cast_monostate_variant() == (None, 5, "Hello")
 
     assert (
-        doc(m.load_variant)
+        doc(m.load_monostate_variant)
         == "load_monostate_variant(arg0: Union[None, int, str]) -> str"
     )
 
