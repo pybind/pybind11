@@ -267,13 +267,11 @@ def test_variant(doc):
     assert m.load_monostate_variant(None) == "std::monostate"
     assert m.load_monostate_variant(1) == "int"
     assert m.load_monostate_variant("1") == "std::string"
-    assert m.load_monostate_variant(1.0) == "double"
-    assert m.load_monostate_variant(None) == "std::nullptr_t"
 
     assert m.cast_monostate_variant() == (None, 5, "Hello")
 
     assert (
-        doc(m.load_variant) == "load_monostate_variant(arg0: Union[int, str, float, None]) -> str"
+        doc(m.load_variant) == "load_monostate_variant(arg0: Union[None, int, str]) -> str"
     )
 
 
