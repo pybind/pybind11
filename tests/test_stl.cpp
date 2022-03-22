@@ -436,9 +436,9 @@ TEST_SUBMODULE(stl, m) {
         result_type operator()(const std::string &) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
-#if defined(PYBIND11_HAS_VARIANT)
+#    if defined(PYBIND11_HAS_VARIANT)
         result_type operator()(std::monostate) { return "std::monostate"; }
-#endif
+#    endif
     };
 
     // test_variant
@@ -453,16 +453,17 @@ TEST_SUBMODULE(stl, m) {
         return py::make_tuple(V(5), V("Hello"));
     });
 
-#if defined(PYBIND11_HAS_VARIANT)
+#    if defined(PYBIND11_HAS_VARIANT)
     // std::monostate tests.
-    m.def("load_monostate_variant", [](const variant<std::monostate, int, std::string> &v) -> const char *{
-        return py::detail::visit_helper<variant>::call(visitor(), v);
-    });
+    m.def("load_monostate_variant",
+          [](const variant<std::monostate, int, std::string> &v) -> const char * {
+              return py::detail::visit_helper<variant>::call(visitor(), v);
+          });
     m.def("cast_monostate_variant", []() {
         using V = variant<std::monostate, int, std::string>;
         return py::make_tuple(V{}, V(5), V("Hello"));
     });
-#endif   
+#    endif
 #endif
 
     // #528: templated constructor

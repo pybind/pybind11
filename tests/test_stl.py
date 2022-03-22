@@ -262,7 +262,10 @@ def test_variant(doc):
         doc(m.load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
     )
 
-@pytest.mark.skipif(not hasattr(m, "load_monostate_variant"), reason="no std::monostate")
+
+@pytest.mark.skipif(
+    not hasattr(m, "load_monostate_variant"), reason="no std::monostate"
+)
 def test_variant(doc):
     assert m.load_monostate_variant(None) == "std::monostate"
     assert m.load_monostate_variant(1) == "int"
@@ -271,7 +274,8 @@ def test_variant(doc):
     assert m.cast_monostate_variant() == (None, 5, "Hello")
 
     assert (
-        doc(m.load_variant) == "load_monostate_variant(arg0: Union[None, int, str]) -> str"
+        doc(m.load_variant)
+        == "load_monostate_variant(arg0: Union[None, int, str]) -> str"
     )
 
 
