@@ -528,8 +528,8 @@ public:
 
         ref.reset();
         map.reset(new MapType(data(copy_or_ref),
-                              std::move(fits.rows),
-                              std::move(fits.cols),
+                              fits.rows,
+                              fits.cols,
                               make_stride(fits.stride.outer(), fits.stride.inner())));
         ref.reset(new Type(*map));
 
