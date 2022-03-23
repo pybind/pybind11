@@ -11,6 +11,7 @@ name = "pybind11"
 description = "Seamless operability between C++11 and Python"
 authors = [{name = "Wenzel Jakob", email = "wenzel.jakob@epfl.ch"}]
 readme = "README.rst"
+license = {text = "BSD"}
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -33,7 +34,7 @@ keywords = [
     "C++11",
     "Python bindings",
 ]
-dynamic = ["license", "version"]
+dynamic = ["version"]
 requires-python = ">=3.6"
 
 [project.urls]
@@ -46,10 +47,6 @@ Chat = "https://gitter.im/pybind/Lobby"
 
 [tool.setuptools]
 zip-safe = false
-
-[tool.setuptools.dynamic]
-license = "BSD"
-license-files = ["LICEN[CS]E*", "COPYING*", "NOTICE*", "AUTHORS*"]
 
 [tool.check-manifest]
 ignore = [
