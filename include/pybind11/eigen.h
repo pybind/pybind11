@@ -528,8 +528,8 @@ public:
 
         ref.reset();
         map.reset(new MapType(data(copy_or_ref),
-                              fits.rows,
-                              fits.cols,
+                              std::move(fits.rows),
+                              std::move(fits.cols),
                               make_stride(fits.stride.outer(), fits.stride.inner())));
         ref.reset(new Type(*map));
 
@@ -668,7 +668,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
                                      Type::Flags &(Eigen::RowMajor | Eigen::ColMajor),
                                      StorageIndex>(shape[0].cast<Index>(),
                                                    shape[1].cast<Index>(),
-                                                   nnz,
+                                                   std::move(nnz),
                                                    outerIndices.mutable_data(),
                                                    innerIndices.mutable_data(),
                                                    values.mutable_data());
