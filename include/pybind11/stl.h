@@ -406,6 +406,9 @@ struct variant_caster<V<Ts...>> {
 #if defined(PYBIND11_HAS_VARIANT)
 template <typename... Ts>
 struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> {};
+
+template <>
+struct type_caster<std::monostate> : public void_caster<std::monostate> {};
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
