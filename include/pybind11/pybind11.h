@@ -441,7 +441,7 @@ protected:
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
-                    signature += std::move(tname);
+                    signature += tname;
                 }
             } else {
                 signature += c;
