@@ -940,7 +940,7 @@ protected:
 
     void fail_dim_check(ssize_t dim, const std::string &msg) const {
         throw index_error(msg + ": " + std::to_string(dim) + " (ndim = " + std::to_string(ndim())
-                          + ")");
+                          + ')');
     }
 
     template <typename... Ix>
