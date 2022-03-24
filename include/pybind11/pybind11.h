@@ -561,14 +561,14 @@ protected:
         for (auto *it = chain_start; it != nullptr; it = it->next) {
             if (options::show_function_signatures()) {
                 if (index > 0) {
-                    signatures += "\n";
+                    signatures += '\n';
                 }
                 if (chain) {
                     signatures += std::to_string(++index) + ". ";
                 }
                 signatures += rec->name;
                 signatures += it->signature;
-                signatures += "\n";
+                signatures += '\n';
             }
             if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
                 // If we're appending another docstring, and aren't printing function signatures,
@@ -577,15 +577,15 @@ protected:
                     if (first_user_def) {
                         first_user_def = false;
                     } else {
-                        signatures += "\n";
+                        signatures += '\n';
                     }
                 }
                 if (options::show_function_signatures()) {
-                    signatures += "\n";
+                    signatures += '\n';
                 }
                 signatures += it->doc;
                 if (options::show_function_signatures()) {
-                    signatures += "\n";
+                    signatures += '\n';
                 }
             }
         }
@@ -1055,7 +1055,7 @@ protected:
                     msg += it2->signature;
                 }
 
-                msg += "\n";
+                msg += '\n';
             }
             msg += "\nInvoked with: ";
             auto args_ = reinterpret_borrow<tuple>(args_in);
