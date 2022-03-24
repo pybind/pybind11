@@ -666,7 +666,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
                                      Type::Flags &(Eigen::RowMajor | Eigen::ColMajor),
                                      StorageIndex>(shape[0].cast<Index>(),
                                                    shape[1].cast<Index>(),
-                                                   nnz,
+                                                   std::move(nnz),
                                                    outerIndices.mutable_data(),
                                                    innerIndices.mutable_data(),
                                                    values.mutable_data());
@@ -684,7 +684,8 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         array outerIndices((rowMajor ? src.rows() : src.cols()) + 1, src.outerIndexPtr());
         array innerIndices(src.nonZeros(), src.innerIndexPtr());
 
-        return matrix_type(std::make_tuple(data, innerIndices, outerIndices),
+        return matrix_type(std::make_tuple(
+                               std::move(data), std::move(innerIndices), std::move(outerIndices)),
                            std::make_pair(src.rows(), src.cols()))
             .release();
     }

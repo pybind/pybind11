@@ -225,8 +225,8 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_index &tp,
     if (throw_if_missing) {
         std::string tname = tp.name();
         detail::clean_type_id(tname);
-        pybind11_fail("pybind11::detail::get_type_info: unable to find type info for \"" + tname
-                      + "\"");
+        pybind11_fail("pybind11::detail::get_type_info: unable to find type info for \""
+                      + std::move(tname) + '"');
     }
     return nullptr;
 }
@@ -520,9 +520,13 @@ PYBIND11_NOINLINE std::string error_string() {
             Py_INCREF(f_code);
 #    endif
             int lineno = PyFrame_GetLineNumber(frame);
-            errorString += "  " + handle(f_code->co_filename).cast<std::string>() + "("
-                           + std::to_string(lineno)
-                           + "): " + handle(f_code->co_name).cast<std::string>() + "\n";
+            errorString += "  ";
+            errorString += handle(f_code->co_filename).cast<std::string>();
+            errorString += '(';
+            errorString += std::to_string(lineno);
+            errorString += "): ";
+            errorString += handle(f_code->co_name).cast<std::string>();
+            errorString += '\n';
             Py_DECREF(f_code);
 #    if PY_VERSION_HEX >= 0x030900B1
             auto *b_frame = PyFrame_GetBack(frame);
