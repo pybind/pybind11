@@ -1589,11 +1589,14 @@ public:
     capsule(const void *value, void (*destructor)(void *)) {
         m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr && PyErr_Occurred()) {
-                throw error_already_set();
+            if (destructor == nullptr) {
+                if (PyErr_Occurred()) {
+                    throw error_already_set();
+                }
+                pybind11_fail("Unable to get capsule context");
             }
             void *ptr = PyCapsule_GetPointer(o, nullptr);
-            if (ptr == nullptr && PyErr_Occurred()) {
+            if (ptr == nullptr) {
                 throw error_already_set();
             }
             destructor(ptr);
@@ -1607,7 +1610,7 @@ public:
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
-            if (destructor == nullptr && PyErr_Occurred()) {
+            if (destructor == nullptr) {
                 throw error_already_set();
             }
             destructor();
