@@ -1299,14 +1299,7 @@ public:
     explicit bytes(const pybind11::str &s);
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator std::string() const {
-        char *buffer = nullptr;
-        ssize_t length = 0;
-        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length) != 0) {
-            throw error_already_set();
-        }
-        return std::string(buffer, (size_t) length);
-    }
+    operator std::string() const { return string_op<std::string>(); }
 
 #ifdef PYBIND11_HAS_STRING_VIEW
     // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
@@ -1318,7 +1311,11 @@ public:
     // valid so long as the `bytes` instance remains alive and so generally should not outlive the
     // lifetime of the `bytes` instance.
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator std::string_view() const {
+    operator std::string_view() const { return string_op<std::string_view>(); }
+#endif
+private:
+    template <typename T>
+    T string_op() const {
         char *buffer = nullptr;
         ssize_t length = 0;
         if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length) != 0) {
@@ -1326,7 +1323,6 @@ public:
         }
         return {buffer, static_cast<size_t>(length)};
     }
-#endif
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
 // are included in the doxygen group; close here and reopen after as a workaround
