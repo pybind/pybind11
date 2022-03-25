@@ -1243,8 +1243,8 @@ public:
         }
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
-            pybind11_fail("Unable to extract string contents! (invalid type)");
+        if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length)) {
+            throw error_already_set();
         }
         return std::string(buffer, (size_t) length);
     }
@@ -1302,8 +1302,8 @@ public:
     operator std::string() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
-            pybind11_fail("Unable to extract bytes contents!");
+        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length)) {
+            throw error_already_set();
         }
         return std::string(buffer, (size_t) length);
     }
@@ -1321,8 +1321,8 @@ public:
     operator std::string_view() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
-            pybind11_fail("Unable to extract bytes contents!");
+        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length)) {
+            throw error_already_set();
         }
         return {buffer, static_cast<size_t>(length)};
     }
@@ -1337,13 +1337,13 @@ inline bytes::bytes(const pybind11::str &s) {
     if (PyUnicode_Check(s.ptr())) {
         temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(s.ptr()));
         if (!temp) {
-            pybind11_fail("Unable to extract string contents! (encoding issue)");
+            throw error_already_set();
         }
     }
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
-        pybind11_fail("Unable to extract string contents! (invalid type)");
+    if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length)) {
+        throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
     if (!obj) {
@@ -1355,8 +1355,8 @@ inline bytes::bytes(const pybind11::str &s) {
 inline str::str(const bytes &b) {
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length)) {
-        pybind11_fail("Unable to extract bytes contents!");
+    if (PyBytes_AsStringAndSize(b.ptr(), &buffer, &length)) {
+        throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
     if (!obj) {
