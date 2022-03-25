@@ -1243,8 +1243,8 @@ public:
         }
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
-            pybind11_fail("Unable to extract string contents! (invalid type)");
+        if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
+            throw error_already_set();
         }
         return std::string(buffer, (size_t) length);
     }
@@ -1299,14 +1299,7 @@ public:
     explicit bytes(const pybind11::str &s);
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator std::string() const {
-        char *buffer = nullptr;
-        ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
-            pybind11_fail("Unable to extract bytes contents!");
-        }
-        return std::string(buffer, (size_t) length);
-    }
+    operator std::string() const { return string_op<std::string>(); }
 
 #ifdef PYBIND11_HAS_STRING_VIEW
     // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
@@ -1318,15 +1311,18 @@ public:
     // valid so long as the `bytes` instance remains alive and so generally should not outlive the
     // lifetime of the `bytes` instance.
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator std::string_view() const {
+    operator std::string_view() const { return string_op<std::string_view>(); }
+#endif
+private:
+    template <typename T>
+    T string_op() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
-            pybind11_fail("Unable to extract bytes contents!");
+        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length) != 0) {
+            throw error_already_set();
         }
         return {buffer, static_cast<size_t>(length)};
     }
-#endif
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
 // are included in the doxygen group; close here and reopen after as a workaround
@@ -1337,13 +1333,13 @@ inline bytes::bytes(const pybind11::str &s) {
     if (PyUnicode_Check(s.ptr())) {
         temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(s.ptr()));
         if (!temp) {
-            pybind11_fail("Unable to extract string contents! (encoding issue)");
+            throw error_already_set();
         }
     }
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
-        pybind11_fail("Unable to extract string contents! (invalid type)");
+    if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
+        throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
     if (!obj) {
@@ -1355,8 +1351,8 @@ inline bytes::bytes(const pybind11::str &s) {
 inline str::str(const bytes &b) {
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length)) {
-        pybind11_fail("Unable to extract bytes contents!");
+    if (PyBytes_AsStringAndSize(b.ptr(), &buffer, &length) != 0) {
+        throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
     if (!obj) {
