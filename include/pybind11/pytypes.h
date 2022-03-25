@@ -1321,7 +1321,7 @@ public:
     operator std::string_view() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length)) {
+        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length) != 0) {
             throw error_already_set();
         }
         return {buffer, static_cast<size_t>(length)};
