@@ -1597,7 +1597,7 @@ public:
                      void (*destructor)(PyObject *) = nullptr)
         : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
         if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
+            throw error_already_set();
         }
     }
 
@@ -1605,34 +1605,42 @@ public:
     capsule(const void *value, void (*destruct)(PyObject *))
         : object(PyCapsule_New(const_cast<void *>(value), nullptr, destruct), stolen_t{}) {
         if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
+            throw error_already_set();
         }
     }
 
     capsule(const void *value, void (*destructor)(void *)) {
         m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            if (destructor == nullptr) {
+                if (PyErr_Occurred()) {
+                    throw error_already_set();
+                }
+                pybind11_fail("Unable to get capsule context");
+            }
             void *ptr = PyCapsule_GetPointer(o, nullptr);
+            if (ptr == nullptr) {
+                throw error_already_set();
+            }
             destructor(ptr);
         });
 
-        if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
-        }
-
-        if (PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
-            pybind11_fail("Could not set capsule context!");
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
+            throw error_already_set();
         }
     }
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
+            if (destructor == nullptr) {
+                throw error_already_set();
+            }
             destructor();
         });
 
         if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
+            throw error_already_set();
         }
     }
 
@@ -1647,8 +1655,7 @@ public:
         const auto *name = this->name();
         T *result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
         if (!result) {
-            PyErr_Clear();
-            pybind11_fail("Unable to extract capsule contents!");
+            throw error_already_set();
         }
         return result;
     }
@@ -1656,8 +1663,7 @@ public:
     /// Replaces a capsule's pointer *without* calling the destructor on the existing one.
     void set_pointer(const void *value) {
         if (PyCapsule_SetPointer(m_ptr, const_cast<void *>(value)) != 0) {
-            PyErr_Clear();
-            pybind11_fail("Could not set capsule pointer");
+            throw error_already_set();
         }
     }
 
