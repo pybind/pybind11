@@ -47,7 +47,7 @@ jobs:
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
           - runs-on: ubuntu-latest
-            python: 'pypy-3.9'
+            python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-2019
