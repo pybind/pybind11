@@ -1243,7 +1243,7 @@ public:
         }
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length)) {
+        if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
             throw error_already_set();
         }
         return std::string(buffer, (size_t) length);
@@ -1302,7 +1302,7 @@ public:
     operator std::string() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length)) {
+        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length) != 0) {
             throw error_already_set();
         }
         return std::string(buffer, (size_t) length);
@@ -1342,7 +1342,7 @@ inline bytes::bytes(const pybind11::str &s) {
     }
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length)) {
+    if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
         throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
@@ -1355,7 +1355,7 @@ inline bytes::bytes(const pybind11::str &s) {
 inline str::str(const bytes &b) {
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PyBytes_AsStringAndSize(b.ptr(), &buffer, &length)) {
+    if (PyBytes_AsStringAndSize(b.ptr(), &buffer, &length) != 0) {
         throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
