@@ -1405,7 +1405,8 @@ public:
     static pybind11::dtype dtype() {
         list shape;
         array_info<T>::append_extents(shape);
-        return pybind11::dtype::from_args(pybind11::make_tuple(base_descr::dtype(), shape));
+        return pybind11::dtype::from_args(
+            pybind11::make_tuple(base_descr::dtype(), std::move(shape)));
     }
 };
 

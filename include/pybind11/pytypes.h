@@ -1243,8 +1243,8 @@ public:
         }
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
-            pybind11_fail("Unable to extract string contents! (invalid type)");
+        if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
+            throw error_already_set();
         }
         return std::string(buffer, (size_t) length);
     }
@@ -1299,14 +1299,7 @@ public:
     explicit bytes(const pybind11::str &s);
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator std::string() const {
-        char *buffer = nullptr;
-        ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
-            pybind11_fail("Unable to extract bytes contents!");
-        }
-        return std::string(buffer, (size_t) length);
-    }
+    operator std::string() const { return string_op<std::string>(); }
 
 #ifdef PYBIND11_HAS_STRING_VIEW
     // enable_if is needed to avoid "ambiguous conversion" errors (see PR #3521).
@@ -1318,15 +1311,18 @@ public:
     // valid so long as the `bytes` instance remains alive and so generally should not outlive the
     // lifetime of the `bytes` instance.
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator std::string_view() const {
+    operator std::string_view() const { return string_op<std::string_view>(); }
+#endif
+private:
+    template <typename T>
+    T string_op() const {
         char *buffer = nullptr;
         ssize_t length = 0;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length)) {
-            pybind11_fail("Unable to extract bytes contents!");
+        if (PyBytes_AsStringAndSize(m_ptr, &buffer, &length) != 0) {
+            throw error_already_set();
         }
         return {buffer, static_cast<size_t>(length)};
     }
-#endif
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
 // are included in the doxygen group; close here and reopen after as a workaround
@@ -1337,13 +1333,13 @@ inline bytes::bytes(const pybind11::str &s) {
     if (PyUnicode_Check(s.ptr())) {
         temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(s.ptr()));
         if (!temp) {
-            pybind11_fail("Unable to extract string contents! (encoding issue)");
+            throw error_already_set();
         }
     }
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length)) {
-        pybind11_fail("Unable to extract string contents! (invalid type)");
+    if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
+        throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
     if (!obj) {
@@ -1355,8 +1351,8 @@ inline bytes::bytes(const pybind11::str &s) {
 inline str::str(const bytes &b) {
     char *buffer = nullptr;
     ssize_t length = 0;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length)) {
-        pybind11_fail("Unable to extract bytes contents!");
+    if (PyBytes_AsStringAndSize(b.ptr(), &buffer, &length) != 0) {
+        throw error_already_set();
     }
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
     if (!obj) {
@@ -1574,7 +1570,7 @@ public:
                      void (*destructor)(PyObject *) = nullptr)
         : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
         if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
+            throw error_already_set();
         }
     }
 
@@ -1582,34 +1578,42 @@ public:
     capsule(const void *value, void (*destruct)(PyObject *))
         : object(PyCapsule_New(const_cast<void *>(value), nullptr, destruct), stolen_t{}) {
         if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
+            throw error_already_set();
         }
     }
 
     capsule(const void *value, void (*destructor)(void *)) {
         m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            if (destructor == nullptr) {
+                if (PyErr_Occurred()) {
+                    throw error_already_set();
+                }
+                pybind11_fail("Unable to get capsule context");
+            }
             void *ptr = PyCapsule_GetPointer(o, nullptr);
+            if (ptr == nullptr) {
+                throw error_already_set();
+            }
             destructor(ptr);
         });
 
-        if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
-        }
-
-        if (PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
-            pybind11_fail("Could not set capsule context!");
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
+            throw error_already_set();
         }
     }
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
+            if (destructor == nullptr) {
+                throw error_already_set();
+            }
             destructor();
         });
 
         if (!m_ptr) {
-            pybind11_fail("Could not allocate capsule object!");
+            throw error_already_set();
         }
     }
 
@@ -1624,8 +1628,7 @@ public:
         const auto *name = this->name();
         T *result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
         if (!result) {
-            PyErr_Clear();
-            pybind11_fail("Unable to extract capsule contents!");
+            throw error_already_set();
         }
         return result;
     }
@@ -1633,8 +1636,7 @@ public:
     /// Replaces a capsule's pointer *without* calling the destructor on the existing one.
     void set_pointer(const void *value) {
         if (PyCapsule_SetPointer(m_ptr, const_cast<void *>(value)) != 0) {
-            PyErr_Clear();
-            pybind11_fail("Could not set capsule pointer");
+            throw error_already_set();
         }
     }
 
