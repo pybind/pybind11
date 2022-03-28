@@ -74,6 +74,8 @@ repos:
   rev: "v1.2.5"
   hooks:
   - id: pycln
+    additional_dependencies: [click<8.1]  # Unpin when typer updates
+    stages: [manual]
 
 # Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks
