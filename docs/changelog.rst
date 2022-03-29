@@ -6,10 +6,129 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+Changes will be added here periodically from the special block in pull request
+descriptions.
+
 IN DEVELOPMENT
 --------------
 
-Changes will be added here periodically.
+Removed support for Python 2.7, Python 3.5, and MSVC 2015. Support for MSVC
+2017 is limited due to availability of CI runners; we highly recommend MSVC
+2019 or 2022 be used.
+
+New features:
+
+* ``type_caster<std::monostate>`` was added. ``std::monostate`` is a tag type
+  that allows ``std::variant`` to act as an optional, or allows default
+  construction of a ``std::variant`` holding a non-default constructible type.
+  `#3818 <https://github.com/pybind/pybind11/pull/3818>`_
+
+* Support bytearray casting to string.
+  `#3707 <https://github.com/pybind/pybind11/pull/3707>`_
+
+Changes:
+
+* Python 2 support was removed completely.
+  `#3688 <https://github.com/pybind/pybind11/pull/3688>`_
+
+* The minimum version for MSVC is now 2017.
+  `#3722 <https://github.com/pybind/pybind11/pull/3722>`_
+
+* Improve exception handling in python ``str`` bindings.
+  `#3826 <https://github.com/pybind/pybind11/pull/3826>`_
+
+* The bindings for capsules now have more consistent exception handling.
+  `#3825 <https://github.com/pybind/pybind11/pull/3825>`_
+
+* Fix exception handling when ``pybind11::weakref()`` fails.
+  `#3739 <https://github.com/pybind/pybind11/pull/3739>`_
+
+
+Bug fixes:
+
+* ``PYBIND11_OBJECT_CVT`` and ``PYBIND11_OBJECT_CVT_DEFAULT`` macro can be used
+  to define classes in namespaces other than pybind11.
+  `#3797 <https://github.com/pybind/pybind11/pull/3797>`_
+
+Build system improvements:
+
+* Add MSVC builds in debug mode to CI.
+  `#3784 <https://github.com/pybind/pybind11/pull/3784>`_
+
+* MSVC 2022 C++20 coverage was added to GitHub Actions, including Eigen.
+  `#3732 <https://github.com/pybind/pybind11/pull/3732>`_,
+  `#3741 <https://github.com/pybind/pybind11/pull/3741>`_
+
+* Avoid ``setup.py <command>`` usage in internal tests.
+  `#3734 <https://github.com/pybind/pybind11/pull/3734>`_
+
+
+Backend and tidying up:
+
+* Remove idioms in code comments.  Use inclusive language.
+  `#3809 <https://github.com/pybind/pybind11/pull/3809>`_
+
+
+Version 2.9.2 (Mar 29, 2022)
+----------------------------
+
+Changes:
+
+* Enum now has an ``__index__`` method on Python <3.8 too.
+  `#3700 <https://github.com/pybind/pybind11/pull/3700>`_
+
+* Local internals are now cleared after finalizing the interpreter.
+  `#3744 <https://github.com/pybind/pybind11/pull/3744>`_
+
+Bug fixes:
+
+* Better support for Python 3.11 alphas.
+  `#3694 <https://github.com/pybind/pybind11/pull/3694>`_
+
+* ``PYBIND11_TYPE_CASTER`` now uses fully qualified symbols, so it can be used
+  outside of ``pybind11::detail``.
+  `#3758 <https://github.com/pybind/pybind11/pull/3758>`_
+
+* Some fixes for PyPy 3.9.
+  `#3768 <https://github.com/pybind/pybind11/pull/3768>`_
+
+* Fixed a potential memleak in PyPy in ``get_type_override``.
+  `#3774 <https://github.com/pybind/pybind11/pull/3774>`_
+
+* Fix usage of ``VISIBILITY_INLINES_HIDDEN``.
+  `#3721 <https://github.com/pybind/pybind11/pull/3721>`_
+
+
+Build system improvements:
+
+* Uses ``sysconfig`` module to determine installation locations on Python >=
+  3.10, instead of ``distutils`` which has been deprecated.
+  `#3764 <https://github.com/pybind/pybind11/pull/3764>`_
+
+* Support Catch 2.13.5+ (supporting GLIBC 2.34+).
+  `#3679 <https://github.com/pybind/pybind11/pull/3679>`_
+
+* Fix test failures with numpy 1.22 by ignoring whitespace when comparing
+  ``str()`` of dtypes.
+  `#3682 <https://github.com/pybind/pybind11/pull/3682>`_
+
+
+Backend and tidying up:
+
+* clang-tidy: added ``readability-qualified-auto``,
+  ``readability-braces-around-statements``,
+  ``cppcoreguidelines-prefer-member-initializer``,
+  ``clang-analyzer-optin.performance.Padding``,
+  ``cppcoreguidelines-pro-type-static-cast-downcast``, and
+  ``readability-inconsistent-declaration-parameter-name``.
+  `#3702 <https://github.com/pybind/pybind11/pull/3702>`_,
+  `#3699 <https://github.com/pybind/pybind11/pull/3699>`_,
+  `#3716 <https://github.com/pybind/pybind11/pull/3716>`_,
+  `#3709 <https://github.com/pybind/pybind11/pull/3709>`_
+
+* clang-format was added to the pre-commit actions, and the entire code base
+  automatically reformatted (after several iterations preparing for this leap).
+  `#3713 <https://github.com/pybind/pybind11/pull/3713>`_
 
 
 Version 2.9.1 (Feb 2, 2022)
