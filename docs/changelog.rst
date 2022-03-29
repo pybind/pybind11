@@ -6,8 +6,8 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-Changes will be added here periodically from the special block in pull request
-descriptions.
+Changes will be added here periodically from the "Suggested changelog entry"
+block in pull request descriptions.
 
 IN DEVELOPMENT
 --------------
