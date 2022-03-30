@@ -559,7 +559,7 @@ TEST_SUBMODULE(stl, m) {
 #ifdef PYBIND11_TEST_VARIANT
     m.def(
         "invalid_utf8_variant_string_as_bytes",
-        []() { return std::variant<std::string, std::monostate>{"\xba\xd0\xba\xd0"}; },
+        []() { return variant<std::string, int>{"\xba\xd0\xba\xd0"}; },
         py::return_value_policy::return_as_bytes);
 #endif
 }
