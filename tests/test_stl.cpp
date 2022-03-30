@@ -545,10 +545,10 @@ TEST_SUBMODULE(stl, m) {
     // test return_value_policy::return_as_bytes
     m.def(
         "invalid_utf8_string_array_as_bytes",
-        []() { return std::array<std::string, 1>{"\xba\xd0\xba\xd0"}; },
+        []() { return std::array<std::string, 1>{{"\xba\xd0\xba\xd0"}} },
         py::return_value_policy::return_as_bytes);
     m.def("invalid_utf8_string_array_as_str",
-          []() { return std::array<std::string, 1>{std::string("\xba\xd0\xba\xd0")}; });
+          []() { return std::array<std::string, 1>{{"\xba\xd0\xba\xd0"}}; });
 #ifdef PYBIND11_HAS_OPTIONAL
     m.def(
         "invalid_utf8_optional_string_as_bytes",
