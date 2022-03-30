@@ -1,6 +1,5 @@
 #include <pybind11/smart_holder.h>
 
-#include "third_party/pybind11/include/pybind11/detail/common.h"
 #include "pybind11_tests.h"
 
 #include <memory>
