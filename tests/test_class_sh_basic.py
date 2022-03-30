@@ -181,3 +181,19 @@ def test_function_signatures(doc):
         doc(m.args_unique_ptr_const)
         == "args_unique_ptr_const(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
     )
+
+
+def test_return_as_bytes():
+    expected_return_value = b"\xba\xd0\xba\xd0"
+    assert(m.returns_string_as_bytes() == expected_return_value)
+    assert(m.returns_string_view_as_bytes() == expected_return_value)
+    assert(m.returns_char_array_as_bytes() == expected_return_value)
+
+
+def test_return_as_str():
+    with pytest.raises(UnicodeDecodeError):
+        m.returns_string_as_str()
+    with pytest.raises(UnicodeDecodeError):
+        m.returns_string_view_as_str()
+    with pytest.raises(UnicodeDecodeError):
+        m.returns_char_array_as_str()

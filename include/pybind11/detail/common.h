@@ -459,7 +459,14 @@ enum class return_value_policy : uint8_t {
         collected while Python is still using the child. More advanced
         variations of this scheme are also possible using combinations of
         return_value_policy::reference and the keep_alive call policy */
-    reference_internal
+    reference_internal,
+
+    /** Use this policy to make C++ functions return bytes to Python instead of
+        str. This is useful when C++ function returns nested type of string,
+        where we cannot apply `py::bytes` easily. Note that when C++ function
+        returns string, we don't have to deal ownership for sure, because we
+        are always copying the C++ string to a new Python str/bytes object.*/
+    return_as_bytes
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
