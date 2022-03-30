@@ -447,15 +447,14 @@ struct string_caster {
         return true;
     }
 
-    static handle
-    cast(const StringType &src, return_value_policy policy, handle /* parent */) {
+    static handle cast(const StringType &src, return_value_policy policy, handle /* parent */) {
         const char *buffer = reinterpret_cast<const char *>(src.data());
         auto nbytes = ssize_t(src.size() * sizeof(CharT));
         handle s;
         if (policy == return_value_policy::return_as_bytes) {
-          s = PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, nbytes);
+            s = PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, nbytes);
         } else {
-          s = decode_utfN(buffer, nbytes);
+            s = decode_utfN(buffer, nbytes);
         }
         if (!s) {
             throw error_already_set();

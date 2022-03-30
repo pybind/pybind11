@@ -380,18 +380,19 @@ TEST_SUBMODULE(builtin_casters, m) {
           [](std::reference_wrapper<const ConstRefCasted> x) { return x.get().tag; });
 
     // test return_value_policy::return_as_bytes
-    m.def("invalid_utf8_string_as_bytes", []() {
-        return std::string("\xba\xd0\xba\xd0");
-    }, py::return_value_policy::return_as_bytes);
-    m.def("invalid_utf8_string_as_str", []() {
-        return std::string("\xba\xd0\xba\xd0");
-    });
-    m.def("invalid_utf8_char_array_as_bytes", []() {
-        return "\xba\xd0\xba\xd0";
-    }, py::return_value_policy::return_as_bytes);
+    m.def(
+        "invalid_utf8_string_as_bytes",
+        []() { return std::string("\xba\xd0\xba\xd0"); },
+        py::return_value_policy::return_as_bytes);
+    m.def("invalid_utf8_string_as_str", []() { return std::string("\xba\xd0\xba\xd0"); });
+    m.def(
+        "invalid_utf8_char_array_as_bytes",
+        []() { return "\xba\xd0\xba\xd0"; },
+        py::return_value_policy::return_as_bytes);
 #ifdef PYBIND11_HAS_STRING_VIEW
-    m.def("invalid_utf8_string_view_as_bytes", []() {
-        return std::string_view("\xba\xd0\xba\xd0");
-    }, py::return_value_policy::return_as_bytes);
+    m.def(
+        "invalid_utf8_string_view_as_bytes",
+        []() { return std::string_view("\xba\xd0\xba\xd0"); },
+        py::return_value_policy::return_as_bytes);
 #endif
 }

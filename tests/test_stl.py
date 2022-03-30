@@ -382,4 +382,3 @@ def test_return_as_bytes_policy():
         assert m.invalid_utf8_optional_string_as_bytes() == expected_return_value
     if hasattr(m, "load_variant"):
         assert m.invalid_utf8_variant_string_as_bytes() == expected_return_value
-
