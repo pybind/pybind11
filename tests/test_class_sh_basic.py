@@ -185,9 +185,9 @@ def test_function_signatures(doc):
 
 def test_return_as_bytes():
     expected_return_value = b"\xba\xd0\xba\xd0"
-    assert(m.returns_string_as_bytes() == expected_return_value)
-    assert(m.returns_string_view_as_bytes() == expected_return_value)
-    assert(m.returns_char_array_as_bytes() == expected_return_value)
+    assert m.returns_string_as_bytes() == expected_return_value
+    assert m.returns_string_view_as_bytes() == expected_return_value
+    assert m.returns_char_array_as_bytes() == expected_return_value
 
 
 def test_return_as_str():

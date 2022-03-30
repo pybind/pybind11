@@ -1,7 +1,7 @@
 #include <pybind11/smart_holder.h>
 
-#include "pybind11_tests.h"
 #include "third_party/pybind11/include/pybind11/detail/common.h"
+#include "pybind11_tests.h"
 
 #include <memory>
 #include <string>
@@ -84,7 +84,7 @@ struct SharedPtrStash {
 // Not valid UTF-8
 std::string returns_string() { return "\xba\xd0\xba\xd0"; }
 std::string_view returns_string_view() { return "\xba\xd0\xba\xd0"; }
-const char* returns_char_array() { return "\xba\xd0\xba\xd0"; }
+const char *returns_char_array() { return "\xba\xd0\xba\xd0"; }
 
 } // namespace class_sh_basic
 } // namespace pybind11_tests
@@ -170,11 +170,13 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("returns_string_as_str", returns_string);
     m.def("returns_string_view_as_str", returns_string_view);
     m.def("returns_char_array_as_str", returns_char_array);
-    m.def("returns_string_as_bytes", returns_string,
+    m.def(
+        "returns_string_as_bytes", returns_string, pybind11::return_value_policy::return_as_bytes);
+    m.def("returns_string_view_as_bytes",
+          returns_string_view,
           pybind11::return_value_policy::return_as_bytes);
-    m.def("returns_string_view_as_bytes", returns_string_view,
-          pybind11::return_value_policy::return_as_bytes);
-    m.def("returns_char_array_as_bytes", returns_char_array,
+    m.def("returns_char_array_as_bytes",
+          returns_char_array,
           pybind11::return_value_policy::return_as_bytes);
 }
 
