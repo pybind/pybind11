@@ -940,7 +940,7 @@ protected:
 
     void fail_dim_check(ssize_t dim, const std::string &msg) const {
         throw index_error(msg + ": " + std::to_string(dim) + " (ndim = " + std::to_string(ndim())
-                          + ")");
+                          + ')');
     }
 
     template <typename... Ix>
@@ -1144,11 +1144,11 @@ struct format_descriptor<T, detail::enable_if_t<detail::is_pod_struct<T>::value>
 
 template <size_t N>
 struct format_descriptor<char[N]> {
-    static std::string format() { return std::to_string(N) + "s"; }
+    static std::string format() { return std::to_string(N) + 's'; }
 };
 template <size_t N>
 struct format_descriptor<std::array<char, N>> {
-    static std::string format() { return std::to_string(N) + "s"; }
+    static std::string format() { return std::to_string(N) + 's'; }
 };
 
 template <typename T>
@@ -1288,7 +1288,8 @@ public:
     static pybind11::dtype dtype() {
         list shape;
         array_info<T>::append_extents(shape);
-        return pybind11::dtype::from_args(pybind11::make_tuple(base_descr::dtype(), shape));
+        return pybind11::dtype::from_args(
+            pybind11::make_tuple(base_descr::dtype(), std::move(shape)));
     }
 };
 
