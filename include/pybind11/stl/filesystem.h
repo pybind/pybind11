@@ -13,13 +13,19 @@
 #include <string>
 
 #ifdef __has_include
-#    if defined(PYBIND11_CPP17) && __has_include(<filesystem>)
+#    if defined(PYBIND11_CPP17) && __has_include(<filesystem>) && \
+      PY_VERSION_HEX >= 0x03060000
 #        include <filesystem>
 #        define PYBIND11_HAS_FILESYSTEM 1
+         namespace fs = std::filesystem;
+#    elif __has_include(<experimental/filesystem>)
+#        include <experimental/filesystem>    
+#        define PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM
+         namespace fs = std::experimental::filesystem;
 #    endif
 #endif
 
-#if !defined(PYBIND11_HAS_FILESYSTEM) && !defined(PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL)
+#if !defined(PYBIND11_HAS_FILESYSTEM) && !defined(PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL) && !defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
 #    error                                                                                        \
         "#include <filesystem> is not available. (Use -DPYBIND11_HAS_FILESYSTEM_IS_OPTIONAL to ignore.)"
 #endif
@@ -27,7 +33,7 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#if defined(PYBIND11_HAS_FILESYSTEM)
+#if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
 template <typename T>
 struct path_caster {
 
@@ -95,7 +101,7 @@ public:
 };
 
 template <>
-struct type_caster<std::filesystem::path> : public path_caster<std::filesystem::path> {};
+struct type_caster<fs::path> : public path_caster<fs::path> {};
 #endif // PYBIND11_HAS_FILESYSTEM
 
 PYBIND11_NAMESPACE_END(detail)
