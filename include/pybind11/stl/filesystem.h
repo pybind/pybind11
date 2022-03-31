@@ -104,7 +104,8 @@ public:
 };
 
 template <>
-struct type_caster<pybind11_filesystem_alias::path> : public path_caster<pybind11_filesystem_alias::path> {};
+struct type_caster<pybind11_filesystem_alias::path>
+    : public path_caster<pybind11_filesystem_alias::path> {};
 #endif // PYBIND11_HAS_FILESYSTEM
 
 PYBIND11_NAMESPACE_END(detail)
