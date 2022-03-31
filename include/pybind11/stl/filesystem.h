@@ -18,11 +18,11 @@
           PY_VERSION_HEX >= 0x03060000
 #            include <filesystem>
 #            define PYBIND11_HAS_FILESYSTEM 1
-namespace pybind11_filesystem_alias = std::filesystem;
+namespace pybind11::filesystem_alias = std::filesystem;
 #        elif __has_include(<experimental/filesystem>)
 #            include <experimental/filesystem>
 #            define PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM 1
-namespace pybind11_filesystem_alias = std::experimental::filesystem;
+namespace pybind11::filesystem_alias = std::experimental::filesystem;
 #        endif
 #    endif
 #endif
@@ -104,8 +104,8 @@ public:
 };
 
 template <>
-struct type_caster<pybind11_filesystem_alias::path>
-    : public path_caster<pybind11_filesystem_alias::path> {};
+struct type_caster<pybind11::filesystem_alias::path>
+    : public path_caster<pybind11::filesystem_alias::path> {};
 #endif // PYBIND11_HAS_FILESYSTEM
 
 PYBIND11_NAMESPACE_END(detail)
