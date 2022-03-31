@@ -452,7 +452,7 @@ struct string_caster {
         auto nbytes = ssize_t(src.size() * sizeof(CharT));
         handle s;
         if (policy == return_value_policy::return_as_bytes) {
-            s = PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, nbytes);
+            s = PyBytes_FromStringAndSize(buffer, nbytes);
         } else {
             s = decode_utfN(buffer, nbytes);
         }
