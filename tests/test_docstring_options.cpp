@@ -86,20 +86,30 @@ TEST_SUBMODULE(docstring_options, m) {
                           "This is a property docstring");
     }
 
-    m.def("test_overloaded4", [](int a, int b)->int { return a + b; },
+    m.def(
+        "test_overloaded4",
+        [](int a, int b) -> int { return a + b; },
         "Add two integers together.");
-    m.def("test_overloaded4", [](float a, float b)->float { return a + b; },
+    m.def(
+        "test_overloaded4",
+        [](float a, float b) -> float { return a + b; },
         "Add two floating point numbers together.");
 
     {
         py::options options;
         options.disable_function_signatures();
 
-        m.def("test_overloaded5", [](int a, int b)->int { return a + b; },
+        m.def(
+            "test_overloaded5",
+            [](int a, int b) -> int { return a + b; },
             "A function which adds two numbers.\n");
-        m.def("test_overloaded5", [](float a, float b)->float { return a + b; },
+        m.def(
+            "test_overloaded5",
+            [](float a, float b) -> float { return a + b; },
             "Internally, a simple addition is performed.");
-        m.def("test_overloaded5", [](const py::none&, const py::none&)->py::none { return py::none(); },
+        m.def(
+            "test_overloaded5",
+            [](const py::none &, const py::none &) -> py::none { return py::none(); },
             "Both numbers can be None, and None will be returned.");
     }
 }
