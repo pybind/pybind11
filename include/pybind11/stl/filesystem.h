@@ -18,11 +18,9 @@
           PY_VERSION_HEX >= 0x03060000
 #            include <filesystem>
 #            define PYBIND11_HAS_FILESYSTEM 1
-namespace pybind11::filesystem_alias = std::filesystem;
 #        elif __has_include(<experimental/filesystem>)
 #            include <experimental/filesystem>
 #            define PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM 1
-namespace pybind11::filesystem_alias = std::experimental::filesystem;
 #        endif
 #    endif
 #endif
@@ -103,10 +101,17 @@ public:
     PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
 };
 
+#endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+
+#if defined(PYBIND11_HAS_FILESYSTEM)
 template <>
-struct type_caster<pybind11::filesystem_alias::path>
-    : public path_caster<pybind11::filesystem_alias::path> {};
-#endif // PYBIND11_HAS_FILESYSTEM
+struct type_caster<std::filesystem::path>
+    : public path_caster<std::filesystem::path> {};
+#elif defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+template <>
+struct type_caster<std::experimental::filesystem::path>
+    : public path_caster<std::experimental::filesystem::path> {};
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
