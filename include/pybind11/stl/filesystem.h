@@ -105,8 +105,7 @@ public:
 
 #if defined(PYBIND11_HAS_FILESYSTEM)
 template <>
-struct type_caster<std::filesystem::path>
-    : public path_caster<std::filesystem::path> {};
+struct type_caster<std::filesystem::path> : public path_caster<std::filesystem::path> {};
 #elif defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
 template <>
 struct type_caster<std::experimental::filesystem::path>
