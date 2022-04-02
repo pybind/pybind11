@@ -1875,12 +1875,11 @@ public:
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readwrite() requires a class member (or base class member)");
-        def_property(
-            name,
-            xetter_cpp_function<type, D>::read(pm, *this),
-            xetter_cpp_function<type, D>::write(pm, *this),
-            return_value_policy::reference_internal,
-            extra...);
+        def_property(name,
+                     xetter_cpp_function<type, D>::read(pm, *this),
+                     xetter_cpp_function<type, D>::write(pm, *this),
+                     return_value_policy::reference_internal,
+                     extra...);
         return *this;
     }
 
@@ -1888,11 +1887,10 @@ public:
     class_ &def_readonly(const char *name, const D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readonly() requires a class member (or base class member)");
-        def_property_readonly(
-            name,
-            xetter_cpp_function<type, D>::readonly(pm, *this),
-            return_value_policy::reference_internal,
-            extra...);
+        def_property_readonly(name,
+                              xetter_cpp_function<type, D>::readonly(pm, *this),
+                              return_value_policy::reference_internal,
+                              extra...);
         return *this;
     }
 
