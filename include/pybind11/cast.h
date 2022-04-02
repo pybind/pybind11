@@ -1243,8 +1243,8 @@ struct arg_v : arg {
 private:
     template <typename T>
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
-        : arg(std::move(base)), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
-                                    std::forward<T>(x), return_value_policy::automatic, {}))),
+        : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
+                         std::forward<T>(x), return_value_policy::automatic, {}))),
           descr(descr)
 #if !defined(NDEBUG)
           ,
