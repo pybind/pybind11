@@ -6,6 +6,7 @@
 
 #include "common.h"
 
+#include <memory>
 #include <type_traits>
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
@@ -28,6 +29,18 @@ struct smart_holder_type_caster_base_tag {};
 
 template <typename T>
 struct type_uses_smart_holder_type_caster;
+
+// Simple helpers that may eventually be a better fit for another header file:
+
+template <typename T>
+struct is_std_unique_ptr : std::false_type {};
+template <typename T, typename D>
+struct is_std_unique_ptr<std::unique_ptr<T, D>> : std::true_type {};
+
+template <typename T>
+struct is_std_shared_ptr : std::false_type {};
+template <typename T>
+struct is_std_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
