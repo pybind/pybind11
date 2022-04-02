@@ -1143,7 +1143,7 @@ using override_caster_t = conditional_t<cast_is_temporary_value_reference<ret_ty
 template <typename T>
 enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o,
                                                                      make_caster<T> &caster) {
-    return cast_op<T>(load_type(caster, o));
+    return cast_op<T>(load_type(caster, std::move(o)));
 }
 template <typename T>
 enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&,
