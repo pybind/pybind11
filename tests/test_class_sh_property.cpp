@@ -46,24 +46,19 @@ TEST_SUBMODULE(class_sh_property, m) {
     using namespace test_class_sh_property;
 
     py::class_<ClassicField, std::unique_ptr<ClassicField>>(m, "ClassicField")
-        .def(py::init<>())                        //
-        .def_readwrite("num", &ClassicField::num) //
-        ;
+        .def(py::init<>())
+        .def_readwrite("num", &ClassicField::num);
 
     py::class_<ClassicOuter, std::unique_ptr<ClassicOuter>>(m, "ClassicOuter")
         .def(py::init<>())
         .def_readonly("m_mptr_readonly", &ClassicOuter::m_mptr)
         .def_readwrite("m_mptr_readwrite", &ClassicOuter::m_mptr)
         .def_readwrite("m_cptr_readonly", &ClassicOuter::m_cptr)
-        .def_readwrite("m_cptr_readwrite", &ClassicOuter::m_cptr) //
-        ;
+        .def_readwrite("m_cptr_readwrite", &ClassicOuter::m_cptr);
 
-    py::classh<Field>(m, "Field")          //
-        .def(py::init<>())                 //
-        .def_readwrite("num", &Field::num) //
-        ;
+    py::classh<Field>(m, "Field").def(py::init<>()).def_readwrite("num", &Field::num);
 
-    py::classh<Outer>(m, "Outer") //
+    py::classh<Outer>(m, "Outer")
         .def(py::init<>())
 
         .def_readonly("m_valu_readonly", &Outer::m_valu)
@@ -82,8 +77,7 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readwrite("m_shmp_readonly", &Outer::m_shmp)
         .def_readwrite("m_shmp_readwrite", &Outer::m_shmp)
         .def_readwrite("m_shcp_readonly", &Outer::m_shcp)
-        .def_readwrite("m_shcp_readwrite", &Outer::m_shcp) //
-        ;
+        .def_readwrite("m_shcp_readwrite", &Outer::m_shcp);
 
     m.def("DisownOuter", DisownOuter);
 }
