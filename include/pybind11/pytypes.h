@@ -1519,8 +1519,8 @@ private:
 class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
-    slice(handle start, handle stop, handle step) {
-        m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
+    slice(handle start, handle stop, handle step)
+        : object(PySlice_New(start.ptr(), stop.ptr(), step.ptr()), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate slice object!");
         }
