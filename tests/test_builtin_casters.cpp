@@ -15,6 +15,11 @@ struct ConstRefCasted {
     int tag;
 };
 
+struct StringAttr {
+    StringAttr(std::string v) : value(v) {}
+    std::string value;
+};
+
 PYBIND11_NAMESPACE_BEGIN(pybind11)
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
@@ -389,6 +394,12 @@ TEST_SUBMODULE(builtin_casters, m) {
         "invalid_utf8_char_array_as_bytes",
         []() { return "\xba\xd0\xba\xd0"; },
         py::return_value_policy::return_as_bytes);
+    py::class_<StringAttr>(m, "StringAttr")
+        .def(py::init<std::string>())
+        .def_property("value",
+                      py::cpp_function([](StringAttr &self) { return self.value; },
+                                       py::return_value_policy::return_as_bytes),
+                      py::cpp_function([](StringAttr &self, std::string v) { self.value = v; }));
 #ifdef PYBIND11_HAS_STRING_VIEW
     m.def(
         "invalid_utf8_string_view_as_bytes",

@@ -532,5 +532,9 @@ def test_return_as_bytes_policy():
     with pytest.raises(UnicodeDecodeError):
         m.invalid_utf8_string_as_str()
     assert m.invalid_utf8_char_array_as_bytes() == expected_return_value
+    obj = m.StringAttr(expected_return_value)
+    assert obj.value == expected_return_value
+    obj.value = "123"
+    assert obj.value == b"123"
     if hasattr(m, "has_string_view"):
         assert m.invalid_utf8_string_view_as_bytes() == expected_return_value
