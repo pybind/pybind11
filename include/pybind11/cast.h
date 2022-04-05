@@ -1243,8 +1243,8 @@ struct arg_v : arg {
 private:
     template <typename T>
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
-        : arg(base), value(reinterpret_steal<object>(
-                         detail::make_caster<T>::cast(x, return_value_policy::automatic, {}))),
+        : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
+                         std::forward<T>(x), return_value_policy::automatic, {}))),
           descr(descr)
 #if !defined(NDEBUG)
           ,
@@ -1491,7 +1491,7 @@ private:
                                                         type_id<T>());
 #endif
         }
-        args_list.append(o);
+        args_list.append(std::move(o));
     }
 
     void process(list &args_list, detail::args_proxy ap) {
