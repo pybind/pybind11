@@ -268,7 +268,7 @@ public:
     /// Copy constructor; always increases the reference count
     object(const object &o) : handle(o) { inc_ref(); }
     /// Move constructor; steals the object from ``other`` and preserves its reference count
-    object(object &&other) noexcept : handle(other.m_ptr) { other.m_ptr = nullptr; }
+    object(object &&other) noexcept : handle(other) { other.m_ptr = nullptr; }
     /// Destructor; automatically calls `handle::dec_ref()`
     ~object() { dec_ref(); }
 
@@ -1579,35 +1579,43 @@ public:
         }
     }
 
-    capsule(const void *value, void (*destructor)(void *)) {
-        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
-            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr) {
-                if (PyErr_Occurred()) {
-                    throw error_already_set();
-                }
-                pybind11_fail("Unable to get capsule context");
-            }
-            void *ptr = PyCapsule_GetPointer(o, nullptr);
-            if (ptr == nullptr) {
-                throw error_already_set();
-            }
-            destructor(ptr);
-        });
+    capsule(const void *value, void (*destructor)(void *))
+        : object(PyCapsule_New(const_cast<void *>(value),
+                               nullptr,
+                               [](PyObject *o) {
+                                   auto destructor = reinterpret_cast<void (*)(void *)>(
+                                       PyCapsule_GetContext(o));
+                                   if (destructor == nullptr) {
+                                       if (PyErr_Occurred()) {
+                                           throw error_already_set();
+                                       }
+                                       pybind11_fail("Unable to get capsule context");
+                                   }
+                                   void *ptr = PyCapsule_GetPointer(o, nullptr);
+                                   if (ptr == nullptr) {
+                                       throw error_already_set();
+                                   }
+                                   destructor(ptr);
+                               }),
+                 stolen_t{}) {
 
         if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
             throw error_already_set();
         }
     }
 
-    explicit capsule(void (*destructor)()) {
-        m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
-            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
-            if (destructor == nullptr) {
-                throw error_already_set();
-            }
-            destructor();
-        });
+    explicit capsule(void (*destructor)())
+        : object(PyCapsule_New(reinterpret_cast<void *>(destructor),
+                               nullptr,
+                               [](PyObject *o) {
+                                   auto destructor = reinterpret_cast<void (*)()>(
+                                       PyCapsule_GetPointer(o, nullptr));
+                                   if (destructor == nullptr) {
+                                       throw error_already_set();
+                                   }
+                                   destructor();
+                               }),
+                 stolen_t{}) {
 
         if (!m_ptr) {
             throw error_already_set();
