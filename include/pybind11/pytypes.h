@@ -1579,43 +1579,35 @@ public:
         }
     }
 
-    capsule(const void *value, void (*destructor)(void *))
-        : object(PyCapsule_New(const_cast<void *>(value),
-                               nullptr,
-                               [](PyObject *o) {
-                                   auto destructor = reinterpret_cast<void (*)(void *)>(
-                                       PyCapsule_GetContext(o));
-                                   if (destructor == nullptr) {
-                                       if (PyErr_Occurred()) {
-                                           throw error_already_set();
-                                       }
-                                       pybind11_fail("Unable to get capsule context");
-                                   }
-                                   void *ptr = PyCapsule_GetPointer(o, nullptr);
-                                   if (ptr == nullptr) {
-                                       throw error_already_set();
-                                   }
-                                   destructor(ptr);
-                               }),
-                 stolen_t{}) {
+    capsule(const void *value, void (*destructor)(void *)) {
+        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
+            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            if (destructor == nullptr) {
+                if (PyErr_Occurred()) {
+                    throw error_already_set();
+                }
+                pybind11_fail("Unable to get capsule context");
+            }
+            void *ptr = PyCapsule_GetPointer(o, nullptr);
+            if (ptr == nullptr) {
+                throw error_already_set();
+            }
+            destructor(ptr);
+        });
 
         if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
             throw error_already_set();
         }
     }
 
-    explicit capsule(void (*destructor)())
-        : object(PyCapsule_New(reinterpret_cast<void *>(destructor),
-                               nullptr,
-                               [](PyObject *o) {
-                                   auto destructor = reinterpret_cast<void (*)()>(
-                                       PyCapsule_GetPointer(o, nullptr));
-                                   if (destructor == nullptr) {
-                                       throw error_already_set();
-                                   }
-                                   destructor();
-                               }),
-                 stolen_t{}) {
+    explicit capsule(void (*destructor)()) {
+        m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
+            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
+            if (destructor == nullptr) {
+                throw error_already_set();
+            }
+            destructor();
+        });
 
         if (!m_ptr) {
             throw error_already_set();
