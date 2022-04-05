@@ -29,11 +29,7 @@ jobs:
           arch: x64
           cmake: 3.7
 
-        - runs-on: windows-2016
-          arch: x86
-          cmake: 3.8
-
-        - runs-on: windows-2016
+        - runs-on: windows-latest
           arch: x86
           cmake: 3.18
 
