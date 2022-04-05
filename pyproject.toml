@@ -24,8 +24,10 @@ profile = "black"
 [tool.mypy]
 files = ["pybind11"]
 python_version = "3.6"
-warn_unused_configs = true
 strict = true
+show_error_codes = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+warn_unreachable = true
 
 [[tool.mypy.overrides]]
 module = ["ghapi.*", "setuptools.*"]
