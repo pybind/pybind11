@@ -551,7 +551,7 @@ protected:
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
         if (chain) {
-            for (auto it = chain_start; it != nullptr; it = it->next) {
+            for (auto *it = chain_start; it != nullptr; it = it->next) {
                 signatures += rec->name;
                 signatures += it->signature;
                 signatures += "\n";
