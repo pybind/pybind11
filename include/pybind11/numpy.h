@@ -789,9 +789,9 @@ private:
 
         list names, formats, offsets;
         for (auto &descr : field_descriptors) {
-            names.append(descr.name);
-            formats.append(descr.format);
-            offsets.append(descr.offset);
+            names.append(std::move(descr.name));
+            formats.append(std::move(descr.format));
+            offsets.append(std::move(descr.offset));
         }
         return dtype(std::move(names), std::move(formats), std::move(offsets), itemsize);
     }
