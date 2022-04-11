@@ -30,7 +30,7 @@ jobs:
           cmake: 3.7
 
         - runs-on: windows-2019
-          arch: x86
+          arch: x64 # x86 compilers seem to be missing on 2019 image
           cmake: 3.18
 
     name: 🐍 3.7 • CMake ${{ matrix.cmake }} • ${{ matrix.runs-on }}
