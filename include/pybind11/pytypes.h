@@ -979,6 +979,7 @@ bool PyIterableT_Check(PyObject *obj) {
                   "iterable_t can only be used with pyobjects and generic types "
                   "(py::class_<T>)");
     PyObject *iter = PyObject_GetIter(obj);
+    bool good = false;
     if (iter) {
         if (iter == obj) {
             // If they are the same, then that's bad! For now, just throw a
@@ -987,7 +988,7 @@ bool PyIterableT_Check(PyObject *obj) {
             throw cast_error("iterable_t<T> cannot be used with exhaustible iterables "
                              "(e.g., iterators, generators).");
         }
-        bool good = true;
+        good = true;
         // Now that we know that the iterable `obj` will not be exhausted,
         // let's check the contained types.
         for (handle h : handle(iter)) {
@@ -997,11 +998,10 @@ bool PyIterableT_Check(PyObject *obj) {
             }
         }
         Py_DECREF(iter);
-        return good;
     } else {
         PyErr_Clear();
-        return false;
     }
+    return good;
 }
 
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
