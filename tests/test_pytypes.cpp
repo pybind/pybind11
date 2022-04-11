@@ -51,8 +51,8 @@ TEST_SUBMODULE(pytypes, m) {
     // test_iterable_t
     m.def("get_iterable_t", [] { return py::iterable_t<py::str>(); });
     // test_iterable_t_overloads
-    m.def("accept_iterable_t", [](py::iterable_t<py::str>) { return "str"; });
-    m.def("accept_iterable_t", [](py::iterable_t<py::bytes>) { return "bytes"; });
+    m.def("accept_iterable_t", [](const py::iterable_t<py::str> &) { return "str"; });
+    m.def("accept_iterable_t", [](const py::iterable_t<py::bytes> &) { return "bytes"; });
     // test_float
     m.def("get_float", [] { return py::float_(0.0f); });
     // test_list
