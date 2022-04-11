@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
-import pytest
-from pybind11_tests import callbacks as m
-from threading import Thread
 import time
+from threading import Thread
+
+import pytest
+
+import env  # noqa: F401
+from pybind11_tests import callbacks as m
 
 
 def test_callbacks():
@@ -15,7 +17,7 @@ def test_callbacks():
         return "func2", a, b, c, d
 
     def func3(a):
-        return "func3({})".format(a)
+        return f"func3({a})"
 
     assert m.test_callback1(func1) == "func1"
     assert m.test_callback2(func2) == ("func2", "Hello", "x", True, 5)
@@ -76,11 +78,16 @@ def test_keyword_args_and_generalized_unpacking():
 
 
 def test_lambda_closure_cleanup():
-    m.test_cleanup()
+    m.test_lambda_closure_cleanup()
     cstats = m.payload_cstats()
     assert cstats.alive() == 0
     assert cstats.copy_constructions == 1
     assert cstats.move_constructions >= 1
+
+
+def test_cpp_callable_cleanup():
+    alive_counts = m.test_cpp_callable_cleanup()
+    assert alive_counts == [0, 1, 2, 1, 2, 1, 0]
 
 
 def test_cpp_function_roundtrip():
@@ -124,6 +131,16 @@ def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
 
 
+@pytest.mark.skipif(
+    "env.PYPY",
+    reason="PyPy segfaults on here. See discussion on #1413.",
+)
+def test_python_builtins():
+    """Test if python builtins like sum() can be used as callbacks"""
+    assert m.test_sum_builtin(sum, [1, 2, 3]) == 6
+    assert m.test_sum_builtin(sum, []) == 0
+
+
 def test_async_callbacks():
     # serves as state for async callback
     class Item:
@@ -144,7 +161,7 @@ def test_async_callbacks():
     from time import sleep
 
     sleep(0.5)
-    assert sum(res) == sum([x + 3 for x in work])
+    assert sum(res) == sum(x + 3 for x in work)
 
 
 def test_async_async_callbacks():
@@ -171,14 +188,8 @@ def test_callback_num_times():
         if not rep:
             print()
         print(
-            "callback_num_times: {:d} million / {:.3f} seconds = {:.3f} million / second".format(
-                num_millions, td, rate
-            )
+            f"callback_num_times: {num_millions:d} million / {td:.3f} seconds = {rate:.3f} million / second"
         )
     if len(rates) > 1:
         print("Min    Mean   Max")
-        print(
-            "{:6.3f} {:6.3f} {:6.3f}".format(
-                min(rates), sum(rates) / len(rates), max(rates)
-            )
-        )
+        print(f"{min(rates):6.3f} {sum(rates) / len(rates):6.3f} {max(rates):6.3f}")

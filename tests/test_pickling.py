@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
+import pickle
+
 import pytest
 
-import env  # noqa: F401
-
+import env
 from pybind11_tests import pickling as m
-
-try:
-    import cPickle as pickle  # Use cPickle on Python 2.7
-except ImportError:
-    import pickle
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
@@ -45,3 +40,39 @@ def test_enum_pickle():
 
     data = pickle.dumps(e.EOne, 2)
     assert e.EOne == pickle.loads(data)
+
+
+#
+# exercise_trampoline
+#
+class SimplePyDerived(m.SimpleBase):
+    pass
+
+
+def test_roundtrip_simple_py_derived():
+    p = SimplePyDerived()
+    p.num = 202
+    p.stored_in_dict = 303
+    data = pickle.dumps(p, pickle.HIGHEST_PROTOCOL)
+    p2 = pickle.loads(data)
+    assert isinstance(p2, SimplePyDerived)
+    assert p2.num == 202
+    assert p2.stored_in_dict == 303
+
+
+def test_roundtrip_simple_cpp_derived():
+    p = m.make_SimpleCppDerivedAsBase()
+    assert m.check_dynamic_cast_SimpleCppDerived(p)
+    p.num = 404
+    if not env.PYPY:
+        # To ensure that this unit test is not accidentally invalidated.
+        with pytest.raises(AttributeError):
+            # Mimics the `setstate` C++ implementation.
+            setattr(p, "__dict__", {})  # noqa: B010
+    data = pickle.dumps(p, pickle.HIGHEST_PROTOCOL)
+    p2 = pickle.loads(data)
+    assert isinstance(p2, m.SimpleBase)
+    assert p2.num == 404
+    # Issue #3062: pickleable base C++ classes can incur object slicing
+    #              if derived typeid is not registered with pybind11
+    assert not m.check_dynamic_cast_SimpleCppDerived(p2)

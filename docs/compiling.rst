@@ -42,10 +42,7 @@ An example of a ``setup.py`` using pybind11's helpers:
         ),
     ]
 
-    setup(
-        ...,
-        ext_modules=ext_modules
-    )
+    setup(..., ext_modules=ext_modules)
 
 If you want to do an automatic search for the highest supported C++ standard,
 that is supported via a ``build_ext`` command override; it will only affect
@@ -64,11 +61,20 @@ that is supported via a ``build_ext`` command override; it will only affect
         ),
     ]
 
-    setup(
-        ...,
-        cmdclass={"build_ext": build_ext},
-        ext_modules=ext_modules
-    )
+    setup(..., cmdclass={"build_ext": build_ext}, ext_modules=ext_modules)
+
+If you have single-file extension modules that are directly stored in the
+Python source tree (``foo.cpp`` in the same directory as where a ``foo.py``
+would be located), you can also generate ``Pybind11Extensions`` using
+``setup_helpers.intree_extensions``: ``intree_extensions(["path/to/foo.cpp",
+...])`` returns a list of ``Pybind11Extensions`` which can be passed to
+``ext_modules``, possibly after further customizing their attributes
+(``libraries``, ``include_dirs``, etc.).  By doing so, a ``foo.*.so`` extension
+module will be generated and made available upon installation.
+
+``intree_extension`` will automatically detect if you are using a ``src``-style
+layout (as long as no namespace packages are involved), but you can also
+explicitly pass ``package_dir`` to it (as in ``setuptools.setup``).
 
 Since pybind11 does not require NumPy when building, a light-weight replacement
 for NumPy's parallel compilation distutils tool is included. Use it like this:
@@ -93,14 +99,14 @@ to a memory dependent number.
 If you are developing rapidly and have a lot of C++ files, you may want to
 avoid rebuilding files that have not changed. For simple cases were you are
 using ``pip install -e .`` and do not have local headers, you can skip the
-rebuild if a object file is newer than it's source (headers are not checked!)
+rebuild if an object file is newer than its source (headers are not checked!)
 with the following:
 
 .. code-block:: python
 
     from pybind11.setup_helpers import ParallelCompile, naive_recompile
 
-    SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
+    ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
 If you have a more complex build, you can implement a smarter function and pass
@@ -149,7 +155,7 @@ Your ``pyproject.toml`` file will likely look something like this:
     and ``pyproject.toml`` are not even contained in the wheel, so this high
     Pip requirement is only for source builds, and will not affect users of
     your binary wheels. If you are building SDists and wheels, then
-    `pypa-build`_ is the recommended offical tool.
+    `pypa-build`_ is the recommended official tool.
 
 .. _PEP 517: https://www.python.org/dev/peps/pep-0517/
 .. _cibuildwheel: https://cibuildwheel.readthedocs.io
@@ -334,7 +340,7 @@ standard explicitly with
 
     set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ version selection")  # or 11, 14, 17, 20
     set(CMAKE_CXX_STANDARD_REQUIRED ON)  # optional, ensure standard is supported
-    set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensionsn off
+    set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensions off
 
 The variables can also be set when calling CMake from the command line using
 the ``-D<variable>=<value>`` flag. You can also manually set ``CXX_STANDARD``
@@ -411,10 +417,10 @@ existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minumum_required(VERSION 3.15...3.19)
+    cmake_minimum_required(VERSION 3.15...3.22)
     project(example LANGUAGES CXX)
 
-    find_package(Python COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.6 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
@@ -427,9 +433,8 @@ algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
 
 .. warning::
 
-    If you use FindPython2 and FindPython3 to dual-target Python, use the
-    individual targets listed below, and avoid targets that directly include
-    Python parts.
+    If you use FindPython to multi-target Python versions, use the individual
+    targets listed below, and avoid targets that directly include Python parts.
 
 There are `many ways to hint or force a discovery of a specific Python
 installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
@@ -456,11 +461,8 @@ available in all modes. The targets provided are:
    ``pybind11::headers``
      Just the pybind11 headers and minimum compile requirements
 
-   ``pybind11::python2_no_register``
-     Quiets the warning/error when mixing C++14 or higher and Python 2
-
    ``pybind11::pybind11``
-     Python headers + ``pybind11::headers`` + ``pybind11::python2_no_register`` (Python 2 only)
+     Python headers + ``pybind11::headers``
 
    ``pybind11::python_link_helper``
      Just the "linking" part of pybind11:module
@@ -469,7 +471,7 @@ available in all modes. The targets provided are:
      Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython CMake 3.15+) or ``pybind11::python_link_helper``
 
    ``pybind11::embed``
-     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Embed`` (FindPython) or Python libs
+     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Python`` (FindPython) or Python libs
 
    ``pybind11::lto`` / ``pybind11::thin_lto``
      An alternative to `INTERPROCEDURAL_OPTIMIZATION` for adding link-time optimization.
@@ -503,7 +505,10 @@ You can use these targets to build complex applications. For example, the
     target_link_libraries(example PRIVATE pybind11::module pybind11::lto pybind11::windows_extras)
 
     pybind11_extension(example)
-    pybind11_strip(example)
+    if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+        # Strip unnecessary sections of the binary on Linux/macOS
+        pybind11_strip(example)
+    endif()
 
     set_target_properties(example PROPERTIES CXX_VISIBILITY_PRESET "hidden"
                                              CUDA_VISIBILITY_PRESET "hidden")
@@ -516,7 +521,7 @@ Instead of setting properties, you can set ``CMAKE_*`` variables to initialize t
     compiler flags are provided to ensure high quality code generation. In
     contrast to the ``pybind11_add_module()`` command, the CMake interface
     provides a *composable* set of targets to ensure that you retain flexibility.
-    It can be expecially important to provide or set these properties; the
+    It can be especially important to provide or set these properties; the
     :ref:`FAQ <faq:symhidden>` contains an explanation on why these are needed.
 
 .. versionadded:: 2.6
@@ -571,20 +576,11 @@ On Linux, you can compile an example such as the one given in
 
     $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
-The flags given here assume that you're using Python 3. For Python 2, just
-change the executable appropriately (to ``python`` or ``python2``).
-
 The ``python3 -m pybind11 --includes`` command fetches the include paths for
 both pybind11 and Python headers. This assumes that pybind11 has been installed
 using ``pip`` or ``conda``. If it hasn't, you can also manually specify
 ``-I <path-to-pybind11>/include`` together with the Python includes path
 ``python3-config --includes``.
-
-Note that Python 2.7 modules don't use a special suffix, so you should simply
-use ``example.so`` instead of ``example$(python3-config --extension-suffix)``.
-Besides, the ``--extension-suffix`` option may or may not be available, depending
-on the distribution; in the latter case, the module extension can be manually
-set to ``.so``.
 
 On macOS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when

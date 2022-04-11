@@ -9,7 +9,7 @@ that you are already familiar with the basics from :doc:`/classes`.
 Overriding virtual functions in Python
 ======================================
 
-Suppose that a C++ class or interface has a virtual function that we'd like to
+Suppose that a C++ class or interface has a virtual function that we'd like
 to override from within Python (we'll focus on the class ``Animal``; ``Dog`` is
 given as a specific example of how one would do this with traditional C++
 code).
@@ -133,14 +133,14 @@ a virtual method call.
     >>> from example import *
     >>> d = Dog()
     >>> call_go(d)
-    u'woof! woof! woof! '
+    'woof! woof! woof! '
     >>> class Cat(Animal):
     ...     def go(self, n_times):
-    ...             return "meow! " * n_times
+    ...         return "meow! " * n_times
     ...
     >>> c = Cat()
     >>> call_go(c)
-    u'meow! meow! meow! '
+    'meow! meow! meow! '
 
 If you are defining a custom constructor in a derived Python class, you *must*
 ensure that you explicitly call the bound C++ constructor using ``__init__``,
@@ -159,8 +159,9 @@ Here is an example:
 
     class Dachshund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, a TypeError is raised.
+            Dog.__init__(self)  # Without this, a TypeError is raised.
             self.name = name
+
         def bark(self):
             return "yap!"
 
@@ -804,7 +805,7 @@ to bind these two functions:
             }
         ));
 
-The ``__setstate__`` part of the ``py::picke()`` definition follows the same
+The ``__setstate__`` part of the ``py::pickle()`` definition follows the same
 rules as the single-argument version of ``py::init()``. The return type can be
 a value, pointer or holder type. See :ref:`custom_constructors` for details.
 
@@ -812,26 +813,21 @@ An instance can now be pickled as follows:
 
 .. code-block:: python
 
-    try:
-        import cPickle as pickle  # Use cPickle on Python 2.7
-    except ImportError:
-        import pickle
+    import pickle
 
     p = Pickleable("test_value")
     p.setExtra(15)
-    data = pickle.dumps(p, 2)
+    data = pickle.dumps(p)
 
 
 .. note::
-    Note that only the cPickle module is supported on Python 2.7.
-
-    The second argument to ``dumps`` is also crucial: it selects the pickle
-    protocol version 2, since the older version 1 is not supported. Newer
-    versions are also fine—for instance, specify ``-1`` to always use the
-    latest available version. Beware: failure to follow these instructions
-    will cause important pybind11 memory allocation routines to be skipped
-    during unpickling, which will likely lead to memory corruption and/or
-    segmentation faults.
+    If given, the second argument to ``dumps`` must be 2 or larger - 0 and 1 are
+    not supported. Newer versions are also fine; for instance, specify ``-1`` to
+    always use the latest available version. Beware: failure to follow these
+    instructions will cause important pybind11 memory allocation routines to be
+    skipped during unpickling, which will likely lead to memory corruption
+    and/or segmentation faults. Python defaults to version 3 (Python 3-3.7) and
+    version 4 for Python 3.8+.
 
 .. seealso::
 
@@ -848,11 +844,9 @@ Python normally uses references in assignments. Sometimes a real copy is needed
 to prevent changing all copies. The ``copy`` module [#f5]_ provides these
 capabilities.
 
-On Python 3, a class with pickle support is automatically also (deep)copy
+A class with pickle support is automatically also (deep)copy
 compatible. However, performance can be improved by adding custom
-``__copy__`` and ``__deepcopy__`` methods. With Python 2.7, these custom methods
-are mandatory for (deep)copy compatibility, because pybind11 only supports
-cPickle.
+``__copy__`` and ``__deepcopy__`` methods.
 
 For simple classes (deep)copy can be enabled by using the copy constructor,
 which should look as follows:
@@ -1124,13 +1118,6 @@ described trampoline:
     py::class_<A, Trampoline>(m, "A") // <-- `Trampoline` here
         .def("foo", &Publicist::foo); // <-- `Publicist` here, not `Trampoline`!
 
-.. note::
-
-    MSVC 2015 has a compiler bug (fixed in version 2017) which
-    requires a more explicit function binding in the form of
-    ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
-    where ``int (A::*)() const`` is the type of ``A::foo``.
-
 Binding final classes
 =====================
 
@@ -1153,11 +1140,64 @@ error:
 
     >>> class PyFinalChild(IsFinal):
     ...     pass
+    ...
     TypeError: type 'IsFinal' is not an acceptable base type
 
 .. note:: This attribute is currently ignored on PyPy
 
 .. versionadded:: 2.6
+
+Binding classes with template parameters
+========================================
+
+pybind11 can also wrap classes that have template parameters. Consider these classes:
+
+.. code-block:: cpp
+
+    struct Cat {};
+    struct Dog {};
+
+    template <typename PetType>
+    struct Cage {
+        Cage(PetType& pet);
+        PetType& get();
+    };
+
+C++ templates may only be instantiated at compile time, so pybind11 can only
+wrap instantiated templated classes. You cannot wrap a non-instantiated template:
+
+.. code-block:: cpp
+
+    // BROKEN (this will not compile)
+    py::class_<Cage>(m, "Cage");
+        .def("get", &Cage::get);
+
+You must explicitly specify each template/type combination that you want to
+wrap separately.
+
+.. code-block:: cpp
+
+    // ok
+    py::class_<Cage<Cat>>(m, "CatCage")
+        .def("get", &Cage<Cat>::get);
+
+    // ok
+    py::class_<Cage<Dog>>(m, "DogCage")
+        .def("get", &Cage<Dog>::get);
+
+If your class methods have template parameters you can wrap those as well,
+but once again each instantiation must be explicitly specified:
+
+.. code-block:: cpp
+
+    typename <typename T>
+    struct MyClass {
+        template <typename V>
+        T fn(V v);
+    };
+
+    py::class<MyClass<int>>(m, "MyClassT")
+        .def("fn", &MyClass<int>::fn<std::string>);
 
 Custom automatic downcasters
 ============================
@@ -1247,7 +1287,7 @@ Accessing the type object
 
 You can get the type object from a C++ class that has already been registered using:
 
-.. code-block:: python
+.. code-block:: cpp
 
     py::type T_py = py::type::of<T>();
 
@@ -1259,3 +1299,37 @@ object, just like ``type(ob)`` in Python.
     Other types, like ``py::type::of<int>()``, do not work, see :ref:`type-conversions`.
 
 .. versionadded:: 2.6
+
+Custom type setup
+=================
+
+For advanced use cases, such as enabling garbage collection support, you may
+wish to directly manipulate the ``PyHeapTypeObject`` corresponding to a
+``py::class_`` definition.
+
+You can do that using ``py::custom_type_setup``:
+
+.. code-block:: cpp
+
+   struct OwnsPythonObjects {
+       py::object value = py::none();
+   };
+   py::class_<OwnsPythonObjects> cls(
+       m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
+           auto *type = &heap_type->ht_type;
+           type->tp_flags |= Py_TPFLAGS_HAVE_GC;
+           type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
+               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+               Py_VISIT(self.value.ptr());
+               return 0;
+           };
+           type->tp_clear = [](PyObject *self_base) {
+               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+               self.value = py::none();
+               return 0;
+           };
+       }));
+   cls.def(py::init<>());
+   cls.def_readwrite("value", &OwnsPythonObjects::value);
+
+.. versionadded:: 2.8

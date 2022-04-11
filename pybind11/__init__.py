@@ -1,8 +1,12 @@
-# -*- coding: utf-8 -*-
+import sys
 
-from ._version import version_info, __version__
-from .commands import get_include, get_cmake_dir
+if sys.version_info < (3, 6):
+    msg = "pybind11 does not support Python < 3.6. 2.9 was the last release supporting Python 2.7 and 3.5."
+    raise ImportError(msg)
 
+
+from ._version import __version__, version_info
+from .commands import get_cmake_dir, get_include
 
 __all__ = (
     "version_info",

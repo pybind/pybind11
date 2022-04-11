@@ -87,7 +87,7 @@ buffer objects (e.g. a NumPy matrix).
             /* Request a buffer descriptor from Python */
             py::buffer_info info = b.request();
 
-            /* Some sanity checks ... */
+            /* Some basic validation checks ... */
             if (info.format != py::format_descriptor<Scalar>::format())
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
@@ -171,6 +171,31 @@ template parameter, and it ensures that non-conforming arguments are converted
 into an array satisfying the specified requirements instead of trying the next
 function overload.
 
+There are several methods on arrays; the methods listed below under references
+work, as well as the following functions based on the NumPy API:
+
+- ``.dtype()`` returns the type of the contained values.
+
+- ``.strides()`` returns a pointer to the strides of the array (optionally pass
+  an integer axis to get a number).
+
+- ``.flags()`` returns the flag settings. ``.writable()`` and ``.owndata()``
+  are directly available.
+
+- ``.offset_at()`` returns the offset (optionally pass indices).
+
+- ``.squeeze()`` returns a view with length-1 axes removed.
+
+- ``.view(dtype)`` returns a view of the array with a different dtype.
+
+- ``.reshape({i, j, ...})`` returns a view of the array with a different shape.
+  ``.resize({...})`` is also available.
+
+- ``.index_at(i, j, ...)`` gets the count from the beginning to a given index.
+
+
+There are also several methods for getting references (described below).
+
 Structured types
 ================
 
@@ -233,8 +258,8 @@ by the compiler. The result is returned as a NumPy array of type
 
 .. code-block:: pycon
 
-    >>> x = np.array([[1, 3],[5, 7]])
-    >>> y = np.array([[2, 4],[6, 8]])
+    >>> x = np.array([[1, 3], [5, 7]])
+    >>> y = np.array([[2, 4], [6, 8]])
     >>> z = 3
     >>> result = vectorized_func(x, y, z)
 
@@ -345,21 +370,21 @@ The returned proxy object supports some of the same methods as ``py::array`` so
 that it can be used as a drop-in replacement for some existing, index-checked
 uses of ``py::array``:
 
-- ``r.ndim()`` returns the number of dimensions
+- ``.ndim()`` returns the number of dimensions
 
-- ``r.data(1, 2, ...)`` and ``r.mutable_data(1, 2, ...)``` returns a pointer to
+- ``.data(1, 2, ...)`` and ``r.mutable_data(1, 2, ...)``` returns a pointer to
   the ``const T`` or ``T`` data, respectively, at the given indices.  The
   latter is only available to proxies obtained via ``a.mutable_unchecked()``.
 
-- ``itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
+- ``.itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
 
-- ``ndim()`` returns the number of dimensions.
+- ``.ndim()`` returns the number of dimensions.
 
-- ``shape(n)`` returns the size of dimension ``n``
+- ``.shape(n)`` returns the size of dimension ``n``
 
-- ``size()`` returns the total number of elements (i.e. the product of the shapes).
+- ``.size()`` returns the total number of elements (i.e. the product of the shapes).
 
-- ``nbytes()`` returns the number of bytes used by the referenced elements
+- ``.nbytes()`` returns the number of bytes used by the referenced elements
   (i.e. ``itemsize()`` times ``size()``).
 
 .. seealso::
@@ -370,15 +395,13 @@ uses of ``py::array``:
 Ellipsis
 ========
 
-Python 3 provides a convenient ``...`` ellipsis notation that is often used to
+Python provides a convenient ``...`` ellipsis notation that is often used to
 slice multidimensional arrays. For instance, the following snippet extracts the
 middle dimensions of a tensor with the first and last index set to zero.
-In Python 2, the syntactic sugar ``...`` is not available, but the singleton
-``Ellipsis`` (of type ``ellipsis``) can still be used directly.
 
 .. code-block:: python
 
-   a = # a NumPy array
+   a = ...  # a NumPy array
    b = a[0, ..., 0]
 
 The function ``py::ellipsis()`` function can be used to perform the same
@@ -389,8 +412,6 @@ operation on the C++ side:
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
 
-.. versionchanged:: 2.6
-   ``py::ellipsis()`` is now also avaliable in Python 2.
 
 Memory view
 ===========
@@ -429,10 +450,6 @@ We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
             sizeof(uint8_t) * 8   // buffer size
         );
     })
-
-.. note::
-
-    ``memoryview::from_memory`` is not available in Python 2.
 
 .. versionchanged:: 2.6
     ``memoryview::from_memory`` added.

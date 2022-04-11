@@ -13,7 +13,7 @@ This module sets the following variables in your project:
 ``pybind11_VERSION``
   pybind11 version in format Major.Minor.Release
 ``pybind11_VERSION_TYPE``
-  pybind11 version type (dev, release)
+  pybind11 version type (``dev*`` or empty for a release)
 ``pybind11_INCLUDE_DIRS``
   Directories where pybind11 and python headers are located.
 ``pybind11_INCLUDE_DIR``
@@ -51,8 +51,6 @@ complex applications, and they are available in all modes:
   Python headers too.
 ``pybind11::python_link_helper``
   Just the "linking" part of ``pybind11:module``, for CMake < 3.15.
-``pybind11::python2_no_register``
-  Quiets the warning/error when mixing C++14+ and Python 2, also included in ``pybind11::module``.
 ``pybind11::thin_lto``
   An alternative to ``INTERPROCEDURAL_OPTIMIZATION``.
 ``pybind11::lto``
@@ -88,7 +86,7 @@ you can either use the basic targets, or use the FindPython tools:
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
                                   CXX_VISIBILITY_PRESET ON
-                                  VISIBLITY_INLINES_HIDDEN ON)
+                                  VISIBILITY_INLINES_HIDDEN ON)
 
 If you build targets yourself, you may be interested in stripping the output
 for reduced size; this is the one other feature that the helper function gives you.
@@ -139,7 +137,7 @@ This module defines the following commands to assist with creating Python module
 
   pybind11_add_module(<target>
     [STATIC|SHARED|MODULE]
-    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOBAI]
+    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOABI]
     <files>...
     )
 
@@ -147,7 +145,7 @@ Add a module and setup all helpers. You can select the type of the library; the
 default is ``MODULE``. There are several options:
 
 ``OPT_SIZE``
-  Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``RelSize``.
+  Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``MinSizeRel``.
 ``THIN_LTO``
   Use thin TLO instead of regular if there's a choice (pybind11's selection
   is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
@@ -195,13 +193,14 @@ Using ``find_package`` with version info is not recommended except for release v
 .. code-block:: cmake
 
   find_package(pybind11 CONFIG)
-  find_package(pybind11 2.0 EXACT CONFIG REQUIRED)
+  find_package(pybind11 2.9 EXACT CONFIG REQUIRED)
 
 #]=============================================================================]
 @PACKAGE_INIT@
 
 # Location of pybind11/pybind11.h
-set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
+# This will be relative unless explicitly set as absolute
+set(pybind11_INCLUDE_DIR "@pybind11_INCLUDEDIR@")
 
 set(pybind11_LIBRARY "")
 set(pybind11_DEFINITIONS USING_pybind11)
@@ -227,6 +226,6 @@ include("${CMAKE_CURRENT_LIST_DIR}/pybind11Common.cmake")
 if(NOT pybind11_FIND_QUIETLY)
   message(
     STATUS
-      "Found pybind11: ${pybind11_INCLUDE_DIR} (found version \"${pybind11_VERSION}\" ${pybind11_VERSION_TYPE})"
+      "Found pybind11: ${pybind11_INCLUDE_DIR} (found version \"${pybind11_VERSION}${pybind11_VERSION_TYPE}\")"
   )
 endif()

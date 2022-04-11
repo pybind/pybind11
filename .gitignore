@@ -41,3 +41,5 @@ pybind11Targets.cmake
 /.vscode
 /pybind11/include/*
 /pybind11/share/*
+/docs/_build/*
+.ipynb_checkpoints/

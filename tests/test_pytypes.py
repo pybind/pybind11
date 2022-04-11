@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
-from __future__ import division
-import pytest
+import contextlib
 import sys
 
-import env  # noqa: F401
+import pytest
 
-from pybind11_tests import pytypes as m
+import env
 from pybind11_tests import debug_enabled
+from pybind11_tests import pytypes as m
+
+
+def test_bool(doc):
+    assert doc(m.get_bool) == "get_bool() -> bool"
 
 
 def test_int(doc):
@@ -60,7 +63,20 @@ def test_iterable_t_overloads():
         m.accept_iterable_t(list_of_bytes_and_then_some)
 
 
+def test_float(doc):
+    assert doc(m.get_float) == "get_float() -> float"
+
+
 def test_list(capture, doc):
+    assert m.list_no_args() == []
+    assert m.list_ssize_t() == []
+    assert m.list_size_t() == []
+    lins = [1, 2]
+    m.list_insert_ssize_t(lins)
+    assert lins == [1, 83, 2]
+    m.list_insert_size_t(lins)
+    assert lins == [1, 83, 2, 57]
+
     with capture:
         lst = m.get_list()
         assert lst == ["inserted-0", "overwritten", "inserted-2"]
@@ -104,7 +120,7 @@ def test_set(capture, doc):
     """
     )
 
-    assert not m.set_contains(set([]), 42)
+    assert not m.set_contains(set(), 42)
     assert m.set_contains({42}, 42)
     assert m.set_contains({"foo"}, "foo")
 
@@ -137,13 +153,30 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
+def test_tuple():
+    assert m.tuple_no_args() == ()
+    assert m.tuple_ssize_t() == ()
+    assert m.tuple_size_t() == ()
+    assert m.get_tuple() == (42, None, "spam")
+
+
+def test_simple_namespace():
+    ns = m.get_simple_namespace()
+    assert ns.attr == 42
+    assert ns.x == "foo"
+    assert ns.right == 2
+    assert not hasattr(ns, "wrong")
+
+
 def test_str(doc):
+    assert m.str_from_char_ssize_t().encode().decode() == "red"
+    assert m.str_from_char_size_t().encode().decode() == "blue"
     assert m.str_from_string().encode().decode() == "baz"
     assert m.str_from_bytes().encode().decode() == "boo"
 
     assert doc(m.str_from_bytes) == "str_from_bytes() -> str"
 
-    class A(object):
+    class A:
         def __str__(self):
             return "this is a str"
 
@@ -161,28 +194,28 @@ def test_str(doc):
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.str_from_object(malformed_utf8) is malformed_utf8
-    elif env.PY2:
-        with pytest.raises(UnicodeDecodeError):
-            m.str_from_object(malformed_utf8)
     else:
         assert m.str_from_object(malformed_utf8) == "b'\\x80'"
-    if env.PY2:
-        with pytest.raises(UnicodeDecodeError):
-            m.str_from_handle(malformed_utf8)
-    else:
-        assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
+    assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
+
+    assert m.str_from_string_from_str("this is a str") == "this is a str"
+    ucs_surrogates_str = "\udcc3"
+    with pytest.raises(UnicodeEncodeError):
+        m.str_from_string_from_str(ucs_surrogates_str)
 
 
 def test_bytes(doc):
+    assert m.bytes_from_char_ssize_t().decode() == "green"
+    assert m.bytes_from_char_size_t().decode() == "purple"
     assert m.bytes_from_string().decode() == "foo"
     assert m.bytes_from_str().decode() == "bar"
 
-    assert doc(m.bytes_from_str) == "bytes_from_str() -> {}".format(
-        "str" if env.PY2 else "bytes"
-    )
+    assert doc(m.bytes_from_str) == "bytes_from_str() -> bytes"
 
 
 def test_bytearray(doc):
+    assert m.bytearray_from_char_ssize_t().decode() == "$%"
+    assert m.bytearray_from_char_size_t().decode() == "@$!"
     assert m.bytearray_from_string().decode() == "foo"
     assert m.bytearray_size() == len("foo")
 
@@ -269,11 +302,6 @@ def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
-    if env.PY2:
-        # Note that bytes.__name__ == 'str' in Python 2.
-        # pybind11::str is unicode even under Python 2.
-        expected["bytes"] = bytes()
-        expected["str"] = unicode()  # noqa: F821
     assert m.default_constructors() == expected
 
     data = {
@@ -291,11 +319,6 @@ def test_constructors():
     }
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
-    if env.PY2:  # Similar to the above. See comments above.
-        inputs["bytes"] = b"41"
-        inputs["str"] = 42
-        expected["bytes"] = b"41"
-        expected["str"] = u"42"
 
     assert m.converting_constructors(inputs) == expected
     assert m.cast_functions(inputs) == expected
@@ -322,8 +345,8 @@ def test_non_converting_constructors():
         for move in [True, False]:
             with pytest.raises(TypeError) as excinfo:
                 m.nonconverting_constructor(t, v, move)
-            expected_error = "Object of type '{}' is not an instance of '{}'".format(
-                type(v).__name__, t
+            expected_error = (
+                f"Object of type '{type(v).__name__}' is not an instance of '{t}'"
             )
             assert str(excinfo.value) == expected_error
 
@@ -331,46 +354,39 @@ def test_non_converting_constructors():
 def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
-    assert cvt(u"Str") == u"Str"
-    assert cvt(b"Bytes") == u"Bytes" if env.PY2 else "b'Bytes'"
-    assert cvt(None) == u"None"
-    assert cvt(False) == u"False"
-    assert cvt(True) == u"True"
-    assert cvt(42) == u"42"
-    assert cvt(2 ** 65) == u"36893488147419103232"
-    assert cvt(-1.50) == u"-1.5"
-    assert cvt(()) == u"()"
-    assert cvt((18,)) == u"(18,)"
-    assert cvt([]) == u"[]"
-    assert cvt([28]) == u"[28]"
-    assert cvt({}) == u"{}"
-    assert cvt({3: 4}) == u"{3: 4}"
-    assert cvt(set()) == u"set([])" if env.PY2 else "set()"
-    assert cvt({3, 3}) == u"set([3])" if env.PY2 else "{3}"
+    assert cvt("Str") == "Str"
+    assert cvt(b"Bytes") == "b'Bytes'"
+    assert cvt(None) == "None"
+    assert cvt(False) == "False"
+    assert cvt(True) == "True"
+    assert cvt(42) == "42"
+    assert cvt(2**65) == "36893488147419103232"
+    assert cvt(-1.50) == "-1.5"
+    assert cvt(()) == "()"
+    assert cvt((18,)) == "(18,)"
+    assert cvt([]) == "[]"
+    assert cvt([28]) == "[28]"
+    assert cvt({}) == "{}"
+    assert cvt({3: 4}) == "{3: 4}"
+    assert cvt(set()) == "set()"
+    assert cvt({3, 3}) == "{3}"
 
-    valid_orig = u"Ǳ"
+    valid_orig = "Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
     valid_cvt = cvt(valid_utf8)
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert valid_cvt is valid_utf8
     else:
-        assert type(valid_cvt) is unicode if env.PY2 else str  # noqa: F821
-        if env.PY2:
-            assert valid_cvt == valid_orig
-        else:
-            assert valid_cvt == "b'\\xc7\\xb1'"
+        assert type(valid_cvt) is str
+        assert valid_cvt == "b'\\xc7\\xb1'"
 
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert cvt(malformed_utf8) is malformed_utf8
     else:
-        if env.PY2:
-            with pytest.raises(UnicodeDecodeError):
-                cvt(malformed_utf8)
-        else:
-            malformed_cvt = cvt(malformed_utf8)
-            assert type(malformed_cvt) is str
-            assert malformed_cvt == "b'\\x80'"
+        malformed_cvt = cvt(malformed_utf8)
+        assert type(malformed_cvt) is str
+        assert malformed_cvt == "b'\\x80'"
 
 
 def test_implicit_casting():
@@ -411,22 +427,22 @@ def test_print(capture):
 
     with pytest.raises(RuntimeError) as excinfo:
         m.print_failure()
-    assert str(excinfo.value) == "make_tuple(): unable to convert " + (
-        "argument of type 'UnregisteredType' to Python object"
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'1' of type 'UnregisteredType' to Python object"
         if debug_enabled
-        else "arguments to Python object (compile in debug mode for details)"
+        else "to Python object (compile in debug mode for details)"
     )
 
 
 def test_hash():
-    class Hashable(object):
+    class Hashable:
         def __init__(self, value):
             self.value = value
 
         def __hash__(self):
             return self.value
 
-    class Unhashable(object):
+    class Unhashable:
         __hash__ = None
 
     assert m.hash_function(Hashable(42)) == 42
@@ -466,7 +482,8 @@ def test_issue2361():
     assert m.issue2361_str_implicit_copy_none() == "None"
     with pytest.raises(TypeError) as excinfo:
         assert m.issue2361_dict_implicit_copy_none()
-    assert "'NoneType' object is not iterable" in str(excinfo.value)
+    assert "NoneType" in str(excinfo.value)
+    assert "iterable" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -483,12 +500,7 @@ def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == fmt
-    if isinstance(expected_view, bytes) or not env.PY2:
-        view_as_list = list(view)
-    else:
-        # Using max to pick non-zero byte (big-endian vs little-endian).
-        view_as_list = [max([ord(c) for c in s]) for s in view]
-    assert view_as_list == list(expected_view)
+    assert list(view) == list(expected_view)
 
 
 @pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
@@ -512,12 +524,7 @@ def test_memoryview_from_buffer_empty_shape():
     view = m.test_memoryview_from_buffer_empty_shape()
     assert isinstance(view, memoryview)
     assert view.format == "B"
-    if env.PY2:
-        # Python 2 behavior is weird, but Python 3 (the future) is fine.
-        # PyPy3 has <memoryview, while CPython 2 has <memory
-        assert bytes(view).startswith(b"<memory")
-    else:
-        assert bytes(view) == b""
+    assert bytes(view) == b""
 
 
 def test_test_memoryview_from_buffer_invalid_strides():
@@ -526,14 +533,10 @@ def test_test_memoryview_from_buffer_invalid_strides():
 
 
 def test_test_memoryview_from_buffer_nullptr():
-    if env.PY2:
+    with pytest.raises(ValueError):
         m.test_memoryview_from_buffer_nullptr()
-    else:
-        with pytest.raises(ValueError):
-            m.test_memoryview_from_buffer_nullptr()
 
 
-@pytest.mark.skipif("env.PY2")
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)
@@ -553,9 +556,9 @@ def test_builtin_functions():
 
 def test_isinstance_string_types():
     assert m.isinstance_pybind11_bytes(b"")
-    assert not m.isinstance_pybind11_bytes(u"")
+    assert not m.isinstance_pybind11_bytes("")
 
-    assert m.isinstance_pybind11_str(u"")
+    assert m.isinstance_pybind11_str("")
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.isinstance_pybind11_str(b"")
     else:
@@ -565,24 +568,21 @@ def test_isinstance_string_types():
 def test_pass_bytes_or_unicode_to_string_types():
     assert m.pass_to_pybind11_bytes(b"Bytes") == 5
     with pytest.raises(TypeError):
-        m.pass_to_pybind11_bytes(u"Str")
+        m.pass_to_pybind11_bytes("Str")
 
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE") or env.PY2:
+    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.pass_to_pybind11_str(b"Bytes") == 5
     else:
         with pytest.raises(TypeError):
             m.pass_to_pybind11_str(b"Bytes")
-    assert m.pass_to_pybind11_str(u"Str") == 3
+    assert m.pass_to_pybind11_str("Str") == 3
 
     assert m.pass_to_std_string(b"Bytes") == 5
-    assert m.pass_to_std_string(u"Str") == 3
+    assert m.pass_to_std_string("Str") == 3
 
     malformed_utf8 = b"\x80"
     if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
         assert m.pass_to_pybind11_str(malformed_utf8) == 1
-    elif env.PY2:
-        with pytest.raises(UnicodeDecodeError):
-            m.pass_to_pybind11_str(malformed_utf8)
     else:
         with pytest.raises(TypeError):
             m.pass_to_pybind11_str(malformed_utf8)
@@ -599,24 +599,82 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     from weakref import getweakrefcount
 
     # Apparently, you cannot weakly reference an object()
-    class WeaklyReferenced(object):
+    class WeaklyReferenced:
         pass
 
+    callback_called = False
+
     def callback(wr):
-        # No `nonlocal` in Python 2
-        callback.called = True
+        nonlocal callback_called
+        callback_called = True
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    wr = create_weakref(obj)  # noqa: F841
+    wr = create_weakref(obj)
     assert getweakrefcount(obj) == 1
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    callback.called = False
     wr = create_weakref_with_callback(obj, callback)  # noqa: F841
     assert getweakrefcount(obj) == 1
-    assert not callback.called
+    assert not callback_called
     del obj
     pytest.gc_collect()
-    assert callback.called
+    assert callback_called
+
+
+@pytest.mark.parametrize(
+    "create_weakref, has_callback",
+    [
+        (m.weakref_from_handle, False),
+        (m.weakref_from_object, False),
+        (m.weakref_from_handle_and_function, True),
+        (m.weakref_from_object_and_function, True),
+    ],
+)
+def test_weakref_err(create_weakref, has_callback):
+    class C:
+        __slots__ = []
+
+    def callback(_):
+        pass
+
+    ob = C()
+    # Should raise TypeError on CPython
+    with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
+        if has_callback:
+            _ = create_weakref(ob, callback)
+        else:
+            _ = create_weakref(ob)
+
+
+def test_cpp_iterators():
+    assert m.tuple_iterator() == 12
+    assert m.dict_iterator() == 305 + 711
+    assert m.passed_iterator(iter((-7, 3))) == -4
+
+
+def test_implementation_details():
+    lst = [39, 43, 92, 49, 22, 29, 93, 98, 26, 57, 8]
+    tup = tuple(lst)
+    assert m.sequence_item_get_ssize_t(lst) == 43
+    assert m.sequence_item_set_ssize_t(lst) is None
+    assert lst[1] == "peppa"
+    assert m.sequence_item_get_size_t(lst) == 92
+    assert m.sequence_item_set_size_t(lst) is None
+    assert lst[2] == "george"
+    assert m.list_item_get_ssize_t(lst) == 49
+    assert m.list_item_set_ssize_t(lst) is None
+    assert lst[3] == "rebecca"
+    assert m.list_item_get_size_t(lst) == 22
+    assert m.list_item_set_size_t(lst) is None
+    assert lst[4] == "richard"
+    assert m.tuple_item_get_ssize_t(tup) == 29
+    assert m.tuple_item_set_ssize_t() == ("emely", "edmond")
+    assert m.tuple_item_get_size_t(tup) == 93
+    assert m.tuple_item_set_size_t() == ("candy", "cat")
+
+
+def test_external_float_():
+    r1 = m.square_float_(2.0)
+    assert r1 == 4.0

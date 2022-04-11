@@ -8,7 +8,21 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
-.. _upgrade-guide-2.6:
+.. _upgrade-guide-2.9:
+
+v2.9
+====
+
+* Any usage of the recently added ``py::make_simple_namespace`` should be
+  converted to using ``py::module_::import("types").attr("SimpleNamespace")``
+  instead.
+
+* The use of ``_`` in custom type casters can now be replaced with the more
+  readable ``const_name`` instead. The old ``_`` shortcut has been retained
+  unless it is being used as a macro (like for gettext).
+
+
+.. _upgrade-guide-2.7:
 
 v2.7
 ====
@@ -34,6 +48,7 @@ to be common:
   careful review and custom fixes.
 
 
+.. _upgrade-guide-2.6:
 
 v2.6
 ====
@@ -281,7 +296,7 @@ Within pybind11's CMake build system, ``pybind11_add_module`` has always been
 setting the ``-fvisibility=hidden`` flag in release mode. From now on, it's
 being applied unconditionally, even in debug mode and it can no longer be opted
 out of with the ``NO_EXTRAS`` option. The ``pybind11::module`` target now also
-adds this flag to it's interface. The ``pybind11::embed`` target is unchanged.
+adds this flag to its interface. The ``pybind11::embed`` target is unchanged.
 
 The most significant change here is for the ``pybind11::module`` target. If you
 were previously relying on default visibility, i.e. if your Python module was
@@ -509,7 +524,7 @@ include a declaration of the form:
 
     PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 
-Continuing to do so won’t cause an error or even a deprecation warning,
+Continuing to do so won't cause an error or even a deprecation warning,
 but it's completely redundant.
 
 

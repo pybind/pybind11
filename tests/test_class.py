@@ -1,14 +1,11 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
-
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
-from pybind11_tests import UserType, ConstructorStats
 
 
 def test_repr():
-    # In Python 3.3+, repr() accesses __qualname__
     assert "pybind11_type" in repr(type(UserType))
     assert "UserType" in repr(UserType)
 
@@ -21,6 +18,14 @@ def test_instance(msg):
     instance = m.NoConstructor.new_instance()
 
     cstats = ConstructorStats.get(m.NoConstructor)
+    assert cstats.alive() == 1
+    del instance
+    assert cstats.alive() == 0
+
+
+def test_instance_new(msg):
+    instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
+    cstats = ConstructorStats.get(m.NoConstructorNew)
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
@@ -96,8 +101,8 @@ def test_docstrings(doc):
 
 
 def test_qualname(doc):
-    """Tests that a properly qualified name is set in __qualname__ (even in pre-3.3, where we
-    backport the attribute) and that generated docstrings properly use it and the module name"""
+    """Tests that a properly qualified name is set in __qualname__ and that
+    generated docstrings properly use it and the module name"""
     assert m.NestBase.__qualname__ == "NestBase"
     assert m.NestBase.Nested.__qualname__ == "NestBase.Nested"
 
@@ -123,13 +128,13 @@ def test_qualname(doc):
         doc(m.NestBase.Nested.fn)
         == """
         fn(self: m.class_.NestBase.Nested, arg0: int, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         doc(m.NestBase.Nested.fa)
         == """
         fa(self: m.class_.NestBase.Nested, a: int, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
-    """  # noqa: E501 line too long
+    """
     )
     assert m.NestBase.__module__ == "pybind11_tests.class_"
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
@@ -321,7 +326,7 @@ def test_bind_protected_functions():
 
 
 def test_brace_initialization():
-    """ Tests that simple POD classes can be constructed using C++11 brace initialization """
+    """Tests that simple POD classes can be constructed using C++11 brace initialization"""
     a = m.BraceInitialization(123, "test")
     assert a.field1 == 123
     assert a.field2 == "test"

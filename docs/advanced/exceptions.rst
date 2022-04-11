@@ -56,13 +56,15 @@ at its exception handler.
 +--------------------------------------+--------------------------------------+
 | :class:`pybind11::buffer_error`      | ``BufferError``                      |
 +--------------------------------------+--------------------------------------+
-| :class:`pybind11::import_error`      | ``import_error``                     |
+| :class:`pybind11::import_error`      | ``ImportError``                      |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::attribute_error`   | ``AttributeError``                   |
 +--------------------------------------+--------------------------------------+
 | Any other exception                  | ``RuntimeError``                     |
 +--------------------------------------+--------------------------------------+
 
 Exception translation is not bidirectional. That is, *catching* the C++
-exceptions defined above above will not trap exceptions that originate from
+exceptions defined above will not trap exceptions that originate from
 Python. For that, catch :class:`pybind11::error_already_set`. See :ref:`below
 <handling_python_exceptions_cpp>` for further details.
 
@@ -75,9 +77,10 @@ Registering custom translators
 
 If the default exception conversion policy described above is insufficient,
 pybind11 also provides support for registering custom exception translators.
-To register a simple exception conversion that translates a C++ exception into
-a new Python exception using the C++ exception's ``what()`` method, a helper
-function is available:
+Similar to pybind11 classes, exception translators can be local to the module
+they are defined in or global to the entire python session.  To register a simple
+exception conversion that translates a C++ exception into a new Python exception
+using the C++ exception's ``what()`` method, a helper function is available:
 
 .. code-block:: cpp
 
@@ -87,29 +90,39 @@ This call creates a Python exception class with the name ``PyExp`` in the given
 module and automatically converts any encountered exceptions of type ``CppExp``
 into Python exceptions of type ``PyExp``.
 
+A matching function is available for registering a local exception translator:
+
+.. code-block:: cpp
+
+    py::register_local_exception<CppExp>(module, "PyExp");
+
+
 It is possible to specify base class for the exception using the third
-parameter, a `handle`:
+parameter, a ``handle``:
 
 .. code-block:: cpp
 
     py::register_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
+    py::register_local_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
 
-Then `PyExp` can be caught both as `PyExp` and `RuntimeError`.
+Then ``PyExp`` can be caught both as ``PyExp`` and ``RuntimeError``.
 
 The class objects of the built-in Python exceptions are listed in the Python
 documentation on `Standard Exceptions <https://docs.python.org/3/c-api/exceptions.html#standard-exceptions>`_.
-The default base class is `PyExc_Exception`.
+The default base class is ``PyExc_Exception``.
 
-When more advanced exception translation is needed, the function
-``py::register_exception_translator(translator)`` can be used to register
+When more advanced exception translation is needed, the functions
+``py::register_exception_translator(translator)`` and
+``py::register_local_exception_translator(translator)`` can be used to register
 functions that can translate arbitrary exception types (and which may include
-additional logic to do so).  The function takes a stateless callable (e.g.  a
+additional logic to do so).  The functions takes a stateless callable (e.g. a
 function pointer or a lambda function without captured variables) with the call
 signature ``void(std::exception_ptr)``.
 
 When a C++ exception is thrown, the registered exception translators are tried
 in reverse order of registration (i.e. the last registered translator gets the
-first shot at handling the exception).
+first shot at handling the exception). All local translators will be tried
+before a global translator is tried.
 
 Inside the translator, ``std::rethrow_exception`` should be used within
 a try block to re-throw the exception.  One or more catch clauses to catch
@@ -163,6 +176,57 @@ section.
     Exceptions that you do not plan to handle should simply not be caught, or
     may be explicitly (re-)thrown to delegate it to the other,
     previously-declared existing exception translators.
+
+    Note that ``libc++`` and ``libstdc++`` `behave differently <https://stackoverflow.com/questions/19496643/using-clang-fvisibility-hidden-and-typeinfo-and-type-erasure/28827430>`_
+    with ``-fvisibility=hidden``. Therefore exceptions that are used across ABI boundaries need to be explicitly exported, as exercised in ``tests/test_exceptions.h``.
+    See also: "Problems with C++ exceptions" under `GCC Wiki <https://gcc.gnu.org/wiki/Visibility>`_.
+
+
+Local vs Global Exception Translators
+=====================================
+
+When a global exception translator is registered, it will be applied across all
+modules in the reverse order of registration. This can create behavior where the
+order of module import influences how exceptions are translated.
+
+If module1 has the following translator:
+
+.. code-block:: cpp
+
+      py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        } catch (const std::invalid_argument &e) {
+            PyErr_SetString("module1 handled this")
+        }
+      }
+
+and module2 has the following similar translator:
+
+.. code-block:: cpp
+
+      py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        } catch (const std::invalid_argument &e) {
+            PyErr_SetString("module2 handled this")
+        }
+      }
+
+then which translator handles the invalid_argument will be determined by the
+order that module1 and module2 are imported. Since exception translators are
+applied in the reverse order of registration, which ever module was imported
+last will "win" and that translator will be applied.
+
+If there are multiple pybind11 modules that share exception types (either
+standard built-in or custom) loaded into a single python instance and
+consistent error handling behavior is needed, then local translators should be
+used.
+
+Changing the previous example to use ``register_local_exception_translator``
+would mean that when invalid_argument is thrown in the module2 code, the
+module2 translator will always handle it, while in module1, the module1
+translator will do the same.
 
 .. _handling_python_exceptions_cpp:
 
@@ -260,6 +324,34 @@ Alternately, to ignore the error, call `PyErr_Clear
 
 Any Python error must be thrown or cleared, or Python/pybind11 will be left in
 an invalid state.
+
+Chaining exceptions ('raise from')
+==================================
+
+Python has a mechanism for indicating that exceptions were caused by other
+exceptions:
+
+.. code-block:: py
+
+    try:
+        print(1 / 0)
+    except Exception as exc:
+        raise RuntimeError("could not divide by zero") from exc
+
+To do a similar thing in pybind11, you can use the ``py::raise_from`` function. It
+sets the current python error indicator, so to continue propagating the exception
+you should ``throw py::error_already_set()``.
+
+.. code-block:: cpp
+
+    try {
+        py::eval("print(1 / 0"));
+    } catch (py::error_already_set &e) {
+        py::raise_from(e, PyExc_RuntimeError, "could not divide by zero");
+        throw py::error_already_set();
+    }
+
+.. versionadded:: 2.8
 
 .. _unraisable_exceptions:
 

@@ -18,6 +18,4 @@ ALIASES               += "endrst=\endverbatim"
 QUIET                  = YES
 WARNINGS               = YES
 WARN_IF_UNDOCUMENTED   = NO
-PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
-                         PY_MAJOR_VERSION=3 \
-                         PYBIND11_NOINLINE
+PREDEFINED             = PYBIND11_NOINLINE
