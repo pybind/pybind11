@@ -34,7 +34,8 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 
-template <typename IntrinsicType> type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
+template <typename IntrinsicType>
+type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
 
 // MSVC 2015 generates an internal compiler error for the common code (in the #else branch below).
 // MSVC 2017 in C++14 mode produces incorrect code, leading to a tests/test_stl runtime failure.
@@ -45,12 +46,12 @@ template <typename IntrinsicType, typename SFINAE = void>
 struct make_caster_impl;
 
 template <typename IntrinsicType>
-struct make_caster_impl<IntrinsicType, enable_if_t< std::is_arithmetic<IntrinsicType>::value>>
-: type_caster<IntrinsicType> {};
+struct make_caster_impl<IntrinsicType, enable_if_t<std::is_arithmetic<IntrinsicType>::value>>
+    : type_caster<IntrinsicType> {};
 
 template <typename IntrinsicType>
 struct make_caster_impl<IntrinsicType, enable_if_t<!std::is_arithmetic<IntrinsicType>::value>>
-: decltype(pybind11_select_caster(static_cast<IntrinsicType *>(nullptr))) {};
+    : decltype(pybind11_select_caster(static_cast<IntrinsicType *>(nullptr))) {};
 
 template <typename type>
 using make_caster = make_caster_impl<intrinsic_t<type>>;
@@ -1034,7 +1035,7 @@ struct return_value_policy_override<
 
 // Basic python -> C++ casting; throws if casting fails
 template <typename T, typename Caster>
-Caster &load_type(Caster& conv, const handle& handle) {
+Caster &load_type(Caster &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error("Unable to cast Python instance to C++ type (#define "
@@ -1049,7 +1050,7 @@ Caster &load_type(Caster& conv, const handle& handle) {
 }
 
 template <typename T, typename SFINAE>
-type_caster<T, SFINAE>& load_type(type_caster<T, SFINAE>& conv, const handle& handle) {
+type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
     return load_type<T, type_caster<T, SFINAE>>(conv, handle);
 }
 
