@@ -3,11 +3,14 @@
 #include "pybind11_tests.h"
 
 namespace have_a_ns {
-struct type_mock {};
 struct mock_caster {
     static int num() { return 101; }
 };
-mock_caster pybind11_select_caster(type_mock *);
+struct type_mock {
+  friend mock_caster pybind11_select_caster(type_mock *);
+};
+
+
 } // namespace have_a_ns
 
 // namespace global {
@@ -37,8 +40,11 @@ unnamed_ns_mock_caster pybind11_select_caster(unnamed_ns_type_mock *) {
 
 namespace mrc_ns { // minimal real caster
 
+struct minimal_real_caster;
+
 struct type_mrc {
     int value = -9999;
+    friend minimal_real_caster pybind11_select_caster(type_mrc *);
 };
 
 struct minimal_real_caster {
@@ -66,7 +72,6 @@ struct minimal_real_caster {
     }
 };
 
-minimal_real_caster pybind11_select_caster(type_mrc *);
 
 } // namespace mrc_ns
 
