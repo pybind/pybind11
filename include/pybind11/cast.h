@@ -1155,8 +1155,8 @@ enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&,
 // static_assert, even though if it's in dead code, so we provide a "trampoline" to pybind11::cast
 // that only does anything in cases where pybind11::cast is valid.
 template <typename T>
-enable_if_t<!std::is_same<void, intrinsic_t<T>>::value
-                && !cast_is_temporary_value_reference<T>::value,
+enable_if_t<detail::none_of<std::is_same<void, intrinsic_t<T>>, 
+                            cast_is_temporary_value_reference<T>>::value,
             T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
