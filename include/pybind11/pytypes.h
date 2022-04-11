@@ -38,11 +38,6 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
 bool isinstance_generic(handle obj, const std::type_info &tp);
 
-// Indicates that type is generic and and does not have a specialized
-// `type_caster<>` specialization. Defined in `cast.h`.
-template <typename T, typename SFINAE = void>
-struct is_generic_type;
-
 // Accessor forward declarations
 template <typename Policy>
 class accessor;
@@ -481,7 +476,7 @@ inline void raise_from(error_already_set &err, PyObject *type, const char *messa
 /** \ingroup python_builtins
     \rst
     Return true if ``obj`` is an instance of ``T``. Type ``T`` must be a subclass of
-    `object` or a class which was exposed to Python as ``py::class_<T>`` (generic).
+    `object` or a class which was exposed to Python as ``py::class_<T>``.
 \endrst */
 template <typename T, detail::enable_if_t<std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) {
@@ -490,8 +485,6 @@ bool isinstance(handle obj) {
 
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) {
-    static_assert(detail::is_generic_type<T>::value,
-                  "isisntance<T>() requires specialization for this type");
     return detail::isinstance_generic(obj, typeid(T));
 }
 
@@ -975,9 +968,6 @@ inline bool PyIterable_Check(PyObject *obj) {
 
 template <typename T>
 bool PyIterableT_Check(PyObject *obj) {
-    static_assert(is_generic_type<T>::value || is_pyobject<T>::value,
-                  "iterable_t can only be used with pyobjects and generic types "
-                  "(py::class_<T>)");
     PyObject *iter = PyObject_GetIter(obj);
     bool good = false;
     if (iter) {
