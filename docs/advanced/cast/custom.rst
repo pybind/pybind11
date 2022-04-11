@@ -105,7 +105,12 @@ There are two ways to do it:
 
   .. code-block:: cpp
 
-      inty_type_caster pybind11_select_caster(inty*);
+      struct inty_type_caster;
+
+      struct inty {
+        ...
+        friend inty_type_caster pybind11_select_caster(inty*);
+      }
 
   The argument is a *pointer* to the C++ type, the return type is the
   caster type. This function has no implementation!
