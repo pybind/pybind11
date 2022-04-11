@@ -7,9 +7,8 @@ struct mock_caster {
     static int num() { return 101; }
 };
 struct type_mock {
-  friend mock_caster pybind11_select_caster(type_mock *);
+    friend mock_caster pybind11_select_caster(type_mock *);
 };
-
 
 } // namespace have_a_ns
 
@@ -71,7 +70,6 @@ struct minimal_real_caster {
         return py::isinstance<py::str>(src);
     }
 };
-
 
 } // namespace mrc_ns
 

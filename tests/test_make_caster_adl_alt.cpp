@@ -5,7 +5,7 @@ struct mock_caster_alt {
     static int num() { return 121; }
 };
 struct type_mock {
-  friend mock_caster_alt pybind11_select_caster(type_mock *);
+    friend mock_caster_alt pybind11_select_caster(type_mock *);
 };
 
 } // namespace have_a_ns
