@@ -514,7 +514,7 @@ struct type_caster<std::basic_string_view<CharT, Traits>,
 template <typename CharT>
 struct type_caster<CharT, enable_if_t<is_std_char_type<CharT>::value>> {
     using StringType = std::basic_string<CharT>;
-    using StringCaster = type_caster<StringType>;
+    using StringCaster = make_caster<StringType>;
     StringCaster str_caster;
     bool none = false;
     CharT one_char = 0;
