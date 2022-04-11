@@ -2403,7 +2403,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_iterator(Type &value, Extra &&...extra) {
-    return make_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
@@ -2412,7 +2413,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_key_iterator(Type &value, Extra &&...extra) {
-    return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_key_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the values (`.second`) of a stl map-like container supporting
@@ -2421,7 +2423,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_value_iterator(Type &value, Extra &&...extra) {
-    return make_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_value_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 template <typename InputType, typename OutputType>
