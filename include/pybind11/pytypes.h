@@ -966,33 +966,9 @@ inline bool PyIterable_Check(PyObject *obj) {
     return false;
 }
 
+// Defer definition until we have object_api<> available.
 template <typename T>
-bool PyIterableT_Check(PyObject *obj) {
-    PyObject *iter = PyObject_GetIter(obj);
-    bool good = false;
-    if (iter) {
-        if (iter == obj) {
-            // If they are the same, then that's bad! For now, just throw a
-            // cast error.
-            Py_DECREF(iter);
-            throw cast_error("iterable_t<T> cannot be used with exhaustible iterables "
-                             "(e.g., iterators, generators).");
-        }
-        good = true;
-        // Now that we know that the iterable `obj` will not be exhausted,
-        // let's check the contained types.
-        for (handle h : handle(iter)) {
-            if (!isinstance<T>(h)) {
-                good = false;
-                break;
-            }
-        }
-        Py_DECREF(iter);
-    } else {
-        PyErr_Clear();
-    }
-    return good;
-}
+bool PyIterableT_Check(PyObject *obj);
 
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
@@ -2150,6 +2126,34 @@ PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
 
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY
+
+template <typename T>
+bool PyIterableT_Check(PyObject *obj) {
+    PyObject *iter = PyObject_GetIter(obj);
+    bool good = false;
+    if (iter) {
+        if (iter == obj) {
+            // If they are the same, then that's bad! For now, just throw a
+            // cast error.
+            Py_DECREF(iter);
+            throw cast_error("iterable_t<T> cannot be used with exhaustible iterables "
+                             "(e.g., iterators, generators).");
+        }
+        good = true;
+        // Now that we know that the iterable `obj` will not be exhausted,
+        // let's check the contained types.
+        for (handle h : handle(iter)) {
+            if (!isinstance<T>(h)) {
+                good = false;
+                break;
+            }
+        }
+        Py_DECREF(iter);
+    } else {
+        PyErr_Clear();
+    }
+    return good;
+}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
