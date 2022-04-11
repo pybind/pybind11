@@ -491,7 +491,7 @@ bool isinstance(handle obj) {
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) {
     static_assert(detail::is_generic_type<T>::value,
-                  "isisntance<T>() requires specialization for this type");
+                  "isinstance<T>() requires specialization for this type");
     return detail::isinstance_generic(obj, typeid(T));
 }
 
