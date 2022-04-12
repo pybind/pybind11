@@ -5,7 +5,7 @@ import sys
 import time
 from typing import Any, Callable, Dict, List
 
-import pybind11_ubench_holder_comparison as m  # type: ignore
+import pybind11_ubench_holder_comparison as m  # type: ignore[import]
 
 number_bucket_pc = None
 
@@ -89,8 +89,8 @@ def run(args: List[str]) -> None:
                     continue
                 if selected_holder_type != "all" and nb_label != selected_holder_type:
                     continue
-                nb1 = nb_type(data_size)  # type: ignore
-                nb2 = nb_type(data_size)  # type: ignore
+                nb1 = nb_type(data_size)  # type: ignore[misc]
+                nb2 = nb_type(data_size)  # type: ignore[misc]
 
                 def many_sum(call_repetitions: int) -> float:
                     assert int(round(nb1.sum())) == data_size
@@ -117,7 +117,7 @@ def run(args: List[str]) -> None:
                     pflush("     Sum   Add  ratS  ratA")
                     row_0 = row
                 else:
-                    for curr, prev in zip(row, row_0):
+                    for curr, prev in zip(row, row_0):  # type: ignore[unreachable]
                         if prev:
                             rat = curr / prev
                         else:

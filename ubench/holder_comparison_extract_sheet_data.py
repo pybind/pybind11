@@ -19,12 +19,12 @@ def run(args: List[str]) -> None:
 
         def show() -> Optional[List[str]]:
             if header_row:
-                if header is None:
+                if header is None:  # type: ignore[unreachable]
                     print(",".join(header_row))
                 else:
                     assert header == header_row
             if data_row is not None:
-                print(",".join(data_row))
+                print(",".join(data_row))  # type: ignore[unreachable]
                 data_row_buffer.append(data_row)
             return header_row
 
