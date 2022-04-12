@@ -232,7 +232,7 @@ void vector_modifiers(
     /// Slicing protocol
     cl.def(
         "__getitem__",
-        [](const Vector &v, slice slice) -> Vector * {
+        [](const Vector &v, const slice &slice) -> Vector * {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
 
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
@@ -253,7 +253,7 @@ void vector_modifiers(
 
     cl.def(
         "__setitem__",
-        [](Vector &v, slice slice, const Vector &value) {
+        [](Vector &v, const slice &slice, const Vector &value) {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
@@ -281,7 +281,7 @@ void vector_modifiers(
 
     cl.def(
         "__delitem__",
-        [](Vector &v, slice slice) {
+        [](Vector &v, const slice &slice) {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
 
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {

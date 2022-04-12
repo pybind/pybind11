@@ -79,7 +79,7 @@ struct set_caster {
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(forward_like<T>(value), policy, parent));
-            if (!value_ || !s.add(value_)) {
+            if (!value_ || !s.add(std::move(value_))) {
                 return handle();
             }
         }

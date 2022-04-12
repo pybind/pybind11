@@ -1911,7 +1911,8 @@ private:
         if (holder_ptr) {
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
             v_h.set_holder_constructed();
-        } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
+        } else if (PYBIND11_SILENCE_MSVC_C4127(detail::always_construct_holder<holder_type>::value)
+                   || inst->owned) {
             new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
@@ -2505,7 +2506,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_iterator(Type &value, Extra &&...extra) {
-    return make_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
@@ -2514,7 +2516,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_key_iterator(Type &value, Extra &&...extra) {
-    return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_key_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the values (`.second`) of a stl map-like container supporting
@@ -2523,7 +2526,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_value_iterator(Type &value, Extra &&...extra) {
-    return make_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_value_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 template <typename InputType, typename OutputType>

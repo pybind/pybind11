@@ -268,10 +268,7 @@ public:
     /// Copy constructor; always increases the reference count
     object(const object &o) : handle(o) { inc_ref(); }
     /// Move constructor; steals the object from ``other`` and preserves its reference count
-    object(object &&other) noexcept {
-        m_ptr = other.m_ptr;
-        other.m_ptr = nullptr;
-    }
+    object(object &&other) noexcept : handle(other) { other.m_ptr = nullptr; }
     /// Destructor; automatically calls `handle::dec_ref()`
     ~object() { dec_ref(); }
 
@@ -1519,8 +1516,8 @@ private:
 class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
-    slice(handle start, handle stop, handle step) {
-        m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
+    slice(handle start, handle stop, handle step)
+        : object(PySlice_New(start.ptr(), stop.ptr(), step.ptr()), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate slice object!");
         }
