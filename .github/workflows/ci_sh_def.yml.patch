@@ -1,5 +1,5 @@
---- ci.yml	2022-03-30 19:33:07.665309863 -0700
-+++ ci_sh_def.yml	2022-03-30 19:34:20.255283874 -0700
+--- ci.yml	2022-04-12 15:49:00.096485388 -0700
++++ ci_sh_def.yml	2022-04-12 15:49:41.587900942 -0700
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -142,16 +142,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build --config Debug -j 2
-@@ -831,7 +856,7 @@
-           - python: 3.7
-             std: 17
-             args: >
--              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
-+              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR /DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
- 
-     steps:
-     - uses: actions/checkout@v2
-@@ -897,6 +922,7 @@
+@@ -848,6 +873,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=20
@@ -159,7 +150,7 @@
  
      - name: Build C++20
        run: cmake --build build -j 2
-@@ -944,7 +970,7 @@
+@@ -895,7 +921,7 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
@@ -168,7 +159,7 @@
  
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -962,7 +988,7 @@
+@@ -913,7 +939,7 @@
        run: git clean -fdx
  
      - name: Configure C++14
@@ -177,7 +168,7 @@
  
      - name: Build C++14
        run: cmake --build build2 -j 2
-@@ -980,7 +1006,7 @@
+@@ -931,7 +957,7 @@
        run: git clean -fdx
  
      - name: Configure C++17
