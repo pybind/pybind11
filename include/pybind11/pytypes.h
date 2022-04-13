@@ -1649,11 +1649,17 @@ public:
     }
 
 private:
-    static const char *get_name_or_throw(PyObject *o) {
+    static const char * get_name_or_throw(PyObject *o) {
+        /* an exception may be in-flight, we must save it in case we create another one */
+        PyObject *type, *value, *traceback;
+        PyErr_Fetch(&type, &value, &traceback);
+
         const char *name = PyCapsule_GetName(o);
-        if (name == nullptr && PyErr_Occurred()) {
+        if ((name == nullptr) && PyErr_Occurred()) {
             throw error_already_set();
         }
+
+        PyErr_Restore(type, value, traceback);
         return name;
     }
 };
