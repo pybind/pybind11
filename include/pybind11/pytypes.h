@@ -1644,7 +1644,7 @@ public:
         if ((name == nullptr) && PyErr_Occurred()) {
             throw error_already_set();
         }
-	return name;
+        return name;
     }
 
     /// Replaces a capsule's name *without* calling the destructor on the existing one.
