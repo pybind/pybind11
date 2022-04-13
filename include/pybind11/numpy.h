@@ -615,7 +615,7 @@ public:
     /// Single character for byteorder
     char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
 
-    /// Single character for byteorder
+    /// Alignment of the data type
     int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
 
     /// Flags for the array descriptor
