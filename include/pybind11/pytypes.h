@@ -1588,12 +1588,7 @@ public:
                 }
                 pybind11_fail("Unable to get capsule context");
             }
-            const char *name = PyCapsule_GetName(o);
-            if (name == nullptr) {
-                if (PyErr_Occurred()) {
-                    throw error_already_set();
-                }
-            }
+            const char *name = get_name_or_throw(o);
             void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
@@ -1608,12 +1603,7 @@ public:
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
-            const char *name = PyCapsule_GetName(o);
-            if (name == nullptr) {
-                if (PyErr_Occurred()) {
-                    throw error_already_set();
-                }
-            }
+            const char *name = get_name_or_throw(o);
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, name));
             if (destructor == nullptr) {
                 throw error_already_set();
@@ -1650,12 +1640,7 @@ public:
     }
 
     const char *name() const {
-        const char *name = PyCapsule_GetName(m_ptr);
-        if (name == nullptr) {
-            if (PyErr_Occurred()) {
-                throw error_already_set();
-            }
-        }
+        return get_name_or_throw(m_ptr);
     }
 
     /// Replaces a capsule's name *without* calling the destructor on the existing one.
@@ -1663,6 +1648,14 @@ public:
         if (PyCapsule_SetName(m_ptr, new_name) != 0) {
             throw error_already_set();
         }
+    }
+private:
+    static const char * get_name_or_throw(PyObject *o) {
+        const char *name = PyCapsule_GetName(o);
+        if (name == nullptr && PyErr_Occurred()) {
+	    throw error_already_set();
+        }
+	return name;
     }
 };
 
