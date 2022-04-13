@@ -1639,7 +1639,13 @@ public:
         }
     }
 
-    const char *name() const { return get_name_or_throw(m_ptr); }
+    const char *name() const {
+        const char *name = PyCapsule_GetName(m_ptr);
+        if ((name == nullptr) && PyErr_Occurred()) {
+            throw error_already_set();
+        }
+	return name;
+    }
 
     /// Replaces a capsule's name *without* calling the destructor on the existing one.
     void set_name(const char *new_name) {
@@ -1656,6 +1662,10 @@ private:
 
         const char *name = PyCapsule_GetName(o);
         if ((name == nullptr) && PyErr_Occurred()) {
+            // write out inner error
+            PyErr_WriteUnraisable(o);
+            // restore error that was in flight
+            PyErr_Restore(type, value, traceback);
             throw error_already_set();
         }
 
