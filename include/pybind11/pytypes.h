@@ -1588,7 +1588,7 @@ public:
                 }
                 pybind11_fail("Unable to get capsule context");
             }
-            const char *name = get_name_or_throw(o);
+            const char *name = get_name_no_throw(o);
             void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
@@ -1603,7 +1603,7 @@ public:
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
-            const char *name = get_name_or_throw(o);
+            const char *name = get_name_no_throw(o);
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, name));
             if (destructor == nullptr) {
                 throw error_already_set();
@@ -1655,18 +1655,15 @@ public:
     }
 
 private:
-    static const char *get_name_or_throw(PyObject *o) {
+    static const char *get_name_no_throw(PyObject *o) {
         /* an exception may be in-flight, we must save it in case we create another one */
         PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
         PyErr_Fetch(&type, &value, &traceback);
 
         const char *name = PyCapsule_GetName(o);
         if ((name == nullptr) && PyErr_Occurred()) {
-            // write out inner error
+            // write out and consume error raised by call to PyCapsule_GetName
             PyErr_WriteUnraisable(o);
-            // restore error that was in flight
-            PyErr_Restore(type, value, traceback);
-            throw error_already_set();
         }
 
         PyErr_Restore(type, value, traceback);
