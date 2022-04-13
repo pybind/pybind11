@@ -1656,9 +1656,7 @@ public:
 
 private:
     static const char *get_name_no_throw(PyObject *o) {
-        /* an exception may be in-flight, we must save it in case we create another one */
-        PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
-        PyErr_Fetch(&type, &value, &traceback);
+        error_scope error_guard;
 
         const char *name = PyCapsule_GetName(o);
         if ((name == nullptr) && PyErr_Occurred()) {
@@ -1666,7 +1664,6 @@ private:
             PyErr_WriteUnraisable(o);
         }
 
-        PyErr_Restore(type, value, traceback);
         return name;
     }
 };
