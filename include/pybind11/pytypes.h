@@ -1651,7 +1651,7 @@ public:
 private:
     static const char *get_name_or_throw(PyObject *o) {
         /* an exception may be in-flight, we must save it in case we create another one */
-        PyObject *type, *value, *traceback;
+        PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
         PyErr_Fetch(&type, &value, &traceback);
 
         const char *name = PyCapsule_GetName(o);
