@@ -291,6 +291,7 @@ py::list test_dtype_ctors() {
     list.append(py::dtype(names, formats, offsets, 20));
     list.append(py::dtype(py::buffer_info((void *) 0, sizeof(unsigned int), "I", 1)));
     list.append(py::dtype(py::buffer_info((void *) 0, 0, "T{i:a:f:b:}", 1)));
+    list.append(py::dtype(py::detail::npy_api::NPY_DOUBLE_));
     return list;
 }
 
@@ -437,6 +438,34 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         py::list list;
         for (const auto &dt_name : dtype_names) {
             list.append(py::dtype(dt_name).char_());
+        }
+        return list;
+    });
+    m.def("test_dtype_num", [dtype_names]() {
+        py::list list;
+        for (const auto &dt_name : dtype_names) {
+            list.append(py::dtype(dt_name).num());
+        }
+        return list;
+    });
+    m.def("test_dtype_byteorder", [dtype_names]() {
+        py::list list;
+        for (const auto &dt_name : dtype_names) {
+            list.append(py::dtype(dt_name).byteorder());
+        }
+        return list;
+    });
+    m.def("test_dtype_alignment", [dtype_names]() {
+        py::list list;
+        for (const auto &dt_name : dtype_names) {
+            list.append(py::dtype(dt_name).alignment());
+        }
+        return list;
+    });
+    m.def("test_dtype_flags", [dtype_names]() {
+        py::list list;
+        for (const auto &dt_name : dtype_names) {
+            list.append(py::dtype(dt_name).flags());
         }
         return list;
     });

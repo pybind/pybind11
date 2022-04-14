@@ -562,6 +562,13 @@ public:
         m_ptr = from_args(std::move(args)).release().ptr();
     }
 
+    explicit dtype(int typenum)
+        : object(detail::npy_api::get().PyArray_DescrFromType_(typenum), stolen_t{}) {
+        if (m_ptr == nullptr) {
+            throw error_already_set();
+        }
+    }
+
     /// This is essentially the same as calling numpy.dtype(args) in Python.
     static dtype from_args(object args) {
         PyObject *ptr = nullptr;
@@ -595,6 +602,23 @@ public:
         // C API (``PyArray_Descr::type``).
         return detail::array_descriptor_proxy(m_ptr)->type;
     }
+
+    /// type number of dtype.
+    ssize_t num() const {
+        // Note: The signature, `dtype::num` follows the naming of NumPy's public
+        // Python API (i.e., ``dtype.num``), rather than its internal
+        // C API (``PyArray_Descr::type_num``).
+        return detail::array_descriptor_proxy(m_ptr)->type_num;
+    }
+
+    /// Single character for byteorder
+    char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
+
+    /// Alignment of the data type
+    int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
+
+    /// Flags for the array descriptor
+    char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
 
 private:
     static object _dtype_from_pep3118() {
