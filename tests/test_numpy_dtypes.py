@@ -160,6 +160,7 @@ def test_dtype(simple_dtype):
         d1,
         np.dtype("uint32"),
         d2,
+        np.dtype("d"),
     ]
 
     assert m.test_dtype_methods() == [
@@ -175,8 +176,13 @@ def test_dtype(simple_dtype):
         np.zeros(1, m.trailing_padding_dtype())
     )
 
+    expected_chars = "bhilqBHILQefdgFDG?MmO"
     assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmO")
-    assert m.test_dtype_char_() == list("bhilqBHILQefdgFDG?MmO")
+    assert m.test_dtype_char_() == list(expected_chars)
+    assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
+    assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]
+    assert m.test_dtype_alignment() == [np.dtype(ch).alignment for ch in expected_chars]
+    assert m.test_dtype_flags() == [chr(np.dtype(ch).flags) for ch in expected_chars]
 
 
 def test_recarray(simple_dtype, packed_dtype):

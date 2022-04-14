@@ -689,18 +689,16 @@ public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
 
     explicit dtype(const buffer_info &info) {
-        dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
+        dtype descr(_dtype_from_pep3118()(pybind11::str(info.format)));
         // If info.itemsize == 0, use the value calculated from the format string
         m_ptr = descr.strip_padding(info.itemsize != 0 ? info.itemsize : descr.itemsize())
                     .release()
                     .ptr();
     }
 
-    explicit dtype(const std::string &format) {
-        m_ptr = from_args(pybind11::str(format)).release().ptr();
-    }
+    explicit dtype(const std::string &format) : dtype(from_args(pybind11::str(format))) {}
 
-    explicit dtype(const char *format) : dtype(std::string(format)) {}
+    explicit dtype(const char *format) : dtype(from_args(pybind11::str(format))) {}
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
@@ -709,6 +707,13 @@ public:
         args["offsets"] = std::move(offsets);
         args["itemsize"] = pybind11::int_(itemsize);
         m_ptr = from_args(std::move(args)).release().ptr();
+    }
+
+    explicit dtype(int typenum)
+        : object(detail::npy_api::get().PyArray_DescrFromType_(typenum), stolen_t{}) {
+        if (m_ptr == nullptr) {
+            throw error_already_set();
+        }
     }
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
@@ -745,6 +750,23 @@ public:
         return detail::array_descriptor_proxy(m_ptr)->type;
     }
 
+    /// type number of dtype.
+    ssize_t num() const {
+        // Note: The signature, `dtype::num` follows the naming of NumPy's public
+        // Python API (i.e., ``dtype.num``), rather than its internal
+        // C API (``PyArray_Descr::type_num``).
+        return detail::array_descriptor_proxy(m_ptr)->type_num;
+    }
+
+    /// Single character for byteorder
+    char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
+
+    /// Alignment of the data type
+    int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
+
+    /// Flags for the array descriptor
+    char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
+
 private:
     static object _dtype_from_pep3118() {
         static PyObject *obj = module_::import("numpy.core._internal")
@@ -763,7 +785,7 @@ private:
         }
 
         struct field_descr {
-            PYBIND11_STR_TYPE name;
+            pybind11::str name;
             object format;
             pybind11::int_ offset;
         };
@@ -778,7 +800,7 @@ private:
                 continue;
             }
             field_descriptors.push_back(
-                {(PYBIND11_STR_TYPE) name, format.strip_padding(format.itemsize()), offset});
+                {(pybind11::str) name, format.strip_padding(format.itemsize()), offset});
         }
 
         std::sort(field_descriptors.begin(),
@@ -1452,7 +1474,7 @@ PYBIND11_NOINLINE void register_structured_dtype(any_container<field_descriptor>
             pybind11_fail(std::string("NumPy: unsupported field dtype: `") + field.name + "` @ "
                           + tinfo.name());
         }
-        names.append(PYBIND11_STR_TYPE(field.name));
+        names.append(pybind11::str(field.name));
         formats.append(field.descr);
         offsets.append(pybind11::int_(field.offset));
     }

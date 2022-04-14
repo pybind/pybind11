@@ -159,11 +159,31 @@ TEST_SUBMODULE(pytypes, m) {
         return py::capsule([]() { py::print("destructing capsule"); });
     });
 
+    m.def("return_renamed_capsule_with_destructor", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule([]() { py::print("destructing capsule"); });
+        static const char *capsule_name = "test_name1";
+        py::print("renaming capsule");
+        cap.set_name(capsule_name);
+        return cap;
+    });
+
     m.def("return_capsule_with_destructor_2", []() {
         py::print("creating capsule");
         return py::capsule((void *) 1234, [](void *ptr) {
             py::print("destructing capsule: {}"_s.format((size_t) ptr));
         });
+    });
+
+    m.def("return_renamed_capsule_with_destructor_2", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule((void *) 1234, [](void *ptr) {
+            py::print("destructing capsule: {}"_s.format((size_t) ptr));
+        });
+        static const char *capsule_name = "test_name2";
+        py::print("renaming capsule");
+        cap.set_name(capsule_name);
+        return cap;
     });
 
     m.def("return_capsule_with_name_and_destructor", []() {
