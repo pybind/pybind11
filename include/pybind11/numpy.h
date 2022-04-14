@@ -562,7 +562,8 @@ public:
         m_ptr = from_args(std::move(args)).release().ptr();
     }
 
-    explicit dtype(int typenum) : object(detail::npy_api::get().PyArray_DescrFromType_(typenum), stolen_t{}){
+    explicit dtype(int typenum)
+        : object(detail::npy_api::get().PyArray_DescrFromType_(typenum), stolen_t{}) {
         if (m_ptr == nullptr) {
             throw error_already_set();
         }
