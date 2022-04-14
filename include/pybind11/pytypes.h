@@ -1588,7 +1588,7 @@ public:
                 }
                 pybind11_fail("Unable to get capsule context");
             }
-            const char *name = get_name_no_throw(o);
+            const char *name = get_name_in_error_scope(o);
             void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
@@ -1603,7 +1603,7 @@ public:
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
-            const char *name = get_name_no_throw(o);
+            const char *name = get_name_in_error_scope(o);
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, name));
             if (destructor == nullptr) {
                 throw error_already_set();
@@ -1655,7 +1655,7 @@ public:
     }
 
 private:
-    static const char *get_name_no_throw(PyObject *o) {
+    static const char *get_name_in_error_scope(PyObject *o) {
         error_scope error_guard;
 
         const char *name = PyCapsule_GetName(o);
