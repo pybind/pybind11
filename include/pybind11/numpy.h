@@ -549,7 +549,7 @@ public:
 
     explicit dtype(const std::string &format) : dtype(from_args(pybind11::str(format))) {}
 
-    explicit dtype(const char *format) : dtype(std::string(format)) {}
+    explicit dtype(const char *format) : dtype(from_args(pybind11::str(format))) {}
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
