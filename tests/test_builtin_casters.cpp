@@ -11,12 +11,14 @@
 
 #include "pybind11_tests.h"
 
+#include <utility>
+
 struct ConstRefCasted {
     int tag;
 };
 
 struct StringAttr {
-    StringAttr(std::string v) : value(v) {}
+    explicit StringAttr(std::string v) : value(std::move(v)) {}
     std::string value;
 };
 
@@ -396,10 +398,11 @@ TEST_SUBMODULE(builtin_casters, m) {
         py::return_value_policy::return_as_bytes);
     py::class_<StringAttr>(m, "StringAttr")
         .def(py::init<std::string>())
-        .def_property("value",
-                      py::cpp_function([](StringAttr &self) { return self.value; },
-                                       py::return_value_policy::return_as_bytes),
-                      py::cpp_function([](StringAttr &self, std::string v) { self.value = v; }));
+        .def_property(
+            "value",
+            py::cpp_function([](StringAttr &self) { return self.value; },
+                             py::return_value_policy::return_as_bytes),
+            py::cpp_function([](StringAttr &self, std::string v) { self.value = std::move(v); }));
 #ifdef PYBIND11_HAS_STRING_VIEW
     m.def(
         "invalid_utf8_string_view_as_bytes",
