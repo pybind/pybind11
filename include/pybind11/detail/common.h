@@ -463,15 +463,15 @@ enum class return_value_policy : uint8_t {
 
     /** With this policy, C++ string types are converted to Python bytes,
         instead of str. This is most useful when a C++ function returns a
-        container-like type with nested C++ string types, and py::bytes cannot
+        container-like type with nested C++ string types, and `py::bytes` cannot
         be applied easily. Dictionary like types might not work, for example,
         `Dict[str, bytes]`, because this policy forces all string return values
         to be converted to bytes. Note that this return_value_policy is not
         concerned with lifetime/ownership semantics, like the other policies,
-        but the purpose of return_as_bytes is certain to be orthogonal, because
+        but the purpose of _return_as_bytes is certain to be orthogonal, because
         C++ strings are always copied to Python `bytes` or `str`.
         NOTE: This policy is NOT available on master. */
-    return_as_bytes
+    _return_as_bytes
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)

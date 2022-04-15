@@ -791,7 +791,7 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
                 throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
                 break;
             case return_value_policy::reference_internal:
-            case return_value_policy::return_as_bytes:
+            case return_value_policy::_return_as_bytes:
                 break;
         }
         if (!src) {
