@@ -651,6 +651,9 @@ public:
                 keep_alive_impl(inst, parent);
                 break;
 
+            case return_value_policy::return_as_bytes:
+                pybind11_fail("return_value_policy::return_as_bytes does not apply.");
+
             default:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
