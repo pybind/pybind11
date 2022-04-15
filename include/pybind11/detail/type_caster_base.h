@@ -653,6 +653,7 @@ public:
 
             case return_value_policy::return_as_bytes:
                 pybind11_fail("return_value_policy::return_as_bytes does not apply.");
+                break;
 
             default:
                 throw cast_error("unhandled return_value_policy: should not happen!");
