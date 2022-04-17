@@ -547,7 +547,7 @@ public:
                     .ptr();
     }
 
-    explicit dtype(const pybind11::str &s) : dtype(from_args(s)) {}
+    explicit dtype(const pybind11::str &format) : dtype(from_args(format)) {}
 
     explicit dtype(const std::string &format) : dtype(pybind11::str(format)) {}
 
