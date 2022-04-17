@@ -1914,8 +1914,8 @@ public:
         return memoryview::from_buffer(reinterpret_cast<void *>(ptr),
                                        sizeof(T),
                                        format_descriptor<T>::value,
-                                       shape,
-                                       strides,
+                                       std::move(shape),
+                                       std::move(strides),
                                        readonly);
     }
 
@@ -1923,7 +1923,8 @@ public:
     static memoryview from_buffer(const T *ptr,
                                   detail::any_container<ssize_t> shape,
                                   detail::any_container<ssize_t> strides) {
-        return memoryview::from_buffer(const_cast<T *>(ptr), shape, strides, true);
+        return memoryview::from_buffer(
+            const_cast<T *>(ptr), std::move(shape), std::move(strides), true);
     }
 
     /** \rst
