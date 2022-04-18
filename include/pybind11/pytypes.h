@@ -600,13 +600,13 @@ inline handle get_function(handle value) {
 inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
     PyObject *kv = nullptr, *rv = nullptr;
     kv = PyUnicode_FromString(key);
-    if (kv == NULL) {
+    if (kv == nullptr) {
         throw error_already_set();
     }
 
     rv = PyDict_GetItemWithError(v, kv);
     Py_DECREF(kv);
-    if (rv == NULL && PyErr_Occurred()) {
+    if (rv == nullptr && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;
@@ -614,7 +614,7 @@ inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
 
 inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
     PyObject *rv = PyDict_GetItemWithError(v, key);
-    if (rv == NULL && PyErr_Occurred()) {
+    if (rv == nullptr && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;

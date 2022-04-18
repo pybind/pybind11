@@ -263,7 +263,7 @@ private:
     static npy_api lookup() {
         module_ m = module_::import("numpy.core.multiarray");
         auto c = m.attr("_ARRAY_API");
-        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
+        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), nullptr);
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
@@ -1549,7 +1549,7 @@ public:
     void *data() const { return p_ptr; }
 
 private:
-    char *p_ptr{0};
+    char *p_ptr{nullptr};
     container_type m_strides;
 };
 
