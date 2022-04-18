@@ -289,8 +289,8 @@ py::list test_dtype_ctors() {
     dict["itemsize"] = py::int_(20);
     list.append(py::dtype::from_args(dict));
     list.append(py::dtype(names, formats, offsets, 20));
-    list.append(py::dtype(py::buffer_info((void *) 0, sizeof(unsigned int), "I", 1)));
-    list.append(py::dtype(py::buffer_info((void *) 0, 0, "T{i:a:f:b:}", 1)));
+    list.append(py::dtype(py::buffer_info((void *) nullptr, sizeof(unsigned int), "I", 1)));
+    list.append(py::dtype(py::buffer_info((void *) nullptr, 0, "T{i:a:f:b:}", 1)));
     list.append(py::dtype(py::detail::npy_api::NPY_DOUBLE_));
     return list;
 }
