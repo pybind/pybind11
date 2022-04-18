@@ -547,9 +547,11 @@ public:
                     .ptr();
     }
 
-    explicit dtype(const std::string &format) : dtype(from_args(pybind11::str(format))) {}
+    explicit dtype(const pybind11::str &format) : dtype(from_args(format)) {}
 
-    explicit dtype(const char *format) : dtype(from_args(pybind11::str(format))) {}
+    explicit dtype(const std::string &format) : dtype(pybind11::str(format)) {}
+
+    explicit dtype(const char *format) : dtype(pybind11::str(format)) {}
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
@@ -557,7 +559,7 @@ public:
         args["formats"] = std::move(formats);
         args["offsets"] = std::move(offsets);
         args["itemsize"] = pybind11::int_(itemsize);
-        m_ptr = from_args(std::move(args)).release().ptr();
+        m_ptr = from_args(args).release().ptr();
     }
 
     explicit dtype(int typenum)
@@ -568,7 +570,7 @@ public:
     }
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
-    static dtype from_args(object args) {
+    static dtype from_args(const object &args) {
         PyObject *ptr = nullptr;
         if ((detail::npy_api::get().PyArray_DescrConverter_(args.ptr(), &ptr) == 0) || !ptr) {
             throw error_already_set();
