@@ -1588,7 +1588,8 @@ public:
                 }
                 pybind11_fail("Unable to get capsule context");
             }
-            void *ptr = PyCapsule_GetPointer(o, nullptr);
+            const char *name = get_name_in_error_scope(o);
+            void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
             }
@@ -1602,7 +1603,8 @@ public:
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
-            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
+            const char *name = get_name_in_error_scope(o);
+            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, name));
             if (destructor == nullptr) {
                 throw error_already_set();
             }
@@ -1637,7 +1639,33 @@ public:
         }
     }
 
-    const char *name() const { return PyCapsule_GetName(m_ptr); }
+    const char *name() const {
+        const char *name = PyCapsule_GetName(m_ptr);
+        if ((name == nullptr) && PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        return name;
+    }
+
+    /// Replaces a capsule's name *without* calling the destructor on the existing one.
+    void set_name(const char *new_name) {
+        if (PyCapsule_SetName(m_ptr, new_name) != 0) {
+            throw error_already_set();
+        }
+    }
+
+private:
+    static const char *get_name_in_error_scope(PyObject *o) {
+        error_scope error_guard;
+
+        const char *name = PyCapsule_GetName(o);
+        if ((name == nullptr) && PyErr_Occurred()) {
+            // write out and consume error raised by call to PyCapsule_GetName
+            PyErr_WriteUnraisable(o);
+        }
+
+        return name;
+    }
 };
 
 class tuple : public object {

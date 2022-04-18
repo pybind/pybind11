@@ -1004,6 +1004,7 @@ constexpr const char
 struct error_scope {
     PyObject *type, *value, *trace;
     error_scope() { PyErr_Fetch(&type, &value, &trace); }
+    error_scope(const error_scope &) = delete;
     ~error_scope() { PyErr_Restore(type, value, trace); }
 };
 
