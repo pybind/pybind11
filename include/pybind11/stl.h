@@ -80,7 +80,8 @@ struct set_caster {
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(forward_like<T>(value), policy, parent));
-            if (!value_ || !s.add(std::move(value_))) {
+            // pybind11::frozenset doesn't have add() for safety, so call PySet_Add directly.
+            if (!value_ || PySet_Add(s.ptr(), detail::object_or_cast(std::move(value_)).ptr()) != 0) {
                 return handle();
             }
         }

@@ -1787,11 +1787,6 @@ class kwargs : public dict {
 class set_base : public object {
 protected:
     PYBIND11_OBJECT(set_base, object, PyAnySet_Check)
-    template <typename T>
-    bool add(T &&val) /* py-non-const */ {
-        return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
-    }
-    void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
 
 public:
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
@@ -1810,6 +1805,11 @@ public:
             pybind11_fail("Could not allocate set object!");
         }
     }
+    template <typename T>
+    bool add(T &&val) /* py-non-const */ {
+        return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
+    }
+    void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
 };
 
 class frozenset : public set_base {
