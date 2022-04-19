@@ -1784,14 +1784,11 @@ class kwargs : public dict {
     PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)
 };
 
-class set : public object {
+class set_base : public object {
+protected:
+    PYBIND11_OBJECT(set_base, object, PyAnySet_Check)
+
 public:
-    PYBIND11_OBJECT_CVT(set, object, PySet_Check, PySet_New)
-    set() : object(PySet_New(nullptr), stolen_t{}) {
-        if (!m_ptr) {
-            pybind11_fail("Could not allocate set object!");
-        }
-    }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     template <typename T>
@@ -1802,6 +1799,26 @@ public:
     template <typename T>
     bool contains(T &&val) const {
         return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+    }
+};
+
+class set : public set_base {
+public:
+    PYBIND11_OBJECT_CVT(set, set_base, PySet_Check, PySet_New)
+    set() : set_base(PySet_New(nullptr), stolen_t{}) {
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate set object!");
+        }
+    }
+};
+
+class frozenset : public set_base {
+public:
+    PYBIND11_OBJECT_CVT(frozenset, set_base, PyFrozenSet_Check, PyFrozenSet_New)
+    frozenset() : set_base(PyFrozenSet_New(nullptr), stolen_t{}) {
+        if (!m_ptr) {
+            pybind11_fail("Could not allocate frozenset object!");
+        }
     }
 };
 

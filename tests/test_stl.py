@@ -94,6 +94,34 @@ def test_recursive_casting():
     assert z[0].value == 7 and z[1].value == 42
 
 
+def test_frozen_key(doc):
+    """Test that we special-case C++ key types to Python immutable containers, e.g.:
+    std::map<std::set<K>, V> <-> dict[frozenset[K], V]
+    std::set<std::set<T>> <-> set[frozenset[T]]
+    std::set<std::vector<T>> <-> set[tuple[T, ...]]
+    """
+    s = m.cast_set_map()
+    assert s == {frozenset({"key1", "key2"}): "value"}
+    s[frozenset({"key3"})] = "value2"
+    assert m.load_set_map(s)
+    assert doc(m.cast_set_map) == "cast_set_map() -> Dict[FrozenSet[str], str]"
+    assert doc(m.load_set_map) == "load_set_map(arg0: Dict[FrozenSet[str], str]) -> bool"
+
+    s = m.cast_set_set()
+    assert s == {frozenset({"key1", "key2"})}
+    s.add(frozenset({"key3"}))
+    assert m.load_set_set(s)
+    assert doc(m.cast_set_set) == "cast_set_set() -> Set[FrozenSet[str]]"
+    assert doc(m.load_set_set) == "load_set_set(arg0: Set[FrozenSet[str]]) -> bool"
+
+    s = m.cast_vector_set()
+    assert s == {(1, 2)}
+    s.add((3,))
+    assert m.load_vector_set(s)
+    assert doc(m.cast_vector_set) == "cast_vector_set() -> Set[Tuple[int, ...]]"
+    assert doc(m.load_vector_set) == "load_vector_set(arg0: Set[Tuple[int, ...]]) -> bool"
+
+
 def test_move_out_container():
     """Properties use the `reference_internal` policy by default. If the underlying function
     returns an rvalue, the policy is automatically changed to `move` to avoid referencing

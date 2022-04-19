@@ -248,6 +248,20 @@ TEST_SUBMODULE(stl, m) {
         return v;
     });
 
+    // test_frozen_key
+    m.def("cast_set_map", []() { return std::map<std::set<std::string>, std::string>{{{"key1", "key2"}, "value"}}; });
+    m.def("load_set_map", [](const std::map<std::set<std::string>, std::string> &map) {
+        return map.at({"key1", "key2"}) == "value" && map.at({"key3"}) == "value2";
+    });
+    m.def("cast_set_set", []() { return std::set<std::set<std::string>>{{"key1", "key2"}}; });
+    m.def("load_set_set", [](const std::set<std::set<std::string>> &set) {
+        return (set.count({"key1", "key2"}) != 0u) && (set.count({"key3"}) != 0u);
+    });
+    m.def("cast_vector_set", []() { return std::set<std::vector<int>>{{1, 2}}; });
+    m.def("load_vector_set", [](const std::set<std::vector<int>> &set) {
+        return (set.count({1, 2}) != 0u) && (set.count({3}) != 0u);
+    });
+
     pybind11::enum_<EnumType>(m, "EnumType")
         .value("kSet", EnumType::kSet)
         .value("kUnset", EnumType::kUnset);

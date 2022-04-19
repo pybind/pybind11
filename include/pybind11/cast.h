@@ -79,6 +79,9 @@ public:
     explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
+template <typename type>
+class type_caster<const type> : public type_caster<type> {};
+
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
 protected:                                                                                        \
     type value;                                                                                   \

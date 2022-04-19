@@ -49,23 +49,23 @@ forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
-template <typename Type, typename Key>
+template <typename Type, typename Key, bool Const = false>
 struct set_caster {
     using type = Type;
-    using key_conv = make_caster<Key>;
+    using key_conv = type_caster<const intrinsic_t<Key>>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<pybind11::set>(src)) {
+        if (!isinstance<set_base>(src)) {
             return false;
         }
-        auto s = reinterpret_borrow<pybind11::set>(src);
+        auto s = reinterpret_borrow<set_base>(src);
         value.clear();
         for (auto entry : s) {
             key_conv conv;
             if (!conv.load(entry, convert)) {
                 return false;
             }
-            value.insert(cast_op<Key &&>(std::move(conv)));
+            value.insert(std::move(conv).operator typename key_conv::template cast_op_type<Key &&>());
         }
         return true;
     }
@@ -75,7 +75,7 @@ struct set_caster {
         if (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Key>::policy(policy);
         }
-        pybind11::set s;
+        typename std::conditional<Const, frozenset, set>::type s;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(forward_like<T>(value), policy, parent));
@@ -86,12 +86,13 @@ struct set_caster {
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type,
+                         const_name<Const>("FrozenSet[", "Set[") + key_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
 struct map_caster {
-    using key_conv = make_caster<Key>;
+    using key_conv = type_caster<const intrinsic_t<Key>>;
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
@@ -106,7 +107,9 @@ struct map_caster {
             if (!kconv.load(it.first.ptr(), convert) || !vconv.load(it.second.ptr(), convert)) {
                 return false;
             }
-            value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
+            value.emplace(
+                std::move(kconv).operator typename key_conv::template cast_op_type<Key &&>(),
+                cast_op<Value &&>(std::move(vconv)));
         }
         return true;
     }
@@ -138,7 +141,7 @@ struct map_caster {
                              + const_name("]"));
 };
 
-template <typename Type, typename Value>
+template <typename Type, typename Value, bool Const = false>
 struct list_caster {
     using value_conv = make_caster<Value>;
 
@@ -174,7 +177,7 @@ public:
         if (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Value>::policy(policy);
         }
-        list l(src.size());
+        std::conditional_t<Const, tuple, list> l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
@@ -182,24 +185,38 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            if (Const)
+                PyTuple_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            else
+                PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type,
+                         const_name<Const>("Tuple[", "List[") + value_conv::name
+                             + const_name<Const>(", ...]", "]"));
 };
 
 template <typename Type, typename Alloc>
 struct type_caster<std::vector<Type, Alloc>> : list_caster<std::vector<Type, Alloc>, Type> {};
 
 template <typename Type, typename Alloc>
+struct type_caster<const std::vector<Type, Alloc>> : list_caster<std::vector<Type, Alloc>, Type, true> {};
+
+template <typename Type, typename Alloc>
 struct type_caster<std::deque<Type, Alloc>> : list_caster<std::deque<Type, Alloc>, Type> {};
+
+template <typename Type, typename Alloc>
+struct type_caster<const std::deque<Type, Alloc>> : list_caster<std::deque<Type, Alloc>, Type, true> {};
 
 template <typename Type, typename Alloc>
 struct type_caster<std::list<Type, Alloc>> : list_caster<std::list<Type, Alloc>, Type> {};
 
-template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0>
+template <typename Type, typename Alloc>
+struct type_caster<const std::list<Type, Alloc>> : list_caster<std::list<Type, Alloc>, Type, true> {};
+
+template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0, bool Const = false>
 struct array_caster {
     using value_conv = make_caster<Value>;
 
@@ -238,7 +255,7 @@ public:
 
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
-        list l(src.size());
+        std::conditional_t<Const, tuple, list> l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
@@ -246,22 +263,29 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            if (Const)
+                PyTuple_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            else
+                PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
 
     PYBIND11_TYPE_CASTER(ArrayType,
-                         const_name("List[") + value_conv::name
+                         const_name<Const>("Tuple[", "List[") + value_conv::name
                              + const_name<Resizable>(const_name(""),
                                                      const_name("[") + const_name<Size>()
                                                          + const_name("]"))
-                             + const_name("]"));
+                             + const_name<Const>(", ...]", "]"));
 };
 
 template <typename Type, size_t Size>
 struct type_caster<std::array<Type, Size>>
     : array_caster<std::array<Type, Size>, Type, false, Size> {};
+
+template <typename Type, size_t Size>
+struct type_caster<const std::array<Type, Size>>
+    : array_caster<std::array<Type, Size>, Type, false, Size, true> {};
 
 template <typename Type>
 struct type_caster<std::valarray<Type>> : array_caster<std::valarray<Type>, Type, true> {};
@@ -270,9 +294,17 @@ template <typename Key, typename Compare, typename Alloc>
 struct type_caster<std::set<Key, Compare, Alloc>>
     : set_caster<std::set<Key, Compare, Alloc>, Key> {};
 
+template <typename Key, typename Compare, typename Alloc>
+struct type_caster<const std::set<Key, Compare, Alloc>>
+    : set_caster<std::set<Key, Compare, Alloc>, Key, true> {};
+
 template <typename Key, typename Hash, typename Equal, typename Alloc>
 struct type_caster<std::unordered_set<Key, Hash, Equal, Alloc>>
     : set_caster<std::unordered_set<Key, Hash, Equal, Alloc>, Key> {};
+
+template <typename Key, typename Hash, typename Equal, typename Alloc>
+struct type_caster<const std::unordered_set<Key, Hash, Equal, Alloc>>
+    : set_caster<std::unordered_set<Key, Hash, Equal, Alloc>, Key, true> {};
 
 template <typename Key, typename Value, typename Compare, typename Alloc>
 struct type_caster<std::map<Key, Value, Compare, Alloc>>
