@@ -105,7 +105,9 @@ def test_frozen_key(doc):
     s[frozenset({"key3"})] = "value2"
     assert m.load_set_map(s)
     assert doc(m.cast_set_map) == "cast_set_map() -> Dict[FrozenSet[str], str]"
-    assert doc(m.load_set_map) == "load_set_map(arg0: Dict[FrozenSet[str], str]) -> bool"
+    assert (
+        doc(m.load_set_map) == "load_set_map(arg0: Dict[FrozenSet[str], str]) -> bool"
+    )
 
     s = m.cast_set_set()
     assert s == {frozenset({"key1", "key2"})}
@@ -119,7 +121,9 @@ def test_frozen_key(doc):
     s.add((3,))
     assert m.load_vector_set(s)
     assert doc(m.cast_vector_set) == "cast_vector_set() -> Set[Tuple[int, ...]]"
-    assert doc(m.load_vector_set) == "load_vector_set(arg0: Set[Tuple[int, ...]]) -> bool"
+    assert (
+        doc(m.load_vector_set) == "load_vector_set(arg0: Set[Tuple[int, ...]]) -> bool"
+    )
 
 
 def test_move_out_container():
