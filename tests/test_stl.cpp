@@ -249,7 +249,9 @@ TEST_SUBMODULE(stl, m) {
     });
 
     // test_frozen_key
-    m.def("cast_set_map", []() { return std::map<std::set<std::string>, std::string>{{{"key1", "key2"}, "value"}}; });
+    m.def("cast_set_map", []() {
+        return std::map<std::set<std::string>, std::string>{{{"key1", "key2"}, "value"}};
+    });
     m.def("load_set_map", [](const std::map<std::set<std::string>, std::string> &map) {
         return map.at({"key1", "key2"}) == "value" && map.at({"key3"}) == "value2";
     });

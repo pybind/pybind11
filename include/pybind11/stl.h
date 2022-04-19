@@ -65,7 +65,8 @@ struct set_caster {
             if (!conv.load(entry, convert)) {
                 return false;
             }
-            value.insert(std::move(conv).operator typename key_conv::template cast_op_type<Key &&>());
+            value.insert(
+                std::move(conv).operator typename key_conv::template cast_op_type<Key &&>());
         }
         return true;
     }
@@ -87,7 +88,8 @@ struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type,
-                         const_name<Const>("FrozenSet[", "Set[") + key_conv::name + const_name("]"));
+                         const_name<Const>("FrozenSet[", "Set[") + key_conv::name
+                             + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
@@ -202,19 +204,22 @@ template <typename Type, typename Alloc>
 struct type_caster<std::vector<Type, Alloc>> : list_caster<std::vector<Type, Alloc>, Type> {};
 
 template <typename Type, typename Alloc>
-struct type_caster<const std::vector<Type, Alloc>> : list_caster<std::vector<Type, Alloc>, Type, true> {};
+struct type_caster<const std::vector<Type, Alloc>>
+    : list_caster<std::vector<Type, Alloc>, Type, true> {};
 
 template <typename Type, typename Alloc>
 struct type_caster<std::deque<Type, Alloc>> : list_caster<std::deque<Type, Alloc>, Type> {};
 
 template <typename Type, typename Alloc>
-struct type_caster<const std::deque<Type, Alloc>> : list_caster<std::deque<Type, Alloc>, Type, true> {};
+struct type_caster<const std::deque<Type, Alloc>>
+    : list_caster<std::deque<Type, Alloc>, Type, true> {};
 
 template <typename Type, typename Alloc>
 struct type_caster<std::list<Type, Alloc>> : list_caster<std::list<Type, Alloc>, Type> {};
 
 template <typename Type, typename Alloc>
-struct type_caster<const std::list<Type, Alloc>> : list_caster<std::list<Type, Alloc>, Type, true> {};
+struct type_caster<const std::list<Type, Alloc>>
+    : list_caster<std::list<Type, Alloc>, Type, true> {};
 
 template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0, bool Const = false>
 struct array_caster {
