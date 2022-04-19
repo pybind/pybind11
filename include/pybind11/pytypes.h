@@ -1787,15 +1787,15 @@ class kwargs : public dict {
 class set_base : public object {
 protected:
     PYBIND11_OBJECT(set_base, object, PyAnySet_Check)
+
+public:
+    size_t size() const { return (size_t) PySet_Size(m_ptr); }
+    bool empty() const { return size() == 0; }
     template <typename T>
     bool add(T &&val) /* py-non-const */ {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
     void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
-
-public:
-    size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    bool empty() const { return size() == 0; }
     template <typename T>
     bool contains(T &&val) const {
         return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
