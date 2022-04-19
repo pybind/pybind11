@@ -1617,6 +1617,25 @@ object object_api<Derived>::call(Args &&...args) const {
     return operator()<policy>(std::forward<Args>(args)...);
 }
 
+// Convert list -> tuple and set -> frozenset for use as keys in dict, set etc.
+// https://mail.python.org/pipermail/python-dev/2005-October/057586.html
+inline object freeze(object &&obj) {
+    if (isinstance<list>(obj)) {
+        return tuple(std::move(obj));
+    } else if (isinstance<set>(obj)) {
+        return frozenset(std::move(obj));
+    } else {
+        return std::move(obj);
+    }
+}
+
+template <typename Caster, typename SFINAE = decltype(Caster::frozen_name)>
+constexpr inline auto get_frozen_name_impl(int) { return Caster::frozen_name; }
+template <typename Caster>
+constexpr inline auto get_frozen_name_impl(long) { return Caster::name; }
+template <typename Caster>
+constexpr inline auto get_frozen_name() { return get_frozen_name_impl<Caster>(0); }
+
 PYBIND11_NAMESPACE_END(detail)
 
 template <typename T>

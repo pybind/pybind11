@@ -55,10 +55,10 @@ struct set_caster {
     using key_conv = make_caster<Key>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<pybind11::set>(src)) {
+        if (!isinstance<set_base>(src)) {
             return false;
         }
-        auto s = reinterpret_borrow<pybind11::set>(src);
+        auto s = reinterpret_borrow<set_base>(src);
         value.clear();
         for (auto entry : s) {
             key_conv conv;
@@ -79,14 +79,15 @@ struct set_caster {
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(forward_like<T>(value), policy, parent));
-            if (!value_ || !s.add(std::move(value_))) {
+            if (!value_ || !s.add(freeze(std::move(value_)))) {
                 return handle();
             }
         }
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type, const_name("Set[") + get_frozen_name<key_conv>() + const_name("]"));
+    static constexpr auto frozen_name = const_name("FrozenSet[") + get_frozen_name<key_conv>() + const_name("]");
 };
 
 template <typename Type, typename Key, typename Value>
@@ -128,14 +129,14 @@ struct map_caster {
             if (!key || !value) {
                 return handle();
             }
-            d[key] = value;
+            d[freeze(std::move(key))] = std::move(value);
         }
         return d.release();
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
-                             + const_name("]"));
+                         const_name("Dict[") + get_frozen_name<key_conv>() + const_name(", ")
+                             + value_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Value>
@@ -188,6 +189,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
+    static constexpr auto frozen_name = const_name("Tuple[") + value_conv::name + const_name(", ...]");
 };
 
 template <typename Type, typename Alloc>
@@ -257,6 +259,11 @@ public:
                                                      const_name("[") + const_name<Size>()
                                                          + const_name("]"))
                              + const_name("]"));
+    static constexpr auto frozen_name = const_name("Tuple[") + value_conv::name
+                             + const_name<Resizable>(const_name(", ..."),
+                                                     const_name("[") + const_name<Size>()
+                                                         + const_name("]"))
+                             + const_name("]");
 };
 
 template <typename Type, size_t Size>
