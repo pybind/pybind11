@@ -177,7 +177,7 @@ public:
         if (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Value>::policy(policy);
         }
-        std::conditional_t<Const, tuple, list> l(src.size());
+        conditional_t<Const, tuple, list> l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
@@ -255,7 +255,7 @@ public:
 
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
-        std::conditional_t<Const, tuple, list> l(src.size());
+        conditional_t<Const, tuple, list> l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
