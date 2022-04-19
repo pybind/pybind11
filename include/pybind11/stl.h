@@ -187,10 +187,11 @@ public:
             if (!value_) {
                 return handle();
             }
-            if (Const)
+            if (Const) {
                 PyTuple_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
-            else
+            } else {
                 PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            }
         }
         return l.release();
     }
@@ -268,10 +269,11 @@ public:
             if (!value_) {
                 return handle();
             }
-            if (Const)
+            if (Const) {
                 PyTuple_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
-            else
+            } else {
                 PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            }
         }
         return l.release();
     }
