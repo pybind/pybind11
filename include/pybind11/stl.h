@@ -86,7 +86,8 @@ struct set_caster {
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Set[") + frozen_type_name<key_conv>::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type,
+                         const_name("Set[") + frozen_type_name<key_conv>::name + const_name("]"));
     static constexpr auto frozen_name
         = const_name("FrozenSet[") + frozen_type_name<key_conv>::name + const_name("]");
 };
