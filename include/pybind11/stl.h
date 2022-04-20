@@ -87,7 +87,8 @@ struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type, const_name("Set[") + get_frozen_name<key_conv>() + const_name("]"));
-    static constexpr auto frozen_name = const_name("FrozenSet[") + get_frozen_name<key_conv>() + const_name("]");
+    static constexpr auto frozen_name
+        = const_name("FrozenSet[") + get_frozen_name<key_conv>() + const_name("]");
 };
 
 template <typename Type, typename Key, typename Value>
@@ -189,7 +190,8 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
-    static constexpr auto frozen_name = const_name("Tuple[") + value_conv::name + const_name(", ...]");
+    static constexpr auto frozen_name
+        = const_name("Tuple[") + value_conv::name + const_name(", ...]");
 };
 
 template <typename Type, typename Alloc>
@@ -259,11 +261,11 @@ public:
                                                      const_name("[") + const_name<Size>()
                                                          + const_name("]"))
                              + const_name("]"));
-    static constexpr auto frozen_name = const_name("Tuple[") + value_conv::name
-                             + const_name<Resizable>(const_name(", ..."),
-                                                     const_name("[") + const_name<Size>()
-                                                         + const_name("]"))
-                             + const_name("]");
+    static constexpr auto frozen_name
+        = const_name("Tuple[") + value_conv::name
+          + const_name<Resizable>(const_name(", ..."),
+                                  const_name("[") + const_name<Size>() + const_name("]"))
+          + const_name("]");
 };
 
 template <typename Type, size_t Size>
