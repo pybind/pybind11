@@ -1629,18 +1629,12 @@ inline object freeze(object &&obj) {
     }
 }
 
+template <typename Caster, typename SFINAE = void>
+struct frozen_type_name { static constexpr auto name = Caster::name; };
 template <typename Caster>
-constexpr inline decltype(Caster::frozen_name) get_frozen_name_impl(int) {
-    return Caster::frozen_name;
-}
-template <typename Caster>
-constexpr inline decltype(Caster::name) get_frozen_name_impl(long) {
-    return Caster::name;
-}
-template <typename Caster>
-constexpr inline auto get_frozen_name() {
-    return get_frozen_name_impl<Caster>(0);
-}
+struct frozen_type_name<Caster, void_t<decltype(Caster::frozen_name)>> {
+    static constexpr auto name = Caster::frozen_name;
+};
 
 PYBIND11_NAMESPACE_END(detail)
 

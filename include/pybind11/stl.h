@@ -86,9 +86,9 @@ struct set_caster {
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Set[") + get_frozen_name<key_conv>() + const_name("]"));
+    PYBIND11_TYPE_CASTER(type, const_name("Set[") + frozen_type_name<key_conv>::name + const_name("]"));
     static constexpr auto frozen_name
-        = const_name("FrozenSet[") + get_frozen_name<key_conv>() + const_name("]");
+        = const_name("FrozenSet[") + frozen_type_name<key_conv>::name + const_name("]");
 };
 
 template <typename Type, typename Key, typename Value>
@@ -136,7 +136,7 @@ struct map_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Dict[") + get_frozen_name<key_conv>() + const_name(", ")
+                         const_name("Dict[") + frozen_type_name<key_conv>::name + const_name(", ")
                              + value_conv::name + const_name("]"));
 };
 
