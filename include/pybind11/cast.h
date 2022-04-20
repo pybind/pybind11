@@ -1629,12 +1629,12 @@ inline object freeze(object &&obj) {
     }
 }
 
-template <typename Caster, typename SFINAE = decltype(Caster::frozen_name)>
-constexpr inline auto get_frozen_name_impl(int) {
+template <typename Caster>
+constexpr inline decltype(Caster::frozen_name) get_frozen_name_impl(int) {
     return Caster::frozen_name;
 }
 template <typename Caster>
-constexpr inline auto get_frozen_name_impl(long) {
+constexpr inline decltype(Caster::name) get_frozen_name_impl(long) {
     return Caster::name;
 }
 template <typename Caster>
