@@ -1630,7 +1630,9 @@ inline object freeze(object &&obj) {
 }
 
 template <typename Caster, typename SFINAE = void>
-struct frozen_type_name { static constexpr auto name = Caster::name; };
+struct frozen_type_name {
+    static constexpr auto name = Caster::name;
+};
 template <typename Caster>
 struct frozen_type_name<Caster, void_t<decltype(Caster::frozen_name)>> {
     static constexpr auto name = Caster::frozen_name;
