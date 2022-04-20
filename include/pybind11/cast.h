@@ -1622,11 +1622,11 @@ object object_api<Derived>::call(Args &&...args) const {
 inline object freeze(object &&obj) {
     if (isinstance<list>(obj)) {
         return tuple(std::move(obj));
-    } else if (isinstance<set>(obj)) {
-        return frozenset(std::move(obj));
-    } else {
-        return std::move(obj);
     }
+    if (isinstance<set>(obj)) {
+        return frozenset(std::move(obj));
+    }
+    return std::move(obj);
 }
 
 template <typename Caster, typename SFINAE = void>
