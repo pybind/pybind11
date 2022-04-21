@@ -51,7 +51,8 @@ forwarded_type<T, U> forward_like(U &&u) {
 
 template <typename Key>
 using make_key_caster = type_caster<conditional_t<std::is_class<intrinsic_t<Key>>::value,
-    const intrinsic_t<Key>, intrinsic_t<Key>>>;
+                                                  const intrinsic_t<Key>,
+                                                  intrinsic_t<Key>>>;
 
 template <typename Type, typename Key, bool Const = false>
 struct set_caster {
