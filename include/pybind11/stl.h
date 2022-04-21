@@ -49,10 +49,14 @@ forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
+template <typename Key>
+using make_key_caster = type_caster<conditional_t<std::is_class<intrinsic_t<Key>>::value,
+    const intrinsic_t<Key>, intrinsic_t<Key>>>;
+
 template <typename Type, typename Key, bool Const = false>
 struct set_caster {
     using type = Type;
-    using key_conv = type_caster<const intrinsic_t<Key>>;
+    using key_conv = make_key_caster<Key>;
 
     bool load(handle src, bool convert) {
         if (!isinstance<set_base>(src)) {
@@ -96,7 +100,7 @@ struct set_caster {
 
 template <typename Type, typename Key, typename Value>
 struct map_caster {
-    using key_conv = type_caster<const intrinsic_t<Key>>;
+    using key_conv = make_key_caster<Key>;
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
