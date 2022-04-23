@@ -79,7 +79,7 @@ struct set_caster {
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(forward_like<T>(value), policy, parent));
-            if (!value_ || !s.add(value_)) {
+            if (!value_ || !s.add(std::move(value_))) {
                 return handle();
             }
         }
@@ -372,7 +372,7 @@ struct variant_caster<V<Ts...>> {
     bool load_alternative(handle src, bool convert, type_list<U, Us...>) {
         auto caster = make_caster<U>();
         if (caster.load(src, convert)) {
-            value = cast_op<U>(caster);
+            value = cast_op<U>(std::move(caster));
             return true;
         }
         return load_alternative(src, convert, type_list<Us...>{});
@@ -406,6 +406,9 @@ struct variant_caster<V<Ts...>> {
 #if defined(PYBIND11_HAS_VARIANT)
 template <typename... Ts>
 struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> {};
+
+template <>
+struct type_caster<std::monostate> : public void_caster<std::monostate> {};
 #endif
 
 PYBIND11_NAMESPACE_END(detail)

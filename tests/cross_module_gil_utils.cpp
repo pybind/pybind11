@@ -25,8 +25,8 @@ void gil_acquire() { py::gil_scoped_acquire gil; }
 
 constexpr char kModuleName[] = "cross_module_gil_utils";
 
-struct PyModuleDef moduledef
-    = {PyModuleDef_HEAD_INIT, kModuleName, NULL, 0, NULL, NULL, NULL, NULL, NULL};
+struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT, kModuleName, nullptr, 0, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 } // namespace
 
@@ -34,7 +34,7 @@ extern "C" PYBIND11_EXPORT PyObject *PyInit_cross_module_gil_utils() {
 
     PyObject *m = PyModule_Create(&moduledef);
 
-    if (m != NULL) {
+    if (m != nullptr) {
         static_assert(sizeof(&gil_acquire) == sizeof(void *),
                       "Function pointer must have the same size as void*");
         PyModule_AddObject(

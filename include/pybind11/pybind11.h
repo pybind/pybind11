@@ -561,14 +561,14 @@ protected:
         for (auto *it = chain_start; it != nullptr; it = it->next) {
             if (options::show_function_signatures()) {
                 if (index > 0) {
-                    signatures += "\n";
+                    signatures += '\n';
                 }
                 if (chain) {
                     signatures += std::to_string(++index) + ". ";
                 }
                 signatures += rec->name;
                 signatures += it->signature;
-                signatures += "\n";
+                signatures += '\n';
             }
             if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
                 // If we're appending another docstring, and aren't printing function signatures,
@@ -577,15 +577,15 @@ protected:
                     if (first_user_def) {
                         first_user_def = false;
                     } else {
-                        signatures += "\n";
+                        signatures += '\n';
                     }
                 }
                 if (options::show_function_signatures()) {
-                    signatures += "\n";
+                    signatures += '\n';
                 }
                 signatures += it->doc;
                 if (options::show_function_signatures()) {
-                    signatures += "\n";
+                    signatures += '\n';
                 }
             }
         }
@@ -1055,7 +1055,7 @@ protected:
                     msg += it2->signature;
                 }
 
-                msg += "\n";
+                msg += '\n';
             }
             msg += "\nInvoked with: ";
             auto args_ = reinterpret_borrow<tuple>(args_in);
@@ -1817,7 +1817,8 @@ private:
         if (holder_ptr) {
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
             v_h.set_holder_constructed();
-        } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
+        } else if (PYBIND11_SILENCE_MSVC_C4127(detail::always_construct_holder<holder_type>::value)
+                   || inst->owned) {
             new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
@@ -2402,7 +2403,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_iterator(Type &value, Extra &&...extra) {
-    return make_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
@@ -2411,7 +2413,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_key_iterator(Type &value, Extra &&...extra) {
-    return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_key_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the values (`.second`) of a stl map-like container supporting
@@ -2420,7 +2423,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
           typename... Extra>
 iterator make_value_iterator(Type &value, Extra &&...extra) {
-    return make_value_iterator<Policy>(std::begin(value), std::end(value), extra...);
+    return make_value_iterator<Policy>(
+        std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 template <typename InputType, typename OutputType>
@@ -2485,7 +2489,7 @@ public:
     exception(handle scope, const char *name, handle base = PyExc_Exception) {
         std::string full_name
             = scope.attr("__name__").cast<std::string>() + std::string(".") + name;
-        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), NULL);
+        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), nullptr);
         if (hasattr(scope, "__dict__") && scope.attr("__dict__").contains(name)) {
             pybind11_fail("Error during initialization: multiple incompatible "
                           "definitions with name \""
@@ -2694,9 +2698,9 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
                        d.ptr());
     if (result == nullptr)
         throw error_already_set();
+    Py_DECREF(result);
     if (d["self"].is_none())
         return function();
-    Py_DECREF(result);
 #endif
 
     return override;

@@ -263,7 +263,7 @@ private:
     static npy_api lookup() {
         module_ m = module_::import("numpy.core.multiarray");
         auto c = m.attr("_ARRAY_API");
-        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
+        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), nullptr);
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
@@ -540,18 +540,18 @@ public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
 
     explicit dtype(const buffer_info &info) {
-        dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
+        dtype descr(_dtype_from_pep3118()(pybind11::str(info.format)));
         // If info.itemsize == 0, use the value calculated from the format string
         m_ptr = descr.strip_padding(info.itemsize != 0 ? info.itemsize : descr.itemsize())
                     .release()
                     .ptr();
     }
 
-    explicit dtype(const std::string &format) {
-        m_ptr = from_args(pybind11::str(format)).release().ptr();
-    }
+    explicit dtype(const pybind11::str &format) : dtype(from_args(format)) {}
 
-    explicit dtype(const char *format) : dtype(std::string(format)) {}
+    explicit dtype(const std::string &format) : dtype(pybind11::str(format)) {}
+
+    explicit dtype(const char *format) : dtype(pybind11::str(format)) {}
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
@@ -559,11 +559,18 @@ public:
         args["formats"] = std::move(formats);
         args["offsets"] = std::move(offsets);
         args["itemsize"] = pybind11::int_(itemsize);
-        m_ptr = from_args(std::move(args)).release().ptr();
+        m_ptr = from_args(args).release().ptr();
+    }
+
+    explicit dtype(int typenum)
+        : object(detail::npy_api::get().PyArray_DescrFromType_(typenum), stolen_t{}) {
+        if (m_ptr == nullptr) {
+            throw error_already_set();
+        }
     }
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
-    static dtype from_args(object args) {
+    static dtype from_args(const object &args) {
         PyObject *ptr = nullptr;
         if ((detail::npy_api::get().PyArray_DescrConverter_(args.ptr(), &ptr) == 0) || !ptr) {
             throw error_already_set();
@@ -596,6 +603,23 @@ public:
         return detail::array_descriptor_proxy(m_ptr)->type;
     }
 
+    /// type number of dtype.
+    ssize_t num() const {
+        // Note: The signature, `dtype::num` follows the naming of NumPy's public
+        // Python API (i.e., ``dtype.num``), rather than its internal
+        // C API (``PyArray_Descr::type_num``).
+        return detail::array_descriptor_proxy(m_ptr)->type_num;
+    }
+
+    /// Single character for byteorder
+    char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
+
+    /// Alignment of the data type
+    int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
+
+    /// Flags for the array descriptor
+    char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
+
 private:
     static object _dtype_from_pep3118() {
         static PyObject *obj = module_::import("numpy.core._internal")
@@ -614,7 +638,7 @@ private:
         }
 
         struct field_descr {
-            PYBIND11_STR_TYPE name;
+            pybind11::str name;
             object format;
             pybind11::int_ offset;
         };
@@ -629,7 +653,7 @@ private:
                 continue;
             }
             field_descriptors.push_back(
-                {(PYBIND11_STR_TYPE) name, format.strip_padding(format.itemsize()), offset});
+                {(pybind11::str) name, format.strip_padding(format.itemsize()), offset});
         }
 
         std::sort(field_descriptors.begin(),
@@ -640,9 +664,9 @@ private:
 
         list names, formats, offsets;
         for (auto &descr : field_descriptors) {
-            names.append(descr.name);
-            formats.append(descr.format);
-            offsets.append(descr.offset);
+            names.append(std::move(descr.name));
+            formats.append(std::move(descr.format));
+            offsets.append(std::move(descr.offset));
         }
         return dtype(std::move(names), std::move(formats), std::move(offsets), itemsize);
     }
@@ -940,7 +964,7 @@ protected:
 
     void fail_dim_check(ssize_t dim, const std::string &msg) const {
         throw index_error(msg + ": " + std::to_string(dim) + " (ndim = " + std::to_string(ndim())
-                          + ")");
+                          + ')');
     }
 
     template <typename... Ix>
@@ -1144,11 +1168,11 @@ struct format_descriptor<T, detail::enable_if_t<detail::is_pod_struct<T>::value>
 
 template <size_t N>
 struct format_descriptor<char[N]> {
-    static std::string format() { return std::to_string(N) + "s"; }
+    static std::string format() { return std::to_string(N) + 's'; }
 };
 template <size_t N>
 struct format_descriptor<std::array<char, N>> {
-    static std::string format() { return std::to_string(N) + "s"; }
+    static std::string format() { return std::to_string(N) + 's'; }
 };
 
 template <typename T>
@@ -1288,7 +1312,8 @@ public:
     static pybind11::dtype dtype() {
         list shape;
         array_info<T>::append_extents(shape);
-        return pybind11::dtype::from_args(pybind11::make_tuple(base_descr::dtype(), shape));
+        return pybind11::dtype::from_args(
+            pybind11::make_tuple(base_descr::dtype(), std::move(shape)));
     }
 };
 
@@ -1334,7 +1359,7 @@ PYBIND11_NOINLINE void register_structured_dtype(any_container<field_descriptor>
             pybind11_fail(std::string("NumPy: unsupported field dtype: `") + field.name + "` @ "
                           + tinfo.name());
         }
-        names.append(PYBIND11_STR_TYPE(field.name));
+        names.append(pybind11::str(field.name));
         formats.append(field.descr);
         offsets.append(pybind11::int_(field.offset));
     }
@@ -1526,7 +1551,7 @@ public:
     void *data() const { return p_ptr; }
 
 private:
-    char *p_ptr{0};
+    char *p_ptr{nullptr};
     container_type m_strides;
 };
 

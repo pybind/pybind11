@@ -196,6 +196,19 @@ def test_capsule(capture):
     )
 
     with capture:
+        a = m.return_renamed_capsule_with_destructor()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        renaming capsule
+        destructing capsule
+    """
+    )
+
+    with capture:
         a = m.return_capsule_with_destructor_2()
         del a
         pytest.gc_collect()
@@ -203,6 +216,19 @@ def test_capsule(capture):
         capture.unordered
         == """
         creating capsule
+        destructing capsule: 1234
+    """
+    )
+
+    with capture:
+        a = m.return_renamed_capsule_with_destructor_2()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        renaming capsule
         destructing capsule: 1234
     """
     )
@@ -634,3 +660,8 @@ def test_implementation_details():
     assert m.tuple_item_set_ssize_t() == ("emely", "edmond")
     assert m.tuple_item_get_size_t(tup) == 93
     assert m.tuple_item_set_size_t() == ("candy", "cat")
+
+
+def test_external_float_():
+    r1 = m.square_float_(2.0)
+    assert r1 == 4.0

@@ -225,8 +225,8 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_index &tp,
     if (throw_if_missing) {
         std::string tname = tp.name();
         detail::clean_type_id(tname);
-        pybind11_fail("pybind11::detail::get_type_info: unable to find type info for \"" + tname
-                      + "\"");
+        pybind11_fail("pybind11::detail::get_type_info: unable to find type info for \""
+                      + std::move(tname) + '"');
     }
     return nullptr;
 }
