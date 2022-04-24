@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
     - name: Add matchers
       run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
     - uses: pre-commit/action@v2.0.3
