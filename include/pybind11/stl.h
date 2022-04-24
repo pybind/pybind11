@@ -55,10 +55,10 @@ struct set_caster {
     using key_conv = make_caster<Key>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<set_base>(src)) {
+        if (!isinstance<any_set>(src)) {
             return false;
         }
-        auto s = reinterpret_borrow<set_base>(src);
+        auto s = reinterpret_borrow<any_set>(src);
         value.clear();
         for (auto entry : s) {
             key_conv conv;
