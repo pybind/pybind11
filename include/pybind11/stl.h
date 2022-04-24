@@ -55,10 +55,10 @@ struct set_caster {
     using key_conv = make_caster<Key>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<pybind11::set>(src)) {
+        if (!isinstance<set_base>(src)) {
             return false;
         }
-        auto s = reinterpret_borrow<pybind11::set>(src);
+        auto s = reinterpret_borrow<set_base>(src);
         value.clear();
         for (auto entry : s) {
             key_conv conv;
