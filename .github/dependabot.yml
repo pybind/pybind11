@@ -7,10 +7,5 @@ updates:
       interval: "daily"
     ignore:
       # Official actions have moving tags like v1
-      # that are used, so they don't need updates here
-      - dependency-name: "actions/checkout"
-      - dependency-name: "actions/setup-python"
-      - dependency-name: "actions/cache"
-      - dependency-name: "actions/upload-artifact"
-      - dependency-name: "actions/download-artifact"
-      - dependency-name: "actions/labeler"
+      - dependency-name: "actions/*"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
