@@ -69,13 +69,13 @@ jobs:
       run: twine check dist/*
 
     - name: Save standard package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: standard
         path: dist/pybind11-*
 
     - name: Save global package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: global
         path: dist/pybind11_global-*
