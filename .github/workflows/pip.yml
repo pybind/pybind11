@@ -93,7 +93,7 @@ jobs:
     - uses: actions/setup-python@v2
 
     # Downloads all to directories matching the artifact names
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
 
     - name: Publish standard package
       uses: pypa/gh-action-pypi-publish@v1.5.0
