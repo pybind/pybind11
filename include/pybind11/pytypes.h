@@ -13,6 +13,7 @@
 #include "buffer_info.h"
 
 #include <exception>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -387,13 +388,16 @@ public:
         }
     }
 
-    error_already_set(const error_already_set &) = default;
-    error_already_set(error_already_set &&) = default;
+    error_already_set(const error_already_set &) noexcept = default;
+    error_already_set(error_already_set &&) noexcept = default;
 
     inline ~error_already_set() override;
 
     const char *what() const noexcept override {
-        if (m_lazy_what.empty()) {
+        auto *sup_what = std::runtime_error::what();
+        if (sup_what[0] != '\0') {
+            return sup_what;
+        } else if (m_lazy_what.empty()) {
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (const std::exception &e) {
@@ -407,6 +411,7 @@ public:
                 return m_lazy_what.c_str();
             }
         }
+
         assert(!m_lazy_what.empty());
         return m_lazy_what.c_str();
     }
@@ -415,7 +420,8 @@ public:
     /// already set it is cleared first.  After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
     void restore() {
-        what(); // Force-build `.what()`.
+        // Abuse assignment operator to cache what()
+        std::runtime_error::operator=(std::runtime_error(what())); // Force-build `.what()`.
         if (m_lazy_what.empty()) {
             pybind11_fail("Critical error building lazy error_string().");
         }
