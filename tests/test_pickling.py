@@ -1,4 +1,5 @@
 import pickle
+import re
 
 import pytest
 
@@ -10,7 +11,7 @@ def test_pickle_simple_callable():
     assert m.simple_callable() == 20220426
     with pytest.raises(TypeError) as excinfo:
         pickle.dumps(m.simple_callable)
-    assert str(excinfo.value) == "cannot pickle 'PyCapsule' object"
+    assert re.search("can.*t pickle .*PyCapsule.* object", str(excinfo.value))
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
