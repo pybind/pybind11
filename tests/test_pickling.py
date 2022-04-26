@@ -6,6 +6,13 @@ import env
 from pybind11_tests import pickling as m
 
 
+def test_pickle_simple_callable():
+    assert m.simple_callable() == 20220426
+    with pytest.raises(TypeError) as excinfo:
+        pickle.dumps(m.simple_callable)
+    assert str(excinfo.value) == "cannot pickle 'PyCapsule' object"
+
+
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
 def test_roundtrip(cls_name):
     cls = getattr(m, cls_name)
