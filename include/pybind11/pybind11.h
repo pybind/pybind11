@@ -312,6 +312,12 @@ protected:
     // along the way.
     class strdup_guard {
     public:
+        strdup_guard() = default;
+        strdup_guard(const strdup_guard &) = delete;
+        strdup_guard(strdup_guard &&) noexcept = default;
+        strdup_guard &operator=(const strdup_guard &) = delete;
+        strdup_guard &operator=(strdup_guard &&) noexcept = default;
+
         ~strdup_guard() {
             for (auto *s : strings) {
                 std::free(s);
