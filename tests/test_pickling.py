@@ -9,9 +9,14 @@ from pybind11_tests import pickling as m
 
 def test_pickle_simple_callable():
     assert m.simple_callable() == 20220426
-    with pytest.raises(TypeError) as excinfo:
-        pickle.dumps(m.simple_callable)
-    assert re.search("can.*t pickle .*PyCapsule.* object", str(excinfo.value))
+    if env.PYPY:
+        serialized = pickle.dumps(m.simple_callable)
+        deserialized = pickle.loads(serialized)
+        assert deserialized() == 20220426
+    else:
+        with pytest.raises(TypeError) as excinfo:
+            pickle.dumps(m.simple_callable)
+        assert re.search("can.*t pickle .*PyCapsule.* object", str(excinfo.value))
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
