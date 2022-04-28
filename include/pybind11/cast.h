@@ -31,6 +31,12 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+#if !defined(NDEBUG) || defined(PYBIND_LOG_DETAIL)
+#define PYBIND_LOG_DETAIL 1
+#else
+#undef PYBIND_LOG_DETAIL
+#endif
+
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -777,7 +783,7 @@ protected:
             return true;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
                          "(compile in debug mode for type information)");
 #else
                          "of type '"
@@ -1001,7 +1007,7 @@ struct return_value_policy_override<
 template <typename T, typename SFINAE>
 type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
         throw cast_error(
             "Unable to cast Python instance to C++ type (compile in debug mode for details)");
 #else
@@ -1068,7 +1074,7 @@ inline void handle::cast() const {
 template <typename T>
 detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
         throw cast_error(
             "Unable to cast Python instance to C++ rvalue: instance has multiple references"
             " (compile in debug mode for details)");
@@ -1172,7 +1178,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 // The overloads could coexist, i.e. the #if is not strictly speaking needed,
 // but it is an easy minor optimization.
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
 inline cast_error cast_error_unable_to_convert_call_arg() {
     return cast_error(
         "Unable to convert call argument to Python object (compile in debug mode for details)");
@@ -1197,7 +1203,7 @@ tuple make_tuple(Args &&...args_) {
         detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
             throw cast_error_unable_to_convert_call_arg();
 #else
             std::array<std::string, size> argtypes{{type_id<Args>()...}};
@@ -1249,7 +1255,7 @@ private:
         : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
                          std::forward<T>(x), return_value_policy::automatic, {}))),
           descr(descr)
-#if !defined(NDEBUG)
+#if defined(PYBIND_LOG_DETAIL)
           ,
           type(type_id<T>())
 #endif
@@ -1289,7 +1295,7 @@ public:
     object value;
     /// The (optional) description of the default value
     const char *descr;
-#if !defined(NDEBUG)
+#if defined(PYBIND_LOG_DETAIL)
     /// The C++ type name of the default value (only available when compiled in debug mode)
     std::string type;
 #endif
@@ -1487,7 +1493,7 @@ private:
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
             throw cast_error_unable_to_convert_call_arg();
 #else
             throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
@@ -1505,21 +1511,21 @@ private:
 
     void process(list & /*args_list*/, arg_v a) {
         if (!a.name) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
             nameless_argument_error();
 #else
             nameless_argument_error(a.type);
 #endif
         }
         if (m_kwargs.contains(a.name)) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
             multiple_values_error();
 #else
             multiple_values_error(a.name);
 #endif
         }
         if (!a.value) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
             throw cast_error_unable_to_convert_call_arg();
 #else
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
@@ -1534,7 +1540,7 @@ private:
         }
         for (auto k : reinterpret_borrow<dict>(kp)) {
             if (m_kwargs.contains(k.first)) {
-#if defined(NDEBUG)
+#if !defined(PYBIND_LOG_DETAIL)
                 multiple_values_error();
 #else
                 multiple_values_error(str(k.first));
