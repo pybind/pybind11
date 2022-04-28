@@ -32,9 +32,9 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if !defined(NDEBUG) || defined(PYBIND_LOG_DETAIL)
-#define PYBIND_LOG_DETAIL 1
+#    define PYBIND_LOG_DETAIL 1
 #else
-#undef PYBIND_LOG_DETAIL
+#    undef PYBIND_LOG_DETAIL
 #endif
 
 template <typename type, typename SFINAE = void>
