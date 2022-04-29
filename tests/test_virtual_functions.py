@@ -457,3 +457,14 @@ def test_python_override():
     for _ in range(1500):
         assert m.test_override_cache(func()) == 42
         assert m.test_override_cache(func2()) == 0
+
+
+def test_multiple_inheritance():
+    """Issue #3902."""
+
+    class A(m.MultipleInheritance):
+        def run(self):
+            return "success"
+
+    a = A()
+    assert a.run() == "success"

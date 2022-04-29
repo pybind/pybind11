@@ -187,6 +187,22 @@ struct Adder : AdderBase {
     }
 };
 
+// Multiple inheritance, issue #3902
+struct BaseMultipleInheritance1 {
+    virtual ~BaseMultipleInheritance1() {}
+};
+
+struct BaseMultipleInheritance2 {
+    virtual std::string run() const = 0;
+    virtual ~BaseMultipleInheritance2() {}
+};
+
+struct PyMultipleInheritance : BaseMultipleInheritance1, BaseMultipleInheritance2 {
+    virtual std::string run() const {
+        PYBIND11_OVERRIDE_PURE(std::string, BaseMultipleInheritance2, run, );
+    }
+};
+
 static void test_gil() {
     {
         py::gil_scoped_acquire lock;
@@ -411,6 +427,15 @@ TEST_SUBMODULE(virtual_functions, m) {
         .def("func", &test_override_cache_helper::func);
 
     m.def("test_override_cache", test_override_cache);
+
+    // test multiple inheritance
+    // #3902
+    py::class_<BaseMultipleInheritance2, PyMultipleInheritance>(
+        m, "MultipleInheritance", py::multiple_inheritance())
+        .def(py::init<>())
+        .def("run", &BaseMultipleInheritance2::run);
+    m.def("test_multiple_inheritance",
+          [](BaseMultipleInheritance2 *p) -> std::string { return p->run(); });
 }
 
 // Inheriting virtual methods.  We do two versions here: the repeat-everything version and the
