@@ -251,12 +251,7 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(ArrayType,
-                         const_name("List[") + value_conv::name
-                             + const_name<Resizable>(const_name(""),
-                                                     const_name("[") + const_name<Size>()
-                                                         + const_name("]"))
-                             + const_name("]"));
+    PYBIND11_TYPE_CASTER(ArrayType, const_name("List[") + value_conv::name + const_name("]"));
 };
 
 template <typename Type, size_t Size>
