@@ -361,7 +361,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 
     // test_bad_arg_default
     // Issue/PR #648: bad arg default debugging output
-#if !defined(NDEBUG)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
     m.attr("debug_enabled") = true;
 #else
     m.attr("debug_enabled") = false;

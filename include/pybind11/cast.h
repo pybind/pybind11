@@ -31,11 +31,6 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#if !defined(NDEBUG) || defined(PYBIND_LOG_DETAIL)
-#define PYBIND_LOG_DETAIL 1
-#else
-#undef PYBIND_LOG_DETAIL
-#endif
 
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
@@ -783,8 +778,8 @@ protected:
             return true;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
-#if !defined(PYBIND_LOG_DETAIL)
-                         "(compile in debug mode for type information)");
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for type information)");
 #else
                          "of type '"
                          + type_id<holder_type>() + "''");
@@ -1007,9 +1002,9 @@ struct return_value_policy_override<
 template <typename T, typename SFINAE>
 type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error(
-            "Unable to cast Python instance to C++ type (compile in debug mode for details)");
+            "Unable to cast Python instance to C++ type (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type "
                          + (std::string) str(type::handle_of(handle)) + " to C++ type '"
@@ -1074,10 +1069,10 @@ inline void handle::cast() const {
 template <typename T>
 detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error(
             "Unable to cast Python instance to C++ rvalue: instance has multiple references"
-            " (compile in debug mode for details)");
+            " (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
         throw cast_error("Unable to move from Python " + (std::string) str(type::handle_of(obj))
                          + " instance to C++ " + type_id<T>()
@@ -1178,10 +1173,10 @@ PYBIND11_NAMESPACE_END(detail)
 
 // The overloads could coexist, i.e. the #if is not strictly speaking needed,
 // but it is an easy minor optimization.
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
 inline cast_error cast_error_unable_to_convert_call_arg() {
     return cast_error(
-        "Unable to convert call argument to Python object (compile in debug mode for details)");
+        "Unable to convert call argument to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 }
 #else
 inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name,
@@ -1203,7 +1198,7 @@ tuple make_tuple(Args &&...args_) {
         detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg();
 #else
             std::array<std::string, size> argtypes{{type_id<Args>()...}};
@@ -1255,7 +1250,7 @@ private:
         : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
                          std::forward<T>(x), return_value_policy::automatic, {}))),
           descr(descr)
-#if defined(PYBIND_LOG_DETAIL)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
           ,
           type(type_id<T>())
 #endif
@@ -1295,7 +1290,7 @@ public:
     object value;
     /// The (optional) description of the default value
     const char *descr;
-#if defined(PYBIND_LOG_DETAIL)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
     /// The C++ type name of the default value (only available when compiled in debug mode)
     std::string type;
 #endif
@@ -1493,7 +1488,7 @@ private:
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg();
 #else
             throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
@@ -1511,21 +1506,21 @@ private:
 
     void process(list & /*args_list*/, arg_v a) {
         if (!a.name) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
 #else
             nameless_argument_error(a.type);
 #endif
         }
         if (m_kwargs.contains(a.name)) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             multiple_values_error();
 #else
             multiple_values_error(a.name);
 #endif
         }
         if (!a.value) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg();
 #else
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
@@ -1540,7 +1535,7 @@ private:
         }
         for (auto k : reinterpret_borrow<dict>(kp)) {
             if (m_kwargs.contains(k.first)) {
-#if !defined(PYBIND_LOG_DETAIL)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 multiple_values_error();
 #else
                 multiple_values_error(str(k.first));
@@ -1553,7 +1548,7 @@ private:
     [[noreturn]] static void nameless_argument_error() {
         throw type_error("Got kwargs without a name; only named arguments "
                          "may be passed via py::arg() to a python function call. "
-                         "(compile in debug mode for details)");
+                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
     }
     [[noreturn]] static void nameless_argument_error(const std::string &type) {
         throw type_error("Got kwargs without a name of type '" + type
@@ -1562,7 +1557,7 @@ private:
     }
     [[noreturn]] static void multiple_values_error() {
         throw type_error("Got multiple values for keyword argument "
-                         "(compile in debug mode for details)");
+                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
     }
 
     [[noreturn]] static void multiple_values_error(const std::string &name) {
@@ -1609,7 +1604,7 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
-#ifndef NDEBUG
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
     if (!PyGILState_Check()) {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }

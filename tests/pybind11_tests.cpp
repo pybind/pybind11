@@ -67,7 +67,7 @@ PYBIND11_MODULE(pybind11_tests, m) {
 
     bind_ConstructorStats(m);
 
-#if !defined(NDEBUG)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
     m.attr("debug_enabled") = true;
 #else
     m.attr("debug_enabled") = false;
