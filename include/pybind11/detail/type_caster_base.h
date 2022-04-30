@@ -399,10 +399,11 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
                   + get_fully_qualified_tp_name(find_type->type)
                   + "' is not a pybind11 base of the given `"
                   + get_fully_qualified_tp_name(Py_TYPE(this)) + "' instance");
-#else 
-    pybind11_fail("pybind11::detail::instance::get_value_and_holder: "
-                  "type is not a pybind11 base of the given instance "
-                  "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for type details)");
+#else
+    pybind11_fail(
+        "pybind11::detail::instance::get_value_and_holder: "
+        "type is not a pybind11 base of the given instance "
+        "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for type details)");
 #endif
 }
 
@@ -617,9 +618,10 @@ public:
                     detail::clean_type_id(type_name);
                     throw cast_error("return_value_policy = copy, but type " + type_name
                                      + " is non-copyable!");
-#else 
+#else
                     throw cast_error("return_value_policy = copy, but type is "
-                        "non-copyable! (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");                                     
+                                     "non-copyable! (#define PYBIND11_DETAILED_ERROR_MESSAGES or "
+                                     "compile in debug mode for details)");
 #endif
                 }
                 wrapper->owned = true;
@@ -636,10 +638,11 @@ public:
                     detail::clean_type_id(type_name);
                     throw cast_error("return_value_policy = move, but type " + type_name
                                      + " is neither movable nor copyable!");
-#else 
+#else
                     throw cast_error("return_value_policy = move, but type is neither "
                                      "movable nor copyable! "
-                                     "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");                                     
+                                     "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in "
+                                     "debug mode for details)");
 #endif
                 }
                 wrapper->owned = true;

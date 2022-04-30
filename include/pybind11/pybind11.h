@@ -519,7 +519,8 @@ protected:
                 pybind11_fail(
                     "overloading a method with both static and instance methods is not supported; "
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-                    "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+                    "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more "
+                    "details"
 #else
                     "error while attempting to bind "
                     + std::string(rec->is_method ? "instance" : "static") + " method "

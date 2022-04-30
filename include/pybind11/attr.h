@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "cast.h"
 #include "detail/common.h"
+#include "cast.h"
 
 #include <functional>
 
@@ -499,7 +499,8 @@ struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 #else
             pybind11_fail("arg(): could not convert default argument "
                           "into a Python object (type not registered yet?). "
-                          "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more information.");
+                          "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for "
+                          "more information.");
 #endif
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);
