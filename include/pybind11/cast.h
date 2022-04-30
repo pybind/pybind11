@@ -31,7 +31,6 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -779,7 +778,8 @@ protected:
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for type information)");
+                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for "
+                         "type information)");
 #else
                          "of type '"
                          + type_id<holder_type>() + "''");
@@ -1003,8 +1003,8 @@ template <typename T, typename SFINAE>
 type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-        throw cast_error(
-            "Unable to cast Python instance to C++ type (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
+        throw cast_error("Unable to cast Python instance to C++ type (#define "
+                         "PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type "
                          + (std::string) str(type::handle_of(handle)) + " to C++ type '"
@@ -1175,8 +1175,8 @@ PYBIND11_NAMESPACE_END(detail)
 // but it is an easy minor optimization.
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
 inline cast_error cast_error_unable_to_convert_call_arg() {
-    return cast_error(
-        "Unable to convert call argument to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
+    return cast_error("Unable to convert call argument to Python object (#define "
+                      "PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 }
 #else
 inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name,
@@ -1546,9 +1546,10 @@ private:
     }
 
     [[noreturn]] static void nameless_argument_error() {
-        throw type_error("Got kwargs without a name; only named arguments "
-                         "may be passed via py::arg() to a python function call. "
-                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
+        throw type_error(
+            "Got kwargs without a name; only named arguments "
+            "may be passed via py::arg() to a python function call. "
+            "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
     }
     [[noreturn]] static void nameless_argument_error(const std::string &type) {
         throw type_error("Got kwargs without a name of type '" + type
@@ -1556,8 +1557,9 @@ private:
                            "arguments may be passed via py::arg() to a python function call. ");
     }
     [[noreturn]] static void multiple_values_error() {
-        throw type_error("Got multiple values for keyword argument "
-                         "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
+        throw type_error(
+            "Got multiple values for keyword argument "
+            "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
     }
 
     [[noreturn]] static void multiple_values_error(const std::string &name) {
