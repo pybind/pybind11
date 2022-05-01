@@ -1815,11 +1815,6 @@ public:
 class frozenset : public anyset {
 public:
     PYBIND11_OBJECT_CVT(frozenset, anyset, PyFrozenSet_Check, PyFrozenSet_New)
-    frozenset() : anyset(PyFrozenSet_New(nullptr), stolen_t{}) {
-        if (!m_ptr) {
-            pybind11_fail("Could not allocate frozenset object!");
-        }
-    }
 };
 
 class function : public object {

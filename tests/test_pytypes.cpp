@@ -100,6 +100,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("anyset_contains",
           [](const py::anyset &set, const py::object &key) { return set.contains(key); });
     m.def("anyset_contains", [](const py::anyset &set, const char *key) { return set.contains(key); });
+    m.def("set_add", [](py::set &set, const py::object &key) { set.add(key); });
+    m.def("set_clear", [](py::set &set) { set.clear(); });
 
     // test_dict
     m.def("get_dict", []() { return py::dict("key"_a = "value"); });
@@ -319,6 +321,7 @@ TEST_SUBMODULE(pytypes, m) {
                         "list"_a = py::list(d["list"]),
                         "dict"_a = py::dict(d["dict"]),
                         "set"_a = py::set(d["set"]),
+                        "frozenset"_a = py::frozenset(d["frozenset"]),
                         "memoryview"_a = py::memoryview(d["memoryview"]));
     });
 
@@ -334,6 +337,7 @@ TEST_SUBMODULE(pytypes, m) {
                         "list"_a = d["list"].cast<py::list>(),
                         "dict"_a = d["dict"].cast<py::dict>(),
                         "set"_a = d["set"].cast<py::set>(),
+                        "frozenset"_a = d["frozenset"].cast<py::frozenset>(),
                         "memoryview"_a = d["memoryview"].cast<py::memoryview>());
     });
 

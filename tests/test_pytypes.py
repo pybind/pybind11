@@ -69,8 +69,8 @@ def test_set(capture, doc):
     assert isinstance(s, set)
     assert s == {"key1", "key2", "key3"}
 
+    s.add("key4")
     with capture:
-        s.add("key4")
         m.print_anyset(s)
     assert (
         capture.unordered
@@ -82,18 +82,18 @@ def test_set(capture, doc):
     """
     )
 
-    assert m.anyset_size(set() == 0
-    assert m.anyset_size(s) == 4
+    m.set_add(s, "key5")
+    assert m.anyset_size(s) == 5
 
-    assert m.anyset_empty(set())
-    assert not m.anyset_empty({42})
+    m.set_clear(s)
+    assert m.anyset_empty(s)
 
     assert not m.anyset_contains(set(), 42)
     assert m.anyset_contains({42}, 42)
     assert m.anyset_contains({"foo"}, "foo")
 
     assert doc(m.get_set) == "get_set() -> set"
-    assert doc(m.print_anyset) == "print_anyset(arg0: set) -> None"
+    assert doc(m.print_anyset) == "print_anyset(arg0: anyset) -> None"
 
 
 def test_frozenset(capture, doc):
@@ -111,12 +111,8 @@ def test_frozenset(capture, doc):
         key: key3
     """
     )
-
-    assert m.anyset_size(frozenset()) == 0
     assert m.anyset_size(s) == 3
-
-    assert m.anyset_empty(frozenset())
-    assert not m.anyset_empty(frozenset({42}))
+    assert not m.anyset_empty(s)
 
     assert not m.anyset_contains(frozenset(), 42)
     assert m.anyset_contains(frozenset({42}), 42)
@@ -338,6 +334,7 @@ def test_constructors():
         list: range(3),
         dict: [("two", 2), ("one", 1), ("three", 3)],
         set: [4, 4, 5, 6, 6, 6],
+        frozenset: [4, 4, 5, 6, 6, 6],
         memoryview: b"abc",
     }
     inputs = {k.__name__: v for k, v in data.items()}
