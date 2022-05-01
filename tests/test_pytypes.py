@@ -66,11 +66,12 @@ def test_none(capture, doc):
 
 def test_set(capture, doc):
     s = m.get_set()
+    assert isinstance(s, set)
     assert s == {"key1", "key2", "key3"}
 
     with capture:
         s.add("key4")
-        m.print_set(s)
+        m.print_anyset(s)
     assert (
         capture.unordered
         == """
@@ -81,12 +82,47 @@ def test_set(capture, doc):
     """
     )
 
-    assert not m.set_contains(set(), 42)
-    assert m.set_contains({42}, 42)
-    assert m.set_contains({"foo"}, "foo")
+    assert m.anyset_size(set() == 0
+    assert m.anyset_size(s) == 4
 
-    assert doc(m.get_list) == "get_list() -> list"
-    assert doc(m.print_list) == "print_list(arg0: list) -> None"
+    assert m.anyset_empty(set())
+    assert not m.anyset_empty({42})
+
+    assert not m.anyset_contains(set(), 42)
+    assert m.anyset_contains({42}, 42)
+    assert m.anyset_contains({"foo"}, "foo")
+
+    assert doc(m.get_set) == "get_set() -> set"
+    assert doc(m.print_anyset) == "print_anyset(arg0: set) -> None"
+
+
+def test_frozenset(capture, doc):
+    s = m.get_frozenset()
+    assert isinstance(s, frozenset)
+    assert s == frozenset({"key1", "key2", "key3"})
+
+    with capture:
+        m.print_anyset(s)
+    assert (
+        capture.unordered
+        == """
+        key: key1
+        key: key2
+        key: key3
+    """
+    )
+
+    assert m.anyset_size(frozenset()) == 0
+    assert m.anyset_size(s) == 3
+
+    assert m.anyset_empty(frozenset())
+    assert not m.anyset_empty(frozenset({42}))
+
+    assert not m.anyset_contains(frozenset(), 42)
+    assert m.anyset_contains(frozenset({42}), 42)
+    assert m.anyset_contains(frozenset({"foo"}), "foo")
+
+    assert doc(m.get_frozenset) == "get_frozenset() -> frozenset"
 
 
 def test_dict(capture, doc):
