@@ -647,8 +647,9 @@ private:
         for (auto field : attr("fields").attr("items")()) {
             auto spec = field.cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
-            auto format = spec[1].cast<tuple>()[0].cast<dtype>();
-            auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
+            auto spec_fo = spec[1].cast<tuple>();
+            auto format = spec_fo[0].cast<dtype>();
+            auto offset = spec_fo[1].cast<pybind11::int_>();
             if ((len(name) == 0u) && format.kind() == 'V') {
                 continue;
             }
