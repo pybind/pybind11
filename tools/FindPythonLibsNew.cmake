@@ -127,10 +127,11 @@ if USE_SYSCONFIG:
         scheme = 'posix_prefix'
     print(s.get_path('platinclude', scheme))
     print(s.get_path('platlib'))
+    print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))
 else:
     print(ds.get_python_inc(plat_specific=True));
     print(ds.get_python_lib(plat_specific=True));
-print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'));
+    print(ds.get_config_var('EXT_SUFFIX') or ds.get_config_var('SO'));
 print(hasattr(sys, 'gettotalrefcount')+0);
 print(struct.calcsize('@P'));
 print(s.get_config_var('LDVERSION') or s.get_config_var('VERSION'));
