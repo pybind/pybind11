@@ -99,7 +99,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("anyset_empty", [](const py::anyset &set) { return set.empty(); });
     m.def("anyset_contains",
           [](const py::anyset &set, const py::object &key) { return set.contains(key); });
-    m.def("anyset_contains", [](const py::anyset &set, const char *key) { return set.contains(key); });
+    m.def("anyset_contains",
+          [](const py::anyset &set, const char *key) { return set.contains(key); });
     m.def("set_add", [](py::set &set, const py::object &key) { set.add(key); });
     m.def("set_clear", [](py::set &set) { set.clear(); });
 
