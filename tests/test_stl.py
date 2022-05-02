@@ -14,6 +14,7 @@ def test_vector(doc):
 
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
+    assert m.load_bool_vector(tuple([True, False]))
 
     assert doc(m.cast_vector) == "cast_vector() -> List[int]"
     assert doc(m.load_vector) == "load_vector(arg0: List[int]) -> bool"
@@ -36,6 +37,7 @@ def test_array(doc):
     lst = m.cast_array()
     assert lst == [1, 2]
     assert m.load_array(lst)
+    assert m.load_array(tuple(lst))
 
     assert doc(m.cast_array) == "cast_array() -> List[int[2]]"
     assert doc(m.load_array) == "load_array(arg0: List[int[2]]) -> bool"
@@ -46,6 +48,7 @@ def test_valarray(doc):
     lst = m.cast_valarray()
     assert lst == [1, 4, 9]
     assert m.load_valarray(lst)
+    assert m.load_valarray(tuple(lst))
 
     assert doc(m.cast_valarray) == "cast_valarray() -> List[int]"
     assert doc(m.load_valarray) == "load_valarray(arg0: List[int]) -> bool"

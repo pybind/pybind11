@@ -600,13 +600,13 @@ inline handle get_function(handle value) {
 inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
     PyObject *kv = nullptr, *rv = nullptr;
     kv = PyUnicode_FromString(key);
-    if (kv == NULL) {
+    if (kv == nullptr) {
         throw error_already_set();
     }
 
     rv = PyDict_GetItemWithError(v, kv);
     Py_DECREF(kv);
-    if (rv == NULL && PyErr_Occurred()) {
+    if (rv == nullptr && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;
@@ -614,7 +614,7 @@ inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
 
 inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
     PyObject *rv = PyDict_GetItemWithError(v, key);
-    if (rv == NULL && PyErr_Occurred()) {
+    if (rv == nullptr && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;
@@ -1914,8 +1914,8 @@ public:
         return memoryview::from_buffer(reinterpret_cast<void *>(ptr),
                                        sizeof(T),
                                        format_descriptor<T>::value,
-                                       shape,
-                                       strides,
+                                       std::move(shape),
+                                       std::move(strides),
                                        readonly);
     }
 
@@ -1923,7 +1923,8 @@ public:
     static memoryview from_buffer(const T *ptr,
                                   detail::any_container<ssize_t> shape,
                                   detail::any_container<ssize_t> strides) {
-        return memoryview::from_buffer(const_cast<T *>(ptr), shape, strides, true);
+        return memoryview::from_buffer(
+            const_cast<T *>(ptr), std::move(shape), std::move(strides), true);
     }
 
     /** \rst

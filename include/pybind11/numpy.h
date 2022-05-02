@@ -263,7 +263,7 @@ private:
     static npy_api lookup() {
         module_ m = module_::import("numpy.core.multiarray");
         auto c = m.attr("_ARRAY_API");
-        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
+        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), nullptr);
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
@@ -547,9 +547,11 @@ public:
                     .ptr();
     }
 
-    explicit dtype(const std::string &format) : dtype(from_args(pybind11::str(format))) {}
+    explicit dtype(const pybind11::str &format) : dtype(from_args(format)) {}
 
-    explicit dtype(const char *format) : dtype(from_args(pybind11::str(format))) {}
+    explicit dtype(const std::string &format) : dtype(pybind11::str(format)) {}
+
+    explicit dtype(const char *format) : dtype(pybind11::str(format)) {}
 
     dtype(list names, list formats, list offsets, ssize_t itemsize) {
         dict args;
@@ -557,7 +559,7 @@ public:
         args["formats"] = std::move(formats);
         args["offsets"] = std::move(offsets);
         args["itemsize"] = pybind11::int_(itemsize);
-        m_ptr = from_args(std::move(args)).release().ptr();
+        m_ptr = from_args(args).release().ptr();
     }
 
     explicit dtype(int typenum)
@@ -568,7 +570,7 @@ public:
     }
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
-    static dtype from_args(object args) {
+    static dtype from_args(const object &args) {
         PyObject *ptr = nullptr;
         if ((detail::npy_api::get().PyArray_DescrConverter_(args.ptr(), &ptr) == 0) || !ptr) {
             throw error_already_set();
@@ -645,8 +647,9 @@ private:
         for (auto field : attr("fields").attr("items")()) {
             auto spec = field.cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
-            auto format = spec[1].cast<tuple>()[0].cast<dtype>();
-            auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
+            auto spec_fo = spec[1].cast<tuple>();
+            auto format = spec_fo[0].cast<dtype>();
+            auto offset = spec_fo[1].cast<pybind11::int_>();
             if ((len(name) == 0u) && format.kind() == 'V') {
                 continue;
             }
@@ -1549,7 +1552,7 @@ public:
     void *data() const { return p_ptr; }
 
 private:
-    char *p_ptr{0};
+    char *p_ptr{nullptr};
     container_type m_strides;
 };
 
