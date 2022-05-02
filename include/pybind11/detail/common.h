@@ -1157,5 +1157,12 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
 #endif
 
+// Pybind offers detailed error messages by default for all builts that are debug (through the
+// negation of ndebug). This can also be manually enabled by users, for any builds, through
+// defining PYBIND11_DETAILED_ERROR_MESSAGES.
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
+#    define PYBIND11_DETAILED_ERROR_MESSAGES
+#endif
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

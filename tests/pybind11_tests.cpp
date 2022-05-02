@@ -67,10 +67,10 @@ PYBIND11_MODULE(pybind11_tests, m) {
 
     bind_ConstructorStats(m);
 
-#if !defined(NDEBUG)
-    m.attr("debug_enabled") = true;
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+    m.attr("detailed_error_messages_enabled") = true;
 #else
-    m.attr("debug_enabled") = false;
+    m.attr("detailed_error_messages_enabled") = false;
 #endif
 
     py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")
