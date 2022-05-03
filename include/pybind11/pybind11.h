@@ -370,7 +370,7 @@ protected:
         rec->is_constructor = (std::strcmp(rec->name, "__init__") == 0)
                               || (std::strcmp(rec->name, "__setstate__") == 0);
 
-#if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
             const auto class_name
                 = detail::get_fully_qualified_tp_name((PyTypeObject *) rec->scope.ptr());
@@ -518,8 +518,9 @@ protected:
             if (chain->is_method != rec->is_method) {
                 pybind11_fail(
                     "overloading a method with both static and instance methods is not supported; "
-#if defined(NDEBUG)
-                    "compile in debug mode for more details"
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+                    "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more "
+                    "details"
 #else
                     "error while attempting to bind "
                     + std::string(rec->is_method ? "instance" : "static") + " method "
@@ -906,7 +907,7 @@ protected:
 
 // 5. Put everything in a vector.  Not technically step 5, we've been building it
 // in `call.args` all along.
-#if !defined(NDEBUG)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs) {
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number "
                                   "of arguments!");

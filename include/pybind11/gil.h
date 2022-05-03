@@ -62,7 +62,7 @@ public:
 
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
-#    if !defined(NDEBUG)
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (!tstate) {
                 pybind11_fail("scoped_acquire: could not create thread state!");
             }
@@ -84,7 +84,7 @@ public:
 
     PYBIND11_NOINLINE void dec_ref() {
         --tstate->gilstate_counter;
-#    if !defined(NDEBUG)
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         if (detail::get_thread_state_unchecked() != tstate) {
             pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
         }
@@ -93,7 +93,7 @@ public:
         }
 #    endif
         if (tstate->gilstate_counter == 0) {
-#    if !defined(NDEBUG)
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (!release) {
                 pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             }

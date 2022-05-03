@@ -61,6 +61,8 @@ void wrap(py::module m) {
 } // namespace exercise_trampoline
 
 TEST_SUBMODULE(pickling, m) {
+    m.def("simple_callable", []() { return 20220426; });
+
     // test_roundtrip
     class Pickleable {
     public:
