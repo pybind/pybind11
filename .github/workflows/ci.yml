@@ -392,7 +392,7 @@ jobs:
       run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3 yum-utils
 
     - name: Install NVidia HPC SDK
-      run:  sudo yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.3
+      run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.3
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
     # and allow deeper template recursion (not needed on CentOS 8 with a newer
