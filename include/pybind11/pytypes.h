@@ -458,7 +458,7 @@ public:
 
 private:
     mutable std::string m_lazy_what;
-    mutable object m_type, m_value, m_trace;
+    object m_type, m_value, m_trace;
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
