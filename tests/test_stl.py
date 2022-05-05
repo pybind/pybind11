@@ -73,6 +73,7 @@ def test_set(doc):
     assert s == {"key1", "key2"}
     s.add("key3")
     assert m.load_set(s)
+    assert m.load_set(frozenset(s))
 
     assert doc(m.cast_set) == "cast_set() -> Set[str]"
     assert doc(m.load_set) == "load_set(arg0: Set[str]) -> bool"

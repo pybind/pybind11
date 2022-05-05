@@ -1784,25 +1784,35 @@ class kwargs : public dict {
     PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)
 };
 
-class set : public object {
+class anyset : public object {
 public:
-    PYBIND11_OBJECT_CVT(set, object, PySet_Check, PySet_New)
-    set() : object(PySet_New(nullptr), stolen_t{}) {
+    PYBIND11_OBJECT(anyset, object, PyAnySet_Check)
+    size_t size() const { return static_cast<size_t>(PySet_Size(m_ptr)); }
+    bool empty() const { return size() == 0; }
+    template <typename T>
+    bool contains(T &&val) const {
+        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+    }
+};
+
+class set : public anyset {
+public:
+    PYBIND11_OBJECT_CVT(set, anyset, PySet_Check, PySet_New)
+    set() : anyset(PySet_New(nullptr), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate set object!");
         }
     }
-    size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    bool empty() const { return size() == 0; }
     template <typename T>
     bool add(T &&val) /* py-non-const */ {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
     void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
-    template <typename T>
-    bool contains(T &&val) const {
-        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
-    }
+};
+
+class frozenset : public anyset {
+public:
+    PYBIND11_OBJECT_CVT(frozenset, anyset, PyFrozenSet_Check, PyFrozenSet_New)
 };
 
 class function : public object {
