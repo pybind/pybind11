@@ -79,6 +79,9 @@ public:
     explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
+template <typename type>
+class type_caster<const type> : public type_caster<type> {};
+
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
 protected:                                                                                        \
     type value;                                                                                   \
@@ -908,6 +911,12 @@ struct handle_type_name<kwargs> {
 
 template <typename type>
 struct pyobject_caster {
+    template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
+    pyobject_caster() : value() {}
+
+    template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
+    pyobject_caster() : value(reinterpret_steal<type>(handle())) {}
+
     template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
     bool load(handle src, bool /* convert */) {
         value = src;
