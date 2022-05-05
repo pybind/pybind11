@@ -13,6 +13,7 @@
 #include "buffer_info.h"
 
 #include <exception>
+#include <iostream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -366,6 +367,13 @@ std::string error_string();
 std::string error_string(PyObject *, PyObject *, PyObject *);
 PYBIND11_NAMESPACE_END(detail)
 
+inline const char *class_name(PyObject *py) {
+    if (Py_TYPE(py) == &PyType_Type) {
+        return reinterpret_cast<PyTypeObject *>(py)->tp_name;
+    }
+    return Py_TYPE(py)->tp_name;
+}
+
 #if defined(_MSC_VER)
 #    pragma warning(push)
 #    pragma warning(disable : 4275 4251)
@@ -396,15 +404,40 @@ public:
         if (m_lazy_what.empty()) {
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-            } catch (const std::exception &e) {
-                m_lazy_what
-                    = std::string(
-                          "Unknown internal error occurred while constructing error_string: ")
-                      + e.what();
-                return m_lazy_what.c_str();
+                // Uncomment to test the catch (...) block:
+                // throw std::runtime_error("Something went wrong.");
             } catch (...) {
-                m_lazy_what = "Unknown internal error occurred";
-                return m_lazy_what.c_str();
+                // Terminating the process, to not mask the original error by errors in the error
+                // handling. Reporting the original error on stderr. Intentionally using the Python
+                // C API directly, to maximize reliability.
+                std::string msg
+                    = "FATAL failure building pybind11::error_already_set error_string: ";
+                if (m_type.ptr() == nullptr) {
+                    msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
+                } else {
+                    const char *tp_name = class_name(m_type.ptr());
+                    if (tp_name == nullptr) {
+                        msg += "PYTHON_EXCEPTION_TP_NAME_IS_NULLPTR";
+                    } else {
+                        msg += tp_name;
+                    }
+                }
+                msg += ": ";
+                PyObject *val_str = PyObject_Str(m_value.ptr());
+                if (val_str == nullptr) {
+                    msg += "PYTHON_EXCEPTION_VALUE_IS_NULLPTR";
+                } else {
+                    Py_ssize_t utf8_str_size = 0;
+                    const char *utf8_str = PyUnicode_AsUTF8AndSize(val_str, &utf8_str_size);
+                    if (utf8_str == nullptr) {
+                        msg += "PYTHON_EXCEPTION_VALUE_AS_UTF8_FAILURE";
+                    } else {
+                        msg += '"' + std::string(utf8_str, static_cast<std::size_t>(utf8_str_size))
+                               + '"';
+                    }
+                }
+                std::cerr << msg << std::endl;
+                std::terminate();
             }
         }
         assert(!m_lazy_what.empty());
