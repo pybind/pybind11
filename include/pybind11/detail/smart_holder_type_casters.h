@@ -722,9 +722,10 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 if (copy_constructor) {
                     valueptr = copy_constructor(src);
                 } else {
-#if defined(NDEBUG)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                     throw cast_error("return_value_policy = copy, but type is "
-                                     "non-copyable! (compile in debug mode for details)");
+                                     "non-copyable! (#define PYBIND11_DETAILED_ERROR_MESSAGES or "
+                                     "compile in debug mode for details)");
 #else
                     std::string type_name(tinfo->cpptype->name());
                     detail::clean_type_id(type_name);
@@ -741,10 +742,11 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 } else if (copy_constructor) {
                     valueptr = copy_constructor(src);
                 } else {
-#if defined(NDEBUG)
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                     throw cast_error("return_value_policy = move, but type is neither "
                                      "movable nor copyable! "
-                                     "(compile in debug mode for details)");
+                                     "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in "
+                                     "debug mode for details)");
 #else
                     std::string type_name(tinfo->cpptype->name());
                     detail::clean_type_id(type_name);
