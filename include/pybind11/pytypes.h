@@ -388,7 +388,7 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error("") {
+    error_already_set() noexcept : std::runtime_error("") {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (m_type) {
             PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
