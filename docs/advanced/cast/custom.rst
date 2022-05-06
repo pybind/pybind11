@@ -1,40 +1,36 @@
 Custom type casters
 ===================
 
-In very rare cases, applications may require custom type casters that cannot be
-expressed using the abstractions provided by pybind11, thus requiring raw
-Python C API calls. This is fairly advanced usage and should only be pursued by
-experts who are familiar with the intricacies of Python reference counting.
+Some applications may prefer custom type casters that convert between existing
+Python types and C++ types, similar to the ``list`` ↔ ``std::vector``
+and ``dict`` ↔ ``std::map`` conversions which are built into pybind11.
+Implementing custom type casters is fairly advanced usage and requires
+familiarity with the intricacies of the Python C API.
 
 The following snippets demonstrate how this works for a very simple ``inty``
-type that that should be convertible from Python types that provide a
-``__int__(self)`` method.
+type that we want to be convertible to C++ from any Python type that provides
+an ``__int__`` method, and is converted to a Python ``int`` when returned from
+C++ to Python.
 
 .. code-block:: cpp
+
+    namespace user_space {
 
     struct inty { long long_value; };
 
-    void print(inty s) {
-        std::cout << s.long_value << std::endl;
-    }
+    void print(inty s) { std::cout << s.long_value << std::endl; }
 
-The following Python snippet demonstrates the intended usage from the Python side:
+    inty return_42() { return inty{42}; }
 
-.. code-block:: python
+    } // namespace user_space
 
-    class A:
-        def __int__(self):
-            return 123
-
-
-    from example import print
-
-    print(A())
-
-To register the necessary conversion routines, it is necessary to define a
-caster class, and register it with the other pybind11 casters:
+The necessary conversion routines are defined by a caster class, which
+is then "plugged into" pybind11 using one of two alternative mechanisms.
+Starting with the example caster class:
 
 .. code-block:: cpp
+
+    namespace user_space {
 
     struct inty_type_caster {
     public:
@@ -74,43 +70,61 @@ caster class, and register it with the other pybind11 casters:
         }
     };
 
+    } // namespace user_space
+
 .. note::
 
-    A caster class defined with ``PYBIND11_TYPE_CASTER(T, ...)`` requires
+    A caster class using with ``PYBIND11_TYPE_CASTER(T, ...)`` requires
     that ``T`` is default-constructible (``value`` is first default constructed
-    and then ``load()`` assigns to it).
+    and then ``load()`` assigns to it). It is possible but more involved to define
+    a caster class for types that are not default-constructible.
 
-The caster defined above must be registered with pybind11.
-There are two ways to do it:
+The caster class defined above can be plugged into pybind11 in two ways:
 
-* As an instantiation of the ``pybind11::detail::type_caster<T>`` template.
-  Although this is an implementation detail, adding an instantiation of this
-  type is explicitly allowed:
+* Starting with pybind11 v2.10, a new — and the recommended — alternative is to *declare* a
+  function named ``pybind11_select_caster``:
+
+  .. code-block:: cpp
+
+    namespace user_space {
+
+    inty_type_caster pybind11_select_caster(inty*);
+
+    } // namespace user_space
+
+  The argument is a *pointer* to the C++ type, the return type is the caster type.
+  This function has no implementation! Its only purpose is to associate the C++ type
+  with its caster class. pybind11 exploits C++ Argument Dependent Lookup
+  (`ADL <https://en.cppreference.com/w/cpp/language/adl>`_)
+  to discover the association.
+
+  Note that ``pybind11_select_caster`` can alternatively be declared as a ``friend``
+  function of the C++ type, if that is practical and preferred:
+
+  .. code-block:: cpp
+
+      struct inty {
+          ...
+          friend inty_type_caster pybind11_select_caster(inty*);
+      }
+
+* An older alternative is to specialize the ``pybind11::detail::type_caster<T>`` template.
+  Although the ``detail`` namespace is involved, adding a ``type_caster`` specialization
+  is explicitly allowed:
 
   .. code-block:: cpp
 
       namespace pybind11 { namespace detail {
-          template <> struct type_caster<inty> : inty_type_caster {};
+          template <> struct type_caster<inty> : user_space::inty_type_caster {};
       }} // namespace pybind11::detail
+
+  .. note::
+      ``type_caster` specializations may be full (as in this simple example) or partial.
 
   .. warning::
 
-      When using this method, it's important to declare them consistently
-      in every compilation unit of the Python extension module. Otherwise,
-      undefined behavior can ensue.
-
-* When you own the namespace where the type is defined, the preferred method
-  is to *declare* a function named ``pybind11_select_caster``, its only purpose
-  is to associate the C++ type with its caster class:
-
-  .. code-block:: cpp
-
-      struct inty_type_caster;
-
-      struct inty {
-        ...
-        friend inty_type_caster pybind11_select_caster(inty*);
-      }
-
-  The argument is a *pointer* to the C++ type, the return type is the
-  caster type. This function has no implementation!
+      When using this method, it is important to declare the specializations
+      consistently in all compilation units of a Python extension module.
+      Otherwise the One Definition Rule
+      (`ODR <https://en.cppreference.com/w/cpp/language/definition>`_)
+      is violated, which can result in undefined behavior.
