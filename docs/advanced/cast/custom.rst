@@ -50,13 +50,18 @@ Starting with the example caster class:
             PyObject *source = src.ptr();
             /* Try converting into a Python integer value */
             PyObject *tmp = PyNumber_Long(source);
-            if (!tmp)
+            if (!tmp) {
                 return false;
+            }
             /* Now try to convert into a C++ int */
             value.long_value = PyLong_AsLong(tmp);
             Py_DECREF(tmp);
             /* Ensure return code was OK (to avoid out-of-range errors etc) */
-            return !(value.long_value == -1 && !PyErr_Occurred());
+            if (PyErr_Occurred()) {
+              PyErr_Clear();
+              return false;
+            }
+            return true;
         }
         /**
          * Conversion part 2 (C++ -> Python): convert an inty instance into
@@ -115,7 +120,7 @@ The caster class defined above can be plugged into pybind11 in two ways:
   .. code-block:: cpp
 
       namespace pybind11 { namespace detail {
-          template <> struct type_caster<inty> : user_space::inty_type_caster {};
+          template <> struct type_caster<user_space::inty> : user_space::inty_type_caster {};
       }} // namespace pybind11::detail
 
   .. note::
