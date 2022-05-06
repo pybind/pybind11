@@ -395,8 +395,13 @@ public:
         }
     }
 
-    error_already_set(const error_already_set &) noexcept = default;
-    error_already_set(error_already_set &&) noexcept = default;
+    error_already_set(const error_already_set &e) noexcept
+        : std::runtime_error(e),
+          m_lazy_what{e.m_lazy_what}, m_type{e.m_type}, m_value{e.m_value}, m_trace{e.m_trace} {};
+    error_already_set(error_already_set &&e) noexcept
+        : std::runtime_error(e), m_lazy_what{std::move(e.m_lazy_what)},
+          m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)}, m_trace{
+                                                                          std::move(e.m_trace)} {};
 
     inline ~error_already_set() override;
 
