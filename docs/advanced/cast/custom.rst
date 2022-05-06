@@ -39,13 +39,13 @@ Starting with the example caster class:
          * function signatures and declares a local variable
          * 'value' of type inty
          */
-        PYBIND11_TYPE_CASTER(inty, const_name("inty"));
+        PYBIND11_TYPE_CASTER(inty, pybind11::const_name("inty"));
         /**
          * Conversion part 1 (Python->C++): convert a PyObject into a inty
          * instance or return false upon failure. The second argument
          * indicates whether implicit conversions should be applied.
          */
-        bool load(handle src, bool) {
+        bool load(pybind11::handle src, bool) {
             /* Extract PyObject from handle */
             PyObject *source = src.ptr();
             /* Try converting into a Python integer value */
@@ -58,8 +58,8 @@ Starting with the example caster class:
             Py_DECREF(tmp);
             /* Ensure return code was OK (to avoid out-of-range errors etc) */
             if (PyErr_Occurred()) {
-              PyErr_Clear();
-              return false;
+                PyErr_Clear();
+                return false;
             }
             return true;
         }
@@ -70,7 +70,9 @@ Starting with the example caster class:
          * ``return_value_policy::reference_internal``) and are generally
          * ignored by implicit casters.
          */
-        static handle cast(inty src, return_value_policy /* policy */, handle /* parent */) {
+        static pybind11::handle cast(inty src,
+                                     pybind11::return_value_policy /* policy */,
+                                     pybind11::handle /* parent */) {
             return PyLong_FromLong(src.long_value);
         }
     };
@@ -79,7 +81,7 @@ Starting with the example caster class:
 
 .. note::
 
-    A caster class using with ``PYBIND11_TYPE_CASTER(T, ...)`` requires
+    A caster class using ``PYBIND11_TYPE_CASTER(T, ...)`` requires
     that ``T`` is default-constructible (``value`` is first default constructed
     and then ``load()`` assigns to it). It is possible but more involved to define
     a caster class for types that are not default-constructible.
@@ -108,10 +110,12 @@ The caster class defined above can be plugged into pybind11 in two ways:
 
   .. code-block:: cpp
 
+      struct inty_type_caster;
+
       struct inty {
           ...
           friend inty_type_caster pybind11_select_caster(inty*);
-      }
+      };
 
 * An older alternative is to specialize the ``pybind11::detail::type_caster<T>`` template.
   Although the ``detail`` namespace is involved, adding a ``type_caster`` specialization
@@ -126,10 +130,8 @@ The caster class defined above can be plugged into pybind11 in two ways:
   .. note::
       ``type_caster` specializations may be full (as in this simple example) or partial.
 
-  .. warning::
-
-      When using this method, it is important to declare the specializations
-      consistently in all compilation units of a Python extension module.
-      Otherwise the One Definition Rule
-      (`ODR <https://en.cppreference.com/w/cpp/language/definition>`_)
-      is violated, which can result in undefined behavior.
+.. warning::
+    With either alternative, for a given type ``T``, the ``pybind11_select_caster``
+    declaration or ``type_caster`` specialization must be consistent across all compilation
+    units of a Python extension module, to satisfy the C++ One Definition Rule
+    (`ODR <https://en.cppreference.com/w/cpp/language/definition>`_).
