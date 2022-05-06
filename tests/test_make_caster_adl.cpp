@@ -25,10 +25,14 @@ struct unnamed_ns_type_mock {};
 struct unnamed_ns_mock_caster {
     static int num() { return 303; }
 };
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 PYBIND11_MAYBE_UNUSED unnamed_ns_mock_caster pybind11_select_caster(unnamed_ns_type_mock *);
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#    pragma GCC diagnostic pop
+#endif
 } // namespace
 
 namespace mrc_ns { // minimal real caster
