@@ -4,7 +4,7 @@ import sys
 import pytest
 
 import env
-from pybind11_tests import debug_enabled
+from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
 
@@ -66,11 +66,12 @@ def test_none(capture, doc):
 
 def test_set(capture, doc):
     s = m.get_set()
+    assert isinstance(s, set)
     assert s == {"key1", "key2", "key3"}
 
+    s.add("key4")
     with capture:
-        s.add("key4")
-        m.print_set(s)
+        m.print_anyset(s)
     assert (
         capture.unordered
         == """
@@ -81,12 +82,43 @@ def test_set(capture, doc):
     """
     )
 
-    assert not m.set_contains(set(), 42)
-    assert m.set_contains({42}, 42)
-    assert m.set_contains({"foo"}, "foo")
+    m.set_add(s, "key5")
+    assert m.anyset_size(s) == 5
 
-    assert doc(m.get_list) == "get_list() -> list"
-    assert doc(m.print_list) == "print_list(arg0: list) -> None"
+    m.set_clear(s)
+    assert m.anyset_empty(s)
+
+    assert not m.anyset_contains(set(), 42)
+    assert m.anyset_contains({42}, 42)
+    assert m.anyset_contains({"foo"}, "foo")
+
+    assert doc(m.get_set) == "get_set() -> set"
+    assert doc(m.print_anyset) == "print_anyset(arg0: anyset) -> None"
+
+
+def test_frozenset(capture, doc):
+    s = m.get_frozenset()
+    assert isinstance(s, frozenset)
+    assert s == frozenset({"key1", "key2", "key3"})
+
+    with capture:
+        m.print_anyset(s)
+    assert (
+        capture.unordered
+        == """
+        key: key1
+        key: key2
+        key: key3
+    """
+    )
+    assert m.anyset_size(s) == 3
+    assert not m.anyset_empty(s)
+
+    assert not m.anyset_contains(frozenset(), 42)
+    assert m.anyset_contains(frozenset({42}), 42)
+    assert m.anyset_contains(frozenset({"foo"}), "foo")
+
+    assert doc(m.get_frozenset) == "get_frozenset() -> frozenset"
 
 
 def test_dict(capture, doc):
@@ -196,6 +228,19 @@ def test_capsule(capture):
     )
 
     with capture:
+        a = m.return_renamed_capsule_with_destructor()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        renaming capsule
+        destructing capsule
+    """
+    )
+
+    with capture:
         a = m.return_capsule_with_destructor_2()
         del a
         pytest.gc_collect()
@@ -203,6 +248,19 @@ def test_capsule(capture):
         capture.unordered
         == """
         creating capsule
+        destructing capsule: 1234
+    """
+    )
+
+    with capture:
+        a = m.return_renamed_capsule_with_destructor_2()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        renaming capsule
         destructing capsule: 1234
     """
     )
@@ -276,6 +334,7 @@ def test_constructors():
         list: range(3),
         dict: [("two", 2), ("one", 1), ("three", 3)],
         set: [4, 4, 5, 6, 6, 6],
+        frozenset: [4, 4, 5, 6, 6, 6],
         memoryview: b"abc",
     }
     inputs = {k.__name__: v for k, v in data.items()}
@@ -390,8 +449,8 @@ def test_print(capture):
         m.print_failure()
     assert str(excinfo.value) == "Unable to convert call argument " + (
         "'1' of type 'UnregisteredType' to Python object"
-        if debug_enabled
-        else "to Python object (compile in debug mode for details)"
+        if detailed_error_messages_enabled
+        else "to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
 
 

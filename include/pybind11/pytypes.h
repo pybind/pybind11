@@ -600,13 +600,13 @@ inline handle get_function(handle value) {
 inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
     PyObject *kv = nullptr, *rv = nullptr;
     kv = PyUnicode_FromString(key);
-    if (kv == NULL) {
+    if (kv == nullptr) {
         throw error_already_set();
     }
 
     rv = PyDict_GetItemWithError(v, kv);
     Py_DECREF(kv);
-    if (rv == NULL && PyErr_Occurred()) {
+    if (rv == nullptr && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;
@@ -614,7 +614,7 @@ inline PyObject *dict_getitemstring(PyObject *v, const char *key) {
 
 inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
     PyObject *rv = PyDict_GetItemWithError(v, key);
-    if (rv == NULL && PyErr_Occurred()) {
+    if (rv == nullptr && PyErr_Occurred()) {
         throw error_already_set();
     }
     return rv;
@@ -1588,7 +1588,8 @@ public:
                 }
                 pybind11_fail("Unable to get capsule context");
             }
-            void *ptr = PyCapsule_GetPointer(o, nullptr);
+            const char *name = get_name_in_error_scope(o);
+            void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
             }
@@ -1602,7 +1603,8 @@ public:
 
     explicit capsule(void (*destructor)()) {
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
-            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
+            const char *name = get_name_in_error_scope(o);
+            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, name));
             if (destructor == nullptr) {
                 throw error_already_set();
             }
@@ -1637,7 +1639,33 @@ public:
         }
     }
 
-    const char *name() const { return PyCapsule_GetName(m_ptr); }
+    const char *name() const {
+        const char *name = PyCapsule_GetName(m_ptr);
+        if ((name == nullptr) && PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        return name;
+    }
+
+    /// Replaces a capsule's name *without* calling the destructor on the existing one.
+    void set_name(const char *new_name) {
+        if (PyCapsule_SetName(m_ptr, new_name) != 0) {
+            throw error_already_set();
+        }
+    }
+
+private:
+    static const char *get_name_in_error_scope(PyObject *o) {
+        error_scope error_guard;
+
+        const char *name = PyCapsule_GetName(o);
+        if ((name == nullptr) && PyErr_Occurred()) {
+            // write out and consume error raised by call to PyCapsule_GetName
+            PyErr_WriteUnraisable(o);
+        }
+
+        return name;
+    }
 };
 
 class tuple : public object {
@@ -1756,25 +1784,35 @@ class kwargs : public dict {
     PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)
 };
 
-class set : public object {
+class anyset : public object {
 public:
-    PYBIND11_OBJECT_CVT(set, object, PySet_Check, PySet_New)
-    set() : object(PySet_New(nullptr), stolen_t{}) {
+    PYBIND11_OBJECT(anyset, object, PyAnySet_Check)
+    size_t size() const { return static_cast<size_t>(PySet_Size(m_ptr)); }
+    bool empty() const { return size() == 0; }
+    template <typename T>
+    bool contains(T &&val) const {
+        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+    }
+};
+
+class set : public anyset {
+public:
+    PYBIND11_OBJECT_CVT(set, anyset, PySet_Check, PySet_New)
+    set() : anyset(PySet_New(nullptr), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate set object!");
         }
     }
-    size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    bool empty() const { return size() == 0; }
     template <typename T>
     bool add(T &&val) /* py-non-const */ {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
     void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
-    template <typename T>
-    bool contains(T &&val) const {
-        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
-    }
+};
+
+class frozenset : public anyset {
+public:
+    PYBIND11_OBJECT_CVT(frozenset, anyset, PyFrozenSet_Check, PyFrozenSet_New)
 };
 
 class function : public object {
@@ -1886,8 +1924,8 @@ public:
         return memoryview::from_buffer(reinterpret_cast<void *>(ptr),
                                        sizeof(T),
                                        format_descriptor<T>::value,
-                                       shape,
-                                       strides,
+                                       std::move(shape),
+                                       std::move(strides),
                                        readonly);
     }
 
@@ -1895,7 +1933,8 @@ public:
     static memoryview from_buffer(const T *ptr,
                                   detail::any_container<ssize_t> shape,
                                   detail::any_container<ssize_t> strides) {
-        return memoryview::from_buffer(const_cast<T *>(ptr), shape, strides, true);
+        return memoryview::from_buffer(
+            const_cast<T *>(ptr), std::move(shape), std::move(strides), true);
     }
 
     /** \rst

@@ -992,6 +992,8 @@ constexpr const char
 struct error_scope {
     PyObject *type, *value, *trace;
     error_scope() { PyErr_Fetch(&type, &value, &trace); }
+    error_scope(const error_scope &) = delete;
+    error_scope &operator=(const error_scope &) = delete;
     ~error_scope() { PyErr_Restore(type, value, trace); }
 };
 
@@ -1153,6 +1155,13 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
 #else
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
+#endif
+
+// Pybind offers detailed error messages by default for all builts that are debug (through the
+// negation of ndebug). This can also be manually enabled by users, for any builds, through
+// defining PYBIND11_DETAILED_ERROR_MESSAGES.
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
+#    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
