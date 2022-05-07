@@ -12,13 +12,21 @@ type that we want to be convertible to C++ from any Python type that provides
 an ``__int__`` method, and is converted to a Python ``int`` when returned from
 C++ to Python.
 
+..
+    PLEASE KEEP THE CODE BLOCKS IN SYNC WITH
+        tests/test_docs_advanced_cast_custom.cpp
+    Ideally, change the test, run pre-commit (incl. clang-format),
+    then copy the changed code back here.
+
 .. code-block:: cpp
 
     namespace user_space {
 
-    struct inty { long long_value; };
+    struct inty {
+        long long_value;
+    };
 
-    void print(inty s) { std::cout << s.long_value << std::endl; }
+    std::string to_string(const inty &s) { return std::to_string(s.long_value); }
 
     inty return_42() { return inty{42}; }
 
@@ -34,45 +42,35 @@ Starting with the example caster class:
 
     struct inty_type_caster {
     public:
-        /**
-         * This macro establishes the name 'inty' in
-         * function signatures and declares a local variable
-         * 'value' of type inty
-         */
-        PYBIND11_TYPE_CASTER(inty, pybind11::const_name("inty"));
-        /**
-         * Conversion part 1 (Python->C++): convert a PyObject into a inty
-         * instance or return false upon failure. The second argument
-         * indicates whether implicit conversions should be applied.
-         */
+        // This macro establishes the name 'inty' in function signatures and declares a local variable
+        // 'value' of type inty.
+        PYBIND11_TYPE_CASTER(inty, pybind11::detail::const_name("inty"));
+
+        // Python -> C++: convert a PyObject into an inty instance or return false upon failure. The
+        // second argument indicates whether implicit conversions should be allowed.
         bool load(pybind11::handle src, bool) {
-            /* Extract PyObject from handle */
+            // Extract PyObject from handle.
             PyObject *source = src.ptr();
-            /* Try converting into a Python integer value */
+            // Try converting into a Python integer value.
             PyObject *tmp = PyNumber_Long(source);
             if (!tmp) {
                 return false;
             }
-            /* Now try to convert into a C++ int */
+            // Now try to convert into a C++ int.
             value.long_value = PyLong_AsLong(tmp);
             Py_DECREF(tmp);
-            /* Ensure return code was OK (to avoid out-of-range errors etc) */
+            // Ensure PyLong_AsLong succeeded (to catch out-of-range errors etc).
             if (PyErr_Occurred()) {
                 PyErr_Clear();
                 return false;
             }
             return true;
         }
-        /**
-         * Conversion part 2 (C++ -> Python): convert an inty instance into
-         * a Python object. The second and third arguments are used to
-         * indicate the return value policy and parent object (for
-         * ``return_value_policy::reference_internal``) and are generally
-         * ignored by implicit casters.
-         */
-        static pybind11::handle cast(inty src,
-                                     pybind11::return_value_policy /* policy */,
-                                     pybind11::handle /* parent */) {
+        // C++ -> Python: convert an inty instance into a Python object. The second and third arguments
+        // are used to indicate the return value policy and parent object (for
+        // return_value_policy::reference_internal) and are often ignored by custom casters.
+        static pybind11::handle
+        cast(inty src, pybind11::return_value_policy /* policy */, pybind11::handle /* parent */) {
             return PyLong_FromLong(src.long_value);
         }
     };
@@ -95,7 +93,7 @@ The caster class defined above can be plugged into pybind11 in two ways:
 
     namespace user_space {
 
-    inty_type_caster pybind11_select_caster(inty*);
+    inty_type_caster pybind11_select_caster(inty *);
 
     } // namespace user_space
 
@@ -110,12 +108,12 @@ The caster class defined above can be plugged into pybind11 in two ways:
 
   .. code-block:: cpp
 
-      struct inty_type_caster;
+    struct inty_type_caster;
 
-      struct inty {
-          ...
-          friend inty_type_caster pybind11_select_caster(inty*);
-      };
+    struct inty {
+        ...
+        friend inty_type_caster pybind11_select_caster(inty *);
+    };
 
 * An older alternative is to specialize the ``pybind11::detail::type_caster<T>`` template.
   Although the ``detail`` namespace is involved, adding a ``type_caster`` specialization
@@ -123,9 +121,12 @@ The caster class defined above can be plugged into pybind11 in two ways:
 
   .. code-block:: cpp
 
-      namespace pybind11 { namespace detail {
-          template <> struct type_caster<user_space::inty> : user_space::inty_type_caster {};
-      }} // namespace pybind11::detail
+    namespace pybind11 {
+    namespace detail {
+    template <>
+    struct type_caster<user_space::inty> : user_space::inty_type_caster {};
+    } // namespace detail
+    } // namespace pybind11
 
   .. note::
       ``type_caster` specializations may be full (as in this simple example) or partial.
