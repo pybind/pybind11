@@ -106,7 +106,7 @@ inline void custom_delete(void *raw_ptr) {
 template <typename T, typename D>
 guarded_delete make_guarded_custom_deleter(bool armed_flag) {
     return guarded_delete(custom_delete<T, D>, armed_flag);
-};
+}
 
 template <typename T>
 inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
