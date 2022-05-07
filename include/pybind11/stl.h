@@ -13,9 +13,9 @@
 #include "detail/common.h"
 
 #include <deque>
-#include <iostream>
 #include <list>
 #include <map>
+#include <ostream>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
