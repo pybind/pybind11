@@ -1,4 +1,4 @@
-from pybind11_tests import make_caster_adl_alt as m
+from pybind11_tests import select_caster_alt as m
 
 
 def test_mock_casters():

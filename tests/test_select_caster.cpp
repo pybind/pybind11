@@ -1,4 +1,6 @@
-// adl = Argument Dependent Lookup
+// Copyright (c) 2022 The Pybind Development Team.
+// All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 
 #include "pybind11_tests.h"
 
@@ -73,7 +75,7 @@ struct minimal_real_caster {
 
 } // namespace mrc_ns
 
-TEST_SUBMODULE(make_caster_adl, m) {
+TEST_SUBMODULE(select_caster, m) {
     m.def("have_a_ns_num", []() { return py::detail::make_caster<have_a_ns::type_mock>::num(); });
     m.def("global_ns_num", []() { return py::detail::make_caster<global_ns_type_mock>::num(); });
     m.def("unnamed_ns_num", []() { return py::detail::make_caster<unnamed_ns_type_mock>::num(); });
