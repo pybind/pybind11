@@ -64,6 +64,7 @@ public:
         }
         return true;
     }
+
     // C++ -> Python: convert an inty instance into a Python object. The second and third arguments
     // are used to indicate the return value policy and parent object (for
     // return_value_policy::reference_internal) and are often ignored by custom casters.

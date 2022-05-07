@@ -34,6 +34,7 @@ C++ to Python.
 
 The necessary conversion routines are defined by a caster class, which
 is then "plugged into" pybind11 using one of two alternative mechanisms.
+
 Starting with the example caster class:
 
 .. code-block:: cpp
@@ -66,6 +67,7 @@ Starting with the example caster class:
             }
             return true;
         }
+
         // C++ -> Python: convert an inty instance into a Python object. The second and third arguments
         // are used to indicate the return value policy and parent object (for
         // return_value_policy::reference_internal) and are often ignored by custom casters.
