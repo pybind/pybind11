@@ -25,6 +25,8 @@ struct unnamed_ns_type_mock {};
 struct unnamed_ns_mock_caster {
     static int num() { return 303; }
 };
+// Some GCCs may not need this, but there is very little to gain for making this condition more
+// complex.
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wunused-function"
