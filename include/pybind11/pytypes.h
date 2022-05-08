@@ -12,6 +12,7 @@
 #include "detail/common.h"
 #include "buffer_info.h"
 
+#include <cstdio>
 #include <exception>
 #include <iostream>
 #include <string>
@@ -367,13 +368,6 @@ std::string error_string();
 std::string error_string(PyObject *, PyObject *, PyObject *);
 PYBIND11_NAMESPACE_END(detail)
 
-inline const char *class_name(PyObject *py) {
-    if (Py_TYPE(py) == &PyType_Type) {
-        return reinterpret_cast<PyTypeObject *>(py)->tp_name;
-    }
-    return Py_TYPE(py)->tp_name;
-}
-
 #if defined(_MSC_VER)
 #    pragma warning(push)
 #    pragma warning(disable : 4275 4251)
@@ -388,20 +382,17 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
-    error_already_set() noexcept : std::runtime_error("") {
+    error_already_set() : std::runtime_error("") {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (m_type) {
             PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         }
     }
 
-    error_already_set(const error_already_set &e) noexcept
-        : std::runtime_error(e),
-          m_lazy_what{e.m_lazy_what}, m_type{e.m_type}, m_value{e.m_value}, m_trace{e.m_trace} {};
+    error_already_set(const error_already_set &e) = default;
     error_already_set(error_already_set &&e) noexcept
-        : std::runtime_error(e), m_lazy_what{std::move(e.m_lazy_what)},
-          m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)}, m_trace{
-                                                                          std::move(e.m_trace)} {};
+        : std::runtime_error(e), m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
+          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
 
     inline ~error_already_set() override;
 
@@ -420,7 +411,7 @@ public:
                 if (m_type.ptr() == nullptr) {
                     msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
                 } else {
-                    const char *tp_name = class_name(m_type.ptr());
+                    const char *tp_name = get_class_name(m_type.ptr());
                     if (tp_name == nullptr) {
                         msg += "PYTHON_EXCEPTION_TP_NAME_IS_NULLPTR";
                     } else {
@@ -441,7 +432,11 @@ public:
                                + '"';
                     }
                 }
-                std::cerr << msg << std::endl;
+                // Use C calls to reduce include bloat
+                fprintf(stderr, "%s\n", msg.c_str());
+                fflush(stderr);
+                fprintf(stdout, "%s\n", msg.c_str());
+                fflush(stdout);
                 std::terminate();
             }
         }
@@ -495,8 +490,15 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
-    mutable std::string m_lazy_what;
     object m_type, m_value, m_trace;
+    mutable std::string m_lazy_what;
+
+    static const char *get_class_name(PyObject *py) {
+        if (Py_TYPE(py) == &PyType_Type) {
+            return reinterpret_cast<PyTypeObject *>(py)->tp_name;
+        }
+        return Py_TYPE(py)->tp_name;
+    }
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
