@@ -34,6 +34,10 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 
+namespace {
+struct unique_to_translation_unit {};
+} // namespace
+
 template <typename IntrinsicType>
 type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
 
@@ -58,7 +62,7 @@ using make_caster = make_caster_impl<intrinsic_t<type>>;
 
 #else
 
-template <typename type>
+template <typename type, typename = unique_to_translation_unit>
 using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr)));
 
 #endif
