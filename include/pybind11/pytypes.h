@@ -388,7 +388,7 @@ public:
         }
     }
 
-    error_already_set(const error_already_set &e) = default;
+    error_already_set(const error_already_set &) = default;
     error_already_set(error_already_set &&e) noexcept
         : std::runtime_error(e), m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
           m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
