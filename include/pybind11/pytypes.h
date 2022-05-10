@@ -365,6 +365,14 @@ T reinterpret_steal(handle h) {
 PYBIND11_NAMESPACE_BEGIN(detail)
 std::string error_string();
 std::string error_string(PyObject *, PyObject *, PyObject *);
+
+inline const char *obj_class_name(PyObject *obj) {
+    if (Py_TYPE(obj) == &PyType_Type) {
+        return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
+    }
+    return Py_TYPE(obj)->tp_name;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -403,14 +411,14 @@ public:
                 // throw std::runtime_error("Something went wrong.");
             } catch (...) {
                 // Terminating the process, to not mask the original error by errors in the error
-                // handling. Reporting the original error on stderr. Intentionally using the Python
-                // C API directly, to maximize reliability.
+                // handling. Reporting the original error on stderr & stdout. Intentionally using
+                // the Python C API directly, to maximize reliability.
                 std::string msg
                     = "FATAL failure building pybind11::error_already_set error_string: ";
                 if (m_type.ptr() == nullptr) {
                     msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
                 } else {
-                    const char *tp_name = get_class_name(m_type.ptr());
+                    const char *tp_name = detail::obj_class_name(m_type.ptr());
                     if (tp_name == nullptr) {
                         msg += "PYTHON_EXCEPTION_TP_NAME_IS_NULLPTR";
                     } else {
@@ -431,10 +439,11 @@ public:
                                + '"';
                     }
                 }
-                // Use C calls to reduce include bloat
-                fprintf(stderr, "%s\n", msg.c_str());
+                // Intentionally using C calls to maximize reliability (and to avoid #include
+                // <iostream>).
+                fprintf(stderr, "%s [STDERR]\n", msg.c_str());
                 fflush(stderr);
-                fprintf(stdout, "%s\n", msg.c_str());
+                fprintf(stdout, "%s [STDOUT]\n", msg.c_str());
                 fflush(stdout);
                 std::terminate();
             }
@@ -491,13 +500,6 @@ public:
 private:
     object m_type, m_value, m_trace;
     mutable std::string m_lazy_what;
-
-    static const char *get_class_name(PyObject *py) {
-        if (Py_TYPE(py) == &PyType_Type) {
-            return reinterpret_cast<PyTypeObject *>(py)->tp_name;
-        }
-        return Py_TYPE(py)->tp_name;
-    }
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
