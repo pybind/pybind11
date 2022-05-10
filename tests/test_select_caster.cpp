@@ -9,9 +9,8 @@ struct mock_caster {
     static int num() { return 101; }
 };
 struct type_mock {
-    friend mock_caster pybind11_select_caster(type_mock *);
+    friend mock_caster pybind11_select_caster(type_mock *, py::detail::global_caster);
 };
-
 } // namespace have_a_ns
 
 // namespace global {
@@ -19,7 +18,7 @@ struct global_ns_type_mock {};
 struct global_ns_mock_caster {
     static int num() { return 202; }
 };
-global_ns_mock_caster pybind11_select_caster(global_ns_type_mock *);
+global_ns_mock_caster pybind11_select_caster(global_ns_type_mock *, py::detail::global_caster);
 // } // namespace global
 
 namespace {
@@ -33,7 +32,8 @@ struct unnamed_ns_mock_caster {
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wunused-function"
 #endif
-PYBIND11_MAYBE_UNUSED unnamed_ns_mock_caster pybind11_select_caster(unnamed_ns_type_mock *);
+PYBIND11_MAYBE_UNUSED unnamed_ns_mock_caster pybind11_select_caster(unnamed_ns_type_mock *,
+                                                                    py::detail::global_caster);
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #    pragma GCC diagnostic pop
 #endif
@@ -45,7 +45,7 @@ struct minimal_real_caster;
 
 struct type_mrc {
     int value = -9999;
-    friend minimal_real_caster pybind11_select_caster(type_mrc *);
+    friend minimal_real_caster pybind11_select_caster(type_mrc *, py::detail::global_caster);
 };
 
 struct minimal_real_caster {

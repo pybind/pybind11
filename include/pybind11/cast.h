@@ -31,41 +31,29 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename type, typename SFINAE = void>
-class type_caster : public type_caster_base<type> {};
-
 namespace {
 struct unique_to_translation_unit {};
 } // namespace
 
-template <typename IntrinsicType>
-type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
+struct global_caster {};
 
-// MSVC 2015 generates an internal compiler error for the common code (in the #else branch below).
-// MSVC 2017 in C++14 mode produces incorrect code, leading to a tests/test_stl runtime failure.
-// Luckily, the workaround for MSVC 2015 also resolves the MSVC 2017 C++14 runtime failure.
-#if defined(_MSC_VER) && (_MSC_VER < 1910 || (_MSC_VER < 1920 && !defined(PYBIND11_CPP17)))
+template <typename T, typename = unique_to_translation_unit>
+struct caster_scope {
+    using select = global_caster;
+};
 
-template <typename IntrinsicType, typename SFINAE = void>
-struct make_caster_impl;
+template <typename type, typename SFINAE = void, typename = typename caster_scope<type>::select>
+class type_caster : public type_caster_base<type> {};
 
-template <typename IntrinsicType>
-struct make_caster_impl<IntrinsicType, enable_if_t<std::is_arithmetic<IntrinsicType>::value>>
-    : type_caster<IntrinsicType> {};
-
-template <typename IntrinsicType>
-struct make_caster_impl<IntrinsicType, enable_if_t<!std::is_arithmetic<IntrinsicType>::value>>
-    : decltype(pybind11_select_caster(static_cast<IntrinsicType *>(nullptr))) {};
-
-template <typename type>
-using make_caster = make_caster_impl<intrinsic_t<type>>;
-
-#else
+template <
+    typename IntrinsicType,
+    enable_if_t<std::is_same<typename caster_scope<IntrinsicType>::select, global_caster>::value,
+                int> = 0>
+type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *, global_caster);
 
 template <typename type, typename = unique_to_translation_unit>
-using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr)));
-
-#endif
+using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr),
+                                                    typename caster_scope<type>::select()));
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
@@ -80,7 +68,7 @@ cast_op(make_caster<T> &&caster) {
 }
 
 template <typename type>
-class type_caster<std::reference_wrapper<type>> {
+class type_caster<std::reference_wrapper<type>, void, typename caster_scope<type>::select> {
 private:
     using caster_t = make_caster<type>;
     caster_t subcaster;
@@ -543,7 +531,9 @@ struct type_caster<std::basic_string_view<CharT, Traits>,
 // Type caster for C-style strings.  We basically use a std::string type caster, but also add the
 // ability to use None as a nullptr char* (which the string caster doesn't allow).
 template <typename CharT>
-struct type_caster<CharT, enable_if_t<is_std_char_type<CharT>::value>> {
+struct type_caster<CharT,
+                   enable_if_t<is_std_char_type<CharT>::value>,
+                   typename caster_scope<CharT>::select> {
     using StringType = std::basic_string<CharT>;
     using StringCaster = make_caster<StringType>;
     StringCaster str_caster;

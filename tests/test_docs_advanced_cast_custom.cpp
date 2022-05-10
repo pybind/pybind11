@@ -26,7 +26,7 @@ struct inty_type_caster;
 struct inty {
     long long_value;
 #if PYBIND11_TEST_DOCS_ADVANCED_CAST_CUSTOM_ALTERNATIVE == 2
-    friend inty_type_caster pybind11_select_caster(inty *);
+    friend inty_type_caster pybind11_select_caster(inty *, py::detail::global_caster);
 #endif
 };
 
@@ -79,7 +79,7 @@ public:
 #if PYBIND11_TEST_DOCS_ADVANCED_CAST_CUSTOM_ALTERNATIVE == 1
 namespace user_space {
 
-inty_type_caster pybind11_select_caster(inty *);
+inty_type_caster pybind11_select_caster(inty *, py::detail::global_caster);
 
 } // namespace user_space
 #endif
