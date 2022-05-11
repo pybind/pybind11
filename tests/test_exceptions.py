@@ -16,7 +16,7 @@ def test_std_exception(msg):
 def test_error_already_set(msg):
     with pytest.raises(SystemError) as excinfo:
         m.throw_already_set(False)
-    assert "without setting an error" in str(excinfo.value)
+    assert "without setting" in str(excinfo.value)
 
     with pytest.raises(ValueError) as excinfo:
         m.throw_already_set(True)
