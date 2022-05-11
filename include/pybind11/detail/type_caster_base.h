@@ -473,8 +473,10 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
 PYBIND11_NOINLINE std::string
 error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
     if (!exc_type) {
-        PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
-        return "Unknown internal error occurred";
+        static const char *msg
+            = "Internal error: error_string() called without a Python error available.";
+        PyErr_SetString(PyExc_RuntimeError, msg);
+        return msg;
     }
 
     auto result = handle(exc_type).attr("__name__").cast<std::string>();

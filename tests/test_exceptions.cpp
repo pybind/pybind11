@@ -228,7 +228,10 @@ TEST_SUBMODULE(exceptions, m) {
             throw py::error_already_set();
         } catch (const std::runtime_error &e) {
             if ((err && e.what() != std::string("ValueError: foo"))
-                || (!err && e.what() != std::string("Unknown internal error occurred"))) {
+                || (!err
+                    && e.what()
+                           != std::string("Internal error: error_string() called without a Python "
+                                          "error available."))) {
                 PyErr_Clear();
                 throw std::runtime_error("error message mismatch");
             }
