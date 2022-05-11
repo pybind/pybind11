@@ -455,13 +455,13 @@ public:
     }
 
     /// Restores the currently-held Python error, if any (which will clear the Python error
-    /// indicator first if already set). After this call, the current object no longer stores the
-    /// error variables (but the `.what()` string is still available).
+    /// indicator first if already set).
     void restore() {
-        what(); // Force-build m_lazy_what.
         if (m_type) {
+            // As long as this type is copyable, there is no point in releasing m_type, m_value,
+            // m_trace.
             PyErr_Restore(
-                m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
+                m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
         }
     }
 
