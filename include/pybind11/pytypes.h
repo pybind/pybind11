@@ -454,8 +454,8 @@ public:
         return m_lazy_what.c_str();
     }
 
-    /// Give the currently-held error back to Python, if any.  If there is currently a Python error
-    /// already set it is cleared first.  After this call, the current object no longer stores the
+    /// Restores the currently-held Python error, if any (which will clear the Python error
+    /// indicator first if already set). After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
     void restore() {
         what(); // Force-build m_lazy_what.
