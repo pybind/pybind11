@@ -473,11 +473,11 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
 PYBIND11_NOINLINE std::string
 error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
     if (!exc_type) {
-        static const char *msg
-            = "Internal error: error_string() called without a Python error available.";
-        PyErr_SetString(PyExc_RuntimeError, msg);
-        return msg;
+        pybind11_fail(
+            "Internal error: pybind11::detail::error_string() called with exc_type == nullptr");
     }
+
+    PyErr_NormalizeException(&exc_type, &exc_value, &exc_trace);
 
     auto result = handle(exc_type).attr("__name__").cast<std::string>();
     result += ": ";
@@ -530,10 +530,7 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
 }
 
 PYBIND11_NOINLINE std::string error_string() {
-    error_scope scope; // Preserve error state.
-    if (scope.type) {
-        PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
-    }
+    error_scope scope; // Fetch error state.
     return error_string(scope.type, scope.value, scope.trace);
 }
 

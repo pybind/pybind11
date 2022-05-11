@@ -387,13 +387,15 @@ PYBIND11_NAMESPACE_END(detail)
 /// python).
 class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
-    /// Constructs a new exception from the current Python error indicator, if any.  The current
-    /// Python error indicator will be cleared.
+    /// Constructs a new exception from the current Python error indicator, or substitutes a
+    /// RuntimeError("Internal error: ..."). The current Python error indicator will be cleared.
     error_already_set() : std::runtime_error("") {
-        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-        if (m_type) {
-            PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        if (!PyErr_Occurred()) {
+            m_lazy_what = "Internal error: pybind11::detail::error_already_set called while "
+                          "Python error indicator not set.";
+            PyErr_SetString(PyExc_RuntimeError, m_lazy_what.c_str());
         }
+        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
     error_already_set(const error_already_set &) = default;
@@ -411,22 +413,22 @@ public:
                 // Negate the if condition to test the catch(...) block below.
                 if (m_lazy_what.empty()) {
                     throw std::runtime_error(
-                        "FATAL failure building pybind11::error_already_set error_string.");
+                        "FATAL failure building pybind11::detail::error_already_set what()");
                 }
             } catch (...) {
                 // Terminating the process, to not mask the original error by errors in the error
                 // handling. Reporting the original error on stderr & stdout. Intentionally using
                 // the Python C API directly, to maximize reliability.
                 std::string msg
-                    = "FATAL failure building pybind11::error_already_set error_string: ";
+                    = "FATAL failure building pybind11::detail::error_already_set what(): ";
                 if (m_type.ptr() == nullptr) {
                     msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
                 } else {
-                    const char *tp_name = detail::obj_class_name(m_type.ptr());
-                    if (tp_name == nullptr) {
-                        msg += "PYTHON_EXCEPTION_TP_NAME_IS_NULLPTR";
+                    const char *class_name = detail::obj_class_name(m_type.ptr());
+                    if (class_name == nullptr) {
+                        msg += "PYTHON_EXCEPTION_CLASS_NAME_IS_NULLPTR";
                     } else {
-                        msg += tp_name;
+                        msg += class_name;
                     }
                 }
                 msg += ": ";
@@ -443,8 +445,8 @@ public:
                                + '"';
                     }
                 }
-                // Intentionally using C calls to maximize reliability (and to avoid #include
-                // <iostream>).
+                // Intentionally using C calls to maximize reliability
+                // (and to avoid #include <iostream>).
                 fprintf(stderr, "%s [STDERR]\n", msg.c_str());
                 fflush(stderr);
                 fprintf(stdout, "%s [STDOUT]\n", msg.c_str());
@@ -455,15 +457,12 @@ public:
         return m_lazy_what.c_str();
     }
 
-    /// Restores the currently-held Python error, if any (which will clear the Python error
-    /// indicator first if already set).
+    /// Restores the currently-held Python error (which will clear the Python error indicator first
+    //  if already set).
     void restore() {
-        if (m_type) {
-            // As long as this type is copyable, there is no point in releasing m_type, m_value,
-            // m_trace.
-            PyErr_Restore(
-                m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
-        }
+        // As long as this type is copyable, there is no point in releasing m_type, m_value,
+        // m_trace.
+        PyErr_Restore(m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
     }
 
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can

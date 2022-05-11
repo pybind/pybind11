@@ -2611,8 +2611,8 @@ void print(Args &&...args) {
 }
 
 error_already_set::~error_already_set() {
-    if (m_type) {
-        gil_scoped_acquire gil;
+    gil_scoped_acquire gil;
+    {
         error_scope scope;
         m_type.release().dec_ref();
         m_value.release().dec_ref();
