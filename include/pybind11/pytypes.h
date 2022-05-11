@@ -364,7 +364,7 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 std::string error_string();
-std::string error_string(PyObject *, PyObject *, PyObject *);
+std::string error_string(PyObject **, PyObject **, PyObject **);
 
 inline const char *obj_class_name(PyObject *obj) {
     if (Py_TYPE(obj) == &PyType_Type) {
@@ -409,7 +409,7 @@ public:
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
             try {
-                m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+                m_lazy_what = detail::error_string(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
                 // Negate the if condition to test the catch(...) block below.
                 if (m_lazy_what.empty()) {
                     throw std::runtime_error(
@@ -497,7 +497,7 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
-    object m_type, m_value, m_trace;
+    mutable object m_type, m_value, m_trace;
     mutable std::string m_lazy_what;
 };
 #if defined(_MSC_VER)
