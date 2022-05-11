@@ -407,8 +407,11 @@ public:
         if (m_lazy_what.empty()) {
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-                // Uncomment to test the catch (...) block:
-                // throw std::runtime_error("Something went wrong.");
+                // Negate the if condition to test the catch(...) block below.
+                if (m_lazy_what.empty()) {
+                    throw std::runtime_error(
+                        "FATAL failure building pybind11::error_already_set error_string.");
+                }
             } catch (...) {
                 // Terminating the process, to not mask the original error by errors in the error
                 // handling. Reporting the original error on stderr & stdout. Intentionally using
@@ -448,7 +451,6 @@ public:
                 std::terminate();
             }
         }
-        assert(!m_lazy_what.empty());
         return m_lazy_what.c_str();
     }
 
@@ -456,10 +458,7 @@ public:
     /// already set it is cleared first.  After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
     void restore() {
-        what(); // Force-build `.what()`.
-        if (m_lazy_what.empty()) {
-            pybind11_fail("Critical error building lazy error_string().");
-        }
+        what(); // Force-build m_lazy_what.
         if (m_type) {
             PyErr_Restore(
                 m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
