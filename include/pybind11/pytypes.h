@@ -391,9 +391,8 @@ public:
     /// RuntimeError("Internal error: ..."). The current Python error indicator will be cleared.
     error_already_set() : std::runtime_error("") {
         if (!PyErr_Occurred()) {
-            m_lazy_what = "Internal error: pybind11::detail::error_already_set called while "
-                          "Python error indicator not set.";
-            PyErr_SetString(PyExc_RuntimeError, m_lazy_what.c_str());
+            pybind11_fail("Internal error: pybind11::detail::error_already_set called while "
+                          "Python error indicator not set.");
         }
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
