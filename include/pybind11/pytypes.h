@@ -364,7 +364,7 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 std::string error_string();
-std::string error_string(PyObject **, PyObject **, PyObject **);
+std::string error_string(PyObject *, PyObject *, PyObject *);
 
 inline const char *obj_class_name(PyObject *obj) {
     if (Py_TYPE(obj) == &PyType_Type) {
@@ -396,6 +396,7 @@ public:
             PyErr_SetString(PyExc_RuntimeError, m_lazy_what.c_str());
         }
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
     error_already_set(const error_already_set &) = default;
@@ -409,7 +410,7 @@ public:
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
             try {
-                m_lazy_what = detail::error_string(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+                m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
                 // Negate the if condition to test the catch(...) block below.
                 if (m_lazy_what.empty()) {
                     throw std::runtime_error(
@@ -461,7 +462,8 @@ public:
     //  if already set).
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
-        // m_trace.
+        // m_trace, but simply holding on the the references makes it possible to produce
+        // what() even after restore().
         PyErr_Restore(m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
     }
 
