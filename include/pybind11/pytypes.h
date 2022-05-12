@@ -472,7 +472,15 @@ public:
     /// this call, the current object no longer stores the error variables, and neither does
     /// Python.
     void discard_as_unraisable(object err_context) {
+#if PY_VERSION_HEX >= 0x03080000
         restore();
+#else
+        auto exc_type_loc = m_type;
+        auto exc_value_loc = m_value;
+        auto exc_trace_loc = m_trace;
+        PyErr_NormalizeException(&exc_type_loc.ptr(), &exc_value_loc.ptr(), &exc_trace_loc.ptr());
+        PyErr_Restore(exc_type_loc.ptr(), exc_value_loc.ptr(), exc_trace_loc.ptr());
+#endif
         PyErr_WriteUnraisable(err_context.ptr());
     }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
