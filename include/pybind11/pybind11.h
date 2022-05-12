@@ -2611,13 +2611,22 @@ void print(Args &&...args) {
 }
 
 error_already_set::~error_already_set() {
-    gil_scoped_acquire gil;
-    {
-        error_scope scope;
-        m_type.release().dec_ref();
-        m_value.release().dec_ref();
-        m_trace.release().dec_ref();
-    }
+    // Not using py::gil_scoped_acquire here since that calls get_internals,
+    // which triggers tensorflow failures (a full explanation is currently unknown).
+    // gil_scoped_acquire_local here is a straight copy from get_internals code.
+    // I.e. py::gil_scoped_acquire acquires the GIL in detail/internals.h exactly
+    // like we do here now, releases it, then acquires it again in gil.h.
+    // Using gil_scoped_acquire_local cuts out the get_internals overhead and
+    // fixes the tensorflow failures.
+    struct gil_scoped_acquire_local {
+        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
+        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
+        const PyGILState_STATE state;
+    } gil;
+    error_scope scope;
+    m_type.release().dec_ref();
+    m_value.release().dec_ref();
+    m_trace.release().dec_ref();
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
