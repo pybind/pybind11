@@ -478,9 +478,9 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
     }
 
     // Normalize the exception only locally (to avoid side-effects for our caller).
-    object exc_type_loc = reinterpret_borrow<object>(exc_type);
-    object exc_value_loc = reinterpret_borrow<object>(exc_value);
-    object exc_trace_loc = reinterpret_borrow<object>(exc_trace);
+    auto exc_type_loc = reinterpret_borrow<object>(exc_type);
+    auto exc_value_loc = reinterpret_borrow<object>(exc_value);
+    auto exc_trace_loc = reinterpret_borrow<object>(exc_trace);
     PyErr_NormalizeException(&exc_type_loc.ptr(), &exc_value_loc.ptr(), &exc_trace_loc.ptr());
 
     auto result = exc_type_loc.attr("__name__").cast<std::string>();
