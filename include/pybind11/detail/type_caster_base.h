@@ -477,16 +477,22 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
             "Internal error: pybind11::detail::error_string() called with exc_type == nullptr");
     }
 
-    auto result = handle(exc_type).attr("__name__").cast<std::string>();
+    // Normalize the exception only locally (to avoid side-effects for our caller).
+    object exc_type_loc = reinterpret_borrow<object>(exc_type);
+    object exc_value_loc = reinterpret_borrow<object>(exc_value);
+    object exc_trace_loc = reinterpret_borrow<object>(exc_trace);
+    PyErr_NormalizeException(&exc_type_loc.ptr(), &exc_value_loc.ptr(), &exc_trace_loc.ptr());
+
+    auto result = exc_type_loc.attr("__name__").cast<std::string>();
     result += ": ";
 
-    if (exc_value) {
-        result += (std::string) str(exc_value);
+    if (exc_value_loc) {
+        result += (std::string) str(exc_value_loc);
     }
 
-    if (exc_trace) {
+    if (exc_trace_loc) {
 #if !defined(PYPY_VERSION)
-        auto *tb = reinterpret_cast<PyTracebackObject *>(exc_trace);
+        auto *tb = reinterpret_cast<PyTracebackObject *>(exc_trace_loc.ptr());
 
         // Get the deepest trace possible.
         while (tb->tb_next) {
@@ -529,7 +535,6 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
 
 PYBIND11_NOINLINE std::string error_string() {
     error_scope scope; // Fetch error state.
-    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
     return error_string(scope.type, scope.value, scope.trace);
 }
 

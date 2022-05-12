@@ -395,7 +395,6 @@ public:
                           "Python error indicator not set.");
         }
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
     error_already_set(const error_already_set &) = default;
