@@ -366,6 +366,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 std::string error_string();
 std::string error_string(PyObject *&, PyObject *&, PyObject *&);
 
+// Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
 inline const char *obj_class_name(PyObject *obj) {
     if (Py_TYPE(obj) == &PyType_Type) {
         return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
