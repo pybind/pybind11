@@ -2612,12 +2612,13 @@ void print(Args &&...args) {
 
 error_already_set::~error_already_set() {
     // Not using py::gil_scoped_acquire here since that calls get_internals,
-    // which triggers tensorflow failures (a full explanation is currently unknown).
+    // which is known to trigger failures in the wild (a full explanation is
+    // currently unknown).
     // gil_scoped_acquire_local here is a straight copy from get_internals code.
     // I.e. py::gil_scoped_acquire acquires the GIL in detail/internals.h exactly
     // like we do here now, releases it, then acquires it again in gil.h.
     // Using gil_scoped_acquire_local cuts out the get_internals overhead and
-    // fixes the tensorflow failures.
+    // fixes the failures observed in the wild. See PR #1895 for more background.
     struct gil_scoped_acquire_local {
         gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
