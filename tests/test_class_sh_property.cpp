@@ -1,3 +1,8 @@
+// The compact 4-character naming matches that in test_class_sh_basic.cpp
+// Variable names are intentionally terse, to not distract from the more important C++ type names:
+// valu(e), ref(erence), ptr or p (pointer), r = rvalue, m = mutable, c = const,
+// sh = shared_ptr, uq = unique_ptr.
+
 #include "pybind11/smart_holder.h"
 #include "pybind11_tests.h"
 
@@ -19,8 +24,6 @@ struct Field {
 };
 
 struct Outer {
-    // The compact 4-character naming matches that in test_class_sh_basic.cpp
-    // (c = const, m = mutable).
     Field m_valu;
     Field *m_mptr = nullptr;
     const Field *m_cptr = nullptr;

@@ -1,3 +1,6 @@
+# The compact 4-character naming scheme (e.g. mptr, cptr, shcp) is explained at the top of
+# test_class_sh_property.cpp.
+
 import pytest
 
 import env  # noqa: F401
