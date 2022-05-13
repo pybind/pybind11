@@ -1514,27 +1514,26 @@ using default_holder_type = smart_holder;
 
 #endif
 
-// Helper for the xetter_cpp_function static member functions below. xetter_cpp_function is
-// a shortcut for 'getter & setter adapters for .def_readonly & .def_readwrite'.
-// The only purpose of these adapters is to support .def_readonly & .def_readwrite.
+// Helper for the property_cpp_function static member functions below.
+// The only purpose of these functions is to support .def_readonly & .def_readwrite.
 // In this context, the PM template parameter is certain to be a Pointer to a Member.
 // The main purpose of must_be_member_function_pointer is to make this obvious, and to guard
-// against accidents. As a side-effect, it also explains why the syntactical clutter for
+// against accidents. As a side-effect, it also explains why the syntactical overhead for
 // perfect forwarding is not needed.
 template <typename PM>
 using must_be_member_function_pointer
     = detail::enable_if_t<std::is_member_pointer<PM>::value, int>;
 
-// Note that xetter_cpp_function is intentionally in the main pybind11 namespace,
+// Note that property_cpp_function is intentionally in the main pybind11 namespace,
 // because user-defined specializations could be useful.
 
 // Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
 // getter and setter functions.
 // WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
 // See test_ptr() in tests/test_class_sh_property.py
-// This implementation works as-is for smart_holder std::shared_ptr members.
+// This implementation works as-is (and safely) for smart_holder std::shared_ptr members.
 template <typename T, typename D, typename SFINAE = void>
-struct xetter_cpp_function {
+struct property_cpp_function {
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
@@ -1554,11 +1553,11 @@ struct xetter_cpp_function {
 // smart_holder specializations for raw pointer members.
 // WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
 // See test_ptr() in tests/test_class_sh_property.py
-// However, the read functions return a shared_ptr to the member, emulating PyCLIF approach:
+// However, the read functions return a shared_ptr to the member, emulating the PyCLIF approach:
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
 // This prevents disowning of the Python object owning the raw pointer member.
 template <typename T, typename D>
-struct xetter_cpp_function<
+struct property_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
@@ -1589,11 +1588,11 @@ struct xetter_cpp_function<
 };
 
 // smart_holder specializations for members held by-value.
-// The read functions return a shared_ptr to the member, emulating PyCLIF approach:
+// The read functions return a shared_ptr to the member, emulating the PyCLIF approach:
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
 // This prevents disowning of the Python object owning the member.
 template <typename T, typename D>
-struct xetter_cpp_function<
+struct property_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
@@ -1634,7 +1633,7 @@ struct xetter_cpp_function<
 // accessible as a Python object without disowning the member unique_ptr. A .def_readonly disowning
 // the unique_ptr member is deemed highly prone to misunderstandings.
 template <typename T, typename D>
-struct xetter_cpp_function<
+struct property_cpp_function<
     T,
     D,
     detail::enable_if_t<detail::all_of<
@@ -1876,8 +1875,8 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readwrite() requires a class member (or base class member)");
         def_property(name,
-                     xetter_cpp_function<type, D>::read(pm, *this),
-                     xetter_cpp_function<type, D>::write(pm, *this),
+                     property_cpp_function<type, D>::read(pm, *this),
+                     property_cpp_function<type, D>::write(pm, *this),
                      return_value_policy::reference_internal,
                      extra...);
         return *this;
@@ -1888,7 +1887,7 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readonly() requires a class member (or base class member)");
         def_property_readonly(name,
-                              xetter_cpp_function<type, D>::readonly(pm, *this),
+                              property_cpp_function<type, D>::readonly(pm, *this),
                               return_value_policy::reference_internal,
                               extra...);
         return *this;
