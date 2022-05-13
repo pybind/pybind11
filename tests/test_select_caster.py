@@ -1,17 +1,12 @@
 import pytest
 
 from pybind11_tests import select_caster as m
-from pybind11_tests import select_caster_alt as m_alt
 
 
 def test_mock_casters():
     assert m.have_a_ns_num() == 101
     assert m.global_ns_num() == 202
     assert m.unnamed_ns_num() == 303
-
-
-def test_mock_casters_alt():
-    assert m_alt.have_a_ns_num() == 121
 
 
 def test_minimal_real_caster():

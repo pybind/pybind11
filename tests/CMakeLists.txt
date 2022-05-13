@@ -149,7 +149,6 @@ set(PYBIND11_TEST_FILES
     test_pickling
     test_pytypes
     test_select_caster
-    test_select_caster_alt
     test_sequences_and_iterators
     test_smart_ptr
     test_stl
