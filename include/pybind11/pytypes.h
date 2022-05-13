@@ -364,7 +364,7 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 std::string error_string();
-std::string error_string(PyObject *, PyObject *, PyObject *);
+std::string error_string(PyObject *&, PyObject *&, PyObject *&);
 
 inline const char *obj_class_name(PyObject *obj) {
     if (Py_TYPE(obj) == &PyType_Type) {
@@ -387,8 +387,8 @@ PYBIND11_NAMESPACE_END(detail)
 /// python).
 class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
-    /// Constructs a new exception from the current Python error indicator, or substitutes a
-    /// RuntimeError("Internal error: ..."). The current Python error indicator will be cleared.
+    /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
+    /// current Python error indicator.
     error_already_set() : std::runtime_error("") {
         if (!PyErr_Occurred()) {
             pybind11_fail("Internal error: pybind11::detail::error_already_set called while "
@@ -398,6 +398,8 @@ public:
     }
 
     error_already_set(const error_already_set &) = default;
+
+    /// Moving the members one-by-one to be able to specify noexcept.
     error_already_set(error_already_set &&e) noexcept
         : std::runtime_error(std::move(e)), m_type{std::move(e.m_type)},
           m_value{std::move(e.m_value)}, m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(
@@ -405,6 +407,8 @@ public:
 
     inline ~error_already_set() override;
 
+    /// NOTE: This function may have the side-effect of normalizing the held Python exception
+    ///       (if it is not normalized already).
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
             try {
@@ -457,7 +461,10 @@ public:
     }
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
-    //  if already set).
+    /// if already set).
+    /// NOTE: This function will not necessarily restore the original Python exception, but may
+    ///       restore the normalized exception if what() or discard_as_unraisable() were called
+    ///       prior to restore().
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
         // m_trace, but simply holding on the the references makes it possible to produce
@@ -468,19 +475,14 @@ public:
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
     /// should be some object whose `repr()` helps identify the location of the error. Python
-    /// already knows the type and value of the error, so there is no need to repeat that. After
-    /// this call, the current object no longer stores the error variables, and neither does
-    /// Python.
+    /// already knows the type and value of the error, so there is no need to repeat that.
+    /// NOTE: This function may have the side-effect of normalizing the held Python exception
+    ///       (if it is not normalized already).
     void discard_as_unraisable(object err_context) {
-#if PY_VERSION_HEX >= 0x03080000
-        restore();
-#else
-        auto exc_type_loc = m_type;
-        auto exc_value_loc = m_value;
-        auto exc_trace_loc = m_trace;
-        PyErr_NormalizeException(&exc_type_loc.ptr(), &exc_value_loc.ptr(), &exc_trace_loc.ptr());
-        PyErr_Restore(exc_type_loc.ptr(), exc_value_loc.ptr(), exc_trace_loc.ptr());
+#if PY_VERSION_HEX < 0x03080000
+        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
 #endif
+        restore();
         PyErr_WriteUnraisable(err_context.ptr());
     }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
@@ -505,7 +507,7 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
-    object m_type, m_value, m_trace;
+    mutable object m_type, m_value, m_trace;
     mutable std::string m_lazy_what;
 };
 #if defined(_MSC_VER)
