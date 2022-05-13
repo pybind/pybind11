@@ -128,6 +128,7 @@ set(PYBIND11_TEST_FILES
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
+    test_docs_advanced_cast_custom
     test_eigen
     test_enum
     test_eval
@@ -147,6 +148,7 @@ set(PYBIND11_TEST_FILES
     test_operator_overloading
     test_pickling
     test_pytypes
+    test_select_caster
     test_sequences_and_iterators
     test_smart_ptr
     test_stl

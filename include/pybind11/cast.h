@@ -33,8 +33,35 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
+
+template <typename IntrinsicType>
+type_caster<IntrinsicType> pybind11_select_caster(IntrinsicType *);
+
+// MSVC 2015 generates an internal compiler error for the common code (in the #else branch below).
+// MSVC 2017 in C++14 mode produces incorrect code, leading to a tests/test_stl runtime failure.
+// Luckily, the workaround for MSVC 2015 also resolves the MSVC 2017 C++14 runtime failure.
+#if defined(_MSC_VER) && (_MSC_VER < 1910 || (_MSC_VER < 1920 && !defined(PYBIND11_CPP17)))
+
+template <typename IntrinsicType, typename SFINAE = void>
+struct make_caster_impl;
+
+template <typename IntrinsicType>
+struct make_caster_impl<IntrinsicType, enable_if_t<std::is_arithmetic<IntrinsicType>::value>>
+    : type_caster<IntrinsicType> {};
+
+template <typename IntrinsicType>
+struct make_caster_impl<IntrinsicType, enable_if_t<!std::is_arithmetic<IntrinsicType>::value>>
+    : decltype(pybind11_select_caster(static_cast<IntrinsicType *>(nullptr))) {};
+
 template <typename type>
-using make_caster = type_caster<intrinsic_t<type>>;
+using make_caster = make_caster_impl<intrinsic_t<type>>;
+
+#else
+
+template <typename type>
+using make_caster = decltype(pybind11_select_caster(static_cast<intrinsic_t<type> *>(nullptr)));
+
+#endif
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
@@ -1007,8 +1034,8 @@ struct return_value_policy_override<
 };
 
 // Basic python -> C++ casting; throws if casting fails
-template <typename T, typename SFINAE>
-type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+template <typename T, typename Caster>
+Caster &load_type(Caster &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error("Unable to cast Python instance to C++ type (#define "
@@ -1021,11 +1048,17 @@ type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &ha
     }
     return conv;
 }
+
+template <typename T, typename SFINAE>
+type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+    return load_type<T, type_caster<T, SFINAE>>(conv, handle);
+}
+
 // Wrapper around the above that also constructs and returns a type_caster
 template <typename T>
 make_caster<T> load_type(const handle &handle) {
     make_caster<T> conv;
-    load_type(conv, handle);
+    load_type<T>(conv, handle);
     return conv;
 }
 
@@ -1152,7 +1185,7 @@ using override_caster_t = conditional_t<cast_is_temporary_value_reference<ret_ty
 template <typename T>
 enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o,
                                                                      make_caster<T> &caster) {
-    return cast_op<T>(load_type(caster, o));
+    return cast_op<T>(load_type<T>(caster, o));
 }
 template <typename T>
 enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&,
