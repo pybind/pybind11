@@ -12,7 +12,7 @@ def find_call_repetitions(
     target_elapsed_secs_tolerance=0.05,
     max_iterations=100,
     call_repetitions_first_pass=1000,
-    call_repetitions_target_elapsed_secs=1.0,
+    call_repetitions_target_elapsed_secs=0.1,  # 1.0 for real benchmarking.
 ):
     td_target = call_repetitions_target_elapsed_secs * target_elapsed_secs_multiplier
     crd = call_repetitions_first_pass
