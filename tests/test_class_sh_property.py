@@ -67,25 +67,21 @@ def test_shp(m_attr):
     ],
 )
 @pytest.mark.parametrize("m_attr", ("m_mptr", "m_cptr"))
-def test_ptr(field_type, num_default, outer_type, m_attr):
-    m_attr_readonly = m_attr + "_readonly"
-    m_attr_readwrite = m_attr + "_readwrite"
+@pytest.mark.parametrize("r_kind", ("_readonly", "_readwrite"))
+def test_ptr(field_type, num_default, outer_type, m_attr, r_kind):
+    m_attr_r_kind = m_attr + r_kind
     outer = outer_type()
-    assert getattr(outer, m_attr_readonly) is None
-    assert getattr(outer, m_attr_readwrite) is None
+    assert getattr(outer, m_attr_r_kind) is None
     field = field_type()
     assert field.num == num_default
-    setattr(outer, m_attr_readwrite, field)
-    assert getattr(outer, m_attr_readonly).num == num_default
-    assert getattr(outer, m_attr_readwrite).num == num_default
+    setattr(outer, m_attr + "_readwrite", field)
+    assert getattr(outer, m_attr_r_kind).num == num_default
     field.num = 76
-    assert getattr(outer, m_attr_readonly).num == 76
-    assert getattr(outer, m_attr_readwrite).num == 76
+    assert getattr(outer, m_attr_r_kind).num == 76
     # Change to -88 or -99 to demonstrate Undefined Behavior (dangling pointer).
     if num_default == 88 and m_attr == "m_mptr":
         del field
-    assert getattr(outer, m_attr_readonly).num == 76
-    assert getattr(outer, m_attr_readwrite).num == 76
+    assert getattr(outer, m_attr_r_kind).num == 76
 
 
 @pytest.mark.parametrize("m_attr_readwrite", ("m_uqmp_readwrite", "m_uqcp_readwrite"))
