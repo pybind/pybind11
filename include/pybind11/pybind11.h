@@ -2640,7 +2640,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
 
     function override = getattr(self, name, function());
     if (override.is_cpp_function()) {
-        cache.insert(key);
+        cache.insert(std::move(key));
         return function();
     }
 
