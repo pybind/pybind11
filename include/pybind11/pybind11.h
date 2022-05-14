@@ -2578,7 +2578,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         strings[i] = str(args[i]);
     }
     auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
-    auto line = sep.attr("join")(strings);
+    auto line = sep.attr("join")(std::move(strings));
 
     object file;
     if (kwargs.contains("file")) {
