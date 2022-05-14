@@ -1954,7 +1954,7 @@ struct enum_base {
                     for (auto kv : entries) {
                         auto key = std::string(pybind11::str(kv.first));
                         auto comment = kv.second[int_(1)];
-                        docstring += "\n\n  " + std::move(key);
+                        docstring += "\n\n  " + key;
                         if (!comment.is_none()) {
                             docstring += " : " + (std::string) pybind11::str(comment);
                         }
