@@ -391,11 +391,11 @@ public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
     error_already_set() : std::runtime_error("") {
-        if (!PyErr_Occurred()) {
+        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        if (!m_type) {
             pybind11_fail("Internal error: pybind11::detail::error_already_set called while "
                           "Python error indicator not set.");
         }
-        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
     error_already_set(const error_already_set &) = default;
