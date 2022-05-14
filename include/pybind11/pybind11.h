@@ -1926,7 +1926,8 @@ struct enum_base {
             [](const object &arg) -> str {
                 handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
-                return pybind11::str("<{}.{}: {}>").format(type_name, enum_name(arg), int_(arg));
+                return pybind11::str("<{}.{}: {}>")
+                    .format(std::move(type_name), enum_name(arg), int_(arg));
             },
             name("__repr__"),
             is_method(m_base));
@@ -1936,7 +1937,7 @@ struct enum_base {
         m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
                 object type_name = type::handle_of(arg).attr("__name__");
-                return pybind11::str("{}.{}").format(type_name, enum_name(arg));
+                return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
             name("name"),
             is_method(m_base));
@@ -1953,7 +1954,7 @@ struct enum_base {
                     for (auto kv : entries) {
                         auto key = std::string(pybind11::str(kv.first));
                         auto comment = kv.second[int_(1)];
-                        docstring += "\n\n  " + key;
+                        docstring += "\n\n  " + std::move(key);
                         if (!comment.is_none()) {
                             docstring += " : " + (std::string) pybind11::str(comment);
                         }
