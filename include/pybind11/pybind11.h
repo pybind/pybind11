@@ -2577,7 +2577,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
     }
-    auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
+    auto sep = kwargs.contains("sep") ? kwargs["sep"] : str(" ");
     auto line = sep.attr("join")(std::move(strings));
 
     object file;
@@ -2597,7 +2597,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
 
     auto write = file.attr("write");
     write(line);
-    write(kwargs.contains("end") ? kwargs["end"] : cast("\n"));
+    write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
 
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
         file.attr("flush")();
