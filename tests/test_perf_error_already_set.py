@@ -8,7 +8,8 @@ from pybind11_tests import perf_error_already_set as m
 def recurse_first_then_call(depth, callable, call_repetitions):
     if depth:
         recurse_first_then_call(depth - 1, callable, call_repetitions)
-    callable(call_repetitions)
+    else:
+        callable(call_repetitions)
 
 
 def find_call_repetitions(
