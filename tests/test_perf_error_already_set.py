@@ -70,7 +70,9 @@ def test_perf(perf_name):
         call_error_string_args = [None]
     else:
         call_error_string_args = [False, True]
-    for call_error_string in call_error_string_args:
+    first_per_call_results = None
+    for ix_outer, call_error_string in enumerate(call_error_string_args):
+        per_call_results = []
         for recursion_depth in (0, 100):
             call_repetitions = find_call_repetitions(
                 recursion_depth, callable, call_error_string
@@ -82,7 +84,16 @@ def test_perf(perf_name):
             secs = time.time() - t0
             u_secs = secs * 10e6
             per_call = u_secs / call_repetitions
+            if first_per_call_results is None:
+                relative_to_first = ""
+            else:
+                rel_percent = first_per_call_results[ix_outer] / per_call * 100
+                relative_to_first = f",{rel_percent:.2f}%"
             print(
-                f"PERF {perf_name},{recursion_depth},{call_repetitions},{call_error_string},{secs:.3f},{per_call:.6f}",
+                f"PERF {perf_name},{recursion_depth},{call_repetitions},{call_error_string},"
+                f"{secs:.3f}s,{per_call:.6f}μs{relative_to_first}",
                 flush=True,
             )
+            per_call_results.append(per_call)
+        if first_per_call_results is None:
+            first_per_call_results = tuple(per_call_results)
