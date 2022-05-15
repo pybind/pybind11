@@ -16,8 +16,18 @@ void pure_unwind(std::size_t num_iterations) {
     }
 }
 
-void err_set_unwind_err_clear(std::size_t num_iterations, bool call_error_string) {
+void do_real_work(std::size_t num_iterations) {
     while (num_iterations) {
+        std::sqrt(static_cast<double>(num_iterations % 1000000));
+        num_iterations--;
+    }
+}
+
+void err_set_unwind_err_clear(std::size_t num_iterations,
+                              bool call_error_string,
+                              std::size_t real_work) {
+    while (num_iterations) {
+        do_real_work(real_work);
         try {
             PyErr_SetString(PyExc_RuntimeError, "");
             throw boost_python_error_already_set();
@@ -31,8 +41,9 @@ void err_set_unwind_err_clear(std::size_t num_iterations, bool call_error_string
     }
 }
 
-void err_set_err_clear(std::size_t num_iterations, bool call_error_string) {
+void err_set_err_clear(std::size_t num_iterations, bool call_error_string, std::size_t real_work) {
     while (num_iterations) {
+        do_real_work(real_work);
         PyErr_SetString(PyExc_RuntimeError, "");
         if (call_error_string) {
             py::detail::error_string();
@@ -42,8 +53,11 @@ void err_set_err_clear(std::size_t num_iterations, bool call_error_string) {
     }
 }
 
-void err_set_error_already_set(std::size_t num_iterations, bool call_error_string) {
+void err_set_error_already_set(std::size_t num_iterations,
+                               bool call_error_string,
+                               std::size_t real_work) {
     while (num_iterations) {
+        do_real_work(real_work);
         try {
             PyErr_SetString(PyExc_RuntimeError, "");
             throw py::error_already_set();
@@ -56,9 +70,10 @@ void err_set_error_already_set(std::size_t num_iterations, bool call_error_strin
     }
 }
 
-void err_set_err_fetch(std::size_t num_iterations, bool call_error_string) {
+void err_set_err_fetch(std::size_t num_iterations, bool call_error_string, std::size_t real_work) {
     PyObject *exc_type, *exc_value, *exc_trace;
     while (num_iterations) {
+        do_real_work(real_work);
         PyErr_SetString(PyExc_RuntimeError, "");
         PyErr_Fetch(&exc_type, &exc_value, &exc_trace);
         if (call_error_string) {
@@ -68,9 +83,12 @@ void err_set_err_fetch(std::size_t num_iterations, bool call_error_string) {
     }
 }
 
-void error_already_set_restore(std::size_t num_iterations, bool call_error_string) {
+void error_already_set_restore(std::size_t num_iterations,
+                               bool call_error_string,
+                               std::size_t real_work) {
     PyErr_SetString(PyExc_RuntimeError, "");
     while (num_iterations) {
+        do_real_work(real_work);
         try {
             throw py::error_already_set();
         } catch (py::error_already_set &e) {
@@ -84,10 +102,13 @@ void error_already_set_restore(std::size_t num_iterations, bool call_error_strin
     PyErr_Clear();
 }
 
-void err_fetch_err_restore(std::size_t num_iterations, bool call_error_string) {
+void err_fetch_err_restore(std::size_t num_iterations,
+                           bool call_error_string,
+                           std::size_t real_work) {
     PyErr_SetString(PyExc_RuntimeError, "");
     PyObject *exc_type, *exc_value, *exc_trace;
     while (num_iterations) {
+        do_real_work(real_work);
         PyErr_Fetch(&exc_type, &exc_value, &exc_trace);
         if (call_error_string) {
             py::detail::error_string(exc_type, exc_value, exc_trace);

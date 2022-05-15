@@ -5,22 +5,25 @@ import pytest
 from pybind11_tests import perf_error_already_set as m
 
 
-def recurse_first_then_call(depth, callable, call_repetitions, call_error_string):
+def recurse_first_then_call(
+    depth, callable, call_repetitions, call_error_string, real_work
+):
     if depth:
         recurse_first_then_call(
-            depth - 1, callable, call_repetitions, call_error_string
+            depth - 1, callable, call_repetitions, call_error_string, real_work
         )
     else:
         if call_error_string is None:
             callable(call_repetitions)
         else:
-            callable(call_repetitions, call_error_string)
+            callable(call_repetitions, call_error_string, real_work)
 
 
 def find_call_repetitions(
     recursion_depth,
     callable,
     call_error_string,
+    real_work,
     time_delta_floor=1.0e-6,
     target_elapsed_secs_multiplier=1.05,  # Empirical.
     target_elapsed_secs_tolerance=0.05,
@@ -32,7 +35,9 @@ def find_call_repetitions(
     crd = call_repetitions_first_pass
     for _ in range(max_iterations):
         t0 = time.time()
-        recurse_first_then_call(recursion_depth, callable, crd, call_error_string)
+        recurse_first_then_call(
+            recursion_depth, callable, crd, call_error_string, real_work
+        )
         td = time.time() - t0
         crd = max(1, int(td_target * crd / max(td, time_delta_floor)))
         if abs(td - td_target) / td_target < target_elapsed_secs_tolerance:
@@ -67,33 +72,40 @@ def test_perf(perf_name):
     else:
         callable = getattr(m, perf_name)
     if perf_name in ("pure_unwind", "pr1895_original_foo"):
-        call_error_string_args = [None]
+        extra_params = [(None, None)]
     else:
-        call_error_string_args = [False, True]
-    first_per_call_results = None
-    for ix_outer, call_error_string in enumerate(call_error_string_args):
+        real_work = 10000
+        extra_params = [(False, 0), (True, 0), (False, real_work), (True, real_work)]
+    prev_per_call_results = None
+    for (call_error_string, real_work) in extra_params:
         per_call_results = []
-        for recursion_depth in (0, 100):
+        for ix_rd, recursion_depth in enumerate((0, 100)):
             call_repetitions = find_call_repetitions(
-                recursion_depth, callable, call_error_string
+                recursion_depth, callable, call_error_string, real_work
             )
             t0 = time.time()
             recurse_first_then_call(
-                recursion_depth, callable, call_repetitions, call_error_string
+                recursion_depth,
+                callable,
+                call_repetitions,
+                call_error_string,
+                real_work,
             )
             secs = time.time() - t0
             u_secs = secs * 10e6
             per_call = u_secs / call_repetitions
-            if first_per_call_results is None:
+            if prev_per_call_results is None:
                 relative_to_first = ""
             else:
-                rel_percent = first_per_call_results[ix_outer] / per_call * 100
+                rel_percent = prev_per_call_results[ix_rd] / per_call * 100
                 relative_to_first = f",{rel_percent:.2f}%"
             print(
                 f"PERF {perf_name},{recursion_depth},{call_repetitions},{call_error_string},"
-                f"{secs:.3f}s,{per_call:.6f}μs{relative_to_first}",
+                f"{real_work},{secs:.3f}s,{per_call:.6f}μs{relative_to_first}",
                 flush=True,
             )
             per_call_results.append(per_call)
-        if first_per_call_results is None:
-            first_per_call_results = tuple(per_call_results)
+        if prev_per_call_results is None:
+            prev_per_call_results = tuple(per_call_results)
+        else:
+            prev_per_call_results = None
