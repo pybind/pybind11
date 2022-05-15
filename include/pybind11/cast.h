@@ -910,6 +910,8 @@ struct pyobject_caster {
     template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
     pyobject_caster() : value() {}
 
+    // `type` may not be default constructible (e.g. frozenset, anyset).  Initializing `value`
+    // to a nil handle is safe since it will only be accessed if `load` succeeds.
     template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
     pyobject_caster() : value(reinterpret_steal<type>(handle())) {}
 

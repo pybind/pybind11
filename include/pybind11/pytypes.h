@@ -1785,10 +1785,8 @@ class kwargs : public dict {
 };
 
 class anyset : public object {
-protected:
-    PYBIND11_OBJECT(anyset, object, PyAnySet_Check)
-
 public:
+    PYBIND11_OBJECT(anyset, object, PyAnySet_Check)
     size_t size() const { return static_cast<size_t>(PySet_Size(m_ptr)); }
     bool empty() const { return size() == 0; }
     template <typename T>
