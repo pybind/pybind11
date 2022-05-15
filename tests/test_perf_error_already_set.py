@@ -46,8 +46,11 @@ def pr1895_original_foo(num_iterations):
     [
         "pure_unwind",
         "err_set_unwind_err_clear",
+        "err_set_err_clear",
         "err_set_error_already_set",
+        "err_set_err_fetch",
         "error_already_set_restore",
+        "err_fetch_err_restore",
         "pr1895_original_foo",
     ],
 )
