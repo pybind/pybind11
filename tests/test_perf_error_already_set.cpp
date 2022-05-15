@@ -16,52 +16,67 @@ void pure_unwind(std::size_t num_iterations) {
     }
 }
 
-void err_set_unwind_err_clear(std::size_t num_iterations) {
+void err_set_unwind_err_clear(std::size_t num_iterations, bool call_error_string) {
     while (num_iterations) {
         try {
             PyErr_SetString(PyExc_RuntimeError, "");
             throw boost_python_error_already_set();
         } catch (const boost_python_error_already_set &) {
+            if (call_error_string) {
+                py::detail::error_string();
+            }
             PyErr_Clear();
         }
         num_iterations--;
     }
 }
 
-void err_set_err_clear(std::size_t num_iterations) {
+void err_set_err_clear(std::size_t num_iterations, bool call_error_string) {
     while (num_iterations) {
         PyErr_SetString(PyExc_RuntimeError, "");
+        if (call_error_string) {
+            py::detail::error_string();
+        }
         PyErr_Clear();
         num_iterations--;
     }
 }
 
-void err_set_error_already_set(std::size_t num_iterations) {
+void err_set_error_already_set(std::size_t num_iterations, bool call_error_string) {
     while (num_iterations) {
         try {
             PyErr_SetString(PyExc_RuntimeError, "");
             throw py::error_already_set();
-        } catch (const py::error_already_set &) {
+        } catch (const py::error_already_set &e) {
+            if (call_error_string) {
+                e.what();
+            }
         }
         num_iterations--;
     }
 }
 
-void err_set_err_fetch(std::size_t num_iterations) {
+void err_set_err_fetch(std::size_t num_iterations, bool call_error_string) {
     PyObject *exc_type, *exc_value, *exc_trace;
     while (num_iterations) {
         PyErr_SetString(PyExc_RuntimeError, "");
         PyErr_Fetch(&exc_type, &exc_value, &exc_trace);
+        if (call_error_string) {
+            py::detail::error_string(exc_type, exc_value, exc_trace);
+        }
         num_iterations--;
     }
 }
 
-void error_already_set_restore(std::size_t num_iterations) {
+void error_already_set_restore(std::size_t num_iterations, bool call_error_string) {
     PyErr_SetString(PyExc_RuntimeError, "");
     while (num_iterations) {
         try {
             throw py::error_already_set();
         } catch (py::error_already_set &e) {
+            if (call_error_string) {
+                e.what();
+            }
             e.restore();
         }
         num_iterations--;
@@ -69,11 +84,14 @@ void error_already_set_restore(std::size_t num_iterations) {
     PyErr_Clear();
 }
 
-void err_fetch_err_restore(std::size_t num_iterations) {
+void err_fetch_err_restore(std::size_t num_iterations, bool call_error_string) {
     PyErr_SetString(PyExc_RuntimeError, "");
     PyObject *exc_type, *exc_value, *exc_trace;
     while (num_iterations) {
         PyErr_Fetch(&exc_type, &exc_value, &exc_trace);
+        if (call_error_string) {
+            py::detail::error_string(exc_type, exc_value, exc_trace);
+        }
         PyErr_Restore(exc_type, exc_value, exc_trace);
         num_iterations--;
     }

@@ -5,16 +5,22 @@ import pytest
 from pybind11_tests import perf_error_already_set as m
 
 
-def recurse_first_then_call(depth, callable, call_repetitions):
+def recurse_first_then_call(depth, callable, call_repetitions, call_error_string):
     if depth:
-        recurse_first_then_call(depth - 1, callable, call_repetitions)
+        recurse_first_then_call(
+            depth - 1, callable, call_repetitions, call_error_string
+        )
     else:
-        callable(call_repetitions)
+        if call_error_string is None:
+            callable(call_repetitions)
+        else:
+            callable(call_repetitions, call_error_string)
 
 
 def find_call_repetitions(
     recursion_depth,
     callable,
+    call_error_string,
     time_delta_floor=1.0e-6,
     target_elapsed_secs_multiplier=1.05,  # Empirical.
     target_elapsed_secs_tolerance=0.05,
@@ -26,7 +32,7 @@ def find_call_repetitions(
     crd = call_repetitions_first_pass
     for _ in range(max_iterations):
         t0 = time.time()
-        recurse_first_then_call(recursion_depth, callable, crd)
+        recurse_first_then_call(recursion_depth, callable, crd, call_error_string)
         td = time.time() - t0
         crd = max(1, int(td_target * crd / max(td, time_delta_floor)))
         if abs(td - td_target) / td_target < target_elapsed_secs_tolerance:
@@ -60,14 +66,23 @@ def test_perf(perf_name):
         callable = pr1895_original_foo
     else:
         callable = getattr(m, perf_name)
-    for recursion_depth in (0, 8, 64, 512):
-        call_repetitions = find_call_repetitions(recursion_depth, callable)
-        t0 = time.time()
-        recurse_first_then_call(recursion_depth, callable, call_repetitions)
-        secs = time.time() - t0
-        u_secs = secs * 10e6
-        per_call = u_secs / call_repetitions
-        print(
-            f"PERF {perf_name},{recursion_depth},{call_repetitions},{secs:.3f},{per_call:.6f}",
-            flush=True,
-        )
+    if perf_name in ("pure_unwind", "pr1895_original_foo"):
+        call_error_string_args = [None]
+    else:
+        call_error_string_args = [False, True]
+    for call_error_string in call_error_string_args:
+        for recursion_depth in (0, 100):
+            call_repetitions = find_call_repetitions(
+                recursion_depth, callable, call_error_string
+            )
+            t0 = time.time()
+            recurse_first_then_call(
+                recursion_depth, callable, call_repetitions, call_error_string
+            )
+            secs = time.time() - t0
+            u_secs = secs * 10e6
+            per_call = u_secs / call_repetitions
+            print(
+                f"PERF {perf_name},{recursion_depth},{call_repetitions},{call_error_string},{secs:.3f},{per_call:.6f}",
+                flush=True,
+            )
