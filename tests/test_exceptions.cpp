@@ -307,11 +307,12 @@ TEST_SUBMODULE(exceptions, m) {
         try {
             PyErr_SetString(PyExc_RuntimeError, use_move ? "To be moved." : "To be copied.");
             throw py::error_already_set();
-        } catch (const py::error_already_set &caught) {
+        } catch (py::error_already_set &caught) {
             if (use_move) {
                 py::error_already_set moved_to{std::move(caught)};
                 return std::string(moved_to.what()); // Both destructors run.
             }
+            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
             py::error_already_set copied_to{caught};
             return std::string(copied_to.what()); // Both destructors run.
         }
