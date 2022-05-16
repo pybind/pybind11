@@ -315,8 +315,8 @@ jobs:
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
-    name: "🐍 3.8 • CUDA 11 • Ubuntu 20.04"
-    container: nvidia/cuda:11.0-devel-ubuntu20.04
+    name: "🐍 3.8 • CUDA 11.2 • Ubuntu 20.04"
+    container: nvidia/cuda:11.2.2-devel-ubuntu20.04
 
     steps:
     - uses: actions/checkout@v3
