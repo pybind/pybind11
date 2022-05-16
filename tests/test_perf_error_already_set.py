@@ -5,6 +5,10 @@ import pytest
 from pybind11_tests import perf_error_already_set as m
 
 
+def raise_runtime_error_from_python():
+    raise RuntimeError("Raised from Python.")
+
+
 def recurse_first_then_call(
     depth, callable, call_repetitions, call_error_string, real_work
 ):
@@ -16,7 +20,12 @@ def recurse_first_then_call(
         if call_error_string is None:
             callable(call_repetitions)
         else:
-            callable(call_repetitions, call_error_string, real_work)
+            callable(
+                raise_runtime_error_from_python,
+                call_repetitions,
+                call_error_string,
+                real_work,
+            )
 
 
 def find_call_repetitions(
