@@ -274,3 +274,8 @@ def test_local_translator(msg):
         m.throws_local_simple_error()
     assert not isinstance(excinfo.value, cm.LocalSimpleException)
     assert msg(excinfo.value) == "this mod"
+
+
+@pytest.mark.parametrize("use_move, expected", ((False, "copied."), (True, "moved.")))
+def test_error_already_set_copy_move(use_move, expected):
+    assert m.move_error_already_set(use_move) == "RuntimeError: To be " + expected

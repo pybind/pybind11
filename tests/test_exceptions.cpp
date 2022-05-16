@@ -302,4 +302,19 @@ TEST_SUBMODULE(exceptions, m) {
             std::throw_with_nested(std::runtime_error("Outer Exception"));
         }
     });
+
+    m.def("move_error_already_set", [](bool use_move) {
+        try {
+            PyErr_SetString(PyExc_RuntimeError, use_move ? "To be moved." : "To be copied.");
+            throw py::error_already_set();
+        } catch (const py::error_already_set &caught) {
+            if (use_move) {
+                py::error_already_set moved_to{std::move(caught)};
+                return std::string(moved_to.what()); // Both destructors run.
+            }
+            py::error_already_set copied_to{caught};
+            return std::string(copied_to.what()); // Both destructors run.
+        }
+        return std::string("Unreachable.");
+    });
 }
