@@ -316,6 +316,8 @@ TEST_SUBMODULE(exceptions, m) {
             py::error_already_set copied_to{caught};
             return std::string(copied_to.what()); // Both destructors run.
         }
+#if !defined(_MSC_VER) // MSVC detects that this is unreachable.
         return std::string("Unreachable.");
+#endif
     });
 }
