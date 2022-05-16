@@ -123,3 +123,10 @@ def test_move_fallback():
     assert m1.value == 1
     m2 = m.get_moveissue2(2)
     assert m2.value == 2
+
+
+def test_pytype_rvalue_cast():
+    """Make sure that cast from pytype rvalue to other pytype works"""
+
+    value = m.get_pytype_rvalue_castissue(1.0)
+    assert value == 1

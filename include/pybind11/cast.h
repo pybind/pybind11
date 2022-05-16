@@ -1009,6 +1009,8 @@ struct return_value_policy_override<
 // Basic python -> C++ casting; throws if casting fails
 template <typename T, typename SFINAE>
 type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+    static_assert(!detail::is_pyobject<T>::value,
+                  "Internal error: type_caster should only be used for C++ types");
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error("Unable to cast Python instance to C++ type (#define "
@@ -1099,19 +1101,28 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
 // - If both movable and copyable, check ref count: if 1, move; otherwise copy
 // - Otherwise (not movable), copy.
 template <typename T>
-detail::enable_if_t<detail::move_always<T>::value, T> cast(object &&object) {
+detail::enable_if_t<!detail::is_pyobject<T>::value && detail::move_always<T>::value, T>
+cast(object &&object) {
     return move<T>(std::move(object));
 }
 template <typename T>
-detail::enable_if_t<detail::move_if_unreferenced<T>::value, T> cast(object &&object) {
+detail::enable_if_t<!detail::is_pyobject<T>::value && detail::move_if_unreferenced<T>::value, T>
+cast(object &&object) {
     if (object.ref_count() > 1) {
         return cast<T>(object);
     }
     return move<T>(std::move(object));
 }
 template <typename T>
-detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
+detail::enable_if_t<!detail::is_pyobject<T>::value && detail::move_never<T>::value, T>
+cast(object &&object) {
     return cast<T>(object);
+}
+
+// pytype rvalue -> pytype (calls converting constructor)
+template <typename T>
+detail::enable_if_t<detail::is_pyobject<T>::value, T> cast(object &&object) {
+    return T(std::move(object));
 }
 
 template <typename T>
