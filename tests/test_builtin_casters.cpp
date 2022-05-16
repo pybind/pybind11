@@ -267,7 +267,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("lvalue_nested", []() -> const decltype(lvnested) & { return lvnested; });
 
     static std::pair<int, std::string> int_string_pair{2, "items"};
-    m.def("int_string_pair", []() { return &int_string_pair; });
+    m.def("int_string_pair", []() { return new decltype(int_string_pair){int_string_pair}; });
 
     // test_builtins_cast_return_none
     m.def("return_none_string", []() -> std::string * { return nullptr; });
