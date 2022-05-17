@@ -417,7 +417,7 @@ public:
                 if (m_lazy_what.empty()) { // Negate condition for manual testing.
                     failure_info = "m_lazy_what.empty()";
                 }
-                // throw std::runtime_error("Uncomment for manual testing.");
+                throw std::runtime_error("Uncomment for manual testing.");
 #ifdef _MSC_VER
             } catch (const std::exception &e) {
                 failure_info = "std::exception::what(): ";
