@@ -1583,7 +1583,8 @@ struct property_cpp_function<
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
-        return cpp_function([pm](T &c, D value) { c.*pm = value; }, is_method(hdl));
+        return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
+                            is_method(hdl));
     }
 };
 
