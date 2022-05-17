@@ -386,11 +386,11 @@ PYBIND11_NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
+class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
 public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
-    error_already_set() : std::runtime_error("") {
+    error_already_set() {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (!m_type) {
             pybind11_fail("Internal error: pybind11::detail::error_already_set called while "
@@ -402,9 +402,8 @@ public:
 
     /// Moving the members one-by-one to be able to specify noexcept.
     error_already_set(error_already_set &&e) noexcept
-        : std::runtime_error(std::move(e)), m_type{std::move(e.m_type)},
-          m_value{std::move(e.m_value)}, m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(
-                                                                            e.m_lazy_what)} {};
+        : std::exception(std::move(e)), m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
+          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
 
     inline ~error_already_set() override;
 
