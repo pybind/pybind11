@@ -351,7 +351,7 @@ endif()
 # Compile with compiler warnings turned on
 function(pybind11_enable_warnings target_name)
   if(MSVC)
-    target_compile_options(${target_name} PRIVATE /W4)
+    target_compile_options(${target_name} PRIVATE /W4 /wd4189)
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)" AND NOT PYBIND11_CUDA_TESTS)
     target_compile_options(
       ${target_name}
