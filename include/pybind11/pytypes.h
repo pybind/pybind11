@@ -414,7 +414,7 @@ public:
             std::string failure_info;
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-                if (m_lazy_what.empty()) { // Negate condition for manual testing.
+                if (!m_lazy_what.empty()) { // Negate condition for manual testing.
                     failure_info = "m_lazy_what.empty()";
                 }
                 // throw std::runtime_error("Uncomment for manual testing.");
