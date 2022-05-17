@@ -414,7 +414,7 @@ public:
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
                 // Negate the if condition to test the catch(...) block below.
-                if (m_lazy_what.empty()) {
+                if (!m_lazy_what.empty()) {
                     throw std::runtime_error(
                         "FATAL failure building pybind11::detail::error_already_set what()");
                 }
