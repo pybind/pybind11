@@ -467,9 +467,9 @@ public:
                 }
                 // Intentionally using C calls to maximize reliability
                 // (and to avoid #include <iostream>).
-                fprintf(stderr, "%s [STDERR]\n", msg.c_str());
+                fprintf(stderr, "\n%s [STDERR]\n", msg.c_str());
                 fflush(stderr);
-                fprintf(stdout, "%s [STDOUT]\n", msg.c_str());
+                fprintf(stdout, "\n%s [STDOUT]\n", msg.c_str());
                 fflush(stdout);
 #ifdef _MSC_VER
                 exit(-1); // Sadly. std::terminate() may pop up an interactive dialog box.
