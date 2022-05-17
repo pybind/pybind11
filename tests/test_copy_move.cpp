@@ -289,4 +289,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
         py::return_value_policy::move);
     m.def(
         "get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
+
+    // Make sure that cast from pytype rvalue to other pytype works
+    m.def("get_pytype_rvalue_castissue", [](double i) { return py::float_(i).cast<py::int_>(); });
 }
