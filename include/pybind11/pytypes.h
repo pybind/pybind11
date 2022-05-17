@@ -411,19 +411,36 @@ public:
     ///       (if it is not normalized already).
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
+            std::string failure_info;
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-                // Negate the if condition to test the catch(...) block below.
-                if (m_lazy_what.empty()) {
-                    throw std::runtime_error(
-                        "FATAL failure building pybind11::detail::error_already_set what()");
+                if (m_lazy_what.empty()) { // Negate condition for manual testing.
+                    failure_info = "m_lazy_what.empty()";
                 }
+                // throw std::runtime_error("Uncomment for manual testing.");
+#ifdef _MSC_VER
+            } catch (const std::exception &e) {
+                failure_info = "std::exception::what(): ";
+                try {
+                    failure_info += e.what();
+                } catch (...) {
+                    failure_info += "UNRECOVERABLE";
+                }
+#endif
             } catch (...) {
+#ifdef _MSC_VER
+                failure_info = "Unknown C++ exception";
+#else
+                failure_info = "C++ exception"; // std::terminate will report the details.
+#endif
+            }
+            if (!failure_info.empty()) {
                 // Terminating the process, to not mask the original error by errors in the error
                 // handling. Reporting the original error on stderr & stdout. Intentionally using
                 // the Python C API directly, to maximize reliability.
                 std::string msg
-                    = "FATAL failure building pybind11::detail::error_already_set what(): ";
+                    = "FATAL failure building pybind11::detail::error_already_set what() ["
+                      + failure_info + "] while processing Python exception: ";
                 if (m_type.ptr() == nullptr) {
                     msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
                 } else {
@@ -454,7 +471,11 @@ public:
                 fflush(stderr);
                 fprintf(stdout, "%s [STDOUT]\n", msg.c_str());
                 fflush(stdout);
+#ifdef _MSC_VER
+                exit(-1); // Sadly. std::terminate() may pop up an interactive dialog box.
+#else
                 std::terminate();
+#endif
             }
         }
         return m_lazy_what.c_str();
