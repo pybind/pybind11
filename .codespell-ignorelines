@@ -11,3 +11,4 @@ atyp_valu        rtrn_valu() { atyp_valu obj{"Valu"}; return obj; }
         valu = other.valu;
         with pytest.raises(ValueError) as excinfo:
     with pytest.raises(ValueError) as exc_info:
+// valu(e), ref(erence), ptr or p (pointer), r = rvalue, m = mutable, c = const,
