@@ -269,7 +269,11 @@ TEST_SUBMODULE(exceptions, m) {
                   if (ex.matches(exc_type)) {
                       py::print(ex.what());
                   } else {
-                      throw;
+                      // Simply `throw;` also works and is better, but using `throw ex;`
+                      // here to cover that situation (as observed in the wild).
+                      // Needs the copy ctor. The C++ standard guarantees that it is available:
+                      // C++17 18.1.5.
+                      throw ex;
                   }
               }
           });
@@ -312,7 +316,9 @@ TEST_SUBMODULE(exceptions, m) {
                 py::error_already_set moved_to{std::move(caught)};
                 return std::string(moved_to.what()); // Both destructors run.
             }
-            return std::string(caught.what()); // TODO: Remove this code path.
+            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+            py::error_already_set copied_to{caught};
+            return std::string(copied_to.what()); // Both destructors run.
         }
 #if !defined(_MSC_VER) // MSVC detects that this is unreachable.
         return std::string("Unreachable.");
