@@ -399,16 +399,12 @@ public:
     }
 
     error_already_set(const error_already_set &) = default;
-
-    /// Moving the members one-by-one to be able to specify noexcept.
-    error_already_set(error_already_set &&e) noexcept
-        : std::exception(std::move(e)), m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
-          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
+    error_already_set(error_already_set &&) = default;
 
     inline ~error_already_set() override;
 
-    /// NOTE: This function may have the side-effect of normalizing the held Python exception
-    ///       (if it is not normalized already).
+    /// NOTE: This member function may have the side-effect of normalizing the held Python
+    ///       exception (if it is not normalized already).
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
             std::string failure_info;
@@ -483,10 +479,10 @@ public:
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
-    /// NOTE: This function will not necessarily restore the original Python exception, but may
-    ///       restore the normalized exception if what() or discard_as_unraisable() were called
+    /// NOTE: This member function will not necessarily restore the original Python exception, but
+    ///       may restore the normalized exception if what() or discard_as_unraisable() were called
     ///       prior to restore().
-    void restore() {
+    void restore() const {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
         // m_trace, but simply holding on the the references makes it possible to produce
         // what() even after restore().
@@ -497,8 +493,8 @@ public:
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
     /// should be some object whose `repr()` helps identify the location of the error. Python
     /// already knows the type and value of the error, so there is no need to repeat that.
-    /// NOTE: This function may have the side-effect of normalizing the held Python exception
-    ///       (if it is not normalized already).
+    /// NOTE: This member function may have the side-effect of normalizing the held Python
+    ///       exception (if it is not normalized already).
     void discard_as_unraisable(object err_context) {
 #if PY_VERSION_HEX < 0x03080000
         PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
@@ -565,9 +561,8 @@ inline void raise_from(PyObject *type, const char *message) {
 
 /// Sets the current Python error indicator with the chosen error, performing a 'raise from'
 /// from the error contained in error_already_set to indicate that the chosen error was
-/// caused by the original error. After this function is called error_already_set will
-/// no longer contain an error.
-inline void raise_from(error_already_set &err, PyObject *type, const char *message) {
+/// caused by the original error.
+inline void raise_from(const error_already_set &err, PyObject *type, const char *message) {
     err.restore();
     raise_from(type, message);
 }
