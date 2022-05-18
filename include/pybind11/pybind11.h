@@ -2612,6 +2612,9 @@ void print(Args &&...args) {
 }
 
 error_already_set::~error_already_set() {
+    if (!(m_type || m_value || m_trace)) {
+        return; // Avoid gil and scope overhead if there is nothing to release.
+    }
     // Not using py::gil_scoped_acquire here since that calls get_internals,
     // which is known to trigger failures in the wild (a full explanation is
     // currently unknown).
