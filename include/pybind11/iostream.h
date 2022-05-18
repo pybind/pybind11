@@ -122,7 +122,7 @@ public:
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
     }
 
-    pythonbuf(pythonbuf &&) = default;
+    pythonbuf(pythonbuf &&) noexcept = default;
 
     /// Sync before destroy
     ~pythonbuf() override { _sync(); }
@@ -172,7 +172,7 @@ public:
     ~scoped_ostream_redirect() { costream.rdbuf(old); }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
-    scoped_ostream_redirect(scoped_ostream_redirect &&other) = default;
+    scoped_ostream_redirect(scoped_ostream_redirect &&other) noexcept = default;
     scoped_ostream_redirect &operator=(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
 };
