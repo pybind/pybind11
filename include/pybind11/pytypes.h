@@ -398,8 +398,19 @@ public:
         }
     }
 
+#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 6)          \
+    || (defined(_MSC_VER) && _MSC_VER >= 1920)
     error_already_set(const error_already_set &) noexcept = default;
     error_already_set(error_already_set &&) noexcept = default;
+#else
+    /// Copying/moving the members one-by-one to be able to specify noexcept.
+    error_already_set(const error_already_set &e) noexcept
+        : std::exception{e}, m_type{e.m_type}, m_value{e.m_value}, m_trace{e.m_trace},
+          m_lazy_what{e.m_lazy_what} {};
+    error_already_set(error_already_set &&e) noexcept
+        : std::exception{std::move(e)}, m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
+          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
+#endif
 
     inline ~error_already_set() override;
 
