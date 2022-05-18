@@ -312,9 +312,7 @@ TEST_SUBMODULE(exceptions, m) {
                 py::error_already_set moved_to{std::move(caught)};
                 return std::string(moved_to.what()); // Both destructors run.
             }
-            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-            py::error_already_set copied_to{caught};
-            return std::string(copied_to.what()); // Both destructors run.
+            return std::string(caught.what()); // TODO: Remove this code path.
         }
 #if !defined(_MSC_VER) // MSVC detects that this is unreachable.
         return std::string("Unreachable.");
