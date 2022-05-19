@@ -360,7 +360,19 @@ T reinterpret_steal(handle h) {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 std::string error_string();
+
+inline void terminate_if_gil_not_held(const char *filename, int line_no) {
+    if (PyGILState_Check() == 0) {
+        fprintf(stderr, "\nPYTHON_GIL_NOT_HELD %s:%d [stderr]\n", filename, line_no);
+        fflush(stderr);
+        fprintf(stdout, "\nPYTHON_GIL_NOT_HELD %s:%d [stdout]\n", filename, line_no);
+        fflush(stderr);
+        std::terminate();
+    }
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -381,7 +393,11 @@ public:
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
-    error_already_set(const error_already_set &) = default;
+    error_already_set(const error_already_set &e)
+        : std::runtime_error{e}, m_type{e.m_type}, m_value{e.m_value}, m_trace{e.m_trace} {
+        detail::terminate_if_gil_not_held(__FILE__, __LINE__);
+    }
+
     error_already_set(error_already_set &&) = default;
 
     inline ~error_already_set() override;
@@ -390,6 +406,7 @@ public:
     /// already set it is cleared first.  After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
     void restore() {
+        detail::terminate_if_gil_not_held(__FILE__, __LINE__);
         PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
     }
 
@@ -417,6 +434,7 @@ public:
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
     bool matches(handle exc) const {
+        detail::terminate_if_gil_not_held(__FILE__, __LINE__);
         return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
     }
 
