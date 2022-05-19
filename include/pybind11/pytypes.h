@@ -439,12 +439,14 @@ public:
     ///       exception (if it is not normalized already).
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
-            if (!PyGILState_Check() && _Py_IsFinalizing()) {
+#if PY_VERSION_HEX >= 0x03070000
+            if (PyGILState_Check() == 0 && _Py_IsFinalizing() != 0) {
                 // At this point there is no way the original Python exception can still be
                 // reported, therefore it is best to let the shutdown continue.
                 return "Python exception is UNRECOVERABLE because the Python interpreter is "
                        "finalizing.";
             }
+#endif
             std::string failure_info;
             detail::gil_scoped_acquire_simple gil;
             try {
