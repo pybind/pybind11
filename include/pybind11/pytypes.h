@@ -398,8 +398,9 @@ public:
         }
     }
 
-#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 6)          \
-    || (defined(_MSC_VER) && _MSC_VER >= 1920)
+#if ((defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10)        \
+     || (defined(_MSC_VER) && _MSC_VER >= 1920))                                                  \
+    && !defined(__INTEL_COMPILER)
     error_already_set(const error_already_set &) noexcept = default;
     error_already_set(error_already_set &&) noexcept = default;
 #else
