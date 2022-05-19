@@ -37,6 +37,17 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// For situations in which the more complex gil_scoped_acquire cannot be used.
+// Note that gil_scoped_acquire calls get_internals(), which uses gil_scoped_acquire_simple.
+class gil_scoped_acquire_simple {
+public:
+    gil_scoped_acquire_simple() : state(PyGILState_Ensure()) {}
+    ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
+
+private:
+    const PyGILState_STATE state;
+};
+
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -410,11 +421,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-    struct gil_scoped_acquire_local {
-        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
-        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
-        const PyGILState_STATE state;
-    } gil;
+    gil_scoped_acquire_simple gil;
 
     PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
     auto builtins = handle(PyEval_GetBuiltins());
