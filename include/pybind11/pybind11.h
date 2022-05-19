@@ -2615,7 +2615,7 @@ error_already_set::~error_already_set() {
     if (!(m_type || m_value || m_trace)) {
         return; // Avoid gil and scope overhead if there is nothing to release.
     }
-    if (_Py_IsFinalizing()) {
+    if (!PyGILState_Check() && _Py_IsFinalizing()) {
         // Leak m_type, m_value, m_trace rather than crashing the process.
         // https://docs.python.org/3/c-api/init.html#c.PyGILState_Ensure
         return;

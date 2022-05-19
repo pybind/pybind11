@@ -37,17 +37,6 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// For situations in which the more complex gil_scoped_acquire cannot be used.
-// Note that gil_scoped_acquire calls get_internals(), which uses gil_scoped_acquire_simple.
-class gil_scoped_acquire_simple {
-public:
-    gil_scoped_acquire_simple() : state(PyGILState_Ensure()) {}
-    ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
-
-private:
-    const PyGILState_STATE state;
-};
-
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();

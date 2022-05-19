@@ -374,6 +374,17 @@ inline const char *obj_class_name(PyObject *obj) {
     return Py_TYPE(obj)->tp_name;
 }
 
+// For situations in which the more complex gil_scoped_acquire cannot be used.
+// Note that gil_scoped_acquire calls get_internals(), which uses gil_scoped_acquire_simple.
+class gil_scoped_acquire_simple {
+public:
+    gil_scoped_acquire_simple() : state(PyGILState_Ensure()) {}
+    ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
+
+private:
+    const PyGILState_STATE state;
+};
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -401,9 +412,11 @@ public:
 #if ((defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10)        \
      || (defined(_MSC_VER) && _MSC_VER >= 1920))                                                  \
     && !defined(__INTEL_COMPILER)
+    /// WARNING: The GIL must be held when the copy ctor is used!
     error_already_set(const error_already_set &) noexcept = default;
     error_already_set(error_already_set &&) noexcept = default;
 #else
+    /// Workaround for old compilers:
     /// Copying/moving the members one-by-one to be able to specify noexcept.
     error_already_set(const error_already_set &e) noexcept
         : std::exception{e}, m_type{e.m_type}, m_value{e.m_value}, m_trace{e.m_trace},
@@ -413,13 +426,27 @@ public:
           m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
 #endif
 
+    // Note that the dtor acquires the GIL, unless the Python interpreter is finalizing (in which
+    // case the Python exception is leaked, to not crash the process).
     inline ~error_already_set() override;
 
+    /// The what() result is built lazily on demand. To build the result, it is necessary to
+    /// acquire the Python GIL. If that is not possible because the Python interpreter is
+    /// finalizing, the Python exception is unrecoverable and a static message is returned. Any
+    /// other errors processing the Python exception lead to process termination. If possible, the
+    /// original Python exception is written to stderr & stdout before the process is terminated.
     /// NOTE: This member function may have the side-effect of normalizing the held Python
     ///       exception (if it is not normalized already).
     const char *what() const noexcept override {
         if (m_lazy_what.empty()) {
+            if (!PyGILState_Check() && _Py_IsFinalizing()) {
+                // At this point there is no way the original Python exception can still be
+                // reported, therefore it is best to let the shutdown continue.
+                return "Python exception is UNRECOVERABLE because the Python interpreter is "
+                       "finalizing.";
+            }
             std::string failure_info;
+            detail::gil_scoped_acquire_simple gil;
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
                 if (m_lazy_what.empty()) { // Negate condition for manual testing.
@@ -491,6 +518,7 @@ public:
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
+    /// WARNING: The GIL must be held when this member function is called!
     /// NOTE: This member function will not necessarily restore the original Python exception, but
     ///       may restore the normalized exception if what() or discard_as_unraisable() were called
     ///       prior to restore().
@@ -516,6 +544,7 @@ public:
     }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
     /// the location of the error. For example, `__func__` could be helpful.
+    /// WARNING: The GIL must be held when this member function is called!
     void discard_as_unraisable(const char *err_context) {
         discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
     }
