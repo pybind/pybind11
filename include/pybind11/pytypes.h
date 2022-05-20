@@ -409,114 +409,35 @@ public:
         }
     }
 
+    /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    inline error_already_set(const error_already_set &e) noexcept;
+
 #if ((defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10)        \
      || (defined(_MSC_VER) && _MSC_VER >= 1920))                                                  \
     && !defined(__INTEL_COMPILER)
-    /// WARNING: The GIL must be held when the copy ctor is used!
-    error_already_set(const error_already_set &) noexcept = default;
     error_already_set(error_already_set &&) noexcept = default;
 #else
     /// Workaround for old compilers:
-    /// Copying/moving the members one-by-one to be able to specify noexcept.
-    error_already_set(const error_already_set &e) noexcept
-        : std::exception{e}, m_type{e.m_type}, m_value{e.m_value}, m_trace{e.m_trace},
-          m_lazy_what{e.m_lazy_what} {};
+    /// Moving the members one-by-one to be able to specify noexcept.
     error_already_set(error_already_set &&e) noexcept
-        : std::exception{std::move(e)}, m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
-          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)} {};
+        : std::exception{std::move(e)}, m_lazy_what{std::move(e.m_lazy_what)},
+          m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)}, m_trace{
+                                                                          std::move(e.m_trace)} {}
 #endif
 
-    // Note that the dtor acquires the GIL, unless the Python interpreter is finalizing (in which
-    // case the Python exception is leaked, to not crash the process).
+    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     inline ~error_already_set() override;
 
-    /// The what() result is built lazily on demand. To build the result, it is necessary to
-    /// acquire the Python GIL. If that is not possible because the Python interpreter is
-    /// finalizing, the Python exception is unrecoverable and a static message is returned. Any
-    /// other errors processing the Python exception lead to process termination. If possible, the
+    /// The what() result is built lazily on demand.
+    /// Any errors processing the Python exception lead to process termination. If possible, the
     /// original Python exception is written to stderr & stdout before the process is terminated.
     /// NOTE: This member function may have the side-effect of normalizing the held Python
     ///       exception (if it is not normalized already).
-    const char *what() const noexcept override {
-        if (m_lazy_what.empty()) {
-#if PY_VERSION_HEX >= 0x03070000
-            if (PyGILState_Check() == 0 && _Py_IsFinalizing() != 0) {
-                // At this point there is no way the original Python exception can still be
-                // reported, therefore it is best to let the shutdown continue.
-                return "Python exception is UNRECOVERABLE because the Python interpreter is "
-                       "finalizing.";
-            }
-#endif
-            std::string failure_info;
-            detail::gil_scoped_acquire_simple gil;
-            try {
-                m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-                if (m_lazy_what.empty()) { // Negate condition for manual testing.
-                    failure_info = "m_lazy_what.empty()";
-                }
-                // throw std::runtime_error("Uncomment for manual testing.");
-#ifdef _MSC_VER
-            } catch (const std::exception &e) {
-                failure_info = "std::exception::what(): ";
-                try {
-                    failure_info += e.what();
-                } catch (...) {
-                    failure_info += "UNRECOVERABLE";
-                }
-#endif
-            } catch (...) {
-#ifdef _MSC_VER
-                failure_info = "Unknown C++ exception";
-#else
-                failure_info = "C++ exception"; // std::terminate will report the details.
-#endif
-            }
-            if (!failure_info.empty()) {
-                // Terminating the process, to not mask the original error by errors in the error
-                // handling. Reporting the original error on stderr & stdout. Intentionally using
-                // the Python C API directly, to maximize reliability.
-                std::string msg
-                    = "FATAL failure building pybind11::detail::error_already_set what() ["
-                      + failure_info + "] while processing Python exception: ";
-                if (m_type.ptr() == nullptr) {
-                    msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
-                } else {
-                    const char *class_name = detail::obj_class_name(m_type.ptr());
-                    if (class_name == nullptr) {
-                        msg += "PYTHON_EXCEPTION_CLASS_NAME_IS_NULLPTR";
-                    } else {
-                        msg += class_name;
-                    }
-                }
-                msg += ": ";
-                PyObject *val_str = PyObject_Str(m_value.ptr());
-                if (val_str == nullptr) {
-                    msg += "PYTHON_EXCEPTION_VALUE_IS_NULLPTR";
-                } else {
-                    Py_ssize_t utf8_str_size = 0;
-                    const char *utf8_str = PyUnicode_AsUTF8AndSize(val_str, &utf8_str_size);
-                    if (utf8_str == nullptr) {
-                        msg += "PYTHON_EXCEPTION_VALUE_AS_UTF8_FAILURE";
-                    } else {
-                        msg += '"' + std::string(utf8_str, static_cast<std::size_t>(utf8_str_size))
-                               + '"';
-                    }
-                }
-                // Intentionally using C calls to maximize reliability
-                // (and to avoid #include <iostream>).
-                fprintf(stderr, "\n%s [STDERR]\n", msg.c_str());
-                fflush(stderr);
-                fprintf(stdout, "\n%s [STDOUT]\n", msg.c_str());
-                fflush(stdout);
-#ifdef _MSC_VER
-                exit(-1); // Sadly. std::terminate() may pop up an interactive dialog box.
-#else
-                std::terminate();
-#endif
-            }
-        }
-        return m_lazy_what.c_str();
-    }
+    /// WARNING: This member function needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    inline const char *what() const noexcept override;
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
@@ -567,8 +488,8 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
-    mutable object m_type, m_value, m_trace;
     mutable std::string m_lazy_what;
+    mutable object m_type, m_value, m_trace;
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)

@@ -2615,25 +2615,93 @@ error_already_set::~error_already_set() {
     if (!(m_type || m_value || m_trace)) {
         return; // Avoid gil and scope overhead if there is nothing to release.
     }
-#if PY_VERSION_HEX >= 0x03070000
-    if (PyGILState_Check() == 0 && _Py_IsFinalizing() != 0) {
-        // Leak m_type, m_value, m_trace rather than crashing the process.
-        // https://docs.python.org/3/c-api/init.html#c.PyGILState_Ensure
-        return;
-    }
-#endif
-    // Not using py::gil_scoped_acquire here since that calls get_internals,
-    // which is known to trigger failures in the wild (a full explanation is
-    // currently unknown).
-    // Note that py::gil_scoped_acquire acquires the GIL first in detail/internals.h
-    // exactly like we do here now, releases it, then acquires it again in gil.h.
-    // Using gil_scoped_acquire_simple cuts out the get_internals overhead and
-    // fixes the failures observed in the wild. See PR #1895 for more background.
-    detail::gil_scoped_acquire_simple gil;
+    gil_scoped_acquire gil;
     error_scope scope;
     m_type.release().dec_ref();
     m_value.release().dec_ref();
     m_trace.release().dec_ref();
+}
+
+error_already_set::error_already_set(const error_already_set &e) noexcept
+    : std::exception{e}, m_lazy_what{e.m_lazy_what} {
+    gil_scoped_acquire gil;
+    error_scope scope;
+    m_type = e.m_type;
+    m_value = e.m_value;
+    m_trace = e.m_trace;
+}
+
+const char *error_already_set::what() const noexcept {
+    if (m_lazy_what.empty()) {
+        std::string failure_info;
+        gil_scoped_acquire gil;
+        error_scope scope;
+        try {
+            m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+            if (m_lazy_what.empty()) { // Negate condition for manual testing.
+                failure_info = "m_lazy_what.empty()";
+            }
+            // throw std::runtime_error("Uncomment for manual testing.");
+#ifdef _MSC_VER
+        } catch (const std::exception &e) {
+            failure_info = "std::exception::what(): ";
+            try {
+                failure_info += e.what();
+            } catch (...) {
+                failure_info += "UNRECOVERABLE";
+            }
+#endif
+        } catch (...) {
+#ifdef _MSC_VER
+            failure_info = "Unknown C++ exception";
+#else
+            failure_info = "C++ exception"; // std::terminate will report the details.
+#endif
+        }
+        if (!failure_info.empty()) {
+            // Terminating the process, to not mask the original error by errors in the error
+            // handling. Reporting the original error on stderr & stdout. Intentionally using
+            // the Python C API directly, to maximize reliability.
+            std::string msg = "FATAL failure building pybind11::detail::error_already_set what() ["
+                              + failure_info + "] while processing Python exception: ";
+            if (m_type.ptr() == nullptr) {
+                msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
+            } else {
+                const char *class_name = detail::obj_class_name(m_type.ptr());
+                if (class_name == nullptr) {
+                    msg += "PYTHON_EXCEPTION_CLASS_NAME_IS_NULLPTR";
+                } else {
+                    msg += class_name;
+                }
+            }
+            msg += ": ";
+            PyObject *val_str = PyObject_Str(m_value.ptr());
+            if (val_str == nullptr) {
+                msg += "PYTHON_EXCEPTION_VALUE_IS_NULLPTR";
+            } else {
+                Py_ssize_t utf8_str_size = 0;
+                const char *utf8_str = PyUnicode_AsUTF8AndSize(val_str, &utf8_str_size);
+                if (utf8_str == nullptr) {
+                    msg += "PYTHON_EXCEPTION_VALUE_AS_UTF8_FAILURE";
+                } else {
+                    msg += '"' + std::string(utf8_str, static_cast<std::size_t>(utf8_str_size))
+                           + '"';
+                }
+            }
+            // Intentionally using C calls to maximize reliability
+            // (and to avoid #include <iostream>).
+            fprintf(stderr, "\n%s [STDERR]\n", msg.c_str());
+            fflush(stderr);
+            fprintf(stdout, "\n%s [STDOUT]\n", msg.c_str());
+            fflush(stdout);
+#ifdef _MSC_VER
+            exit(-1); // Sadly. std::terminate() may pop up an interactive dialog box.
+#else
+            std::terminate();
+#endif
+        }
+    }
+    return m_lazy_what.c_str();
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
