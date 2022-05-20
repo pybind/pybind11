@@ -384,7 +384,15 @@ public:
     /// already knows the type and value of the error, so there is no need to repeat that. After
     /// this call, the current object no longer stores the error variables, and neither does
     /// Python.
-    void discard_as_unraisable(object err_context) { PyErr_WriteUnraisable(err_context.ptr()); }
+    void discard_as_unraisable(object err_context) {
+#if PY_VERSION_HEX < 0x03080000
+        PyObject *exc = nullptr, *val = nullptr, *tb = nullptr;
+        PyErr_Fetch(&exc, &val, &tb);
+        PyErr_NormalizeException(&exc, &val, &tb);
+        PyErr_Restore(exc, val, tb);
+#endif
+        PyErr_WriteUnraisable(err_context.ptr());
+    }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
     /// the location of the error. For example, `__func__` could be helpful.
     void discard_as_unraisable(const char *err_context) {
