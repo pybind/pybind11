@@ -972,7 +972,7 @@ protected:
                     }
                 }
             }
-        } catch (error_already_set &e) {
+        } catch (error_already_set &) {
             // The Python error reporting has already been handled.
             return nullptr;
 #ifdef __GLIBCXX__
