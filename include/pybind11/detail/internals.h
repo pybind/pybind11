@@ -390,8 +390,7 @@ inline void translate_local_exception(std::exception_ptr p) {
         if (p) {
             std::rethrow_exception(p);
         }
-    } catch (error_already_set &e) {
-        e.restore();
+    } catch (error_already_set &) {
         return;
     } catch (const builtin_exception &e) {
         e.set_error();
