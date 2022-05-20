@@ -190,6 +190,7 @@ TEST_SUBMODULE(exceptions, m) {
             if (!ex.matches(PyExc_KeyError)) {
                 throw;
             }
+            PyErr_Clear();
             return true;
         }
         return false;
@@ -203,6 +204,7 @@ TEST_SUBMODULE(exceptions, m) {
             if (!ex.matches(PyExc_Exception)) {
                 throw;
             }
+            PyErr_Clear();
             return true;
         }
         return false;
@@ -215,6 +217,7 @@ TEST_SUBMODULE(exceptions, m) {
             if (!ex.matches(PyExc_ImportError)) {
                 throw;
             }
+            PyErr_Clear();
             return true;
         }
         return false;
@@ -223,21 +226,11 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throw_already_set", [](bool err) {
         if (err) {
             PyErr_SetString(PyExc_ValueError, "foo");
-        }
-        try {
             throw py::error_already_set();
-        } catch (const std::runtime_error &e) {
-            if ((err && e.what() != std::string("ValueError: foo"))
-                || (!err && e.what() != std::string("Unknown internal error occurred"))) {
-                PyErr_Clear();
-                throw std::runtime_error("error message mismatch");
-            }
         }
+        auto result = py::detail::error_string();
         PyErr_Clear();
-        if (err) {
-            PyErr_SetString(PyExc_ValueError, "foo");
-        }
-        throw py::error_already_set();
+        return result;
     });
 
     m.def("python_call_in_destructor", [](const py::dict &d) {
@@ -247,6 +240,7 @@ TEST_SUBMODULE(exceptions, m) {
             PyErr_SetString(PyExc_ValueError, "foo");
             throw py::error_already_set();
         } catch (const py::error_already_set &) {
+            PyErr_Clear();
             retval = true;
         }
         return retval;
@@ -264,7 +258,9 @@ TEST_SUBMODULE(exceptions, m) {
                   f(*args);
               } catch (py::error_already_set &ex) {
                   if (ex.matches(exc_type)) {
-                      py::print(ex.what());
+                      auto msg = py::detail::error_string();
+                      PyErr_Clear();
+                      py::print(msg);
                   } else {
                       throw;
                   }
@@ -286,8 +282,8 @@ TEST_SUBMODULE(exceptions, m) {
         try {
             PyErr_SetString(PyExc_ValueError, "inner");
             throw py::error_already_set();
-        } catch (py::error_already_set &e) {
-            py::raise_from(e, PyExc_ValueError, "outer");
+        } catch (py::error_already_set &) {
+            py::raise_from(PyExc_ValueError, "outer");
             throw py::error_already_set();
         }
     });

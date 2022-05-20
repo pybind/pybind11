@@ -243,11 +243,13 @@ TEST_SUBMODULE(pytypes, m) {
         try {
             o.attr("sub").attr("missing").ptr();
         } catch (const py::error_already_set &) {
+            PyErr_Clear();
             d["missing_attr_ptr"] = "raised"_s;
         }
         try {
             o.attr("missing").attr("doesn't matter");
         } catch (const py::error_already_set &) {
+            PyErr_Clear();
             d["missing_attr_chain"] = "raised"_s;
         }
 
@@ -269,6 +271,7 @@ TEST_SUBMODULE(pytypes, m) {
         try {
             existing_t[0] = 1;
         } catch (const py::error_already_set &) {
+            PyErr_Clear();
             // --> Python system error
             // Only new tuples (refcount == 1) are mutable
             auto new_t = py::tuple(3);

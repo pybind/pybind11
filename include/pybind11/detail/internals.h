@@ -333,8 +333,7 @@ inline void translate_exception(std::exception_ptr p) {
     try {
         std::rethrow_exception(p);
     } catch (error_already_set &e) {
-        handle_nested_exception(e, p);
-        e.restore();
+        // The Python error reporting has already been handled.
         return;
     } catch (const builtin_exception &e) {
         // Could not use template since it's an abstract class.

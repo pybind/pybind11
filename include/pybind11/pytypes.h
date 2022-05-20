@@ -369,29 +369,9 @@ PYBIND11_NAMESPACE_END(detail)
 //     warning C4275: An exported class was derived from a class that wasn't exported.
 //     Can be ignored when derived from a STL class.
 #endif
-/// Fetch and hold an error which was already set in Python.  An instance of this is typically
-/// thrown to propagate python-side errors back through C++ which can either be caught manually or
-/// else falls back to the function dispatcher (which then raises the captured error back to
-/// python).
-class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
+class PYBIND11_EXPORT_EXCEPTION error_already_set {
 public:
-    /// Constructs a new exception from the current Python error indicator, if any.  The current
-    /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error(detail::error_string()) {
-        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-    }
-
-    error_already_set(const error_already_set &) = default;
-    error_already_set(error_already_set &&) = default;
-
-    inline ~error_already_set() override;
-
-    /// Give the currently-held error back to Python, if any.  If there is currently a Python error
-    /// already set it is cleared first.  After this call, the current object no longer stores the
-    /// error variables (but the `.what()` string is still available).
-    void restore() {
-        PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
-    }
+    virtual ~error_already_set() = default;
 
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
@@ -399,33 +379,23 @@ public:
     /// already knows the type and value of the error, so there is no need to repeat that. After
     /// this call, the current object no longer stores the error variables, and neither does
     /// Python.
-    void discard_as_unraisable(object err_context) {
-        restore();
-        PyErr_WriteUnraisable(err_context.ptr());
-    }
+    void discard_as_unraisable(object err_context) { PyErr_WriteUnraisable(err_context.ptr()); }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
     /// the location of the error. For example, `__func__` could be helpful.
     void discard_as_unraisable(const char *err_context) {
         discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
     }
 
-    // Does nothing; provided for backwards compatibility.
-    PYBIND11_DEPRECATED("Use of error_already_set.clear() is deprecated")
-    void clear() {}
-
     /// Check if the currently trapped error type matches the given Python exception class (or a
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
     bool matches(handle exc) const {
-        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
+        PyObject *exc_type = PyErr_Occurred();
+        if (exc_type == nullptr) {
+            return false;
+        }
+        return (PyErr_GivenExceptionMatches(exc_type, exc.ptr()) != 0);
     }
-
-    const object &type() const { return m_type; }
-    const object &value() const { return m_value; }
-    const object &trace() const { return m_trace; }
-
-private:
-    object m_type, m_value, m_trace;
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
@@ -457,15 +427,6 @@ inline void raise_from(PyObject *type, const char *message) {
     PyException_SetCause(val2, val);
     PyException_SetContext(val2, val);
     PyErr_Restore(exc, val2, tb);
-}
-
-/// Sets the current Python error indicator with the chosen error, performing a 'raise from'
-/// from the error contained in error_already_set to indicate that the chosen error was
-/// caused by the original error. After this function is called error_already_set will
-/// no longer contain an error.
-inline void raise_from(error_already_set &err, PyObject *type, const char *message) {
-    err.restore();
-    raise_from(type, message);
 }
 
 /** \defgroup python_builtins const_name

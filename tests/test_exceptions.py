@@ -14,9 +14,7 @@ def test_std_exception(msg):
 
 
 def test_error_already_set(msg):
-    with pytest.raises(RuntimeError) as excinfo:
-        m.throw_already_set(False)
-    assert msg(excinfo.value) == "Unknown internal error occurred"
+    assert m.throw_already_set(False) == "Unknown internal error occurred"
 
     with pytest.raises(ValueError) as excinfo:
         m.throw_already_set(True)

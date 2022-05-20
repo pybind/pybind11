@@ -973,7 +973,7 @@ protected:
                 }
             }
         } catch (error_already_set &e) {
-            e.restore();
+            // The Python error reporting has already been handled.
             return nullptr;
 #ifdef __GLIBCXX__
         } catch (abi::__forced_unwind &) {
@@ -2609,16 +2609,6 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
 void print(Args &&...args) {
     auto c = detail::collect_arguments<policy>(std::forward<Args>(args)...);
     detail::print(c.args(), c.kwargs());
-}
-
-error_already_set::~error_already_set() {
-    if (m_type) {
-        gil_scoped_acquire gil;
-        error_scope scope;
-        m_type.release().dec_ref();
-        m_value.release().dec_ref();
-        m_trace.release().dec_ref();
-    }
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
