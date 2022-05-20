@@ -143,6 +143,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
     if (Py_IsInitialized() != 0) {
+        PyErr_Clear();
         pybind11_fail("The interpreter is already running");
     }
 

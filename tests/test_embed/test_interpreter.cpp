@@ -125,9 +125,19 @@ TEST_CASE("Override cache") {
 
 TEST_CASE("Import error handling") {
     REQUIRE_NOTHROW(py::module_::import("widget_module"));
-    REQUIRE_THROWS_WITH(py::module_::import("throw_exception"), "ImportError: C++ Error");
-    REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
-                        Catch::Contains("ImportError: initialization failed"));
+    try {
+        py::module_::import("throw_exception");
+    } catch (const py::error_already_set &) {
+        REQUIRE(py::detail::error_string() == "ImportError: C++ Error");
+        PyErr_Clear();
+    }
+    try {
+        py::module_::import("throw_error_already_set");
+    } catch (const py::error_already_set &) {
+        REQUIRE_THAT(py::detail::error_string(),
+                     Catch::Contains("ImportError: initialization failed"));
+        PyErr_Clear();
+    }
 
     auto locals = py::dict("is_keyerror"_a = false, "message"_a = "not set");
     py::exec(R"(
