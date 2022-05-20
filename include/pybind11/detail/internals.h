@@ -332,7 +332,7 @@ inline void translate_exception(std::exception_ptr p) {
     }
     try {
         std::rethrow_exception(p);
-    } catch (error_already_set &e) {
+    } catch (error_already_set &) {
         // The Python error reporting has already been handled.
         return;
     } catch (const builtin_exception &e) {
