@@ -373,6 +373,11 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set {
 public:
     virtual ~error_already_set() = default;
 
+    // Compatibility with older compilers.
+    error_already_set() = default;
+    error_already_set(const error_already_set &) = default;
+    error_already_set(error_already_set &&) = default;
+
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
     /// should be some object whose `repr()` helps identify the location of the error. Python
