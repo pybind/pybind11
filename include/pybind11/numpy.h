@@ -604,7 +604,7 @@ public:
     }
 
     /// type number of dtype.
-    ssize_t num() const {
+    int num() const {
         // Note: The signature, `dtype::num` follows the naming of NumPy's public
         // Python API (i.e., ``dtype.num``), rather than its internal
         // C API (``PyArray_Descr::type_num``).
