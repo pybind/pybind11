@@ -98,8 +98,8 @@ public:
             explicit func_wrapper(func_handle &&hf) noexcept : hfunc(std::move(hf)) {}
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
-                object retval(hfunc.f(std::forward<Args>(args)...));
-                return retval.template cast<Return>();
+                // rvalue cast the returned object
+                return object(hfunc.f(std::forward<Args>(args)...)).template cast<Return>();
             }
         };
 
