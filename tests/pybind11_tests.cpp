@@ -65,6 +65,11 @@ void bind_ConstructorStats(py::module_ &m) {
 PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
+    if (m) { // Always true.
+        PyErr_SetString(PyExc_ValueError, "pybind11_tests INTENTIONAL BREAKAGE");
+        throw py::error_already_set();
+    }
+
     bind_ConstructorStats(m);
 
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
