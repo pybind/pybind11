@@ -2625,7 +2625,6 @@ error_already_set::~error_already_set() {
 error_already_set::error_already_set(const error_already_set &e) noexcept
     : std::exception{e}, m_lazy_what{e.m_lazy_what} {
     gil_scoped_acquire gil;
-    error_scope scope;
     m_type = e.m_type;
     m_value = e.m_value;
     m_trace = e.m_trace;
