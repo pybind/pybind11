@@ -374,17 +374,6 @@ inline const char *obj_class_name(PyObject *obj) {
     return Py_TYPE(obj)->tp_name;
 }
 
-// For situations in which the more complex gil_scoped_acquire cannot be used.
-// Note that gil_scoped_acquire calls get_internals(), which uses gil_scoped_acquire_simple.
-class gil_scoped_acquire_simple {
-public:
-    gil_scoped_acquire_simple() : state(PyGILState_Ensure()) {}
-    ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
-
-private:
-    const PyGILState_STATE state;
-};
-
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
