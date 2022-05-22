@@ -1074,6 +1074,7 @@ protected:
                 try {
                     msg += pybind11::repr(args_[ti]);
                 } catch (const error_already_set &) {
+                    PyErr_Clear();
                     msg += "<repr raised Error>";
                 }
             }
@@ -1095,6 +1096,7 @@ protected:
                         try {
                             msg += pybind11::repr(kwarg.second);
                         } catch (const error_already_set &) {
+                            PyErr_Clear();
                             msg += "<repr raised Error>";
                         }
                     }
@@ -2587,6 +2589,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         try {
             file = module_::import("sys").attr("stdout");
         } catch (const error_already_set &) {
+            PyErr_Clear();
             /* If print() is called from code that is executed as
                part of garbage collection during interpreter shutdown,
                importing 'sys' can fail. Give up rather than crashing the
