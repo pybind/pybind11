@@ -132,7 +132,8 @@ TEST_SUBMODULE(stl_binders, m) {
     // The rest depends on numpy:
     try {
         py::module_::import("numpy");
-    } catch (...) {
+    } catch (py::error_already_set &) {
+        PyErr_Clear();
         return;
     }
 

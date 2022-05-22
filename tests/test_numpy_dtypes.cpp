@@ -301,7 +301,8 @@ struct B {};
 TEST_SUBMODULE(numpy_dtypes, m) {
     try {
         py::module_::import("numpy");
-    } catch (...) {
+    } catch (py::error_already_set &) {
+        PyErr_Clear();
         return;
     }
 

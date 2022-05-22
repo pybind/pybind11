@@ -162,7 +162,8 @@ static int data_i = 42;
 TEST_SUBMODULE(numpy_array, sm) {
     try {
         py::module_::import("numpy");
-    } catch (...) {
+    } catch (const py::error_already_set &) {
+        PyErr_Clear();
         return;
     }
 

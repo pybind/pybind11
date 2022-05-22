@@ -22,7 +22,8 @@ double my_func(int x, float y, double z) {
 TEST_SUBMODULE(numpy_vectorize, m) {
     try {
         py::module_::import("numpy");
-    } catch (...) {
+    } catch (py::error_already_set &) {
+        PyErr_Clear();
         return;
     }
 
