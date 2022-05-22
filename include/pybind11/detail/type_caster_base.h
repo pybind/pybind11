@@ -478,6 +478,8 @@ PYBIND11_NOINLINE std::string error_string() {
 
     error_scope scope; // Preserve error state
 
+    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+
     std::string errorString;
     if (scope.type) {
         errorString += handle(scope.type).attr("__name__").cast<std::string>();
@@ -486,8 +488,6 @@ PYBIND11_NOINLINE std::string error_string() {
     if (scope.value) {
         errorString += (std::string) str(scope.value);
     }
-
-    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
 
     if (scope.trace != nullptr) {
         PyException_SetTraceback(scope.value, scope.trace);
