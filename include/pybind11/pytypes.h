@@ -414,6 +414,12 @@ public:
 #    pragma warning(pop)
 #endif
 
+inline std::string get_error_string_and_clear_error() {
+    std::string result = detail::error_string();
+    PyErr_Clear();
+    return result;
+}
+
 /// Replaces the current Python error indicator with the chosen error, performing a
 /// 'raise from' to indicate that the chosen error was caused by the original error.
 inline void raise_from(PyObject *type, const char *message) {

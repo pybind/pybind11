@@ -128,15 +128,13 @@ TEST_CASE("Import error handling") {
     try {
         py::module_::import("throw_exception");
     } catch (const py::error_already_set &) {
-        REQUIRE(py::detail::error_string() == "ImportError: C++ Error");
-        PyErr_Clear();
+        REQUIRE(py::get_error_string_and_clear_error() == "ImportError: C++ Error");
     }
     try {
         py::module_::import("throw_error_already_set");
     } catch (const py::error_already_set &) {
-        REQUIRE_THAT(py::detail::error_string(),
+        REQUIRE_THAT(py::get_error_string_and_clear_error(),
                      Catch::Contains("ImportError: initialization failed"));
-        PyErr_Clear();
     }
 
     auto locals = py::dict("is_keyerror"_a = false, "message"_a = "not set");

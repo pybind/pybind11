@@ -324,9 +324,9 @@
 
 #define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     catch (pybind11::error_already_set &) {                                                       \
-        std::string err_str = pybind11::detail::error_string();                                   \
-        PyErr_Clear();                                                                            \
-        PyErr_SetString(PyExc_ImportError, ("initialization failed: " + err_str).c_str());        \
+        PyErr_SetString(                                                                          \
+            PyExc_ImportError,                                                                    \
+            ("initialization failed: " + pybind11::get_error_string_and_clear_error()).c_str());  \
         return nullptr;                                                                           \
     }                                                                                             \
     catch (const std::exception &e) {                                                             \

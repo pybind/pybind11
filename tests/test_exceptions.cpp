@@ -228,9 +228,7 @@ TEST_SUBMODULE(exceptions, m) {
             PyErr_SetString(PyExc_ValueError, "foo");
             throw py::error_already_set();
         }
-        auto result = py::detail::error_string();
-        PyErr_Clear();
-        return result;
+        return py::get_error_string_and_clear_error();
     });
 
     m.def("python_call_in_destructor", [](const py::dict &d) {
@@ -258,9 +256,7 @@ TEST_SUBMODULE(exceptions, m) {
                   f(*args);
               } catch (py::error_already_set &ex) {
                   if (ex.matches(exc_type)) {
-                      auto msg = py::detail::error_string();
-                      PyErr_Clear();
-                      py::print(msg);
+                      py::print(py::get_error_string_and_clear_error());
                   } else {
                       throw;
                   }
