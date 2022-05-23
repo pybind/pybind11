@@ -105,6 +105,16 @@ struct PythonAlreadySetInDestructor {
     py::str s;
 };
 
+void raise_exception(const py::object &exc_type, const py::object &exc_value) {
+    PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
+    throw py::error_already_set();
+}
+
+std::string error_already_set_what(const py::object &exc_type, const py::object &exc_value) {
+    PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
+    return py::error_already_set().what();
+}
+
 TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception",
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
@@ -324,4 +334,7 @@ TEST_SUBMODULE(exceptions, m) {
         return std::string("Unreachable.");
 #endif
     });
+
+    m.def("raise_exception", raise_exception);
+    m.def("error_already_set_what", error_already_set_what);
 }

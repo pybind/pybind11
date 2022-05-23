@@ -374,6 +374,19 @@ inline const char *obj_class_name(PyObject *obj) {
     return Py_TYPE(obj)->tp_name;
 }
 
+inline const char *obj_class_name_or(PyObject *obj,
+                                     const char *subst_if_type_is_nullptr,
+                                     const char *subst_if_name_is_nullptr) {
+    if (obj == nullptr) {
+        return subst_if_type_is_nullptr;
+    }
+    const char *name = obj_class_name(obj);
+    if (name == nullptr) {
+        return subst_if_name_is_nullptr;
+    }
+    return name;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)

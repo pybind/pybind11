@@ -279,3 +279,40 @@ def test_local_translator(msg):
 @pytest.mark.parametrize("use_move, expected", ((False, "copied."), (True, "moved.")))
 def test_error_already_set_copy_move(use_move, expected):
     assert m.move_error_already_set(use_move) == "RuntimeError: To be " + expected
+
+
+class FlakyException(Exception):
+    def __init__(self, failure_point):
+        if failure_point == "failure_point_init":
+            raise ValueError("triggered_failure_point_init")
+        self.failure_point = failure_point
+
+    def __str__(self):
+        if self.failure_point == "failure_point_str":
+            raise ValueError("triggered_failure_point_str")
+        return "FlakyException.__str__"
+
+
+def test_flaky_exception_happy():
+    with pytest.raises(FlakyException) as excinfo:
+        m.raise_exception(FlakyException, ("happy",))
+    assert str(excinfo.value) == "FlakyException.__str__"
+    w = m.error_already_set_what(FlakyException, "happy")
+    assert w == "FlakyException: FlakyException.__str__"
+
+
+def test_flaky_exception_failure_point_init():
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_exception(FlakyException, ("failure_point_init",))
+    assert str(excinfo.value) == "triggered_failure_point_init"
+    # w = m.error_already_set_what(FlakyException, ("failure_point_init",))
+
+
+def test_flaky_exception_failure_point_str():
+    with pytest.raises(FlakyException) as excinfo_init:
+        m.raise_exception(FlakyException, ("failure_point_str",))
+    assert repr(excinfo_init.value) == "FlakyException('failure_point_str')"
+    with pytest.raises(ValueError) as excinfo_str:
+        str(excinfo_init.value)
+    assert str(excinfo_str.value) == "triggered_failure_point_str"
+    # w = m.error_already_set_what(FlakyException, ("failure_point_str",))

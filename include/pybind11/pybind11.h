@@ -2632,16 +2632,26 @@ error_already_set::error_already_set(const error_already_set &e) noexcept
 
 const char *error_already_set::what() const noexcept {
     if (m_lazy_what.empty()) {
+        bool exc_type_mutated = false;
         std::string failure_info;
         gil_scoped_acquire gil;
         error_scope scope;
+        // PyErr_NormalizeException() may change the exception type if there are cascading
+        // failures. This can potentially be extremely confusing.
+        const char *exc_type_name_orig = detail::obj_class_name_or(
+            m_type.ptr(), "PY_EXC_ORIG_TYPE_IS_NULLPTR", "PY_EXC_ORIG_TYPE_NAME_IS_NULLPTR");
+        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        const char *exc_type_name_norm = detail::obj_class_name_or(
+            m_type.ptr(), "PY_EXC_NORM_TYPE_IS_NULLPTR", "PY_EXC_NORM_TYPE_NAME_IS_NULLPTR");
+        if (std::strcmp(exc_type_name_orig, exc_type_name_norm) != 0) {
+            exc_type_mutated = true;
+        }
         try {
             m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             if (m_lazy_what.empty()) { // Negate condition for manual testing.
                 failure_info = "m_lazy_what.empty()";
             }
             // throw std::runtime_error("Uncomment for manual testing.");
-#ifdef _MSC_VER
         } catch (const std::exception &e) {
             failure_info = "std::exception::what(): ";
             try {
@@ -2649,29 +2659,25 @@ const char *error_already_set::what() const noexcept {
             } catch (...) {
                 failure_info += "UNRECOVERABLE";
             }
-#endif
         } catch (...) {
-#ifdef _MSC_VER
             failure_info = "Unknown C++ exception";
-#else
-            failure_info = "C++ exception"; // std::terminate will report the details.
-#endif
         }
-        if (!failure_info.empty()) {
+        if (exc_type_mutated || !failure_info.empty()) {
             // Terminating the process, to not mask the original error by errors in the error
             // handling. Reporting the original error on stderr & stdout. Intentionally using
             // the Python C API directly, to maximize reliability.
-            std::string msg = "FATAL failure building pybind11::detail::error_already_set what() ["
-                              + failure_info + "] while processing Python exception: ";
-            if (m_type.ptr() == nullptr) {
-                msg += "PYTHON_EXCEPTION_TYPE_IS_NULLPTR";
+            std::string msg = "FATAL failure building pybind11::detail::error_already_set what() ";
+            if (!failure_info.empty()) {
+                msg += "[" + failure_info + "] ";
+            }
+            msg += "while processing Python exception: ";
+            if (exc_type_mutated) {
+                msg += "ORIGINAL ";
+                msg += exc_type_name_orig;
+                msg += " REPLACED BY ";
+                msg += exc_type_name_norm;
             } else {
-                const char *class_name = detail::obj_class_name(m_type.ptr());
-                if (class_name == nullptr) {
-                    msg += "PYTHON_EXCEPTION_CLASS_NAME_IS_NULLPTR";
-                } else {
-                    msg += class_name;
-                }
+                msg += exc_type_name_orig;
             }
             msg += ": ";
             PyObject *val_str = PyObject_Str(m_value.ptr());
