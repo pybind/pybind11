@@ -1687,7 +1687,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
-    detail::item_accessor operator[](object &&k) const { return object::operator[](k); }
+    detail::item_accessor operator[](object &&o) const { return object::operator[](std::move(o)); }
     detail::tuple_iterator begin() const { return {*this, 0}; }
     detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
 };
@@ -1748,7 +1748,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
-    detail::item_accessor operator[](object &&k) const { return object::operator[](k); }
+    detail::item_accessor operator[](object &&o) const { return object::operator[](std::move(o)); }
     detail::sequence_iterator begin() const { return {*this, 0}; }
     detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
 };
@@ -1768,7 +1768,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
-    detail::item_accessor operator[](object &&k) const { return object::operator[](k); }
+    detail::item_accessor operator[](object &&o) const { return object::operator[](std::move(o)); }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T>
