@@ -2623,7 +2623,8 @@ error_already_set::~error_already_set() {
 }
 
 error_already_set::error_already_set(const error_already_set &e) noexcept
-    : std::exception{e}, m_lazy_what{e.m_lazy_what} {
+    : std::exception{e}, m_lazy_what{e.m_lazy_what}, m_lazy_what_completed{
+                                                         e.m_lazy_what_completed} {
     gil_scoped_acquire gil;
     m_type = e.m_type;
     m_value = e.m_value;

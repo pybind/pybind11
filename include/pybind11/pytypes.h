@@ -464,9 +464,9 @@ public:
     /// Workaround for old compilers:
     /// Moving the members one-by-one to be able to specify noexcept.
     error_already_set(error_already_set &&e) noexcept
-        : std::exception{std::move(e)}, m_lazy_what{std::move(e.m_lazy_what)},
-          m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)}, m_trace{
-                                                                          std::move(e.m_trace)} {}
+        : std::exception{std::move(e)}, m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
+          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)},
+          m_lazy_what_completed{std::move(e.m_lazy_what_completed)} {}
 #endif
 
     /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
