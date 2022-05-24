@@ -87,6 +87,8 @@ public:
     item_accessor operator[](handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
     item_accessor operator[](const char *key) const;
+    /// See above (the only difference is that they key's reference is stolen)
+    item_accessor operator[](object &&key) const;
 
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
@@ -97,6 +99,8 @@ public:
     obj_attr_accessor attr(handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
+    /// See below  (only difference is that the key's reference is stolen)
+    obj_attr_accessor attr(object &&key) const;
 
     /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
@@ -1683,6 +1687,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    detail::item_accessor operator[](object &&k) const { return object::operator[](k); }
     detail::tuple_iterator begin() const { return {*this, 0}; }
     detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
 };
@@ -1743,6 +1748,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    detail::item_accessor operator[](object &&k) const { return object::operator[](k); }
     detail::sequence_iterator begin() const { return {*this, 0}; }
     detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
 };
@@ -1762,6 +1768,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    detail::item_accessor operator[](object &&k) const { return object::operator[](k); }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T>
@@ -2057,12 +2064,20 @@ iterator object_api<D>::end() const {
     return iterator::sentinel();
 }
 template <typename D>
+item_accessor object_api<D>::operator[](object &&key) const {
+    return {derived(), std::move(key)};
+}
+template <typename D>
 item_accessor object_api<D>::operator[](handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
 }
 template <typename D>
 item_accessor object_api<D>::operator[](const char *key) const {
     return {derived(), pybind11::str(key)};
+}
+template <typename D>
+obj_attr_accessor object_api<D>::attr(object &&key) const {
+    return {derived(), std::move(key)};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
