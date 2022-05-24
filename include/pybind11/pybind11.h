@@ -1566,7 +1566,8 @@ public:
                         scope(*this),
                         sibling(getattr(*this, name_, none())),
                         extra...);
-        attr(cf.name()) = staticmethod(cf);
+        auto name = cf.name();
+        attr(std::move(name)) = staticmethod(std::move(cf));
         return *this;
     }
 
