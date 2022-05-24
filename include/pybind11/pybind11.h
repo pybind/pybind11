@@ -2631,80 +2631,26 @@ error_already_set::error_already_set(const error_already_set &e) noexcept
 }
 
 const char *error_already_set::what() const noexcept {
-    if (m_lazy_what.empty()) {
-        bool exc_type_mutated = false;
+    if (!m_lazy_what_completed) {
         std::string failure_info;
         gil_scoped_acquire gil;
         error_scope scope;
-        // PyErr_NormalizeException() may change the exception type if there are cascading
-        // failures. This can potentially be extremely confusing.
-        const char *exc_type_name_orig = detail::obj_class_name_or(
-            m_type.ptr(), "PY_EXC_ORIG_TYPE_IS_NULLPTR", "PY_EXC_ORIG_TYPE_NAME_IS_NULLPTR");
-        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-        const char *exc_type_name_norm = detail::obj_class_name_or(
-            m_type.ptr(), "PY_EXC_NORM_TYPE_IS_NULLPTR", "PY_EXC_NORM_TYPE_NAME_IS_NULLPTR");
-        if (std::strcmp(exc_type_name_orig, exc_type_name_norm) != 0) {
-            exc_type_mutated = true;
-        }
         try {
-            m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-            if (m_lazy_what.empty()) { // Negate condition for manual testing.
-                failure_info = "m_lazy_what.empty()";
+            std::string err_str = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+            if (err_str.empty()) {
+                m_lazy_what += ": <EMPTY MESSAGE>";
+            } else {
+                m_lazy_what = err_str; // Replace completely.
             }
-            // throw std::runtime_error("Uncomment for manual testing.");
         } catch (const std::exception &e) {
-            failure_info = "std::exception::what(): ";
+            m_lazy_what += ": CASCADING failure: std::exception::what(): ";
             try {
-                failure_info += e.what();
-            } catch (...) {
-                failure_info += "UNRECOVERABLE";
+                m_lazy_what += e.what();
+            } catch (const std::exception &) {
+                m_lazy_what += "UNRECOVERABLE";
             }
-        } catch (...) {
-            failure_info = "Unknown C++ exception";
         }
-        if (exc_type_mutated || !failure_info.empty()) {
-            // Terminating the process, to not mask the original error by errors in the error
-            // handling. Reporting the original error on stderr & stdout. Intentionally using
-            // the Python C API directly, to maximize reliability.
-            std::string msg = "FATAL failure building pybind11::detail::error_already_set what() ";
-            if (!failure_info.empty()) {
-                msg += "[" + failure_info + "] ";
-            }
-            msg += "while processing Python exception: ";
-            if (exc_type_mutated) {
-                msg += "ORIGINAL ";
-                msg += exc_type_name_orig;
-                msg += " REPLACED BY ";
-                msg += exc_type_name_norm;
-            } else {
-                msg += exc_type_name_orig;
-            }
-            msg += ": ";
-            PyObject *val_str = PyObject_Str(m_value.ptr());
-            if (val_str == nullptr) {
-                msg += "PYTHON_EXCEPTION_VALUE_IS_NULLPTR";
-            } else {
-                Py_ssize_t utf8_str_size = 0;
-                const char *utf8_str = PyUnicode_AsUTF8AndSize(val_str, &utf8_str_size);
-                if (utf8_str == nullptr) {
-                    msg += "PYTHON_EXCEPTION_VALUE_AS_UTF8_FAILURE";
-                } else {
-                    msg += '"' + std::string(utf8_str, static_cast<std::size_t>(utf8_str_size))
-                           + '"';
-                }
-            }
-            // Intentionally using C calls to maximize reliability
-            // (and to avoid #include <iostream>).
-            fprintf(stderr, "\n%s [STDERR]\n", msg.c_str());
-            fflush(stderr);
-            fprintf(stdout, "\n%s [STDOUT]\n", msg.c_str());
-            fflush(stdout);
-#ifdef _MSC_VER
-            exit(-1); // Sadly. std::terminate() may pop up an interactive dialog box.
-#else
-            std::terminate();
-#endif
-        }
+        m_lazy_what_completed = true;
     }
     return m_lazy_what.c_str();
 }

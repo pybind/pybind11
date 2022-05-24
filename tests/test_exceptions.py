@@ -17,8 +17,7 @@ def test_error_already_set(msg):
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_already_set(False)
     assert (
-        msg(excinfo.value)
-        == "Internal error: pybind11::detail::error_already_set called"
+        msg(excinfo.value) == "Internal error: pybind11::error_already_set called"
         " while Python error indicator not set."
     )
 
@@ -302,11 +301,16 @@ def test_flaky_exception_happy():
 
 
 @pytest.mark.xfail("env.PYPY")
-def test_flaky_exception_failure_point_init():
-    with pytest.raises(ValueError) as excinfo:
-        m.raise_exception(FlakyException, ("failure_point_init",))
-    assert str(excinfo.value) == "triggered_failure_point_init"
-    # w = m.error_already_set_what(FlakyException, ("failure_point_init",))
+@pytest.mark.parametrize("func", (m.raise_exception, m.error_already_set_what))
+def test_flaky_exception_failure_point_init(func):
+    with pytest.raises(RuntimeError) as excinfo:
+        func(FlakyException, ("failure_point_init",))
+    lines = str(excinfo.value).splitlines()
+    assert lines[:2] == [
+        "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
+        " ORIGINAL FlakyException REPLACED BY ValueError:",
+        "ValueError: triggered_failure_point_init",
+    ]
 
 
 def test_flaky_exception_failure_point_str():
@@ -319,4 +323,9 @@ def test_flaky_exception_failure_point_str():
     with pytest.raises(ValueError) as excinfo_str:
         str(excinfo_init.value)
     assert str(excinfo_str.value) == "triggered_failure_point_str"
-    # w = m.error_already_set_what(FlakyException, ("failure_point_str",))
+    w = m.error_already_set_what(FlakyException, ("failure_point_str",))
+    lines = w.splitlines()
+    assert (
+        lines[0]
+        == "FlakyException: CASCADING failure: std::exception::what(): ValueError: triggered_failure_point_str"
+    )

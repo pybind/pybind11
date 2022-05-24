@@ -240,7 +240,7 @@ TEST_SUBMODULE(exceptions, m) {
             if ((err && e.what() != std::string("ValueError: foo"))
                 || (!err
                     && e.what()
-                           != std::string("Internal error: pybind11::detail::error_already_set "
+                           != std::string("Internal error: pybind11::error_already_set "
                                           "called while Python error indicator not set."))) {
                 PyErr_Clear();
                 throw std::runtime_error("error message mismatch");

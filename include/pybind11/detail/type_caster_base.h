@@ -470,28 +470,28 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
     return isinstance(obj, type);
 }
 
-// NOTE: This function may have the side-effect of normalizing the passed Python exception
-//       (if it is not normalized already), which will change some or all of the three passed
-//       pointers.
 PYBIND11_NOINLINE std::string
-error_string(PyObject *&exc_type, PyObject *&exc_value, PyObject *&exc_trace) {
+error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
     if (exc_type == nullptr) {
         pybind11_fail(
             "Internal error: pybind11::detail::error_string() called with exc_type == nullptr");
     }
 
-    PyErr_NormalizeException(&exc_type, &exc_value, &exc_trace);
+    auto exc_type_norm = reinterpret_borrow<object>(exc_type);
+    auto exc_value_norm = reinterpret_borrow<object>(exc_value);
+    auto exc_trace_norm = reinterpret_borrow<object>(exc_trace);
+    PyErr_NormalizeException(&exc_type_norm.ptr(), &exc_value_norm.ptr(), &exc_trace_norm.ptr());
 
-    auto result = handle(exc_type).attr("__name__").cast<std::string>();
+    auto result = exc_type_norm.attr("__name__").cast<std::string>();
     result += ": ";
 
-    if (exc_value) {
-        result += str(exc_value).cast<std::string>();
+    if (exc_value_norm) {
+        result += str(exc_value_norm).cast<std::string>();
     }
 
-    if (exc_trace) {
+    if (exc_trace_norm) {
 #if !defined(PYPY_VERSION)
-        auto *tb = reinterpret_cast<PyTracebackObject *>(exc_trace);
+        auto *tb = reinterpret_cast<PyTracebackObject *>(exc_trace_norm.ptr());
 
         // Get the deepest trace possible.
         while (tb->tb_next) {
@@ -532,8 +532,6 @@ error_string(PyObject *&exc_type, PyObject *&exc_value, PyObject *&exc_trace) {
     return result;
 }
 
-// NOTE: This function may have the side-effect of normalizing the current Python exception
-//       (if it is not normalized already).
 PYBIND11_NOINLINE std::string error_string() {
     error_scope scope; // Fetch error state.
     return error_string(scope.type, scope.value, scope.trace);

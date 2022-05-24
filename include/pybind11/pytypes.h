@@ -364,7 +364,7 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 std::string error_string();
-std::string error_string(PyObject *&, PyObject *&, PyObject *&);
+std::string error_string(PyObject *, PyObject *, PyObject *);
 
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
 inline const char *obj_class_name(PyObject *obj) {
@@ -406,8 +406,49 @@ public:
     error_already_set() {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (!m_type) {
-            pybind11_fail("Internal error: pybind11::detail::error_already_set called while "
+            pybind11_fail("Internal error: pybind11::error_already_set called while "
                           "Python error indicator not set.");
+        }
+        const char *exc_type_name_orig = detail::obj_class_name(m_type.ptr());
+        if (exc_type_name_orig == nullptr) {
+            pybind11_fail("Internal error: pybind11::error_already_set failed to obtain the name "
+                          "of the original active exception type.");
+        }
+        m_lazy_what = exc_type_name_orig;
+        // PyErr_NormalizeException() may change the exception type if there are cascading
+        // failures. This can potentially be extremely confusing.
+        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        if (m_type.ptr() == nullptr) {
+            pybind11_fail("Internal error: pybind11::error_already_set failed to normalize the "
+                          "active exception.");
+        }
+        const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
+        if (exc_type_name_orig == nullptr) {
+            pybind11_fail("Internal error: pybind11::error_already_set failed to obtain the name "
+                          "of the normalized active exception type.");
+        }
+        if (exc_type_name_norm != m_lazy_what) {
+            std::string msg = "pybind11::error_already_set: MISMATCH of original and normalized "
+                              "active exception types: ";
+            msg += "ORIGINAL ";
+            msg += m_lazy_what;
+            msg += " REPLACED BY ";
+            msg += exc_type_name_norm;
+            std::string msg2;
+            try {
+                msg2 = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+            } catch (const std::exception &e) {
+                msg2 = "CASCADING failure: std::exception::what(): ";
+                try {
+                    msg2 += e.what();
+                } catch (const std::exception &) {
+                    msg2 += "UNRECOVERABLE";
+                }
+            }
+            if (!msg2.empty()) {
+                msg += ":\n" + msg2;
+            }
+            pybind11_fail(msg);
         }
     }
 
@@ -490,8 +531,9 @@ public:
     const object &trace() const { return m_trace; }
 
 private:
+    object m_type, m_value, m_trace;
     mutable std::string m_lazy_what;
-    mutable object m_type, m_value, m_trace;
+    mutable bool m_lazy_what_completed = false;
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
