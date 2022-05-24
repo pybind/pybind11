@@ -300,8 +300,8 @@ def test_flaky_exception_happy():
     assert w == "FlakyException: FlakyException.__str__"
 
 
-@pytest.mark.xfail("env.PYPY")
 @pytest.mark.parametrize("func", (m.raise_exception, m.error_already_set_what))
+@pytest.mark.xfail("env.PYPY")
 def test_flaky_exception_failure_point_init(func):
     with pytest.raises(RuntimeError) as excinfo:
         func(FlakyException, ("failure_point_init",))
