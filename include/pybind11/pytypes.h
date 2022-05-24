@@ -85,7 +85,7 @@ public:
         or `object` subclass causes a call to ``__setitem__``.
     \endrst */
     item_accessor operator[](handle key) const;
-    /// See above (the only difference is that they key is provided as a string literal)
+    /// See above (the only difference is that the key is provided as a string literal)
     item_accessor operator[](const char *key) const;
     /// See above (the only difference is that the key's reference is stolen)
     item_accessor operator[](object &&key) const;
@@ -97,9 +97,9 @@ public:
         or `object` subclass causes a call to ``setattr``.
     \endrst */
     obj_attr_accessor attr(handle key) const;
-    /// See above (the only difference is that they key is provided as a string literal)
+    /// See above (the only difference is that the key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
-    /// See above (only difference is that the key's reference is stolen)
+    /// See above (the only difference is that the key's reference is stolen)
     obj_attr_accessor attr(object &&key) const;
 
     /** \rst
