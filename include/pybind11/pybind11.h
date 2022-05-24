@@ -1620,7 +1620,7 @@ public:
                 if (!caster.load(obj, false)) {
                     return nullptr;
                 }
-                return new buffer_info(((capture *) ptr)->func(caster));
+                return new buffer_info(((capture *) ptr)->func(std::move(caster)));
             },
             ptr);
         weakref(m_ptr, cpp_function([ptr](handle wr) {
