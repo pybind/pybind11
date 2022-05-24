@@ -87,7 +87,7 @@ public:
     item_accessor operator[](handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
     item_accessor operator[](const char *key) const;
-    /// See above (the only difference is that they key's reference is stolen)
+    /// See above (the only difference is that the key's reference is stolen)
     item_accessor operator[](object &&key) const;
 
     /** \rst
@@ -99,7 +99,7 @@ public:
     obj_attr_accessor attr(handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
-    /// See below  (only difference is that the key's reference is stolen)
+    /// See above (only difference is that the key's reference is stolen)
     obj_attr_accessor attr(object &&key) const;
 
     /** \rst
