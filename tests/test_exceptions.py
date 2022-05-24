@@ -301,6 +301,7 @@ def test_flaky_exception_happy():
     assert w == "FlakyException: FlakyException.__str__"
 
 
+@pytest.mark.xfail("env.PYPY")
 def test_flaky_exception_failure_point_init():
     with pytest.raises(ValueError) as excinfo:
         m.raise_exception(FlakyException, ("failure_point_init",))
@@ -311,7 +312,10 @@ def test_flaky_exception_failure_point_init():
 def test_flaky_exception_failure_point_str():
     with pytest.raises(FlakyException) as excinfo_init:
         m.raise_exception(FlakyException, ("failure_point_str",))
-    assert repr(excinfo_init.value) == "FlakyException('failure_point_str')"
+    if sys.version_info < (3, 7):
+        assert repr(excinfo_init.value) == "FlakyException('failure_point_str',)"
+    else:
+        assert repr(excinfo_init.value) == "FlakyException('failure_point_str')"
     with pytest.raises(ValueError) as excinfo_str:
         str(excinfo_init.value)
     assert str(excinfo_str.value) == "triggered_failure_point_str"
