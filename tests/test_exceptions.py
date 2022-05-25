@@ -300,6 +300,7 @@ def test_error_already_set_what_with_happy_exceptions(
     assert what == expected_what
 
 
+@pytest.mark.skipif("env.PYPY", reason="PyErr_NormalizeException Segmentation fault")
 def test_flaky_exception_failure_point_init():
     what, py_err_set_after_what = m.error_already_set_what(
         FlakyException, ("failure_point_init",)
