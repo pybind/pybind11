@@ -288,8 +288,8 @@ class FlakyException(Exception):
     "exc_type, exc_value, expected_what",
     (
         (ValueError, "plain_str", "ValueError: plain_str"),
-        (ValueError, ("tuple_elem",), "ValueError: ('tuple_elem',)"),
-        (FlakyException, ("happy",), "FlakyException: ('happy',)"),
+        (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
+        (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
     ),
 )
 def test_error_already_set_what_with_happy_exceptions(
@@ -307,17 +307,15 @@ def test_flaky_exception_failure_point_init():
     assert not py_err_set_after_what
     lines = what.splitlines()
     # PyErr_NormalizeException replaces the original FlakyException with ValueError:
-    assert lines[:3] == ["FlakyException: ('failure_point_init',)", "", "At:"]
-    # Checking the first two lines of the traceback as formatted in error_string(),
-    # which is actually for a different exception (ValueError)!
+    assert lines[:3] == ["ValueError: triggered_failure_point_init", "", "At:"]
+    # Checking the first two lines of the traceback as formatted in error_string():
     assert "test_exceptions.py(" in lines[3]
     assert lines[3].endswith("): __init__")
     assert lines[4].endswith("): test_flaky_exception_failure_point_init")
 
 
 def test_flaky_exception_failure_point_str():
-    what, py_err_set_after_what = m.error_already_set_what(
-        FlakyException, ("failure_point_str",)
-    )
-    assert not py_err_set_after_what
-    assert what == "FlakyException: ('failure_point_str',)"
+    # The error_already_set ctor fails due to a ValueError in error_string():
+    with pytest.raises(ValueError) as excinfo:
+        m.error_already_set_what(FlakyException, ("failure_point_str",))
+    assert str(excinfo.value) == "triggered_failure_point_str"
