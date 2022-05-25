@@ -305,6 +305,6 @@ TEST_SUBMODULE(exceptions, m) {
         std::string what = py::error_already_set().what();
         bool py_err_set_after_what = (PyErr_Occurred() != nullptr);
         PyErr_Clear();
-        return py::make_tuple(what, py_err_set_after_what);
+        return py::make_tuple(std::move(what), py_err_set_after_what);
     });
 }
