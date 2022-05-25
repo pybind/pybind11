@@ -1566,7 +1566,8 @@ public:
                         scope(*this),
                         sibling(getattr(*this, name_, none())),
                         extra...);
-        attr(cf.name()) = staticmethod(cf);
+        auto cf_name = cf.name();
+        attr(std::move(cf_name)) = staticmethod(std::move(cf));
         return *this;
     }
 
@@ -1620,7 +1621,7 @@ public:
                 if (!caster.load(obj, false)) {
                     return nullptr;
                 }
-                return new buffer_info(((capture *) ptr)->func(caster));
+                return new buffer_info(((capture *) ptr)->func(std::move(caster)));
             },
             ptr);
         weakref(m_ptr, cpp_function([ptr](handle wr) {
