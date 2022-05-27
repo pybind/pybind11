@@ -254,6 +254,11 @@ protected:
 
 #ifdef PYBIND11_HANDLE_REF_DEBUG
 private:
+#if defined(WITH_THREAD)
+#error LOOOK_WITH_THREAD
+#else
+#error LOOOK_NOT_WITH_THREAD
+#endif
     std::size_t static inc_ref_counter(std::size_t add) {
         thread_local std::size_t counter = 0;
         counter += add;
