@@ -633,4 +633,11 @@ TEST_SUBMODULE(pytypes, m) {
         }
         return l;
     });
+    m.def("populate_dict_rvalue", [](int population) {
+        auto d = py::dict();
+        for (int i = 0; i < population; i++) {
+            d[py::int_(i)] = py::int_(i);
+        }
+        return d;
+    });
 }
