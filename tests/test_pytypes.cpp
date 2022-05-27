@@ -640,4 +640,10 @@ TEST_SUBMODULE(pytypes, m) {
         }
         return d;
     });
+    m.def("populate_obj_str_attrs", [](py::object &o, int population) {
+        for (int i = 0; i < population; i++) {
+            o.attr(py::str(py::int_(i))) = py::str(py::int_(i));
+        }
+        return o;
+    });
 }
