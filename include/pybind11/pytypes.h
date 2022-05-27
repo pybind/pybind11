@@ -1690,7 +1690,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
     template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
-    detail::item_accessor operator[](T o) const {
+    detail::item_accessor operator[](T &&o) const {
         return object::operator[](std::forward<T>(o));
     }
     detail::tuple_iterator begin() const { return {*this, 0}; }
@@ -1753,7 +1753,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
     template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
-    detail::item_accessor operator[](T o) const {
+    detail::item_accessor operator[](T &&o) const {
         return object::operator[](std::forward<T>(o));
     }
     detail::sequence_iterator begin() const { return {*this, 0}; }
@@ -1775,7 +1775,7 @@ public:
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
     template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
-    detail::item_accessor operator[](T o) const {
+    detail::item_accessor operator[](T &&o) const {
         return object::operator[](std::forward<T>(o));
     }
     detail::list_iterator begin() const { return {*this, 0}; }
