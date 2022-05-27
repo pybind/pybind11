@@ -698,3 +698,15 @@ def test_implementation_details():
 def test_external_float_():
     r1 = m.square_float_(2.0)
     assert r1 == 4.0
+
+
+def test_tuple_rvalue_attr():
+    pop = 1000
+    tup = tuple(range(pop))
+    m.tuple_rvalue_attr(tup)
+
+
+def test_list_rvalue_attr():
+    pop = 1000
+    my_list = list(range(pop))
+    m.list_rvalue_attr(my_list)

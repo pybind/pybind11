@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include "pybind11/detail/common.h"
 #include "pybind11_tests.h"
 
 #include <utility>
@@ -611,5 +612,26 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("square_float_", [](const external::float_ &x) -> double {
         double v = x.get_value();
         return v * v;
+    });
+
+    m.def("tuple_rvalue_attr", [](const py::tuple &tup) {
+        // tests assigning rvalue objects to tuple
+        for (size_t i = 0; i < tup.size(); i++) {
+            auto o = py::handle(tup[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("tuple is malformed");
+            }
+        }
+        return tup;
+    });
+    m.def("list_rvalue_attr", [](const py::list &l) {
+        // tests assigning rvalue objects to tuple
+        for (size_t i = 0; i < l.size(); i++) {
+            auto o = py::handle(l[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("list is malformed");
+            }
+        }
+        return l;
     });
 }
