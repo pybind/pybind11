@@ -180,6 +180,10 @@ private:
 
 PYBIND11_NAMESPACE_END(detail)
 
+#if !defined(PYBIND11_HANDLE_REF_DEBUG) && !defined(NDEBUG)
+#    define PYBIND11_HANDLE_REF_DEBUG
+#endif
+
 /** \rst
     Holds a reference to a Python object (no reference counting)
 
@@ -209,6 +213,9 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &inc_ref() const & {
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        inc_ref_counter(1);
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -244,6 +251,18 @@ public:
 
 protected:
     PyObject *m_ptr = nullptr;
+
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+private:
+    std::size_t static inc_ref_counter(std::size_t add) {
+        static std::size_t counter = 0;
+        counter += add;
+        return counter;
+    }
+
+public:
+    std::size_t static inc_ref_counter() { return inc_ref_counter(0); }
+#endif
 };
 
 /** \rst

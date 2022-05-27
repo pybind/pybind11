@@ -145,6 +145,7 @@ set(PYBIND11_TEST_FILES
     test_numpy_vectorize
     test_opaque_types
     test_operator_overloading
+    test_perf_accessors
     test_pickling
     test_pytypes
     test_sequences_and_iterators
