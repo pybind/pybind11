@@ -613,8 +613,8 @@ TEST_SUBMODULE(pytypes, m) {
         return v * v;
     });
 
-    m.def("tuple_rvalue_attr", [](const py::tuple &tup) {
-        // tests assigning rvalue objects to tuple
+    m.def("tuple_rvalue_getter", [](const py::tuple &tup) {
+        // tests accessing tuple object with rvalue int
         for (size_t i = 0; i < tup.size(); i++) {
             auto o = py::handle(tup[py::int_(i)]);
             if (!o) {
@@ -623,8 +623,8 @@ TEST_SUBMODULE(pytypes, m) {
         }
         return tup;
     });
-    m.def("list_rvalue_attr", [](const py::list &l) {
-        // tests assigning rvalue objects to tuple
+    m.def("list_rvalue_getter", [](const py::list &l) {
+        // tests accessing list with rvalue int
         for (size_t i = 0; i < l.size(); i++) {
             auto o = py::handle(l[py::int_(i)]);
             if (!o) {

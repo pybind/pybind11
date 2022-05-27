@@ -700,13 +700,13 @@ def test_external_float_():
     assert r1 == 4.0
 
 
-def test_tuple_rvalue_attr():
+def test_tuple_rvalue_getter():
     pop = 1000
     tup = tuple(range(pop))
-    m.tuple_rvalue_attr(tup)
+    m.tuple_rvalue_getter(tup)
 
 
-def test_list_rvalue_attr():
+def test_list_rvalue_getter():
     pop = 1000
     my_list = list(range(pop))
-    m.list_rvalue_attr(my_list)
+    m.list_rvalue_getter(my_list)
