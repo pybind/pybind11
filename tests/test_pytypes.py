@@ -320,7 +320,10 @@ def test_accessors():
 def test_accessor_moves():
     inc_refs = m.accessor_moves()
     if inc_refs:
-        assert inc_refs == [1, 1, 1, 1]
+        if inc_refs[0] == "copy":
+            assert inc_refs == ["copy", 1, 1, 1, 1]
+        else:
+            assert inc_refs == ["move", 1, 0, 1, 0]
     else:
         pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 

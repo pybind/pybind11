@@ -300,6 +300,11 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("accessor_moves", []() {
         py::list return_list;
 #ifdef PYBIND11_HANDLE_REF_DEBUG
+#    ifdef PYBIND11_PR3970
+        return_list.append("move");
+#    else
+        return_list.append("copy");
+#    endif
         py::list lst;
         lst.append(0);
         auto list_accessor = lst[0];
