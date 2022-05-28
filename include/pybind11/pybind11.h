@@ -1173,9 +1173,16 @@ public:
             py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
     module_ def_submodule(const char *name, const char *doc = nullptr) {
-        std::string full_name
-            = std::string(PyModule_GetName(m_ptr)) + std::string(".") + std::string(name);
-        auto result = reinterpret_borrow<module_>(PyImport_AddModule(full_name.c_str()));
+        const char *this_name = PyModule_GetName(m_ptr);
+        if (this_name == nullptr) {
+            throw error_already_set();
+        }
+        std::string full_name = std::string(this_name) + '.' + name;
+        handle submodule = PyImport_AddModule(full_name.c_str());
+        if (!submodule) {
+            throw error_already_set();
+        }
+        auto result = reinterpret_borrow<module_>(submodule);
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
