@@ -297,7 +297,7 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
-    m.def("accessor_moves", []() {
+    m.def("accessor_moves", []() { // See PR #3970
         py::list return_list;
 #ifdef PYBIND11_HANDLE_REF_DEBUG
 #    ifdef PYBIND11_PR3970
@@ -316,70 +316,37 @@ TEST_SUBMODULE(pytypes, m) {
         py::list lst;
         lst.append(0);
 
-        std::size_t inc_refs = py::handle::inc_ref_counter();
-        tup[py_int_0]; // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        tup[py::int_(0)]; // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+#    define PYBIND11_LOCAL_DEF(...)                                                               \
+        {                                                                                         \
+            std::size_t inc_refs = py::handle::inc_ref_counter();                                 \
+            __VA_ARGS__;                                                                          \
+            inc_refs = py::handle::inc_ref_counter() - inc_refs;                                  \
+            return_list.append(inc_refs);                                                         \
+        }
 
-        inc_refs = py::handle::inc_ref_counter();
-        tup.attr(py_str_count); // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        tup.attr(py::str("count")); // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+        PYBIND11_LOCAL_DEF(tup[py_int_0])    // l-value (to have a control)
+        PYBIND11_LOCAL_DEF(tup[py::int_(0)]) // r-value
 
-        inc_refs = py::handle::inc_ref_counter();
-        seq[py_int_0]; // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        seq[py::int_(0)]; // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+        PYBIND11_LOCAL_DEF(tup.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(tup.attr(py::str("count"))) // r-value
 
-        inc_refs = py::handle::inc_ref_counter();
-        seq.attr(py_str_count); // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        seq.attr(py::str("count")); // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+        PYBIND11_LOCAL_DEF(seq[py_int_0])    // l-value
+        PYBIND11_LOCAL_DEF(seq[py::int_(0)]) // r-value
 
-        inc_refs = py::handle::inc_ref_counter();
-        lst[py_int_0]; // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        lst[py::int_(0)]; // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+        PYBIND11_LOCAL_DEF(seq.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(seq.attr(py::str("count"))) // r-value
 
-        inc_refs = py::handle::inc_ref_counter();
-        lst.attr(py_str_count); // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        lst.attr(py::str("count")); // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+        PYBIND11_LOCAL_DEF(lst[py_int_0])    // l-value
+        PYBIND11_LOCAL_DEF(lst[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(lst.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(lst.attr(py::str("count"))) // r-value
 
         auto lst_acc = lst[py::int_(0)];
-        lst_acc = py::int_(42); // Detaches lst_acc from lst.
-        inc_refs = py::handle::inc_ref_counter();
-        lst_acc = py_int_42; // l-value (to have a control)
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
-        inc_refs = py::handle::inc_ref_counter();
-        lst_acc = py::int_(42); // r-value
-        inc_refs = py::handle::inc_ref_counter() - inc_refs;
-        return_list.append(inc_refs);
+        lst_acc = py::int_(42);                    // Detaches lst_acc from lst.
+        PYBIND11_LOCAL_DEF(lst_acc = py_int_42)    // l-value
+        PYBIND11_LOCAL_DEF(lst_acc = py::int_(42)) // r-value
+#    undef PYBIND11_LOCAL_DEF
 #endif
         return return_list;
     });
