@@ -297,6 +297,40 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
+    m.def("accessor_moves", []() {
+        py::list return_list;
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        py::list lst;
+        lst.append(0);
+        auto list_accessor = lst[0];
+        auto tup = py::make_tuple(0);
+        auto tuple_accessor = tup[0];
+        py::int_ py_int_42(42);
+        // Detach accessors from containers, which releases references.
+        list_accessor = py_int_42;
+        tuple_accessor = py_int_42;
+
+        std::size_t inc_refs = py::handle::inc_ref_counter();
+        list_accessor = py_int_42; // l-value (to have as a control)
+        inc_refs = py::handle::inc_ref_counter() - inc_refs;
+        return_list.append(inc_refs);
+        inc_refs = py::handle::inc_ref_counter();
+        list_accessor = 42; // r-value
+        inc_refs = py::handle::inc_ref_counter() - inc_refs;
+        return_list.append(inc_refs);
+
+        inc_refs = py::handle::inc_ref_counter();
+        tuple_accessor = py_int_42; // l-value (to have as a control)
+        inc_refs = py::handle::inc_ref_counter() - inc_refs;
+        return_list.append(inc_refs);
+        inc_refs = py::handle::inc_ref_counter();
+        tuple_accessor = 42; // r-value
+        inc_refs = py::handle::inc_ref_counter() - inc_refs;
+        return_list.append(inc_refs);
+#endif
+        return return_list;
+    });
+
     // test_constructors
     m.def("default_constructors", []() {
         return py::dict("bytes"_a = py::bytes(),

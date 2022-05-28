@@ -317,6 +317,14 @@ def test_accessors():
     assert d["var"] == 99
 
 
+def test_accessor_moves():
+    inc_refs = m.accessor_moves()
+    if inc_refs:
+        assert inc_refs == [1, 1, 1, 1]
+    else:
+        pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
+
+
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
