@@ -1177,7 +1177,7 @@ public:
         if (this_name == nullptr) {
             throw error_already_set();
         }
-        std::string full_name = std::string(this_name) + "." + name;
+        std::string full_name = std::string(this_name) + '.' + name;
         handle submodule = PyImport_AddModule(full_name.c_str());
         if (!submodule) {
             throw error_already_set();
