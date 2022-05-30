@@ -320,3 +320,9 @@ def test_flaky_exception_failure_point_str():
     with pytest.raises(ValueError) as excinfo:
         m.error_already_set_what(FlakyException, ("failure_point_str",))
     assert str(excinfo.value) == "triggered_failure_point_str"
+
+
+def test_cross_module_interleaved_error_already_set():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_cross_module_interleaved_error_already_set()
+    assert str(excinfo.value) == "2nd error."
