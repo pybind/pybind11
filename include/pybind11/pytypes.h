@@ -254,14 +254,14 @@ protected:
 
 #ifdef PYBIND11_HANDLE_REF_DEBUG
 private:
-    std::size_t static inc_ref_counter(std::size_t add) {
+    static std::size_t inc_ref_counter(std::size_t add) {
         thread_local std::size_t counter = 0;
         counter += add;
         return counter;
     }
 
 public:
-    std::size_t static inc_ref_counter() { return inc_ref_counter(0); }
+    static std::size_t inc_ref_counter() { return inc_ref_counter(0); }
 #endif
 };
 
