@@ -320,10 +320,8 @@ def test_accessors():
 def test_accessor_moves():
     inc_refs = m.accessor_moves()
     if inc_refs:
-        if inc_refs[0].startswith("-"):
-            assert inc_refs == ["-pr3970", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        else:
-            assert inc_refs == ["+pr3970", 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+        # To be changed in PR #3970: [1, 0, 1, 0, ...]
+        assert inc_refs == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     else:
         pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 

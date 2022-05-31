@@ -300,11 +300,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("accessor_moves", []() { // See PR #3970
         py::list return_list;
 #ifdef PYBIND11_HANDLE_REF_DEBUG
-#    ifdef PYBIND11_PR3970
-        return_list.append("+pr3970");
-#    else
-        return_list.append("-pr3970");
-#    endif
         py::int_ py_int_0(0);
         py::int_ py_int_42(42);
         py::str py_str_count("count");
