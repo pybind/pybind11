@@ -215,6 +215,7 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
                     "pybind11_cross_module_tests")
 
 # And add additional targets for other tests.
+tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 
 set(PYBIND11_EIGEN_REPO

@@ -184,6 +184,10 @@ private:
 
 PYBIND11_NAMESPACE_END(detail)
 
+#if !defined(PYBIND11_HANDLE_REF_DEBUG) && !defined(NDEBUG)
+#    define PYBIND11_HANDLE_REF_DEBUG
+#endif
+
 /** \rst
     Holds a reference to a Python object (no reference counting)
 
@@ -213,6 +217,9 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &inc_ref() const & {
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        inc_ref_counter(1);
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -248,6 +255,18 @@ public:
 
 protected:
     PyObject *m_ptr = nullptr;
+
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+private:
+    static std::size_t inc_ref_counter(std::size_t add) {
+        thread_local std::size_t counter = 0;
+        counter += add;
+        return counter;
+    }
+
+public:
+    static std::size_t inc_ref_counter() { return inc_ref_counter(0); }
+#endif
 };
 
 /** \rst
@@ -364,7 +383,7 @@ T reinterpret_steal(handle h) {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-std::string error_string();
+std::string error_string(const char *called = nullptr);
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -379,20 +398,27 @@ PYBIND11_NAMESPACE_END(detail)
 /// python).
 class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
-    /// Constructs a new exception from the current Python error indicator, if any.  The current
+    /// Constructs a new exception from the current Python error indicator.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error(detail::error_string()) {
+    error_already_set() : std::runtime_error(detail::error_string("pybind11::error_already_set")) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
+    /// WARNING: The GIL must be held when this copy constructor is invoked!
     error_already_set(const error_already_set &) = default;
     error_already_set(error_already_set &&) = default;
 
+    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     inline ~error_already_set() override;
 
-    /// Give the currently-held error back to Python, if any.  If there is currently a Python error
-    /// already set it is cleared first.  After this call, the current object no longer stores the
-    /// error variables (but the `.what()` string is still available).
+    /// Restores the currently-held Python error (which will clear the Python error indicator first
+    /// if already set). After this call, the current object no longer stores the error variables.
+    /// NOTE: Any copies of this object may still store the error variables. Currently there is no
+    //        protection against calling restore() from multiple copies.
+    /// NOTE: This member function will always restore the normalized exception, which may or may
+    ///       not be the original Python exception.
+    /// WARNING: The GIL must be held when this member function is called!
     void restore() {
         PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
     }
@@ -409,6 +435,7 @@ public:
     }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
     /// the location of the error. For example, `__func__` could be helpful.
+    /// WARNING: The GIL must be held when this member function is called!
     void discard_as_unraisable(const char *err_context) {
         discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
     }
