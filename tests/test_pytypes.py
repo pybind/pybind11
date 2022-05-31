@@ -322,7 +322,7 @@ def test_accessor_moves():
     inc_refs = m.accessor_moves()
     if inc_refs:
         # To be changed in PR #3970: [1, 0, 1, 0, ...]
-        assert inc_refs == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        assert inc_refs == [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
     else:
         pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 
