@@ -2073,24 +2073,24 @@ iterator object_api<D>::end() const {
     return iterator::sentinel();
 }
 template <typename D>
-item_accessor object_api<D>::operator[](object &&key) const {
-    return {derived(), std::move(key)};
-}
-template <typename D>
 item_accessor object_api<D>::operator[](handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
+}
+template <typename D>
+item_accessor object_api<D>::operator[](object &&key) const {
+    return {derived(), std::move(key)};
 }
 template <typename D>
 item_accessor object_api<D>::operator[](const char *key) const {
     return {derived(), pybind11::str(key)};
 }
 template <typename D>
-obj_attr_accessor object_api<D>::attr(object &&key) const {
-    return {derived(), std::move(key)};
-}
-template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
+}
+template <typename D>
+obj_attr_accessor object_api<D>::attr(object &&key) const {
+    return {derived(), std::move(key)};
 }
 template <typename D>
 str_attr_accessor object_api<D>::attr(const char *key) const {
