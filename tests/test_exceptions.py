@@ -17,8 +17,8 @@ def test_error_already_set(msg):
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_already_set(False)
     assert (
-        msg(excinfo.value) == "Internal error: pybind11::error_already_set called"
-        " while Python error indicator not set."
+        msg(excinfo.value)
+        == "Internal error: pybind11::error_already_set called while Python error indicator not set."
     )
 
     with pytest.raises(ValueError) as excinfo:
@@ -292,40 +292,57 @@ class FlakyException(Exception):
         return "FlakyException.__str__"
 
 
-def test_flaky_exception_happy():
-    with pytest.raises(FlakyException) as excinfo:
-        m.raise_exception(FlakyException, ("happy",))
-    assert str(excinfo.value) == "FlakyException.__str__"
-    w = m.error_already_set_what(FlakyException, "happy")
-    assert w == "FlakyException: FlakyException.__str__"
+@pytest.mark.parametrize(
+    "exc_type, exc_value, expected_what",
+    (
+        (ValueError, "plain_str", "ValueError: plain_str"),
+        (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
+        (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
+    ),
+)
+def test_error_already_set_what_with_happy_exceptions(
+    exc_type, exc_value, expected_what
+):
+    what, py_err_set_after_what = m.error_already_set_what(exc_type, exc_value)
+    assert not py_err_set_after_what
+    assert what == expected_what
 
 
 @pytest.mark.skipif("env.PYPY", reason="PyErr_NormalizeException Segmentation fault")
-@pytest.mark.parametrize("func", (m.raise_exception, m.error_already_set_what))
-def test_flaky_exception_failure_point_init(func):
+def test_flaky_exception_failure_point_init():
     with pytest.raises(RuntimeError) as excinfo:
-        func(FlakyException, ("failure_point_init",))
+        m.error_already_set_what(FlakyException, ("failure_point_init",))
     lines = str(excinfo.value).splitlines()
-    assert lines[:2] == [
+    # PyErr_NormalizeException replaces the original FlakyException with ValueError:
+    assert lines[:4] == [
         "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
         " ORIGINAL FlakyException REPLACED BY ValueError:",
         "ValueError: triggered_failure_point_init",
+        "",
+        "At:",
     ]
+    # Checking the first two lines of the traceback as formatted in error_string():
+    assert "test_exceptions.py(" in lines[4]
+    assert lines[4].endswith("): __init__")
+    assert lines[5].endswith("): test_flaky_exception_failure_point_init")
 
 
 def test_flaky_exception_failure_point_str():
-    with pytest.raises(FlakyException) as excinfo_init:
-        m.raise_exception(FlakyException, ("failure_point_str",))
-    if sys.version_info < (3, 7):
-        assert repr(excinfo_init.value) == "FlakyException('failure_point_str',)"
-    else:
-        assert repr(excinfo_init.value) == "FlakyException('failure_point_str')"
-    with pytest.raises(ValueError) as excinfo_str:
-        str(excinfo_init.value)
-    assert str(excinfo_str.value) == "triggered_failure_point_str"
-    w = m.error_already_set_what(FlakyException, ("failure_point_str",))
-    lines = w.splitlines()
+    what, py_err_set_after_what = m.error_already_set_what(
+        FlakyException, ("failure_point_str",)
+    )
+    assert not py_err_set_after_what
+    lines = what.splitlines()
     assert (
         lines[0]
         == "FlakyException: CASCADING failure: std::exception::what(): ValueError: triggered_failure_point_str"
+    )
+
+
+def test_cross_module_interleaved_error_already_set():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_cross_module_interleaved_error_already_set()
+    assert str(excinfo.value) in (
+        "2nd error.",  # Almost all platforms.
+        "RuntimeError: 2nd error.",  # Some PyPy builds (seen under macOS).
     )

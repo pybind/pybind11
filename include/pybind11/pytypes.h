@@ -183,6 +183,10 @@ private:
 
 PYBIND11_NAMESPACE_END(detail)
 
+#if !defined(PYBIND11_HANDLE_REF_DEBUG) && !defined(NDEBUG)
+#    define PYBIND11_HANDLE_REF_DEBUG
+#endif
+
 /** \rst
     Holds a reference to a Python object (no reference counting)
 
@@ -212,6 +216,9 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &inc_ref() const & {
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        inc_ref_counter(1);
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -247,6 +254,18 @@ public:
 
 protected:
     PyObject *m_ptr = nullptr;
+
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+private:
+    static std::size_t inc_ref_counter(std::size_t add) {
+        thread_local std::size_t counter = 0;
+        counter += add;
+        return counter;
+    }
+
+public:
+    static std::size_t inc_ref_counter() { return inc_ref_counter(0); }
+#endif
 };
 
 /** \rst
@@ -363,6 +382,7 @@ T reinterpret_steal(handle h) {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 std::string error_string();
 std::string error_string(PyObject *, PyObject *, PyObject *);
 
@@ -484,10 +504,9 @@ public:
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
+    /// NOTE: This member function will always restore the normalized exception, which may or may
+    ///       not be the original Python exception.
     /// WARNING: The GIL must be held when this member function is called!
-    /// NOTE: This member function will not necessarily restore the original Python exception, but
-    ///       may restore the normalized exception if what() or discard_as_unraisable() were called
-    ///       prior to restore().
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
         // m_trace, but simply holding on the the references makes it possible to produce
@@ -1688,6 +1707,8 @@ public:
 
     capsule(const void *value, void (*destructor)(void *)) {
         m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
+            // guard if destructor called while err indicator is set
+            error_scope error_guard;
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
             if (destructor == nullptr) {
                 if (PyErr_Occurred()) {

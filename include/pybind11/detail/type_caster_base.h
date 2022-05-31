@@ -472,15 +472,13 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
 
 PYBIND11_NOINLINE std::string
 error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
-    if (exc_type == nullptr) {
-        pybind11_fail(
-            "Internal error: pybind11::detail::error_string() called with exc_type == nullptr");
-    }
-
     auto exc_type_norm = reinterpret_borrow<object>(exc_type);
     auto exc_value_norm = reinterpret_borrow<object>(exc_value);
     auto exc_trace_norm = reinterpret_borrow<object>(exc_trace);
     PyErr_NormalizeException(&exc_type_norm.ptr(), &exc_value_norm.ptr(), &exc_trace_norm.ptr());
+    if (exc_trace_norm) {
+        PyException_SetTraceback(exc_value_norm.ptr(), exc_trace_norm.ptr());
+    }
 
     auto result = exc_type_norm.attr("__name__").cast<std::string>();
     result += ": ";
@@ -533,7 +531,11 @@ error_string(PyObject *exc_type, PyObject *exc_value, PyObject *exc_trace) {
 }
 
 PYBIND11_NOINLINE std::string error_string() {
-    error_scope scope; // Fetch error state.
+    error_scope scope; // Fetch error state (will be restored when this function returns).
+    if (scope.type == nullptr) {
+        pybind11_fail("Internal error: pybind11::detail::error_string() called while Python error "
+                      "indicator not set.");
+    }
     return error_string(scope.type, scope.value, scope.trace);
 }
 
