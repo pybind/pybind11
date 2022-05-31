@@ -307,4 +307,11 @@ TEST_SUBMODULE(exceptions, m) {
         PyErr_Clear();
         return py::make_tuple(std::move(what), py_err_set_after_what);
     });
+
+    m.def("test_cross_module_interleaved_error_already_set", []() {
+        auto cm = py::module_::import("cross_module_interleaved_error_already_set");
+        auto interleaved_error_already_set
+            = reinterpret_cast<void (*)()>(PyLong_AsVoidPtr(cm.attr("funcaddr").ptr()));
+        interleaved_error_already_set();
+    });
 }
