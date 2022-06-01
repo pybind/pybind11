@@ -481,10 +481,6 @@ public:
     inline ~error_already_set() override;
 
     /// The what() result is built lazily on demand.
-    /// Any errors processing the Python exception lead to process termination. If possible, the
-    /// original Python exception is written to stderr & stdout before the process is terminated.
-    /// NOTE: This member function may have the side-effect of normalizing the held Python
-    ///       exception (if it is not normalized already).
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     inline const char *what() const noexcept override;
@@ -505,12 +501,7 @@ public:
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
     /// should be some object whose `repr()` helps identify the location of the error. Python
     /// already knows the type and value of the error, so there is no need to repeat that.
-    /// NOTE: This member function may have the side-effect of normalizing the held Python
-    ///       exception (if it is not normalized already).
     void discard_as_unraisable(object err_context) {
-#if PY_VERSION_HEX < 0x03080000
-        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-#endif
         restore();
         PyErr_WriteUnraisable(err_context.ptr());
     }

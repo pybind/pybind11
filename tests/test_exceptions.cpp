@@ -105,11 +105,6 @@ struct PythonAlreadySetInDestructor {
     py::str s;
 };
 
-void raise_exception(const py::object &exc_type, const py::object &exc_value) {
-    PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
-    throw py::error_already_set();
-}
-
 std::string error_already_set_what(const py::object &exc_type, const py::object &exc_value) {
     PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
     return py::error_already_set().what();
