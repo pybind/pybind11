@@ -452,7 +452,7 @@ struct error_fetch_and_normalize {
         std::string result;
         std::string message_error_string;
         if (m_value) {
-            auto value_str = reinterpret_borrow<object>(PyObject_Str(m_value.ptr()));
+            auto value_str = reinterpret_steal<object>(PyObject_Str(m_value.ptr()));
             if (!value_str) {
                 message_error_string = detail::error_string();
                 result = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
