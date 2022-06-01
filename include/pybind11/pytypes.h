@@ -436,7 +436,7 @@ struct error_fetch_and_normalize {
             msg += m_lazy_error_string;
             msg += " REPLACED BY ";
             msg += exc_type_name_norm;
-            msg += ": " + complete_lazy_error_string();
+            msg += ": " + format_value_and_trace();
             pybind11_fail(msg);
         }
     }
@@ -444,7 +444,7 @@ struct error_fetch_and_normalize {
     error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;
     error_fetch_and_normalize(error_fetch_and_normalize &&) = delete;
 
-    std::string complete_lazy_error_string() const {
+    std::string format_value_and_trace() const {
         std::string result;
         std::string message_error_string;
         if (m_value) {
@@ -517,7 +517,7 @@ struct error_fetch_and_normalize {
 
     std::string const &error_string() const {
         if (!m_lazy_error_string_completed) {
-            m_lazy_error_string += ": " + complete_lazy_error_string();
+            m_lazy_error_string += ": " + format_value_and_trace();
             m_lazy_error_string_completed = true;
         }
         return m_lazy_error_string;
