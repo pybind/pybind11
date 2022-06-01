@@ -2626,15 +2626,12 @@ void print(Args &&...args) {
 }
 
 inline error_already_set::~error_already_set() {
-    auto e = m_fetched_error;
-    if (!(e.m_type || e.m_value || e.m_trace)) {
+    if (!m_fetched_error.has_py_object_references()) {
         return; // Avoid gil and scope overhead if there is nothing to release.
     }
     gil_scoped_acquire gil;
     error_scope scope;
-    e.m_type.release().dec_ref();
-    e.m_value.release().dec_ref();
-    e.m_trace.release().dec_ref();
+    m_fetched_error.release_py_object_references();
 }
 
 inline error_already_set::error_already_set(const error_already_set &other)
