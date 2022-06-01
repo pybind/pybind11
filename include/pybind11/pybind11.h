@@ -2709,7 +2709,7 @@ inline std::string error_fetch_and_normalize::complete_lazy_error_string() const
     return result;
 }
 
-inline const char *error_fetch_and_normalize::error_string() const {
+inline std::string const &error_fetch_and_normalize::error_string() const {
     if (!m_lazy_error_string_completed) {
         std::string failure_info;
         gil_scoped_acquire gil;
@@ -2717,11 +2717,7 @@ inline const char *error_fetch_and_normalize::error_string() const {
         m_lazy_error_string += ": " + complete_lazy_error_string();
         m_lazy_error_string_completed = true;
     }
-    return m_lazy_error_string.c_str();
-}
-
-inline std::string error_string() {
-    return error_fetch_and_normalize("pybind11::detail::error_string").error_string();
+    return m_lazy_error_string;
 }
 
 inline function

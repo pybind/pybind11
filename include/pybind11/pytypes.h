@@ -447,7 +447,7 @@ private:
     std::string complete_lazy_error_string() const;
 
 public:
-    const char *error_string() const;
+    std::string const &error_string() const;
 
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
@@ -464,6 +464,10 @@ public:
     mutable std::string m_lazy_error_string;
     mutable bool m_lazy_error_string_completed = false;
 };
+
+inline std::string error_string() {
+    return error_fetch_and_normalize("pybind11::detail::error_string").error_string();
+}
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -488,7 +492,9 @@ public:
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline const char *what() const noexcept override { return m_fetched_error.error_string(); }
+    inline const char *what() const noexcept override {
+        return m_fetched_error.error_string().c_str();
+    }
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
