@@ -435,11 +435,8 @@ struct error_fetch_and_normalize {
         }
     }
 
-    template <typename GilScopedAcquire>
-    error_fetch_and_normalize(const GilScopedAcquire &, const error_fetch_and_normalize &other)
-        : m_type{other.m_type}, m_value{other.m_value}, m_trace{other.m_trace},
-          m_lazy_error_string{other.m_lazy_error_string},
-          m_lazy_error_string_completed{other.m_lazy_error_string_completed} {}
+    error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;
+    error_fetch_and_normalize(error_fetch_and_normalize &&) = delete;
 
     std::string complete_lazy_error_string() const {
         std::string result;
@@ -521,10 +518,13 @@ struct error_fetch_and_normalize {
     }
 
     void restore() {
-        // As long as this type is copyable, there is no point in releasing m_type, m_value,
-        // m_trace, but simply holding on the the references makes it possible to produce
-        // what() even after restore().
+        if (m_restore_called) {
+            pybind11_fail("Internal error: pybind11::detail::error_fetch_and_normalize::restore() "
+                          "called a second time. ORIGINAL ERROR: "
+                          + error_string());
+        }
         PyErr_Restore(m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
+        m_restore_called = true;
     }
 
     bool matches(handle exc) const {
@@ -542,6 +542,7 @@ struct error_fetch_and_normalize {
     object m_type, m_value, m_trace;
     mutable std::string m_lazy_error_string;
     mutable bool m_lazy_error_string_completed = false;
+    mutable bool m_restore_called = false;
 };
 
 inline std::string error_string() {
@@ -564,18 +565,21 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
 public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
-    error_already_set() : m_fetched_error{"pybind11::error_already_set"} {}
+    error_already_set()
+        : m_fetched_error{
+            std::make_shared<detail::error_fetch_and_normalize>("pybind11::error_already_set")} {}
 
     /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    ~error_already_set();
+    ~error_already_set() override;
 
-    /// The C++ standard explicitly prohibits deleting this copy ctor: C++17 18.1.5.
-    /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
-    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    error_already_set(const error_already_set &);
+    // This copy ctor does not need the GIL because it simply increments a shared_ptr use_count.
+    error_already_set(const error_already_set &) noexcept = default;
 
-    error_already_set(error_already_set &&) = default;
+    // This move ctor cannot easily be deleted (some compilers need it).
+    // It is the responsibility of the caller to not use the moved-from object.
+    // For simplicity, guarding ifs are omitted.
+    error_already_set(error_already_set &&) noexcept = default;
 
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
@@ -587,7 +591,7 @@ public:
     /// NOTE: This member function will always restore the normalized exception, which may or may
     ///       not be the original Python exception.
     /// WARNING: The GIL must be held when this member function is called!
-    void restore() { m_fetched_error.restore(); }
+    void restore() { m_fetched_error->restore(); }
 
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
@@ -611,14 +615,14 @@ public:
     /// Check if the currently trapped error type matches the given Python exception class (or a
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
-    bool matches(handle exc) const { return m_fetched_error.matches(exc); }
+    bool matches(handle exc) const { return m_fetched_error->matches(exc); }
 
-    const object &type() const { return m_fetched_error.m_type; }
-    const object &value() const { return m_fetched_error.m_value; }
-    const object &trace() const { return m_fetched_error.m_trace; }
+    const object &type() const { return m_fetched_error->m_type; }
+    const object &value() const { return m_fetched_error->m_value; }
+    const object &trace() const { return m_fetched_error->m_trace; }
 
 private:
-    detail::error_fetch_and_normalize m_fetched_error;
+    std::shared_ptr<detail::error_fetch_and_normalize> m_fetched_error;
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)

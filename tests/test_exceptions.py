@@ -275,11 +275,6 @@ def test_local_translator(msg):
     assert msg(excinfo.value) == "this mod"
 
 
-@pytest.mark.parametrize("use_move, expected", ((False, "copied."), (True, "moved.")))
-def test_error_already_set_copy_move(use_move, expected):
-    assert m.move_error_already_set(use_move) == "RuntimeError: To be " + expected
-
-
 class FlakyException(Exception):
     def __init__(self, failure_point):
         if failure_point == "failure_point_init":
@@ -347,4 +342,14 @@ def test_cross_module_interleaved_error_already_set():
     assert str(excinfo.value) in (
         "2nd error.",  # Almost all platforms.
         "RuntimeError: 2nd error.",  # Some PyPy builds (seen under macOS).
+    )
+
+
+def test_error_already_set_double_restore():
+    m.test_error_already_set_double_restore(True)  # dry_run
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_error_already_set_double_restore(False)
+    assert str(excinfo.value) == (
+        "Internal error: pybind11::detail::error_fetch_and_normalize::restore()"
+        " called a second time. ORIGINAL ERROR: ValueError: Random error."
     )

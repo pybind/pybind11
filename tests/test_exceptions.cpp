@@ -310,24 +310,6 @@ TEST_SUBMODULE(exceptions, m) {
         }
     });
 
-    m.def("move_error_already_set", [](bool use_move) {
-        try {
-            PyErr_SetString(PyExc_RuntimeError, use_move ? "To be moved." : "To be copied.");
-            throw py::error_already_set();
-        } catch (py::error_already_set &caught) {
-            if (use_move) {
-                py::error_already_set moved_to{std::move(caught)};
-                return std::string(moved_to.what()); // Both destructors run.
-            }
-            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-            py::error_already_set copied_to{caught};
-            return std::string(copied_to.what()); // Both destructors run.
-        }
-#if !defined(_MSC_VER) // MSVC detects that this is unreachable.
-        return std::string("Unreachable.");
-#endif
-    });
-
     m.def("error_already_set_what", [](const py::object &exc_type, const py::object &exc_value) {
         PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
         std::string what = py::error_already_set().what();
@@ -341,5 +323,15 @@ TEST_SUBMODULE(exceptions, m) {
         auto interleaved_error_already_set
             = reinterpret_cast<void (*)()>(PyLong_AsVoidPtr(cm.attr("funcaddr").ptr()));
         interleaved_error_already_set();
+    });
+
+    m.def("test_error_already_set_double_restore", [](bool dry_run) {
+        PyErr_SetString(PyExc_ValueError, "Random error.");
+        py::error_already_set e;
+        e.restore();
+        PyErr_Clear();
+        if (!dry_run) {
+            e.restore();
+        }
     });
 }

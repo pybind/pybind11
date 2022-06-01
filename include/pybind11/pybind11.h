@@ -2626,21 +2626,18 @@ void print(Args &&...args) {
 }
 
 inline error_already_set::~error_already_set() {
-    if (!m_fetched_error.has_py_object_references()) {
+    if (m_fetched_error.use_count() != 1 || !m_fetched_error->has_py_object_references()) {
         return; // Avoid gil and scope overhead if there is nothing to release.
     }
     gil_scoped_acquire gil;
     error_scope scope;
-    m_fetched_error.release_py_object_references();
+    m_fetched_error->release_py_object_references();
 }
-
-inline error_already_set::error_already_set(const error_already_set &other)
-    : m_fetched_error(gil_scoped_acquire(), other.m_fetched_error) {}
 
 inline const char *error_already_set::what() const noexcept {
     gil_scoped_acquire gil;
     error_scope scope;
-    return m_fetched_error.error_string().c_str();
+    return m_fetched_error->error_string().c_str();
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
