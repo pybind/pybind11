@@ -394,6 +394,12 @@ inline const char *obj_class_name(PyObject *obj) {
 std::string error_string();
 
 struct error_fetch_and_normalize {
+    // Immediate normalization is long-established behavior (starting with
+    // https://github.com/pybind/pybind11/commit/135ba8deafb8bf64a15b24d1513899eb600e2011
+    // from Sep 2016) and safest. Normalization could be deferred, but this could mask
+    // errors elsewhere, the performance gain is very minor in typical situations
+    // (usually the dominant bottleneck is EH unwinding), and the implementation here
+    // would be more complex.
     explicit error_fetch_and_normalize(const char *called) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (!m_type) {
@@ -539,7 +545,11 @@ struct error_fetch_and_normalize {
         m_trace.release().dec_ref();
     }
 
+    // Not protecting these for simplicity.
     object m_type, m_value, m_trace;
+
+private:
+    // Only protecting invariants.
     mutable std::string m_lazy_error_string;
     mutable bool m_lazy_error_string_completed = false;
     mutable bool m_restore_called = false;
