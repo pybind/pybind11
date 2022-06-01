@@ -2647,26 +2647,74 @@ inline error_fetch_and_normalize::error_fetch_and_normalize(const error_fetch_an
     m_trace = other.m_trace;
 }
 
+inline std::string error_fetch_and_normalize::complete_lazy_error_string() const {
+    std::string result;
+    if (m_value) {
+        try {
+            result = str(m_value).cast<std::string>();
+        } catch (const std::exception &e) {
+            result = "CASCADING failure: std::exception::what(): ";
+            try {
+                result += e.what();
+            } catch (const std::exception &) {
+                result += "UNRECOVERABLE";
+            }
+        }
+    } else {
+        result += "<MESSAGE NOT AVAILABLE>";
+    }
+    if (result.empty()) {
+        result = "<EMPTY MESSAGE>";
+    }
+
+    if (m_trace) {
+#if !defined(PYPY_VERSION)
+        auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
+
+        // Get the deepest trace possible.
+        while (tb->tb_next) {
+            tb = tb->tb_next;
+        }
+
+        PyFrameObject *frame = tb->tb_frame;
+        Py_XINCREF(frame);
+        result += "\n\nAt:\n";
+        while (frame) {
+#    if PY_VERSION_HEX >= 0x030900B1
+            PyCodeObject *f_code = PyFrame_GetCode(frame);
+#    else
+            PyCodeObject *f_code = frame->f_code;
+            Py_INCREF(f_code);
+#    endif
+            int lineno = PyFrame_GetLineNumber(frame);
+            result += "  ";
+            result += handle(f_code->co_filename).cast<std::string>();
+            result += '(';
+            result += std::to_string(lineno);
+            result += "): ";
+            result += handle(f_code->co_name).cast<std::string>();
+            result += '\n';
+            Py_DECREF(f_code);
+#    if PY_VERSION_HEX >= 0x030900B1
+            auto *b_frame = PyFrame_GetBack(frame);
+#    else
+            auto *b_frame = frame->f_back;
+            Py_XINCREF(b_frame);
+#    endif
+            Py_DECREF(frame);
+            frame = b_frame;
+        }
+#endif //! defined(PYPY_VERSION)
+    }
+    return ": " + result;
+}
+
 inline const char *error_fetch_and_normalize::error_string(const char *) const {
     if (!m_lazy_error_string_completed) {
         std::string failure_info;
         gil_scoped_acquire gil;
         error_scope scope;
-        try {
-            std::string err_str = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-            if (err_str.empty()) {
-                m_lazy_error_string += ": <EMPTY MESSAGE>";
-            } else {
-                m_lazy_error_string = err_str; // Replace completely.
-            }
-        } catch (const std::exception &e) {
-            m_lazy_error_string += ": CASCADING failure: std::exception::what(): ";
-            try {
-                m_lazy_error_string += e.what();
-            } catch (const std::exception &) {
-                m_lazy_error_string += "UNRECOVERABLE";
-            }
-        }
+        m_lazy_error_string += complete_lazy_error_string();
         m_lazy_error_string_completed = true;
     }
     return m_lazy_error_string.c_str();

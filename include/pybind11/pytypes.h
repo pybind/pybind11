@@ -459,6 +459,10 @@ struct error_fetch_and_normalize {
 
     error_fetch_and_normalize(error_fetch_and_normalize &&) = default;
 
+private:
+    std::string complete_lazy_error_string() const;
+
+public:
     const char *error_string(const char *called) const;
 
     void restore() {
