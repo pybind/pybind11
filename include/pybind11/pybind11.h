@@ -2610,7 +2610,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     }
 
     auto write = file.attr("write");
-    write(line);
+    write(std::move(line));
     write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
 
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
