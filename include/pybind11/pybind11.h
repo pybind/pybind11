@@ -2064,8 +2064,7 @@ struct enum_base {
             [](const object &arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
     }
 
-    PYBIND11_NOINLINE void
-    value(char const *name_, const object &value, const char *doc = nullptr) {
+    PYBIND11_NOINLINE void value(char const *name_, object value, const char *doc = nullptr) {
         dict entries = m_base.attr("__entries");
         str name(name_);
         if (entries.contains(name)) {
@@ -2075,7 +2074,7 @@ struct enum_base {
         }
 
         entries[name] = std::make_pair(value, doc);
-        m_base.attr(std::move(name)) = value;
+        m_base.attr(std::move(name)) = std::move(value);
     }
 
     PYBIND11_NOINLINE void export_values() {
