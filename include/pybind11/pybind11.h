@@ -2627,30 +2627,11 @@ void print(Args &&...args) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline error_fetch_and_normalize::~error_fetch_and_normalize() {
-    if (!(m_type || m_value || m_trace)) {
-        return; // Avoid gil and scope overhead if there is nothing to release.
-    }
-    gil_scoped_acquire gil;
-    error_scope scope;
-    m_type.release().dec_ref();
-    m_value.release().dec_ref();
-    m_trace.release().dec_ref();
-}
-
-inline error_fetch_and_normalize::error_fetch_and_normalize(const error_fetch_and_normalize &other)
-    : m_lazy_error_string{other.m_lazy_error_string}, m_lazy_error_string_completed{
-                                                          other.m_lazy_error_string_completed} {
-    gil_scoped_acquire gil;
-    m_type = other.m_type;
-    m_value = other.m_value;
-    m_trace = other.m_trace;
-}
-
-inline std::string error_fetch_and_normalize::complete_lazy_error_string() const {
+PYBIND11_NOINLINE std::string error_fetch_and_normalize::complete_lazy_error_string() const {
     std::string result;
     if (m_value) {
         try {
+            // TODO: use C API directly for robustness.
             result = str(m_value).cast<std::string>();
         } catch (const std::exception &e) {
             result = "CASCADING failure: std::exception::what(): ";
@@ -2661,7 +2642,7 @@ inline std::string error_fetch_and_normalize::complete_lazy_error_string() const
             }
         }
     } else {
-        result += "<MESSAGE NOT AVAILABLE>";
+        result = "<MESSAGE NOT AVAILABLE>";
     }
     if (result.empty()) {
         result = "<EMPTY MESSAGE>";
@@ -2709,16 +2690,30 @@ inline std::string error_fetch_and_normalize::complete_lazy_error_string() const
     return result;
 }
 
-inline std::string const &error_fetch_and_normalize::error_string() const {
-    if (!m_lazy_error_string_completed) {
-        std::string failure_info;
-        gil_scoped_acquire gil;
-        error_scope scope;
-        m_lazy_error_string += ": " + complete_lazy_error_string();
-        m_lazy_error_string_completed = true;
+PYBIND11_NAMESPACE_END(detail)
+
+inline error_already_set::~error_already_set() {
+    auto e = m_fetched_error;
+    if (!(e.m_type || e.m_value || e.m_trace)) {
+        return; // Avoid gil and scope overhead if there is nothing to release.
     }
-    return m_lazy_error_string;
+    gil_scoped_acquire gil;
+    error_scope scope;
+    e.m_type.release().dec_ref();
+    e.m_value.release().dec_ref();
+    e.m_trace.release().dec_ref();
 }
+
+inline error_already_set::error_already_set(const error_already_set &other)
+    : m_fetched_error(gil_scoped_acquire(), other.m_fetched_error) {}
+
+inline const char *error_already_set::what() const noexcept {
+    gil_scoped_acquire gil;
+    error_scope scope;
+    return m_fetched_error.error_string().c_str();
+}
+
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline function
 get_type_override(const void *this_ptr, const type_info *this_type, const char *name) {

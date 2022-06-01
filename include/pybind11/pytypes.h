@@ -433,21 +433,21 @@ struct error_fetch_and_normalize {
         }
     }
 
-    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
-    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    ~error_fetch_and_normalize();
+    template <typename GilScopedAcquire>
+    error_fetch_and_normalize(const GilScopedAcquire &, const error_fetch_and_normalize &other)
+        : m_type{other.m_type}, m_value{other.m_value}, m_trace{other.m_trace},
+          m_lazy_error_string{other.m_lazy_error_string},
+          m_lazy_error_string_completed{other.m_lazy_error_string_completed} {}
 
-    /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
-    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    error_fetch_and_normalize(const error_fetch_and_normalize &);
-
-    error_fetch_and_normalize(error_fetch_and_normalize &&) = default;
-
-private:
     std::string complete_lazy_error_string() const;
 
-public:
-    std::string const &error_string() const;
+    std::string const &error_string() const {
+        if (!m_lazy_error_string_completed) {
+            m_lazy_error_string += ": " + complete_lazy_error_string();
+            m_lazy_error_string_completed = true;
+        }
+        return m_lazy_error_string;
+    }
 
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
@@ -487,14 +487,21 @@ public:
     /// current Python error indicator.
     error_already_set() : m_fetched_error{"pybind11::error_already_set"} {}
 
-    /// Note: The C++ standard explicitly prohibits deleting the copy ctor: C++17 18.1.5.
+    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    ~error_already_set();
+
+    /// The C++ standard explicitly prohibits deleting this copy ctor: C++17 18.1.5.
+    /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    error_already_set(const error_already_set &);
+
+    error_already_set(error_already_set &&) = default;
 
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline const char *what() const noexcept override {
-        return m_fetched_error.error_string().c_str();
-    }
+    const char *what() const noexcept override;
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
