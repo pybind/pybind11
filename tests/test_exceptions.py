@@ -314,17 +314,16 @@ def test_flaky_exception_failure_point_init():
         m.error_already_set_what(FlakyException, ("failure_point_init",))
     lines = str(excinfo.value).splitlines()
     # PyErr_NormalizeException replaces the original FlakyException with ValueError:
-    assert lines[:4] == [
+    assert lines[:3] == [
         "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
-        " ORIGINAL FlakyException REPLACED BY ValueError:",
-        "ValueError: triggered_failure_point_init",
+        " ORIGINAL FlakyException REPLACED BY ValueError: triggered_failure_point_init",
         "",
         "At:",
     ]
     # Checking the first two lines of the traceback as formatted in error_string():
-    assert "test_exceptions.py(" in lines[4]
-    assert lines[4].endswith("): __init__")
-    assert lines[5].endswith("): test_flaky_exception_failure_point_init")
+    assert "test_exceptions.py(" in lines[3]
+    assert lines[3].endswith("): __init__")
+    assert lines[4].endswith("): test_flaky_exception_failure_point_init")
 
 
 def test_flaky_exception_failure_point_str():

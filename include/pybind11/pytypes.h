@@ -383,9 +383,6 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-std::string error_string();
-std::string error_string(PyObject *, PyObject *, PyObject *);
-
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
 inline const char *obj_class_name(PyObject *obj) {
     if (Py_TYPE(obj) == &PyType_Type) {
@@ -431,20 +428,7 @@ struct error_fetch_and_normalize {
             msg += m_lazy_error_string;
             msg += " REPLACED BY ";
             msg += exc_type_name_norm;
-            std::string msg2;
-            try {
-                msg2 = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
-            } catch (const std::exception &e) {
-                msg2 = "CASCADING failure: std::exception::what(): ";
-                try {
-                    msg2 += e.what();
-                } catch (const std::exception &) {
-                    msg2 += "UNRECOVERABLE";
-                }
-            }
-            if (!msg2.empty()) {
-                msg += ":\n" + msg2;
-            }
+            msg += ": " + complete_lazy_error_string();
             pybind11_fail(msg);
         }
     }
@@ -463,7 +447,7 @@ private:
     std::string complete_lazy_error_string() const;
 
 public:
-    const char *error_string(const char *called) const;
+    const char *error_string() const;
 
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
@@ -504,9 +488,7 @@ public:
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline const char *what() const noexcept override {
-        return m_fetched_error.error_string("pybind11::error_already_set");
-    }
+    inline const char *what() const noexcept override { return m_fetched_error.error_string(); }
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
     /// if already set).
