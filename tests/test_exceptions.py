@@ -332,10 +332,13 @@ def test_flaky_exception_failure_point_str():
     )
     assert not py_err_set_after_what
     lines = what.splitlines()
-    assert (
-        lines[0]
-        == "FlakyException: CASCADING failure: std::exception::what(): ValueError: triggered_failure_point_str"
-    )
+    assert lines[:5] == [
+        "FlakyException: <MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>",
+        "",
+        "MESSAGE UNAVAILABLE DUE TO EXCEPTION: ValueError: triggered_failure_point_str",
+        "",
+        "At:",
+    ]
 
 
 def test_cross_module_interleaved_error_already_set():

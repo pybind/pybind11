@@ -2629,25 +2629,23 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 PYBIND11_NOINLINE std::string error_fetch_and_normalize::complete_lazy_error_string() const {
     std::string result;
+    std::string message_error_string;
     if (m_value) {
-        try {
-            // TODO: use C API directly for robustness.
-            result = str(m_value).cast<std::string>();
-        } catch (const std::exception &e) {
-            result = "CASCADING failure: std::exception::what(): ";
-            try {
-                result += e.what();
-            } catch (const std::exception &) {
-                result += "UNRECOVERABLE";
-            }
+        auto value_str = reinterpret_borrow<object>(PyObject_Str(m_value.ptr()));
+        if (!value_str) {
+            message_error_string = detail::error_string();
+            result = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
+        } else {
+            result = value_str.cast<std::string>();
         }
     } else {
-        result = "<MESSAGE NOT AVAILABLE>";
+        result = "<MESSAGE UNAVAILABLE>";
     }
     if (result.empty()) {
         result = "<EMPTY MESSAGE>";
     }
 
+    bool have_trace = false;
     if (m_trace) {
 #if !defined(PYPY_VERSION)
         auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
@@ -2685,8 +2683,18 @@ PYBIND11_NOINLINE std::string error_fetch_and_normalize::complete_lazy_error_str
             Py_DECREF(frame);
             frame = b_frame;
         }
+
+        have_trace = true;
 #endif //! defined(PYPY_VERSION)
     }
+
+    if (!message_error_string.empty()) {
+        if (!have_trace) {
+            result += '\n';
+        }
+        result += "\nMESSAGE UNAVAILABLE DUE TO EXCEPTION: " + message_error_string;
+    }
+
     return result;
 }
 
