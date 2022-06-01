@@ -276,9 +276,7 @@ TEST_SUBMODULE(exceptions, m) {
                   } else {
                       // Simply `throw;` also works and is better, but using `throw ex;`
                       // here to cover that situation (as observed in the wild).
-                      // Needs the copy ctor. The C++ standard guarantees that it is available:
-                      // C++17 18.1.5.
-                      throw ex;
+                      throw ex; // Invokes the copy ctor.
                   }
               }
           });

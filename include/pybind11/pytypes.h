@@ -459,6 +459,7 @@ public:
         }
     }
 
+    /// The C++ standard explicitly prohibits deleting this copy ctor: C++17 18.1.5.
     /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     inline error_already_set(const error_already_set &e) noexcept;
