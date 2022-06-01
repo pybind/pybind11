@@ -2069,12 +2069,12 @@ struct enum_base {
         str name(name_);
         if (entries.contains(name)) {
             std::string type_name = (std::string) str(m_base.attr("__name__"));
-            throw value_error(type_name + ": element \"" + std::string(name_)
+            throw value_error(std::move(type_name) + ": element \"" + std::string(name_)
                               + "\" already exists!");
         }
 
         entries[name] = std::make_pair(value, doc);
-        m_base.attr(name) = value;
+        m_base.attr(std::move(name)) = std::move(value);
     }
 
     PYBIND11_NOINLINE void export_values() {
@@ -2610,7 +2610,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     }
 
     auto write = file.attr("write");
-    write(line);
+    write(std::move(line));
     write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
 
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {

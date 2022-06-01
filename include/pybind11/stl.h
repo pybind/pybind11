@@ -128,7 +128,7 @@ struct map_caster {
             if (!key || !value) {
                 return handle();
             }
-            d[key] = value;
+            d[std::move(key)] = std::move(value);
         }
         return d.release();
     }

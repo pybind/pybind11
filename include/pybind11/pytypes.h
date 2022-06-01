@@ -88,7 +88,9 @@ public:
         or `object` subclass causes a call to ``__setitem__``.
     \endrst */
     item_accessor operator[](handle key) const;
-    /// See above (the only difference is that they key is provided as a string literal)
+    /// See above (the only difference is that the key's reference is stolen)
+    item_accessor operator[](object &&key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
     item_accessor operator[](const char *key) const;
 
     /** \rst
@@ -98,7 +100,9 @@ public:
         or `object` subclass causes a call to ``setattr``.
     \endrst */
     obj_attr_accessor attr(handle key) const;
-    /// See above (the only difference is that they key is provided as a string literal)
+    /// See above (the only difference is that the key's reference is stolen)
+    obj_attr_accessor attr(object &&key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
 
     /** \rst
@@ -863,7 +867,7 @@ public:
     }
     template <typename T>
     void operator=(T &&value) & {
-        get_cache() = reinterpret_borrow<object>(object_or_cast(std::forward<T>(value)));
+        get_cache() = ensure_object(object_or_cast(std::forward<T>(value)));
     }
 
     template <typename T = Policy>
@@ -891,6 +895,9 @@ public:
     }
 
 private:
+    static object ensure_object(object &&o) { return std::move(o); }
+    static object ensure_object(handle h) { return reinterpret_borrow<object>(h); }
+
     object &get_cache() const {
         if (!cache) {
             cache = Policy::get(obj, key);
@@ -1890,7 +1897,10 @@ public:
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
-    detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+    detail::item_accessor operator[](T &&o) const {
+        return object::operator[](std::forward<T>(o));
+    }
     detail::tuple_iterator begin() const { return {*this, 0}; }
     detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
 };
@@ -1950,7 +1960,10 @@ public:
     }
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
-    detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+    detail::item_accessor operator[](T &&o) const {
+        return object::operator[](std::forward<T>(o));
+    }
     detail::sequence_iterator begin() const { return {*this, 0}; }
     detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
 };
@@ -1969,7 +1982,10 @@ public:
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
-    detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+    detail::item_accessor operator[](T &&o) const {
+        return object::operator[](std::forward<T>(o));
+    }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T>
@@ -2269,12 +2285,20 @@ item_accessor object_api<D>::operator[](handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
 }
 template <typename D>
+item_accessor object_api<D>::operator[](object &&key) const {
+    return {derived(), std::move(key)};
+}
+template <typename D>
 item_accessor object_api<D>::operator[](const char *key) const {
     return {derived(), pybind11::str(key)};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
+}
+template <typename D>
+obj_attr_accessor object_api<D>::attr(object &&key) const {
+    return {derived(), std::move(key)};
 }
 template <typename D>
 str_attr_accessor object_api<D>::attr(const char *key) const {
