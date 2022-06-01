@@ -228,7 +228,10 @@ TEST_SUBMODULE(exceptions, m) {
             throw py::error_already_set();
         } catch (const std::runtime_error &e) {
             if ((err && e.what() != std::string("ValueError: foo"))
-                || (!err && e.what() != std::string("Unknown internal error occurred"))) {
+                || (!err
+                    && e.what()
+                           != std::string("Internal error: pybind11::error_already_set called "
+                                          "while Python error indicator not set."))) {
                 PyErr_Clear();
                 throw std::runtime_error("error message mismatch");
             }
@@ -306,5 +309,12 @@ TEST_SUBMODULE(exceptions, m) {
         bool py_err_set_after_what = (PyErr_Occurred() != nullptr);
         PyErr_Clear();
         return py::make_tuple(std::move(what), py_err_set_after_what);
+    });
+
+    m.def("test_cross_module_interleaved_error_already_set", []() {
+        auto cm = py::module_::import("cross_module_interleaved_error_already_set");
+        auto interleaved_error_already_set
+            = reinterpret_cast<void (*)()>(PyLong_AsVoidPtr(cm.attr("funcaddr").ptr()));
+        interleaved_error_already_set();
     });
 }

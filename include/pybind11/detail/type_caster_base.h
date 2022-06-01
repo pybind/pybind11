@@ -470,13 +470,15 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE std::string error_string() {
-    if (!PyErr_Occurred()) {
-        PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
-        return "Unknown internal error occurred";
+PYBIND11_NOINLINE std::string error_string(const char *called) {
+    error_scope scope; // Fetch error state (will be restored when this function returns).
+    if (scope.type == nullptr) {
+        if (called == nullptr) {
+            called = "pybind11::detail::error_string()";
+        }
+        pybind11_fail("Internal error: " + std::string(called)
+                      + " called while Python error indicator not set.");
     }
-
-    error_scope scope; // Preserve error state
 
     PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
     if (scope.trace != nullptr) {

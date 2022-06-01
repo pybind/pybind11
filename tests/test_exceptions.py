@@ -16,7 +16,10 @@ def test_std_exception(msg):
 def test_error_already_set(msg):
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_already_set(False)
-    assert msg(excinfo.value) == "Unknown internal error occurred"
+    assert (
+        msg(excinfo.value)
+        == "Internal error: pybind11::error_already_set called while Python error indicator not set."
+    )
 
     with pytest.raises(ValueError) as excinfo:
         m.throw_already_set(True)
@@ -320,3 +323,12 @@ def test_flaky_exception_failure_point_str():
     with pytest.raises(ValueError) as excinfo:
         m.error_already_set_what(FlakyException, ("failure_point_str",))
     assert str(excinfo.value) == "triggered_failure_point_str"
+
+
+def test_cross_module_interleaved_error_already_set():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_cross_module_interleaved_error_already_set()
+    assert str(excinfo.value) in (
+        "2nd error.",  # Almost all platforms.
+        "RuntimeError: 2nd error.",  # Some PyPy builds (seen under macOS).
+    )
