@@ -2625,7 +2625,9 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-error_already_set::~error_already_set() {
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline error_fetch_and_normalize::~error_fetch_and_normalize() {
     if (!(m_type || m_value || m_trace)) {
         return; // Avoid gil and scope overhead if there is nothing to release.
     }
@@ -2636,41 +2638,40 @@ error_already_set::~error_already_set() {
     m_trace.release().dec_ref();
 }
 
-error_already_set::error_already_set(const error_already_set &e) noexcept
-    : std::exception{e}, m_lazy_what{e.m_lazy_what}, m_lazy_what_completed{
-                                                         e.m_lazy_what_completed} {
+inline error_fetch_and_normalize::error_fetch_and_normalize(const error_fetch_and_normalize &other)
+    : m_lazy_error_string{other.m_lazy_error_string}, m_lazy_error_string_completed{
+                                                          other.m_lazy_error_string_completed} {
     gil_scoped_acquire gil;
-    m_type = e.m_type;
-    m_value = e.m_value;
-    m_trace = e.m_trace;
+    m_type = other.m_type;
+    m_value = other.m_value;
+    m_trace = other.m_trace;
 }
 
-const char *error_already_set::what() const noexcept {
-    if (!m_lazy_what_completed) {
+inline const char *error_fetch_and_normalize::error_string(const char *) const {
+    if (!m_lazy_error_string_completed) {
         std::string failure_info;
         gil_scoped_acquire gil;
         error_scope scope;
         try {
             std::string err_str = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             if (err_str.empty()) {
-                m_lazy_what += ": <EMPTY MESSAGE>";
+                m_lazy_error_string += ": <EMPTY MESSAGE>";
             } else {
-                m_lazy_what = err_str; // Replace completely.
+                m_lazy_error_string = err_str; // Replace completely.
             }
         } catch (const std::exception &e) {
-            m_lazy_what += ": CASCADING failure: std::exception::what(): ";
+            m_lazy_error_string += ": CASCADING failure: std::exception::what(): ";
             try {
-                m_lazy_what += e.what();
+                m_lazy_error_string += e.what();
             } catch (const std::exception &) {
-                m_lazy_what += "UNRECOVERABLE";
+                m_lazy_error_string += "UNRECOVERABLE";
             }
         }
-        m_lazy_what_completed = true;
+        m_lazy_error_string_completed = true;
     }
-    return m_lazy_what.c_str();
+    return m_lazy_error_string.c_str();
 }
 
-PYBIND11_NAMESPACE_BEGIN(detail)
 inline function
 get_type_override(const void *this_ptr, const type_info *this_type, const char *name) {
     handle self = get_object_handle(this_ptr, this_type);

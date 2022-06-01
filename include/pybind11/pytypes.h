@@ -394,51 +394,41 @@ inline const char *obj_class_name(PyObject *obj) {
     return Py_TYPE(obj)->tp_name;
 }
 
-PYBIND11_NAMESPACE_END(detail)
-
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4275 4251)
-//     warning C4275: An exported class was derived from a class that wasn't exported.
-//     Can be ignored when derived from a STL class.
-#endif
-/// Fetch and hold an error which was already set in Python.  An instance of this is typically
-/// thrown to propagate python-side errors back through C++ which can either be caught manually or
-/// else falls back to the function dispatcher (which then raises the captured error back to
-/// python).
-class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
-public:
-    /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
-    /// current Python error indicator.
-    error_already_set() {
+struct error_fetch_and_normalize {
+    explicit error_fetch_and_normalize(const char *called) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (!m_type) {
-            pybind11_fail("Internal error: pybind11::error_already_set called while "
-                          "Python error indicator not set.");
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " called while "
+                            "Python error indicator not set.");
         }
         const char *exc_type_name_orig = detail::obj_class_name(m_type.ptr());
         if (exc_type_name_orig == nullptr) {
-            pybind11_fail("Internal error: pybind11::error_already_set failed to obtain the name "
-                          "of the original active exception type.");
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " failed to obtain the name "
+                            "of the original active exception type.");
         }
-        m_lazy_what = exc_type_name_orig;
+        m_lazy_error_string = exc_type_name_orig;
         // PyErr_NormalizeException() may change the exception type if there are cascading
         // failures. This can potentially be extremely confusing.
         PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (m_type.ptr() == nullptr) {
-            pybind11_fail("Internal error: pybind11::error_already_set failed to normalize the "
-                          "active exception.");
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " failed to normalize the "
+                            "active exception.");
         }
         const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
         if (exc_type_name_orig == nullptr) {
-            pybind11_fail("Internal error: pybind11::error_already_set failed to obtain the name "
-                          "of the normalized active exception type.");
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " failed to obtain the name "
+                            "of the normalized active exception type.");
         }
-        if (exc_type_name_norm != m_lazy_what) {
-            std::string msg = "pybind11::error_already_set: MISMATCH of original and normalized "
-                              "active exception types: ";
+        if (exc_type_name_norm != m_lazy_error_string) {
+            std::string msg = std::string(called)
+                              + ": MISMATCH of original and normalized "
+                                "active exception types: ";
             msg += "ORIGINAL ";
-            msg += m_lazy_what;
+            msg += m_lazy_error_string;
             msg += " REPLACED BY ";
             msg += exc_type_name_norm;
             std::string msg2;
@@ -459,44 +449,67 @@ public:
         }
     }
 
-    /// The C++ standard explicitly prohibits deleting this copy ctor: C++17 18.1.5.
-    /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
-    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline error_already_set(const error_already_set &e) noexcept;
-
-#if ((defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10)        \
-     || (defined(_MSC_VER) && _MSC_VER >= 1920))                                                  \
-    && !defined(__INTEL_COMPILER)
-    error_already_set(error_already_set &&) noexcept = default;
-#else
-    /// Workaround for old compilers:
-    /// Moving the members one-by-one to be able to specify noexcept.
-    error_already_set(error_already_set &&e) noexcept
-        : std::exception{std::move(e)}, m_type{std::move(e.m_type)}, m_value{std::move(e.m_value)},
-          m_trace{std::move(e.m_trace)}, m_lazy_what{std::move(e.m_lazy_what)},
-          m_lazy_what_completed{std::move(e.m_lazy_what_completed)} {}
-#endif
-
     /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline ~error_already_set() override;
+    ~error_fetch_and_normalize();
 
-    /// The what() result is built lazily on demand.
-    /// WARNING: This member function needs to acquire the Python GIL. This can lead to
+    /// WARNING: This copy constructor needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline const char *what() const noexcept override;
+    error_fetch_and_normalize(const error_fetch_and_normalize &);
 
-    /// Restores the currently-held Python error (which will clear the Python error indicator first
-    /// if already set).
-    /// NOTE: This member function will always restore the normalized exception, which may or may
-    ///       not be the original Python exception.
-    /// WARNING: The GIL must be held when this member function is called!
+    error_fetch_and_normalize(error_fetch_and_normalize &&) = default;
+
+    const char *error_string(const char *called) const;
+
     void restore() {
         // As long as this type is copyable, there is no point in releasing m_type, m_value,
         // m_trace, but simply holding on the the references makes it possible to produce
         // what() even after restore().
         PyErr_Restore(m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
     }
+
+    bool matches(handle exc) const {
+        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
+    }
+
+    object m_type, m_value, m_trace;
+    mutable std::string m_lazy_error_string;
+    mutable bool m_lazy_error_string_completed = false;
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
+#if defined(_MSC_VER)
+#    pragma warning(push)
+#    pragma warning(disable : 4275 4251)
+//     warning C4275: An exported class was derived from a class that wasn't exported.
+//     Can be ignored when derived from a STL class.
+#endif
+/// Fetch and hold an error which was already set in Python.  An instance of this is typically
+/// thrown to propagate python-side errors back through C++ which can either be caught manually or
+/// else falls back to the function dispatcher (which then raises the captured error back to
+/// python).
+class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
+public:
+    /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
+    /// current Python error indicator.
+    error_already_set() : m_fetched_error{"pybind11::error_already_set"} {}
+
+    /// Note: The C++ standard explicitly prohibits deleting the copy ctor: C++17 18.1.5.
+
+    /// The what() result is built lazily on demand.
+    /// WARNING: This member function needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    inline const char *what() const noexcept override {
+        return m_fetched_error.error_string("pybind11::error_already_set");
+    }
+
+    /// Restores the currently-held Python error (which will clear the Python error indicator first
+    /// if already set).
+    /// NOTE: This member function will always restore the normalized exception, which may or may
+    ///       not be the original Python exception.
+    /// WARNING: The GIL must be held when this member function is called!
+    void restore() { m_fetched_error.restore(); }
 
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
@@ -520,18 +533,14 @@ public:
     /// Check if the currently trapped error type matches the given Python exception class (or a
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
-    bool matches(handle exc) const {
-        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
-    }
+    bool matches(handle exc) const { return m_fetched_error.matches(exc); }
 
-    const object &type() const { return m_type; }
-    const object &value() const { return m_value; }
-    const object &trace() const { return m_trace; }
+    const object &type() const { return m_fetched_error.m_type; }
+    const object &value() const { return m_fetched_error.m_value; }
+    const object &trace() const { return m_fetched_error.m_trace; }
 
 private:
-    object m_type, m_value, m_trace;
-    mutable std::string m_lazy_what;
-    mutable bool m_lazy_what_completed = false;
+    detail::error_fetch_and_normalize m_fetched_error;
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
