@@ -85,7 +85,9 @@ public:
         or `object` subclass causes a call to ``__setitem__``.
     \endrst */
     item_accessor operator[](handle key) const;
-    /// See above (the only difference is that they key is provided as a string literal)
+    /// See above (the only difference is that the key's reference is stolen)
+    item_accessor operator[](object &&key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
     item_accessor operator[](const char *key) const;
 
     /** \rst
@@ -95,7 +97,9 @@ public:
         or `object` subclass causes a call to ``setattr``.
     \endrst */
     obj_attr_accessor attr(handle key) const;
-    /// See above (the only difference is that they key is provided as a string literal)
+    /// See above (the only difference is that the key's reference is stolen)
+    obj_attr_accessor attr(object &&key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
 
     /** \rst
@@ -180,6 +184,10 @@ private:
 
 PYBIND11_NAMESPACE_END(detail)
 
+#if !defined(PYBIND11_HANDLE_REF_DEBUG) && !defined(NDEBUG)
+#    define PYBIND11_HANDLE_REF_DEBUG
+#endif
+
 /** \rst
     Holds a reference to a Python object (no reference counting)
 
@@ -209,6 +217,9 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &inc_ref() const & {
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        inc_ref_counter(1);
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -244,6 +255,18 @@ public:
 
 protected:
     PyObject *m_ptr = nullptr;
+
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+private:
+    static std::size_t inc_ref_counter(std::size_t add) {
+        thread_local std::size_t counter = 0;
+        counter += add;
+        return counter;
+    }
+
+public:
+    static std::size_t inc_ref_counter() { return inc_ref_counter(0); }
+#endif
 };
 
 /** \rst
@@ -360,7 +383,7 @@ T reinterpret_steal(handle h) {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-std::string error_string();
+std::string error_string(const char *called = nullptr);
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -375,20 +398,27 @@ PYBIND11_NAMESPACE_END(detail)
 /// python).
 class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
 public:
-    /// Constructs a new exception from the current Python error indicator, if any.  The current
+    /// Constructs a new exception from the current Python error indicator.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error(detail::error_string()) {
+    error_already_set() : std::runtime_error(detail::error_string("pybind11::error_already_set")) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
+    /// WARNING: The GIL must be held when this copy constructor is invoked!
     error_already_set(const error_already_set &) = default;
     error_already_set(error_already_set &&) = default;
 
+    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     inline ~error_already_set() override;
 
-    /// Give the currently-held error back to Python, if any.  If there is currently a Python error
-    /// already set it is cleared first.  After this call, the current object no longer stores the
-    /// error variables (but the `.what()` string is still available).
+    /// Restores the currently-held Python error (which will clear the Python error indicator first
+    /// if already set). After this call, the current object no longer stores the error variables.
+    /// NOTE: Any copies of this object may still store the error variables. Currently there is no
+    //        protection against calling restore() from multiple copies.
+    /// NOTE: This member function will always restore the normalized exception, which may or may
+    ///       not be the original Python exception.
+    /// WARNING: The GIL must be held when this member function is called!
     void restore() {
         PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
     }
@@ -405,6 +435,7 @@ public:
     }
     /// An alternate version of `discard_as_unraisable()`, where a string provides information on
     /// the location of the error. For example, `__func__` could be helpful.
+    /// WARNING: The GIL must be held when this member function is called!
     void discard_as_unraisable(const char *err_context) {
         discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
     }
@@ -657,7 +688,7 @@ public:
     }
     template <typename T>
     void operator=(T &&value) & {
-        get_cache() = reinterpret_borrow<object>(object_or_cast(std::forward<T>(value)));
+        get_cache() = ensure_object(object_or_cast(std::forward<T>(value)));
     }
 
     template <typename T = Policy>
@@ -685,6 +716,9 @@ public:
     }
 
 private:
+    static object ensure_object(object &&o) { return std::move(o); }
+    static object ensure_object(handle h) { return reinterpret_borrow<object>(h); }
+
     object &get_cache() const {
         if (!cache) {
             cache = Policy::get(obj, key);
@@ -1581,6 +1615,8 @@ public:
 
     capsule(const void *value, void (*destructor)(void *)) {
         m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
+            // guard if destructor called while err indicator is set
+            error_scope error_guard;
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
             if (destructor == nullptr) {
                 if (PyErr_Occurred()) {
@@ -1682,7 +1718,10 @@ public:
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
-    detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+    detail::item_accessor operator[](T &&o) const {
+        return object::operator[](std::forward<T>(o));
+    }
     detail::tuple_iterator begin() const { return {*this, 0}; }
     detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
 };
@@ -1742,7 +1781,10 @@ public:
     }
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
-    detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+    detail::item_accessor operator[](T &&o) const {
+        return object::operator[](std::forward<T>(o));
+    }
     detail::sequence_iterator begin() const { return {*this, 0}; }
     detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
 };
@@ -1761,7 +1803,10 @@ public:
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
-    detail::item_accessor operator[](handle h) const { return object::operator[](h); }
+    template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+    detail::item_accessor operator[](T &&o) const {
+        return object::operator[](std::forward<T>(o));
+    }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T>
@@ -2061,12 +2106,20 @@ item_accessor object_api<D>::operator[](handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
 }
 template <typename D>
+item_accessor object_api<D>::operator[](object &&key) const {
+    return {derived(), std::move(key)};
+}
+template <typename D>
 item_accessor object_api<D>::operator[](const char *key) const {
     return {derived(), pybind11::str(key)};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
+}
+template <typename D>
+obj_attr_accessor object_api<D>::attr(object &&key) const {
+    return {derived(), std::move(key)};
 }
 template <typename D>
 str_attr_accessor object_api<D>::attr(const char *key) const {

@@ -115,17 +115,32 @@ if(PYTHON_IS_DEBUG)
     PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
 endif()
 
-set_property(
-  TARGET pybind11::module
-  APPEND
-  PROPERTY
-    INTERFACE_LINK_LIBRARIES pybind11::python_link_helper
-    "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>")
+if(CMAKE_VERSION VERSION_LESS 3.11)
+  set_property(
+    TARGET pybind11::module
+    APPEND
+    PROPERTY
+      INTERFACE_LINK_LIBRARIES
+      pybind11::python_link_helper
+      "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>"
+  )
 
-set_property(
-  TARGET pybind11::embed
-  APPEND
-  PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+  set_property(
+    TARGET pybind11::embed
+    APPEND
+    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+else()
+  target_link_libraries(
+    pybind11::module
+    INTERFACE
+      pybind11::python_link_helper
+      "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>"
+  )
+
+  target_link_libraries(pybind11::embed INTERFACE pybind11::pybind11
+                                                  $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+
+endif()
 
 function(pybind11_extension name)
   # The prefix and extension are provided by FindPythonLibsNew.cmake

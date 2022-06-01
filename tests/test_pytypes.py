@@ -1,5 +1,6 @@
 import contextlib
 import sys
+import types
 
 import pytest
 
@@ -315,6 +316,14 @@ def test_accessors():
     assert d["set"] == 1
     assert d["deferred_set"] == 1
     assert d["var"] == 99
+
+
+def test_accessor_moves():
+    inc_refs = m.accessor_moves()
+    if inc_refs:
+        assert inc_refs == [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+    else:
+        pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 
 
 def test_constructors():
@@ -698,3 +707,30 @@ def test_implementation_details():
 def test_external_float_():
     r1 = m.square_float_(2.0)
     assert r1 == 4.0
+
+
+def test_tuple_rvalue_getter():
+    pop = 1000
+    tup = tuple(range(pop))
+    m.tuple_rvalue_getter(tup)
+
+
+def test_list_rvalue_getter():
+    pop = 1000
+    my_list = list(range(pop))
+    m.list_rvalue_getter(my_list)
+
+
+def test_populate_dict_rvalue():
+    pop = 1000
+    my_dict = {i: i for i in range(pop)}
+    assert m.populate_dict_rvalue(pop) == my_dict
+
+
+def test_populate_obj_str_attrs():
+    pop = 1000
+    o = types.SimpleNamespace(**{str(i): i for i in range(pop)})
+    new_o = m.populate_obj_str_attrs(o, pop)
+    new_attrs = {k: v for k, v in new_o.__dict__.items() if not k.startswith("_")}
+    assert all(isinstance(v, str) for v in new_attrs.values())
+    assert len(new_attrs) == pop
