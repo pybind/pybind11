@@ -391,6 +391,8 @@ inline const char *obj_class_name(PyObject *obj) {
     return Py_TYPE(obj)->tp_name;
 }
 
+std::string error_string();
+
 struct error_fetch_and_normalize {
     explicit error_fetch_and_normalize(const char *called) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
@@ -439,7 +441,76 @@ struct error_fetch_and_normalize {
           m_lazy_error_string{other.m_lazy_error_string},
           m_lazy_error_string_completed{other.m_lazy_error_string_completed} {}
 
-    std::string complete_lazy_error_string() const;
+    std::string complete_lazy_error_string() const {
+        std::string result;
+        std::string message_error_string;
+        if (m_value) {
+            auto value_str = reinterpret_borrow<object>(PyObject_Str(m_value.ptr()));
+            if (!value_str) {
+                message_error_string = detail::error_string();
+                result = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
+            } else {
+                result = value_str.cast<std::string>();
+            }
+        } else {
+            result = "<MESSAGE UNAVAILABLE>";
+        }
+        if (result.empty()) {
+            result = "<EMPTY MESSAGE>";
+        }
+
+        bool have_trace = false;
+        if (m_trace) {
+#if !defined(PYPY_VERSION)
+            auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
+
+            // Get the deepest trace possible.
+            while (tb->tb_next) {
+                tb = tb->tb_next;
+            }
+
+            PyFrameObject *frame = tb->tb_frame;
+            Py_XINCREF(frame);
+            result += "\n\nAt:\n";
+            while (frame) {
+#    if PY_VERSION_HEX >= 0x030900B1
+                PyCodeObject *f_code = PyFrame_GetCode(frame);
+#    else
+                PyCodeObject *f_code = frame->f_code;
+                Py_INCREF(f_code);
+#    endif
+                int lineno = PyFrame_GetLineNumber(frame);
+                result += "  ";
+                result += handle(f_code->co_filename).cast<std::string>();
+                result += '(';
+                result += std::to_string(lineno);
+                result += "): ";
+                result += handle(f_code->co_name).cast<std::string>();
+                result += '\n';
+                Py_DECREF(f_code);
+#    if PY_VERSION_HEX >= 0x030900B1
+                auto *b_frame = PyFrame_GetBack(frame);
+#    else
+                auto *b_frame = frame->f_back;
+                Py_XINCREF(b_frame);
+#    endif
+                Py_DECREF(frame);
+                frame = b_frame;
+            }
+
+            have_trace = true;
+#endif //! defined(PYPY_VERSION)
+        }
+
+        if (!message_error_string.empty()) {
+            if (!have_trace) {
+                result += '\n';
+            }
+            result += "\nMESSAGE UNAVAILABLE DUE TO EXCEPTION: " + message_error_string;
+        }
+
+        return result;
+    }
 
     std::string const &error_string() const {
         if (!m_lazy_error_string_completed) {
