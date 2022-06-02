@@ -541,8 +541,6 @@ struct error_fetch_and_normalize {
         return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
     }
 
-    bool has_py_object_references() const { return m_type || m_value || m_trace; }
-
     void release_py_object_references() {
         m_type.release().dec_ref();
         m_value.release().dec_ref();
@@ -580,20 +578,8 @@ public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
     error_already_set()
-        : m_fetched_error{
-            std::make_shared<detail::error_fetch_and_normalize>("pybind11::error_already_set")} {}
-
-    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
-    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    ~error_already_set() override;
-
-    // This copy ctor does not need the GIL because it simply increments a shared_ptr use_count.
-    error_already_set(const error_already_set &) noexcept = default;
-
-    // This move ctor cannot easily be deleted (some compilers need it).
-    // It is the responsibility of the caller to not use the moved-from object.
-    // For simplicity, guarding ifs are omitted.
-    error_already_set(error_already_set &&) noexcept = default;
+        : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
+                          m_fetched_error_deleter} {}
 
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
@@ -637,6 +623,10 @@ public:
 
 private:
     std::shared_ptr<detail::error_fetch_and_normalize> m_fetched_error;
+
+    /// WARNING: This custom deleter needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    static void m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr);
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)

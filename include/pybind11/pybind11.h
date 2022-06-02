@@ -2625,13 +2625,12 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-inline error_already_set::~error_already_set() {
-    if (m_fetched_error.use_count() != 1 || !m_fetched_error->has_py_object_references()) {
-        return; // Avoid gil and scope overhead if there is nothing to release.
-    }
+inline void
+error_already_set::m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr) {
     gil_scoped_acquire gil;
     error_scope scope;
-    m_fetched_error->release_py_object_references();
+    raw_ptr->release_py_object_references();
+    delete raw_ptr;
 }
 
 inline const char *error_already_set::what() const noexcept {
