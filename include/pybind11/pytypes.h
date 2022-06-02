@@ -541,12 +541,6 @@ struct error_fetch_and_normalize {
         return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
     }
 
-    void release_py_object_references() {
-        m_type.release().dec_ref();
-        m_value.release().dec_ref();
-        m_trace.release().dec_ref();
-    }
-
     // Not protecting these for simplicity.
     object m_type, m_value, m_trace;
 

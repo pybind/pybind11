@@ -2629,7 +2629,6 @@ inline void
 error_already_set::m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr) {
     gil_scoped_acquire gil;
     error_scope scope;
-    raw_ptr->release_py_object_references();
     delete raw_ptr;
 }
 
