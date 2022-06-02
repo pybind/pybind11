@@ -674,11 +674,11 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
     class_<KeysView> keys_view(
-        scope, ("KeysView[" + name + "]").c_str(), pybind11::module_local(local));
+        scope, ("KeysView_" + name).c_str(), pybind11::module_local(local));
     class_<ValuesView> values_view(
-        scope, ("ValuesView[" + name + "]").c_str(), pybind11::module_local(local));
+        scope, ("ValuesView_" + name).c_str(), pybind11::module_local(local));
     class_<ItemsView> items_view(
-        scope, ("ItemsView[" + name + "]").c_str(), pybind11::module_local(local));
+        scope, ("ItemsView_" + name).c_str(), pybind11::module_local(local));
 
     cl.def(init<>());
 
