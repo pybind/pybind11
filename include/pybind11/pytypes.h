@@ -12,10 +12,15 @@
 #include "detail/common.h"
 #include "buffer_info.h"
 
-#include <cstdio>
+#include <assert.h>
+#include <cstddef>
 #include <exception>
+#include <frameobject.h>
+#include <iterator>
+#include <memory>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
 #if defined(PYBIND11_HAS_OPTIONAL)
