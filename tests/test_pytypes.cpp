@@ -661,4 +661,38 @@ TEST_SUBMODULE(pytypes, m) {
         double v = x.get_value();
         return v * v;
     });
+
+    m.def("tuple_rvalue_getter", [](const py::tuple &tup) {
+        // tests accessing tuple object with rvalue int
+        for (size_t i = 0; i < tup.size(); i++) {
+            auto o = py::handle(tup[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("tuple is malformed");
+            }
+        }
+        return tup;
+    });
+    m.def("list_rvalue_getter", [](const py::list &l) {
+        // tests accessing list with rvalue int
+        for (size_t i = 0; i < l.size(); i++) {
+            auto o = py::handle(l[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("list is malformed");
+            }
+        }
+        return l;
+    });
+    m.def("populate_dict_rvalue", [](int population) {
+        auto d = py::dict();
+        for (int i = 0; i < population; i++) {
+            d[py::int_(i)] = py::int_(i);
+        }
+        return d;
+    });
+    m.def("populate_obj_str_attrs", [](py::object &o, int population) {
+        for (int i = 0; i < population; i++) {
+            o.attr(py::str(py::int_(i))) = py::str(py::int_(i));
+        }
+        return o;
+    });
 }
