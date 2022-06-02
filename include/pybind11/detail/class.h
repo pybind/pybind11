@@ -455,6 +455,8 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
 #endif
 }
 
+std::string error_string();
+
 /** Create the type which can be used as a common base for all classes.  This is
     needed in order to satisfy Python's requirements for multiple inheritance.
     Return value: New reference. */
@@ -490,7 +492,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     type->tp_weaklistoffset = offsetof(instance, weakrefs);
 
     if (PyType_Ready(type) < 0) {
-        pybind11_fail("PyType_Ready failed in make_object_base_type():" + error_string());
+        pybind11_fail("PyType_Ready failed in make_object_base_type(): " + error_string());
     }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
@@ -707,7 +709,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     }
 
     if (PyType_Ready(type) < 0) {
-        pybind11_fail(std::string(rec.name) + ": PyType_Ready failed (" + error_string() + ")!");
+        pybind11_fail(std::string(rec.name) + ": PyType_Ready failed: " + error_string());
     }
 
     assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
