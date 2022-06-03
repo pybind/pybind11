@@ -648,10 +648,9 @@ private:
         std::vector<field_descr> field_descriptors;
         field_descriptors.reserve(field_dict.size());
 
-        for (auto field : field_dict.attr("items")()) {
-            auto spec = field.cast<tuple>();
-            auto name = spec[0].cast<pybind11::str>();
-            auto spec_fo = spec[1].cast<tuple>();
+        for (auto field : field_dict) {
+            auto name = field.first.cast<pybind11::str>();
+            auto spec_fo = field.second.cast<tuple>();
             auto format = spec_fo[0].cast<dtype>();
             auto offset = spec_fo[1].cast<pybind11::int_>();
             if ((len(name) == 0u) && format.kind() == 'V') {
