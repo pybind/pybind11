@@ -10,6 +10,7 @@ cppcoreguidelines-pro-type-static-cast-downcast,
 cppcoreguidelines-slicing,
 google-explicit-constructor,
 llvm-namespace-comment,
+misc-definitions-in-headers,
 misc-misplaced-const,
 misc-non-copyable-objects,
 misc-static-assert,
@@ -17,6 +18,7 @@ misc-throw-by-value-catch-by-reference,
 misc-uniqueptr-reset-release,
 misc-unused-parameters,
 modernize-avoid-bind,
+modernize-loop-convert,
 modernize-make-shared,
 modernize-redundant-void-arg,
 modernize-replace-auto-ptr,
@@ -62,6 +64,8 @@ readability-uniqueptr-delete-release,
 
 CheckOptions:
 - key:             performance-for-range-copy.WarnOnAllAutoCopies
+  value:           true
+- key:             performance-inefficient-string-concatenation.StrictMode
   value:           true
 - key:             performance-unnecessary-value-param.AllowedTypes
   value:           'exception_ptr$;'
