@@ -644,9 +644,11 @@ private:
             field_descr(pybind11::str &&name, object &&format, pybind11::int_ &&offset)
                 : name{std::move(name)}, format{std::move(format)}, offset{std::move(offset)} {};
         };
+        auto field_dict = attr("fields").cast<dict>();
         std::vector<field_descr> field_descriptors;
+        field_descriptors.reserve(field_dict.size());
 
-        for (auto field : attr("fields").attr("items")()) {
+        for (auto field : std::move(field_dict).attr("items")()) {
             auto spec = field.cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto spec_fo = spec[1].cast<tuple>();
