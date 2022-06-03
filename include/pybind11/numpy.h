@@ -641,6 +641,8 @@ private:
             pybind11::str name;
             object format;
             pybind11::int_ offset;
+            field_descr(pybind11::str &&name, object &&format, pybind11::int_ &&offset)
+                : name{std::move(name)}, format{std::move(format)}, offset{std::move(offset)} {};
         };
         std::vector<field_descr> field_descriptors;
 
@@ -653,8 +655,8 @@ private:
             if ((len(name) == 0u) && format.kind() == 'V') {
                 continue;
             }
-            field_descriptors.push_back(
-                {(pybind11::str) name, format.strip_padding(format.itemsize()), offset});
+            field_descriptors.emplace_back(
+                std::move(name), format.strip_padding(format.itemsize()), std::move(offset));
         }
 
         std::sort(field_descriptors.begin(),
