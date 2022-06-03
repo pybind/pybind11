@@ -12,7 +12,15 @@
 #include "detail/common.h"
 #include "buffer_info.h"
 
+#include <assert.h>
+#include <cstddef>
+#include <exception>
+#include <frameobject.h>
+#include <iterator>
+#include <memory>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
 #if defined(PYBIND11_HAS_OPTIONAL)
@@ -383,7 +391,175 @@ T reinterpret_steal(handle h) {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-std::string error_string(const char *called = nullptr);
+
+// Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
+inline const char *obj_class_name(PyObject *obj) {
+    if (Py_TYPE(obj) == &PyType_Type) {
+        return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
+    }
+    return Py_TYPE(obj)->tp_name;
+}
+
+std::string error_string();
+
+struct error_fetch_and_normalize {
+    // Immediate normalization is long-established behavior (starting with
+    // https://github.com/pybind/pybind11/commit/135ba8deafb8bf64a15b24d1513899eb600e2011
+    // from Sep 2016) and safest. Normalization could be deferred, but this could mask
+    // errors elsewhere, the performance gain is very minor in typical situations
+    // (usually the dominant bottleneck is EH unwinding), and the implementation here
+    // would be more complex.
+    explicit error_fetch_and_normalize(const char *called) {
+        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        if (!m_type) {
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " called while "
+                            "Python error indicator not set.");
+        }
+        const char *exc_type_name_orig = detail::obj_class_name(m_type.ptr());
+        if (exc_type_name_orig == nullptr) {
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " failed to obtain the name "
+                            "of the original active exception type.");
+        }
+        m_lazy_error_string = exc_type_name_orig;
+        // PyErr_NormalizeException() may change the exception type if there are cascading
+        // failures. This can potentially be extremely confusing.
+        PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        if (m_type.ptr() == nullptr) {
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " failed to normalize the "
+                            "active exception.");
+        }
+        const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
+        if (exc_type_name_orig == nullptr) {
+            pybind11_fail("Internal error: " + std::string(called)
+                          + " failed to obtain the name "
+                            "of the normalized active exception type.");
+        }
+        if (exc_type_name_norm != m_lazy_error_string) {
+            std::string msg = std::string(called)
+                              + ": MISMATCH of original and normalized "
+                                "active exception types: ";
+            msg += "ORIGINAL ";
+            msg += m_lazy_error_string;
+            msg += " REPLACED BY ";
+            msg += exc_type_name_norm;
+            msg += ": " + format_value_and_trace();
+            pybind11_fail(msg);
+        }
+    }
+
+    error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;
+    error_fetch_and_normalize(error_fetch_and_normalize &&) = delete;
+
+    std::string format_value_and_trace() const {
+        std::string result;
+        std::string message_error_string;
+        if (m_value) {
+            auto value_str = reinterpret_steal<object>(PyObject_Str(m_value.ptr()));
+            if (!value_str) {
+                message_error_string = detail::error_string();
+                result = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
+            } else {
+                result = value_str.cast<std::string>();
+            }
+        } else {
+            result = "<MESSAGE UNAVAILABLE>";
+        }
+        if (result.empty()) {
+            result = "<EMPTY MESSAGE>";
+        }
+
+        bool have_trace = false;
+        if (m_trace) {
+#if !defined(PYPY_VERSION)
+            auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
+
+            // Get the deepest trace possible.
+            while (tb->tb_next) {
+                tb = tb->tb_next;
+            }
+
+            PyFrameObject *frame = tb->tb_frame;
+            Py_XINCREF(frame);
+            result += "\n\nAt:\n";
+            while (frame) {
+#    if PY_VERSION_HEX >= 0x030900B1
+                PyCodeObject *f_code = PyFrame_GetCode(frame);
+#    else
+                PyCodeObject *f_code = frame->f_code;
+                Py_INCREF(f_code);
+#    endif
+                int lineno = PyFrame_GetLineNumber(frame);
+                result += "  ";
+                result += handle(f_code->co_filename).cast<std::string>();
+                result += '(';
+                result += std::to_string(lineno);
+                result += "): ";
+                result += handle(f_code->co_name).cast<std::string>();
+                result += '\n';
+                Py_DECREF(f_code);
+#    if PY_VERSION_HEX >= 0x030900B1
+                auto *b_frame = PyFrame_GetBack(frame);
+#    else
+                auto *b_frame = frame->f_back;
+                Py_XINCREF(b_frame);
+#    endif
+                Py_DECREF(frame);
+                frame = b_frame;
+            }
+
+            have_trace = true;
+#endif //! defined(PYPY_VERSION)
+        }
+
+        if (!message_error_string.empty()) {
+            if (!have_trace) {
+                result += '\n';
+            }
+            result += "\nMESSAGE UNAVAILABLE DUE TO EXCEPTION: " + message_error_string;
+        }
+
+        return result;
+    }
+
+    std::string const &error_string() const {
+        if (!m_lazy_error_string_completed) {
+            m_lazy_error_string += ": " + format_value_and_trace();
+            m_lazy_error_string_completed = true;
+        }
+        return m_lazy_error_string;
+    }
+
+    void restore() {
+        if (m_restore_called) {
+            pybind11_fail("Internal error: pybind11::detail::error_fetch_and_normalize::restore() "
+                          "called a second time. ORIGINAL ERROR: "
+                          + error_string());
+        }
+        PyErr_Restore(m_type.inc_ref().ptr(), m_value.inc_ref().ptr(), m_trace.inc_ref().ptr());
+        m_restore_called = true;
+    }
+
+    bool matches(handle exc) const {
+        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
+    }
+
+    // Not protecting these for simplicity.
+    object m_type, m_value, m_trace;
+
+private:
+    // Only protecting invariants.
+    mutable std::string m_lazy_error_string;
+    mutable bool m_lazy_error_string_completed = false;
+    mutable bool m_restore_called = false;
+};
+
+inline std::string error_string() {
+    return error_fetch_and_normalize("pybind11::detail::error_string").error_string();
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
@@ -396,39 +572,30 @@ PYBIND11_NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::runtime_error {
+class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
 public:
-    /// Constructs a new exception from the current Python error indicator.  The current
-    /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error(detail::error_string("pybind11::error_already_set")) {
-        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-    }
+    /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
+    /// current Python error indicator.
+    error_already_set()
+        : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
+                          m_fetched_error_deleter} {}
 
-    /// WARNING: The GIL must be held when this copy constructor is invoked!
-    error_already_set(const error_already_set &) = default;
-    error_already_set(error_already_set &&) = default;
-
-    /// WARNING: This destructor needs to acquire the Python GIL. This can lead to
+    /// The what() result is built lazily on demand.
+    /// WARNING: This member function needs to acquire the Python GIL. This can lead to
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
-    inline ~error_already_set() override;
+    const char *what() const noexcept override;
 
     /// Restores the currently-held Python error (which will clear the Python error indicator first
-    /// if already set). After this call, the current object no longer stores the error variables.
-    /// NOTE: Any copies of this object may still store the error variables. Currently there is no
-    //        protection against calling restore() from multiple copies.
+    /// if already set).
     /// NOTE: This member function will always restore the normalized exception, which may or may
     ///       not be the original Python exception.
     /// WARNING: The GIL must be held when this member function is called!
-    void restore() {
-        PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
-    }
+    void restore() { m_fetched_error->restore(); }
 
     /// If it is impossible to raise the currently-held error, such as in a destructor, we can
     /// write it out using Python's unraisable hook (`sys.unraisablehook`). The error context
     /// should be some object whose `repr()` helps identify the location of the error. Python
-    /// already knows the type and value of the error, so there is no need to repeat that. After
-    /// this call, the current object no longer stores the error variables, and neither does
-    /// Python.
+    /// already knows the type and value of the error, so there is no need to repeat that.
     void discard_as_unraisable(object err_context) {
         restore();
         PyErr_WriteUnraisable(err_context.ptr());
@@ -447,16 +614,18 @@ public:
     /// Check if the currently trapped error type matches the given Python exception class (or a
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
-    bool matches(handle exc) const {
-        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
-    }
+    bool matches(handle exc) const { return m_fetched_error->matches(exc); }
 
-    const object &type() const { return m_type; }
-    const object &value() const { return m_value; }
-    const object &trace() const { return m_trace; }
+    const object &type() const { return m_fetched_error->m_type; }
+    const object &value() const { return m_fetched_error->m_value; }
+    const object &trace() const { return m_fetched_error->m_trace; }
 
 private:
-    object m_type, m_value, m_trace;
+    std::shared_ptr<detail::error_fetch_and_normalize> m_fetched_error;
+
+    /// WARNING: This custom deleter needs to acquire the Python GIL. This can lead to
+    ///          crashes (undefined behavior) if the Python interpreter is finalizing.
+    static void m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr);
 };
 #if defined(_MSC_VER)
 #    pragma warning(pop)
@@ -492,8 +661,7 @@ inline void raise_from(PyObject *type, const char *message) {
 
 /// Sets the current Python error indicator with the chosen error, performing a 'raise from'
 /// from the error contained in error_already_set to indicate that the chosen error was
-/// caused by the original error. After this function is called error_already_set will
-/// no longer contain an error.
+/// caused by the original error.
 inline void raise_from(error_already_set &err, PyObject *type, const char *message) {
     err.restore();
     raise_from(type, message);
