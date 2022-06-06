@@ -32,7 +32,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.32.1"
+  rev: "v2.33.0"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -59,7 +59,7 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.1.13"
+  rev: "v1.2.0"
   hooks:
   - id: remove-tabs
 
@@ -71,7 +71,7 @@ repos:
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v1.3.2"
+  rev: "v1.3.3"
   hooks:
   - id: pycln
     stages: [manual]
@@ -107,7 +107,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.13.8"
+  rev: "v2.14.1"
   hooks:
   - id: pylint
     files: ^pybind11
@@ -123,7 +123,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v0.950"
+  rev: "v0.960"
   hooks:
   - id: mypy
     args: []
