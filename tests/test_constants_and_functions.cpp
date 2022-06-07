@@ -31,8 +31,8 @@ py::bytes return_bytes() {
 std::string print_bytes(const py::bytes &bytes) {
     std::string ret = "bytes[";
     const auto value = static_cast<std::string>(bytes);
-    for (size_t i = 0; i < value.length(); ++i) {
-        ret += std::to_string(static_cast<int>(value[i])) + " ";
+    for (char c : value) {
+        ret += std::to_string(static_cast<int>(c)) + ' ';
     }
     ret.back() = ']';
     return ret;
