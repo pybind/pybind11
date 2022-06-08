@@ -297,6 +297,55 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
+    m.def("accessor_moves", []() { // See PR #3970
+        py::list return_list;
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        py::int_ py_int_0(0);
+        py::int_ py_int_42(42);
+        py::str py_str_count("count");
+
+        auto tup = py::make_tuple(0);
+
+        py::sequence seq(tup);
+
+        py::list lst;
+        lst.append(0);
+
+#    define PYBIND11_LOCAL_DEF(...)                                                               \
+        {                                                                                         \
+            std::size_t inc_refs = py::handle::inc_ref_counter();                                 \
+            __VA_ARGS__;                                                                          \
+            inc_refs = py::handle::inc_ref_counter() - inc_refs;                                  \
+            return_list.append(inc_refs);                                                         \
+        }
+
+        PYBIND11_LOCAL_DEF(tup[py_int_0])    // l-value (to have a control)
+        PYBIND11_LOCAL_DEF(tup[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(tup.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(tup.attr(py::str("count"))) // r-value
+
+        PYBIND11_LOCAL_DEF(seq[py_int_0])    // l-value
+        PYBIND11_LOCAL_DEF(seq[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(seq.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(seq.attr(py::str("count"))) // r-value
+
+        PYBIND11_LOCAL_DEF(lst[py_int_0])    // l-value
+        PYBIND11_LOCAL_DEF(lst[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(lst.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(lst.attr(py::str("count"))) // r-value
+
+        auto lst_acc = lst[py::int_(0)];
+        lst_acc = py::int_(42);                    // Detaches lst_acc from lst.
+        PYBIND11_LOCAL_DEF(lst_acc = py_int_42)    // l-value
+        PYBIND11_LOCAL_DEF(lst_acc = py::int_(42)) // r-value
+#    undef PYBIND11_LOCAL_DEF
+#endif
+        return return_list;
+    });
+
     // test_constructors
     m.def("default_constructors", []() {
         return py::dict("bytes"_a = py::bytes(),
@@ -611,5 +660,39 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("square_float_", [](const external::float_ &x) -> double {
         double v = x.get_value();
         return v * v;
+    });
+
+    m.def("tuple_rvalue_getter", [](const py::tuple &tup) {
+        // tests accessing tuple object with rvalue int
+        for (size_t i = 0; i < tup.size(); i++) {
+            auto o = py::handle(tup[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("tuple is malformed");
+            }
+        }
+        return tup;
+    });
+    m.def("list_rvalue_getter", [](const py::list &l) {
+        // tests accessing list with rvalue int
+        for (size_t i = 0; i < l.size(); i++) {
+            auto o = py::handle(l[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("list is malformed");
+            }
+        }
+        return l;
+    });
+    m.def("populate_dict_rvalue", [](int population) {
+        auto d = py::dict();
+        for (int i = 0; i < population; i++) {
+            d[py::int_(i)] = py::int_(i);
+        }
+        return d;
+    });
+    m.def("populate_obj_str_attrs", [](py::object &o, int population) {
+        for (int i = 0; i < population; i++) {
+            o.attr(py::str(py::int_(i))) = py::str(py::int_(i));
+        }
+        return o;
     });
 }

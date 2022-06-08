@@ -1173,9 +1173,16 @@ public:
             py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
     module_ def_submodule(const char *name, const char *doc = nullptr) {
-        std::string full_name
-            = std::string(PyModule_GetName(m_ptr)) + std::string(".") + std::string(name);
-        auto result = reinterpret_borrow<module_>(PyImport_AddModule(full_name.c_str()));
+        const char *this_name = PyModule_GetName(m_ptr);
+        if (this_name == nullptr) {
+            throw error_already_set();
+        }
+        std::string full_name = std::string(this_name) + '.' + name;
+        handle submodule = PyImport_AddModule(full_name.c_str());
+        if (!submodule) {
+            throw error_already_set();
+        }
+        auto result = reinterpret_borrow<module_>(submodule);
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
@@ -1566,7 +1573,8 @@ public:
                         scope(*this),
                         sibling(getattr(*this, name_, none())),
                         extra...);
-        attr(cf.name()) = staticmethod(cf);
+        auto cf_name = cf.name();
+        attr(std::move(cf_name)) = staticmethod(std::move(cf));
         return *this;
     }
 
@@ -1620,7 +1628,7 @@ public:
                 if (!caster.load(obj, false)) {
                     return nullptr;
                 }
-                return new buffer_info(((capture *) ptr)->func(caster));
+                return new buffer_info(((capture *) ptr)->func(std::move(caster)));
             },
             ptr);
         weakref(m_ptr, cpp_function([ptr](handle wr) {
@@ -2061,12 +2069,12 @@ struct enum_base {
         str name(name_);
         if (entries.contains(name)) {
             std::string type_name = (std::string) str(m_base.attr("__name__"));
-            throw value_error(type_name + ": element \"" + std::string(name_)
+            throw value_error(std::move(type_name) + ": element \"" + std::string(name_)
                               + "\" already exists!");
         }
 
         entries[name] = std::make_pair(value, doc);
-        m_base.attr(name) = value;
+        m_base.attr(std::move(name)) = std::move(value);
     }
 
     PYBIND11_NOINLINE void export_values() {
@@ -2325,7 +2333,7 @@ template <typename Access,
           typename Sentinel,
           typename ValueType,
           typename... Extra>
-iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
+iterator make_iterator_impl(Iterator &&first, Sentinel &&last, Extra &&...extra) {
     using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
     // TODO: state captures only the types of Extra, not the values
 
@@ -2351,7 +2359,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
                 Policy);
     }
 
-    return cast(state{first, last, true});
+    return cast(state{std::forward<Iterator>(first), std::forward<Sentinel>(last), true});
 }
 
 PYBIND11_NAMESPACE_END(detail)
@@ -2362,13 +2370,15 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
           typename... Extra>
-iterator make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+iterator make_iterator(Iterator &&first, Sentinel &&last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_access<Iterator>,
                                       Policy,
                                       Iterator,
                                       Sentinel,
                                       ValueType,
-                                      Extra...>(first, last, std::forward<Extra>(extra)...);
+                                      Extra...>(std::forward<Iterator>(first),
+                                                std::forward<Sentinel>(last),
+                                                std::forward<Extra>(extra)...);
 }
 
 /// Makes a python iterator over the keys (`.first`) of a iterator over pairs from a
@@ -2378,13 +2388,15 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
           typename... Extra>
-iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+iterator make_key_iterator(Iterator &&first, Sentinel &&last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_key_access<Iterator>,
                                       Policy,
                                       Iterator,
                                       Sentinel,
                                       KeyType,
-                                      Extra...>(first, last, std::forward<Extra>(extra)...);
+                                      Extra...>(std::forward<Iterator>(first),
+                                                std::forward<Sentinel>(last),
+                                                std::forward<Extra>(extra)...);
 }
 
 /// Makes a python iterator over the values (`.second`) of a iterator over pairs from a
@@ -2394,13 +2406,15 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
           typename... Extra>
-iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+iterator make_value_iterator(Iterator &&first, Sentinel &&last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_value_access<Iterator>,
                                       Policy,
                                       Iterator,
                                       Sentinel,
                                       ValueType,
-                                      Extra...>(first, last, std::forward<Extra>(extra)...);
+                                      Extra...>(std::forward<Iterator>(first),
+                                                std::forward<Sentinel>(last),
+                                                std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
@@ -2459,7 +2473,7 @@ void implicitly_convertible() {
     };
 
     if (auto *tinfo = detail::get_type_info(typeid(OutputType))) {
-        tinfo->implicit_conversions.push_back(implicit_caster);
+        tinfo->implicit_conversions.emplace_back(std::move(implicit_caster));
     } else {
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
     }
@@ -2596,7 +2610,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     }
 
     auto write = file.attr("write");
-    write(line);
+    write(std::move(line));
     write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
 
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
@@ -2611,17 +2625,21 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-error_already_set::~error_already_set() {
-    if (m_type) {
-        gil_scoped_acquire gil;
-        error_scope scope;
-        m_type.release().dec_ref();
-        m_value.release().dec_ref();
-        m_trace.release().dec_ref();
-    }
+inline void
+error_already_set::m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr) {
+    gil_scoped_acquire gil;
+    error_scope scope;
+    delete raw_ptr;
+}
+
+inline const char *error_already_set::what() const noexcept {
+    gil_scoped_acquire gil;
+    error_scope scope;
+    return m_fetched_error->error_string().c_str();
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 inline function
 get_type_override(const void *this_ptr, const type_info *this_type, const char *name) {
     handle self = get_object_handle(this_ptr, this_type);

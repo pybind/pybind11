@@ -16,7 +16,10 @@ def test_std_exception(msg):
 def test_error_already_set(msg):
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_already_set(False)
-    assert msg(excinfo.value) == "Unknown internal error occurred"
+    assert (
+        msg(excinfo.value)
+        == "Internal error: pybind11::error_already_set called while Python error indicator not set."
+    )
 
     with pytest.raises(ValueError) as excinfo:
         m.throw_already_set(True)
@@ -270,3 +273,90 @@ def test_local_translator(msg):
         m.throws_local_simple_error()
     assert not isinstance(excinfo.value, cm.LocalSimpleException)
     assert msg(excinfo.value) == "this mod"
+
+
+class FlakyException(Exception):
+    def __init__(self, failure_point):
+        if failure_point == "failure_point_init":
+            raise ValueError("triggered_failure_point_init")
+        self.failure_point = failure_point
+
+    def __str__(self):
+        if self.failure_point == "failure_point_str":
+            raise ValueError("triggered_failure_point_str")
+        return "FlakyException.__str__"
+
+
+@pytest.mark.parametrize(
+    "exc_type, exc_value, expected_what",
+    (
+        (ValueError, "plain_str", "ValueError: plain_str"),
+        (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
+        (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
+    ),
+)
+def test_error_already_set_what_with_happy_exceptions(
+    exc_type, exc_value, expected_what
+):
+    what, py_err_set_after_what = m.error_already_set_what(exc_type, exc_value)
+    assert not py_err_set_after_what
+    assert what == expected_what
+
+
+@pytest.mark.skipif("env.PYPY", reason="PyErr_NormalizeException Segmentation fault")
+def test_flaky_exception_failure_point_init():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.error_already_set_what(FlakyException, ("failure_point_init",))
+    lines = str(excinfo.value).splitlines()
+    # PyErr_NormalizeException replaces the original FlakyException with ValueError:
+    assert lines[:3] == [
+        "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
+        " ORIGINAL FlakyException REPLACED BY ValueError: triggered_failure_point_init",
+        "",
+        "At:",
+    ]
+    # Checking the first two lines of the traceback as formatted in error_string():
+    assert "test_exceptions.py(" in lines[3]
+    assert lines[3].endswith("): __init__")
+    assert lines[4].endswith("): test_flaky_exception_failure_point_init")
+
+
+def test_flaky_exception_failure_point_str():
+    what, py_err_set_after_what = m.error_already_set_what(
+        FlakyException, ("failure_point_str",)
+    )
+    assert not py_err_set_after_what
+    lines = what.splitlines()
+    if env.PYPY and len(lines) == 3:
+        n = 3  # Traceback is missing.
+    else:
+        n = 5
+    assert (
+        lines[:n]
+        == [
+            "FlakyException: <MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>",
+            "",
+            "MESSAGE UNAVAILABLE DUE TO EXCEPTION: ValueError: triggered_failure_point_str",
+            "",
+            "At:",
+        ][:n]
+    )
+
+
+def test_cross_module_interleaved_error_already_set():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_cross_module_interleaved_error_already_set()
+    assert str(excinfo.value) in (
+        "2nd error.",  # Almost all platforms.
+        "RuntimeError: 2nd error.",  # Some PyPy builds (seen under macOS).
+    )
+
+
+def test_error_already_set_double_restore():
+    m.test_error_already_set_double_restore(True)  # dry_run
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_error_already_set_double_restore(False)
+    assert str(excinfo.value) == (
+        "Internal error: pybind11::detail::error_fetch_and_normalize::restore()"
+        " called a second time. ORIGINAL ERROR: ValueError: Random error."
+    )
