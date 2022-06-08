@@ -24,7 +24,7 @@ jobs:
     - uses: actions/setup-python@v3
     - name: Add matchers
       run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
-    - uses: pre-commit/action@v2.0.3
+    - uses: pre-commit/action@v3.0.0
       with:
         # Slow hooks are marked with manual - slow is okay here, run them too
         extra_args: --hook-stage manual --all-files
