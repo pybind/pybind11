@@ -65,7 +65,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 
@@ -680,7 +680,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v4
 
     - name: Install Doxygen
       run: sudo apt-get install -y doxygen librsvg2-bin # Changed to rsvg-convert in 20.04
@@ -728,7 +728,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -781,7 +781,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -829,7 +829,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 
