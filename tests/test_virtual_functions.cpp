@@ -78,6 +78,7 @@ public:
         );
     }
 
+#ifdef JUNK
     // We can return reference types for compatibility with C++ virtual interfaces that do so, but
     // note they have some significant limitations (see the documentation).
     const std::string &get_string1() override {
@@ -95,6 +96,7 @@ public:
                                                /* (no arguments) */
         );
     }
+#endif
 };
 
 class NonCopyable {
