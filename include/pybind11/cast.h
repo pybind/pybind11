@@ -44,8 +44,11 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
+template <typename IntrinsicType>
+struct type_caster_odr_guard : type_caster<IntrinsicType> {};
+
 template <typename type>
-using make_caster = type_caster<intrinsic_t<type>>;
+using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
 
 template <typename T>
 struct type_uses_smart_holder_type_caster {
@@ -55,12 +58,12 @@ struct type_uses_smart_holder_type_caster {
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
-typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
+typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) { // LOOOK
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
 template <typename T>
 typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
-cast_op(make_caster<T> &&caster) {
+cast_op(make_caster<T> &&caster) { // LOOOK
     return std::move(caster).operator typename make_caster<T>::
         template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
