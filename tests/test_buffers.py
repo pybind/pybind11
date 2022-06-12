@@ -161,3 +161,8 @@ def test_ctypes_from_buffer():
         assert cinfo.shape == pyinfo.shape
         assert cinfo.strides == pyinfo.strides
         assert not cinfo.readonly
+
+
+def test_mrc():
+    assert m.type_mrc_to_python() == 1111
+    assert m.type_mrc_from_python("ignored") == 111
