@@ -24,8 +24,11 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <system_error>
 #include <tuple>
 #include <type_traits>
+#include <typeindex>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -44,8 +47,26 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
+inline std::unordered_map<std::type_index, std::type_index> &odr_guard_registry() {
+    static std::unordered_map<std::type_index, std::type_index> reg;
+    return reg;
+}
+
 template <typename IntrinsicType>
-struct type_caster_odr_guard : type_caster<IntrinsicType> {};
+struct type_caster_odr_guard : type_caster<IntrinsicType> {
+    type_caster_odr_guard() {
+        auto it_ti = std::type_index(typeid(IntrinsicType));
+        auto tc_ti = std::type_index(typeid(type_caster<IntrinsicType>));
+        auto match = odr_guard_registry().find(it_ti);
+        if (match == odr_guard_registry().end()) {
+            odr_guard_registry().insert({it_ti, tc_ti});
+        } else if (match->second != tc_ti) {
+            throw std::system_error(std::make_error_code(std::errc::state_not_recoverable),
+                                    "pybind11::detail::type_caster<" + type_id<IntrinsicType>()
+                                        + "> ODR VIOLATION DETECTED");
+        }
+    }
+};
 
 template <typename type>
 using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
