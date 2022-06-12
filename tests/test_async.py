@@ -22,3 +22,8 @@ def test_await(event_loop):
 def test_await_missing(event_loop):
     with pytest.raises(TypeError):
         event_loop.run_until_complete(get_await_result(m.DoesNotSupportAsync()))
+
+
+def test_mrc():
+    assert m.type_mrc_to_python() == 1111
+    assert m.type_mrc_from_python("ignored") == 111
