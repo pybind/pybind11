@@ -9,7 +9,8 @@ Adds the following targets::
     pybind11::thin_lto - Link time optimizations (manual selection)
     pybind11::python_link_helper - Adds link to Python libraries
     pybind11::windows_extras - MSVC bigobj and mp for building multithreaded
-    pybind11::opt_size - avoid optimizations that increase code size
+    pybind11::opt_size - Avoid optimizations that increase code size
+    pybind11::static - Use pybind11 as a static library.
 
 Adds the following functions::
 

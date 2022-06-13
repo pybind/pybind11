@@ -91,6 +91,8 @@ endif()
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
+option(PYBIND11_BUILD_STATIC_LIB
+       "Create a static library target for pybind11 that is not header-only (default)" ON)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
@@ -107,6 +109,7 @@ cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" OFF
 set(PYBIND11_HEADERS
     include/pybind11/detail/class.h
     include/pybind11/detail/common.h
+    include/pybind11/detail/common-inl.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
@@ -132,6 +135,30 @@ set(PYBIND11_HEADERS
     include/pybind11/stl.h
     include/pybind11/stl_bind.h
     include/pybind11/stl/filesystem.h)
+
+file(GLOB_RECURSE PYBIND11_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
+# `embed.cc` is the TU to support embedding a python interpreter. But PyPy does not
+# support embedding, so remove it from sources.
+if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
+  # Pypy does not support embedding.
+  list(REMOVE_ITEM PYBIND11_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/embed.cc)
+endif()
+
+# If we're not configured to be header-only, we need to build a shared library
+# and define the pybind11::lib target.
+if(PYBIND11_BUILD_STATIC_LIB)
+  add_library(pybind11_static STATIC ${PYBIND11_SOURCES} ${PYBIND11_HEADERS})
+  set_property(TARGET pybind11_static PROPERTY POSITION_INDEPENDENT_CODE ON)
+  target_compile_definitions(pybind11_static PUBLIC -DPYBIND11_AS_STATIC_LIBRARY=1)
+  add_library(pybind11::static ALIAS pybind11_static)
+  target_link_libraries(pybind11_static PRIVATE pybind11::pybind11)
+  target_link_libraries(pybind11_static PUBLIC pybind11::headers)
+  install(
+    TARGETS pybind11_static
+    EXPORT pybind11::static
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)
@@ -259,6 +286,13 @@ if(PYBIND11_INSTALL)
   endif()
 
   install(TARGETS pybind11_headers EXPORT "${PYBIND11_EXPORT_NAME}")
+  if(PYBIND11_BUILD_STATIC_LIB)
+    install(
+      TARGETS pybind11_static
+      EXPORT "${PYBIND11_EXPORT_NAME}"
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  endif()
 
   install(
     EXPORT "${PYBIND11_EXPORT_NAME}"
@@ -302,6 +336,10 @@ else()
       add_subdirectory(tests)
     endif()
   endif()
+endif()
+
+if(_pybind11_nopython AND PYBIND11_BUILD_STATIC_LIB)
+  message(FATAL_ERROR "Cannot build static library in NOPYTHON mode")
 endif()
 
 # Better symmetry with find_package(pybind11 CONFIG) mode.

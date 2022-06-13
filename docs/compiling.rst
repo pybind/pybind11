@@ -482,6 +482,9 @@ available in all modes. The targets provided are:
    ``pybind11::opt_size``
      ``/Os`` for MSVC, ``-Os`` for other compilers. Does nothing for debug builds.
 
+   ``pybind11::static``
+     Statically link against libpybind11, and configure the pybind11 headers to not provide definitions that they would provide in the default header-only mode.
+
 Two helper functions are also provided:
 
     ``pybind11_strip(target)``

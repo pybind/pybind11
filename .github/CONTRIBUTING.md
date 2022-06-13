@@ -116,7 +116,8 @@ The valid options are:
 * `-DCMAKE_BUILD_TYPE`: Release, Debug, MinSizeRel, RelWithDebInfo
 * `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+'s FindPython instead of the
   classic, deprecated, custom FindPythonLibs
-* `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
+* `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests and the static library target)
+* `-DPYBIND11_BUILD_STATIC_LIB=OFF`: Don't build a static library target.
 * `-DBUILD_TESTING=ON`: Enable the tests
 * `-DDOWNLOAD_CATCH=ON`: Download catch to build the C++ tests
 * `-DDOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests

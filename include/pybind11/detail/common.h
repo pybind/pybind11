@@ -117,16 +117,28 @@
 #    define PYBIND11_NOINLINE_DISABLED
 #endif
 
+// PYBIND11_INLINE should be used for function definitions in '-inl' files, so they
+// can be made non-inline when compiles as a static library.
+#if defined(PYBIND11_AS_STATIC_LIBRARY)
+#    define PYBIND11_INLINE
+#else
+#    define PYBIND11_INLINE inline
+#endif
+
+#if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
+#    define PYBIND11_NOINLINE_ATTR
+#elif defined(_MSC_VER)
+#    define PYBIND11_NOINLINE_ATTR __declspec(noinline)
+#else
+#    define PYBIND11_NOINLINE_ATTR __attribute__((noinline))
+#endif
+
 // The PYBIND11_NOINLINE macro is for function DEFINITIONS.
 // In contrast, FORWARD DECLARATIONS should never use this macro:
 // https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
-#if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
-#    define PYBIND11_NOINLINE inline
-#elif defined(_MSC_VER)
-#    define PYBIND11_NOINLINE __declspec(noinline) inline
-#else
-#    define PYBIND11_NOINLINE __attribute__((noinline)) inline
-#endif
+// This macro shouldn't be used in '-inl' files. Instead, use `PYBIND11_NOINLINE_ATTR
+// PYBIND11_INLINE`.
+#define PYBIND11_NOINLINE PYBIND11_NOINLINE_ATTR inline
 
 #if defined(__MINGW32__)
 // For unknown reasons all PYBIND11_DEPRECATED member trigger a warning when declared
@@ -936,14 +948,8 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
                                                            /// casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
+[[noreturn]] void pybind11_fail(const char *reason);
+[[noreturn]] void pybind11_fail(const std::string &reason);
 
 template <typename T, typename SFINAE = void>
 struct format_descriptor {};
@@ -992,10 +998,10 @@ constexpr const char
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
     PyObject *type, *value, *trace;
-    error_scope() { PyErr_Fetch(&type, &value, &trace); }
+    error_scope();
     error_scope(const error_scope &) = delete;
     error_scope &operator=(const error_scope &) = delete;
-    ~error_scope() { PyErr_Restore(type, value, trace); }
+    ~error_scope();
 };
 
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
@@ -1185,3 +1191,7 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_AS_STATIC_LIBRARY
+#    include "common-inl.h"
+#endif

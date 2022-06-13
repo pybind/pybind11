@@ -128,6 +128,7 @@ with remove_output("pybind11/include", "pybind11/share"):
             "-DBUILD_TESTING=OFF",
             "-DPYBIND11_NOPYTHON=ON",
             "-Dprefix_for_pc_file=${pcfiledir}/../../",
+            "-DPYBIND11_BUILD_STATIC_LIB=OFF",
         ]
         if "CMAKE_ARGS" in os.environ:
             fcommand = [

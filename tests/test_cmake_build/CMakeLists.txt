@@ -37,7 +37,8 @@ function(pybind11_add_build_test name)
     "${CMAKE_CURRENT_SOURCE_DIR}/${name}"
     "${CMAKE_CURRENT_BINARY_DIR}/${name}"
     --build-config
-    Release
+    "$<$<CONFIG:DEBUG>:Debug>"
+    "$<$<CONFIG:RELEASE>:Release>"
     --build-noclean
     --build-generator
     ${CMAKE_GENERATOR}
@@ -59,6 +60,9 @@ possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)
+if(PYBIND11_BUILD_STATIC_LIB)
+  pybind11_add_build_test(subdirectory_static)
+endif()
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
   message(STATUS "Skipping embed test on PyPy")
 else()
@@ -67,11 +71,21 @@ endif()
 
 if(PYBIND11_INSTALL)
   add_custom_target(
-    mock_install ${CMAKE_COMMAND} "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install" -P
-                 "${pybind11_BINARY_DIR}/cmake_install.cmake")
+    mock_install
+    ${CMAKE_COMMAND}
+    "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install"
+    "-DBUILD_TYPE="
+    "$<$<CONFIG:DEBUG>:Debug>"
+    "$<$<CONFIG:RELEASE>:Release>"
+    -P
+    "${pybind11_BINARY_DIR}/cmake_install.cmake")
 
   pybind11_add_build_test(installed_function INSTALL)
   pybind11_add_build_test(installed_target INSTALL)
+  if(PYBIND11_BUILD_STATIC_LIB)
+    pybind11_add_build_test(installed_static INSTALL)
+    add_dependencies(mock_install pybind11::static)
+  endif()
   if(NOT ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
          ))
     pybind11_add_build_test(installed_embed INSTALL)

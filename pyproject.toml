@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.check-manifest]
 ignore = [
-    "tests/**",
     "docs/**",
-    "tools/**",
     "include/**",
+    "srcs/**",
+    "tests/**",
+    "tools/**",
     ".*",
     "pybind11/include/**",
     "pybind11/share/**",
