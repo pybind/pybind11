@@ -1210,6 +1210,7 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <typename T>

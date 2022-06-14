@@ -87,6 +87,7 @@ struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <typename Type, typename Key, typename Value>
@@ -136,6 +137,7 @@ struct map_caster {
     PYBIND11_TYPE_CASTER(Type,
                          const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <typename Type, typename Value>
@@ -188,6 +190,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <typename Type, typename Alloc>
@@ -257,6 +260,7 @@ public:
                                                      const_name("[") + const_name<Size>()
                                                          + const_name("]"))
                              + const_name("]"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <typename Type, size_t Size>
@@ -315,6 +319,7 @@ struct optional_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type, const_name("Optional[") + value_conv::name + const_name("]"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
@@ -401,6 +406,7 @@ struct variant_caster<V<Ts...>> {
     PYBIND11_TYPE_CASTER(Type,
                          const_name("Union[") + detail::concat(make_caster<Ts>::name...)
                              + const_name("]"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 #if defined(PYBIND11_HAS_VARIANT)

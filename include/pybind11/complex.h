@@ -69,6 +69,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(std::complex<T>, const_name("complex"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

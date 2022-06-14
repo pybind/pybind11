@@ -27,6 +27,7 @@ public:
     using cast_op_type = value_and_holder &;
     explicit operator value_and_holder &() { return *value; }
     static constexpr auto name = const_name<value_and_holder>();
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 
 private:
     value_and_holder *value = nullptr;

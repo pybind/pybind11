@@ -106,6 +106,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
 struct type_caster<MoveOnlyInt> {
     PYBIND11_TYPE_CASTER(MoveOnlyInt, const_name("MoveOnlyInt"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
     bool load(handle src, bool) {
         value = MoveOnlyInt(src.cast<int>());
         return true;
@@ -118,6 +119,7 @@ struct type_caster<MoveOnlyInt> {
 template <>
 struct type_caster<MoveOrCopyInt> {
     PYBIND11_TYPE_CASTER(MoveOrCopyInt, const_name("MoveOrCopyInt"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
     bool load(handle src, bool) {
         value = MoveOrCopyInt(src.cast<int>());
         return true;
@@ -134,6 +136,7 @@ protected:
 
 public:
     static constexpr auto name = const_name("CopyOnlyInt");
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
     bool load(handle src, bool) {
         value = CopyOnlyInt(src.cast<int>());
         return true;
