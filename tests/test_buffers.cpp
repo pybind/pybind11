@@ -12,29 +12,32 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
+#define USE_MRC_BBB
+#ifdef USE_MRC_BBB
 namespace mrc_ns { // minimal real caster
 
-struct minimal_real_caster;
-
+template <typename ValType>
 struct type_mrc {
-    int value = -9999;
+    ValType value = -9999;
 };
 
+template <typename CType>
 struct minimal_real_caster {
-    static constexpr auto name = py::detail::const_name<type_mrc>();
+    static constexpr auto name = py::detail::const_name<CType>();
+    static constexpr std::uint64_t universally_unique_identifier = 2000000;
 
     static py::handle
-    cast(type_mrc const &src, py::return_value_policy /*policy*/, py::handle /*parent*/) {
+    cast(CType const &src, py::return_value_policy /*policy*/, py::handle /*parent*/) {
         return py::int_(src.value + 2020).release();
     }
 
     // Maximizing simplicity. This will go terribly wrong for other arg types.
     template <typename>
-    using cast_op_type = const type_mrc &;
+    using cast_op_type = const CType &;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator type_mrc const &() {
-        static type_mrc obj;
+    operator CType const &() {
+        static CType obj;
         obj.value = 22;
         return obj;
     }
@@ -49,10 +52,11 @@ struct minimal_real_caster {
 
 namespace pybind11 {
 namespace detail {
-template <>
-struct type_caster<mrc_ns::type_mrc> : mrc_ns::minimal_real_caster {};
+template <typename ValType>
+struct type_caster<mrc_ns::type_mrc<ValType>> : mrc_ns::minimal_real_caster<mrc_ns::type_mrc<ValType>> {};
 } // namespace detail
 } // namespace pybind11
+#endif
 
 TEST_SUBMODULE(buffers, m) {
     // test_from_python / test_to_python:
@@ -264,6 +268,8 @@ TEST_SUBMODULE(buffers, m) {
 
     m.def("get_buffer_info", [](const py::buffer &buffer) { return buffer.request(); });
 
-    m.def("type_mrc_to_python", []() { return mrc_ns::type_mrc{202}; });
-    m.def("type_mrc_from_python", [](const mrc_ns::type_mrc &obj) { return obj.value + 200; });
+#ifdef USE_MRC_BBB
+    m.def("type_mrc_to_python", []() { return mrc_ns::type_mrc<int>{202}; });
+    m.def("type_mrc_from_python", [](const mrc_ns::type_mrc<int> &obj) { return obj.value + 200; });
+#endif
 }

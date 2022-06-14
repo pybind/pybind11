@@ -47,29 +47,59 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
-inline std::unordered_map<std::type_index, std::type_index> &odr_guard_registry() {
-    static std::unordered_map<std::type_index, std::type_index> reg;
+inline std::unordered_map<std::type_index, std::uint64_t> &odr_guard_registry() {
+    static std::unordered_map<std::type_index, std::uint64_t> reg;
     return reg;
+}
+
+namespace {
+
+template <typename IntrinsicType>
+bool odr_guard_impl(const std::type_index & it_ti, const std::uint64_t& tc_id) {
+    auto match = odr_guard_registry().find(it_ti);
+    printf("\nLOOOK %s %llu\n", type_id<IntrinsicType>().c_str(), (long long) tc_id);
+    fflush(stdout);
+    if (match == odr_guard_registry().end()) {
+        odr_guard_registry().insert({it_ti, tc_id});
+    } else if (match->second != tc_id) {
+        throw std::system_error(std::make_error_code(std::errc::state_not_recoverable),
+                                "pybind11::detail::type_caster<" + type_id<IntrinsicType>()
+                                    + "> ODR VIOLATION DETECTED");
+    }
+    return true;
 }
 
 template <typename IntrinsicType>
 struct type_caster_odr_guard : type_caster<IntrinsicType> {
     type_caster_odr_guard() {
-        auto it_ti = std::type_index(typeid(IntrinsicType));
-        auto tc_ti = std::type_index(typeid(type_caster<IntrinsicType>));
-        auto match = odr_guard_registry().find(it_ti);
-        if (match == odr_guard_registry().end()) {
-            odr_guard_registry().insert({it_ti, tc_ti});
-        } else if (match->second != tc_ti) {
-            throw std::system_error(std::make_error_code(std::errc::state_not_recoverable),
-                                    "pybind11::detail::type_caster<" + type_id<IntrinsicType>()
-                                        + "> ODR VIOLATION DETECTED");
-        }
+        odr_guard_hook = !!odr_guard_hook;
     }
+
+    // type_caster_odr_guard(const type_caster_odr_guard &) = default;
+    // type_caster_odr_guard(type_caster_odr_guard &&) = default;
+
+    template <typename CType, typename... Arg>
+    static handle cast(CType &&src, return_value_policy policy, handle parent,
+                       Arg &&...arg) {
+        odr_guard_hook = !!odr_guard_hook;
+        return type_caster<IntrinsicType>::cast(std::forward<CType>(src), policy, parent,
+                                                std::forward<Arg>(arg)...);
+    }
+
+    static bool odr_guard_hook;
 };
+
+template <typename IntrinsicType>
+bool type_caster_odr_guard<IntrinsicType>::odr_guard_hook = [](){
+    return odr_guard_impl<IntrinsicType>(
+        std::type_index(typeid(IntrinsicType)),
+        type_caster<IntrinsicType>::universally_unique_identifier);
+}();
 
 template <typename type>
 using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
+
+} // namespace
 
 template <typename T>
 struct type_uses_smart_holder_type_caster {
@@ -106,6 +136,7 @@ private:
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
     static handle
     cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
@@ -277,6 +308,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <typename T>
@@ -292,6 +324,7 @@ public:
         return none().inc_ref();
     }
     PYBIND11_TYPE_CASTER(T, const_name("None"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 template <>
@@ -339,6 +372,7 @@ public:
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
     static constexpr auto name = const_name("capsule");
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 
 private:
     void *value = nullptr;
@@ -395,6 +429,7 @@ public:
         return handle(src ? Py_True : Py_False).inc_ref();
     }
     PYBIND11_TYPE_CASTER(bool, const_name("bool"));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -487,6 +522,7 @@ struct string_caster {
     }
 
     PYBIND11_TYPE_CASTER(StringType, const_name(PYBIND11_STRING_NAME));
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 
 private:
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
@@ -659,6 +695,7 @@ public:
     }
 
     static constexpr auto name = const_name(PYBIND11_STRING_NAME);
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
     template <typename _T>
     using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
@@ -703,6 +740,7 @@ public:
 
     static constexpr auto name
         = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 
     template <typename T>
     using cast_op_type = type;
@@ -875,6 +913,7 @@ struct move_only_holder_caster {
         return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 };
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
@@ -984,6 +1023,7 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    static constexpr std::uint64_t universally_unique_identifier = 3434;
 };
 
 template <typename T>

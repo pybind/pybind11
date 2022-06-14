@@ -911,6 +911,7 @@ class type_caster_base : public type_caster_generic {
 
 public:
     static constexpr auto name = const_name<type>();
+    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
 
     type_caster_base() : type_caster_base(typeid(type)) {}
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}
