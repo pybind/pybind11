@@ -190,6 +190,23 @@ private:
     bool rich_compare(object_api const &other, int value) const;
 };
 
+template <typename T, typename SFINAE = void>
+struct has_member_ob_refcnt : std::false_type {};
+
+template <typename T>
+struct has_member_ob_refcnt<T, decltype((void) T::ob_refcnt, void())> : std::true_type {};
+
+template <typename T, typename SFINAE = void>
+struct is_c_api_py_object_pointer : std::false_type {};
+
+template <typename T>
+struct is_c_api_py_object_pointer<
+    T,
+    detail::enable_if_t<
+        std::is_pointer<T>::value
+        && detail::has_member_ob_refcnt<typename std::remove_pointer<T>::type>::value>>
+    : std::true_type {};
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if !defined(PYBIND11_HANDLE_REF_DEBUG) && !defined(NDEBUG)
@@ -212,8 +229,18 @@ public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
     /// Creates a ``handle`` from the given raw Python object pointer
+    /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
+    template <typename T,
+              detail::enable_if_t<detail::is_c_api_py_object_pointer<T>::value
+                                      || std::is_same<T, std::nullptr_t>::value,
+                                  int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    handle(PyObject *ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
+    handle(/* PyObject* */ T ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
+
+    handle(const handle &) = default;
+    handle(handle &&) = default;
+    handle &operator=(const handle &) = default;
+    handle &operator=(handle &&) = default;
 
     /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }

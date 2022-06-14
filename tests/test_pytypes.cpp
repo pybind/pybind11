@@ -39,6 +39,11 @@ class float_ : public py::object {
 };
 } // namespace external
 
+namespace implicit_conversion_from_0_to_handle {
+// Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
+// py::handle expected_to_trigger_compiler_error() { return 0; }
+} // namespace implicit_conversion_from_0_to_handle
+
 TEST_SUBMODULE(pytypes, m) {
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });
