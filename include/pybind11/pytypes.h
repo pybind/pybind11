@@ -214,6 +214,7 @@ public:
     /// Creates a ``handle`` from the given raw Python object pointer
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(PyObject *ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
+    handle(int) = delete;
 
     /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }
