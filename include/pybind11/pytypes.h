@@ -2269,7 +2269,7 @@ iterator object_api<D>::end() const {
 template <typename D>
 template <typename T>
 item_accessor object_api<D>::operator[](T &&key) const {
-    return {derived(), detail::object_or_cast(std::forward<T>(key)).cast<object>()};
+    return {derived(), detail::object_or_cast(std::forward<T>(key)).template cast<object>()};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
