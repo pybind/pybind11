@@ -52,7 +52,7 @@ template <class T>
 class THPPointer {
 public:
     explicit THPPointer(T *ptr) noexcept : ptr(ptr){};
-    operator T *() { return ptr; }
+    operator T *() { return ptr; } // NOLINT(google-explicit-constructor)
     T *ptr = nullptr;
 };
 

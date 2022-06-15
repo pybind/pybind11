@@ -215,7 +215,9 @@ public:
     /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
               detail::enable_if_t<std::is_same<T, std::nullptr_t>::value
-                                      || std::is_same<T, PyObject *>::value,
+                                      || (!std::is_base_of<handle, T>::value
+                                          && !std::is_arithmetic<T>::value
+                                          && std::is_convertible<T, PyObject *>::value),
                                   int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(/* PyObject* */ T ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*

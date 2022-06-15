@@ -9,6 +9,10 @@ from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
 
+def test_implicit_conversion_from_pytorch_THPObjectPtr_to_handle():  # noqa: N802
+    assert m.implicit_conversion_from_pytorch_THPObjectPtr_to_handle() == 789.0
+
+
 def test_bool(doc):
     assert doc(m.get_bool) == "get_bool() -> bool"
 
