@@ -65,7 +65,7 @@ TEST_SUBMODULE(pytypes, m) {
         // Intentionally not using features that depend on handle.
         PyObject *val = PyFloat_FromDouble(789.);
         assert(!PyErr_Occurred());
-        return pytorch_object_ptr_h_reduced::THPPointer(val);
+        return pytorch_object_ptr_h_reduced::THPObjectPtr(val);
     });
 
     // test_bool
