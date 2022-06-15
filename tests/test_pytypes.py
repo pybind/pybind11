@@ -59,6 +59,8 @@ def test_list(capture, doc):
     assert doc(m.get_list) == "get_list() -> list"
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
 
+    assert m.access_list() == 2
+    assert m.access_list_as_object() == 2
 
 def test_none(capture, doc):
     assert doc(m.get_none) == "get_none() -> None"
@@ -148,6 +150,8 @@ def test_dict(capture, doc):
 
     assert m.access_dict_with_str() == 1
     assert m.access_dict_with_int() == 1
+    assert m.access_dict_as_object_with_str() == 1
+    assert m.access_dict_as_object_with_int() == 1
 
 
 def test_tuple():

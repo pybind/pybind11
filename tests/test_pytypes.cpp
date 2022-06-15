@@ -71,6 +71,20 @@ TEST_SUBMODULE(pytypes, m) {
             py::print("list item {}: {}"_s.format(index++, item));
         }
     });
+    m.def("access_list", []() {
+        py::list l1 = py::list();
+        l1.append(1);
+        l1.append(2);
+        return l1[1];
+    });
+    m.def("access_list_as_object", []() {
+        py::list l1 = py::list();
+        l1.append(1);
+        l1.append(2);
+        py::object l2 = l1;
+        return l2[1];
+    });
+
     // test_none
     m.def("get_none", [] { return py::none(); });
     m.def("print_none", [](const py::none &none) { py::print("none: {}"_s.format(none)); });
@@ -123,10 +137,20 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("access_dict_with_str", []() {
         py::dict d1 = py::dict();
         d1["x"] = 1;
+        return d1["x"];
+    });
+    m.def("access_dict_with_int", []() {
+        py::dict d1 = py::dict();
+        d1[1] = 1;
+        return d1[1];
+    });
+    m.def("access_dict_as_object_with_str", []() {
+        py::dict d1 = py::dict();
+        d1["x"] = 1;
         py::object d2 = d1;
         return d2["x"];
     });
-    m.def("access_dict_with_int", []() {
+    m.def("access_dict_as_object_with_int", []() {
         py::dict d1 = py::dict();
         d1[1] = 1;
         py::object d2 = d1;
