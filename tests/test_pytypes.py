@@ -146,6 +146,9 @@ def test_dict(capture, doc):
 
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
+    assert m.access_dict_with_str() == 1
+    assert m.access_dict_with_int() == 1
+
 
 def test_tuple():
     assert m.tuple_no_args() == ()

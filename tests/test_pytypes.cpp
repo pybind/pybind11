@@ -120,6 +120,18 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::dict &dict, py::object val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
+    m.def("access_dict_with_str", []() {
+        py::dict d1 = py::dict();
+        d1["x"] = 1;
+        py::object d2 = d1;
+        return d2["x"];
+    });
+    m.def("access_dict_with_int", []() {
+        py::dict d1 = py::dict();
+        d1[1] = 1;
+        py::object d2 = d1;
+        return d2[1];
+    });
 
     // test_tuple
     m.def("tuple_no_args", []() { return py::tuple{}; });
