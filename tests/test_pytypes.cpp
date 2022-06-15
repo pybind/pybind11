@@ -44,7 +44,30 @@ namespace implicit_conversion_from_0_to_handle {
 // py::handle expected_to_trigger_compiler_error() { return 0; }
 } // namespace implicit_conversion_from_0_to_handle
 
+namespace pytorch_object_ptr_h_reduced {
+
+// Reduced from
+// https://github.com/pytorch/pytorch/blob/279634f384662b7c3a9f8bf7ccc3a6afd2f05657/torch/csrc/utils/object_ptr.h
+template <class T>
+class THPPointer {
+public:
+    explicit THPPointer(T *ptr) noexcept : ptr(ptr){};
+    operator T *() { return ptr; }
+    T *ptr = nullptr;
+};
+
+using THPObjectPtr = THPPointer<PyObject>;
+
+} // namespace pytorch_object_ptr_h_reduced
+
 TEST_SUBMODULE(pytypes, m) {
+    m.def("implicit_conversion_from_pytorch_THPObjectPtr_to_handle", []() -> py::handle {
+        // Intentionally not using features that depend on handle.
+        PyObject *val = PyFloat_FromDouble(789.);
+        assert(!PyErr_Occurred());
+        return pytorch_object_ptr_h_reduced::THPPointer(val);
+    });
+
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });
     // test_int
