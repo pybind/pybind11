@@ -52,7 +52,7 @@ template <class T>
 class THPPointer {
 public:
     explicit THPPointer(T *ptr) noexcept : ptr(ptr){};
-    THPPointer(THPPointer &&p) {
+    THPPointer(THPPointer &&p) { // NOLINT(performance-noexcept-move-constructor)
         // free();
         ptr = p.ptr;
         p.ptr = nullptr;
