@@ -41,7 +41,7 @@ class float_ : public py::object {
 
 namespace implicit_conversion_from_0_to_handle {
 // Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
-// py::handle expected_to_trigger_compiler_error() { return 0; }
+// void expected_to_trigger_compiler_error() { py::handle(0); }
 } // namespace implicit_conversion_from_0_to_handle
 
 namespace pytorch_object_ptr_h_reduced {
@@ -52,21 +52,28 @@ template <class T>
 class THPPointer {
 public:
     explicit THPPointer(T *ptr) noexcept : ptr(ptr){};
+    THPPointer(THPPointer &&p) {
+        // free();
+        ptr = p.ptr;
+        p.ptr = nullptr;
+    };
     operator T *() { return ptr; } // NOLINT(google-explicit-constructor)
+private:
     T *ptr = nullptr;
 };
 
 using THPObjectPtr = THPPointer<PyObject>;
 
+bool handle_from_obj_ptr() {
+    THPObjectPtr obj_ptr(Py_None);
+    auto h = py::handle(obj_ptr); // Critical part of test: does this compile?
+    return h.ptr() == Py_None;    // Just something.
+}
+
 } // namespace pytorch_object_ptr_h_reduced
 
 TEST_SUBMODULE(pytypes, m) {
-    m.def("implicit_conversion_from_pytorch_THPObjectPtr_to_handle", []() -> py::handle {
-        // Intentionally not using features that depend on handle.
-        PyObject *val = PyFloat_FromDouble(789.);
-        assert(!PyErr_Occurred());
-        return pytorch_object_ptr_h_reduced::THPObjectPtr(val);
-    });
+    m.def("handle_from_pytorch_obj_ptr", pytorch_object_ptr_h_reduced::handle_from_obj_ptr);
 
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });

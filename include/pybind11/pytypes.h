@@ -211,21 +211,26 @@ class handle : public detail::object_api<handle> {
 public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
-    /// Creates a ``handle`` from the given raw Python object pointer
-    /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
+
+    /// Creates a ``handle`` from the given raw Python object pointer, but
+    /// not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
-              detail::enable_if_t<std::is_same<T, std::nullptr_t>::value
-                                      || (!std::is_base_of<handle, T>::value
-                                          && !std::is_arithmetic<T>::value
-                                          && std::is_convertible<T, PyObject *>::value),
+              detail::enable_if_t<std::is_same<T, PyObject *>::value
+                                      || std::is_same<T, std::nullptr_t>::value,
                                   int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    handle(/* PyObject* */ T ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
+    handle(T ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
 
-    handle(const handle &) = default;
-    handle(handle &&) = default;
-    handle &operator=(const handle &) = default;
-    handle &operator=(handle &&) = default;
+    /// For ``T`` with ``operator PyObject *()`` (implicit conversion).
+    template <typename T,
+              detail::enable_if_t<!std::is_base_of<handle, T>::value
+                                      && !std::is_same<T, PyObject *>::value
+                                      && !std::is_same<T, PyObject *const>::value
+                                      && !std::is_same<T, std::nullptr_t>::value
+                                      && std::is_convertible<T, PyObject *>::value,
+                                  int> = 0>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    handle(T &obj) : m_ptr(obj) {} // Allow implicit conversion from PyObject*
 
     /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }
