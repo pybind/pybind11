@@ -215,20 +215,21 @@ public:
     /// Creates a ``handle`` from the given raw Python object pointer, but
     /// not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
-              detail::enable_if_t<std::is_same<T, PyObject *>::value
-                                      || std::is_same<T, std::nullptr_t>::value,
+              detail::enable_if_t<detail::any_of<std::is_same<T, PyObject *>,
+                                                 std::is_same<T, std::nullptr_t>>::value,
                                   int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
 
     /// For ``T`` with ``operator PyObject *()`` (implicit conversion).
     template <typename T,
-              detail::enable_if_t<!std::is_base_of<handle, T>::value
-                                      && !std::is_same<T, PyObject *>::value
-                                      && !std::is_same<T, PyObject *const>::value
-                                      && !std::is_same<T, std::nullptr_t>::value
-                                      && std::is_convertible<T, PyObject *>::value,
-                                  int> = 0>
+              detail::enable_if_t<
+                  detail::all_of<detail::negation<detail::any_of<std::is_base_of<handle, T>,
+                                                                 std::is_same<T, PyObject *>,
+                                                                 std::is_same<T, PyObject *const>,
+                                                                 std::is_same<T, std::nullptr_t>>>,
+                                 std::is_convertible<T, PyObject *>>::value,
+                  int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {} // Allow implicit conversion from PyObject*
 
