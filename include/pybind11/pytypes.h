@@ -212,16 +212,16 @@ public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
 
-    /// Creates a ``handle`` from the given raw Python object pointer, but
-    /// not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
+    /// Enable implicit conversion from ``PyObject *`` and ``nullptr``.
+    /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
               detail::enable_if_t<detail::any_of<std::is_same<T, PyObject *>,
                                                  std::is_same<T, std::nullptr_t>>::value,
                                   int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    handle(T ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
+    handle(T ptr) : m_ptr(ptr) {}
 
-    /// For ``T`` with ``operator PyObject *()`` (implicit conversion).
+    /// Enable implicit conversion through ``T::operator PyObject *()``.
     template <typename T,
               detail::enable_if_t<
                   detail::all_of<detail::negation<detail::any_of<std::is_base_of<handle, T>,
@@ -231,7 +231,7 @@ public:
                                  std::is_convertible<T, PyObject *>>::value,
                   int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    handle(T &obj) : m_ptr(obj) {} // Allow implicit conversion from PyObject*
+    handle(T &obj) : m_ptr(obj) {}
 
     /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }
