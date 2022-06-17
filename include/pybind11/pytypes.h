@@ -223,13 +223,12 @@ public:
 
     /// Enable implicit conversion through ``T::operator PyObject *()``.
     template <typename T,
-              detail::enable_if_t<
-                  detail::all_of<detail::negation<detail::any_of<std::is_base_of<handle, T>,
+              detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
                                                                  std::is_same<T, PyObject *>,
                                                                  std::is_same<T, PyObject *const>,
-                                                                 std::is_same<T, std::nullptr_t>>>,
-                                 std::is_convertible<T, PyObject *>>::value,
-                  int> = 0>
+                                                                 std::is_same<T, std::nullptr_t>>,
+                                                 std::is_convertible<T, PyObject *>>::value,
+                                  int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
 
