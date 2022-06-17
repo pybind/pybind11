@@ -44,6 +44,22 @@ namespace implicit_conversion_from_0_to_handle {
 // void expected_to_trigger_compiler_error() { py::handle(0); }
 } // namespace implicit_conversion_from_0_to_handle
 
+// Used to validate systematically that PR #4008 does/did NOT change the behavior.
+void pure_compile_tests_for_handle_from_PyObject_pointers() {
+    {
+        PyObject *ptr = Py_None;
+        py::handle{ptr};
+    }
+    {
+        PyObject *const ptr = Py_None;
+        py::handle{ptr};
+    }
+    // Uncomment to trigger compiler errors.
+    // PyObject const *ptr = Py_None; py::handle{ptr};
+    // PyObject const *ptr = Py_None; py::handle{ptr};
+    // PyObject volatile *ptr = Py_None; py::handle{ptr};
+}
+
 namespace handle_from_move_only_type_with_operator_PyObject {
 
 // Reduced from

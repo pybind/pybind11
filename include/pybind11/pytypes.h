@@ -212,6 +212,7 @@ public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
 
+#ifndef PYBIND11_UNDO_PR4008
     /// Enable implicit conversion from ``PyObject *`` and ``nullptr``.
     /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
@@ -231,6 +232,10 @@ public:
                                   int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
+#else
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    handle(PyObject *ptr) : m_ptr(ptr) {} // Allow implicit conversion from PyObject*
+#endif
 
     /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }
