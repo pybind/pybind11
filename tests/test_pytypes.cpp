@@ -44,36 +44,43 @@ namespace implicit_conversion_from_0_to_handle {
 // void expected_to_trigger_compiler_error() { py::handle(0); }
 } // namespace implicit_conversion_from_0_to_handle
 
-namespace pytorch_object_ptr_h_reduced {
+namespace handle_from_move_only_type_with_operator_PyObject {
 
 // Reduced from
 // https://github.com/pytorch/pytorch/blob/279634f384662b7c3a9f8bf7ccc3a6afd2f05657/torch/csrc/utils/object_ptr.h
-template <class T>
-class THPPointer {
-public:
-    explicit THPPointer(T *ptr) noexcept : ptr(ptr){};
-    THPPointer(THPPointer &&p) { // NOLINT(performance-noexcept-move-constructor)
-        // free();
-        ptr = p.ptr;
-        p.ptr = nullptr;
-    };
-    operator T *() { return ptr; } // NOLINT(google-explicit-constructor)
-private:
-    T *ptr = nullptr;
+struct operator_ncnst {
+    operator_ncnst() = default;
+    operator_ncnst(operator_ncnst &&) = default;
+    operator PyObject *() /* */ { return Py_None; } // NOLINT(google-explicit-constructor)
 };
 
-using THPObjectPtr = THPPointer<PyObject>;
+struct operator_const {
+    operator_const() = default;
+    operator_const(operator_const &&) = default;
+    operator PyObject *() const { return Py_None; } // NOLINT(google-explicit-constructor)
+};
 
-bool handle_from_obj_ptr() {
-    THPObjectPtr obj_ptr(Py_None);
-    auto h = py::handle(obj_ptr); // Critical part of test: does this compile?
-    return h.ptr() == Py_None;    // Just something.
+bool from_ncnst() {
+    operator_ncnst obj;
+    auto h = py::handle(obj);  // Critical part of test: does this compile?
+    return h.ptr() == Py_None; // Just something.
 }
 
-} // namespace pytorch_object_ptr_h_reduced
+bool from_const() {
+    operator_const obj;
+    auto h = py::handle(obj);  // Critical part of test: does this compile?
+    return h.ptr() == Py_None; // Just something.
+}
+
+void m_defs(py::module_ &m) {
+    m.def("handle_from_move_only_type_with_operator_PyObject_ncnst", from_ncnst);
+    m.def("handle_from_move_only_type_with_operator_PyObject_const", from_const);
+}
+
+} // namespace handle_from_move_only_type_with_operator_PyObject
 
 TEST_SUBMODULE(pytypes, m) {
-    m.def("handle_from_pytorch_obj_ptr", pytorch_object_ptr_h_reduced::handle_from_obj_ptr);
+    handle_from_move_only_type_with_operator_PyObject::m_defs(m);
 
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });
