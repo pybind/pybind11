@@ -190,6 +190,11 @@ private:
     bool rich_compare(object_api const &other, int value) const;
 };
 
+template <typename T>
+using is_pyobj_ptr_or_nullptr_t = detail::any_of<std::is_same<T, PyObject *>,
+                                                 std::is_same<T, PyObject *const>,
+                                                 std::is_same<T, std::nullptr_t>>;
+
 PYBIND11_NAMESPACE_END(detail)
 
 #if !defined(PYBIND11_HANDLE_REF_DEBUG) && !defined(NDEBUG)
@@ -213,23 +218,22 @@ public:
     handle() = default;
 
 #ifndef PYBIND11_UNDO_PR4008
+    // handle(std::nullptr_t ptr) : m_ptr(ptr) {}
+
     /// Enable implicit conversion from ``PyObject *`` and ``nullptr``.
     /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
-              detail::enable_if_t<detail::any_of<std::is_same<T, PyObject *>,
-                                                 std::is_same<T, std::nullptr_t>>::value,
-                                  int> = 0>
+              detail::enable_if_t<detail::is_pyobj_ptr_or_nullptr_t<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T ptr) : m_ptr(ptr) {}
 
     /// Enable implicit conversion through ``T::operator PyObject *()``.
-    template <typename T,
-              detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
-                                                                 std::is_same<T, PyObject *>,
-                                                                 std::is_same<T, PyObject *const>,
-                                                                 std::is_same<T, std::nullptr_t>>,
-                                                 std::is_convertible<T, PyObject *>>::value,
-                                  int> = 0>
+    template <
+        typename T,
+        detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
+                                                           detail::is_pyobj_ptr_or_nullptr_t<T>>,
+                                           std::is_convertible<T, PyObject *>>::value,
+                            int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
 #else
