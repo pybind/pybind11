@@ -56,8 +56,8 @@ void pure_compile_tests_for_handle_from_PyObject_pointers() {
     }
     // Uncomment to trigger compiler errors.
     // PyObject const *ptr = Py_None; py::handle{ptr};
-    // PyObject const *ptr = Py_None; py::handle{ptr};
     // PyObject volatile *ptr = Py_None; py::handle{ptr};
+    // PyObject const volatile *ptr = Py_None; py::handle{ptr};
 }
 
 namespace handle_from_move_only_type_with_operator_PyObject {
