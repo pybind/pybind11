@@ -218,8 +218,6 @@ public:
     handle() = default;
 
 #ifndef PYBIND11_UNDO_PR4008
-    // handle(std::nullptr_t ptr) : m_ptr(ptr) {}
-
     /// Enable implicit conversion from ``PyObject *`` and ``nullptr``.
     /// Not using ``handle(PyObject *ptr)`` to avoid implicit conversion from ``0``.
     template <typename T,
