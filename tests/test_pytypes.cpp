@@ -81,7 +81,7 @@ TEST_SUBMODULE(pytypes, m) {
         py::list l1 = py::list();
         l1.append(1);
         l1.append(2);
-        py::object l2 = l1;
+        py::object l2 = std::move(l1);
         return l2[1];
     });
 
@@ -147,13 +147,13 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("access_dict_as_object_with_str", []() {
         py::dict d1 = py::dict();
         d1["x"] = 1;
-        py::object d2 = d1;
+        py::object d2 = std::move(d1);
         return d2["x"];
     });
     m.def("access_dict_as_object_with_int", []() {
         py::dict d1 = py::dict();
         d1[1] = 1;
-        py::object d2 = d1;
+        py::object d2 = std::move(d1);
         return d2[1];
     });
 
