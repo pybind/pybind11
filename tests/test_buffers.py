@@ -161,17 +161,3 @@ def test_ctypes_from_buffer():
         assert cinfo.shape == pyinfo.shape
         assert cinfo.strides == pyinfo.strides
         assert not cinfo.readonly
-
-
-def test_type_mrc_to_python():
-    if hasattr(m, "type_mrc_to_python"):
-        assert m.type_mrc_to_python() == 2222
-    else:
-        pytype.skip("type_mrc_to_python")
-
-
-def test_type_mrc_from_python():
-    if hasattr(m, "type_mrc_from_python"):
-        assert m.type_mrc_from_python("ignored") == 222
-    else:
-        pytype.skip("type_mrc_from_python")
