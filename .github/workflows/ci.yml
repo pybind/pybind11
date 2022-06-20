@@ -584,18 +584,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        centos:
-          - centos7  # GCC 4.8
-          - stream8
+        container:
+          - "centos:7"  # GCC 4.8
+          - "almalinux:8"
+          - "almalinux:9"
 
-    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
-    container: "quay.io/centos/centos:${{ matrix.centos }}"
+    name: "🐍 3 • ${{ matrix.container }} • x64"
+    container: "${{ matrix.container }}"
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Add Python 3
+    - name: Add Python 3 (RHEL 7)
+      if: matrix.container == 'centos:7'
       run: yum update -y && yum install -y python3-devel gcc-c++ make git
+
+    - name: Add Python 3 (RHEL 8+)
+      if: matrix.container != 'centos:7'
+      run: dnf update -y && dnf install -y python3-devel gcc-c++ make git
 
     - name: Update pip
       run: python3 -m pip install --upgrade pip
