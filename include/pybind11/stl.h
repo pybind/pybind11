@@ -349,6 +349,8 @@ struct variant_caster_visitor {
 
     template <typename T>
     result_type operator()(T &&src) const {
+        if (make_caster<T>::translation_unit_local) {
+        }
         return make_caster<T>::cast(std::forward<T>(src), policy, parent);
     }
 };
