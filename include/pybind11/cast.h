@@ -56,12 +56,10 @@ namespace {
 
 template <typename IntrinsicType>
 bool odr_guard_impl(const std::type_index & it_ti, const std::uint64_t& tc_id) {
-    auto match = odr_guard_registry().find(it_ti);
     printf("\nLOOOK %s %llu\n", type_id<IntrinsicType>().c_str(), (long long) tc_id);
     fflush(stdout);
-    if (match == odr_guard_registry().end()) {
-        odr_guard_registry().insert({it_ti, tc_id});
-    } else if (match->second != tc_id) {
+    auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id});
+    if (!added && reg_iter->second != tc_id) {
         throw std::system_error(std::make_error_code(std::errc::state_not_recoverable),
                                 "pybind11::detail::type_caster<" + type_id<IntrinsicType>()
                                     + "> ODR VIOLATION DETECTED");
