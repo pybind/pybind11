@@ -32,7 +32,7 @@ public:
 #else
     PYBIND11_TYPE_CASTER(ArgInspector1, const_name("ArgInspector1"));
 #endif
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     bool load(handle src, bool convert) {
         value.arg = "loading ArgInspector1 argument " + std::string(convert ? "WITH" : "WITHOUT")
@@ -50,7 +50,7 @@ template <>
 struct type_caster<ArgInspector2> {
 public:
     PYBIND11_TYPE_CASTER(ArgInspector2, const_name("ArgInspector2"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     bool load(handle src, bool convert) {
         value.arg = "loading ArgInspector2 argument " + std::string(convert ? "WITH" : "WITHOUT")
@@ -68,7 +68,7 @@ template <>
 struct type_caster<ArgAlwaysConverts> {
 public:
     PYBIND11_TYPE_CASTER(ArgAlwaysConverts, const_name("ArgAlwaysConverts"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     bool load(handle, bool convert) { return convert; }
 
@@ -100,7 +100,7 @@ namespace detail {
 template <>
 struct type_caster<DestructionTester> {
     PYBIND11_TYPE_CASTER(DestructionTester, const_name("DestructionTester"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
     bool load(handle, bool) { return true; }
 
     static handle cast(const DestructionTester &, return_value_policy, handle) {
@@ -123,7 +123,7 @@ namespace py_ = ::pybind11;
 // don't have any symbol collision when using macro mixin.
 struct my_caster {
     PYBIND11_TYPE_CASTER(MyType, py_::detail::const_name("MyType"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
     bool load(py_::handle, bool) { return true; }
 
     static py_::handle cast(const MyType &, py_::return_value_policy, py_::handle) {

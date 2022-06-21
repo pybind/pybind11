@@ -8,7 +8,7 @@ struct type_mrc {
 
 struct minimal_real_caster {
     static constexpr auto name = py::detail::const_name<type_mrc>();
-    static constexpr std::uint64_t universally_unique_identifier = 1000;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1000)
 
     static py::handle
     cast(type_mrc const &src, py::return_value_policy /*policy*/, py::handle /*parent*/) {

@@ -55,7 +55,7 @@ inline std::unordered_map<std::type_index, std::uint64_t> &odr_guard_registry() 
 namespace {
 
 template <typename IntrinsicType>
-bool odr_guard_impl(const std::type_index & it_ti, const std::uint64_t& tc_id) {
+bool odr_guard_impl(const std::type_index &it_ti, const std::uint64_t &tc_id) {
     printf("\nLOOOK %s %llu\n", type_id<IntrinsicType>().c_str(), (long long) tc_id);
     fflush(stdout);
     auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id});
@@ -73,10 +73,9 @@ struct type_caster_odr_guard : type_caster<IntrinsicType> {
 };
 
 template <typename IntrinsicType>
-int type_caster_odr_guard<IntrinsicType>::translation_unit_local = [](){
-    odr_guard_impl<IntrinsicType>(
-        std::type_index(typeid(IntrinsicType)),
-        type_caster<IntrinsicType>::universally_unique_identifier);
+int type_caster_odr_guard<IntrinsicType>::translation_unit_local = []() {
+    odr_guard_impl<IntrinsicType>(std::type_index(typeid(IntrinsicType)),
+                                  type_caster<IntrinsicType>::universally_unique_identifier.value);
     return 0;
 }();
 
@@ -84,6 +83,10 @@ int type_caster_odr_guard<IntrinsicType>::translation_unit_local = [](){
 
 template <typename type>
 using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
+
+#define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)                            \
+    if (::pybind11::detail::make_caster<__VA_ARGS__>::translation_unit_local) {                   \
+    }
 
 template <typename T>
 struct type_uses_smart_holder_type_caster {
@@ -94,15 +97,13 @@ struct type_uses_smart_holder_type_caster {
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
 typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) { // LOOOK
-    if (make_caster<T>::translation_unit_local) {
-    }
+    PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
 template <typename T>
 typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) { // LOOOK
-    if (make_caster<T>::translation_unit_local) {
-    }
+    PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return std::move(caster).operator typename make_caster<T>::
         template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
@@ -124,7 +125,7 @@ private:
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
     static handle
     cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
@@ -296,7 +297,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 template <typename T>
@@ -312,7 +313,7 @@ public:
         return none().inc_ref();
     }
     PYBIND11_TYPE_CASTER(T, const_name("None"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 template <>
@@ -360,7 +361,7 @@ public:
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
     static constexpr auto name = const_name("capsule");
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
 private:
     void *value = nullptr;
@@ -417,7 +418,7 @@ public:
         return handle(src ? Py_True : Py_False).inc_ref();
     }
     PYBIND11_TYPE_CASTER(bool, const_name("bool"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -510,7 +511,7 @@ struct string_caster {
     }
 
     PYBIND11_TYPE_CASTER(StringType, const_name(PYBIND11_STRING_NAME));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
 private:
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
@@ -683,7 +684,7 @@ public:
     }
 
     static constexpr auto name = const_name(PYBIND11_STRING_NAME);
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
     template <typename _T>
     using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
@@ -728,7 +729,7 @@ public:
 
     static constexpr auto name
         = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     template <typename T>
     using cast_op_type = type;
@@ -901,7 +902,7 @@ struct move_only_holder_caster {
         return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
@@ -1011,7 +1012,7 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
-    static constexpr std::uint64_t universally_unique_identifier = 3434;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(3434)
 };
 
 template <typename T>
@@ -1106,8 +1107,7 @@ type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &ha
 // Wrapper around the above that also constructs and returns a type_caster
 template <typename T>
 make_caster<T> load_type(const handle &handle) {
-    if (make_caster<T>::translation_unit_local) {
-    }
+    PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     make_caster<T> conv;
     load_type(conv, handle);
     return conv;
@@ -1145,8 +1145,7 @@ object cast(T &&value,
                  : std::is_lvalue_reference<T>::value ? return_value_policy::copy
                                                       : return_value_policy::move;
     }
-    if (detail::make_caster<T>::translation_unit_local) {
-    }
+    PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return reinterpret_steal<object>(
         detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
 }
@@ -1247,8 +1246,7 @@ using override_caster_t = conditional_t<cast_is_temporary_value_reference<ret_ty
 template <typename T>
 enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o,
                                                                      make_caster<T> &caster) {
-    if (make_caster<T>::translation_unit_local) {
-    }
+    PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return cast_op<T>(load_type(caster, o));
 }
 template <typename T>
@@ -1360,8 +1358,7 @@ private:
           type(type_id<T>())
 #endif
     {
-        if (detail::make_caster<T>::translation_unit_local) {
-        }
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
         // Workaround! See:
         // https://github.com/pybind/pybind11/issues/2336
         // https://github.com/pybind/pybind11/pull/2685#issuecomment-731286700
@@ -1592,8 +1589,7 @@ public:
 private:
     template <typename T>
     void process(list &args_list, T &&x) {
-        if (make_caster<T>::translation_unit_local) {
-        }
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
@@ -1738,8 +1734,7 @@ handle type::handle_of() {
                        detail::type_uses_smart_holder_type_caster<T>>::value,
         "py::type::of<T> only supports the case where T is a registered C++ types.");
 
-    if (detail::make_caster<T>::translation_unit_local) {
-    }
+    PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return detail::get_type_handle(typeid(T), true);
 }
 

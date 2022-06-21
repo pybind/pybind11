@@ -124,7 +124,7 @@ public:
                          const_name("Callable[[") + concat(make_caster<Args>::name...)
                              + const_name("], ") + make_caster<retval_type>::name
                              + const_name("]"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 PYBIND11_NAMESPACE_END(detail)

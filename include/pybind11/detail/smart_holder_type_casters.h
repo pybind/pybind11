@@ -616,7 +616,7 @@ template <typename T>
 struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                                   smart_holder_type_caster_class_hooks {
     static constexpr auto name = const_name<T>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     // static handle cast(T, ...)
     // is redundant (leads to ambiguous overloads).
@@ -778,7 +778,7 @@ template <typename T>
 struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T>,
                                                       smart_holder_type_caster_class_hooks {
     static constexpr auto name = const_name<T>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         switch (policy) {
@@ -843,7 +843,7 @@ template <typename T>
 struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T>,
                                                             smart_holder_type_caster_class_hooks {
     static constexpr auto name = const_name<T>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     static handle
     cast(const std::shared_ptr<T const> &src, return_value_policy policy, handle parent) {
@@ -864,7 +864,7 @@ template <typename T, typename D>
 struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caster_load<T>,
                                                          smart_holder_type_caster_class_hooks {
     static constexpr auto name = const_name<T>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
@@ -948,7 +948,7 @@ template <typename T, typename D>
 struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     : smart_holder_type_caster_load<T>, smart_holder_type_caster_class_hooks {
     static constexpr auto name = const_name<T>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     static handle
     cast(std::unique_ptr<T const, D> &&src, return_value_policy policy, handle parent) {
