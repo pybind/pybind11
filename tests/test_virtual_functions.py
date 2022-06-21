@@ -50,7 +50,6 @@ def test_override(capture, msg):
         == 'Tried to call pure virtual function "ExampleVirt::pure_virtual"'
     )
 
-    pytest.skip("TODO")
     ex12p = ExtendedExampleVirt(10)
     with capture:
         assert m.runExampleVirt(ex12p, 20) == 32

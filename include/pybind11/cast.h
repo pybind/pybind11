@@ -56,15 +56,27 @@ namespace {
 
 template <typename IntrinsicType>
 bool odr_guard_impl(const std::type_index &it_ti, const char *tc_id) {
-    printf("\nLOOOK %s %s\n", type_id<IntrinsicType>().c_str(), tc_id);
+    // std::cout cannot be used here: static initialization could be incomplete.
+#define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
+#ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
+    fprintf(stdout, "\nODR_GUARD_IMPL %s %s\n", type_id<IntrinsicType>().c_str(), tc_id);
     fflush(stdout);
+#endif
     std::string tc_id_str{tc_id};
     auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id_str});
     if (!added && reg_iter->second != tc_id_str) {
-        throw std::system_error(std::make_error_code(std::errc::state_not_recoverable),
-                                "pybind11::detail::type_caster<" + type_id<IntrinsicType>()
-                                    + "> ODR VIOLATION DETECTED: Location1=\"" + reg_iter->second
-                                    + "\", Location2=\"" + tc_id_str + "\"");
+        std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
+                              "ODR VIOLATION DETECTED: pybind11::detail::type_caster<"
+                                  + type_id<IntrinsicType>() + ">: SourceLocation1=\""
+                                  + reg_iter->second + "\", SourceLocation2=\"" + tc_id_str
+                                  + "\"");
+#define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
+        throw err;
+#else
+        fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
+        fflush(stderr);
+#endif
     }
     return true;
 }
@@ -98,13 +110,13 @@ struct type_uses_smart_holder_type_caster {
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
-typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) { // LOOOK
+typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
     PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
 template <typename T>
 typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
-cast_op(make_caster<T> &&caster) { // LOOOK
+cast_op(make_caster<T> &&caster) {
     PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     return std::move(caster).operator typename make_caster<T>::
         template cast_op_type<typename std::add_rvalue_reference<T>::type>();
@@ -1095,8 +1107,8 @@ struct return_value_policy_override<
 };
 
 // Basic python -> C++ casting; throws if casting fails
-template <typename T, typename SFINAE>
-type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+template <typename T>
+make_caster<T> &load_type(make_caster<T> &conv, const handle &handle) {
     static_assert(!detail::is_pyobject<T>::value,
                   "Internal error: type_caster should only be used for C++ types");
     if (!conv.load(handle, true)) {
@@ -1116,7 +1128,7 @@ template <typename T>
 make_caster<T> load_type(const handle &handle) {
     PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     make_caster<T> conv;
-    load_type(conv, handle);
+    load_type<T>(conv, handle);
     return conv;
 }
 
@@ -1254,7 +1266,7 @@ template <typename T>
 enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o,
                                                                      make_caster<T> &caster) {
     PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
-    return cast_op<T>(load_type(caster, o));
+    return cast_op<T>(load_type<T>(caster, o));
 }
 template <typename T>
 enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&,
