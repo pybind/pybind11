@@ -69,7 +69,7 @@ inline const char *cpp_version_in_use() {
 
 inline const char *source_file_line_basename(const char *sfl) {
     unsigned i_sep = 0;
-    for (unsigned i = 0; sfl[i]; i++) {
+    for (unsigned i = 0; sfl[i] != '\0'; i++) {
         if (sfl[i] == '/' || sfl[i] == '\\') {
             i_sep = i;
         }
