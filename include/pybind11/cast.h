@@ -63,6 +63,10 @@ bool odr_guard_impl(const std::type_index &it_ti, const char *tc_id) {
     fflush(stdout);
 #endif
     std::string tc_id_str{tc_id};
+    if (tc_id_str.size() > 2 && tc_id_str[0] == '.'
+        && (tc_id_str[1] == '/' || tc_id_str[1] == '\\')) {
+        tc_id_str = tc_id_str.substr(2);
+    }
     auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id_str});
     if (!added && reg_iter->second != tc_id_str) {
         std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
