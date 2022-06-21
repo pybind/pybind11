@@ -302,6 +302,7 @@
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
+#define PYBIND11_SOURCE_FILE_LINE __FILE__ ":" PYBIND11_TOSTRING(__LINE__)
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
 
