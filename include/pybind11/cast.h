@@ -52,6 +52,19 @@ inline std::unordered_map<std::type_index, std::string> &odr_guard_registry() {
     return reg;
 }
 
+inline const char *cpp_version_in_use() {
+    return
+#if defined(PYBIND11_CPP20)
+        "C++20";
+#elif defined(PYBIND11_CPP17)
+        "C++17";
+#elif defined(PYBIND11_CPP14)
+        "C++14";
+#else
+        "C++11";
+#endif
+}
+
 namespace {
 
 template <typename IntrinsicType>
@@ -72,10 +85,10 @@ bool odr_guard_impl(const std::type_index &it_ti, const char *tc_id) {
     auto added = ins.second;
     if (!added && reg_iter->second != tc_id_str) {
         std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
-                              "ODR VIOLATION DETECTED: pybind11::detail::type_caster<"
-                                  + type_id<IntrinsicType>() + ">: SourceLocation1=\""
-                                  + reg_iter->second + "\", SourceLocation2=\"" + tc_id_str
-                                  + "\"");
+                              "ODR VIOLATION DETECTED (" + std::string(cpp_version_in_use())
+                                  + "): pybind11::detail::type_caster<" + type_id<IntrinsicType>()
+                                  + ">: SourceLocation1=\"" + reg_iter->second
+                                  + "\", SourceLocation2=\"" + tc_id_str + "\"");
 #define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
         throw err;
