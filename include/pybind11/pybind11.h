@@ -214,7 +214,7 @@ protected:
         /* Type casters for the function arguments and return value */
         using cast_in = argument_loader<Args...>;
         using make_caster_type_out = conditional_t<std::is_void<Return>::value, void_type, Return>;
-        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(make_caster_type_out);
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(make_caster_type_out)
         using cast_out = make_caster<make_caster_type_out>;
 
         static_assert(
@@ -1855,7 +1855,7 @@ public:
         auto *ptr = new capture{std::forward<Func>(func)};
         install_buffer_funcs(
             [](PyObject *obj, void *ptr) -> buffer_info * {
-                PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(type);
+                PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(type)
                 detail::make_caster<type> caster;
                 if (!caster.load(obj, false)) {
                     return nullptr;
@@ -2717,7 +2717,7 @@ void implicitly_convertible() {
             return nullptr;
         }
         set_flag flag_helper(currently_used);
-        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(InputType);
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(InputType)
         if (!detail::make_caster<InputType>().load(obj, false)) {
             return nullptr;
         }

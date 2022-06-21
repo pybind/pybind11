@@ -860,7 +860,6 @@ protected:
         return result.release();
     }
 
-    // TODO: PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL...?
     Tuple<make_caster<Ts>...> subcasters;
 };
 
@@ -1370,7 +1369,6 @@ tuple make_tuple() {
 
 template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
 tuple make_tuple(Args &&...args_) {
-    // TODO: PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL...?
     constexpr size_t size = sizeof...(Args);
     std::array<object, size> args{{reinterpret_steal<object>(
         detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
@@ -1601,7 +1599,6 @@ private:
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 
-    // TODO: PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL...?
     std::tuple<make_caster<Args>...> argcasters;
 };
 
