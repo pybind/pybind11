@@ -392,7 +392,7 @@ public:
     }
 
     static constexpr auto name = props::descriptor;
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type *() { return &value; }
@@ -437,7 +437,7 @@ public:
     }
 
     static constexpr auto name = props::descriptor;
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // Explicitly delete these: support python -> C++ conversion on these (i.e. these can be return
     // types but not bound arguments).  We still provide them (with an explicitly delete) so that
@@ -625,7 +625,7 @@ public:
     }
 
     static constexpr auto name = props::descriptor;
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // Explicitly delete these: support python -> C++ conversion on these (i.e. these can be return
     // types but not bound arguments).  We still provide them (with an explicitly delete) so that
@@ -702,7 +702,6 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
                          const_name<(Type::IsRowMajor) != 0>("scipy.sparse.csr_matrix[",
                                                              "scipy.sparse.csc_matrix[")
                              + npy_format_descriptor<Scalar>::name + const_name("]"));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 PYBIND11_NAMESPACE_END(detail)

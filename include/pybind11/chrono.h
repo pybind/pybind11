@@ -97,7 +97,6 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(type, const_name("datetime.timedelta"));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
@@ -209,7 +208,6 @@ public:
                                           us.count());
     }
     PYBIND11_TYPE_CASTER(type, const_name("datetime.datetime"));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 // Other clocks that are not the system clock are not measured as datetime.datetime objects

@@ -905,15 +905,24 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 namespace {
-template <std::uint64_t Value>
-struct universally_unique_identifier_holder {
-    static constexpr std::uint64_t value = Value;
+
+template <size_t N, typename... Ts>
+struct tu_local_descr : descr<N, Ts...> {
+    using descr_t = descr<N, Ts...>;
+    using descr_t::descr_t;
 };
+
+template <size_t N>
+constexpr tu_local_descr<N - 1> tu_local_const_name(char const (&text)[N]) {
+    return tu_local_descr<N - 1>(text);
+}
+constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1]) { return {}; }
+
 } // namespace
 
-#define PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(...)                                               \
-    static constexpr ::pybind11::detail::universally_unique_identifier_holder<__VA_ARGS__>        \
-        universally_unique_identifier;
+#define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE                                                     \
+    static constexpr auto source_file_line                                                        \
+        = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
 
 /// Generic type caster for objects stored on the heap
 template <typename type>
@@ -922,7 +931,7 @@ class type_caster_base : public type_caster_generic {
 
 public:
     static constexpr auto name = const_name<type>();
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     type_caster_base() : type_caster_base(typeid(type)) {}
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}
