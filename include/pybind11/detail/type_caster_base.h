@@ -904,7 +904,12 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
+    && (defined(_MSC_VER) || defined(PYBIND11_CPP20)                                              \
+        || (defined(PYBIND11_CPP17) && defined(__clang__)))
+#    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#endif
+
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
 namespace {
