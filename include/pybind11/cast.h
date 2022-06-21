@@ -125,11 +125,15 @@ private:
         "`operator T &()` or `operator const T &()`");
 
 public:
-    bool load(handle src, bool convert) { return subcaster.load(src, convert); }
+    bool load(handle src, bool convert) {
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(type)
+        return subcaster.load(src, convert);
+    }
     static constexpr auto name = caster_t::name;
     PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
     static handle
     cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(type)
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
         if (policy == return_value_policy::take_ownership
             || policy == return_value_policy::automatic) {
@@ -591,6 +595,7 @@ struct type_caster<CharT, enable_if_t<is_std_char_type<CharT>::value>> {
 
 public:
     bool load(handle src, bool convert) {
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(StringType)
         if (!src) {
             return false;
         }
@@ -606,6 +611,7 @@ public:
     }
 
     static handle cast(const CharT *src, return_value_policy policy, handle parent) {
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(StringType)
         if (src == nullptr) {
             return pybind11::none().inc_ref();
         }
@@ -613,6 +619,7 @@ public:
     }
 
     static handle cast(CharT src, return_value_policy policy, handle parent) {
+        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(StringType)
         if (std::is_same<char, CharT>::value) {
             handle s = PyUnicode_DecodeLatin1((const char *) &src, 1, nullptr);
             if (!s) {
@@ -786,6 +793,7 @@ protected:
         return result.release();
     }
 
+    // TODO: PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL...?
     Tuple<make_caster<Ts>...> subcasters;
 };
 
@@ -1295,6 +1303,7 @@ tuple make_tuple() {
 
 template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
 tuple make_tuple(Args &&...args_) {
+    // TODO: PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL...?
     constexpr size_t size = sizeof...(Args);
     std::array<object, size> args{{reinterpret_steal<object>(
         detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
@@ -1525,6 +1534,7 @@ private:
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 
+    // TODO: PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL...?
     std::tuple<make_caster<Args>...> argcasters;
 };
 
