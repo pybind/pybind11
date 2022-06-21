@@ -65,30 +65,40 @@ inline const char *cpp_version_in_use() {
 #endif
 }
 
+inline const char *source_file_line_basename(const char *sfl) {
+    unsigned i_sep = 0;
+    for (unsigned i = 0; sfl[i]; i++) {
+        if (sfl[i] == '/' || sfl[i] == '\\') {
+            i_sep = i;
+        }
+    }
+    return sfl + i_sep;
+}
+
 namespace {
 
 template <typename IntrinsicType>
-bool odr_guard_impl(const std::type_index &it_ti, const char *tc_id) {
+bool odr_guard_impl(const std::type_index &it_ti, const char *source_file_line) {
     // std::cout cannot be used here: static initialization could be incomplete.
 #define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
 #ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
-    fprintf(stdout, "\nODR_GUARD_IMPL %s %s\n", type_id<IntrinsicType>().c_str(), tc_id);
+    fprintf(
+        stdout, "\nODR_GUARD_IMPL %s %s\n", type_id<IntrinsicType>().c_str(), source_file_line);
     fflush(stdout);
 #endif
-    std::string tc_id_str{tc_id};
-    if (tc_id_str.size() > 2 && tc_id_str[0] == '.'
-        && (tc_id_str[1] == '/' || tc_id_str[1] == '\\')) {
-        tc_id_str = tc_id_str.substr(2);
-    }
-    auto ins = odr_guard_registry().insert({it_ti, tc_id_str});
+    std::string sflbn_str{source_file_line_basename(source_file_line)};
+    auto ins = odr_guard_registry().insert({it_ti, source_file_line});
     auto reg_iter = ins.first;
     auto added = ins.second;
-    if (!added && reg_iter->second != tc_id_str) {
+    if (!added
+        && strcmp(source_file_line_basename(reg_iter->second.c_str()),
+                  source_file_line_basename(source_file_line))
+               != 0) {
         std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
                               "ODR VIOLATION DETECTED (" + std::string(cpp_version_in_use())
                                   + "): pybind11::detail::type_caster<" + type_id<IntrinsicType>()
                                   + ">: SourceLocation1=\"" + reg_iter->second
-                                  + "\", SourceLocation2=\"" + tc_id_str + "\"");
+                                  + "\", SourceLocation2=\"" + source_file_line + "\"");
 #define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
         throw err;
