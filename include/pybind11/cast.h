@@ -47,6 +47,8 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+
 inline std::unordered_map<std::type_index, std::string> &odr_guard_registry() {
     static std::unordered_map<std::type_index, std::string> reg;
     return reg;
@@ -54,15 +56,15 @@ inline std::unordered_map<std::type_index, std::string> &odr_guard_registry() {
 
 inline const char *cpp_version_in_use() {
     return
-#if defined(PYBIND11_CPP20)
+#    if defined(PYBIND11_CPP20)
         "C++20";
-#elif defined(PYBIND11_CPP17)
+#    elif defined(PYBIND11_CPP17)
         "C++17";
-#elif defined(PYBIND11_CPP14)
+#    elif defined(PYBIND11_CPP14)
         "C++14";
-#else
+#    else
         "C++11";
-#endif
+#    endif
 }
 
 inline const char *source_file_line_basename(const char *sfl) {
@@ -80,12 +82,12 @@ namespace {
 template <typename IntrinsicType>
 bool odr_guard_impl(const std::type_index &it_ti, const char *source_file_line) {
     // std::cout cannot be used here: static initialization could be incomplete.
-#define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
-#ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
+#    define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
+#    ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
     fprintf(
         stdout, "\nODR_GUARD_IMPL %s %s\n", type_id<IntrinsicType>().c_str(), source_file_line);
     fflush(stdout);
-#endif
+#    endif
     std::string sflbn_str{source_file_line_basename(source_file_line)};
     auto ins = odr_guard_registry().insert({it_ti, source_file_line});
     auto reg_iter = ins.first;
@@ -99,13 +101,13 @@ bool odr_guard_impl(const std::type_index &it_ti, const char *source_file_line) 
                                   + "): pybind11::detail::type_caster<" + type_id<IntrinsicType>()
                                   + ">: SourceLocation1=\"" + reg_iter->second
                                   + "\", SourceLocation2=\"" + source_file_line + "\"");
-#define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
+#    define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
+#    ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
         throw err;
-#else
+#    else
         fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
         fflush(stderr);
-#endif
+#    endif
     }
     return true;
 }
@@ -127,9 +129,18 @@ int type_caster_odr_guard<IntrinsicType>::translation_unit_local = []() {
 template <typename type>
 using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
 
-#define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)                            \
-    if (::pybind11::detail::make_caster<__VA_ARGS__>::translation_unit_local) {                   \
-    }
+#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)                        \
+        if (::pybind11::detail::make_caster<__VA_ARGS__>::translation_unit_local) {               \
+        }
+
+#else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+
+template <typename type>
+using make_caster = type_caster<intrinsic_t<type>>;
+
+#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)
+
+#endif
 
 template <typename T>
 struct type_uses_smart_holder_type_caster {
@@ -187,14 +198,13 @@ public:
     explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
-#define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
+#define PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
 protected:                                                                                        \
     type value;                                                                                   \
                                                                                                   \
 public:                                                                                           \
-    static constexpr auto name = py_name;                                                         \
-    static constexpr auto source_file_line                                                        \
-        = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));      \
+    static constexpr auto name = py_name;
+#define PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)                                                    \
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
@@ -215,6 +225,22 @@ public:                                                                         
     operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
     template <typename T_>                                                                        \
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
+
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+
+#    define PYBIND11_TYPE_CASTER(type, py_name)                                                   \
+        PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
+        static constexpr auto source_file_line                                                    \
+            = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));  \
+        PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)
+
+#else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+
+#    define PYBIND11_TYPE_CASTER(type, py_name)                                                   \
+        PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
+        PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)
+
+#endif
 
 template <typename CharT>
 using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */

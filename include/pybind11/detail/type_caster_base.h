@@ -904,6 +904,9 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+#define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+
 namespace {
 
 template <size_t N, typename... Ts>
@@ -920,9 +923,15 @@ constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1]) { return {}; 
 
 } // namespace
 
-#define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE                                                     \
-    static constexpr auto source_file_line                                                        \
-        = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
+#    define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE                                                 \
+        static constexpr auto source_file_line                                                    \
+            = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
+
+#else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+
+#    define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
+
+#endif
 
 /// Generic type caster for objects stored on the heap
 template <typename type>
