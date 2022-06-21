@@ -28,7 +28,7 @@ template <>
 class type_caster<ConstRefCasted> {
 public:
     static constexpr auto name = const_name<ConstRefCasted>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     // Input is unimportant, a new value will always be constructed based on the
     // cast operator.

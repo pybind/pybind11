@@ -904,6 +904,17 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+namespace {
+template <std::uint64_t Value>
+struct universally_unique_identifier_holder {
+    static constexpr std::uint64_t value = Value;
+};
+} // namespace
+
+#define PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(...)                                               \
+    static constexpr ::pybind11::detail::universally_unique_identifier_holder<__VA_ARGS__>        \
+        universally_unique_identifier;
+
 /// Generic type caster for objects stored on the heap
 template <typename type>
 class type_caster_base : public type_caster_generic {
@@ -911,7 +922,7 @@ class type_caster_base : public type_caster_generic {
 
 public:
     static constexpr auto name = const_name<type>();
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
     type_caster_base() : type_caster_base(typeid(type)) {}
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}

@@ -99,7 +99,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
-    static constexpr std::uint64_t universally_unique_identifier = 1655073597;
+    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 #endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
