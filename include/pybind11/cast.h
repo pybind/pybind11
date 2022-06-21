@@ -67,7 +67,9 @@ bool odr_guard_impl(const std::type_index &it_ti, const char *tc_id) {
         && (tc_id_str[1] == '/' || tc_id_str[1] == '\\')) {
         tc_id_str = tc_id_str.substr(2);
     }
-    auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id_str});
+    auto ins = odr_guard_registry().insert({it_ti, tc_id_str});
+    auto reg_iter = ins.first;
+    auto added = ins.second;
     if (!added && reg_iter->second != tc_id_str) {
         std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
                               "ODR VIOLATION DETECTED: pybind11::detail::type_caster<"
