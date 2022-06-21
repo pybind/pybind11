@@ -47,22 +47,24 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
-inline std::unordered_map<std::type_index, std::uint64_t> &odr_guard_registry() {
-    static std::unordered_map<std::type_index, std::uint64_t> reg;
+inline std::unordered_map<std::type_index, std::string> &odr_guard_registry() {
+    static std::unordered_map<std::type_index, std::string> reg;
     return reg;
 }
 
 namespace {
 
 template <typename IntrinsicType>
-bool odr_guard_impl(const std::type_index &it_ti, const std::uint64_t &tc_id) {
-    printf("\nLOOOK %s %llu\n", type_id<IntrinsicType>().c_str(), (long long) tc_id);
+bool odr_guard_impl(const std::type_index &it_ti, const char *tc_id) {
+    printf("\nLOOOK %s %s\n", type_id<IntrinsicType>().c_str(), tc_id);
     fflush(stdout);
-    auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id});
-    if (!added && reg_iter->second != tc_id) {
+    std::string tc_id_str{tc_id};
+    auto [reg_iter, added] = odr_guard_registry().insert({it_ti, tc_id_str});
+    if (!added && reg_iter->second != tc_id_str) {
         throw std::system_error(std::make_error_code(std::errc::state_not_recoverable),
                                 "pybind11::detail::type_caster<" + type_id<IntrinsicType>()
-                                    + "> ODR VIOLATION DETECTED");
+                                    + "> ODR VIOLATION DETECTED: Location1=\"" + reg_iter->second
+                                    + "\", Location2=\"" + tc_id_str + "\"");
     }
     return true;
 }
@@ -75,7 +77,7 @@ struct type_caster_odr_guard : type_caster<IntrinsicType> {
 template <typename IntrinsicType>
 int type_caster_odr_guard<IntrinsicType>::translation_unit_local = []() {
     odr_guard_impl<IntrinsicType>(std::type_index(typeid(IntrinsicType)),
-                                  type_caster<IntrinsicType>::universally_unique_identifier.value);
+                                  type_caster<IntrinsicType>::source_file_line.text);
     return 0;
 }();
 
@@ -125,7 +127,7 @@ private:
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
     static handle
     cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
@@ -146,6 +148,8 @@ protected:                                                                      
                                                                                                   \
 public:                                                                                           \
     static constexpr auto name = py_name;                                                         \
+    static constexpr auto source_file_line                                                        \
+        = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));      \
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
@@ -297,7 +301,6 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 template <typename T>
@@ -313,7 +316,6 @@ public:
         return none().inc_ref();
     }
     PYBIND11_TYPE_CASTER(T, const_name("None"));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 template <>
@@ -361,7 +363,7 @@ public:
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
     static constexpr auto name = const_name("capsule");
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
 private:
     void *value = nullptr;
@@ -418,7 +420,6 @@ public:
         return handle(src ? Py_True : Py_False).inc_ref();
     }
     PYBIND11_TYPE_CASTER(bool, const_name("bool"));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -511,7 +512,6 @@ struct string_caster {
     }
 
     PYBIND11_TYPE_CASTER(StringType, const_name(PYBIND11_STRING_NAME));
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
 
 private:
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
@@ -684,7 +684,7 @@ public:
     }
 
     static constexpr auto name = const_name(PYBIND11_STRING_NAME);
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
     template <typename _T>
     using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
@@ -729,7 +729,7 @@ public:
 
     static constexpr auto name
         = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     template <typename T>
     using cast_op_type = type;
@@ -902,7 +902,7 @@ struct move_only_holder_caster {
         return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 };
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
@@ -1012,7 +1012,6 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(3434)
 };
 
 template <typename T>

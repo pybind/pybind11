@@ -1,5 +1,3 @@
-import pytest
-
 import pybind11_tests.odr_guard_1 as m
 
 

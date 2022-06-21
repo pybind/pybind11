@@ -27,7 +27,7 @@ public:
     using cast_op_type = value_and_holder &;
     explicit operator value_and_holder &() { return *value; }
     static constexpr auto name = const_name<value_and_holder>();
-    PYBIND11_TYPE_CASTER_UNIQUE_IDENTIFIER(1655073597)
+    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
 private:
     value_and_holder *value = nullptr;
