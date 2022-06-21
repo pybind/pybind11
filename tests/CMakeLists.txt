@@ -160,6 +160,8 @@ set(PYBIND11_TEST_FILES
     test_numpy_array
     test_numpy_dtypes
     test_numpy_vectorize
+    test_odr_guard_1
+    test_odr_guard_2
     test_opaque_types
     test_operator_overloading
     test_pickling
@@ -384,7 +386,7 @@ function(pybind11_enable_warnings target_name)
               -Wnon-virtual-dtor)
   endif()
 
-  if(PYBIND11_WERROR)
+  if(PYBIND11_WERROR AND NOT PYBIND11_WERROR)
     if(MSVC)
       target_compile_options(${target_name} PRIVATE /WX)
     elseif(PYBIND11_CUDA_TESTS)
