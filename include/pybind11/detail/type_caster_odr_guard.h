@@ -55,8 +55,14 @@ inline const char *source_file_line_basename(const char *sfl) {
     return sfl + i_base;
 }
 
+#    ifndef PYBIND11_DETAIL_ODR_GUARD_IMPL_THROW_DISABLED
+#        define PYBIND11_DETAIL_ODR_GUARD_IMPL_THROW_DISABLED false
+#    endif
+
 template <typename IntrinsicType>
-bool odr_guard_impl(const std::type_index &it_ti, const char *source_file_line) {
+void odr_guard_impl(const std::type_index &it_ti,
+                    const char *source_file_line,
+                    bool throw_disabled) {
     // std::cout cannot be used here: static initialization could be incomplete.
 #    define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
 #    ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
@@ -77,15 +83,13 @@ bool odr_guard_impl(const std::type_index &it_ti, const char *source_file_line) 
                                   + type_id<IntrinsicType>() + ">: SourceLocation1=\""
                                   + reg_iter->second + "\", SourceLocation2=\"" + source_file_line
                                   + "\"");
-#    define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
-#    ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
-        throw err;
-#    else
-        fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
-        fflush(stderr);
-#    endif
+        if (throw_disabled) {
+            fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
+            fflush(stderr);
+        } else {
+            throw err;
+        }
     }
-    return true;
 }
 
 namespace {
