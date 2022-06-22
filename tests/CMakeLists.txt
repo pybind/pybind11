@@ -386,7 +386,7 @@ function(pybind11_enable_warnings target_name)
               -Wnon-virtual-dtor)
   endif()
 
-  if(PYBIND11_WERROR AND NOT PYBIND11_WERROR)
+  if(PYBIND11_WERROR)
     if(MSVC)
       target_compile_options(${target_name} PRIVATE /WX)
     elseif(PYBIND11_CUDA_TESTS)
