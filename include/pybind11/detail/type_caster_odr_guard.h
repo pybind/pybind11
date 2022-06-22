@@ -112,6 +112,28 @@ struct tu_local_no_data_always_false {
 
 } // namespace
 
+#    ifndef PYBIND11_TYPE_CASTER_ODR_GUARD_STRICT
+#        define PYBIND11_TYPE_CASTER_ODR_GUARD_STRICT
+#    endif
+
+template <typename TypeCasterType, typename SFINAE = void>
+struct get_type_caster_source_file_line {
+#    ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_STRICT
+    static_assert(TypeCasterType::source_file_line,
+                  "PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE is MISSING: Please add that macro to the "
+                  "TypeCasterType, or undefine PYBIND11_TYPE_CASTER_ODR_GUARD_STRICT");
+#    else
+    static constexpr auto source_file_line = tu_local_const_name("UNAVAILABLE");
+#    endif
+};
+
+template <typename TypeCasterType>
+struct get_type_caster_source_file_line<
+    TypeCasterType,
+    enable_if_t<std::is_class<decltype(TypeCasterType::source_file_line)>::value>> {
+    static constexpr auto source_file_line = TypeCasterType::source_file_line;
+};
+
 template <typename IntrinsicType, typename TypeCasterType>
 struct type_caster_odr_guard : TypeCasterType {
     static tu_local_no_data_always_false translation_unit_local;
@@ -121,9 +143,10 @@ template <typename IntrinsicType, typename TypeCasterType>
 tu_local_no_data_always_false
     type_caster_odr_guard<IntrinsicType, TypeCasterType>::translation_unit_local
     = []() {
-          type_caster_odr_guard_impl(typeid(IntrinsicType),
-                                     TypeCasterType::source_file_line.text,
-                                     PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
+          type_caster_odr_guard_impl(
+              typeid(IntrinsicType),
+              get_type_caster_source_file_line<TypeCasterType>::source_file_line.text,
+              PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
           return tu_local_no_data_always_false();
       }();
 
