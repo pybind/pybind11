@@ -160,8 +160,6 @@ set(PYBIND11_TEST_FILES
     test_numpy_array
     test_numpy_dtypes
     test_numpy_vectorize
-    test_odr_guard_1
-    test_odr_guard_2
     test_opaque_types
     test_operator_overloading
     test_pickling
@@ -172,6 +170,8 @@ set(PYBIND11_TEST_FILES
     test_stl_binders
     test_tagbased_polymorphic
     test_thread
+    test_type_caster_odr_guard_1
+    test_type_caster_odr_guard_2
     test_union
     test_virtual_functions)
 
