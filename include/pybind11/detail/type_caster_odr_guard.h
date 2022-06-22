@@ -71,16 +71,14 @@ void odr_guard_impl(const std::type_index &it_ti,
         && strcmp(source_file_line_basename(reg_iter->second.c_str()),
                   source_file_line_basename(source_file_line))
                != 0) {
-        std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
-                              "ODR VIOLATION DETECTED: pybind11::detail::type_caster<"
-                                  + type_id<IntrinsicType>() + ">: SourceLocation1=\""
-                                  + reg_iter->second + "\", SourceLocation2=\"" + source_file_line
-                                  + "\"");
+        std::string msg("ODR VIOLATION DETECTED: pybind11::detail::type_caster<"
+                        + type_id<IntrinsicType>() + ">: SourceLocation1=\"" + reg_iter->second
+                        + "\", SourceLocation2=\"" + source_file_line + "\"");
         if (throw_disabled) {
-            std::fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
+            std::fprintf(stderr, "\nDISABLED std::system_error: %s\n", msg.c_str());
             std::fflush(stderr);
         } else {
-            throw err;
+            throw std::system_error(std::make_error_code(std::errc::state_not_recoverable), msg);
         }
     }
 }
