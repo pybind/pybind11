@@ -107,7 +107,7 @@ constexpr tu_local_descr<N - 1> tu_local_const_name(char const (&text)[N]) {
 constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1]) { return {}; }
 
 struct tu_local_no_data_always_false {
-    operator bool() const noexcept { return false; }
+    explicit operator bool() const noexcept { return false; }
 };
 
 } // namespace
