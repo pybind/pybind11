@@ -1,14 +1,26 @@
 import pytest
 
-import pybind11_tests.odr_guard_1 as m
+import pybind11_tests.type_caster_odr_guard_1 as m
 
 
 def test_type_mrc_to_python():
-    assert m.type_mrc_to_python() == 1111
+    val = m.type_mrc_to_python()
+    if val == 101 + 2020:
+        pytest.skip(
+            "UNEXPECTED: test_type_caster_odr_guard_2.cpp prevailed (to_python)."
+        )
+    else:
+        assert val == 101 + 1010
 
 
 def test_type_mrc_from_python():
-    assert m.type_mrc_from_python("ignored") == 111
+    val = m.type_mrc_from_python("ignored")
+    if val == 100 + 22:
+        pytest.skip(
+            "UNEXPECTED: test_type_caster_odr_guard_2.cpp prevailed (from_python)."
+        )
+    else:
+        assert val == 100 + 11
 
 
 def test_type_caster_odr_registry_values():

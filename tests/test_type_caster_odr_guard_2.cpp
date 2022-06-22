@@ -45,7 +45,7 @@ struct type_caster<mrc_ns::type_mrc> : mrc_ns::minimal_real_caster {};
 } // namespace detail
 } // namespace pybind11
 
-TEST_SUBMODULE(odr_guard_2, m) {
+TEST_SUBMODULE(type_caster_odr_guard_2, m) {
     m.def("type_mrc_to_python", []() { return mrc_ns::type_mrc(202); });
     m.def("type_mrc_from_python", [](const mrc_ns::type_mrc &obj) { return obj.value + 200; });
 }
