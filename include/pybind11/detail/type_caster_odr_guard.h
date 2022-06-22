@@ -6,7 +6,7 @@
 
 #if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
     && (defined(_MSC_VER) || defined(PYBIND11_CPP20)                                              \
-        || (defined(PYBIND11_CPP17) && defined(__clang__)))
+        || (defined(PYBIND11_CPP17) /* && defined(__clang__)*/))
 #    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 #endif
 
@@ -17,6 +17,10 @@
 #    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)
 
 #else
+
+#    if defined(__GNUC__) && !defined(PYBIND11_CPP20)
+#        pragma GCC diagnostic ignored "-Wsubobject-linkage"
+#    endif
 
 #    include "common.h"
 #    include "descr.h"
