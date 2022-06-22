@@ -50,7 +50,7 @@ class type_caster : public type_caster_for_class_<type> {};
 template <typename type>
 using make_caster = type_caster_odr_guard<intrinsic_t<type>, type_caster<intrinsic_t<type>>>;
 
-#else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#else
 
 template <typename type>
 using make_caster = type_caster<intrinsic_t<type>>;
@@ -149,7 +149,7 @@ public:                                                                         
             = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));  \
         PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)
 
-#else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#else
 
 #    define PYBIND11_TYPE_CASTER(type, py_name)                                                   \
         PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
