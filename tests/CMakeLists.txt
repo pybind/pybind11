@@ -535,6 +535,7 @@ endif()
 add_custom_target(
   memcheck
   COMMAND
+    PYBIND11_TESTING_WITH_VALGRIND=1
     PYTHONMALLOC=malloc
     valgrind
     --leak-check=full
