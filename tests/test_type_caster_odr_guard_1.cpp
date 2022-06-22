@@ -46,4 +46,22 @@ struct type_caster<mrc_ns::type_mrc> : mrc_ns::minimal_real_caster {};
 TEST_SUBMODULE(odr_guard_1, m) {
     m.def("type_mrc_to_python", []() { return mrc_ns::type_mrc(101); });
     m.def("type_mrc_from_python", [](const mrc_ns::type_mrc &obj) { return obj.value + 100; });
+    m.def("type_caster_odr_guard_registry_values", []() {
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+        py::list values;
+        for (auto reg_iter : py::detail::type_caster_odr_guard_registry()) {
+            values.append(py::str(reg_iter.second));
+        }
+        return values;
+#else
+        return py::none();
+#endif
+    });
+    m.def("type_caster_odr_violation_detected_count", []() {
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+        return py::detail::type_caster_odr_violation_detected_counter();
+#else
+        return py::none();
+#endif
+    });
 }
