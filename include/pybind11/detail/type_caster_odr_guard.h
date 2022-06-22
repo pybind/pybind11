@@ -18,7 +18,8 @@
 
 #else
 
-#    if defined(__GNUC__) && !defined(PYBIND11_CPP20)
+#    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)                      \
+        && !defined(__INTEL_COMPILER)
 #        pragma GCC diagnostic ignored "-Wsubobject-linkage"
 #    endif
 
