@@ -49,7 +49,7 @@ TEST_SUBMODULE(type_caster_odr_guard_1, m) {
     m.def("type_caster_odr_guard_registry_values", []() {
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
         py::list values;
-        for (auto reg_iter : py::detail::type_caster_odr_guard_registry()) {
+        for (const auto &reg_iter : py::detail::type_caster_odr_guard_registry()) {
             values.append(py::str(reg_iter.second));
         }
         return values;
