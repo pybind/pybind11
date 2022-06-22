@@ -106,7 +106,26 @@ constexpr tu_local_descr<N - 1> tu_local_const_name(char const (&text)[N]) {
 }
 constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1]) { return {}; }
 
+struct tu_local_no_data_always_false {
+    operator bool() const noexcept { return false; }
+};
+
 } // namespace
+
+template <typename IntrinsicType, typename TypeCasterType>
+struct type_caster_odr_guard : TypeCasterType {
+    static tu_local_no_data_always_false translation_unit_local;
+};
+
+template <typename IntrinsicType, typename TypeCasterType>
+tu_local_no_data_always_false
+    type_caster_odr_guard<IntrinsicType, TypeCasterType>::translation_unit_local
+    = []() {
+          type_caster_odr_guard_impl(typeid(IntrinsicType),
+                                     TypeCasterType::source_file_line.text,
+                                     PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
+          return tu_local_no_data_always_false();
+      }();
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

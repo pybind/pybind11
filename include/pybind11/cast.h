@@ -47,25 +47,8 @@ class type_caster : public type_caster_for_class_<type> {};
 
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
-namespace {
-
-template <typename IntrinsicType>
-struct type_caster_odr_guard : type_caster<IntrinsicType> {
-    static int translation_unit_local;
-};
-
-template <typename IntrinsicType>
-int type_caster_odr_guard<IntrinsicType>::translation_unit_local = []() {
-    type_caster_odr_guard_impl(typeid(IntrinsicType),
-                               type_caster<IntrinsicType>::source_file_line.text,
-                               PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
-    return 0;
-}();
-
-} // namespace
-
 template <typename type>
-using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
+using make_caster = type_caster_odr_guard<intrinsic_t<type>, type_caster<intrinsic_t<type>>>;
 
 #else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
