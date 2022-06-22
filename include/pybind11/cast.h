@@ -14,6 +14,7 @@
 #include "detail/descr.h"
 #include "detail/smart_holder_sfinae_hooks_only.h"
 #include "detail/type_caster_base.h"
+#include "detail/type_caster_odr_guard.h"
 #include "detail/typeid.h"
 #include "pytypes.h"
 
@@ -49,68 +50,7 @@ class type_caster : public type_caster_for_class_<type> {};
 
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
-inline std::unordered_map<std::type_index, std::string> &odr_guard_registry() {
-    static std::unordered_map<std::type_index, std::string> reg;
-    return reg;
-}
-
-inline const char *cpp_version_in_use() {
-    return
-#    if defined(PYBIND11_CPP20)
-        "C++20";
-#    elif defined(PYBIND11_CPP17)
-        "C++17";
-#    elif defined(PYBIND11_CPP14)
-        "C++14";
-#    else
-        "C++11";
-#    endif
-}
-
-inline const char *source_file_line_basename(const char *sfl) {
-    unsigned i_base = 0;
-    for (unsigned i = 0; sfl[i] != '\0'; i++) {
-        if (sfl[i] == '/' || sfl[i] == '\\') {
-            i_base = i + 1;
-        }
-    }
-    return sfl + i_base;
-}
-
 namespace {
-
-template <typename IntrinsicType>
-bool odr_guard_impl(const std::type_index &it_ti, const char *source_file_line) {
-    // std::cout cannot be used here: static initialization could be incomplete.
-#    define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
-#    ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
-    fprintf(
-        stdout, "\nODR_GUARD_IMPL %s %s\n", type_id<IntrinsicType>().c_str(), source_file_line);
-    fflush(stdout);
-#    endif
-    std::string sflbn_str{source_file_line_basename(source_file_line)};
-    auto ins = odr_guard_registry().insert({it_ti, source_file_line});
-    auto reg_iter = ins.first;
-    auto added = ins.second;
-    if (!added
-        && strcmp(source_file_line_basename(reg_iter->second.c_str()),
-                  source_file_line_basename(source_file_line))
-               != 0) {
-        std::system_error err(std::make_error_code(std::errc::state_not_recoverable),
-                              "ODR VIOLATION DETECTED (" + std::string(cpp_version_in_use())
-                                  + "): pybind11::detail::type_caster<" + type_id<IntrinsicType>()
-                                  + ">: SourceLocation1=\"" + reg_iter->second
-                                  + "\", SourceLocation2=\"" + source_file_line + "\"");
-#    define PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_OFF
-#    ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_THROW_ON
-        throw err;
-#    else
-        fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
-        fflush(stderr);
-#    endif
-    }
-    return true;
-}
 
 template <typename IntrinsicType>
 struct type_caster_odr_guard : type_caster<IntrinsicType> {
@@ -129,16 +69,10 @@ int type_caster_odr_guard<IntrinsicType>::translation_unit_local = []() {
 template <typename type>
 using make_caster = type_caster_odr_guard<intrinsic_t<type>>;
 
-#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)                        \
-        if (::pybind11::detail::make_caster<__VA_ARGS__>::translation_unit_local) {               \
-        }
-
 #else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
 template <typename type>
 using make_caster = type_caster<intrinsic_t<type>>;
-
-#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)
 
 #endif
 

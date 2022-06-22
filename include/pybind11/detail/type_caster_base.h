@@ -13,6 +13,7 @@
 #include "common.h"
 #include "descr.h"
 #include "internals.h"
+#include "type_caster_odr_guard.h"
 #include "typeid.h"
 
 #include <cstdint>
@@ -903,40 +904,6 @@ template <typename itype, typename SFINAE = void>
 struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-
-#if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
-    && (defined(_MSC_VER) || defined(PYBIND11_CPP20)                                              \
-        || (defined(PYBIND11_CPP17) && defined(__clang__)))
-#    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
-#endif
-
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
-
-namespace {
-
-template <size_t N, typename... Ts>
-struct tu_local_descr : descr<N, Ts...> {
-    using descr_t = descr<N, Ts...>;
-    using descr_t::descr_t;
-};
-
-template <size_t N>
-constexpr tu_local_descr<N - 1> tu_local_const_name(char const (&text)[N]) {
-    return tu_local_descr<N - 1>(text);
-}
-constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1]) { return {}; }
-
-} // namespace
-
-#    define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE                                                 \
-        static constexpr auto source_file_line                                                    \
-            = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
-
-#else // !PYBIND11_TYPE_CASTER_ODR_GUARD_ON
-
-#    define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
-
-#endif
 
 /// Generic type caster for objects stored on the heap
 template <typename type>
