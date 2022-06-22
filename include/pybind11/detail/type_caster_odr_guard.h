@@ -41,9 +41,14 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline std::unordered_map<std::type_index, std::string> &odr_guard_registry() {
+inline std::unordered_map<std::type_index, std::string> &type_caster_odr_guard_registry() {
     static std::unordered_map<std::type_index, std::string> reg;
     return reg;
+}
+
+inline unsigned &type_caster_odr_violation_detected_counter() {
+    static unsigned counter = 0;
+    return counter;
 }
 
 inline const char *source_file_line_basename(const char *sfl) {
@@ -72,8 +77,8 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
                  source_file_line);
     std::fflush(stdout);
 #    endif
-    auto ins
-        = odr_guard_registry().insert({std::type_index(intrinsic_type_info), source_file_line});
+    auto ins = type_caster_odr_guard_registry().insert(
+        {std::type_index(intrinsic_type_info), source_file_line});
     auto reg_iter = ins.first;
     auto added = ins.second;
     if (!added
@@ -86,6 +91,7 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
         if (throw_disabled) {
             std::fprintf(stderr, "\nDISABLED std::system_error: %s\n", msg.c_str());
             std::fflush(stderr);
+            type_caster_odr_violation_detected_counter()++;
         } else {
             throw std::system_error(std::make_error_code(std::errc::state_not_recoverable), msg);
         }
