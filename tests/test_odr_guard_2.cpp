@@ -1,4 +1,4 @@
-#define PYBIND11_DETAIL_ODR_GUARD_IMPL_THROW_DISABLED true
+#define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED true
 #include "pybind11_tests.h"
 
 namespace mrc_ns { // minimal real caster

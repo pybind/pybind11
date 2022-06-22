@@ -56,9 +56,9 @@ struct type_caster_odr_guard : type_caster<IntrinsicType> {
 
 template <typename IntrinsicType>
 int type_caster_odr_guard<IntrinsicType>::translation_unit_local = []() {
-    odr_guard_impl<IntrinsicType>(std::type_index(typeid(IntrinsicType)),
-                                  type_caster<IntrinsicType>::source_file_line.text,
-                                  PYBIND11_DETAIL_ODR_GUARD_IMPL_THROW_DISABLED);
+    type_caster_odr_guard_impl(typeid(IntrinsicType),
+                               type_caster<IntrinsicType>::source_file_line.text,
+                               PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
     return 0;
 }();
 
