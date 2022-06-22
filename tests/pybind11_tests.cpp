@@ -65,6 +65,9 @@ void bind_ConstructorStats(py::module_ &m) {
 PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
+    m.attr("cpp_version_in_use") = py::detail::cpp_version_in_use();
+    m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+
     bind_ConstructorStats(m);
 
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)

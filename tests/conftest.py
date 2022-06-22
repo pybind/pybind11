@@ -13,7 +13,7 @@ import textwrap
 import pytest
 
 # Early diagnostic for failed imports
-import pybind11_tests  # noqa: F401
+import pybind11_tests
 
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
@@ -196,5 +196,11 @@ def gc_collect():
 
 
 def pytest_configure():
+    print(
+        "PYBIND11_INTERNALS_ID & C++ Version:",
+        pybind11_tests.PYBIND11_INTERNALS_ID,
+        pybind11_tests.cpp_version_in_use,
+        flush=True,
+    )
     pytest.suppress = suppress
     pytest.gc_collect = gc_collect
