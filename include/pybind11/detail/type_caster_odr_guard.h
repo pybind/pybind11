@@ -22,20 +22,13 @@
 #    include "descr.h"
 #    include "typeid.h"
 
-#    include <array>
+#    include <cstdio>
 #    include <cstring>
-#    include <functional>
-#    include <iosfwd>
-#    include <iterator>
-#    include <memory>
 #    include <string>
 #    include <system_error>
-#    include <tuple>
-#    include <type_traits>
 #    include <typeindex>
 #    include <unordered_map>
 #    include <utility>
-#    include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -66,9 +59,9 @@ void odr_guard_impl(const std::type_index &it_ti,
     // std::cout cannot be used here: static initialization could be incomplete.
 #    define PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_OFF
 #    ifdef PYBIND11_DETAIL_ODR_GUARD_IMPL_PRINTF_ON
-    fprintf(
+    std::fprintf(
         stdout, "\nODR_GUARD_IMPL %s %s\n", type_id<IntrinsicType>().c_str(), source_file_line);
-    fflush(stdout);
+    std::fflush(stdout);
 #    endif
     std::string sflbn_str{source_file_line_basename(source_file_line)};
     auto ins = odr_guard_registry().insert({it_ti, source_file_line});
@@ -84,8 +77,8 @@ void odr_guard_impl(const std::type_index &it_ti,
                                   + reg_iter->second + "\", SourceLocation2=\"" + source_file_line
                                   + "\"");
         if (throw_disabled) {
-            fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
-            fflush(stderr);
+            std::fprintf(stderr, "\nDISABLED std::system_error: %s\n", err.what());
+            std::fflush(stderr);
         } else {
             throw err;
         }
