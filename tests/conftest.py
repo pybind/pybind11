@@ -203,5 +203,8 @@ def pytest_configure():
         pybind11_tests.PYBIND11_INTERNALS_ID,
         flush=True,
     )
+    assert (
+        pybind11_tests.compiler_info is not None
+    ), "Please update pybind11_tests.cpp if this assert fails."
     pytest.suppress = suppress
     pytest.gc_collect = gc_collect
