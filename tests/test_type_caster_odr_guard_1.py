@@ -36,7 +36,13 @@ def test_type_caster_odr_violation_detected_counter():
     num_violations = m.type_caster_odr_violation_detected_count()
     if num_violations is None:
         pytest.skip("type_caster_odr_violation_detected_count() is None")
-    elif num_violations == 0:
+    elif num_violations == 0 and (
+        # 3.9-dbg (deadsnakes) Valgrind x64:
+        # This failure is unexplained and the condition here is not completely specific,
+        # but deemed a good-enough workaround.
+        pybind11_tests.compiler_info == "9.4.0"
+        and pybind11_tests.cpp_std == "C++17"
+    ):
         pytest.skip(
             "UNEXPECTED: type_caster_odr_violation_detected_count() == 0 (%s %s)"
             % (pybind11_tests.compiler_info, pybind11_tests.cpp_std)
