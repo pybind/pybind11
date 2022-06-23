@@ -546,7 +546,6 @@ add_custom_target(
     --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp"
     --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp"
     --gen-suppressions=all
-    env PYBIND11_TESTING_WITH_VALGRIND=1
     ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"

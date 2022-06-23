@@ -1,7 +1,6 @@
-import os
-
 import pytest
 
+import pybind11_tests
 import pybind11_tests.type_caster_odr_guard_1 as m
 
 
@@ -37,12 +36,10 @@ def test_type_caster_odr_violation_detected_counter():
     num_violations = m.type_caster_odr_violation_detected_count()
     if num_violations is None:
         pytest.skip("type_caster_odr_violation_detected_count() is None")
-    elif (
-        os.environ.get("PYBIND11_TESTING_WITH_VALGRIND") is not None
-        and num_violations == 0
-    ):
+    elif num_violations == 0:
         pytest.skip(
-            "UNEXPECTED: type_caster_odr_violation_detected_count() == 0 (valgrind)"
+            "UNEXPECTED: type_caster_odr_violation_detected_count() == 0 (%s %s)"
+            % (pybind11_tests.compiler_info, pybind11_tests.cpp_std)
         )
     else:
         assert num_violations == 1

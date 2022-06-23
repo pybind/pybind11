@@ -197,9 +197,10 @@ def gc_collect():
 
 def pytest_configure():
     print(
-        "PYBIND11_INTERNALS_ID & C++ Version:",
+        "C++ Info:",
+        pybind11_tests.compiler_info,
+        pybind11_tests.cpp_std,
         pybind11_tests.PYBIND11_INTERNALS_ID,
-        pybind11_tests.cpp_version_in_use,
         flush=True,
     )
     pytest.suppress = suppress

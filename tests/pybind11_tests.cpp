@@ -62,7 +62,7 @@ void bind_ConstructorStats(py::module_ &m) {
         });
 }
 
-const char *cpp_version_in_use() {
+const char *cpp_std() {
     return
 #if defined(PYBIND11_CPP20)
         "C++20";
@@ -78,7 +78,14 @@ const char *cpp_version_in_use() {
 PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
-    m.attr("cpp_version_in_use") = cpp_version_in_use();
+#if defined(_MSC_FULL_VER)
+    m.attr("compiler_info") = "MSVC " _MSC_FULL_VER;
+#elif defined(__VERSION__)
+    m.attr("compiler_info") = __VERSION__;
+#else
+    m.attr("compiler_info") = py::none();
+#endif
+    m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
 
     bind_ConstructorStats(m);
