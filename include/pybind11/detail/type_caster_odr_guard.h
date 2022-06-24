@@ -51,6 +51,12 @@ inline unsigned &type_caster_odr_violation_detected_counter() {
     return counter;
 }
 
+inline bool try_builtin_file_line() {
+    const char *file = __builtin_FILE();
+    unsigned line = __builtin_LINE();
+    return file != nullptr && line != 0; // Just something.
+}
+
 inline const char *source_file_line_basename(const char *sfl) {
     unsigned i_base = 0;
     for (unsigned i = 0; sfl[i] != '\0'; i++) {
