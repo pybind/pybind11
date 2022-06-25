@@ -48,14 +48,17 @@ class type_caster : public type_caster_for_class_<type> {};
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
 template <typename type>
-using make_caster = type_caster_odr_guard<intrinsic_t<type>, type_caster<intrinsic_t<type>>>;
+using make_caster_intrinsic = type_caster_odr_guard<type, type_caster<type>>;
 
 #else
 
 template <typename type>
-using make_caster = type_caster<intrinsic_t<type>>;
+using make_caster_intrinsic = type_caster<type>;
 
 #endif
+
+template <typename type>
+using make_caster = make_caster_intrinsic<intrinsic_t<type>>;
 
 template <typename T>
 struct type_uses_smart_holder_type_caster {
@@ -1077,7 +1080,7 @@ struct return_value_policy_override<
 
 // Basic python -> C++ casting; throws if casting fails
 template <typename T>
-make_caster<T> &load_type(make_caster<T> &conv, const handle &handle) {
+make_caster_intrinsic<T> &load_type(make_caster_intrinsic<T> &conv, const handle &handle) {
     static_assert(!detail::is_pyobject<T>::value,
                   "Internal error: type_caster should only be used for C++ types");
     if (!conv.load(handle, true)) {
@@ -1097,7 +1100,7 @@ template <typename T>
 make_caster<T> load_type(const handle &handle) {
     PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
     make_caster<T> conv;
-    load_type<T>(conv, handle);
+    load_type(conv, handle);
     return conv;
 }
 
@@ -1235,7 +1238,7 @@ template <typename T>
 enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o,
                                                                      make_caster<T> &caster) {
     PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
-    return cast_op<T>(load_type<T>(caster, o));
+    return cast_op<T>(load_type(caster, o));
 }
 template <typename T>
 enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&,
