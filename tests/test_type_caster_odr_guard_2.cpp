@@ -1,6 +1,11 @@
 #define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED true
 #include "pybind11_tests.h"
 
+// For test of real-world issue.
+#include "pybind11/stl_bind.h"
+
+#include <vector>
+
 namespace mrc_ns { // minimal real caster
 
 struct type_mrc {
@@ -36,7 +41,13 @@ struct minimal_real_caster {
     }
 };
 
+// Intentionally not called from Python: this test is to exercise the ODR guard,
+// not stl.h or stl_bind.h.
+inline void pass_vector_type_mrc(const std::vector<type_mrc> &) {}
+
 } // namespace mrc_ns
+
+PYBIND11_MAKE_OPAQUE(std::vector<mrc_ns::type_mrc>);
 
 namespace pybind11 {
 namespace detail {
@@ -48,4 +59,11 @@ struct type_caster<mrc_ns::type_mrc> : mrc_ns::minimal_real_caster {};
 TEST_SUBMODULE(type_caster_odr_guard_2, m) {
     m.def("type_mrc_to_python", []() { return mrc_ns::type_mrc(202); });
     m.def("type_mrc_from_python", [](const mrc_ns::type_mrc &obj) { return obj.value + 200; });
+
+    // Uncomment and run test_type_caster_odr_guard_1.py to verify that the
+    // test_type_caster_odr_violation_detected_counter subtest fails
+    // (num_violations 2 instead of 1).
+    // Unlike the "controlled ODR violation" for the minimal_real_caster, this ODR violation is
+    // completely unsafe, therefore it cannot portably be exercised with predictable results.
+    // m.def("pass_vector_type_mrc", mrc_ns::pass_vector_type_mrc);
 }
