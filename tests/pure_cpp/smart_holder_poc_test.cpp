@@ -37,6 +37,16 @@ private:
     ~indestructible_int() = default;
 };
 
+struct base {
+    virtual int get() { return 10; }
+    virtual ~base() { }
+};
+
+struct derived: public base {
+    int get() override { return 100; }
+    ~derived() override { }
+};
+
 } // namespace helpers
 
 TEST_CASE("from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
@@ -225,6 +235,24 @@ TEST_CASE("from_unique_ptr+as_shared_ptr", "[S]") {
     std::shared_ptr<int> new_owner = hld.as_shared_ptr<int>();
     REQUIRE(hld.has_pointee());
     REQUIRE(*new_owner == 19);
+}
+
+TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base", "[E]") {
+    std::unique_ptr<helpers::derived> orig_owner(new helpers::derived());
+    auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
+    REQUIRE(orig_owner.get() == nullptr);
+    std::unique_ptr<helpers::base> new_owner = hld.as_unique_ptr<helpers::base>();
+    REQUIRE(!hld.has_pointee());
+    REQUIRE(new_owner->get() == 100);
+}
+
+TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[E]") {
+    std::unique_ptr<helpers::derived, helpers::functor_other_delete<helpers::derived>>
+        orig_owner(new helpers::derived());
+    auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
+    REQUIRE(orig_owner.get() == nullptr);
+    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
+                        "Incompatible unique_ptr deleter (as_unique_ptr).");
 }
 
 TEST_CASE("from_unique_ptr_with_deleter+as_lvalue_ref", "[S]") {
