@@ -251,8 +251,9 @@ TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[E]") {
         orig_owner(new helpers::derived());
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
-                        "Incompatible unique_ptr deleter (as_unique_ptr).");
+    REQUIRE_THROWS_WITH(
+        (hld.as_unique_ptr<helpers::base, helpers::functor_builtin_delete<helpers::base>>()),
+        "Incompatible unique_ptr deleter (as_unique_ptr).");
 }
 
 TEST_CASE("from_unique_ptr_with_deleter+as_lvalue_ref", "[S]") {
