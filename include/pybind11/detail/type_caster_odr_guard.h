@@ -8,7 +8,7 @@
 // (https://en.cppreference.com/w/cpp/language/tu_local), a C++20 feature, but
 // all tested C++17 compilers support this feature already.
 #if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
-    && (defined(_MSC_VER) || defined(PYBIND11_CPP17))
+    && ((defined(_MSC_VER) && _MSC_VER >= 1920) || defined(PYBIND11_CPP17))
 #    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 #endif
 
@@ -41,6 +41,19 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+struct src_loc {
+    const char *file;
+    unsigned line;
+
+    // constexpr src_loc() : file(nullptr), line(0) {}
+    constexpr src_loc(const char *file, unsigned line) : file(file), line(line) {}
+
+    static constexpr src_loc here(const char *file = __builtin_FILE(),
+                                  unsigned line = __builtin_LINE()) {
+        return src_loc(file, line);
+    }
+};
+
 inline std::unordered_map<std::type_index, std::string> &type_caster_odr_guard_registry() {
     static std::unordered_map<std::type_index, std::string> reg;
     return reg;
@@ -67,14 +80,23 @@ inline const char *source_file_line_basename(const char *sfl) {
 
 inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info,
                                        const char *source_file_line,
+                                       const src_loc &sloc,
                                        bool throw_disabled) {
     // std::cout cannot be used here: static initialization could be incomplete.
-#    define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_OFF
+#    define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_ON
 #    ifdef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_ON
     std::fprintf(stdout,
                  "\nTYPE_CASTER_ODR_GUARD_IMPL %s %s\n",
                  clean_type_id(intrinsic_type_info.name()).c_str(),
                  source_file_line);
+    std::string source_file_line_from_sloc
+        = std::string(sloc.file) + ':' + std::to_string(sloc.line);
+    std::fprintf(stdout,
+                 "%s %s %s\n",
+                 (source_file_line_from_sloc == source_file_line ? "                 SLOC_SAME"
+                                                                 : "                 SLOC_DIFF"),
+                 clean_type_id(intrinsic_type_info.name()).c_str(),
+                 source_file_line_from_sloc.c_str());
     std::fflush(stdout);
 #    endif
     auto ins = type_caster_odr_guard_registry().insert(
@@ -101,16 +123,36 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
 namespace {
 
 template <size_t N, typename... Ts>
-struct tu_local_descr : descr<N, Ts...> {
-    using descr_t = descr<N, Ts...>;
-    using descr_t::descr_t;
+struct tu_local_descr {
+    char text[N + 1];
+    src_loc sloc;
+
+    constexpr tu_local_descr(src_loc sloc = src_loc::here()) : text{'\0'}, sloc(sloc){};
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr tu_local_descr(char const (&s)[N + 1], src_loc sloc = src_loc::here())
+        : tu_local_descr(s, make_index_sequence<N>(), sloc) {}
+
+    template <size_t... Is>
+    constexpr tu_local_descr(char const (&s)[N + 1],
+                             index_sequence<Is...>,
+                             src_loc sloc = src_loc::here())
+        : text{s[Is]..., '\0'}, sloc(sloc) {}
+
+    template <typename... Chars>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr tu_local_descr(char c, Chars... cs, src_loc sloc = src_loc::here())
+        : text{c, static_cast<char>(cs)..., '\0'}, sloc(sloc) {}
 };
 
 template <size_t N>
-constexpr tu_local_descr<N - 1> tu_local_const_name(char const (&text)[N]) {
-    return tu_local_descr<N - 1>(text);
+constexpr tu_local_descr<N - 1> tu_local_const_name(char const (&text)[N],
+                                                    src_loc sloc = src_loc::here()) {
+    return tu_local_descr<N - 1>(text, sloc);
 }
-constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1]) { return {}; }
+constexpr tu_local_descr<0> tu_local_const_name(char const (&)[1],
+                                                src_loc sloc = src_loc::here()) {
+    return tu_local_descr<0>(sloc);
+}
 
 struct tu_local_no_data_always_false {
     explicit operator bool() const noexcept { return false; }
@@ -165,6 +207,7 @@ tu_local_no_data_always_false
           type_caster_odr_guard_impl(
               typeid(IntrinsicType),
               get_type_caster_source_file_line<TypeCasterType>::source_file_line.text,
+              get_type_caster_source_file_line<TypeCasterType>::source_file_line.sloc,
               PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
           return tu_local_no_data_always_false();
       }();
