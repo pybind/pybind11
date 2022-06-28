@@ -143,6 +143,19 @@ struct get_type_caster_source_file_line<
 template <typename IntrinsicType, typename TypeCasterType>
 struct type_caster_odr_guard : TypeCasterType {
     static tu_local_no_data_always_false translation_unit_local;
+
+    type_caster_odr_guard() {
+        if (translation_unit_local) {
+        }
+    }
+
+    template <typename CType, typename... Arg>
+    static handle cast(CType &&src, return_value_policy policy, handle parent, Arg &&...arg) {
+        if (translation_unit_local) {
+        }
+        return TypeCasterType::cast(
+            std::forward<CType>(src), policy, parent, std::forward<Arg>(arg)...);
+    }
 };
 
 template <typename IntrinsicType, typename TypeCasterType>
@@ -163,8 +176,6 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         static constexpr auto source_file_line                                                    \
             = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
 
-#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)                        \
-        if (::pybind11::detail::make_caster<__VA_ARGS__>::translation_unit_local) {               \
-        }
+#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)
 
 #endif
