@@ -581,7 +581,8 @@ public:
     error_already_set()
         : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
                           m_fetched_error_deleter} {
-        static_cast<std::nested_exception&>(*this) = m_fetched_error->get_cause_as_nested();
+        if (not nested_ptr())
+            static_cast<std::nested_exception&>(*this) = m_fetched_error->get_cause_as_nested();
     }
 
     /// The what() result is built lazily on demand.
