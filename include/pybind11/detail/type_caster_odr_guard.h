@@ -124,10 +124,10 @@ namespace {
 
 template <size_t N, typename... Ts>
 struct tu_local_descr {
-    char text[N + 1];
+    char text[N + 1]{'\0'};
     src_loc sloc;
 
-    constexpr tu_local_descr(src_loc sloc = src_loc::here()) : text{'\0'}, sloc(sloc){};
+    explicit constexpr tu_local_descr(src_loc sloc = src_loc::here()) : sloc(sloc) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr tu_local_descr(char const (&s)[N + 1], src_loc sloc = src_loc::here())
         : tu_local_descr(s, make_index_sequence<N>(), sloc) {}
