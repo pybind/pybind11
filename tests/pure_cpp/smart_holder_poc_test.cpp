@@ -44,7 +44,6 @@ struct base {
 
 struct derived : public base {
     int get() override { return 100; }
-    ~derived() override = default;
 };
 
 } // namespace helpers
@@ -237,7 +236,7 @@ TEST_CASE("from_unique_ptr+as_shared_ptr", "[S]") {
     REQUIRE(*new_owner == 19);
 }
 
-TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base", "[E]") {
+TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base", "[S]") {
     std::unique_ptr<helpers::derived> orig_owner(new helpers::derived());
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
@@ -246,7 +245,7 @@ TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base", "[E]") {
     REQUIRE(new_owner->get() == 100);
 }
 
-TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[E]") {
+TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[S]") {
     std::unique_ptr<helpers::derived, helpers::functor_other_delete<helpers::derived>> orig_owner(
         new helpers::derived());
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
