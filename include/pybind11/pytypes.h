@@ -574,7 +574,8 @@ PYBIND11_NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception, public std::nested_exception {
+class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception,
+                                                    public std::nested_exception {
 public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
@@ -582,7 +583,7 @@ public:
         : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
                           m_fetched_error_deleter} {
         if (not nested_ptr())
-            static_cast<std::nested_exception&>(*this) = m_fetched_error->get_cause_as_nested();
+            static_cast<std::nested_exception &>(*this) = m_fetched_error->get_cause_as_nested();
     }
 
     /// The what() result is built lazily on demand.
