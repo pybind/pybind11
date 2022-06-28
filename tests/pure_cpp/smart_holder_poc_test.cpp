@@ -39,12 +39,12 @@ private:
 
 struct base {
     virtual int get() { return 10; }
-    virtual ~base() {}
+    virtual ~base() = default;
 };
 
 struct derived : public base {
     int get() override { return 100; }
-    ~derived() override {}
+    ~derived() override = default;
 };
 
 } // namespace helpers
