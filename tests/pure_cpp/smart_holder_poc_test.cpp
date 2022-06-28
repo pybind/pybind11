@@ -39,12 +39,12 @@ private:
 
 struct base {
     virtual int get() { return 10; }
-    virtual ~base() { }
+    virtual ~base() {}
 };
 
-struct derived: public base {
+struct derived : public base {
     int get() override { return 100; }
-    ~derived() override { }
+    ~derived() override {}
 };
 
 } // namespace helpers
@@ -247,8 +247,8 @@ TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base", "[E]") {
 }
 
 TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[E]") {
-    std::unique_ptr<helpers::derived, helpers::functor_other_delete<helpers::derived>>
-        orig_owner(new helpers::derived());
+    std::unique_ptr<helpers::derived, helpers::functor_other_delete<helpers::derived>> orig_owner(
+        new helpers::derived());
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
     REQUIRE_THROWS_WITH(

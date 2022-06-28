@@ -183,8 +183,8 @@ struct smart_holder {
             ensure_vptr_is_using_builtin_delete(context);
         } else if (!(*rtti_requested == *rtti_uqp_del)) {
             if (!(vptr_is_using_builtin_delete && is_std_default_delete<T>(*rtti_requested))) {
-                throw std::invalid_argument(std::string("Incompatible unique_ptr deleter (") + context
-                                            + ").");
+                throw std::invalid_argument(std::string("Incompatible unique_ptr deleter (")
+                                            + context + ").");
             }
         }
     }
