@@ -64,14 +64,14 @@ inline unsigned &type_caster_odr_violation_detected_counter() {
     return counter;
 }
 
-inline const char *source_file_line_basename(const char *sfl) {
+inline std::string source_file_line_basename(const char *sfl) {
     unsigned i_base = 0;
     for (unsigned i = 0; sfl[i] != '\0'; i++) {
         if (sfl[i] == '/' || sfl[i] == '\\') {
             i_base = i + 1;
         }
     }
-    return sfl + i_base;
+    return std::string(sfl + i_base);
 }
 
 #    ifndef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED
@@ -79,7 +79,7 @@ inline const char *source_file_line_basename(const char *sfl) {
 #    endif
 
 inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info,
-                                       const char *source_file_line,
+                                       const char *source_file_line_from_macros,
                                        const src_loc &sloc,
                                        bool throw_disabled) {
     // std::cout cannot be used here: static initialization could be incomplete.
@@ -88,28 +88,29 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
     std::fprintf(stdout,
                  "\nTYPE_CASTER_ODR_GUARD_IMPL %s %s\n",
                  clean_type_id(intrinsic_type_info.name()).c_str(),
-                 source_file_line);
+                 source_file_line_from_macros);
     std::string source_file_line_from_sloc
         = std::string(sloc.file) + ':' + std::to_string(sloc.line);
     std::fprintf(stdout,
                  "%s %s %s\n",
-                 (source_file_line_from_sloc == source_file_line ? "                 SLOC_SAME"
-                                                                 : "                 SLOC_DIFF"),
+                 (source_file_line_from_sloc == source_file_line_from_macros
+                      ? "                 SLOC_SAME"
+                      : "                 SLOC_DIFF"),
                  clean_type_id(intrinsic_type_info.name()).c_str(),
                  source_file_line_from_sloc.c_str());
     std::fflush(stdout);
 #    endif
     auto ins = type_caster_odr_guard_registry().insert(
-        {std::type_index(intrinsic_type_info), source_file_line});
+        {std::type_index(intrinsic_type_info), source_file_line_from_sloc});
     auto reg_iter = ins.first;
     auto added = ins.second;
     if (!added
-        && strcmp(source_file_line_basename(reg_iter->second.c_str()),
-                  source_file_line_basename(source_file_line))
-               != 0) {
+        && source_file_line_basename(reg_iter->second.c_str())
+               != source_file_line_basename(source_file_line_from_sloc.c_str())) {
         std::string msg("ODR VIOLATION DETECTED: pybind11::detail::type_caster<"
                         + clean_type_id(intrinsic_type_info.name()) + ">: SourceLocation1=\""
-                        + reg_iter->second + "\", SourceLocation2=\"" + source_file_line + "\"");
+                        + reg_iter->second + "\", SourceLocation2=\"" + source_file_line_from_sloc
+                        + "\"");
         if (throw_disabled) {
             std::fprintf(stderr, "\nDISABLED std::system_error: %s\n", msg.c_str());
             std::fflush(stderr);
