@@ -840,6 +840,8 @@ def test_issue738_issue2038():
     )
 
     assert np.all(m.iss738_f1(np.zeros((0, 2))) == np.zeros((0, 2)))
+    assert np.all(m.iss738_f1(np.zeros((2, 0))) == np.zeros((2, 0)))
+    assert np.all(m.iss738_f2(np.zeros((0, 2))) == np.zeros((0, 2)))
     assert np.all(m.iss738_f2(np.zeros((2, 0))) == np.zeros((2, 0)))
 
 
