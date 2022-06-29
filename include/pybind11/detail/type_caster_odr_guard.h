@@ -6,11 +6,16 @@
 
 // The type_caster ODR guard feature requires Translation-Unit-local entities
 // (https://en.cppreference.com/w/cpp/language/tu_local), a C++20 feature, but
-// all tested C++17 compilers support this feature already.
+// almost all tested C++17 compilers support this feature already.
 #if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
+    && !defined(__INTEL_COMPILER)                                                                 \
     && ((defined(_MSC_VER) && _MSC_VER >= 1920) || defined(PYBIND11_CPP17))
 #    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 #endif
+// To explain the above:
+// * MSVC 2017 does not support __builtin_FILE(), __builtin_LINE().
+// * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
+//   (line numbers vary between translation units).
 
 #ifndef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
@@ -20,8 +25,7 @@
 
 #else
 
-#    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)                      \
-        && !defined(__INTEL_COMPILER)
+#    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)
 #        pragma GCC diagnostic ignored "-Wsubobject-linkage"
 #    endif
 
@@ -82,15 +86,15 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
                                        const char *source_file_line_from_macros,
                                        const src_loc &sloc,
                                        bool throw_disabled) {
+    std::string source_file_line_from_sloc
+        = std::string(sloc.file) + ':' + std::to_string(sloc.line);
     // std::cout cannot be used here: static initialization could be incomplete.
-#    define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_ON
+#    define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_OFF
 #    ifdef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_ON
     std::fprintf(stdout,
                  "\nTYPE_CASTER_ODR_GUARD_IMPL %s %s\n",
                  clean_type_id(intrinsic_type_info.name()).c_str(),
                  source_file_line_from_macros);
-    std::string source_file_line_from_sloc
-        = std::string(sloc.file) + ':' + std::to_string(sloc.line);
     std::fprintf(stdout,
                  "%s %s %s\n",
                  (source_file_line_from_sloc == source_file_line_from_macros
@@ -99,6 +103,8 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
                  clean_type_id(intrinsic_type_info.name()).c_str(),
                  source_file_line_from_sloc.c_str());
     std::fflush(stdout);
+#    else
+    silence_unused_warnings(source_file_line_from_macros);
 #    endif
     auto ins = type_caster_odr_guard_registry().insert(
         {std::type_index(intrinsic_type_info), source_file_line_from_sloc});
