@@ -16,7 +16,7 @@ jobs:
   standard:
     name: "🐍 3.11 dev • ubuntu-latest • x64"
     runs-on: ubuntu-latest
-    if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
+    if: "contains(github.event.pull_request.labels.*.name, 'python dev') || github.event_name == 'workflow_dispatch'"
 
     steps:
     - uses: actions/checkout@v3
@@ -110,3 +110,23 @@ jobs:
     # setuptools
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
+
+  pypy:
+    name: "🐍 PyPy ${{ matrix.pypy-version }} dev • ${{ matrix.runs-on }} • x64"
+    runs-on: ${{ matrix.runs-on }}
+    if: "contains(github.event.pull_request.labels.*.name, 'python dev') || github.event_name == 'workflow_dispatch'"
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest]
+        pypy-version: ["3.7", "3.8", "3.9"]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Boost (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get install libboost-dev
+
+    - name: Build and test
+      run: pipx run nox -s 'pypy_upstream(${{ matrix.pypy-version }})'
