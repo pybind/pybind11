@@ -64,6 +64,10 @@ struct src_loc {
 
 #endif
 
+#ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
+namespace {
+#endif
+
 /* Concatenate type signatures at compile time */
 template <size_t N, typename... Ts>
 struct descr {
@@ -211,6 +215,10 @@ constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {
     // Ensure that src_loc of existing descr is used.
     return const_name("{", src_loc{nullptr, 0}) + descr + const_name("}");
 }
+
+#ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
+} // namespace
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

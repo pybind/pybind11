@@ -199,7 +199,7 @@ tu_local_no_data_always_false
           type_caster_odr_guard_impl(
               typeid(IntrinsicType),
               get_type_caster_source_file_line<TypeCasterType>::source_file_line.text,
-              get_type_caster_source_file_line<TypeCasterType>::source_file_line.sloc,
+              TypeCasterType::name.sloc,
               PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
           return tu_local_no_data_always_false();
       }();
