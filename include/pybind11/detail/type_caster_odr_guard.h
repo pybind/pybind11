@@ -4,18 +4,16 @@
 
 #pragma once
 
+#include "descr.h"
+
 // The type_caster ODR guard feature requires Translation-Unit-local entities
 // (https://en.cppreference.com/w/cpp/language/tu_local), a C++20 feature, but
 // almost all tested C++17 compilers support this feature already.
+// This highly correlates with the preconditions for PYBIND11_DETAIL_DESCR_SRC_LOC_ON.
 #if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
-    && !defined(__INTEL_COMPILER)                                                                 \
-    && ((defined(_MSC_VER) && _MSC_VER >= 1920) || defined(PYBIND11_CPP17))
+    && defined(PYBIND11_DETAIL_DESCR_SRC_LOC_ON)
 #    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 #endif
-// To explain the above:
-// * MSVC 2017 does not support __builtin_FILE(), __builtin_LINE().
-// * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
-//   (line numbers vary between translation units).
 
 #ifndef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
@@ -31,7 +29,6 @@
 
 #    include "../pytypes.h"
 #    include "common.h"
-#    include "descr.h"
 #    include "typeid.h"
 
 #    include <cstdio>
@@ -45,19 +42,6 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
-
-struct src_loc {
-    const char *file;
-    unsigned line;
-
-    // constexpr src_loc() : file(nullptr), line(0) {}
-    constexpr src_loc(const char *file, unsigned line) : file(file), line(line) {}
-
-    static constexpr src_loc here(const char *file = __builtin_FILE(),
-                                  unsigned line = __builtin_LINE()) {
-        return src_loc(file, line);
-    }
-};
 
 inline std::unordered_map<std::type_index, std::string> &type_caster_odr_guard_registry() {
     static std::unordered_map<std::type_index, std::string> reg;
