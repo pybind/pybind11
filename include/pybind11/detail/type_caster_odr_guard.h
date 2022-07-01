@@ -29,6 +29,7 @@
 #        pragma GCC diagnostic ignored "-Wsubobject-linkage"
 #    endif
 
+#    include "../pytypes.h"
 #    include "common.h"
 #    include "descr.h"
 #    include "typeid.h"
