@@ -122,7 +122,9 @@ struct int_to_str : int_to_str<Rem / 10, Rem % 10, Digits...> {};
 template <size_t... Digits>
 struct int_to_str<0, Digits...> {
     // WARNING: This only works with C++17 or higher.
-    static constexpr auto digits = descr<sizeof...(Digits)>(src_loc::here(), ('0' + Digits)...);
+    // src_loc not tracked (irrelevant in this situation, at least at the moment).
+    static constexpr auto digits
+        = descr<sizeof...(Digits)>(src_loc{nullptr, 0}, ('0' + Digits)...);
 };
 
 // Ternary description (like std::conditional)
