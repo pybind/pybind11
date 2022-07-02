@@ -15,7 +15,6 @@ struct type_mrc {
 
 struct minimal_real_caster {
     static constexpr auto name = py::detail::const_name<type_mrc>();
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     static py::handle
     cast(type_mrc const &src, py::return_value_policy /*policy*/, py::handle /*parent*/) {

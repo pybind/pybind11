@@ -28,7 +28,6 @@ template <>
 class type_caster<ConstRefCasted> {
 public:
     static constexpr auto name = const_name<ConstRefCasted>();
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // Input is unimportant, a new value will always be constructed based on the
     // cast operator.

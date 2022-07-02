@@ -392,7 +392,6 @@ public:
     }
 
     static constexpr auto name = props::descriptor;
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator Type *() { return &value; }
@@ -437,7 +436,6 @@ public:
     }
 
     static constexpr auto name = props::descriptor;
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // Explicitly delete these: support python -> C++ conversion on these (i.e. these can be return
     // types but not bound arguments).  We still provide them (with an explicitly delete) so that
@@ -625,7 +623,6 @@ public:
     }
 
     static constexpr auto name = props::descriptor;
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     // Explicitly delete these: support python -> C++ conversion on these (i.e. these can be return
     // types but not bound arguments).  We still provide them (with an explicitly delete) so that

@@ -13,7 +13,6 @@
 #include "common.h"
 #include "descr.h"
 #include "internals.h"
-#include "type_caster_odr_guard.h"
 #include "typeid.h"
 
 #include <cstdint>
@@ -912,7 +911,6 @@ class type_caster_base : public type_caster_generic {
 
 public:
     static constexpr auto name = const_name<type>();
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     type_caster_base() : type_caster_base(typeid(type)) {}
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}

@@ -134,7 +134,6 @@ protected:
 
 public:
     static constexpr auto name = const_name("CopyOnlyInt");
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
     bool load(handle src, bool) {
         value = CopyOnlyInt(src.cast<int>());
         return true;

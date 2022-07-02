@@ -95,7 +95,6 @@ private:
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
     static handle
     cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
@@ -110,13 +109,12 @@ public:
     explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
-#define PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
+#define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
 protected:                                                                                        \
     type value;                                                                                   \
                                                                                                   \
 public:                                                                                           \
-    static constexpr auto name = py_name;
-#define PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)                                                    \
+    static constexpr auto name = py_name;                                                         \
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
@@ -137,22 +135,6 @@ public:                                                                         
     operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
     template <typename T_>                                                                        \
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
-
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
-
-#    define PYBIND11_TYPE_CASTER(type, py_name)                                                   \
-        PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
-        static constexpr auto source_file_line                                                    \
-            = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));  \
-        PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)
-
-#else
-
-#    define PYBIND11_TYPE_CASTER(type, py_name)                                                   \
-        PYBIND11_DETAIL_TYPE_CASTER_HEAD(type, py_name)                                           \
-        PYBIND11_DETAIL_TYPE_CASTER_TAIL(type)
-
-#endif
 
 template <typename CharT>
 using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
@@ -346,7 +328,6 @@ public:
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
     static constexpr auto name = const_name("capsule");
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
 private:
     void *value = nullptr;
@@ -667,7 +648,6 @@ public:
     }
 
     static constexpr auto name = const_name(PYBIND11_STRING_NAME);
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
     template <typename _T>
     using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
@@ -712,7 +692,6 @@ public:
 
     static constexpr auto name
         = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
     template <typename T>
     using cast_op_type = type;
@@ -885,7 +864,6 @@ struct move_only_holder_caster {
         return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
-    PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 };
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
