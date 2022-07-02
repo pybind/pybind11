@@ -344,7 +344,6 @@ struct variant_caster_visitor {
 
     template <typename T>
     result_type operator()(T &&src) const {
-        PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(T)
         return make_caster<T>::cast(std::forward<T>(src), policy, parent);
     }
 };

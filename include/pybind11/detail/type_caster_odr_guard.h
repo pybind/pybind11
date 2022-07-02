@@ -19,8 +19,6 @@
 
 #    define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE
 
-#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)
-
 #else
 
 #    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)
@@ -210,7 +208,5 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #    define PYBIND11_TYPE_CASTER_SOURCE_FILE_LINE                                                 \
         static constexpr auto source_file_line                                                    \
             = ::pybind11::detail::tu_local_const_name(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
-
-#    define PYBIND11_DETAIL_TYPE_CASTER_ACCESS_TRANSLATION_UNIT_LOCAL(...)
 
 #endif
