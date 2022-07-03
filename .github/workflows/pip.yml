@@ -91,6 +91,8 @@ jobs:
 
     steps:
     - uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
 
     # Downloads all to directories matching the artifact names
     - uses: actions/download-artifact@v3

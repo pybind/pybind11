@@ -681,6 +681,8 @@ jobs:
     - uses: actions/checkout@v3
 
     - uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
 
     - name: Install Doxygen
       run: sudo apt-get install -y doxygen librsvg2-bin # Changed to rsvg-convert in 20.04
