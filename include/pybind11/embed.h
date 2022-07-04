@@ -149,8 +149,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
 #else
     PyConfig config;
-    PyConfig_InitPythonConfig(&config);
-    config.safe_path = add_program_dir_to_path ? 0 : 1;
+    PyConfig_InitIsolatedConfig(&config);
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
 
     PyStatus status = PyConfig_SetBytesArgv(&config, argc, const_cast<char *const *>(argv));
@@ -158,10 +157,19 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
         PyConfig_Clear(&config);
-        return;
+        throw std::runtime_error("Failed to prepare CPython");
     }
-    Py_InitializeFromConfig(&config);
+    status = Py_InitializeFromConfig(&config);
     PyConfig_Clear(&config);
+    if (PyStatus_Exception(status)) {
+        throw std::runtime_error("Failed to init CPython");
+    }
+    if (add_program_dir_to_path) {
+        PyRun_SimpleString("import sys, os.path; "
+                           "sys.path.insert(0, "
+                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
+                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
+    }
 #endif
 }
 
