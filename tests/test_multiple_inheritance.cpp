@@ -230,10 +230,8 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     struct VanillaDictMix1 : Vanilla, WithDict {};
     struct VanillaDictMix2 : WithDict, Vanilla {};
     py::class_<WithDict>(m, "WithDict", py::dynamic_attr()).def(py::init<>());
-    py::class_<VanillaDictMix1, Vanilla, WithDict>(m, "VanillaDictMix1", py::dynamic_attr())
-        .def(py::init<>());
-    py::class_<VanillaDictMix2, WithDict, Vanilla>(m, "VanillaDictMix2", py::dynamic_attr())
-        .def(py::init<>());
+    py::class_<VanillaDictMix1, Vanilla, WithDict>(m, "VanillaDictMix1").def(py::init<>());
+    py::class_<VanillaDictMix2, WithDict, Vanilla>(m, "VanillaDictMix2").def(py::init<>());
 
     // test_diamond_inheritance
     // Issue #959: segfault when constructing diamond inheritance instance
