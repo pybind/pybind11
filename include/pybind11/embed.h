@@ -157,12 +157,14 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
         PyConfig_Clear(&config);
-        throw std::runtime_error("Failed to prepare CPython");
+        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
+                                                          : "Failed to prepare CPython");
     }
     status = Py_InitializeFromConfig(&config);
     PyConfig_Clear(&config);
     if (PyStatus_Exception(status)) {
-        throw std::runtime_error("Failed to init CPython");
+        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
+                                                          : "Failed to init CPython");
     }
     if (add_program_dir_to_path) {
         PyRun_SimpleString("import sys, os.path; "
