@@ -10,6 +10,18 @@
 
 #include "pybind11_tests.h"
 
+// clang-format off
+namespace pybind11_ns_vis_uuu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uuh PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uhu PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uhh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_huu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_huh PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_hhu PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_hhh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+//                         ^
+// clang-format on
+
 enum MyEnum { EFirstEntry = 1, ESecondEntry };
 
 std::string test_function1() { return "test_function()"; }
@@ -83,6 +95,8 @@ struct C {
 } // namespace test_exc_sp
 
 TEST_SUBMODULE(constants_and_functions, m) {
+    PYBIND11_NS_VIS_DEFS
+
     // test_constants
     m.attr("some_constant") = py::int_(14);
 

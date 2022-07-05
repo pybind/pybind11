@@ -14,6 +14,18 @@
 #include <functional>
 #include <list>
 
+// clang-format off
+namespace pybind11_ns_vis_uuu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uuh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uhu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uhh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_huu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_huh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_hhu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_hhh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+//                          ^
+// clang-format on
+
 /*
 For testing purposes, we define a static global variable here in a function that each individual
 test .cpp calls with its initialization lambda.  It's convenient here because we can just not
@@ -72,6 +84,8 @@ PYBIND11_MODULE(pybind11_tests, m) {
 #else
     m.attr("detailed_error_messages_enabled") = false;
 #endif
+
+    PYBIND11_NS_VIS_DEFS
 
     py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")
         .def(py::init<>())

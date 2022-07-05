@@ -16,8 +16,22 @@
 #include <numeric>
 #include <utility>
 
+// clang-format off
+namespace pybind11_ns_vis_uuu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uuh PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uhu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_uhh PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_huu PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_huh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_hhu PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+namespace pybind11_ns_vis_hhh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
+//                        ^
+// clang-format on
+
 PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.doc() = "pybind11 cross-module test module";
+
+    PYBIND11_NS_VIS_DEFS
 
     // test_local_bindings.py tests:
     //

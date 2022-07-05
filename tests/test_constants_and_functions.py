@@ -1,6 +1,35 @@
+import itertools
+
 import pytest
 
+import pybind11_cross_module_tests
+import pybind11_tests
+
 m = pytest.importorskip("pybind11_tests.constants_and_functions")
+
+
+def test_namespace_visibility():
+    mdls = (
+        pybind11_tests,
+        pybind11_tests.constants_and_functions,
+        pybind11_cross_module_tests,
+    )
+    codes = []
+    for vis in itertools.product(*([("u", "h")] * len(mdls))):
+        func = "ns_vis_" + "".join(vis) + "_func"
+        addrs = []
+        code = ""
+        for v, mdl in zip(vis, mdls):
+            addr = getattr(mdl, func)(True)
+            addrs.append(addr)
+            c = "ABC"[addrs.index(addr)]
+            if v == "h":
+                c = c.lower()
+            code += c
+        codes.append(code)
+    code_line = ":".join(codes)
+    if code_line != "AAC:AAc:AaC:Aac:aAC:aAc:aaC:aac":
+        pytest.skip(f"UNEXPECTED code_line: {code_line}")
 
 
 def test_constants():
