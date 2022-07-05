@@ -5,7 +5,3 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    ignore:
-      # Official actions have moving tags like v1
-      - dependency-name: "actions/*"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
