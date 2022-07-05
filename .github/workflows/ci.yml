@@ -30,6 +30,7 @@ jobs:
         - '3.6'
         - '3.9'
         - '3.10'
+        - '3.11-dev'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -185,8 +186,8 @@ jobs:
         - python-version: "3.9"
           python-debug: true
           valgrind: true
-      # - python-version: "3.11-dev"
-      #   python-debug: false
+        - python-version: "3.11-dev"
+          python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
     runs-on: ubuntu-latest

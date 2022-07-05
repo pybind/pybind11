@@ -14,7 +14,7 @@ env:
 
 jobs:
   standard:
-    name: "🐍 3.11 dev • ubuntu-latest • x64"
+    name: "🐍 3.11 latest internals • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
