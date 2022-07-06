@@ -6,7 +6,7 @@ Adds docstring and exceptions message sanitizers.
 
 import sys
 
-if sys.platform.startswith("OFFlinux"):
+if sys.platform.startswith("linux"):
     sys.setdlopenflags(0x100 | 0x2)  # RTLD_GLOBAL | RTLD_NOW
 
 import contextlib
