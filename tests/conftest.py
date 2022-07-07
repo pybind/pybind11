@@ -196,15 +196,18 @@ def gc_collect():
 
 
 def pytest_configure():
-    print(
-        "C++ Info:",
-        pybind11_tests.compiler_info,
-        pybind11_tests.cpp_std,
-        pybind11_tests.PYBIND11_INTERNALS_ID,
-        flush=True,
-    )
+    pytest.suppress = suppress
+    pytest.gc_collect = gc_collect
+
+
+def pytest_report_header(config):
+    del config  # Unused.
     assert (
         pybind11_tests.compiler_info is not None
     ), "Please update pybind11_tests.cpp if this assert fails."
-    pytest.suppress = suppress
-    pytest.gc_collect = gc_collect
+    return (
+        "C++ Info:"
+        f" {pybind11_tests.compiler_info}"
+        f" {pybind11_tests.cpp_std}"
+        f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
+    )
