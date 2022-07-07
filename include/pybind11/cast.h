@@ -846,7 +846,7 @@ struct always_construct_holder {
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
-    namespace pybind11 {                                                                          \
+    PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <typename type>                                                                      \
     struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__> {  \
@@ -855,7 +855,7 @@ struct always_construct_holder {
     class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>>               \
         : public type_caster_holder<type, holder_type> {};                                        \
     }                                                                                             \
-    }
+    PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder>
@@ -1650,12 +1650,12 @@ handle type::handle_of() {
 }
 
 #define PYBIND11_MAKE_OPAQUE(...)                                                                 \
-    namespace pybind11 {                                                                          \
+    PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <>                                                                                   \
     class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> {};                     \
     }                                                                                             \
-    }
+    PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 /// Lets you pass a type containing a `,` through a macro parameter without needing a separate
 /// typedef, e.g.:
