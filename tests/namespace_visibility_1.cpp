@@ -14,11 +14,11 @@ namespace pybind11_ns_vis_hhh PYBIND11_NS_VIS_H { PYBIND11_NS_VIS_FUNC }
 //                 bit used .............. here
 // clang-format on
 
-void namespace_visibility_1s(pybind11::module_ &m);
+// void namespace_visibility_1s(pybind11::module_ &m);
 
 PYBIND11_MODULE(namespace_visibility_1, m) {
     PYBIND11_NS_VIS_DEFS
 
-    auto sm = m.def_submodule("submodule");
-    namespace_visibility_1s(sm);
+    // auto sm = m.def_submodule("submodule");
+    // namespace_visibility_1s(sm);
 }

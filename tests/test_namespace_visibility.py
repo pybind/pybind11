@@ -14,7 +14,7 @@ import pytest
 def test_namespace_visibility():
     modules = (
         namespace_visibility_1,
-        namespace_visibility_1.submodule,
+        namespace_visibility_1,  # .submodule,
         namespace_visibility_2,
     )
     unique_pointer_labels = "ABC"
