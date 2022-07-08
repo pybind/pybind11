@@ -38,6 +38,7 @@
 #            define PYBIND11_CPP17
 #            if __cplusplus >= 202002L
 #                define PYBIND11_CPP20
+// Please update tests/pybind11_tests.cpp `cpp_std()` when adding a macro here.
 #            endif
 #        endif
 #    endif
