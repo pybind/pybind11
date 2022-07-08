@@ -157,6 +157,7 @@ set(PYBIND11_TEST_FILES
     test_methods_and_attributes
     test_modules
     test_multiple_inheritance
+    test_namespace_visibility.py
     test_numpy_array
     test_numpy_dtypes
     test_numpy_vectorize
@@ -236,6 +237,7 @@ tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_class_sh_module_local.py"
                     "class_sh_module_local_0;class_sh_module_local_1;class_sh_module_local_2")
+tests_extra_targets("test_namespace_visibility.py" "namespace_visibility_1;namespace_visibility_2")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
@@ -426,8 +428,11 @@ if(PYBIND11_CUDA_TESTS)
 endif()
 
 foreach(target ${test_targets})
-  set(test_files ${PYBIND11_TEST_FILES})
-  if(NOT "${target}" STREQUAL "pybind11_tests")
+  if("${target}" STREQUAL "pybind11_tests")
+    set(test_files ${PYBIND11_TEST_FILES})
+  elseif("${target}" STREQUAL "namespace_visibility_1")
+    set(test_files namespace_visibility_1s.cpp)
+  else()
     set(test_files "")
   endif()
 
