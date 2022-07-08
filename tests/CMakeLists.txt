@@ -428,9 +428,8 @@ if(PYBIND11_CUDA_TESTS)
 endif()
 
 foreach(target ${test_targets})
-  if("${target}" STREQUAL "pybind11_tests")
-    set(test_files ${PYBIND11_TEST_FILES})
-  else()
+  set(test_files ${PYBIND11_TEST_FILES})
+  if(NOT "${target}" STREQUAL "pybind11_tests")
     set(test_files "")
   endif()
 
