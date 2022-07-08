@@ -11,6 +11,9 @@ import namespace_visibility_2
 import pytest
 
 
+@pytest.mark.skipif(
+    namespace_visibility_1.__doc__ == "DISABLED", reason="DISABLED for debugging"
+)
 def test_namespace_visibility():
     modules = (
         namespace_visibility_1,
