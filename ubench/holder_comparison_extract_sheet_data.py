@@ -1,8 +1,5 @@
 """Extract mean ratios from holder_comparison.py output."""
 
-# Targeting B023, but there does not seem to be a way to globally suppress just
-# that one diagnostic.
-# flake8: noqa
 
 import sys
 from typing import List, Optional
