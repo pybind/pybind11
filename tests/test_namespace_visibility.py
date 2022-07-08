@@ -1,11 +1,12 @@
 import namespace_visibility_1
 import namespace_visibility_2
-import pybind11_cross_module_tests as cm
 import pytest
+
+import pybind11_cross_module_tests as cm
 
 
 def test_namespace_visibility():
-    del cm  # Unused.
+    assert cm.__doc__ is not None
     modules = (
         namespace_visibility_1,
         namespace_visibility_2,
