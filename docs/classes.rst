@@ -482,7 +482,7 @@ The binding code for this example looks as follows:
         .value("Cat", Pet::Kind::Cat)
         .export_values();
 
-    py::class_<Pet::Attributes> attributes(pet, "Attributes")
+    py::class_<Pet::Attributes>(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
 

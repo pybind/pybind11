@@ -78,6 +78,8 @@ const char *cpp_std() {
 PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
+    // Intentionally kept minimal to not create a maintenance chore
+    // ("just enough" to be conclusive).
 #if defined(_MSC_FULL_VER)
     m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
 #elif defined(__VERSION__)

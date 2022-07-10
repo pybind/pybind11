@@ -46,7 +46,7 @@ repos:
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: "22.3.0" # Keep in sync with blacken-docs
+  rev: "22.6.0" # Keep in sync with blacken-docs
   hooks:
   - id: black
 
@@ -56,11 +56,11 @@ repos:
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==22.3.0 # keep in sync with black hook
+    - black==22.6.0 # keep in sync with black hook
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.2.0"
+  rev: "v1.3.0"
   hooks:
   - id: remove-tabs
     exclude: (^docs/.*|\.patch)?$
@@ -105,12 +105,12 @@ repos:
   rev: "4.0.1"
   hooks:
   - id: flake8
-    exclude: ^(docs/.*|tools/.*)$
+    exclude: ^(docs/.*|tools/.*|ubench/.*)$
     additional_dependencies: *flake8_dependencies
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.14.3"
+  rev: "v2.14.4"
   hooks:
   - id: pylint
     files: ^pybind11
@@ -167,7 +167,7 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v14.0.5"
+  rev: "v14.0.6"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
