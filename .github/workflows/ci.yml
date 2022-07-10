@@ -31,6 +31,7 @@ jobs:
         - '3.6'
         - '3.9'
         - '3.10'
+        - '3.11-dev'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -66,7 +67,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 
@@ -186,8 +187,8 @@ jobs:
         - python-version: "3.9"
           python-debug: true
           valgrind: true
-      # - python-version: "3.11-dev"
-      #   python-debug: false
+        - python-version: "3.11-dev"
+          python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
     runs-on: ubuntu-latest
@@ -687,7 +688,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
 
     - name: Install Doxygen
       run: sudo apt-get install -y doxygen librsvg2-bin # Changed to rsvg-convert in 20.04
@@ -735,7 +738,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -788,7 +791,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -836,7 +839,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 

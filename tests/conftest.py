@@ -13,7 +13,7 @@ import textwrap
 import pytest
 
 # Early diagnostic for failed imports
-import pybind11_tests  # noqa: F401
+import pybind11_tests
 
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
@@ -198,3 +198,16 @@ def gc_collect():
 def pytest_configure():
     pytest.suppress = suppress
     pytest.gc_collect = gc_collect
+
+
+def pytest_report_header(config):
+    del config  # Unused.
+    assert (
+        pybind11_tests.compiler_info is not None
+    ), "Please update pybind11_tests.cpp if this assert fails."
+    return (
+        "C++ Info:"
+        f" {pybind11_tests.compiler_info}"
+        f" {pybind11_tests.cpp_std}"
+        f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
+    )
