@@ -30,6 +30,7 @@ jobs:
         - '3.6'
         - '3.9'
         - '3.10'
+        - '3.11-dev'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -65,7 +66,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 
@@ -185,8 +186,8 @@ jobs:
         - python-version: "3.9"
           python-debug: true
           valgrind: true
-      # - python-version: "3.11-dev"
-      #   python-debug: false
+        - python-version: "3.11-dev"
+          python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
     runs-on: ubuntu-latest
@@ -584,18 +585,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        centos:
-          - centos7  # GCC 4.8
-          - stream8
+        container:
+          - "centos:7"  # GCC 4.8
+          - "almalinux:8"
+          - "almalinux:9"
 
-    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
-    container: "quay.io/centos/centos:${{ matrix.centos }}"
+    name: "🐍 3 • ${{ matrix.container }} • x64"
+    container: "${{ matrix.container }}"
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Add Python 3
+    - name: Add Python 3 (RHEL 7)
+      if: matrix.container == 'centos:7'
       run: yum update -y && yum install -y python3-devel gcc-c++ make git
+
+    - name: Add Python 3 (RHEL 8+)
+      if: matrix.container != 'centos:7'
+      run: dnf update -y && dnf install -y python3-devel gcc-c++ make git
 
     - name: Update pip
       run: python3 -m pip install --upgrade pip
@@ -680,7 +687,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
 
     - name: Install Doxygen
       run: sudo apt-get install -y doxygen librsvg2-bin # Changed to rsvg-convert in 20.04
@@ -728,7 +737,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -781,7 +790,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -829,7 +838,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 

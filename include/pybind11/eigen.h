@@ -111,10 +111,16 @@ struct EigenConformable {
     bool stride_compatible() const {
         // To have compatible strides, we need (on both dimensions) one of fully dynamic strides,
         // matching strides, or a dimension size of 1 (in which case the stride value is
-        // irrelevant)
-        return !negativestrides
-               && (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner()
-                   || (EigenRowMajor ? cols : rows) == 1)
+        // irrelevant). Alternatively, if any dimension size is 0, the strides are not relevant
+        // (and numpy ≥ 1.23 sets the strides to 0 in that case, so we need to check explicitly).
+        if (negativestrides) {
+            return false;
+        }
+        if (rows == 0 || cols == 0) {
+            return true;
+        }
+        return (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner()
+                || (EigenRowMajor ? cols : rows) == 1)
                && (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer()
                    || (EigenRowMajor ? rows : cols) == 1);
     }

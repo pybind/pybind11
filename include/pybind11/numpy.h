@@ -1409,7 +1409,7 @@ PYBIND11_NOINLINE void register_structured_dtype(any_container<field_descriptor>
     }
 
     auto tindex = std::type_index(tinfo);
-    numpy_internals.registered_dtypes[tindex] = {dtype_ptr, format_str};
+    numpy_internals.registered_dtypes[tindex] = {dtype_ptr, std::move(format_str)};
     get_internals().direct_conversions[tindex].push_back(direct_converter);
 }
 
