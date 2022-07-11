@@ -31,6 +31,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
 
+// Not using std::source_location because
+// (https://en.cppreference.com/w/cpp/utility/source_location):
+// 1. It is unspecified whether the copy/move constructors and the copy/move
+//    assignment operators of source_location are trivial and/or constexpr.
+// 2. A no-op stub is needed (below).
 struct src_loc {
     const char *file;
     unsigned line;
@@ -52,6 +57,8 @@ struct src_loc {
 
 #else
 
+// No-op stub, for compilers that do not support __builtin_FILE(), __builtin_LINE(),
+// or for situations in which it is desirable to disable the src_loc feature.
 struct src_loc {
     constexpr src_loc(const char *, unsigned) {}
 
