@@ -58,8 +58,8 @@ inline std::string source_file_line_basename(const char *sfl) {
     return std::string(sfl + i_base);
 }
 
-#    ifndef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED
-#        define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED false
+#    ifndef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED
+#        define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED false
 #    endif
 
 inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info,
@@ -129,7 +129,7 @@ tu_local_no_data_always_false
     = []() {
           type_caster_odr_guard_impl(typeid(IntrinsicType),
                                      TypeCasterType::name.sloc,
-                                     PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_THROW_DISABLED);
+                                     PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED);
           return tu_local_no_data_always_false();
       }();
 

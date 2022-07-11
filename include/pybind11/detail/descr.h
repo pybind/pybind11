@@ -122,7 +122,7 @@ struct int_to_str : int_to_str<Rem / 10, Rem % 10, Digits...> {};
 template <size_t... Digits>
 struct int_to_str<0, Digits...> {
     // WARNING: This only works with C++17 or higher.
-    // src_loc not tracked (irrelevant in this situation, at least at the moment).
+    // src_loc not tracked (not needed in this situation, at least at the moment).
     static constexpr auto digits
         = descr<sizeof...(Digits)>(src_loc{nullptr, 0}, ('0' + Digits)...);
 };
@@ -150,7 +150,7 @@ constexpr enable_if_t<!B, T2> const_name(const T1 &, const T2 &d) {
 
 template <size_t Size>
 auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
-    // src_loc not tracked (irrelevant in this situation, at least at the moment).
+    // src_loc not tracked (not needed in this situation, at least at the moment).
     return int_to_str<Size / 10, Size % 10>::digits;
 }
 
@@ -190,7 +190,7 @@ constexpr enable_if_t<!B, T2> _(const T1 &d1, const T2 &d2) {
 
 template <size_t Size>
 auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
-    // src_loc not tracked (irrelevant in this situation, at least at the moment).
+    // src_loc not tracked (not needed in this situation, at least at the moment).
     return const_name<Size>();
 }
 template <typename Type>
