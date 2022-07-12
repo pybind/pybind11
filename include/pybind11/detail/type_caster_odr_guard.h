@@ -9,8 +9,8 @@
 // The type_caster ODR guard feature requires Translation-Unit-local entities
 // (https://en.cppreference.com/w/cpp/language/tu_local), a C++20 feature, but
 // almost all tested C++17 compilers support this feature already.
-// The preconditions for PYBIND11_DETAIL_DESCR_SRC_LOC_ON happen to be a subset of
-// the preconditions for PYBIND11_TYPE_CASTER_ODR_GUARD_ON.
+// The preconditions for PYBIND11_DETAIL_DESCR_SRC_LOC_ON (descr.h) happen to be
+// a subset of the preconditions for PYBIND11_TYPE_CASTER_ODR_GUARD_ON.
 #if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
     && defined(PYBIND11_DETAIL_DESCR_SRC_LOC_ON)
 #    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
@@ -58,6 +58,7 @@ inline std::string source_file_line_basename(const char *sfl) {
     return std::string(sfl + i_base);
 }
 
+// This macro is for cooperation with test_type_caster_odr_guard_?.cpp
 #    ifndef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED
 #        define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED false
 #    endif
@@ -67,6 +68,7 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
                                        bool throw_disabled) {
     std::string source_file_line_from_sloc
         = std::string(sloc.file) + ':' + std::to_string(sloc.line);
+// This macro is purely for debugging.
 #    define PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_OFF
 #    ifdef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_PRINTF_ON
     // std::cout cannot be used here: static initialization could be incomplete.
@@ -110,10 +112,13 @@ struct type_caster_odr_guard : TypeCasterType {
     static tu_local_no_data_always_false translation_unit_local;
 
     type_caster_odr_guard() {
+        // Possibly, good optimizers will elide this `if` (and below) completely.
+        // It is needed only to trigger the TU-local mechanisms.
         if (translation_unit_local) {
         }
     }
 
+    // The original author of this function is @amauryfa
     template <typename CType, typename... Arg>
     static handle cast(CType &&src, return_value_policy policy, handle parent, Arg &&...arg) {
         if (translation_unit_local) {
@@ -127,6 +132,7 @@ template <typename IntrinsicType, typename TypeCasterType>
 tu_local_no_data_always_false
     type_caster_odr_guard<IntrinsicType, TypeCasterType>::translation_unit_local
     = []() {
+          // Executed only once per process (e.g. when a PYBIND11_MODULE is initialized).
           type_caster_odr_guard_impl(typeid(IntrinsicType),
                                      TypeCasterType::name.sloc,
                                      PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED);

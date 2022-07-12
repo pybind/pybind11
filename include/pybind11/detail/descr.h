@@ -1,3 +1,6 @@
+// Copyright (c) 2022 The Pybind Development Team.
+// All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 /*
     pybind11/detail/descr.h: Helper type for concatenating type signatures at compile time
 
@@ -31,11 +34,13 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
 
-// Not using std::source_location because
-// (https://en.cppreference.com/w/cpp/utility/source_location):
-// 1. It is unspecified whether the copy/move constructors and the copy/move
-//    assignment operators of source_location are trivial and/or constexpr.
-// 2. A no-op stub is needed (below).
+// struct src_loc supports type_caster_odr_guard.h
+
+// Not using std::source_location because:
+// 1. "It is unspecified whether the copy/move constructors and the copy/move
+//    assignment operators of source_location are trivial and/or constexpr."
+//    (https://en.cppreference.com/w/cpp/utility/source_location).
+// 2. A matching no-op stub is needed (below) to avoid code duplication.
 struct src_loc {
     const char *file;
     unsigned line;
@@ -72,7 +77,7 @@ struct src_loc {
 #endif
 
 #ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
-namespace {
+namespace { // Activates TU-local features (see type_caster_odr_guard.h).
 #endif
 
 /* Concatenate type signatures at compile time */
