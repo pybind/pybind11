@@ -1625,7 +1625,7 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#ifndef NDEBUG
     if (!PyGILState_Check()) {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }
