@@ -654,7 +654,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
 
         if (!type::handle_of(obj).is(matrix_type)) {
             try {
-                obj = matrix_type(obj);
+                obj = matrix_type(std::move(obj));
             } catch (const error_already_set &) {
                 return false;
             }
