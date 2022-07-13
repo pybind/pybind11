@@ -1,5 +1,5 @@
 #include "pybind11/pybind11.h"
-#include "namespace_visibility.h"
+#include "namespace_visibility.inl"
 
 // clang-format off
 namespace pybind11_ns_vis_uuu PYBIND11_NS_VIS_U { PYBIND11_NS_VIS_FUNC }
