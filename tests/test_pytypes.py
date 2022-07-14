@@ -745,4 +745,5 @@ def test_populate_obj_str_attrs():
     "a,b", [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))]
 )
 def test_inplace_append(a, b):
-    assert m.inplace_append(a, b) == (a + b)
+    expected = a + b
+    assert m.inplace_append(a, b) == expected
