@@ -9,6 +9,11 @@ from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
 
+def test_handle_from_move_only_type_with_operator_PyObject():  # noqa: N802
+    assert m.handle_from_move_only_type_with_operator_PyObject_ncnst()
+    assert m.handle_from_move_only_type_with_operator_PyObject_const()
+
+
 def test_bool(doc):
     assert doc(m.get_bool) == "get_bool() -> bool"
 
