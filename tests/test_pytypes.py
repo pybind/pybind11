@@ -734,3 +734,10 @@ def test_populate_obj_str_attrs():
     new_attrs = {k: v for k, v in new_o.__dict__.items() if not k.startswith("_")}
     assert all(isinstance(v, str) for v in new_attrs.values())
     assert len(new_attrs) == pop
+
+
+@pytest.mark.parametrize(
+    "a,b", [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))]
+)
+def test_inplace_append(a, b):
+    assert m.inplace_append(a, b) == (a + b)

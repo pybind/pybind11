@@ -39,6 +39,11 @@ class float_ : public py::object {
 };
 } // namespace external
 
+template <typename T>
+T inplace_append(T &a, const T &b) {
+    a += b;
+    return a;
+}
 TEST_SUBMODULE(pytypes, m) {
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });
@@ -697,12 +702,8 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     // testing immutable object augmented assignment: #issue 3812
-    m.def("inplace_append", [](py::str &a, const py::str &b) -> py::str {
-        a += b;
-        return a;
-    });
-    m.def("inplace_append", [](py::int_ &a, const py::int_ &b) {
-        a += b;
-        return a;
-    });
+    m.def("inplace_append", &inplace_append<py::str>);
+    m.def("inplace_append", &inplace_append<py::int_>);
+    m.def("inplace_append", &inplace_append<py::float_>);
+    m.def("inplace_append", &inplace_append<py::list>);
 }
