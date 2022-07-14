@@ -744,6 +744,13 @@ def test_issue738():
     )
 
 
+@pytest.mark.parametrize("func", [m.iss738_f1, m.iss738_f2])
+@pytest.mark.parametrize("sizes", [(0, 2), (2, 0)])
+def test_zero_length(func, sizes):
+    """Ignore strides on a length-0 dimension (even if they would be incompatible length > 1)"""
+    assert np.all(func(np.zeros(sizes)) == np.zeros(sizes))
+
+
 def test_issue1105():
     """Issue 1105: 1xN or Nx1 input arrays weren't accepted for eigen
     compile-time row vectors or column vector"""

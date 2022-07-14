@@ -235,11 +235,13 @@ directory inside your pybind11 git clone. Files will be modified in place,
 so you can use git to monitor the changes.
 
 ```bash
-docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:12
+docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:13
 apt-get update && apt-get install -y python3-dev python3-pytest
-cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
-cmake --build build -j 2 -- --keep-going
+cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);--use-color" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
+cmake --build build -j 2
 ```
+
+You can add `--fix` to the options list if you want.
 
 ### Include what you use
 

@@ -345,9 +345,11 @@ struct type_record {
 
         bases.append((PyObject *) base_info->type);
 
-        if (base_info->type->tp_dictoffset != 0) {
-            dynamic_attr = true;
-        }
+#if PY_VERSION_HEX < 0x030B0000
+        dynamic_attr |= base_info->type->tp_dictoffset != 0;
+#else
+        dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
+#endif
 
         if (caster) {
             base_info->implicit_casts.emplace_back(type, caster);

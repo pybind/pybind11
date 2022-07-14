@@ -425,4 +425,4 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
 
 PYBIND11_NAMESPACE_END(initimpl)
 PYBIND11_NAMESPACE_END(detail)
-PYBIND11_NAMESPACE_END(pybind11)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
