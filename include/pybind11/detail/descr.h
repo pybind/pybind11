@@ -23,19 +23,21 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #    define PYBIND11_DESCR_CONSTEXPR const
 #endif
 
-// type_caster_odr_guard.h requires Translation-Unit-local features
-// (https://en.cppreference.com/w/cpp/language/tu_local), standardized only with C++20.
+// struct src_loc below is to support type_caster_odr_guard.h
+// (see https://github.com/pybind/pybind11/pull/4022).
 // The ODR guard creates ODR violations itself (see WARNINGs below & in
-// type_caster_odr_guard.h), but the dedicated test_type_caster_odr_guard_1,
-// test_type_caster_odr_guard_2 pair of unit tests passes reliably with almost all
-// tested C++17 & C++20 compilers, and even the exceptions are not due to ODR issues:
+// type_caster_odr_guard.h), but is currently the best tool available, and the dedicated
+// test_type_caster_odr_guard_1, test_type_caster_odr_guard_2 pair of unit tests passes
+// reliably on almost all platforms that meet the compiler requirements (C++17, C++20),
+// except one (deadsnakes in the GitHub CI).
+// In the pybind11 unit tests we want to test the ODR guard in as many environments as possible,
+// but it is NOT recommended to turn on the guard in regular builds, production, or
+// debug. The guard is meant to be used similar to a sanitizer, to check for type_caster
+// ODR violations in binaries that are otherwise already fully tested and assumed to be healthy.
+//
 // * MSVC 2017 does not support __builtin_FILE(), __builtin_LINE().
 // * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
 //   (line numbers vary between translation units).
-// Here we want to test the ODR guard in as many environments as possible, but
-// it is NOT recommended to turn on the guard in regular builds, production, or
-// debug. The guard is meant to be used similar to a sanitizer, to check for type_caster
-// ODR violations in binaries that are otherwise already fully tested and assumed to be healthy.
 #if defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON_IF_AVAILABLE)                                       \
     && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(__INTEL_COMPILER)                  \
     && ((defined(_MSC_VER) && _MSC_VER >= 1920) || defined(PYBIND11_CPP17))
@@ -43,8 +45,6 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #endif
 
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
-
-// struct src_loc supports type_caster_odr_guard.h
 
 // Not using std::source_location because:
 // 1. "It is unspecified whether the copy/move constructors and the copy/move
