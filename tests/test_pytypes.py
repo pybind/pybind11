@@ -753,3 +753,15 @@ def test_inplace_append(a, b):
 def test_inplace_subtract(a, b):
     expected = a - b
     assert m.inplace_subtract(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), ([1], 3)])
+def test_inplace_multiply(a, b):
+    expected = a * b
+    assert m.inplace_multiply(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(6, 3), (6.0, 3.0)])
+def test_inplace_divide(a, b):
+    expected = a / b
+    assert m.inplace_divide(a, b) == expected

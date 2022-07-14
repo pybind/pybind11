@@ -766,4 +766,12 @@ TEST_SUBMODULE(pytypes, m) {
         a -= b;
         return a;
     });
+    m.def("inplace_multiply", [](py::object &a, const py::object &b) {
+        a *= b;
+        return a;
+    });
+    m.def("inplace_divide", [](py::object &a, const py::object &b) {
+        a /= b;
+        return a;
+    });
 }
