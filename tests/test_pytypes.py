@@ -747,3 +747,9 @@ def test_populate_obj_str_attrs():
 def test_inplace_append(a, b):
     expected = a + b
     assert m.inplace_append(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))])
+def test_inplace_subtract(a, b):
+    expected = a - b
+    assert m.inplace_subtract(a, b) == expected

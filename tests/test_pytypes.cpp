@@ -98,12 +98,6 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
-template <typename T>
-T inplace_append(T &a, const T &b) {
-    a += b;
-    return a;
-}
-
 TEST_SUBMODULE(pytypes, m) {
     handle_from_move_only_type_with_operator_PyObject::m_defs(m);
 
@@ -764,8 +758,12 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     // testing immutable object augmented assignment: #issue 3812
-    m.def("inplace_append", &inplace_append<py::str>);
-    m.def("inplace_append", &inplace_append<py::int_>);
-    m.def("inplace_append", &inplace_append<py::float_>);
-    m.def("inplace_append", &inplace_append<py::list>);
+    m.def("inplace_append", [](py::object &a, const py::object &b) {
+        a += b;
+        return a;
+    });
+    m.def("inplace_subtract", [](py::object &a, const py::object &b) {
+        a -= b;
+        return a;
+    });
 }
