@@ -695,4 +695,14 @@ TEST_SUBMODULE(pytypes, m) {
         }
         return o;
     });
+
+    // testing immutable object augmented assignment: #issue 3812
+    m.def("inplace_append", [](py::str &a, const py::str &b) -> py::str {
+        a += b;
+        return a;
+    });
+    m.def("inplace_append", [](py::int_ &a, const py::int_ &b) {
+        a += b;
+        return a;
+    });
 }

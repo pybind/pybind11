@@ -155,23 +155,23 @@ public:
     object operator-() const;
     object operator~() const;
     object operator+(object_api const &other) const;
-    object operator+=(object_api const &other) const;
+    object operator+=(object_api const &other);
     object operator-(object_api const &other) const;
-    object operator-=(object_api const &other) const;
+    object operator-=(object_api const &other);
     object operator*(object_api const &other) const;
-    object operator*=(object_api const &other) const;
+    object operator*=(object_api const &other);
     object operator/(object_api const &other) const;
-    object operator/=(object_api const &other) const;
+    object operator/=(object_api const &other);
     object operator|(object_api const &other) const;
-    object operator|=(object_api const &other) const;
+    object operator|=(object_api const &other);
     object operator&(object_api const &other) const;
-    object operator&=(object_api const &other) const;
+    object operator&=(object_api const &other);
     object operator^(object_api const &other) const;
-    object operator^=(object_api const &other) const;
+    object operator^=(object_api const &other);
     object operator<<(object_api const &other) const;
-    object operator<<=(object_api const &other) const;
+    object operator<<=(object_api const &other);
     object operator>>(object_api const &other) const;
-    object operator>>=(object_api const &other) const;
+    object operator>>=(object_api const &other);
 
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
@@ -333,6 +333,20 @@ public:
         }
         return *this;
     }
+
+#define PYBIND11_INPLACE_OP(inp)                                                                  \
+    object inp(object_api const &other) { return operator=(handle::inp(other)); }
+
+    PYBIND11_INPLACE_OP(operator+=)
+    PYBIND11_INPLACE_OP(operator-=)
+    PYBIND11_INPLACE_OP(operator*=)
+    PYBIND11_INPLACE_OP(operator/=)
+    PYBIND11_INPLACE_OP(operator|=)
+    PYBIND11_INPLACE_OP(operator&=)
+    PYBIND11_INPLACE_OP(operator^=)
+    PYBIND11_INPLACE_OP(operator<<=)
+    PYBIND11_INPLACE_OP(operator>>=)
+#undef PYBIND11_INPLACE_OP
 
     // Calling cast() on an object lvalue just copies (via handle::cast)
     template <typename T>
@@ -2345,26 +2359,35 @@ bool object_api<D>::rich_compare(object_api const &other, int value) const {
         return result;                                                                            \
     }
 
+#define PYBIND11_MATH_OPERATOR_BINARY_INPLACE(op, fn)                                             \
+    template <typename D>                                                                         \
+    object object_api<D>::op(object_api const &other) {                                           \
+        object result = reinterpret_steal<object>(fn(derived().ptr(), other.derived().ptr()));    \
+        if (!result.ptr())                                                                        \
+            throw error_already_set();                                                            \
+        return result;                                                                            \
+    }
+
 PYBIND11_MATH_OPERATOR_UNARY(operator~, PyNumber_Invert)
 PYBIND11_MATH_OPERATOR_UNARY(operator-, PyNumber_Negative)
 PYBIND11_MATH_OPERATOR_BINARY(operator+, PyNumber_Add)
-PYBIND11_MATH_OPERATOR_BINARY(operator+=, PyNumber_InPlaceAdd)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator+=, PyNumber_InPlaceAdd)
 PYBIND11_MATH_OPERATOR_BINARY(operator-, PyNumber_Subtract)
-PYBIND11_MATH_OPERATOR_BINARY(operator-=, PyNumber_InPlaceSubtract)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator-=, PyNumber_InPlaceSubtract)
 PYBIND11_MATH_OPERATOR_BINARY(operator*, PyNumber_Multiply)
-PYBIND11_MATH_OPERATOR_BINARY(operator*=, PyNumber_InPlaceMultiply)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator*=, PyNumber_InPlaceMultiply)
 PYBIND11_MATH_OPERATOR_BINARY(operator/, PyNumber_TrueDivide)
-PYBIND11_MATH_OPERATOR_BINARY(operator/=, PyNumber_InPlaceTrueDivide)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator/=, PyNumber_InPlaceTrueDivide)
 PYBIND11_MATH_OPERATOR_BINARY(operator|, PyNumber_Or)
-PYBIND11_MATH_OPERATOR_BINARY(operator|=, PyNumber_InPlaceOr)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator|=, PyNumber_InPlaceOr)
 PYBIND11_MATH_OPERATOR_BINARY(operator&, PyNumber_And)
-PYBIND11_MATH_OPERATOR_BINARY(operator&=, PyNumber_InPlaceAnd)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator&=, PyNumber_InPlaceAnd)
 PYBIND11_MATH_OPERATOR_BINARY(operator^, PyNumber_Xor)
-PYBIND11_MATH_OPERATOR_BINARY(operator^=, PyNumber_InPlaceXor)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator^=, PyNumber_InPlaceXor)
 PYBIND11_MATH_OPERATOR_BINARY(operator<<, PyNumber_Lshift)
-PYBIND11_MATH_OPERATOR_BINARY(operator<<=, PyNumber_InPlaceLshift)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator<<=, PyNumber_InPlaceLshift)
 PYBIND11_MATH_OPERATOR_BINARY(operator>>, PyNumber_Rshift)
-PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY

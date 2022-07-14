@@ -77,7 +77,7 @@ def test_operator_overloading():
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
     assert cstats.move_constructions >= 10
-    assert cstats.copy_assignments == 0
+    assert cstats.copy_assignments == 6
     assert cstats.move_assignments == 0
 
 
