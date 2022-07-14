@@ -774,4 +774,12 @@ TEST_SUBMODULE(pytypes, m) {
         a /= b;
         return a;
     });
+    m.def("inplace_or", [](py::object &a, const py::object &b) {
+        a |= b;
+        return a;
+    });
+    m.def("inplace_and", [](py::object &a, const py::object &b) {
+        a &= b;
+        return a;
+    });
 }

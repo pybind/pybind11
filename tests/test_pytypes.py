@@ -765,3 +765,37 @@ def test_inplace_multiply(a, b):
 def test_inplace_divide(a, b):
     expected = a / b
     assert m.inplace_divide(a, b) == expected
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (False, True),
+        (
+            set(),
+            {
+                1,
+            },
+        ),
+    ],
+)
+def test_inplace_or(a, b):
+    expected = a | b
+    assert m.inplace_or(a, b) == expected
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (True, False),
+        (
+            {1, 2, 3},
+            {
+                1,
+            },
+        ),
+    ],
+)
+def test_inplace_and(a, b):
+    expected = a & b
+    assert m.inplace_and(a, b) == expected
