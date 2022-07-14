@@ -23,16 +23,26 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #    define PYBIND11_DESCR_CONSTEXPR const
 #endif
 
+// type_caster_odr_guard.h requires Translation-Unit-local features
+// (https://en.cppreference.com/w/cpp/language/tu_local), standardized only with C++20.
+// The ODR guard creates ODR violations itself (see WARNINGs below & in
+// type_caster_odr_guard.h), but the dedicated test_type_caster_odr_guard_1,
+// test_type_caster_odr_guard_2 pair of unit tests passes reliably with almost all
+// tested C++17 & C++20 compilers, and even the exceptions are not due to ODR issues:
 // * MSVC 2017 does not support __builtin_FILE(), __builtin_LINE().
 // * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
 //   (line numbers vary between translation units).
-#if !defined(PYBIND11_DETAIL_DESCR_SRC_LOC_ON) && !defined(PYBIND11_DETAIL_DESCR_SRC_LOC_OFF)     \
-    && !defined(__INTEL_COMPILER)                                                                 \
+// Here we want to test the ODR guard in as many environments as possible, but
+// it is NOT recommended to turn on the guard in regular builds, production, or
+// debug. The guard is meant to be used similar to a sanitizer, to check for type_caster
+// ODR violations in binaries that are otherwise already fully tested and assumed to be healthy.
+#if defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON_IF_AVAILABLE)                                       \
+    && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(__INTEL_COMPILER)                  \
     && ((defined(_MSC_VER) && _MSC_VER >= 1920) || defined(PYBIND11_CPP17))
-#    define PYBIND11_DETAIL_DESCR_SRC_LOC_ON
+#    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 #endif
 
-#ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
 // struct src_loc supports type_caster_odr_guard.h
 
@@ -62,8 +72,7 @@ struct src_loc {
 
 #else
 
-// No-op stub, for compilers that do not support __builtin_FILE(), __builtin_LINE(),
-// or for situations in which it is desirable to disable the src_loc feature.
+// No-op stub, to avoid code duplication, expected to be optimized out completely.
 struct src_loc {
     constexpr src_loc(const char *, unsigned) {}
 
@@ -76,8 +85,15 @@ struct src_loc {
 
 #endif
 
-#ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
-namespace { // Activates TU-local features (see type_caster_odr_guard.h).
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
+            //          but we do not have anything better at the moment.
+// The ODR violation here is a difference in constexpr between multiple TUs.
+// All definitions have the same data layout, the only difference is the
+// text const char* pointee (the pointees are identical in value),
+// src_loc const char* file pointee (the pointees are different in value),
+// src_loc unsigned line value.
+// See also: Comment above; WARNING in type_caster_odr_guard.h
 #endif
 
 /* Concatenate type signatures at compile time */
@@ -231,7 +247,7 @@ constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {
     return const_name("{", src_loc{nullptr, 0}) + descr + const_name("}");
 }
 
-#ifdef PYBIND11_DETAIL_DESCR_SRC_LOC_ON
+#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 } // namespace
 #endif
 

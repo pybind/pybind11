@@ -40,9 +40,7 @@ else:
     )
 
 
-@pytest.mark.skipif(
-    m.block_descr_offset is None, reason="C++17 is required for this unit test."
-)
+@pytest.mark.skipif(m.block_descr_offset is None, reason="Not enabled.")
 @pytest.mark.parametrize("block_name, expected_text_line", block_parametrize)
 def test_block(block_name, expected_text_line):
     offset = getattr(m, f"{block_name}_offset")

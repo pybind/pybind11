@@ -6,16 +6,6 @@
 
 #include "descr.h"
 
-// The type_caster ODR guard feature requires Translation-Unit-local entities
-// (https://en.cppreference.com/w/cpp/language/tu_local), a C++20 feature, but
-// almost all tested C++17 compilers support this feature already.
-// The preconditions for PYBIND11_DETAIL_DESCR_SRC_LOC_ON (descr.h) happen to be
-// a subset of the preconditions for PYBIND11_TYPE_CASTER_ODR_GUARD_ON.
-#if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON) && !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_OFF)   \
-    && defined(PYBIND11_DETAIL_DESCR_SRC_LOC_ON)
-#    define PYBIND11_TYPE_CASTER_ODR_GUARD_ON
-#endif
-
 #ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
 
 #    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)
@@ -99,7 +89,10 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
     }
 }
 
-namespace {
+namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
+            //          but we do not have anything better at the moment.
+// The ODR violation here does not involve any data at all.
+// See also: Comment near top of descr.h & WARNING in descr.h
 
 struct tu_local_no_data_always_false {
     explicit operator bool() const noexcept { return false; }
@@ -133,6 +126,8 @@ tu_local_no_data_always_false
     type_caster_odr_guard<IntrinsicType, TypeCasterType>::translation_unit_local
     = []() {
           // Executed only once per process (e.g. when a PYBIND11_MODULE is initialized).
+          // Conclusively tested vi test_type_caster_odr_guard_1, test_type_caster_odr_guard_2:
+          // those tests will fail if the sloc here is not working as intended (TU-local).
           type_caster_odr_guard_impl(typeid(IntrinsicType),
                                      TypeCasterType::name.sloc,
                                      PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED);

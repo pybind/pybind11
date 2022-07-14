@@ -4,10 +4,10 @@
 
 #include "pybind11_tests.h"
 
-#if !defined(PYBIND11_CPP17)
+// This test actually works with almost all C++17 compilers, but is currently
+// only needed (and tested) for type_caster_odr_guard.h, for simplicity.
 
-// C++17 is required for the static constexpr inline definitions. Adapting
-// this unit test to older compilers is more trouble than it is worth.
+#if !defined(PYBIND11_TYPE_CASTER_ODR_GUARD_ON)
 
 TEST_SUBMODULE(descr_src_loc, m) { m.attr("block_descr_offset") = py::none(); }
 
@@ -138,4 +138,4 @@ TEST_SUBMODULE(descr_src_loc, m) {
     ATTR_BLKC(block_int_to_str, c2)
 }
 
-#endif // PYBIND11_CPP17
+#endif // PYBIND11_TYPE_CASTER_ODR_GUARD_ON
