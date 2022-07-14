@@ -35,6 +35,7 @@ DIR = Path(__file__).parent.resolve()
 # ones.
 extensions = [
     "breathe",
+    "sphinx_copybutton",
     "sphinxcontrib.rsvgconverter",
     "sphinxcontrib.moderncmakedomain",
 ]
@@ -125,23 +126,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    import sphinx_rtd_theme
-
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-
-    html_context = {"css_files": ["_static/theme_overrides.css"]}
-else:
-    html_context = {
-        "css_files": [
-            "//media.readthedocs.org/css/sphinx_rtd_theme.css",
-            "//media.readthedocs.org/css/readthedocs-doc-embed.css",
-            "_static/theme_overrides.css",
-        ]
-    }
+html_theme = "furo"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -171,6 +156,10 @@ else:
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+html_css_files = [
+    "css/custom.css",
+]
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

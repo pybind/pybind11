@@ -36,7 +36,7 @@ jobs:
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
     runs-on: ubuntu-latest
-    container: silkeh/clang:12
+    container: silkeh/clang:13
     steps:
     - uses: actions/checkout@v3
 
@@ -46,7 +46,7 @@ jobs:
     - name: Configure
       run: >
         cmake -S . -B build
-        -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy)"
+        -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);--use-color;--warnings-as-errors=*"
         -DDOWNLOAD_EIGEN=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=17

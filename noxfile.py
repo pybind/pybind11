@@ -61,10 +61,10 @@ def docs(session: nox.Session) -> None:
     session.chdir("docs")
 
     if "pdf" in session.posargs:
-        session.run("sphinx-build", "-b", "latexpdf", ".", "_build")
+        session.run("sphinx-build", "-M", "latexpdf", ".", "_build")
         return
 
-    session.run("sphinx-build", "-b", "html", ".", "_build")
+    session.run("sphinx-build", "-M", "html", ".", "_build")
 
     if "serve" in session.posargs:
         session.log("Launching docs at http://localhost:8000/ - use Ctrl-C to quit")

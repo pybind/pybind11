@@ -692,9 +692,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         array outerIndices((rowMajor ? src.rows() : src.cols()) + 1, src.outerIndexPtr());
         array innerIndices(src.nonZeros(), src.innerIndexPtr());
 
-        return matrix_type(std::make_tuple(
+        return matrix_type(pybind11::make_tuple(
                                std::move(data), std::move(innerIndices), std::move(outerIndices)),
-                           std::make_pair(src.rows(), src.cols()))
+                           pybind11::make_tuple(src.rows(), src.cols()))
             .release();
     }
 
