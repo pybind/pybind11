@@ -188,13 +188,13 @@ function(pybind11_add_module target_name)
   # py::module_local).  We force it on everything inside the `pybind11`
   # namespace; also turning it on for a pybind module compilation here avoids
   # potential warnings or issues from having mixed hidden/non-hidden types.
-  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
-    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-  endif()
+  # if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+  #   set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  # endif()
 
-  if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
-    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
-  endif()
+  # if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
+  #   set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+  # endif()
 
   if(ARG_NO_EXTRAS)
     return()
