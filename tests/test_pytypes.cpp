@@ -782,4 +782,12 @@ TEST_SUBMODULE(pytypes, m) {
         a &= b;
         return a;
     });
+    m.def("inplace_lshift", [](py::object &a, const py::object &b) {
+        a <<= b;
+        return a;
+    });
+    m.def("inplace_rshift", [](py::object &a, const py::object &b) {
+        a >>= b;
+        return a;
+    });
 }

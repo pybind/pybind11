@@ -799,3 +799,15 @@ def test_inplace_or(a, b):
 def test_inplace_and(a, b):
     expected = a & b
     assert m.inplace_and(a, b) == expected
+
+
+def test_inplace_lshift():
+    a, b = 2, 3
+    expected = a << b
+    assert m.inplace_lshift(a, b) == expected
+
+
+def test_inplace_rshift():
+    a, b = 2, 3
+    expected = a >> b
+    assert m.inplace_rshift(a, b) == expected
