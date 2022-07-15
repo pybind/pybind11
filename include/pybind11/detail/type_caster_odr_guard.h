@@ -28,9 +28,12 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline std::unordered_map<std::type_index, std::string> &type_caster_odr_guard_registry() {
-    static std::unordered_map<std::type_index, std::string> reg;
-    return reg;
+using type_caster_odr_guard_registry_type = std::unordered_map<std::type_index, std::string>;
+
+inline type_caster_odr_guard_registry_type &type_caster_odr_guard_registry() {
+    // Using the no-destructor idiom (maximizes safety).
+    static auto reg = new type_caster_odr_guard_registry_type();
+    return *reg;
 }
 
 inline unsigned &type_caster_odr_violation_detected_counter() {
