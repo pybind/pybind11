@@ -32,7 +32,7 @@ using type_caster_odr_guard_registry_type = std::unordered_map<std::type_index, 
 
 inline type_caster_odr_guard_registry_type &type_caster_odr_guard_registry() {
     // Using the no-destructor idiom (maximizes safety).
-    static auto reg = new type_caster_odr_guard_registry_type();
+    static auto *reg = new type_caster_odr_guard_registry_type();
     return *reg;
 }
 
