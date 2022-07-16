@@ -444,7 +444,7 @@ jobs:
           - 11
         include:
           - gcc: 10
-            std: 20
+            std: 2a
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
     container: "gcc:${{ matrix.gcc }}"
