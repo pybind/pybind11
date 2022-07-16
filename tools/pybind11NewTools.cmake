@@ -203,19 +203,6 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
   endif()
 
-  # -fvisibility=hidden is required to allow multiple modules compiled against
-  # different pybind versions to work properly, and for some features (e.g.
-  # py::module_local).  We force it on everything inside the `pybind11`
-  # namespace; also turning it on for a pybind module compilation here avoids
-  # potential warnings or issues from having mixed hidden/non-hidden types.
-  # if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
-  #   set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-  # endif()
-
-  # if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
-  #   set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
-  # endif()
-
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
   if(NOT ARG_WITHOUT_SOABI AND NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
     pybind11_extension(${target_name})
