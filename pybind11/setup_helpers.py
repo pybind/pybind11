@@ -149,7 +149,6 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
         if WIN:
             cflags += ["/EHsc", "/bigobj"]
         else:
-            cflags += ["-fvisibility=hidden"]
             env_cflags = os.environ.get("CFLAGS", "")
             env_cppflags = os.environ.get("CPPFLAGS", "")
             c_cpp_flags = shlex.split(env_cflags) + shlex.split(env_cppflags)

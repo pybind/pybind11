@@ -15,6 +15,8 @@
 #include <cstdint>
 #include <utility>
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
+
 // Size / dtype checks.
 struct DtypeCheck {
     py::dtype numpy{};
@@ -159,7 +161,11 @@ py::handle auxiliaries(T &&r, T2 &&r2) {
 // note: declaration at local scope would create a dangling reference!
 static int data_i = 42;
 
+PYBIND11_NAMESPACE_END(pybind11_tests)
+
 TEST_SUBMODULE(numpy_array, sm) {
+    using namespace pybind11_tests;
+
     try {
         py::module_::import("numpy");
     } catch (const py::error_already_set &) {

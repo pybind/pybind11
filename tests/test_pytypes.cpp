@@ -11,7 +11,7 @@
 
 #include <utility>
 
-namespace external {
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(external))
 namespace detail {
 bool check(PyObject *o) { return PyFloat_Check(o) != 0; }
 
@@ -37,7 +37,7 @@ class float_ : public py::object {
 
     double get_value() const { return PyFloat_AsDouble(this->ptr()); }
 };
-} // namespace external
+PYBIND11_NAMESPACE_END(external)
 
 namespace implicit_conversion_from_0_to_handle {
 // Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
