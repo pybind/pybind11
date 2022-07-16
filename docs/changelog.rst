@@ -9,6 +9,13 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
+
+
+IN DEVELOPMENT
+--------------
+
+Changes will be summarized here periodically.
+
 Version 2.10.0 (Jul 15, 2022)
 -----------------------------
 
