@@ -465,6 +465,7 @@ jobs:
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
