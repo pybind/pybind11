@@ -8,6 +8,7 @@
 
 #include <cstdint>
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace {
 
 class Class {
@@ -31,9 +32,11 @@ private:
 };
 
 } // namespace
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Class)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::Class)
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace {
 
 class PyClass : public Class, public py::trampoline_self_life_support {
@@ -46,8 +49,11 @@ public:
 };
 
 } // namespace
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
 TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
+    using namespace pybind11_tests;
+
     py::classh<Class, PyClass>(m, "Class")
         .def(py::init<>())
         .def("set_val", &Class::setVal)
