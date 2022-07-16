@@ -82,7 +82,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #    define PYBIND11_TLS_KEY_INIT(var) PYBIND11_TLS_KEY_REF var = 0;
 #    define PYBIND11_TLS_KEY_CREATE(var) (((var) = PyThread_create_key()) != -1)
 #    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
-#    if PY_MAJOR_VERSION < 3 || defined(PYPY_VERSION)
+#    if defined(PYPY_VERSION)
 // On CPython < 3.4 and on PyPy, `PyThread_set_key_value` strangely does not set
 // the value if it has already been set.  Instead, it must first be deleted and
 // then set again.
@@ -294,7 +294,6 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-#if PY_VERSION_HEX >= 0x03030000
 // forward decl
 inline void translate_exception(std::exception_ptr);
 
@@ -318,21 +317,11 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     return false;
 }
 
-#else
-
-template <class T>
-bool handle_nested_exception(const T &, std::exception_ptr &) {
-    return false;
-}
-#endif
-
 inline bool raise_err(PyObject *exc_type, const char *msg) {
-#if PY_VERSION_HEX >= 0x03030000
     if (PyErr_Occurred()) {
         raise_from(exc_type, msg);
         return true;
     }
-#endif
     PyErr_SetString(exc_type, msg);
     return false;
 }
@@ -426,6 +415,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
+    error_scope err_scope;
 
     PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
     auto builtins = handle(PyEval_GetBuiltins());

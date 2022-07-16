@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "cmake>=3.18", "ninja"]
+requires = ["setuptools>=42", "cmake>=3.18", "ninja"]
 build-backend = "setuptools.build_meta"
 
 [tool.check-manifest]
@@ -22,20 +22,40 @@ known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
 profile = "black"
 
 [tool.mypy]
-files = "pybind11"
-python_version = "2.7"
-warn_unused_configs = true
+files = ["pybind11"]
+python_version = "3.6"
+strict = true
+show_error_codes = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+warn_unreachable = true
 
-disallow_any_generics = true
-disallow_subclassing_any = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-no_implicit_reexport = true
-strict_equality = true
+[[tool.mypy.overrides]]
+module = ["ghapi.*", "setuptools.*"]
+ignore_missing_imports = true
+
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+log_cli_level = "info"
+testpaths = [
+    "tests",
+]
+timeout=300
+
+
+[tool.pylint]
+master.py-version = "3.6"
+reports.output-format = "colorized"
+messages_control.disable = [
+  "design",
+  "fixme",
+  "imports",
+  "line-too-long",
+  "imports",
+  "invalid-name",
+  "protected-access",
+  "missing-module-docstring",
+]

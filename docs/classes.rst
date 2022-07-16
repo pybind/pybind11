@@ -48,10 +48,10 @@ interactive Python session demonstrating this example is shown below:
     >>> print(p)
     <example.Pet object at 0x10cd98060>
     >>> p.getName()
-    u'Molly'
+    'Molly'
     >>> p.setName("Charly")
     >>> p.getName()
-    u'Charly'
+    'Charly'
 
 .. seealso::
 
@@ -124,10 +124,10 @@ This makes it possible to write
 
     >>> p = example.Pet("Molly")
     >>> p.name
-    u'Molly'
+    'Molly'
     >>> p.name = "Charly"
     >>> p.name
-    u'Charly'
+    'Charly'
 
 Now suppose that ``Pet::name`` was a private internal variable
 that can only be accessed via setters and getters.
@@ -282,9 +282,9 @@ expose fields and methods of both types:
 
     >>> p = example.Dog("Molly")
     >>> p.name
-    u'Molly'
+    'Molly'
     >>> p.bark()
-    u'woof!'
+    'woof!'
 
 The C++ classes defined above are regular non-polymorphic types with an
 inheritance relationship. This is reflected in Python:
@@ -332,7 +332,7 @@ will automatically recognize this:
     >>> type(p)
     PolymorphicDog  # automatically downcast
     >>> p.bark()
-    u'woof!'
+    'woof!'
 
 Given a pointer to a polymorphic base, pybind11 performs automatic downcasting
 to the actual derived type. Note that this goes beyond the usual situation in
@@ -434,8 +434,7 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
         .def("set", overload_cast_<int>()(&Pet::set), "Set the pet's age")
         .def("set", overload_cast_<const std::string &>()(&Pet::set), "Set the pet's name");
 
-.. [#cpp14] A compiler which supports the ``-std=c++14`` flag
-            or Visual Studio 2015 Update 2 and newer.
+.. [#cpp14] A compiler which supports the ``-std=c++14`` flag.
 
 .. note::
 
@@ -483,7 +482,7 @@ The binding code for this example looks as follows:
         .value("Cat", Pet::Kind::Cat)
         .export_values();
 
-    py::class_<Pet::Attributes> attributes(pet, "Attributes")
+    py::class_<Pet::Attributes>(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import contextlib
 import os
 import string
@@ -64,11 +63,9 @@ py_files = {
     "__init__.py",
     "__main__.py",
     "_version.py",
-    "_version.pyi",
     "commands.py",
     "py.typed",
     "setup_helpers.py",
-    "setup_helpers.pyi",
 }
 
 headers = main_headers | detail_headers | stl_headers
@@ -111,19 +108,19 @@ def test_build_sdist(monkeypatch, tmpdir):
     out = subprocess.check_output(
         [
             sys.executable,
-            "setup.py",
-            "sdist",
-            "--formats=tar",
-            "--dist-dir",
+            "-m",
+            "build",
+            "--sdist",
+            "--outdir",
             str(tmpdir),
         ]
     )
     if hasattr(out, "decode"):
         out = out.decode()
 
-    (sdist,) = tmpdir.visit("*.tar")
+    (sdist,) = tmpdir.visit("*.tar.gz")
 
-    with tarfile.open(str(sdist)) as tar:
+    with tarfile.open(str(sdist), "r:gz") as tar:
         start = tar.getnames()[0] + "/"
         version = start[9:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
@@ -148,9 +145,9 @@ def test_build_sdist(monkeypatch, tmpdir):
             contents = f.read().decode("utf8")
         assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in contents
 
-    files = {"pybind11/{}".format(n) for n in all_files}
+    files = {f"pybind11/{n}" for n in all_files}
     files |= sdist_files
-    files |= {"pybind11{}".format(n) for n in local_sdist_files}
+    files |= {f"pybind11{n}" for n in local_sdist_files}
     files.add("pybind11.egg-info/entry_points.txt")
     files.add("pybind11.egg-info/requires.txt")
     assert simpler == files
@@ -172,23 +169,23 @@ def test_build_global_dist(monkeypatch, tmpdir):
 
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
-
     out = subprocess.check_output(
         [
             sys.executable,
-            "setup.py",
-            "sdist",
-            "--formats=tar",
-            "--dist-dir",
+            "-m",
+            "build",
+            "--sdist",
+            "--outdir",
             str(tmpdir),
         ]
     )
+
     if hasattr(out, "decode"):
         out = out.decode()
 
-    (sdist,) = tmpdir.visit("*.tar")
+    (sdist,) = tmpdir.visit("*.tar.gz")
 
-    with tarfile.open(str(sdist)) as tar:
+    with tarfile.open(str(sdist), "r:gz") as tar:
         start = tar.getnames()[0] + "/"
         version = start[16:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
@@ -203,9 +200,9 @@ def test_build_global_dist(monkeypatch, tmpdir):
         ) as f:
             pyproject_toml = f.read()
 
-    files = {"pybind11/{}".format(n) for n in all_files}
+    files = {f"pybind11/{n}" for n in all_files}
     files |= sdist_files
-    files |= {"pybind11_global{}".format(n) for n in local_sdist_files}
+    files |= {f"pybind11_global{n}" for n in local_sdist_files}
     assert simpler == files
 
     with open(os.path.join(MAIN_DIR, "tools", "setup_global.py.in"), "rb") as f:
@@ -230,7 +227,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
     (wheel,) = tmpdir.visit("*.whl")
 
-    files = {"pybind11/{}".format(n) for n in all_files}
+    files = {f"pybind11/{n}" for n in all_files}
     files |= {
         "dist-info/LICENSE",
         "dist-info/METADATA",
@@ -244,9 +241,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
         names = z.namelist()
 
     trimmed = {n for n in names if "dist-info" not in n}
-    trimmed |= {
-        "dist-info/{}".format(n.split("/", 1)[-1]) for n in names if "dist-info" in n
-    }
+    trimmed |= {f"dist-info/{n.split('/', 1)[-1]}" for n in names if "dist-info" in n}
     assert files == trimmed
 
 
@@ -260,8 +255,8 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
 
     (wheel,) = tmpdir.visit("*.whl")
 
-    files = {"data/data/{}".format(n) for n in src_files}
-    files |= {"data/headers/{}".format(n[8:]) for n in headers}
+    files = {f"data/data/{n}" for n in src_files}
+    files |= {f"data/headers/{n[8:]}" for n in headers}
     files |= {
         "dist-info/LICENSE",
         "dist-info/METADATA",

@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "detail/common.h"
 #include "cast.h"
 
 #include <functional>
@@ -61,7 +62,7 @@ struct base {
 
     PYBIND11_DEPRECATED(
         "base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
-    base() {} // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    base() = default;
 };
 
 /// Keep patient alive while nurse lives
@@ -82,8 +83,7 @@ struct metaclass {
     handle value;
 
     PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
-    // NOLINTNEXTLINE(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
-    metaclass() {}
+    metaclass() = default;
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) {}
@@ -345,9 +345,11 @@ struct type_record {
 
         bases.append((PyObject *) base_info->type);
 
-        if (base_info->type->tp_dictoffset != 0) {
-            dynamic_attr = true;
-        }
+#if PY_VERSION_HEX < 0x030B0000
+        dynamic_attr |= base_info->type->tp_dictoffset != 0;
+#else
+        dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
+#endif
 
         if (caster) {
             base_info->implicit_casts.emplace_back(type, caster);
@@ -478,7 +480,7 @@ struct process_attribute<arg_v> : process_attribute_default<arg_v> {
         }
 
         if (!a.value) {
-#if !defined(NDEBUG)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             std::string descr("'");
             if (a.name) {
                 descr += std::string(a.name) + ": ";
@@ -499,7 +501,8 @@ struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 #else
             pybind11_fail("arg(): could not convert default argument "
                           "into a Python object (type not registered yet?). "
-                          "Compile in debug mode for more information.");
+                          "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for "
+                          "more information.");
 #endif
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);

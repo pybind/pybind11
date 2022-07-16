@@ -93,11 +93,10 @@ cmake --build build -j4
 
 Tips:
 
-* You can use `virtualenv` (from PyPI) instead of `venv` (which is Python 3
-  only).
+* You can use `virtualenv` (faster, from PyPI) instead of `venv`.
 * You can select any name for your environment folder; if it contains "env" it
   will be ignored by git.
-* If you don’t have CMake 3.14+, just add “cmake” to the pip install command.
+* If you don't have CMake 3.14+, just add "cmake" to the pip install command.
 * You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython on CMake 3.12+
 * In classic mode, you may need to set `-DPYTHON_EXECUTABLE=/path/to/python`.
   FindPython uses `-DPython_ROOT_DIR=/path/to` or
@@ -105,7 +104,7 @@ Tips:
 
 ### Configuration options
 
-In CMake, configuration options are given with “-D”. Options are stored in the
+In CMake, configuration options are given with "-D". Options are stored in the
 build directory, in the `CMakeCache.txt` file, so they are remembered for each
 build directory. Two selections are special - the generator, given with `-G`,
 and the compiler, which is selected based on environment variables `CXX` and
@@ -115,7 +114,7 @@ after the initial run.
 The valid options are:
 
 * `-DCMAKE_BUILD_TYPE`: Release, Debug, MinSizeRel, RelWithDebInfo
-* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+’s FindPython instead of the
+* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+'s FindPython instead of the
   classic, deprecated, custom FindPythonLibs
 * `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
 * `-DBUILD_TESTING=ON`: Enable the tests
@@ -236,11 +235,13 @@ directory inside your pybind11 git clone. Files will be modified in place,
 so you can use git to monitor the changes.
 
 ```bash
-docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:12
+docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:13
 apt-get update && apt-get install -y python3-dev python3-pytest
-cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
-cmake --build build -j 2 -- --keep-going
+cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);--use-color" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
+cmake --build build -j 2
 ```
+
+You can add `--fix` to the options list if you want.
 
 ### Include what you use
 
@@ -257,7 +258,7 @@ The report is sent to stderr; you can pipe it into a file if you wish.
 ### Build recipes
 
 This builds with the Intel compiler (assuming it is in your path, along with a
-recent CMake and Python 3):
+recent CMake and Python):
 
 ```bash
 python3 -m venv venv

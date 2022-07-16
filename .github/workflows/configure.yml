@@ -18,7 +18,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
         arch: [x64]
-        cmake: ["3.21"]
+        cmake: ["3.23"]
 
         include:
         - runs-on: ubuntu-latest
@@ -29,22 +29,18 @@ jobs:
           arch: x64
           cmake: 3.7
 
-        - runs-on: windows-2016
-          arch: x86
-          cmake: 3.8
-
-        - runs-on: windows-2016
-          arch: x86
+        - runs-on: windows-2019
+          arch: x64 # x86 compilers seem to be missing on 2019 image
           cmake: 3.18
 
     name: 🐍 3.7 • CMake ${{ matrix.cmake }} • ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Python 3.7
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.7
         architecture: ${{ matrix.arch }}

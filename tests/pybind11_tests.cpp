@@ -62,15 +62,40 @@ void bind_ConstructorStats(py::module_ &m) {
         });
 }
 
+const char *cpp_std() {
+    return
+#if defined(PYBIND11_CPP20)
+        "C++20";
+#elif defined(PYBIND11_CPP17)
+        "C++17";
+#elif defined(PYBIND11_CPP14)
+        "C++14";
+#else
+        "C++11";
+#endif
+}
+
 PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
+    // Intentionally kept minimal to not create a maintenance chore
+    // ("just enough" to be conclusive).
+#if defined(_MSC_FULL_VER)
+    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
+#elif defined(__VERSION__)
+    m.attr("compiler_info") = __VERSION__;
+#else
+    m.attr("compiler_info") = py::none();
+#endif
+    m.attr("cpp_std") = cpp_std();
+    m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+
     bind_ConstructorStats(m);
 
-#if !defined(NDEBUG)
-    m.attr("debug_enabled") = true;
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+    m.attr("detailed_error_messages_enabled") = true;
 #else
-    m.attr("debug_enabled") = false;
+    m.attr("detailed_error_messages_enabled") = false;
 #endif
 
     py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")

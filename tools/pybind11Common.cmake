@@ -8,7 +8,6 @@ Adds the following targets::
     pybind11::lto - Link time optimizations (manual selection)
     pybind11::thin_lto - Link time optimizations (manual selection)
     pybind11::python_link_helper - Adds link to Python libraries
-    pybind11::python2_no_register - Avoid warning/error with Python 2 + C++14/7
     pybind11::windows_extras - MSVC bigobj and mp for building multithreaded
     pybind11::opt_size - avoid optimizations that increase code size
 
@@ -66,31 +65,6 @@ set_property(
   APPEND
   PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11)
 
-# ----------------------- no register ----------------------
-
-# Workaround for Python 2.7 and C++17 (C++14 as a warning) incompatibility
-# This adds the flags -Wno-register and -Wno-deprecated-register if the compiler
-# is Clang 3.9+ or AppleClang and the compile language is CXX, or /wd5033 for MSVC (all languages,
-# since MSVC didn't recognize COMPILE_LANGUAGE until CMake 3.11+).
-
-add_library(pybind11::python2_no_register INTERFACE IMPORTED ${optional_global})
-set(clang_4plus
-    "$<AND:$<CXX_COMPILER_ID:Clang>,$<NOT:$<VERSION_LESS:$<CXX_COMPILER_VERSION>,3.9>>>")
-set(no_register "$<OR:${clang_4plus},$<CXX_COMPILER_ID:AppleClang>>")
-
-if(MSVC AND CMAKE_VERSION VERSION_LESS 3.11)
-  set(cxx_no_register "${no_register}")
-else()
-  set(cxx_no_register "$<AND:$<COMPILE_LANGUAGE:CXX>,${no_register}>")
-endif()
-
-set(msvc "$<CXX_COMPILER_ID:MSVC>")
-
-set_property(
-  TARGET pybind11::python2_no_register
-  PROPERTY INTERFACE_COMPILE_OPTIONS
-           "$<${cxx_no_register}:-Wno-register;-Wno-deprecated-register>" "$<${msvc}:/wd5033>")
-
 # --------------------------- link helper ---------------------------
 
 add_library(pybind11::python_link_helper IMPORTED INTERFACE ${optional_global})
@@ -122,7 +96,7 @@ if(MSVC) # That's also clang-cl
   set_property(
     TARGET pybind11::windows_extras
     APPEND
-    PROPERTY INTERFACE_COMPILE_OPTIONS /bigobj)
+    PROPERTY INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:/bigobj>)
 
   # /MP enables multithreaded builds (relevant when there are many files) for MSVC
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") # no Clang no Intel

@@ -126,7 +126,6 @@ TEST_CASE("Override cache") {
 TEST_CASE("Import error handling") {
     REQUIRE_NOTHROW(py::module_::import("widget_module"));
     REQUIRE_THROWS_WITH(py::module_::import("throw_exception"), "ImportError: C++ Error");
-#if PY_VERSION_HEX >= 0x03030000
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: initialization failed"));
 
@@ -142,10 +141,6 @@ TEST_CASE("Import error handling") {
              locals);
     REQUIRE(locals["is_keyerror"].cast<bool>() == true);
     REQUIRE(locals["message"].cast<std::string>() == "'missing'");
-#else
-    REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
-                        Catch::Contains("ImportError: KeyError"));
-#endif
 }
 
 TEST_CASE("There can be only one interpreter") {

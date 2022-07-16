@@ -32,9 +32,9 @@ this heavy machinery has become an excessively large and unnecessary
 dependency.
 
 Think of this library as a tiny self-contained version of Boost.Python
-with everything stripped away that isn’t relevant for binding
+with everything stripped away that isn't relevant for binding
 generation. Without comments, the core header files only require ~4K
-lines of code and depend on Python (2.7 or 3.5+, or PyPy) and the C++
+lines of code and depend on Python (3.6+, or PyPy) and the C++
 standard library. This compact implementation was possible thanks to
 some of the new C++11 language features (specifically: tuples, lambda
 functions and variadic templates). Since its creation, this library has
@@ -78,8 +78,8 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- Python 2.7, 3.5+, and PyPy/PyPy3 7.3 are supported with an
-  implementation-agnostic interface.
+- Python 3.6+, and PyPy3 7.3 are supported with an implementation-agnostic
+  interface (pybind11 2.9 was the last version to support Python 2 and 3.5).
 
 - It is possible to bind C++11 lambda functions with captured
   variables. The lambda capture data is stored inside the resulting
@@ -88,8 +88,8 @@ goodies:
 - pybind11 uses C++11 move constructors and move assignment operators
   whenever possible to efficiently transfer custom data types.
 
-- It’s easy to expose the internal storage of custom data types through
-  Pythons’ buffer protocols. This is handy e.g. for fast conversion
+- It's easy to expose the internal storage of custom data types through
+  Pythons' buffer protocols. This is handy e.g. for fast conversion
   between C++ matrix classes like Eigen and NumPy without expensive
   copy operations.
 
@@ -119,10 +119,10 @@ goodies:
 Supported compilers
 -------------------
 
-1. Clang/LLVM 3.3 or newer (for Apple Xcode’s clang, this is 5.0.0 or
+1. Clang/LLVM 3.3 or newer (for Apple Xcode's clang, this is 5.0.0 or
    newer)
 2. GCC 4.8 or newer
-3. Microsoft Visual Studio 2015 Update 3 or newer
+3. Microsoft Visual Studio 2017 or newer
 4. Intel classic C++ compiler 18 or newer (ICC 20.2 tested in CI)
 5. Cygwin/GCC (previously tested on 2.5.1)
 6. NVCC (CUDA 11.0 tested in CI)

@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 9
-#define PYBIND11_VERSION_PATCH 2
+#define PYBIND11_VERSION_MINOR 10
+#define PYBIND11_VERSION_PATCH 0
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x02090200
+#define PYBIND11_VERSION_HEX 0x020A0000
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -38,6 +38,7 @@
 #            define PYBIND11_CPP17
 #            if __cplusplus >= 202002L
 #                define PYBIND11_CPP20
+// Please update tests/pybind11_tests.cpp `cpp_std()` when adding a macro here.
 #            endif
 #        endif
 #    endif
@@ -47,7 +48,7 @@
 // or newer.
 #    if _MSVC_LANG >= 201402L
 #        define PYBIND11_CPP14
-#        if _MSVC_LANG > 201402L && _MSC_VER >= 1910
+#        if _MSVC_LANG > 201402L
 #            define PYBIND11_CPP17
 #            if _MSVC_LANG >= 202002L
 #                define PYBIND11_CPP20
@@ -81,10 +82,8 @@
 #        error pybind11 requires gcc 4.8 or newer
 #    endif
 #elif defined(_MSC_VER)
-// Pybind hits various compiler bugs in 2015u2 and earlier, and also makes use of some stl features
-// (e.g. std::negation) added in 2015u3:
-#    if _MSC_FULL_VER < 190024210
-#        error pybind11 requires MSVC 2015 update 3 or newer
+#    if _MSC_VER < 1910
+#        error pybind11 2.10+ requires MSVC 2017 or newer
 #    endif
 #endif
 
@@ -149,7 +148,7 @@
 
 /* Don't let Python.h #define (v)snprintf as macro because they are implemented
    properly in Visual Studio since 2015. */
-#if defined(_MSC_VER) && _MSC_VER >= 1900
+#if defined(_MSC_VER)
 #    define HAVE_SNPRINTF 1
 #endif
 
@@ -211,6 +210,9 @@
 #endif
 
 #include <Python.h>
+#if PY_VERSION_HEX < 0x03060000
+#    error "PYTHON < 3.6 IS UNSUPPORTED. pybind11 v2.9 was the last to support Python 2 and 3.5."
+#endif
 #include <frameobject.h>
 #include <pythread.h>
 
@@ -266,78 +268,37 @@
 // If UNDEFINED, pybind11::str can only hold PyUnicodeObject, and
 //               pybind11::isinstance<str>() is true only for pybind11::str.
 //               However, for Python 2 only (!), the pybind11::str caster
-//               implicitly decodes bytes to PyUnicodeObject. This is to ease
+//               implicitly decoded bytes to PyUnicodeObject. This was to ease
 //               the transition from the legacy behavior to the non-permissive
 //               behavior.
 
-#if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
-#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
-#    define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
-#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
-#    define PYBIND11_BYTES_CHECK PyBytes_Check
-#    define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
-#    define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
-#    define PYBIND11_BYTES_AS_STRING_AND_SIZE PyBytes_AsStringAndSize
-#    define PYBIND11_BYTES_AS_STRING PyBytes_AsString
-#    define PYBIND11_BYTES_SIZE PyBytes_Size
-#    define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
-#    define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
-#    define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
-#    define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
-#    define PYBIND11_BYTES_NAME "bytes"
-#    define PYBIND11_STRING_NAME "str"
-#    define PYBIND11_SLICE_OBJECT PyObject
-#    define PYBIND11_FROM_STRING PyUnicode_FromString
-#    define PYBIND11_STR_TYPE ::pybind11::str
-#    define PYBIND11_BOOL_ATTR "__bool__"
-#    define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
-#    define PYBIND11_BUILTINS_MODULE "builtins"
+/// Compatibility macros for Python 2 / Python 3 versions TODO: remove
+#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
+#define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
+#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
+#define PYBIND11_BYTES_CHECK PyBytes_Check
+#define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
+#define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
+#define PYBIND11_BYTES_AS_STRING_AND_SIZE PyBytes_AsStringAndSize
+#define PYBIND11_BYTES_AS_STRING PyBytes_AsString
+#define PYBIND11_BYTES_SIZE PyBytes_Size
+#define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+#define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
+#define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
+#define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
+#define PYBIND11_BYTES_NAME "bytes"
+#define PYBIND11_STRING_NAME "str"
+#define PYBIND11_SLICE_OBJECT PyObject
+#define PYBIND11_FROM_STRING PyUnicode_FromString
+#define PYBIND11_STR_TYPE ::pybind11::str
+#define PYBIND11_BOOL_ATTR "__bool__"
+#define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
+#define PYBIND11_BUILTINS_MODULE "builtins"
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
-#    define PYBIND11_PLUGIN_IMPL(name)                                                            \
-        extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();               \
-        extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
-
-#else
-#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyMethod_New(ptr, nullptr, class_)
-#    define PYBIND11_INSTANCE_METHOD_CHECK PyMethod_Check
-#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyMethod_GET_FUNCTION
-#    define PYBIND11_BYTES_CHECK PyString_Check
-#    define PYBIND11_BYTES_FROM_STRING PyString_FromString
-#    define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyString_FromStringAndSize
-#    define PYBIND11_BYTES_AS_STRING_AND_SIZE PyString_AsStringAndSize
-#    define PYBIND11_BYTES_AS_STRING PyString_AsString
-#    define PYBIND11_BYTES_SIZE PyString_Size
-#    define PYBIND11_LONG_CHECK(o) (PyInt_Check(o) || PyLong_Check(o))
-#    define PYBIND11_LONG_AS_LONGLONG(o)                                                          \
-        (PyInt_Check(o) ? (long long) PyLong_AsLong(o) : PyLong_AsLongLong(o))
-#    define PYBIND11_LONG_FROM_SIGNED(o) PyInt_FromSsize_t((ssize_t) o) // Returns long if needed.
-#    define PYBIND11_LONG_FROM_UNSIGNED(o) PyInt_FromSize_t((size_t) o) // Returns long if needed.
-#    define PYBIND11_BYTES_NAME "str"
-#    define PYBIND11_STRING_NAME "unicode"
-#    define PYBIND11_SLICE_OBJECT PySliceObject
-#    define PYBIND11_FROM_STRING PyString_FromString
-#    define PYBIND11_STR_TYPE ::pybind11::bytes
-#    define PYBIND11_BOOL_ATTR "__nonzero__"
-#    define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_nonzero)
-#    define PYBIND11_BUILTINS_MODULE "__builtin__"
-// Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy.
-// See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
-#    define PYBIND11_PLUGIN_IMPL(name)                                                            \
-        static PyObject *pybind11_init_wrapper();                                                 \
-        extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT void init##name();                       \
-        extern "C" PYBIND11_EXPORT void init##name() { (void) pybind11_init_wrapper(); }          \
-        PyObject *pybind11_init_wrapper()
-#endif
-
-#if PY_VERSION_HEX >= 0x03050000 && PY_VERSION_HEX < 0x03050200
-extern "C" {
-struct _Py_atomic_address {
-    void *value;
-};
-PyAPI_DATA(_Py_atomic_address) _PyThreadState_Current;
-}
-#endif
+#define PYBIND11_PLUGIN_IMPL(name)                                                                \
+    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();                   \
+    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
 #define PYBIND11_STRINGIFY(x) #x
@@ -362,31 +323,15 @@ PyAPI_DATA(_Py_atomic_address) _PyThreadState_Current;
         }                                                                                         \
     }
 
-#if PY_VERSION_HEX >= 0x03030000
-
-#    define PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
-        catch (pybind11::error_already_set & e) {                                                 \
-            pybind11::raise_from(e, PyExc_ImportError, "initialization failed");                  \
-            return nullptr;                                                                       \
-        }                                                                                         \
-        catch (const std::exception &e) {                                                         \
-            PyErr_SetString(PyExc_ImportError, e.what());                                         \
-            return nullptr;                                                                       \
-        }
-
-#else
-
-#    define PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
-        catch (pybind11::error_already_set & e) {                                                 \
-            PyErr_SetString(PyExc_ImportError, e.what());                                         \
-            return nullptr;                                                                       \
-        }                                                                                         \
-        catch (const std::exception &e) {                                                         \
-            PyErr_SetString(PyExc_ImportError, e.what());                                         \
-            return nullptr;                                                                       \
-        }
-
-#endif
+#define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    catch (pybind11::error_already_set & e) {                                                     \
+        pybind11::raise_from(e, PyExc_ImportError, "initialization failed");                      \
+        return nullptr;                                                                           \
+    }                                                                                             \
+    catch (const std::exception &e) {                                                             \
+        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        return nullptr;                                                                           \
+    }
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
@@ -483,7 +428,7 @@ enum class return_value_policy : uint8_t {
 
     /** Reference an existing object (i.e. do not create a new copy) and take
         ownership. Python will call the destructor and delete operator when the
-        object’s reference count reaches zero. Undefined behavior ensues when
+        object's reference count reaches zero. Undefined behavior ensues when
         the C++ side does the same.. */
     take_ownership,
 
@@ -499,7 +444,7 @@ enum class return_value_policy : uint8_t {
     move,
 
     /** Reference an existing object, but do not take ownership. The C++ side
-        is responsible for managing the object’s lifetime and deallocating it
+        is responsible for managing the object's lifetime and deallocating it
         when it is no longer used. Warning: undefined behavior will ensue when
         the C++ side deletes an object that is still referenced and used by
         Python. */
@@ -508,7 +453,7 @@ enum class return_value_policy : uint8_t {
     /** This policy only applies to methods and properties. It references the
         object without taking ownership similar to the above
         return_value_policy::reference policy. In contrast to that policy, the
-        function or property’s implicit this argument (called the parent) is
+        function or property's implicit this argument (called the parent) is
         considered to be the the owner of the return value (the child).
         pybind11 then couples the lifetime of the parent to the child via a
         reference relationship that ensures that the parent cannot be garbage
@@ -615,7 +560,7 @@ static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
 
 /// from __cpp_future__ import (convenient aliases from C++14/17)
-#if defined(PYBIND11_CPP14) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
+#if defined(PYBIND11_CPP14)
 using std::conditional_t;
 using std::enable_if_t;
 using std::remove_cv_t;
@@ -878,10 +823,12 @@ struct is_template_base_of_impl {
 /// Check if a template is the base of a type. For example:
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template <typename...> class Base, typename T>
+// Sadly, all MSVC versions incl. 2022 need the workaround, even in C++20 mode.
+// See also: https://github.com/pybind/pybind11/pull/3741
 #if !defined(_MSC_VER)
 using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
-#else // MSVC2015 has trouble with decltype in template aliases
+#else
 struct is_template_base_of
     : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr)) {
 };
@@ -990,9 +937,11 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
+    assert(!PyErr_Occurred());
     throw std::runtime_error(reason);
 }
 
@@ -1044,6 +993,8 @@ constexpr const char
 struct error_scope {
     PyObject *type, *value, *trace;
     error_scope() { PyErr_Fetch(&type, &value, &trace); }
+    error_scope(const error_scope &) = delete;
+    error_scope &operator=(const error_scope &) = delete;
     ~error_scope() { PyErr_Restore(type, value, trace); }
 };
 
@@ -1056,9 +1007,6 @@ struct nodelete {
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    // NOLINTNEXTLINE(modernize-use-equals-default):  MSVC 2015 needs this
-    constexpr overload_cast_impl() {}
-
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept -> decltype(pf) {
         return pf;
@@ -1085,8 +1033,12 @@ PYBIND11_NAMESPACE_END(detail)
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
+#    if (defined(_MSC_VER) && _MSC_VER < 1920) /* MSVC 2017 */                                    \
+        || (defined(__clang__) && __clang_major__ == 5)
 static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
-// MSVC 2015 only accepts this particular initialization syntax for this variable template.
+#    else
+static constexpr detail::overload_cast_impl<Args...> overload_cast;
+#    endif
 #endif
 
 /// Const member function selector for overload_cast
@@ -1172,7 +1124,7 @@ try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
 
 // For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
-#if defined(_MSC_VER) && _MSC_VER >= 1910 && _MSC_VER < 1920 // MSVC 2017
+#if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
     inline void
@@ -1204,6 +1156,13 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
 #else
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
+#endif
+
+// Pybind offers detailed error messages by default for all builts that are debug (through the
+// negation of ndebug). This can also be manually enabled by users, for any builds, through
+// defining PYBIND11_DETAILED_ERROR_MESSAGES.
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
+#    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif
 
 PYBIND11_NAMESPACE_END(detail)

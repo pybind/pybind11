@@ -1,9 +1,20 @@
-# -*- coding: utf-8 -*-
+import sys
+
 import pytest
 
 import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 from pybind11_tests import methods_and_attributes as m
+
+NO_GETTER_MSG = (
+    "unreadable attribute" if sys.version_info < (3, 11) else "object has no getter"
+)
+NO_SETTER_MSG = (
+    "can't set attribute" if sys.version_info < (3, 11) else "object has no setter"
+)
+NO_DELETER_MSG = (
+    "can't delete attribute" if sys.version_info < (3, 11) else "object has no deleter"
+)
 
 
 def test_methods_and_attributes():
@@ -103,32 +114,32 @@ def test_properties():
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_writeonly  # unused var
-    assert "unreadable attribute" in str(excinfo.value)
+    assert NO_GETTER_MSG in str(excinfo.value)
 
     instance.def_property_writeonly = 4
     assert instance.def_property_readonly == 4
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_impossible  # noqa: F841 unused var
-    assert "unreadable attribute" in str(excinfo.value)
+    assert NO_GETTER_MSG in str(excinfo.value)
 
     with pytest.raises(AttributeError) as excinfo:
         instance.def_property_impossible = 5
-    assert "can't set attribute" in str(excinfo.value)
+    assert NO_SETTER_MSG in str(excinfo.value)
 
 
 def test_static_properties():
     assert m.TestProperties.def_readonly_static == 1
     with pytest.raises(AttributeError) as excinfo:
         m.TestProperties.def_readonly_static = 2
-    assert "can't set attribute" in str(excinfo.value)
+    assert NO_SETTER_MSG in str(excinfo.value)
 
     m.TestProperties.def_readwrite_static = 2
     assert m.TestProperties.def_readwrite_static == 2
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = m.TestProperties.def_writeonly_static  # unused var
-    assert "unreadable attribute" in str(excinfo.value)
+    assert NO_GETTER_MSG in str(excinfo.value)
 
     m.TestProperties.def_writeonly_static = 3
     assert m.TestProperties.def_readonly_static == 3
@@ -136,14 +147,14 @@ def test_static_properties():
     assert m.TestProperties.def_property_readonly_static == 3
     with pytest.raises(AttributeError) as excinfo:
         m.TestProperties.def_property_readonly_static = 99
-    assert "can't set attribute" in str(excinfo.value)
+    assert NO_SETTER_MSG in str(excinfo.value)
 
     m.TestProperties.def_property_static = 4
     assert m.TestProperties.def_property_static == 4
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = m.TestProperties.def_property_writeonly_static
-    assert "unreadable attribute" in str(excinfo.value)
+    assert NO_GETTER_MSG in str(excinfo.value)
 
     m.TestProperties.def_property_writeonly_static = 5
     assert m.TestProperties.def_property_static == 5
@@ -161,7 +172,7 @@ def test_static_properties():
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_writeonly_static  # noqa: F841 unused var
-    assert "unreadable attribute" in str(excinfo.value)
+    assert NO_GETTER_MSG in str(excinfo.value)
 
     instance.def_property_writeonly_static = 4
     assert instance.def_property_static == 4
@@ -181,7 +192,7 @@ def test_static_properties():
     properties_override = m.TestPropertiesOverride()
     with pytest.raises(AttributeError) as excinfo:
         del properties_override.def_readonly
-    assert "can't delete attribute" in str(excinfo.value)
+    assert NO_DELETER_MSG in str(excinfo.value)
 
 
 def test_static_cls():
@@ -217,15 +228,15 @@ def test_metaclass_override():
 
 
 def test_no_mixed_overloads():
-    from pybind11_tests import debug_enabled
+    from pybind11_tests import detailed_error_messages_enabled
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads1()
     assert str(
         excinfo.value
     ) == "overloading a method with both static and instance methods is not supported; " + (
-        "compile in debug mode for more details"
-        if not debug_enabled
+        "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+        if not detailed_error_messages_enabled
         else "error while attempting to bind static method ExampleMandA.overload_mixed1"
         "(arg0: float) -> str"
     )
@@ -235,8 +246,8 @@ def test_no_mixed_overloads():
     assert str(
         excinfo.value
     ) == "overloading a method with both static and instance methods is not supported; " + (
-        "compile in debug mode for more details"
-        if not debug_enabled
+        "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+        if not detailed_error_messages_enabled
         else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
         "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
         " -> str"
@@ -345,16 +356,16 @@ def test_cyclic_gc():
 
 
 def test_bad_arg_default(msg):
-    from pybind11_tests import debug_enabled
+    from pybind11_tests import detailed_error_messages_enabled
 
     with pytest.raises(RuntimeError) as excinfo:
         m.bad_arg_def_named()
     assert msg(excinfo.value) == (
         "arg(): could not convert default argument 'a: UnregisteredType' in function "
         "'should_fail' into a Python object (type not registered yet?)"
-        if debug_enabled
+        if detailed_error_messages_enabled
         else "arg(): could not convert default argument into a Python object (type not registered "
-        "yet?). Compile in debug mode for more information."
+        "yet?). #define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more information."
     )
 
     with pytest.raises(RuntimeError) as excinfo:
@@ -362,9 +373,9 @@ def test_bad_arg_default(msg):
     assert msg(excinfo.value) == (
         "arg(): could not convert default argument 'UnregisteredType' in function "
         "'should_fail' into a Python object (type not registered yet?)"
-        if debug_enabled
+        if detailed_error_messages_enabled
         else "arg(): could not convert default argument into a Python object (type not registered "
-        "yet?). Compile in debug mode for more information."
+        "yet?). #define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more information."
     )
 
 
@@ -494,26 +505,17 @@ def test_overload_ordering():
     assert m.overload_order("string") == 1
     assert m.overload_order(0) == 4
 
-    # Different for Python 2 vs. 3
-    uni_name = type(u"").__name__
-
     assert "1. overload_order(arg0: int) -> int" in m.overload_order.__doc__
-    assert (
-        "2. overload_order(arg0: {}) -> int".format(uni_name)
-        in m.overload_order.__doc__
-    )
-    assert (
-        "3. overload_order(arg0: {}) -> int".format(uni_name)
-        in m.overload_order.__doc__
-    )
+    assert "2. overload_order(arg0: str) -> int" in m.overload_order.__doc__
+    assert "3. overload_order(arg0: str) -> int" in m.overload_order.__doc__
     assert "4. overload_order(arg0: int) -> int" in m.overload_order.__doc__
 
     with pytest.raises(TypeError) as err:
         m.overload_order(1.1)
 
     assert "1. (arg0: int) -> int" in str(err.value)
-    assert "2. (arg0: {}) -> int".format(uni_name) in str(err.value)
-    assert "3. (arg0: {}) -> int".format(uni_name) in str(err.value)
+    assert "2. (arg0: str) -> int" in str(err.value)
+    assert "3. (arg0: str) -> int" in str(err.value)
     assert "4. (arg0: int) -> int" in str(err.value)
 
 

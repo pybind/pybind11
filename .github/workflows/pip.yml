@@ -17,19 +17,19 @@ env:
 
 jobs:
   # This builds the sdists and wheels and makes sure the files are exactly as
-  # expected. Using Windows and Python 2.7, since that is often the most
+  # expected. Using Windows and Python 3.6, since that is often the most
   # challenging matrix element.
   test-packaging:
-    name: 🐍 2.7 • 📦 tests • windows-latest
+    name: 🐍 3.6 • 📦 tests • windows-latest
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Setup 🐍 2.7
-      uses: actions/setup-python@v2
+    - name: Setup 🐍 3.6
+      uses: actions/setup-python@v4
       with:
-        python-version: 2.7
+        python-version: 3.6
 
     - name: Prepare env
       run: |
@@ -46,10 +46,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup 🐍 3.8
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
 
@@ -69,13 +69,13 @@ jobs:
       run: twine check dist/*
 
     - name: Save standard package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: standard
         path: dist/pybind11-*
 
     - name: Save global package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: global
         path: dist/pybind11_global-*
@@ -90,10 +90,12 @@ jobs:
     needs: [packaging]
 
     steps:
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
 
     # Downloads all to directories matching the artifact names
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
 
     - name: Publish standard package
       uses: pypa/gh-action-pypi-publish@v1.5.0

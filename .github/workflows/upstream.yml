@@ -14,15 +14,15 @@ env:
 
 jobs:
   standard:
-    name: "🐍 3.11 dev • ubuntu-latest • x64"
+    name: "🐍 3.11 latest internals • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Python 3.11
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: "3.11-dev"
 

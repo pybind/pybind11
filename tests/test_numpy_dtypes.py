@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 import pytest
@@ -15,7 +14,7 @@ def simple_dtype():
     return np.dtype(
         {
             "names": ["bool_", "uint_", "float_", "ldbl_"],
-            "formats": ["?", "u4", "f4", "f{}".format(ld.itemsize)],
+            "formats": ["?", "u4", "f4", f"f{ld.itemsize}"],
             "offsets": [0, 4, 8, (16 if ld.alignment > 4 else 12)],
         }
     )
@@ -126,7 +125,7 @@ def test_dtype(simple_dtype):
     assert [x.replace(" ", "") for x in m.print_dtypes()] == [
         simple_dtype_fmt(),
         packed_dtype_fmt(),
-        "[('a',{}),('b',{})]".format(simple_dtype_fmt(), packed_dtype_fmt()),
+        f"[('a',{simple_dtype_fmt()}),('b',{packed_dtype_fmt()})]",
         partial_dtype_fmt(),
         partial_nested_fmt(),
         "[('a','S3'),('b','S3')]",
@@ -161,6 +160,7 @@ def test_dtype(simple_dtype):
         d1,
         np.dtype("uint32"),
         d2,
+        np.dtype("d"),
     ]
 
     assert m.test_dtype_methods() == [
@@ -176,8 +176,13 @@ def test_dtype(simple_dtype):
         np.zeros(1, m.trailing_padding_dtype())
     )
 
+    expected_chars = "bhilqBHILQefdgFDG?MmO"
     assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmO")
-    assert m.test_dtype_char_() == list("bhilqBHILQefdgFDG?MmO")
+    assert m.test_dtype_char_() == list(expected_chars)
+    assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
+    assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]
+    assert m.test_dtype_alignment() == [np.dtype(ch).alignment for ch in expected_chars]
+    assert m.test_dtype_flags() == [chr(np.dtype(ch).flags) for ch in expected_chars]
 
 
 def test_recarray(simple_dtype, packed_dtype):

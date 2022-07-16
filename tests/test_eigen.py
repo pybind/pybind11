@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import ConstructorStats
@@ -201,7 +200,7 @@ def test_negative_stride_from_python(msg):
         double_threer(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float32[1, 3], flags.writeable]) -> None
 
-        Invoked with: """  # noqa: E501 line too long
+        Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
     )
 
@@ -213,7 +212,7 @@ def test_negative_stride_from_python(msg):
         double_threec(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float32[3, 1], flags.writeable]) -> None
 
-        Invoked with: """  # noqa: E501 line too long
+        Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
     )
 
@@ -222,9 +221,7 @@ def test_nonunit_stride_to_python():
     assert np.all(m.diagonal(ref) == ref.diagonal())
     assert np.all(m.diagonal_1(ref) == ref.diagonal(1))
     for i in range(-5, 7):
-        assert np.all(
-            m.diagonal_n(ref, i) == ref.diagonal(i)
-        ), "m.diagonal_n({})".format(i)
+        assert np.all(m.diagonal_n(ref, i) == ref.diagonal(i)), f"m.diagonal_n({i})"
 
     assert np.all(m.block(ref, 2, 1, 3, 3) == ref[2:5, 1:4])
     assert np.all(m.block(ref, 1, 4, 4, 2) == ref[1:, 4:])
@@ -237,7 +234,7 @@ def test_eigen_ref_to_python():
         mymat = chol(np.array([[1.0, 2, 4], [2, 13, 23], [4, 23, 77]]))
         assert np.all(
             mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])
-        ), "cholesky{}".format(i)
+        ), f"cholesky{i}"
 
 
 def assign_both(a1, a2, r, c, v):
@@ -724,13 +721,13 @@ def test_sparse_signature(doc):
         doc(m.sparse_copy_r)
         == """
         sparse_copy_r(arg0: scipy.sparse.csr_matrix[numpy.float32]) -> scipy.sparse.csr_matrix[numpy.float32]
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         doc(m.sparse_copy_c)
         == """
         sparse_copy_c(arg0: scipy.sparse.csc_matrix[numpy.float32]) -> scipy.sparse.csc_matrix[numpy.float32]
-    """  # noqa: E501 line too long
+    """
     )
 
 
@@ -745,6 +742,13 @@ def test_issue738():
     assert np.all(
         m.iss738_f2(np.array([[1.0], [2], [3]])) == np.array([[1.0], [12], [23]])
     )
+
+
+@pytest.mark.parametrize("func", [m.iss738_f1, m.iss738_f2])
+@pytest.mark.parametrize("sizes", [(0, 2), (2, 0)])
+def test_zero_length(func, sizes):
+    """Ignore strides on a length-0 dimension (even if they would be incompatible length > 1)"""
+    assert np.all(func(np.zeros(sizes)) == np.zeros(sizes))
 
 
 def test_issue1105():
