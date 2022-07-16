@@ -4,13 +4,6 @@
 # `-fvisibility=hidden` or `__attribute__((visibility("hidden")))`, or linking
 # extensions statically with the core Python interpreter.
 
-# NOTE
-# ====
-# The "exc_" in "test_exc_namespace_visibility.py" is a workaround, to avoid a
-# test_cross_module_exception_translator (test_exceptions.py) failure. This
-# test has to be imported (by pytest) before test_exceptions.py; pytest sorts
-# lexically. See https://github.com/pybind/pybind11/pull/4054 for more information.
-
 import itertools
 
 import namespace_visibility_1
