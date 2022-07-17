@@ -2380,9 +2380,9 @@ bool object_api<D>::rich_compare(object_api const &other, int value) const {
         return result;                                                                            \
     }
 
-#define PYBIND11_MATH_OPERATOR_BINARY_INPLACE(op, fn)                                             \
+#define PYBIND11_MATH_OPERATOR_BINARY_INPLACE(iop, fn)                                            \
     template <typename D>                                                                         \
-    object object_api<D>::op(object_api const &other) {                                           \
+    object object_api<D>::iop(object_api const &other) {                                          \
         object result = reinterpret_steal<object>(fn(derived().ptr(), other.derived().ptr()));    \
         if (!result.ptr())                                                                        \
             throw error_already_set();                                                            \
