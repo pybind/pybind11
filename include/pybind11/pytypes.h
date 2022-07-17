@@ -334,7 +334,7 @@ public:
     }
 
     object &operator=(const object &other) {
-        if (this != &other) {
+        if (!this->is(other)) {
             other.inc_ref();
             // Use temporary variable to ensure `*this` remains valid while
             // `Py_XDECREF` executes, in case `*this` is accessible from Python.
@@ -346,7 +346,7 @@ public:
     }
 
     object &operator=(object &&other) noexcept {
-        if (this != &other) {
+        if (this != &other && !this->is(other)) {
             handle temp(m_ptr);
             m_ptr = other.m_ptr;
             other.m_ptr = nullptr;
