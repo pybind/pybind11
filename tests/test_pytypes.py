@@ -801,13 +801,13 @@ def test_inplace_and(a, b):
     assert m.inplace_and(a, b) == expected
 
 
-def test_inplace_lshift():
-    a, b = 2, 3
+@pytest.mark.parametrize("a,b", [(8, 1), (-3, 2)])
+def test_inplace_lshift(a, b):
     expected = a << b
     assert m.inplace_lshift(a, b) == expected
 
 
-def test_inplace_rshift():
-    a, b = 2, 3
+@pytest.mark.parametrize("a,b", [(8, 1), (-2, 2)])
+def test_inplace_rshift(a, b):
     expected = a >> b
     assert m.inplace_rshift(a, b) == expected
