@@ -59,6 +59,10 @@ cmake_files = {
     "share/cmake/pybind11/pybind11Tools.cmake",
 }
 
+pkgconfig_files = {
+    "share/pkgconfig/pybind11.pc",
+}
+
 py_files = {
     "__init__.py",
     "__main__.py",
@@ -69,7 +73,7 @@ py_files = {
 }
 
 headers = main_headers | detail_headers | stl_headers
-src_files = headers | cmake_files
+src_files = headers | cmake_files | pkgconfig_files
 all_files = src_files | py_files
 
 
@@ -82,6 +86,7 @@ sdist_files = {
     "pybind11/share",
     "pybind11/share/cmake",
     "pybind11/share/cmake/pybind11",
+    "pybind11/share/pkgconfig",
     "pyproject.toml",
     "setup.cfg",
     "setup.py",
