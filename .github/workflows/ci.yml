@@ -908,7 +908,7 @@ jobs:
       run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
 
     - name: Build C++11
-      run: cmake --build build -j 2 -- -k
+      run: cmake --build build -j 2
 
     - name: Python tests C++11
       run: cmake --build build --target pytest -j 2
@@ -926,7 +926,7 @@ jobs:
       run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
 
     - name: Build C++14
-      run: cmake --build build2 -j 2 -- -k
+      run: cmake --build build2 -j 2
 
     - name: Python tests C++14
       run: cmake --build build2 --target pytest -j 2
@@ -944,7 +944,7 @@ jobs:
       run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
 
     - name: Build C++17
-      run: cmake --build build3 -j 2 -- -k
+      run: cmake --build build3 -j 2
 
     - name: Python tests C++17
       run: cmake --build build3 --target pytest -j 2
