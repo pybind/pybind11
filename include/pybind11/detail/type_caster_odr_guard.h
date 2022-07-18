@@ -92,32 +92,40 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
     }
 }
 
+struct tu_local_no_data_always_false_base {
+    explicit operator bool() const noexcept { return false; }
+};
+
 namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
             //          but we do not have anything better at the moment.
 // The ODR violation here does not involve any data at all.
 // See also: Comment near top of descr.h & WARNING in descr.h
 
-struct tu_local_no_data_always_false {
-    explicit operator bool() const noexcept { return false; }
+struct tu_local_no_data_always_false : tu_local_no_data_always_false_base {
+    explicit tu_local_no_data_always_false(const std::type_info &intrinsic_type_info,
+                                           const src_loc &sloc,
+                                           bool throw_disabled) {
+        type_caster_odr_guard_impl(intrinsic_type_info, sloc, throw_disabled);
+    }
 };
 
 } // namespace
 
 template <typename IntrinsicType, typename TypeCasterType>
 struct type_caster_odr_guard : TypeCasterType {
-    static tu_local_no_data_always_false translation_unit_local;
+    static tu_local_no_data_always_false_base *translation_unit_local;
 
     type_caster_odr_guard() {
         // Possibly, good optimizers will elide this `if` (and below) completely.
         // It is needed only to trigger the TU-local mechanisms.
-        if (translation_unit_local) {
+        if (*translation_unit_local) {
         }
     }
 
     // The original author of this function is @amauryfa
     template <typename CType, typename... Arg>
     static handle cast(CType &&src, return_value_policy policy, handle parent, Arg &&...arg) {
-        if (translation_unit_local) {
+        if (*translation_unit_local) {
         }
         return TypeCasterType::cast(
             std::forward<CType>(src), policy, parent, std::forward<Arg>(arg)...);
@@ -125,16 +133,11 @@ struct type_caster_odr_guard : TypeCasterType {
 };
 
 template <typename IntrinsicType, typename TypeCasterType>
-tu_local_no_data_always_false
-    type_caster_odr_guard<IntrinsicType, TypeCasterType>::translation_unit_local
-    = []() {
-          // Executed only once per process (e.g. when a PYBIND11_MODULE is initialized).
-          // Conclusively tested vi test_type_caster_odr_guard_1, test_type_caster_odr_guard_2:
-          // those tests will fail if the sloc here is not working as intended (TU-local).
-          type_caster_odr_guard_impl(typeid(IntrinsicType),
+tu_local_no_data_always_false_base*
+    type_caster_odr_guard<IntrinsicType, TypeCasterType>::translation_unit_local = []() {
+              return new tu_local_no_data_always_false(typeid(IntrinsicType),
                                      TypeCasterType::name.sloc,
                                      PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_THROW_DISABLED);
-          return tu_local_no_data_always_false();
       }();
 
 PYBIND11_NAMESPACE_END(detail)
