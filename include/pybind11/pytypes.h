@@ -456,6 +456,11 @@ struct error_fetch_and_normalize {
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
+#if defined(PYPY_VERSION)
+        // This behavior masks errors in the error handling, but avoids a PyPy segfault (root
+        // cause unknown). See https://github.com/pybind/pybind11/issues/4075 for background.
+        m_lazy_error_string = exc_type_name_norm;
+#else
         if (exc_type_name_norm != m_lazy_error_string) {
             std::string msg = std::string(called)
                               + ": MISMATCH of original and normalized "
@@ -467,6 +472,7 @@ struct error_fetch_and_normalize {
             msg += ": " + format_value_and_trace();
             pybind11_fail(msg);
         }
+#endif
     }
 
     error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;

@@ -303,18 +303,28 @@ def test_error_already_set_what_with_happy_exceptions(
     assert what == expected_what
 
 
-@pytest.mark.skipif("env.PYPY", reason="PyErr_NormalizeException Segmentation fault")
 def test_flaky_exception_failure_point_init():
-    with pytest.raises(RuntimeError) as excinfo:
-        m.error_already_set_what(FlakyException, ("failure_point_init",))
-    lines = str(excinfo.value).splitlines()
-    # PyErr_NormalizeException replaces the original FlakyException with ValueError:
-    assert lines[:3] == [
-        "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
-        " ORIGINAL FlakyException REPLACED BY ValueError: triggered_failure_point_init",
-        "",
-        "At:",
-    ]
+    if env.PYPY:
+        # This behavior masks errors in the error handling, but avoids a PyPy segfault (root
+        # cause unknown). See https://github.com/pybind/pybind11/issues/4075 for background.
+        what, py_err_set_after_what = m.error_already_set_what(
+            FlakyException, ("failure_point_init",)
+        )
+        assert not py_err_set_after_what
+        lines = what.splitlines()
+        # PyErr_NormalizeException replaces the original FlakyException with ValueError:
+        assert lines[:3] == ["ValueError: triggered_failure_point_init", "", "At:"]
+    else:
+        with pytest.raises(RuntimeError) as excinfo:
+            m.error_already_set_what(FlakyException, ("failure_point_init",))
+        lines = str(excinfo.value).splitlines()
+        # PyErr_NormalizeException replaces the original FlakyException with ValueError:
+        assert lines[:3] == [
+            "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
+            " ORIGINAL FlakyException REPLACED BY ValueError: triggered_failure_point_init",
+            "",
+            "At:",
+        ]
     # Checking the first two lines of the traceback as formatted in error_string():
     assert "test_exceptions.py(" in lines[3]
     assert lines[3].endswith("): __init__")
