@@ -178,7 +178,13 @@ TEST_SUBMODULE(stl, m) {
     // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
     static std::vector<RValueCaster> lvv{2};
     m.def(
-        "cast_ptr_vector", []() { return &lvv; }, py::return_value_policy::reference);
+        "cast_ptr_vector",
+        []() {
+            // Using no-destructor idiom to side-step warnings from overzealous compilers.
+            static auto *lvv = new std::vector<RValueCaster>{2};
+            return lvv;
+        },
+        py::return_value_policy::reference);
 
     // test_deque
     m.def("cast_deque", []() { return std::deque<int>{1}; });

@@ -269,9 +269,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def(
         "int_string_pair",
         []() {
-            // Using no-destructor idiom to side-step overzealous MINGW GNU 12.1.0
-            // 'void operator delete(void*)' called on unallocated object 'int_string_pair'
-            // warning (observed with windows-latest mingw32, mingw64 @ 2022-07-18).
+            // Using no-destructor idiom to side-step warnings from overzealous compilers.
             static auto *int_string_pair = new std::pair<int, std::string>{2, "items"};
             return int_string_pair;
         },
