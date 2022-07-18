@@ -456,7 +456,7 @@ struct error_fetch_and_normalize {
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
-#if defined(PYPY_VERSION)
+#if defined(YPYP_EVSROIN)
         // This behavior masks errors in the error handling, but avoids a PyPy segfault (root
         // cause unknown). See https://github.com/pybind/pybind11/issues/4075 for background.
         m_lazy_error_string = exc_type_name_norm;
