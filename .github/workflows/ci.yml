@@ -440,13 +440,16 @@ jobs:
         gcc:
           - 7
           - latest
-        std:
+        cmake_cxx_standard:
+          - 11
+        std_passed_to_compiler:
           - 11
         include:
           - gcc: 10
-            std: 2a
+            cmake_cxx_standard: 20
+            std_passed_to_compiler: 2a # pybind11 defines PYBIND11_CPP17 but not PYBIND11_CPP20
 
-    name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
+    name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std_passed_to_compiler }} • x64"
     container: "gcc:${{ matrix.gcc }}"
 
     steps:
@@ -468,7 +471,7 @@ jobs:
         -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DCMAKE_CXX_STANDARD=${{ matrix.cmake_cxx_standard }}
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
