@@ -334,7 +334,7 @@ public:
     }
 
     object &operator=(const object &other) {
-        // Do not copy if src and destination object are the same
+        // Skip inc_ref and dec_ref if both objects are the same
         if (!this->is(other)) {
             other.inc_ref();
             // Use temporary variable to ensure `*this` remains valid while
