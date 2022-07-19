@@ -459,7 +459,7 @@ struct error_fetch_and_normalize {
 #if defined(PYPY_VERSION)
         // This behavior runs the risk of masking errors in the error handling, but avoids a
         // conflict with PyPy, which relies on the normalization here to change OSError to
-        // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075 for background).
+        // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075).
         m_lazy_error_string = exc_type_name_norm;
 #else
         if (exc_type_name_norm != m_lazy_error_string) {
