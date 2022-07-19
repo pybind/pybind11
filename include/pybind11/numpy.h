@@ -1865,6 +1865,10 @@ private:
         }
 
         auto result = returned_array::create(trivial, shape);
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wreturn-std-move"
+#endif
 
         if (size == 0) {
             return result;
@@ -1879,6 +1883,9 @@ private:
         }
 
         return result;
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic pop
+#endif
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
