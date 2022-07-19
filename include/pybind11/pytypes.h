@@ -350,8 +350,8 @@ public:
         if (this != &other) {
             handle temp(m_ptr);
             m_ptr = other.m_ptr;
-            temp.dec_ref();
             other.m_ptr = nullptr;
+            temp.dec_ref();
         }
         return *this;
     }
