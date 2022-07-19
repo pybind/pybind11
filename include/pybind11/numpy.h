@@ -1867,7 +1867,7 @@ private:
         auto result = returned_array::create(trivial, shape);
 
         if (size == 0) {
-            return std::move(result);
+            return result;
         }
 
         /* Call the function */
@@ -1878,7 +1878,7 @@ private:
             apply_trivial(buffers, params, mutable_data, size, i_seq, vi_seq, bi_seq);
         }
 
-        return std::move(result);
+        return result;
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
