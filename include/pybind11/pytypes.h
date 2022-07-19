@@ -334,6 +334,7 @@ public:
     }
 
     object &operator=(const object &other) {
+        // Do not copy if src and destination object are the same
         if (!this->is(other)) {
             other.inc_ref();
             // Use temporary variable to ensure `*this` remains valid while
@@ -346,11 +347,11 @@ public:
     }
 
     object &operator=(object &&other) noexcept {
-        if (this != &other && !this->is(other)) {
+        if (this != &other) {
             handle temp(m_ptr);
             m_ptr = other.m_ptr;
-            other.m_ptr = nullptr;
             temp.dec_ref();
+            other.m_ptr = nullptr;
         }
         return *this;
     }
