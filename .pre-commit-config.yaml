@@ -71,7 +71,7 @@ repos:
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v2.0.1"
+  rev: "v2.0.4"
   hooks:
   - id: pycln
     stages: [manual]
@@ -107,7 +107,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.14.4"
+  rev: "v2.14.5"
   hooks:
   - id: pylint
     files: ^pybind11
