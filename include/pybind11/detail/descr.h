@@ -42,12 +42,8 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 //   (line numbers vary between translation units).
 #if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD_IF_AVAILABLE)                                   \
     && !defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD) && defined(PYBIND11_CPP17)                 \
-    && !defined(__INTEL_COMPILER) && (!defined(_MSC_VER) || _MSC_VER >= 1920)                     \
-    && defined(__has_builtin)
-// This needs to be a nested #if to not upset older compilers.
-#    if __has_builtin(__builtin_FILE) && __has_builtin(__builtin_LINE)
-#        define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
-#    endif
+    && !defined(__INTEL_COMPILER) && (!defined(_MSC_VER) || _MSC_VER >= 1920)
+#    define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 #endif
 
 #ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
