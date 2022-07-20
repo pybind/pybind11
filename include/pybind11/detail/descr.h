@@ -26,7 +26,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // struct src_loc below is to support type_caster_odr_guard.h
 // (see https://github.com/pybind/pybind11/pull/4022).
 // The ODR guard creates ODR violations itself (see WARNINGs below & in
-// type_caster_odr_guard.h), but is currently the best tool available, and the dedicated
+// type_caster_odr_guard.h), but is currently the only tool available, and the dedicated
 // test_type_caster_odr_guard_1, test_type_caster_odr_guard_2 pair of unit tests passes
 // reliably on almost all platforms that meet the compiler requirements (C++17, C++20),
 // except one (deadsnakes in the GitHub CI).
@@ -35,12 +35,13 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // debug. The guard is meant to be used similar to a sanitizer, to check for type_caster
 // ODR violations in binaries that are otherwise already fully tested and assumed to be healthy.
 //
-// * MSVC 2017 does not support __builtin_FILE(), __builtin_LINE().
 // * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
 //   (line numbers vary between translation units).
 #if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD_IF_AVAILABLE)                                   \
     && !defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD) && !defined(__INTEL_COMPILER)              \
-    && ((defined(_MSC_VER) && _MSC_VER >= 1920) || defined(PYBIND11_CPP17))
+    && ((defined(_MSC_VER) && _MSC_VER >= 1920) || (defined(__GNUC__) && __GNUC__ >= 5)           \
+        || (defined(__has_builtin) && __has_builtin(__builtin_FILE)                               \
+            && __has_builtin(__builtin_LINE)))
 #    define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 #endif
 
