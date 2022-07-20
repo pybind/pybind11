@@ -75,4 +75,11 @@ TEST_SUBMODULE(type_caster_odr_guard_1, m) {
 
     // See comment near the bottom of test_type_caster_odr_guard_2.cpp.
     m.def("pass_vector_type_mrc", mrc_ns::pass_vector_type_mrc);
+
+    m.attr("ifdef__NO_INLINE__") =
+#ifdef __NO_INLINE__
+        true;
+#else
+        false;
+#endif
 }
