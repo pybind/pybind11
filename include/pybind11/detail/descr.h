@@ -25,15 +25,18 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 // struct src_loc below is to support type_caster_odr_guard.h
 // (see https://github.com/pybind/pybind11/pull/4022).
-// The ODR guard creates ODR violations itself (see WARNINGs below & in
-// type_caster_odr_guard.h), but is currently the only tool available, and the dedicated
-// test_type_caster_odr_guard_1, test_type_caster_odr_guard_2 pair of unit tests passes
-// reliably on almost all platforms that meet the compiler requirements (C++17, C++20),
+// The ODR guard creates ODR violations itself (see WARNING below & in type_caster_odr_guard.h),
+// but is currently the only tool available.
+// The ODR is useful to know *for sure* what is safe and what is not, but that is only a
+// subset of what actually works in practice, in a specific environment. The implementation
+// here exploits the gray area (similar to a white hat hacker).
+// The dedicated test_type_caster_odr_guard_1, test_type_caster_odr_guard_2 pair of unit tests
+// passes reliably on almost all platforms that meet the compiler requirements (C++17, C++20),
 // except one (deadsnakes in the GitHub CI).
 // In the pybind11 unit tests we want to test the ODR guard in as many environments as possible,
-// but it is NOT recommended to turn on the guard in regular builds, production, or
-// debug. The guard is meant to be used similar to a sanitizer, to check for type_caster
-// ODR violations in binaries that are otherwise already fully tested and assumed to be healthy.
+// but it is NOT recommended to enable the guard in regular builds, production, or
+// debug. The guard is meant to be used similar to a sanitizer, to check for type_caster ODR
+// violations in binaries that are otherwise already fully tested and assumed to be healthy.
 //
 // * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
 //   (line numbers vary between translation units).
@@ -88,7 +91,7 @@ struct src_loc {
 
 #ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
-            //          but we do not have anything better at the moment.
+            //          but we do not have any alternative at the moment.
 // The ODR violation here is a difference in constexpr between multiple TUs.
 // All definitions have the same data layout, the only difference is the
 // text const char* pointee (the pointees are identical in value),

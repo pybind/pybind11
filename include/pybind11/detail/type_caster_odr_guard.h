@@ -92,7 +92,7 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
 }
 
 namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
-            //          but we do not have anything better at the moment.
+            //          but we do not have any alternative at the moment.
 // The ODR violation here does not involve any data at all.
 // See also: Comment near top of descr.h & WARNING in descr.h
 
