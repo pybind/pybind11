@@ -6,7 +6,7 @@
 
 #include "descr.h"
 
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 
 #    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)
 #        pragma GCC diagnostic ignored "-Wsubobject-linkage"
@@ -140,4 +140,4 @@ tu_local_no_data_always_false
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#endif
+#endif // PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD

@@ -55,7 +55,7 @@ TEST_SUBMODULE(type_caster_odr_guard_1, m) {
     m.def("type_mrc_to_python", []() { return mrc_ns::type_mrc(101); });
     m.def("type_mrc_from_python", [](const mrc_ns::type_mrc &obj) { return obj.value + 100; });
     m.def("type_caster_odr_guard_registry_values", []() {
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
         py::list values;
         for (const auto &reg_iter : py::detail::type_caster_odr_guard_registry()) {
             values.append(py::str(reg_iter.second));
@@ -66,7 +66,7 @@ TEST_SUBMODULE(type_caster_odr_guard_1, m) {
 #endif
     });
     m.def("type_caster_odr_violation_detected_count", []() {
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
         return py::detail::type_caster_odr_violation_detected_counter();
 #else
         return py::none();

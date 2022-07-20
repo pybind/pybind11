@@ -45,20 +45,20 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
-#ifdef PYBIND11_TYPE_CASTER_ODR_GUARD_ON
+#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 
 template <typename type>
-using make_caster_intrinsic = type_caster_odr_guard<type, type_caster<type>>;
+using make_caster_for_intrinsic = type_caster_odr_guard<type, type_caster<type>>;
 
 #else
 
 template <typename type>
-using make_caster_intrinsic = type_caster<type>;
+using make_caster_for_intrinsic = type_caster<type>;
 
 #endif
 
 template <typename type>
-using make_caster = make_caster_intrinsic<intrinsic_t<type>>;
+using make_caster = make_caster_for_intrinsic<intrinsic_t<type>>;
 
 template <typename T>
 struct type_uses_smart_holder_type_caster {
@@ -1049,7 +1049,7 @@ struct return_value_policy_override<
 
 // Basic python -> C++ casting; throws if casting fails
 template <typename T>
-make_caster_intrinsic<T> &load_type(make_caster_intrinsic<T> &conv, const handle &handle) {
+make_caster_for_intrinsic<T> &load_type(make_caster_for_intrinsic<T> &conv, const handle &handle) {
     static_assert(!detail::is_pyobject<T>::value,
                   "Internal error: type_caster should only be used for C++ types");
     if (!conv.load(handle, true)) {

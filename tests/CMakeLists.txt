@@ -467,7 +467,8 @@ foreach(target ${test_targets})
     target_compile_options(${target} PRIVATE /utf-8)
   endif()
 
-  target_compile_definitions(${target} PRIVATE -DPYBIND11_TYPE_CASTER_ODR_GUARD_ON_IF_AVAILABLE)
+  target_compile_definitions(${target}
+                             PRIVATE -DPYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD_IF_AVAILABLE)
 
   if(EIGEN3_FOUND)
     target_link_libraries(${target} PRIVATE Eigen3::Eigen)
