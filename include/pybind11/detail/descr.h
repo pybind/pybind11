@@ -101,7 +101,7 @@ namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
 template <size_t N, typename... Ts>
 struct descr {
     char text[N + 1]{'\0'};
-    src_loc sloc;
+    const src_loc sloc;
 
     explicit constexpr descr(src_loc sloc) : sloc(sloc) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
