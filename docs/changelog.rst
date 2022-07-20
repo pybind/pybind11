@@ -9,13 +9,19 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
+
+
 IN DEVELOPMENT
 --------------
+
+Changes will be summarized here periodically.
+
+Version 2.10.0 (Jul 15, 2022)
+-----------------------------
 
 Removed support for Python 2.7, Python 3.5, and MSVC 2015. Support for MSVC
 2017 is limited due to availability of CI runners; we highly recommend MSVC
 2019 or 2022 be used. Initial support added for Python 3.11.
-
 
 New features:
 
@@ -70,6 +76,9 @@ Changes:
   requiring ``NDEBUG``, allowing use with release builds if desired.
   `#3913 <https://github.com/pybind/pybind11/pull/3913>`_
 
+* Implicit conversion of the literal ``0`` to ``pybind11::handle`` is now disabled.
+  `#4008 <https://github.com/pybind/pybind11/pull/4008>`_
+
 
 Bug fixes:
 
@@ -97,6 +106,14 @@ Bug fixes:
 
 * Fix cast from pytype rvalue to another pytype.
   `#3949 <https://github.com/pybind/pybind11/pull/3949>`_
+
+* Ensure proper behavior when garbage collecting classes with dynamic attributes in Python >=3.9.
+  `#4051 <https://github.com/pybind/pybind11/pull/4051>`_
+
+* A couple long-standing ``PYBIND11_NAMESPACE``
+  ``__attribute__((visibility("hidden")))`` inconsistencies are now fixed
+  (affects only unusual environments).
+  `#4043 <https://github.com/pybind/pybind11/pull/4043>`_
 
 * ``pybind11::detail::get_internals()`` is now resilient to in-flight Python
   exceptions.
@@ -147,6 +164,9 @@ Performance and style:
 * Optimize c++ to python function casting by using the rvalue caster.
   `#3966 <https://github.com/pybind/pybind11/pull/3966>`_
 
+* Optimize Eigen sparse matrix casting by removing unnecessary temporary.
+  `#4064 <https://github.com/pybind/pybind11/pull/4064>`_
+
 * Avoid potential implicit copy/assignment constructors causing double free in
   ``strdup_gaurd``.
   `#3905 <https://github.com/pybind/pybind11/pull/3905>`_
@@ -181,6 +201,9 @@ Build system improvements:
 
 
 Backend and tidying up:
+
+* New theme for the documentation.
+  `#3109 <https://github.com/pybind/pybind11/pull/3109>`_
 
 * Remove idioms in code comments.  Use more inclusive language.
   `#3809 <https://github.com/pybind/pybind11/pull/3809>`_

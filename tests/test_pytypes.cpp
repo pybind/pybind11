@@ -39,7 +39,68 @@ class float_ : public py::object {
 };
 } // namespace external
 
+namespace implicit_conversion_from_0_to_handle {
+// Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
+// void expected_to_trigger_compiler_error() { py::handle(0); }
+} // namespace implicit_conversion_from_0_to_handle
+
+// Used to validate systematically that PR #4008 does/did NOT change the behavior.
+void pure_compile_tests_for_handle_from_PyObject_pointers() {
+    {
+        PyObject *ptr = Py_None;
+        py::handle{ptr};
+    }
+    {
+        PyObject *const ptr = Py_None;
+        py::handle{ptr};
+    }
+    // Uncomment to trigger compiler errors.
+    // PyObject const *               ptr = Py_None; py::handle{ptr};
+    // PyObject const *const          ptr = Py_None; py::handle{ptr};
+    // PyObject volatile *            ptr = Py_None; py::handle{ptr};
+    // PyObject volatile *const       ptr = Py_None; py::handle{ptr};
+    // PyObject const volatile *      ptr = Py_None; py::handle{ptr};
+    // PyObject const volatile *const ptr = Py_None; py::handle{ptr};
+}
+
+namespace handle_from_move_only_type_with_operator_PyObject {
+
+// Reduced from
+// https://github.com/pytorch/pytorch/blob/279634f384662b7c3a9f8bf7ccc3a6afd2f05657/torch/csrc/utils/object_ptr.h
+struct operator_ncnst {
+    operator_ncnst() = default;
+    operator_ncnst(operator_ncnst &&) = default;
+    operator PyObject *() /* */ { return Py_None; } // NOLINT(google-explicit-constructor)
+};
+
+struct operator_const {
+    operator_const() = default;
+    operator_const(operator_const &&) = default;
+    operator PyObject *() const { return Py_None; } // NOLINT(google-explicit-constructor)
+};
+
+bool from_ncnst() {
+    operator_ncnst obj;
+    auto h = py::handle(obj);  // Critical part of test: does this compile?
+    return h.ptr() == Py_None; // Just something.
+}
+
+bool from_const() {
+    operator_const obj;
+    auto h = py::handle(obj);  // Critical part of test: does this compile?
+    return h.ptr() == Py_None; // Just something.
+}
+
+void m_defs(py::module_ &m) {
+    m.def("handle_from_move_only_type_with_operator_PyObject_ncnst", from_ncnst);
+    m.def("handle_from_move_only_type_with_operator_PyObject_const", from_const);
+}
+
+} // namespace handle_from_move_only_type_with_operator_PyObject
+
 TEST_SUBMODULE(pytypes, m) {
+    handle_from_move_only_type_with_operator_PyObject::m_defs(m);
+
     // test_bool
     m.def("get_bool", [] { return py::bool_(false); });
     // test_int
