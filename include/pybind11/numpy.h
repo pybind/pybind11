@@ -537,7 +537,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 class dtype : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
+    PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_)
 
     explicit dtype(const buffer_info &info) {
         dtype descr(_dtype_from_pep3118()(pybind11::str(info.format)));

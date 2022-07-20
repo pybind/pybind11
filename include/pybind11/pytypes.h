@@ -1283,7 +1283,7 @@ public:                                                                         
 
 #define PYBIND11_OBJECT_CVT_DEFAULT(Name, Parent, CheckFun, ConvertFun)                           \
     PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun)                                       \
-    Name() : Parent() {}
+    Name() = default;
 
 #define PYBIND11_OBJECT_CHECK_FAILED(Name, o_ptr)                                                 \
     ::pybind11::type_error("Object of type '"                                                     \
@@ -1306,7 +1306,7 @@ public:                                                                         
 
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun)                                           \
     PYBIND11_OBJECT(Name, Parent, CheckFun)                                                       \
-    Name() : Parent() {}
+    Name() = default;
 
 /// \addtogroup pytypes
 /// @{
