@@ -32,7 +32,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // here exploits the gray area (similar to a white hat hacker).
 // The dedicated test_type_caster_odr_guard_1, test_type_caster_odr_guard_2 pair of unit tests
 // passes reliably on almost all platforms that meet the compiler requirements (C++17, C++20),
-// except one (deadsnakes in the GitHub CI).
+// except one (gcc 9.4.0 debug build).
 // In the pybind11 unit tests we want to test the ODR guard in as many environments as possible,
 // but it is NOT recommended to enable the guard in regular builds, production, or
 // debug. The guard is meant to be used similar to a sanitizer, to check for type_caster ODR
