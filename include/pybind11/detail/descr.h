@@ -41,8 +41,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
 //   (line numbers vary between translation units).
 #if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD_IF_AVAILABLE)                                   \
-    && !defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD) && !defined(__INTEL_COMPILER)              \
-    && ((defined(_MSC_VER) && _MSC_VER >= 1920) || (defined(__GNUC__) && __GNUC__ >= 5)           \
+    && !defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD) && defined(PYBIND11_CPP17)                 \
+    && !defined(__INTEL_COMPILER)                                                                 \
+    && ((defined(_MSC_VER) && _MSC_VER >= 1920)                                                   \
         || (defined(__has_builtin) && __has_builtin(__builtin_FILE)                               \
             && __has_builtin(__builtin_LINE)))
 #    define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
