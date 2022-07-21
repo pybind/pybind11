@@ -473,6 +473,12 @@ struct error_fetch_and_normalize {
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
+#if defined(PYPY_VERSION)
+        // This behavior runs the risk of masking errors in the error handling, but avoids a
+        // conflict with PyPy, which relies on the normalization here to change OSError to
+        // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075).
+        m_lazy_error_string = exc_type_name_norm;
+#else
         if (exc_type_name_norm != m_lazy_error_string) {
             std::string msg = std::string(called)
                               + ": MISMATCH of original and normalized "
@@ -484,6 +490,7 @@ struct error_fetch_and_normalize {
             msg += ": " + format_value_and_trace();
             pybind11_fail(msg);
         }
+#endif
     }
 
     error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;
