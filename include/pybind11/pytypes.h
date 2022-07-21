@@ -155,23 +155,23 @@ public:
     object operator-() const;
     object operator~() const;
     object operator+(object_api const &other) const;
-    object operator+=(object_api const &other) const;
+    object operator+=(object_api const &other);
     object operator-(object_api const &other) const;
-    object operator-=(object_api const &other) const;
+    object operator-=(object_api const &other);
     object operator*(object_api const &other) const;
-    object operator*=(object_api const &other) const;
+    object operator*=(object_api const &other);
     object operator/(object_api const &other) const;
-    object operator/=(object_api const &other) const;
+    object operator/=(object_api const &other);
     object operator|(object_api const &other) const;
-    object operator|=(object_api const &other) const;
+    object operator|=(object_api const &other);
     object operator&(object_api const &other) const;
-    object operator&=(object_api const &other) const;
+    object operator&=(object_api const &other);
     object operator^(object_api const &other) const;
-    object operator^=(object_api const &other) const;
+    object operator^=(object_api const &other);
     object operator<<(object_api const &other) const;
-    object operator<<=(object_api const &other) const;
+    object operator<<=(object_api const &other);
     object operator>>(object_api const &other) const;
-    object operator>>=(object_api const &other) const;
+    object operator>>=(object_api const &other);
 
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
@@ -334,12 +334,15 @@ public:
     }
 
     object &operator=(const object &other) {
-        other.inc_ref();
-        // Use temporary variable to ensure `*this` remains valid while
-        // `Py_XDECREF` executes, in case `*this` is accessible from Python.
-        handle temp(m_ptr);
-        m_ptr = other.m_ptr;
-        temp.dec_ref();
+        // Skip inc_ref and dec_ref if both objects are the same
+        if (!this->is(other)) {
+            other.inc_ref();
+            // Use temporary variable to ensure `*this` remains valid while
+            // `Py_XDECREF` executes, in case `*this` is accessible from Python.
+            handle temp(m_ptr);
+            m_ptr = other.m_ptr;
+            temp.dec_ref();
+        }
         return *this;
     }
 
@@ -352,6 +355,20 @@ public:
         }
         return *this;
     }
+
+#define PYBIND11_INPLACE_OP(iop)                                                                  \
+    object iop(object_api const &other) { return operator=(handle::iop(other)); }
+
+    PYBIND11_INPLACE_OP(operator+=)
+    PYBIND11_INPLACE_OP(operator-=)
+    PYBIND11_INPLACE_OP(operator*=)
+    PYBIND11_INPLACE_OP(operator/=)
+    PYBIND11_INPLACE_OP(operator|=)
+    PYBIND11_INPLACE_OP(operator&=)
+    PYBIND11_INPLACE_OP(operator^=)
+    PYBIND11_INPLACE_OP(operator<<=)
+    PYBIND11_INPLACE_OP(operator>>=)
+#undef PYBIND11_INPLACE_OP
 
     // Calling cast() on an object lvalue just copies (via handle::cast)
     template <typename T>
@@ -1266,7 +1283,7 @@ public:                                                                         
 
 #define PYBIND11_OBJECT_CVT_DEFAULT(Name, Parent, CheckFun, ConvertFun)                           \
     PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun)                                       \
-    Name() : Parent() {}
+    Name() = default;
 
 #define PYBIND11_OBJECT_CHECK_FAILED(Name, o_ptr)                                                 \
     ::pybind11::type_error("Object of type '"                                                     \
@@ -1289,7 +1306,7 @@ public:                                                                         
 
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun)                                           \
     PYBIND11_OBJECT(Name, Parent, CheckFun)                                                       \
-    Name() : Parent() {}
+    Name() = default;
 
 /// \addtogroup pytypes
 /// @{
@@ -2364,26 +2381,35 @@ bool object_api<D>::rich_compare(object_api const &other, int value) const {
         return result;                                                                            \
     }
 
+#define PYBIND11_MATH_OPERATOR_BINARY_INPLACE(iop, fn)                                            \
+    template <typename D>                                                                         \
+    object object_api<D>::iop(object_api const &other) {                                          \
+        object result = reinterpret_steal<object>(fn(derived().ptr(), other.derived().ptr()));    \
+        if (!result.ptr())                                                                        \
+            throw error_already_set();                                                            \
+        return result;                                                                            \
+    }
+
 PYBIND11_MATH_OPERATOR_UNARY(operator~, PyNumber_Invert)
 PYBIND11_MATH_OPERATOR_UNARY(operator-, PyNumber_Negative)
 PYBIND11_MATH_OPERATOR_BINARY(operator+, PyNumber_Add)
-PYBIND11_MATH_OPERATOR_BINARY(operator+=, PyNumber_InPlaceAdd)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator+=, PyNumber_InPlaceAdd)
 PYBIND11_MATH_OPERATOR_BINARY(operator-, PyNumber_Subtract)
-PYBIND11_MATH_OPERATOR_BINARY(operator-=, PyNumber_InPlaceSubtract)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator-=, PyNumber_InPlaceSubtract)
 PYBIND11_MATH_OPERATOR_BINARY(operator*, PyNumber_Multiply)
-PYBIND11_MATH_OPERATOR_BINARY(operator*=, PyNumber_InPlaceMultiply)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator*=, PyNumber_InPlaceMultiply)
 PYBIND11_MATH_OPERATOR_BINARY(operator/, PyNumber_TrueDivide)
-PYBIND11_MATH_OPERATOR_BINARY(operator/=, PyNumber_InPlaceTrueDivide)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator/=, PyNumber_InPlaceTrueDivide)
 PYBIND11_MATH_OPERATOR_BINARY(operator|, PyNumber_Or)
-PYBIND11_MATH_OPERATOR_BINARY(operator|=, PyNumber_InPlaceOr)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator|=, PyNumber_InPlaceOr)
 PYBIND11_MATH_OPERATOR_BINARY(operator&, PyNumber_And)
-PYBIND11_MATH_OPERATOR_BINARY(operator&=, PyNumber_InPlaceAnd)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator&=, PyNumber_InPlaceAnd)
 PYBIND11_MATH_OPERATOR_BINARY(operator^, PyNumber_Xor)
-PYBIND11_MATH_OPERATOR_BINARY(operator^=, PyNumber_InPlaceXor)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator^=, PyNumber_InPlaceXor)
 PYBIND11_MATH_OPERATOR_BINARY(operator<<, PyNumber_Lshift)
-PYBIND11_MATH_OPERATOR_BINARY(operator<<=, PyNumber_InPlaceLshift)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator<<=, PyNumber_InPlaceLshift)
 PYBIND11_MATH_OPERATOR_BINARY(operator>>, PyNumber_Rshift)
-PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY
