@@ -5,7 +5,17 @@ import nox
 nox.needs_version = ">=2022.1.7"
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
 
-PYTHON_VERISONS = ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.7", "pypy3.8"]
+PYTHON_VERSIONS = [
+    "3.6",
+    "3.7",
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "pypy3.7",
+    "pypy3.8",
+    "pypy3.9",
+]
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
@@ -20,7 +30,7 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", "-a")
 
 
-@nox.session(python=PYTHON_VERISONS)
+@nox.session(python=PYTHON_VERSIONS)
 def tests(session: nox.Session) -> None:
     """
     Run the tests (requires a compiler).
@@ -61,10 +71,10 @@ def docs(session: nox.Session) -> None:
     session.chdir("docs")
 
     if "pdf" in session.posargs:
-        session.run("sphinx-build", "-b", "latexpdf", ".", "_build")
+        session.run("sphinx-build", "-M", "latexpdf", ".", "_build")
         return
 
-    session.run("sphinx-build", "-b", "html", ".", "_build")
+    session.run("sphinx-build", "-M", "html", ".", "_build")
 
     if "serve" in session.posargs:
         session.log("Launching docs at http://localhost:8000/ - use Ctrl-C to quit")
