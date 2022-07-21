@@ -45,7 +45,7 @@ class type_caster_for_class_ : public type_caster_base<T> {};
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_for_class_<type> {};
 
-#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
+#if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD)
 
 template <typename type>
 using make_caster_for_intrinsic = type_caster_odr_guard<type, type_caster<type>>;

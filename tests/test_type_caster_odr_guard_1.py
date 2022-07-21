@@ -36,7 +36,7 @@ def test_type_caster_odr_violation_detected_counter():
     num_violations = m.type_caster_odr_violation_detected_count()
     if num_violations is None:
         pytest.skip("type_caster_odr_violation_detected_count() is None")
-    elif num_violations == 0 and m.ifdef__NO_INLINE__:
+    elif num_violations == 0 and m.if_defined__NO_INLINE__:
         pytest.skip(
             "type_caster_odr_violation_detected_count() == 0: %s, %s, __NO_INLINE__"
             % (pybind11_tests.compiler_info, pybind11_tests.cpp_std)

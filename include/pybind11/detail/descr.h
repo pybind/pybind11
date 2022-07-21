@@ -46,7 +46,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #    define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 #endif
 
-#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
+#if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD)
 
 // Not using std::source_location because:
 // 1. "It is unspecified whether the copy/move constructors and the copy/move
@@ -87,7 +87,7 @@ struct src_loc {
 
 #endif
 
-#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
+#if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD)
 namespace { // WARNING: This creates an ODR violation in the ODR guard itself,
             //          but we do not have any alternative at the moment.
 // The ODR violation here is a difference in constexpr between multiple TUs.
@@ -249,7 +249,7 @@ constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {
     return const_name("{", src_loc{nullptr, 0}) + descr + const_name("}");
 }
 
-#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
+#if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD)
 } // namespace
 #endif
 

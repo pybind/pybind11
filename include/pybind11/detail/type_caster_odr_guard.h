@@ -6,7 +6,7 @@
 
 #include "descr.h"
 
-#ifdef PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
+#if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD)
 
 #    if !defined(PYBIND11_CPP20) && defined(__GNUC__) && !defined(__clang__)
 #        pragma GCC diagnostic ignored "-Wsubobject-linkage"
@@ -62,7 +62,7 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
     std::string source_file_line_from_sloc
         = std::string(sloc.file) + ':' + std::to_string(sloc.line);
 // This macro is purely for debugging.
-#    ifdef PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_DEBUG
+#    if defined(PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_DEBUG)
     // std::cout cannot be used here: static initialization could be incomplete.
     std::fprintf(stdout,
                  "\nTYPE_CASTER_ODR_GUARD_IMPL %s %s\n",

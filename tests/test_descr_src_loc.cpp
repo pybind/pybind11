@@ -39,7 +39,7 @@ struct block_const_name {
     static constexpr auto c7 = const_name<false>("L", "M");
 };
 
-#    ifdef PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY
+#    if defined(PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY)
 struct block_underscore {
     static constexpr unsigned offset = __LINE__;
     // Using a macro to avoid copying the block_const_name code garbles the src_loc.line numbers.
