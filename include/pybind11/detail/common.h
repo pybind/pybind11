@@ -1158,6 +1158,24 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
 #endif
 
+#if defined(__clang__)                                                                            \
+    && (defined(__apple_build_version__) /* AppleClang 13.0.0.13000029 was the only data point    \
+                                            available. */                                         \
+        || (__clang_major__ >= 7                                                                  \
+            && __clang_major__ <= 12) /* Clang 3, 5, 13, 14, 15 do not generate the warning. */   \
+    )
+#    define PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+// Example:
+// tests/test_kwargs_and_defaults.cpp:46:68: error: local variable 'args' will be copied despite
+// being returned by name [-Werror,-Wreturn-std-move]
+//     m.def("args_function", [](py::args args) -> py::tuple { return args; });
+//                                                                    ^~~~
+// test_kwargs_and_defaults.cpp:46:68: note: call 'std::move' explicitly to avoid copying
+//     m.def("args_function", [](py::args args) -> py::tuple { return args; });
+//                                                                    ^~~~
+//                                                                    std::move(args)
+#endif
+
 // Pybind offers detailed error messages by default for all builts that are debug (through the
 // negation of ndebug). This can also be manually enabled by users, for any builds, through
 // defining PYBIND11_DETAILED_ERROR_MESSAGES.
