@@ -756,4 +756,38 @@ TEST_SUBMODULE(pytypes, m) {
         }
         return o;
     });
+
+    // testing immutable object augmented assignment: #issue 3812
+    m.def("inplace_append", [](py::object &a, const py::object &b) {
+        a += b;
+        return a;
+    });
+    m.def("inplace_subtract", [](py::object &a, const py::object &b) {
+        a -= b;
+        return a;
+    });
+    m.def("inplace_multiply", [](py::object &a, const py::object &b) {
+        a *= b;
+        return a;
+    });
+    m.def("inplace_divide", [](py::object &a, const py::object &b) {
+        a /= b;
+        return a;
+    });
+    m.def("inplace_or", [](py::object &a, const py::object &b) {
+        a |= b;
+        return a;
+    });
+    m.def("inplace_and", [](py::object &a, const py::object &b) {
+        a &= b;
+        return a;
+    });
+    m.def("inplace_lshift", [](py::object &a, const py::object &b) {
+        a <<= b;
+        return a;
+    });
+    m.def("inplace_rshift", [](py::object &a, const py::object &b) {
+        a >>= b;
+        return a;
+    });
 }

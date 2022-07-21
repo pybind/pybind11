@@ -739,3 +739,75 @@ def test_populate_obj_str_attrs():
     new_attrs = {k: v for k, v in new_o.__dict__.items() if not k.startswith("_")}
     assert all(isinstance(v, str) for v in new_attrs.values())
     assert len(new_attrs) == pop
+
+
+@pytest.mark.parametrize(
+    "a,b", [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))]
+)
+def test_inplace_append(a, b):
+    expected = a + b
+    assert m.inplace_append(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))])
+def test_inplace_subtract(a, b):
+    expected = a - b
+    assert m.inplace_subtract(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), ([1], 3)])
+def test_inplace_multiply(a, b):
+    expected = a * b
+    assert m.inplace_multiply(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(6, 3), (6.0, 3.0)])
+def test_inplace_divide(a, b):
+    expected = a / b
+    assert m.inplace_divide(a, b) == expected
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (False, True),
+        (
+            set(),
+            {
+                1,
+            },
+        ),
+    ],
+)
+def test_inplace_or(a, b):
+    expected = a | b
+    assert m.inplace_or(a, b) == expected
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (True, False),
+        (
+            {1, 2, 3},
+            {
+                1,
+            },
+        ),
+    ],
+)
+def test_inplace_and(a, b):
+    expected = a & b
+    assert m.inplace_and(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(8, 1), (-3, 2)])
+def test_inplace_lshift(a, b):
+    expected = a << b
+    assert m.inplace_lshift(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(8, 1), (-2, 2)])
+def test_inplace_rshift(a, b):
+    expected = a >> b
+    assert m.inplace_rshift(a, b) == expected

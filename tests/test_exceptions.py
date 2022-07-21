@@ -360,3 +360,9 @@ def test_error_already_set_double_restore():
         "Internal error: pybind11::detail::error_fetch_and_normalize::restore()"
         " called a second time. ORIGINAL ERROR: ValueError: Random error."
     )
+
+
+def test_pypy_oserror_normalization():
+    # https://github.com/pybind/pybind11/issues/4075
+    what = m.test_pypy_oserror_normalization()
+    assert "this_filename_must_not_exist" in what
