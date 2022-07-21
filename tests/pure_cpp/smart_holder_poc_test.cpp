@@ -15,10 +15,7 @@ namespace helpers {
 struct movable_int {
     int valu;
     explicit movable_int(int v) : valu{v} {}
-    movable_int(movable_int &&other) noexcept {
-        valu = other.valu;
-        other.valu = 91;
-    }
+    movable_int(movable_int &&other) noexcept : valu(other.valu) { other.valu = 91; }
 };
 
 template <typename T>
