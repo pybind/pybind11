@@ -1982,9 +1982,13 @@ private:
         }
 
         auto result = returned_array::create(trivial, shape);
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wreturn-std-move"
+#endif
 
         if (size == 0) {
-            return std::move(result);
+            return result;
         }
 
         /* Call the function */
@@ -1995,7 +1999,10 @@ private:
             apply_trivial(buffers, params, mutable_data, size, i_seq, vi_seq, bi_seq);
         }
 
-        return std::move(result);
+        return result;
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic pop
+#endif
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
