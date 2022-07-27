@@ -730,7 +730,14 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
             return false;
 
         auto obj = reinterpret_borrow<object>(src);
-        object sparse_module = module_::import("scipy.sparse");
+        object sparse_module;
+        try {
+            sparse_module = module_::import("scipy.sparse");
+        } catch (const error_already_set &) {
+            // As a Drake-specific amendment, we skip Eigen::Sparse overloads
+            // when scipy is not available, instead of raising an import error.
+            return false;
+        }
         object matrix_type = sparse_module.attr(
             rowMajor ? "csr_matrix" : "csc_matrix");
 
