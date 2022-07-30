@@ -157,7 +157,7 @@ specialized:
     PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>);
 
     // Only needed if the type's `.get()` goes by another name
-    namespace pybind11 { namespace detail {
+    namespace PYBIND11_NAMESPACE { namespace detail {
         template <typename T>
         struct holder_helper<SmartPtr<T>> { // <-- specialization
             static const T *get(const SmartPtr<T> &p) { return p.getPointer(); }
