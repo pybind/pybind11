@@ -41,7 +41,10 @@ def test_docstring_options():
 
     assert m.DocstringTestFoo.value_prop1.__doc__ == "value_prop1: int\n\n"
 
-    assert m.DocstringTestFoo.value_prop2.__doc__ == "value_prop2: int\n\nThis is a property docstring"
+    assert (
+        m.DocstringTestFoo.value_prop2.__doc__
+        == "value_prop2: int\n\nThis is a property docstring"
+    )
 
     assert m.DocstringTestFoo.value_prop3.__doc__ == "value_prop3: int\n\n"
 
