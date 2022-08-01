@@ -27,7 +27,7 @@ def lint(session: nox.Session) -> None:
     Lint the codebase (except for clang-format/tidy).
     """
     session.install("pre-commit")
-    session.run("pre-commit", "run", "-a")
+    session.run("pre-commit", "run", "-a", *session.posargs)
 
 
 @nox.session(python=PYTHON_VERSIONS)
@@ -58,7 +58,7 @@ def tests_packaging(session: nox.Session) -> None:
     """
 
     session.install("-r", "tests/requirements.txt", "--prefer-binary")
-    session.run("pytest", "tests/extra_python_package")
+    session.run("pytest", "tests/extra_python_package", *session.posargs)
 
 
 @nox.session(reuse_venv=True)
