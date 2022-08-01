@@ -2073,7 +2073,7 @@ struct enum_base {
                               + "\" already exists!");
         }
 
-        entries[name] = std::make_pair(value, doc);
+        entries[name] = pybind11::make_tuple(value, doc);
         m_base.attr(std::move(name)) = std::move(value);
     }
 
