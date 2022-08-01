@@ -23,7 +23,7 @@
 #if defined(PYBIND11_TEST_BOOST)
 #    include <boost/optional.hpp>
 
-namespace pybind11 {
+namespace PYBIND11_NAMESPACE {
 namespace detail {
 template <typename T>
 struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
@@ -31,7 +31,7 @@ struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
 template <>
 struct type_caster<boost::none_t> : void_caster<boost::none_t> {};
 } // namespace detail
-} // namespace pybind11
+} // namespace PYBIND11_NAMESPACE
 #endif
 
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
@@ -43,7 +43,7 @@ using std::variant;
 #    define PYBIND11_TEST_VARIANT 1
 using boost::variant;
 
-namespace pybind11 {
+namespace PYBIND11_NAMESPACE {
 namespace detail {
 template <typename... Ts>
 struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
@@ -56,7 +56,7 @@ struct visit_helper<boost::variant> {
     }
 };
 } // namespace detail
-} // namespace pybind11
+} // namespace PYBIND11_NAMESPACE
 #endif
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
@@ -159,13 +159,13 @@ private:
     std::vector<T> storage;
 };
 
-namespace pybind11 {
+namespace PYBIND11_NAMESPACE {
 namespace detail {
 template <typename T>
 struct type_caster<ReferenceSensitiveOptional<T>>
     : optional_caster<ReferenceSensitiveOptional<T>> {};
 } // namespace detail
-} // namespace pybind11
+} // namespace PYBIND11_NAMESPACE
 
 TEST_SUBMODULE(stl, m) {
     // test_vector
