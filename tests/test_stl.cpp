@@ -176,9 +176,14 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_bool_vector",
           [](const std::vector<bool> &v) { return v.at(0) == true && v.at(1) == false; });
     // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
-    static std::vector<RValueCaster> lvv{2};
     m.def(
-        "cast_ptr_vector", []() { return &lvv; }, py::return_value_policy::reference);
+        "cast_ptr_vector",
+        []() {
+            // Using no-destructor idiom to side-step warnings from overzealous compilers.
+            static auto *v = new std::vector<RValueCaster>{2};
+            return v;
+        },
+        py::return_value_policy::reference);
 
     // test_deque
     m.def("cast_deque", []() { return std::deque<int>{1}; });
@@ -237,6 +242,7 @@ TEST_SUBMODULE(stl, m) {
     lvn["b"].emplace_back();        // add a list
     lvn["b"].back().emplace_back(); // add an array
     lvn["b"].back().emplace_back(); // add another array
+    static std::vector<RValueCaster> lvv{2};
     m.def("cast_lv_vector", []() -> const decltype(lvv) & { return lvv; });
     m.def("cast_lv_array", []() -> const decltype(lva) & { return lva; });
     m.def("cast_lv_map", []() -> const decltype(lvm) & { return lvm; });
