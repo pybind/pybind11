@@ -32,7 +32,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.37.1"
+  rev: "v2.37.2"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -123,7 +123,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v0.961"
+  rev: "v0.971"
   hooks:
   - id: mypy
     args: []
