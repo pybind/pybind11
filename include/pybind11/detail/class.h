@@ -502,6 +502,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     return (PyObject *) heap_type;
 }
 
+#if PY_VERSION_HEX < 0x030A0000
 /// dynamic_attr: Support for `d = instance.__dict__`.
 extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -526,6 +527,7 @@ extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void
     dict = new_dict;
     return 0;
 }
+#endif
 
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
 extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
@@ -558,9 +560,17 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
 
-    static PyGetSetDef getset[] = {
-        {const_cast<char *>("__dict__"), pybind11_get_dict, pybind11_set_dict, nullptr, nullptr},
-        {nullptr, nullptr, nullptr, nullptr, nullptr}};
+    static PyGetSetDef getset[] = {{const_cast<char *>("__dict__"),
+#if PY_VERSION_HEX < 0x030A0000
+                                    pybind11_get_dict,
+                                    pybind11_set_dict,
+#else
+                                    PyObject_GenericGetDict,
+                                    PyObject_GenericSetDict,
+#endif
+                                    nullptr,
+                                    nullptr},
+                                   {nullptr, nullptr, nullptr, nullptr, nullptr}};
     type->tp_getset = getset;
 }
 
