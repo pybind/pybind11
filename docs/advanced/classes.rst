@@ -1228,7 +1228,7 @@ whether a downcast is safe, you can proceed by specializing the
         std::string bark() const { return sound; }
     };
 
-    namespace pybind11 {
+    namespace PYBIND11_NAMESPACE {
         template<> struct polymorphic_type_hook<Pet> {
             static const void *get(const Pet *src, const std::type_info*& type) {
                 // note that src may be nullptr
@@ -1239,7 +1239,7 @@ whether a downcast is safe, you can proceed by specializing the
                 return src;
             }
         };
-    } // namespace pybind11
+    } // namespace PYBIND11_NAMESPACE
 
 When pybind11 wants to convert a C++ pointer of type ``Base*`` to a
 Python object, it calls ``polymorphic_type_hook<Base>::get()`` to
