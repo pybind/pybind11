@@ -72,6 +72,9 @@ struct keep_alive {};
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
 struct multiple_inheritance {};
 
+/// Annotation indicating that a class should be preallocated and registered before construction
+struct preallocate {};
+
 /// Annotation which enables dynamic attributes, i.e. adds `__dict__` to a class
 struct dynamic_attr {};
 
@@ -436,6 +439,11 @@ struct process_attribute<scope> : process_attribute_default<scope> {
 template <>
 struct process_attribute<is_operator> : process_attribute_default<is_operator> {
     static void init(const is_operator &, function_record *r) { r->is_operator = true; }
+};
+
+template <>
+struct process_attribute<preallocate> : process_attribute_default<preallocate> {
+    static void init(const preallocate &, function_record *) {}
 };
 
 template <>

@@ -1333,3 +1333,100 @@ You can do that using ``py::custom_type_setup``:
    cls.def_readwrite("value", &OwnsPythonObjects::value);
 
 .. versionadded:: 2.8
+
+Accessing Python object from C++
+================================
+
+In advanced cases, it's really handy to access the Python sibling of
+a C++ object to get/set attributes, do some heavy computations, just hide
+the implementation details, or even dynamically create a new attribute!
+
+One just need to rely on the `casting capabilities`_ of ``pybind11``:
+
+.. code-block:: cpp
+
+    // main.cpp
+    #include "pybind11/pybind11.h"
+
+    namespace py = pybind11;
+
+    class Base {
+    public:
+        Base() = default;
+        std::string get_foo() { return py::cast(this).attr("foo").cast<std::string>(); };
+        void set_bar() { py::cast(this).attr("bar") = 10.; };
+    };
+
+    PYBIND11_MODULE(test, m) {
+        py::class_<Base>(m, "Base")
+            .def(py::init<>())
+            .def("get_foo", &Base::get_foo)
+            .def("set_bar", &Base::set_bar);
+    }
+
+
+.. code-block:: python
+
+    # test.py
+    from test import Base
+
+
+    class Derived(Base):
+        def __init__(self):
+            Base.__init__(self)
+            self.foo = "hello"
+
+
+    b = Derived()
+    assert b.get_foo() == "hello"
+    assert not hasattr(b, "bar")
+
+    b.set_bar()
+    assert b.bar == 10.0
+
+
+However, there is a special case where such a behavior needs a hint to work as expected:
+when the C++ constructor is called, the C++ object is not yet allocated and registered,
+making impossible the casting operation.
+
+It's thus impossible to access the Python object from the C++ constructor one *as is*.
+
+Adding the ``py::preallocate()`` extra option to a constructor binding definition informs
+``pybind11`` to allocate the memory and register the object location just before calling the C++
+constructor, enabling the use of ``py::cast(this)``:
+
+
+.. code-block:: cpp
+
+    // main.cpp
+    #include "pybind11/pybind11.h"
+
+    namespace py = pybind11;
+
+    class Base {
+    public:
+        Base() { py::cast(this).attr("bar") = 10.; };
+    };
+
+    PYBIND11_MODULE(test, m) {
+        py::class_<Base>(m, "Base")
+            .def(py::init<>(), py::preallocate());
+    }
+
+
+.. code-block:: python
+
+    # test.py
+    from test import Base
+
+
+    class Derived(Base):
+        ...
+
+
+    b = Derived()
+    assert hasattr(b, "bar")
+    assert b.bar == 10.0
+
+
+.. _casting capabilities: https://pybind11.readthedocs.io/en/stable/advanced/pycpp/object.html?highlight=cast#casting-back-and-forth
