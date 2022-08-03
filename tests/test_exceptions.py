@@ -185,8 +185,8 @@ def test_custom(msg):
     with pytest.raises(m.MyException5) as excinfo:
         try:
             m.throws5()
-        except m.MyException5_1:
-            raise RuntimeError("Exception error: caught child from parent")
+        except m.MyException5_1 as err:
+            raise RuntimeError("Exception error: caught child from parent") from err
     assert msg(excinfo.value) == "this is a helper-defined translated exception"
 
 
