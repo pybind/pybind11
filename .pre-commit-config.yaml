@@ -32,7 +32,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.37.2"
+  rev: "v2.37.3"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -71,7 +71,7 @@ repos:
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v2.0.4"
+  rev: "v2.1.1"
   hooks:
   - id: pycln
     stages: [manual]
@@ -99,7 +99,7 @@ repos:
 
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
-  rev: "4.0.1"
+  rev: "5.0.2"
   hooks:
   - id: flake8
     exclude: ^(docs/.*|tools/.*)$
