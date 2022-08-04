@@ -502,33 +502,6 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     return (PyObject *) heap_type;
 }
 
-#if PY_VERSION_HEX < 0x030A0000
-/// dynamic_attr: Support for `d = instance.__dict__`.
-extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
-    if (!dict) {
-        dict = PyDict_New();
-    }
-    Py_XINCREF(dict);
-    return dict;
-}
-
-/// dynamic_attr: Support for `instance.__dict__ = dict()`.
-extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void *) {
-    if (!PyDict_Check(new_dict)) {
-        PyErr_Format(PyExc_TypeError,
-                     "__dict__ must be set to a dictionary, not a '%.200s'",
-                     get_fully_qualified_tp_name(Py_TYPE(new_dict)).c_str());
-        return -1;
-    }
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
-    Py_INCREF(new_dict);
-    Py_CLEAR(dict);
-    dict = new_dict;
-    return 0;
-}
-#endif
-
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
 extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -561,13 +534,8 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_clear = pybind11_clear;
 
     static PyGetSetDef getset[] = {{const_cast<char *>("__dict__"),
-#if PY_VERSION_HEX < 0x030A0000
-                                    pybind11_get_dict,
-                                    pybind11_set_dict,
-#else
                                     PyObject_GenericGetDict,
                                     PyObject_GenericSetDict,
-#endif
                                     nullptr,
                                     nullptr},
                                    {nullptr, nullptr, nullptr, nullptr, nullptr}};
