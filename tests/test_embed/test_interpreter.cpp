@@ -173,6 +173,18 @@ bool has_pybind11_internals_static() {
 
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
+    fprintf(stdout,
+            "\nLOOOK PYTHONPATH %s\n",
+            py::module_::import("os")
+                .attr("environ")
+                .attr("get")("PYTHONPATH")
+                .attr("__str__")()
+                .cast<std::string>()
+                .c_str());
+    fflush(stdout);
+    auto sys_path = py::module_::import("sys").attr("path").attr("__str__")().cast<std::string>();
+    fprintf(stdout, "\nLOOOK sys.path %s\n", sys_path.c_str());
+    fflush(stdout);
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
