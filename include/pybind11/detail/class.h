@@ -534,7 +534,7 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_clear = pybind11_clear;
 
     static PyGetSetDef getset[] = {{
-#if PY_VERSION_HEX <= 0x03060000
+#if PY_VERSION_HEX < 0x03070000
                                        const_cast<char *>("__dict__"),
 #else
                                        "__dict__",
