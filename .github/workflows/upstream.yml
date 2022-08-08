@@ -104,7 +104,7 @@ jobs:
       run: cmake --build build3 --target pytest
 
     - name: Interface test
-      run: cmake --build build2 --target test_cmake_build
+      run: cmake --build build3 --target test_cmake_build
 
     # This makes sure the setup_helpers module can build packages using
     # setuptools
