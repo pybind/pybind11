@@ -90,7 +90,7 @@ template <
     typename... Args,
     detail::enable_if_t<std::is_constructible<Class, Args...>::value && Preallocate, int> = 0>
 inline void construct_or_initialize(value_and_holder &v_h, Args &&...args) {
-    v_h.value_ptr() = malloc(sizeof(Class));
+    v_h.value_ptr() = ::operator new(sizeof(Class));
     register_instance(v_h.inst, v_h.value_ptr(), v_h.type);
     v_h.set_instance_registered();
 
@@ -102,7 +102,7 @@ template <
     typename... Args,
     detail::enable_if_t<!std::is_constructible<Class, Args...>::value && Preallocate, int> = 0>
 inline void construct_or_initialize(value_and_holder &v_h, Args &&...args) {
-    v_h.value_ptr() = malloc(sizeof(Class));
+    v_h.value_ptr() = ::operator new(sizeof(Class));
     register_instance(v_h.inst, v_h.value_ptr(), v_h.type);
     v_h.set_instance_registered();
 
