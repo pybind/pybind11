@@ -12,6 +12,9 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+# third-party content
+exclude: ^tools/JoinPaths.cmake$
+
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
