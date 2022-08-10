@@ -1211,6 +1211,10 @@ inline bool PyIterable_Check(PyObject *obj) {
     return false;
 }
 
+// Defer definition until we have object_api<> available.
+template <typename T>
+bool PyIterableT_Check(PyObject *obj);
+
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
@@ -1420,6 +1424,20 @@ public:
 class iterable : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
+};
+
+/// Provides similar interface to `iterable`, but constraining the intended
+/// type.
+/// @warning Due to technical reasons, this is constrained in two ways:
+/// - Due to how `isinstance<T>()` works, this does *not* work for iterables of
+///   type-converted values (e.g. `int`).
+/// - Because we must check the contained types within the iterable (for
+///   overloads), we must iterate through the iterable. For this reason, the
+///   iterable should *not* be exhaustible (e.g., iterator, generator).
+template <typename T>
+class iterable_t : public iterable {
+public:
+    PYBIND11_OBJECT_DEFAULT(iterable_t, iterable, detail::PyIterableT_Check<T>)
 };
 
 class bytes;
@@ -2421,6 +2439,34 @@ PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY
 #undef PYBIND11_MATH_OPERATOR_BINARY_INPLACE
+
+template <typename T>
+bool PyIterableT_Check(PyObject *obj) {
+    PyObject *iter = PyObject_GetIter(obj);
+    bool good = false;
+    if (iter) {
+        if (iter == obj) {
+            // If they are the same, then that's bad! For now, just throw a
+            // cast error.
+            Py_DECREF(iter);
+            throw cast_error("iterable_t<T> cannot be used with exhaustible iterables "
+                             "(e.g., iterators, generators).");
+        }
+        good = true;
+        // Now that we know that the iterable `obj` will not be exhausted,
+        // let's check the contained types.
+        for (handle h : handle(iter)) {
+            if (!isinstance<T>(h)) {
+                good = false;
+                break;
+            }
+        }
+        Py_DECREF(iter);
+    } else {
+        PyErr_Clear();
+    }
+    return good;
+}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

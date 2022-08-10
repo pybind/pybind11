@@ -885,6 +885,10 @@ template <>
 struct handle_type_name<iterable> {
     static constexpr auto name = const_name("Iterable");
 };
+template <typename T>
+struct handle_type_name<iterable_t<T>> {
+    static constexpr auto name = const_name("Iterable[") + type_caster<T>::name + const_name("]");
+};
 template <>
 struct handle_type_name<iterator> {
     static constexpr auto name = const_name("Iterator");
