@@ -35,7 +35,7 @@ def test_iterator(doc):
         (tuple, m.get_tuple_from_iterable),
     ],
 )
-def test_from_iterable(capture, doc, pytype, from_iter_func):
+def test_from_iterable(pytype, from_iter_func):
     my_iter = iter(range(10))
     s = from_iter_func(my_iter)
     assert type(s) == pytype
