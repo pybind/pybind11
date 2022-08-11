@@ -26,6 +26,22 @@ def test_iterator(doc):
     assert doc(m.get_iterator) == "get_iterator() -> Iterator"
 
 
+@pytest.mark.parametrize(
+    "pytype, from_iter_func",
+    [
+        (set, m.get_set_from_iterable),
+        (frozenset, m.get_frozenset_from_iterable),
+        (list, m.get_list_from_iterable),
+        (tuple, m.get_tuple_from_iterable),
+    ],
+)
+def test_from_iterable(capture, doc, pytype, from_iter_func):
+    my_iter = iter(range(10))
+    s = from_iter_func(my_iter)
+    assert type(s) == pytype
+    assert s == pytype(range(10))
+
+
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
 
