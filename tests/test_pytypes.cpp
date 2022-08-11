@@ -115,8 +115,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_set_from_iterable", [](const py::iterable &iter) { return py::set(iter); });
     m.def("get_tuple_from_iterable", [](const py::iterable &iter) { return py::tuple(iter); });
     // test_float
-    // test_float
-    // test_float
     m.def("get_float", [] { return py::float_(0.0f); });
     // test_list
     m.def("list_no_args", []() { return py::list{}; });
