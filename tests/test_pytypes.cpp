@@ -109,6 +109,11 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
     m.def("get_iterable", [] { return py::iterable(); });
+    m.def("get_frozenset_from_iterable",
+          [](const py::iterable &iter) { return py::frozenset(iter); });
+    m.def("get_list_from_iterable", [](const py::iterable &iter) { return py::list(iter); });
+    m.def("get_set_from_iterable", [](const py::iterable &iter) { return py::set(iter); });
+    m.def("get_tuple_from_iterable", [](const py::iterable &iter) { return py::tuple(iter); });
     // test_float
     m.def("get_float", [] { return py::float_(0.0f); });
     // test_list
