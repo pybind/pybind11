@@ -29,9 +29,9 @@ def test_iterator(doc):
 @pytest.mark.parametrize(
     "pytype, from_iter_func",
     [
-        (set, m.get_set_from_iterable),
         (frozenset, m.get_frozenset_from_iterable),
         (list, m.get_list_from_iterable),
+        (set, m.get_set_from_iterable),
         (tuple, m.get_tuple_from_iterable),
     ],
 )
