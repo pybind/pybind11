@@ -12,6 +12,9 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+# third-party content
+exclude: ^tools/JoinPaths.cmake$
+
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -90,7 +93,7 @@ repos:
 
 # Automatically remove noqa that are not used
 - repo: https://github.com/asottile/yesqa
-  rev: "v1.3.0"
+  rev: "v1.4.0"
   hooks:
   - id: yesqa
     additional_dependencies: &flake8_dependencies
@@ -99,7 +102,7 @@ repos:
 
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
-  rev: "5.0.2"
+  rev: "5.0.4"
   hooks:
   - id: flake8
     exclude: ^(docs/.*|tools/.*)$
