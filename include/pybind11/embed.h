@@ -150,6 +150,8 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 #else
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
+    config.isolated = 0;
+    config.use_environment = 1;
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
 
     PyStatus status = PyConfig_SetBytesArgv(&config, argc, const_cast<char *const *>(argv));
@@ -166,9 +168,6 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
                                                           : "Failed to init CPython");
     }
-    // Emulates established behavior (prior to Python 3.11 implemented by PySys_SetArgvEx()).
-    PyRun_SimpleString("import sys, os; "
-                       "sys.path[:0] = os.environ.get('PYTHONPATH', []).split(os.pathsep)");
     if (add_program_dir_to_path) {
         PyRun_SimpleString("import sys, os.path; "
                            "sys.path.insert(0, "
