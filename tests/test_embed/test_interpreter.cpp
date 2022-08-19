@@ -75,6 +75,14 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
     d["missing"].cast<py::object>();
 }
 
+TEST_CASE("PYTHONPATH is used to update sys.path") {
+    // The setup for this TEST_CASE is in catch.cpp!
+    std::string sys_path
+        = py::module_::import("sys").attr("path").attr("__str__")().cast<std::string>();
+    REQUIRE_THAT(sys_path,
+                 Catch::Matchers::Contains("/pybind11_test_embed_PYTHONPATH_2099743835476552"));
+}
+
 TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
     auto module_ = py::module_::import("test_interpreter");
     REQUIRE(py::hasattr(module_, "DerivedWidget"));
@@ -173,18 +181,6 @@ bool has_pybind11_internals_static() {
 
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
-    fprintf(stdout,
-            "\nLOOOK PYTHONPATH %s\n",
-            py::module_::import("os")
-                .attr("environ")
-                .attr("get")("PYTHONPATH")
-                .attr("__str__")()
-                .cast<std::string>()
-                .c_str());
-    fflush(stdout);
-    auto sys_path = py::module_::import("sys").attr("path").attr("__str__")().cast<std::string>();
-    fprintf(stdout, "\nLOOOK sys.path %s\n", sys_path.c_str());
-    fflush(stdout);
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
