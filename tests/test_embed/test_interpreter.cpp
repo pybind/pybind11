@@ -77,7 +77,7 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
 
 TEST_CASE("PYTHONPATH is used to update sys.path") {
     // The setup for this TEST_CASE is in catch.cpp!
-    auto sys_path = py::module_::import("sys").attr("path").attr("__str__")().cast<std::string>();
+    auto sys_path = py::str(py::module_::import("sys").attr("path")).cast<std::string>();
     REQUIRE_THAT(sys_path,
                  Catch::Matchers::Contains("pybind11_test_embed_PYTHONPATH_2099743835476552"));
 }
