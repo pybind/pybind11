@@ -45,7 +45,7 @@ using forwarded_type = conditional_t<std::is_lvalue_reference<T>::value,
 /// Forwards a value U as rvalue or lvalue according to whether T is rvalue or lvalue; typically
 /// used for forwarding a container's elements.
 template <typename T, typename U>
-forwarded_type<T, U> forward_like(U &&u) {
+constexpr forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
