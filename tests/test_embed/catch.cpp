@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 #if defined(_WIN32)
     _putenv_s("PYTHONPATH", updated_pythonpath.c_str());
 #else
-    setenv("PYTHONPATH", updated_pythonpath.c_str(), /*overwrite=*/1);
+    setenv("PYTHONPATH", updated_pythonpath.c_str(), /*replace=*/1);
 #endif
 
     py::scoped_interpreter guard{};
