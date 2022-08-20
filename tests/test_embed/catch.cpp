@@ -24,14 +24,18 @@ int main(int argc, char *argv[]) {
     std::string updated_pythonpath("/pybind11_test_embed_PYTHONPATH_2099743835476552");
     const char *preexisting_pythonpath = getenv("PYTHONPATH");
     if (preexisting_pythonpath != nullptr) {
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_WIN32)
         updated_pythonpath += ';';
 #else
         updated_pythonpath += ':';
 #endif
         updated_pythonpath += preexisting_pythonpath;
     }
+#if defined(_WIN32)
+    _putenv_s("PYTHONPATH", updated_pythonpath.c_str());
+#else
     setenv("PYTHONPATH", updated_pythonpath.c_str(), /*overwrite=*/1);
+#endif
 
     py::scoped_interpreter guard{};
 
