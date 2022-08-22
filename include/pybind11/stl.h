@@ -45,7 +45,7 @@ using forwarded_type = conditional_t<std::is_lvalue_reference<T>::value,
 /// Forwards a value U as rvalue or lvalue according to whether T is rvalue or lvalue; typically
 /// used for forwarding a container's elements.
 template <typename T, typename U>
-forwarded_type<T, U> forward_like(U &&u) {
+constexpr forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
@@ -78,7 +78,7 @@ struct set_caster {
         pybind11::set s;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                key_conv::cast(forward_like<T>(value), policy, parent));
+                key_conv::cast(detail::forward_like<T>(value), policy, parent));
             if (!value_ || !s.add(std::move(value_))) {
                 return handle();
             }
@@ -122,9 +122,9 @@ struct map_caster {
         }
         for (auto &&kv : src) {
             auto key = reinterpret_steal<object>(
-                key_conv::cast(forward_like<T>(kv.first), policy_key, parent));
+                key_conv::cast(detail::forward_like<T>(kv.first), policy_key, parent));
             auto value = reinterpret_steal<object>(
-                value_conv::cast(forward_like<T>(kv.second), policy_value, parent));
+                value_conv::cast(detail::forward_like<T>(kv.second), policy_value, parent));
             if (!key || !value) {
                 return handle();
             }
@@ -178,7 +178,7 @@ public:
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                value_conv::cast(forward_like<T>(value), policy, parent));
+                value_conv::cast(detail::forward_like<T>(value), policy, parent));
             if (!value_) {
                 return handle();
             }
@@ -242,7 +242,7 @@ public:
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                value_conv::cast(forward_like<T>(value), policy, parent));
+                value_conv::cast(detail::forward_like<T>(value), policy, parent));
             if (!value_) {
                 return handle();
             }

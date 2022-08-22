@@ -1,5 +1,5 @@
---- ci.yml	2022-07-21 06:53:22.850154382 -0700
-+++ ci_sh_def.yml	2022-07-21 06:54:29.947056986 -0700
+--- ci.yml	2022-08-21 19:29:32.986391968 -0700
++++ ci_sh_def.yml	2022-08-21 19:31:47.618458226 -0700
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -154,8 +154,8 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
--      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DDOWNLOAD_CATCH=ON -S . -B build
-+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build
  
      - name: Build C++11
        run: cmake --build build -j 2
@@ -163,8 +163,8 @@
        run: git clean -fdx
  
      - name: Configure C++14
--      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DDOWNLOAD_CATCH=ON -S . -B build2
-+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DDOWNLOAD_CATCH=O -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"  -S . -B build2
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build2
  
      - name: Build C++14
        run: cmake --build build2 -j 2
@@ -172,8 +172,8 @@
        run: git clean -fdx
  
      - name: Configure C++17
--      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DDOWNLOAD_CATCH=ON -S . -B build3
-+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DDOWNLOAD_CATCH=O -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"  -S . -B build3
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build3
  
      - name: Build C++17
        run: cmake --build build3 -j 2
