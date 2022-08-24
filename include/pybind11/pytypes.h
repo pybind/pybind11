@@ -1224,6 +1224,7 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #endif
 
 inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
+inline bool PyClassMethod_Check(PyObject *o) { return o->ob_type == &PyClassMethod_Type; }
 
 class kwargs_proxy : public handle {
 public:
@@ -2087,6 +2088,11 @@ public:
 class staticmethod : public object {
 public:
     PYBIND11_OBJECT_CVT(staticmethod, object, detail::PyStaticMethod_Check, PyStaticMethod_New)
+};
+
+class classmethod : public object {
+public:
+    PYBIND11_OBJECT_CVT(classmethod, object, detail::PyClassMethod_Check, PyClassMethod_New)
 };
 
 class buffer : public object {
