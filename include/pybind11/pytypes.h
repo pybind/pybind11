@@ -473,7 +473,7 @@ struct error_fetch_and_normalize {
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x07030a00
         // This behavior runs the risk of masking errors in the error handling, but avoids a
         // conflict with PyPy, which relies on the normalization here to change OSError to
         // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075).
