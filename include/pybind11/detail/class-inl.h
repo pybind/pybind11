@@ -506,6 +506,13 @@ PYBIND11_INLINE PyTypeObject *get_staticmethod_type() {
         .get_stored();
 }
 
+PYBIND11_INLINE PyTypeObject *get_classmethod_type() {
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
+    return storage
+        .call_once_and_store_result([] { return import_static_type("builtins", "classmethod"); })
+        .get_stored();
+}
+
 PYBIND11_INLINE bool is_bound_method(PyObject *obj) {
     return Py_TYPE(obj) == get_bound_method_type();
 }

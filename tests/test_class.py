@@ -103,6 +103,12 @@ def test_pass_unique_ptr():
     assert "ToBeHeldByUniquePtr" in str(execinfo.value)
 
 
+def test_classmethod(num_instances=10):
+    for i in range(num_instances):
+        assert getattr(m.NoConstructor, "uuid", 0) == i
+        m.NoConstructor.new_instance_uuid()
+
+
 def test_type():
     assert m.check_type(1) == m.DerivedClass1
     with pytest.raises(RuntimeError) as execinfo:
