@@ -62,12 +62,12 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.3.0"
+  rev: "v1.3.1"
   hooks:
   - id: remove-tabs
 
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.3.1"
+  rev: "0.4.0"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
@@ -110,7 +110,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.14.5"
+  rev: "v2.15.0"
   hooks:
   - id: pylint
     files: ^pybind11
@@ -144,7 +144,7 @@ repos:
 
 # Check for spelling
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.1.0"
+  rev: "v2.2.1"
   hooks:
   - id: codespell
     exclude: ".supp$"
