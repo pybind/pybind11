@@ -143,12 +143,14 @@ repos:
     additional_dependencies: [cmake, ninja]
 
 # Check for spelling
+# Use tools/codespell_ignore_lines_from_errors.py
+# to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
   rev: "v2.2.1"
   hooks:
   - id: codespell
     exclude: ".supp$"
-    args: ["-L", "nd,ot,thist"]
+    args: ["-x", ".codespell-ignore-lines"]
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
