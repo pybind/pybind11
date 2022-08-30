@@ -754,7 +754,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.12
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+      uses: ilammy/msvc-dev-cmd@v1.11.0
       with:
         arch: x86
 
@@ -807,7 +807,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.12
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.10.0
+      uses: ilammy/msvc-dev-cmd@v1.11.0
       with:
         arch: x86
 
