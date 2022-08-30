@@ -16,7 +16,8 @@ from typing import List
 def run(args: List[str]) -> None:
     assert len(args) == 1, "codespell_errors.txt"
     cache = {}
-    for line in open(args[0]).read().splitlines():
+    done = set()
+    for line in sorted(open(args[0]).read().splitlines()):
         i = line.find(" ==> ")
         if i > 0:
             flds = line[:i].split(":")
@@ -24,7 +25,10 @@ def run(args: List[str]) -> None:
                 filename, line_num = flds[:2]
                 if filename not in cache:
                     cache[filename] = open(filename).read().splitlines()
-                print(cache[filename][int(line_num) - 1])
+                supp = cache[filename][int(line_num) - 1]
+                if supp not in done:
+                    print(supp)
+                    done.add(supp)
 
 
 if __name__ == "__main__":
