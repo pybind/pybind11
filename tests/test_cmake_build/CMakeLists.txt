@@ -74,18 +74,11 @@ if(PYBIND11_INSTALL)
     mock_install
     ${CMAKE_COMMAND}
     "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install"
-    "-DBUILD_TYPE="
-    "$<$<CONFIG:DEBUG>:Debug>"
-    "$<$<CONFIG:RELEASE>:Release>"
     -P
     "${pybind11_BINARY_DIR}/cmake_install.cmake")
 
   pybind11_add_build_test(installed_function INSTALL)
   pybind11_add_build_test(installed_target INSTALL)
-  if(PYBIND11_BUILD_STATIC_LIB)
-    pybind11_add_build_test(installed_static INSTALL)
-    add_dependencies(mock_install pybind11::static)
-  endif()
   if(NOT ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
          ))
     pybind11_add_build_test(installed_embed INSTALL)

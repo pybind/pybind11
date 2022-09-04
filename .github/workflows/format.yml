@@ -50,6 +50,9 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=17
+        # Disabling the static library mode so Clang-Tidy won't complain about non-inline
+        # definitions in header ('*-inl.h') files.
+        -DPYBIND11_BUILD_STATIC_LIB=OFF
 
     - name: Build
       run: cmake --build build -j 2 -- --keep-going

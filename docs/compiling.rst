@@ -484,6 +484,7 @@ available in all modes. The targets provided are:
 
    ``pybind11::static``
      Statically link against libpybind11, and configure the pybind11 headers to not provide definitions that they would provide in the default header-only mode.
+     Currently this configuration is only available in subdirectory mode.
 
 Two helper functions are also provided:
 

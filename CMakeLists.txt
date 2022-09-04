@@ -153,11 +153,6 @@ if(PYBIND11_BUILD_STATIC_LIB)
   add_library(pybind11::static ALIAS pybind11_static)
   target_link_libraries(pybind11_static PRIVATE pybind11::pybind11)
   target_link_libraries(pybind11_static PUBLIC pybind11::headers)
-  install(
-    TARGETS pybind11_static
-    EXPORT pybind11::static
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
 # Compare with grep and warn if mismatched
@@ -286,13 +281,6 @@ if(PYBIND11_INSTALL)
   endif()
 
   install(TARGETS pybind11_headers EXPORT "${PYBIND11_EXPORT_NAME}")
-  if(PYBIND11_BUILD_STATIC_LIB)
-    install(
-      TARGETS pybind11_static
-      EXPORT "${PYBIND11_EXPORT_NAME}"
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  endif()
 
   install(
     EXPORT "${PYBIND11_EXPORT_NAME}"

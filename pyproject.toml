@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 ignore = [
     "docs/**",
     "include/**",
-    "srcs/**",
+    "src/**",
     "tests/**",
     "tools/**",
     ".*",
