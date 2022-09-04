@@ -71,11 +71,8 @@ endif()
 
 if(PYBIND11_INSTALL)
   add_custom_target(
-    mock_install
-    ${CMAKE_COMMAND}
-    "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install"
-    -P
-    "${pybind11_BINARY_DIR}/cmake_install.cmake")
+    mock_install ${CMAKE_COMMAND} "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install" -P
+                 "${pybind11_BINARY_DIR}/cmake_install.cmake")
 
   pybind11_add_build_test(installed_function INSTALL)
   pybind11_add_build_test(installed_target INSTALL)
