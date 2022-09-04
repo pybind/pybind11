@@ -43,7 +43,7 @@ jobs:
     - name: Install requirements
       run: apt-get update && apt-get install -y python3-dev python3-pytest
 
-    # The static library mode is disabled so Clang-Tidy does't complain about
+    # The static library mode is disabled so Clang-Tidy doesn't complain about
     # non-inline definitions in header files ('*-inl.h').
     - name: Configure
       run: >
