@@ -55,6 +55,9 @@ extern "C" inline int pybind11_static_set(PyObject *self, PyObject *obj, PyObjec
     return PyProperty_Type.tp_descr_set(self, cls, value);
 }
 
+// Forward declaration to use in `make_static_property_type()`
+inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type);
+
 /** A `static_property` is the same as a `property` but the `__get__()` and `__set__()`
     methods are modified to always use the object type instead of a concrete instance.
     Return value: New reference. */
@@ -86,6 +89,13 @@ inline PyTypeObject *make_static_property_type() {
     if (PyType_Ready(type) < 0) {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
     }
+
+#    if PY_VERSION_HEX >= 0x030C0000
+    // PRE 3.12 FEATURE FREEZE. PLEASE REVIEW AFTER FREEZE.
+    // Since Python-3.12 property-derived types are required to
+    // have dynamic attributes (to set `__doc__`)
+    enable_dynamic_attributes(heap_type);
+#    endif
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
