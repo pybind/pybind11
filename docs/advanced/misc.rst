@@ -39,15 +39,42 @@ The ``PYBIND11_MAKE_OPAQUE`` macro does *not* require the above workarounds.
 Global Interpreter Lock (GIL)
 =============================
 
-When calling a C++ function from Python, the GIL is always held.
+The Python C API dictates that the Global Interpreter Lock (GIL) must always
+be held by the current thread to safely access Python objects. As a result,
+when Python calls into C++ via pybind11 the GIL must be held, and pybind11
+will never implicitly release the GIL.
+
+.. code-block:: cpp
+
+    void my_function() {
+        /* GIL is held when this function is called from Python */
+    }
+
+    PYBIND11_MODULE(example, m) {
+        m.def("my_function", &my_function);
+    }
+
+pybind11 will ensure that the GIL is held when it knows that it is calling
+Python code. For example, if a Python callback is passed to C++ code via
+``std::function``, when C++ code calls the function the built-in wrapper
+will acquire the GIL before calling the Python callback. Similarly, the
+``PYBIND11_OVERRIDE`` family of macros will acquire the GIL before calling
+back into Python.
+
+When writing C++ code that is called from other C++ code, if that code accesses
+Python state, it must explicitly acquire and release the GIL.
+
 The classes :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be
 used to acquire and release the global interpreter lock in the body of a C++
 function call. In this way, long-running C++ code can be parallelized using
-multiple Python threads. Taking :ref:`overriding_virtuals` as an example, this
+multiple Python threads, **but great care must be taken** when any
+:class:`gil_scoped_release` appear: if there is any way that the C++ code
+can access Python objects, :class:`gil_scoped_acquire` should be used to
+reacquire the GIL. Taking :ref:`overriding_virtuals` as an example, this
 could be realized as follows (important changes highlighted):
 
 .. code-block:: cpp
-    :emphasize-lines: 8,9,31,32
+    :emphasize-lines: 8,30,31
 
     class PyAnimal : public Animal {
     public:
@@ -56,9 +83,7 @@ could be realized as follows (important changes highlighted):
 
         /* Trampoline (need one for each virtual function) */
         std::string go(int n_times) {
-            /* Acquire GIL before calling Python code */
-            py::gil_scoped_acquire acquire;
-
+            /* PYBIND11_OVERRIDE_PURE will acquire the GIL before accessing Python state */
             PYBIND11_OVERRIDE_PURE(
                 std::string, /* Return type */
                 Animal,      /* Parent class */
@@ -78,7 +103,8 @@ could be realized as follows (important changes highlighted):
             .def(py::init<>());
 
         m.def("call_go", [](Animal *animal) -> std::string {
-            /* Release GIL before calling into (potentially long-running) C++ code */
+            // GIL is held when called from Python code. Release GIL before
+            // calling into (potentially long-running) C++ code
             py::gil_scoped_release release;
             return call_go(animal);
         });
