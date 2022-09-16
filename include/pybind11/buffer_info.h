@@ -11,6 +11,8 @@
 
 #include "detail/common.h"
 
+#include <utility>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -56,12 +58,12 @@ struct buffer_info {
 
     buffer_info(void *ptr,
                 ssize_t itemsize,
-                const std::string &format,
+                std::string format,
                 ssize_t ndim,
                 detail::any_container<ssize_t> shape_in,
                 detail::any_container<ssize_t> strides_in,
                 bool readonly = false)
-        : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
+        : ptr(ptr), itemsize(itemsize), size(1), format(std::move(format)), ndim(ndim),
           shape(std::move(shape_in)), strides(std::move(strides_in)), readonly(readonly) {
         if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size()) {
             pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
