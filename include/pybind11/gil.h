@@ -195,7 +195,7 @@ class gil_scoped_release {
 
 public:
     gil_scoped_release() { state = PyEval_SaveThread(); }
-    gil_scoped_release(const gil_scoped_release) = delete;
+    gil_scoped_release(const gil_scoped_release &) = delete;
     gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
     ~gil_scoped_release() { PyEval_RestoreThread(state); }
     void disarm() {}
