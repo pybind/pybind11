@@ -87,12 +87,9 @@ struct buffer_info {
                       std::move(strides_in),
                       readonly) {}
 
-    buffer_info(void *ptr,
-                ssize_t itemsize,
-                const std::string &format,
-                ssize_t size,
-                bool readonly = false)
-        : buffer_info(ptr, itemsize, format, 1, {size}, {itemsize}, readonly) {}
+    buffer_info(
+        void *ptr, ssize_t itemsize, std::string format, ssize_t size, bool readonly = false)
+        : buffer_info(ptr, itemsize, std::move(format), 1, {size}, {itemsize}, readonly) {}
 
     template <typename T>
     buffer_info(T *ptr, ssize_t size, bool readonly = false)
@@ -158,13 +155,18 @@ private:
     buffer_info(private_ctr_tag,
                 void *ptr,
                 ssize_t itemsize,
-                const std::string &format,
+                std::string &&format,
                 ssize_t ndim,
                 detail::any_container<ssize_t> &&shape_in,
                 detail::any_container<ssize_t> &&strides_in,
                 bool readonly)
-        : buffer_info(
-            ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in), readonly) {}
+        : buffer_info(ptr,
+                      itemsize,
+                      std::move(format),
+                      ndim,
+                      std::move(shape_in),
+                      std::move(strides_in),
+                      readonly) {}
 
     Py_buffer *m_view = nullptr;
     bool ownview = false;
