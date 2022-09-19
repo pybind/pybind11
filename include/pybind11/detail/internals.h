@@ -412,6 +412,8 @@ PYBIND11_NOINLINE internals &get_internals() {
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
         gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
+        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
+        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
