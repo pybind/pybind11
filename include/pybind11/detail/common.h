@@ -1037,7 +1037,7 @@ template <typename... Args>
         || (defined(__clang__) && __clang_major__ == 5)
 static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
 #    else
-static constexpr detail::overload_cast_impl<Args...> overload_cast;
+static constexpr detail::overload_cast_impl<Args...> overload_cast{};
 #    endif
 #endif
 
