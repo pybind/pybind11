@@ -35,7 +35,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.37.3"
+  rev: "v2.38.0"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -110,7 +110,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.15.2"
+  rev: "v2.15.3"
   hooks:
   - id: pylint
     files: ^pybind11
