@@ -60,6 +60,7 @@ struct set_caster {
         }
         auto s = reinterpret_borrow<anyset>(src);
         value.clear();
+        reserve_maybe(s, &value);
         for (auto entry : s) {
             key_conv conv;
             if (!conv.load(entry, convert)) {
@@ -87,6 +88,15 @@ struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
+
+private:
+    template <
+        typename T = Type,
+        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    void reserve_maybe(const anyset &s, Type *) {
+        value.reserve(s.size());
+    }
+    void reserve_maybe(const anyset &, void *) {}
 };
 
 template <typename Type, typename Key, typename Value>
@@ -100,6 +110,7 @@ struct map_caster {
         }
         auto d = reinterpret_borrow<dict>(src);
         value.clear();
+        reserve_maybe(d, &value);
         for (auto it : d) {
             key_conv kconv;
             value_conv vconv;
@@ -136,6 +147,15 @@ struct map_caster {
     PYBIND11_TYPE_CASTER(Type,
                          const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
+
+private:
+    template <
+        typename T = Type,
+        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    void reserve_maybe(const dict &d, Type *) {
+        value.reserve(d.size());
+    }
+    void reserve_maybe(const dict &, void *) {}
 };
 
 template <typename Type, typename Value>
