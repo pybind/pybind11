@@ -517,7 +517,8 @@ inline local_internals &get_local_internals() {
     // Current static can be created in the interpreter finalization routine. If the later will be
     // destroyed in another static variable destructor, creation of this static there will cause
     // static deinitialization fiasco. In order to avoid it we avoid destruction of the
-    // local_internals static.
+    // local_internals static. One can read more about the problem and current solution here:
+    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
     static auto *locals = new local_internals();
     return *locals;
 }
