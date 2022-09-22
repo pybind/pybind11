@@ -49,6 +49,11 @@ constexpr forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
+// Checks if a container has a STL style reserve method.
+// The reserve method should also have a void return type.
+template <typename C>
+using has_reserve_method = std::is_same<decltype(std::declval<C>().reserve(0)), void>;
+
 template <typename Type, typename Key>
 struct set_caster {
     using type = Type;
@@ -90,9 +95,7 @@ struct set_caster {
     PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
 
 private:
-    template <
-        typename T = Type,
-        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
     void reserve_maybe(const anyset &s, Type *) {
         value.reserve(s.size());
     }
@@ -149,9 +152,7 @@ struct map_caster {
                              + const_name("]"));
 
 private:
-    template <
-        typename T = Type,
-        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
     void reserve_maybe(const dict &d, Type *) {
         value.reserve(d.size());
     }
@@ -180,9 +181,7 @@ struct list_caster {
     }
 
 private:
-    template <
-        typename T = Type,
-        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
     void reserve_maybe(const sequence &s, Type *) {
         value.reserve(s.size());
     }
