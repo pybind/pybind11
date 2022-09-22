@@ -95,8 +95,23 @@ if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "3.6")
 endif()
 
+# Save variables that get set by PythonInterp
+macro(_PYBIND11_PUSH_IF_DEFINED name)
+  if(DEFINED "${name}")
+    set("_PYBIND11_ORIG_${name}" "${${name}}")
+  endif()
+endmacro()
+
+_pybind11_push_if_defined(PYTHON_INCLUDE_DIR)
+_pybind11_push_if_defined(PYTHON_MODULE_EXTENSION)
+_pybind11_push_if_defined(PYTHON_IS_DEBUG)
+
 find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
              ${_pythonlibs_quiet})
+
+unset(PYTHON_INCLUDE_DIR)
+unset(PYTHON_MODULE_EXTENSION)
+unset(PYTHON_IS_DEBUG)
 
 if(NOT PYTHONINTERP_FOUND)
   set(PYTHONLIBS_FOUND FALSE)
@@ -153,7 +168,9 @@ endif()
 
 # Can manually set values when cross-compiling
 macro(_PYBIND11_GET_IF_UNDEF lst index name)
-  if(NOT DEFINED "${name}")
+  if(DEFINED "_PYBIND11_ORIG_${name}")
+    set("${name}" "${_PYBIND11_ORIG_${name}}")
+  elseif(NOT DEFINED "${name}")
     list(GET "${lst}" "${index}" "${name}")
   endif()
 endmacro()
