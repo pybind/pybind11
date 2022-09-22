@@ -737,6 +737,9 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=20
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
+          - python: 3.7
+            args: -DCMAKE_CXX_STANDARD=14
+
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
     runs-on: windows-2019
