@@ -50,7 +50,7 @@ constexpr forwarded_type<T, U> forward_like(U &&u) {
 }
 
 // Checks if a container has a STL style reserve method.
-// The reserve method should also have a void return type.
+// This will only return true for a `reserve()` with a `void` return.
 template <typename C>
 using has_reserve_method = std::is_same<decltype(std::declval<C>().reserve(0)), void>;
 
