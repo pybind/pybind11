@@ -59,6 +59,14 @@ struct set_caster {
     using type = Type;
     using key_conv = make_caster<Key>;
 
+private:
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
+    void reserve_maybe(const anyset &s, Type *) {
+        value.reserve(s.size());
+    }
+    void reserve_maybe(const anyset &, void *) {}
+
+public:
     bool load(handle src, bool convert) {
         if (!isinstance<anyset>(src)) {
             return false;
@@ -93,13 +101,6 @@ struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
-
-private:
-    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
-    void reserve_maybe(const anyset &s, Type *) {
-        value.reserve(s.size());
-    }
-    void reserve_maybe(const anyset &, void *) {}
 };
 
 template <typename Type, typename Key, typename Value>
@@ -107,6 +108,14 @@ struct map_caster {
     using key_conv = make_caster<Key>;
     using value_conv = make_caster<Value>;
 
+private:
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
+    void reserve_maybe(const dict &d, Type *) {
+        value.reserve(d.size());
+    }
+    void reserve_maybe(const dict &, void *) {}
+
+public:
     bool load(handle src, bool convert) {
         if (!isinstance<dict>(src)) {
             return false;
@@ -150,13 +159,6 @@ struct map_caster {
     PYBIND11_TYPE_CASTER(Type,
                          const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
-
-private:
-    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
-    void reserve_maybe(const dict &d, Type *) {
-        value.reserve(d.size());
-    }
-    void reserve_maybe(const dict &, void *) {}
 };
 
 template <typename Type, typename Value>
