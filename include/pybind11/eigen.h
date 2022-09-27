@@ -672,7 +672,9 @@ struct eigen_helper<Eigen::Tensor<E, dim, O>> {
 
     static std::array<Eigen::Index, N> get_shape(const Type &f) { return f.dimensions(); }
 
-    static constexpr bool is_correct_shape(const std::array<Eigen::Index, N> & /*shape*/) { return true; }
+    static constexpr bool is_correct_shape(const std::array<Eigen::Index, N> & /*shape*/) {
+        return true;
+    }
 };
 
 template <typename E, typename std::ptrdiff_t... Indices, int O>
