@@ -32,6 +32,13 @@ void reset_ref(M &x) {
     }
 }
 
+template <typename M>
+void reset_tensor(M& x) {
+    for (int i = 0; i< x.size(); i++) {
+        x(i) = i;
+    }
+}
+
 // Returns a static, column-major matrix
 Eigen::MatrixXd &get_cm() {
     static Eigen::MatrixXd *x;
@@ -50,6 +57,33 @@ MatrixXdR &get_rm() {
     }
     return *x;
 }
+
+Eigen::Tensor<double, 3>& get_tensor() {
+    static Eigen::Tensor<double, 3> *x;
+
+    if (!x) {
+        x = new Eigen::Tensor<double, 3>(3, 1, 2);
+        reset_tensor(*x);
+    }
+
+    return *x;
+}
+
+Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>& get_fixed_tensor() {
+    static Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>> *x;
+
+    if (!x) {
+        x = new Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>();
+        reset_tensor(*x);
+    }
+
+    return *x;
+}
+
+const Eigen::Tensor<double, 3>& get_const_tensor() {
+    return get_tensor();
+}
+
 // Resets the values of the static matrices returned by get_cm()/get_rm()
 void reset_refs() {
     reset_ref(get_cm());
@@ -427,4 +461,43 @@ TEST_SUBMODULE(eigen, m) {
         py::module_::import("numpy").attr("ones")(10);
         return v[0](5);
     });
+
+    m.def("copy_fixed_global_tensor", [](){
+        return get_fixed_tensor();
+    });
+
+    m.def("copy_global_tensor", [](){
+        return get_tensor();
+    });
+
+    m.def("copy_const_global_tensor", [](){
+        return get_const_tensor();
+    });
+
+    m.def("reference_global_tensor", [](){
+        return &get_tensor();
+    }, py::return_value_policy::reference);
+
+    m.def("reference_const_global_tensor", [](){
+        return &get_const_tensor();
+    }, py::return_value_policy::reference);
+
+    m.def("reference_view_of_global_tensor", []() {
+        return Eigen::TensorMap<Eigen::Tensor<double, 3>>(get_tensor());
+    }, py::return_value_policy::reference);
+
+    m.def("reference_view_of_fixed_global_tensor", []() {
+        return Eigen::TensorMap<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>>(get_fixed_tensor());
+    }, py::return_value_policy::reference);
+
+    m.def("round_trip_tensor", [](py::array_t<double> foo) {
+        auto blah = foo.cast<Eigen::Tensor<double, 3>>();
+        return blah;
+    });
+
+    m.def("round_trip_view_tensor", [](py::array_t<double> foo) {
+        auto view = foo.cast<Eigen::TensorMap<Eigen::Tensor<double, 3>>>();
+        return view;
+    }, py::return_value_policy::reference);
+
 }
