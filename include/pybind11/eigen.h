@@ -797,10 +797,17 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                     pybind11_fail("Cannot move from a constant reference");
                 }
                 {
-                    Type *copy = new Type(std::move(*src));
+                    Eigen::aligned_allocator<Type> allocator;
+                    Type* copy = ::new (allocator.allocate(1)) Type(std::move(*src));
                     src = copy;
                 }
-                parent = capsule(src, [](void *ptr) { delete (Type *) ptr; }).release();
+
+                parent = capsule(src, [](void *ptr) {
+                    Eigen::aligned_allocator<Type> allocator;
+                    Type* copy = (Type*) ptr;
+                    copy->~Type();
+                    allocator.deallocate(copy, 1);
+                }).release();
                 dec_parent = true;
                 writeable = true;
                 break;
