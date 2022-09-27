@@ -24,6 +24,7 @@
 //    it is probably best to keep this around indefinitely.
 #if defined(_MSC_VER)
 #    pragma warning(push)
+#    pragma warning(disable : 4554) // Tensor.h warning
 #    pragma warning(disable : 4127) // C4127: conditional expression is constant
 #    pragma warning(disable : 5054) // https://github.com/pybind/pybind11/pull/3741
 //       C5054: operator '&': deprecated between enumerations of different types
