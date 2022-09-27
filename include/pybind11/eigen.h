@@ -645,12 +645,12 @@ public:
 template <int Options>
 struct eigen_to_numpy {};
 
-template<>
+template <>
 struct eigen_to_numpy<Eigen::ColMajor> {
     static const int flag = array::f_style;
 };
 
-template<>
+template <>
 struct eigen_to_numpy<Eigen::RowMajor> {
     static const int flag = array::c_style;
 };
@@ -658,27 +658,26 @@ struct eigen_to_numpy<Eigen::RowMajor> {
 template <typename T, typename = void>
 struct get_eigen_data {};
 
-template<typename T>
+template <typename T>
 struct get_eigen_data<T, std::enable_if_t<std::is_const<T>::value>> {
-    template<typename D>
-    static const T* get_data(const D& d) { 
+    template <typename D>
+    static const T *get_data(const D &d) {
         return d.data();
     }
 };
 
-template<typename T>
+template <typename T>
 struct get_eigen_data<T, std::enable_if_t<!std::is_const<T>::value>> {
-    template<typename D>
-    static T* get_data(D& d) { 
+    template <typename D>
+    static T *get_data(D &d) {
         return d.mutable_data();
     }
 };
 
 template <class T>
-struct eigen_helper {
-};
+struct eigen_helper {};
 
-template<typename E, int dim, int O>
+template <typename E, int dim, int O>
 struct eigen_helper<Eigen::Tensor<E, dim, O>> {
     typedef Eigen::Tensor<E, dim, O> Type;
     typedef Eigen::Tensor<const E, dim, O> ConstType;
@@ -689,16 +688,12 @@ struct eigen_helper<Eigen::Tensor<E, dim, O>> {
 
     typedef void ValidType;
 
-    static std::array<Eigen::Index, N> get_shape(const Type& f) {
-        return f.dimensions();
-    }
+    static std::array<Eigen::Index, N> get_shape(const Type &f) { return f.dimensions(); }
 
-    static bool is_correct_shape(const std::array<Eigen::Index, N>& /*shape*/) {
-        return true;
-    }
+    static bool is_correct_shape(const std::array<Eigen::Index, N> & /*shape*/) { return true; }
 };
 
-template<typename E, typename std::ptrdiff_t... Indices, int O>
+template <typename E, typename std::ptrdiff_t... Indices, int O>
 struct eigen_helper<Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>> {
     typedef Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O> Type;
     typedef Eigen::TensorFixedSize<const E, Eigen::Sizes<Indices...>, O> ConstType;
@@ -708,26 +703,23 @@ struct eigen_helper<Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>> {
     static const int Options = O;
     typedef void ValidType;
 
-    static std::array<Eigen::Index, N> get_shape(const Type& /*f*/) {
-        return get_shape();
-    }
+    static std::array<Eigen::Index, N> get_shape(const Type & /*f*/) { return get_shape(); }
 
-    static std::array<Eigen::Index, N> get_shape() {
-        return {Indices...};
-    }
+    static std::array<Eigen::Index, N> get_shape() { return {Indices...}; }
 
-    static bool is_correct_shape(const std::array<Eigen::Index, N>& shape) {
+    static bool is_correct_shape(const std::array<Eigen::Index, N> &shape) {
         return get_shape() == shape;
     }
 };
 
-template<typename Type>
+template <typename Type>
 struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
     using H = eigen_helper<Type>;
     PYBIND11_TYPE_CASTER(Type, const_name("eigen::Tensor"));
 
     bool load(handle src, bool /*convert*/) {
-        array_t<typename H::Element, eigen_to_numpy<H::Options>::flag> a(reinterpret_borrow<object>(src));
+        array_t<typename H::Element, eigen_to_numpy<H::Options>::flag> a(
+            reinterpret_borrow<object>(src));
 
         if (a.ndim() != H::N) {
             return false;
@@ -740,21 +732,22 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
             return false;
         }
 
-
         value = Eigen::TensorMap<typename H::ConstType>(a.data(), shape);
 
         return true;
     }
 
     static handle cast(Type &&src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::reference || policy == return_value_policy::reference_internal) {
+        if (policy == return_value_policy::reference
+            || policy == return_value_policy::reference_internal) {
             pybind11_fail("Cannot use a reference return value policy for an rvalue");
         }
         return cast_impl(&src, return_value_policy::move, parent);
     }
 
     static handle cast(const Type &&src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::reference || policy == return_value_policy::reference_internal) {
+        if (policy == return_value_policy::reference
+            || policy == return_value_policy::reference_internal) {
             pybind11_fail("Cannot use a reference return value policy for an rvalue");
         }
         return cast_impl(&src, return_value_policy::move, parent);
@@ -794,7 +787,7 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
         return cast_impl(src, policy, parent);
     }
 
-    template<typename C>
+    template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
         bool dec_parent;
         bool writeable;
@@ -804,12 +797,10 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                     pybind11_fail("Cannot move from a constant reference");
                 }
                 {
-                    Type* copy = new Type(std::move(*src));
+                    Type *copy = new Type(std::move(*src));
                     src = copy;
                 }
-                parent = capsule(src, [](void* ptr) {
-                    delete (Type*) ptr;
-                }).release();
+                parent = capsule(src, [](void *ptr) { delete (Type *) ptr; }).release();
                 dec_parent = true;
                 writeable = true;
                 break;
@@ -818,7 +809,7 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                 if (std::is_const<C>::value) {
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
-                parent = capsule(src, [](void* ptr) {delete (Type*) ptr;}).release();
+                parent = capsule(src, [](void *ptr) { delete (Type *) ptr; }).release();
                 dec_parent = true;
                 writeable = true;
                 break;
@@ -846,10 +837,9 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
         }
 
         handle result = array_t<typename H::Element, eigen_to_numpy<H::Options>::flag>(
-            H::get_shape(*src),
-            src->data(), 
-            parent).release();
-    
+                            H::get_shape(*src), src->data(), parent)
+                            .release();
+
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
         }
@@ -862,7 +852,7 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
     }
 };
 
-template<typename Type>
+template <typename Type>
 struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidType> {
     using H = eigen_helper<Type>;
 
@@ -888,7 +878,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
             return false;
         }
 
-        value = std::make_unique<Eigen::TensorMap<Type>>(reinterpret_cast<typename H::Element*>(a.mutable_data()), shape);
+        value = std::make_unique<Eigen::TensorMap<Type>>(
+            reinterpret_cast<typename H::Element *>(a.mutable_data()), shape);
 
         return true;
     }
@@ -897,7 +888,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
         return cast_impl(&src, policy, parent);
     }
 
-    static handle cast(const Eigen::TensorMap<Type> &&src, return_value_policy policy, handle parent) {
+    static handle
+    cast(const Eigen::TensorMap<Type> &&src, return_value_policy policy, handle parent) {
         return cast_impl(&src, policy, parent);
     }
 
@@ -909,7 +901,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
         return cast_impl(&src, policy, parent);
     }
 
-    static handle cast(const Eigen::TensorMap<Type> &src, return_value_policy policy, handle parent) {
+    static handle
+    cast(const Eigen::TensorMap<Type> &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -926,7 +919,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
         return cast_impl(src, policy, parent);
     }
 
-    static handle cast(const Eigen::TensorMap<Type> *src, return_value_policy policy, handle parent) {
+    static handle
+    cast(const Eigen::TensorMap<Type> *src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic) {
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
@@ -935,7 +929,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
         return cast_impl(src, policy, parent);
     }
 
-    template<typename C>
+    template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
         bool dec_parent;
         bool writeable;
@@ -954,13 +948,13 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
 
             default:
                 // move, take_ownership don't make any sense for a ref/map:
-                pybind11_fail("Invalid return_value_policy for Eigen Map type, must be either reference or reference_internal");
+                pybind11_fail("Invalid return_value_policy for Eigen Map type, must be either "
+                              "reference or reference_internal");
         }
 
         handle result = array_t<typename H::Element, eigen_to_numpy<H::Options>::flag>(
-            H::get_shape(*src),
-            src->data(), 
-            parent).release();
+                            H::get_shape(*src), src->data(), parent)
+                            .release();
 
         if (dec_parent) {
             parent.dec_ref();
@@ -972,18 +966,23 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
 
         return result;
     }
-    
-    protected:                                          
-        // TODO: Move to std::optional once std::optional has more support                                              
-        std::unique_ptr<Eigen::TensorMap<Type>> value;
-    public:
-        static constexpr auto name = const_name("Eigen::TensorMap");
-        operator Eigen::TensorMap<Type> *() { return value.get(); }               /* NOLINT(bugprone-macro-parentheses) */   \
-        operator Eigen::TensorMap<Type> &() { return *value; }                /* NOLINT(bugprone-macro-parentheses) */   \
-        operator Eigen::TensorMap<Type> &&() && { return std::move(*value); } /* NOLINT(bugprone-macro-parentheses) */   \
-    
-        template <typename T_>                                                                        \
-        using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>;
+
+protected:
+    // TODO: Move to std::optional once std::optional has more support
+    std::unique_ptr<Eigen::TensorMap<Type>> value;
+
+public:
+    static constexpr auto name = const_name("Eigen::TensorMap");
+    operator Eigen::TensorMap<Type> *() {
+        return value.get();
+    }                                                      /* NOLINT(bugprone-macro-parentheses) */
+    operator Eigen::TensorMap<Type> &() { return *value; } /* NOLINT(bugprone-macro-parentheses) */
+    operator Eigen::TensorMap<Type> &&() && {
+        return std::move(*value);
+    } /* NOLINT(bugprone-macro-parentheses) */
+
+    template <typename T_>
+    using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>;
 };
 
 template <typename Type>
@@ -1053,8 +1052,6 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
                                                              "scipy.sparse.csc_matrix[")
                              + npy_format_descriptor<Scalar>::name + const_name("]"));
 };
-
-
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
