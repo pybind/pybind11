@@ -968,8 +968,10 @@ public:
     static constexpr auto name = const_name("Eigen::TensorMap");
     explicit operator Eigen::TensorMap<Type> *() {
         return value.get();
-    }                                                      /* NOLINT(bugprone-macro-parentheses) */
-    explicit operator Eigen::TensorMap<Type> &() { return *value; } /* NOLINT(bugprone-macro-parentheses) */
+    } /* NOLINT(bugprone-macro-parentheses) */
+    explicit operator Eigen::TensorMap<Type> &() {
+        return *value;
+    } /* NOLINT(bugprone-macro-parentheses) */
     explicit operator Eigen::TensorMap<Type> &&() && {
         return std::move(*value);
     } /* NOLINT(bugprone-macro-parentheses) */
