@@ -661,14 +661,15 @@ struct eigen_helper {};
 
 template <typename E, int dim, int O>
 struct eigen_helper<Eigen::Tensor<E, dim, O>> {
-    typedef Eigen::Tensor<E, dim, O> Type;
-    typedef Eigen::Tensor<const E, dim, O> ConstType;
+    using Type = Eigen::Tensor<E, dim, O>;
+    using ConstType = Eigen::Tensor<const E, dim, O>;
 
-    typedef E Element;
+    using Element = E;
+
     static constexpr int N = dim;
     static constexpr int Options = O;
 
-    typedef void ValidType;
+    using ValidType = void;
 
     static std::array<Eigen::Index, N> get_shape(const Type &f) { return f.dimensions(); }
 
@@ -679,14 +680,14 @@ struct eigen_helper<Eigen::Tensor<E, dim, O>> {
 
 template <typename E, typename std::ptrdiff_t... Indices, int O>
 struct eigen_helper<Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>> {
-    typedef Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O> Type;
-    typedef Eigen::TensorFixedSize<const E, Eigen::Sizes<Indices...>, O> ConstType;
+    using Type = Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>;
+    using ConstType = Eigen::TensorFixedSize<const E, Eigen::Sizes<Indices...>, O>;
 
-    typedef E Element;
+    using Element = E;
     static constexpr int N = Eigen::Sizes<Indices...>::count;
     static constexpr int Options = O;
 
-    typedef void ValidType;
+    using ValidType = void;
 
     static std::array<Eigen::Index, N> get_shape(const Type & /*f*/) { return get_shape(); }
 
@@ -774,8 +775,8 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
 
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
-        bool dec_parent;
-        bool writeable;
+        bool dec_parent = false;
+        bool writeable = false;
         switch (policy) {
             case return_value_policy::move:
                 if (std::is_const<C>::value) {
@@ -850,7 +851,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
-        array a = reinterpret_borrow<array>(src);
+        auto a = reinterpret_borrow<array>(src);
         if ((a.flags() & eigen_to_numpy<H::Options>::flag) == 0) {
             return false;
         }
@@ -923,8 +924,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
 
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
-        bool dec_parent;
-        bool writeable;
+        bool dec_parent = false;
+        bool writeable = false;
         switch (policy) {
             case return_value_policy::reference:
                 parent = none().release();
@@ -965,11 +966,11 @@ protected:
 
 public:
     static constexpr auto name = const_name("Eigen::TensorMap");
-    operator Eigen::TensorMap<Type> *() {
+    explicit operator Eigen::TensorMap<Type> *() {
         return value.get();
     }                                                      /* NOLINT(bugprone-macro-parentheses) */
-    operator Eigen::TensorMap<Type> &() { return *value; } /* NOLINT(bugprone-macro-parentheses) */
-    operator Eigen::TensorMap<Type> &&() && {
+    explicit operator Eigen::TensorMap<Type> &() { return *value; } /* NOLINT(bugprone-macro-parentheses) */
+    explicit operator Eigen::TensorMap<Type> &&() && {
         return std::move(*value);
     } /* NOLINT(bugprone-macro-parentheses) */
 
