@@ -73,7 +73,8 @@ Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>> &get_fixed_tensor() {
     static Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>> *x;
 
     if (!x) {
-        x = new Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>();
+        Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>> allocator;
+        x = new (allocator.allocate(1)) Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>();
         reset_tensor(*x);
     }
 

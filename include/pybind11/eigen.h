@@ -655,25 +655,6 @@ struct eigen_to_numpy<Eigen::RowMajor> {
     static const int flag = array::c_style;
 };
 
-template <typename T, typename = void>
-struct get_eigen_data {};
-
-template <typename T>
-struct get_eigen_data<T, enable_if_t<std::is_const<T>::value>> {
-    template <typename D>
-    static const T *get_data(const D &d) {
-        return d.data();
-    }
-};
-
-template <typename T>
-struct get_eigen_data<T, enable_if_t<!std::is_const<T>::value>> {
-    template <typename D>
-    static T *get_data(D &d) {
-        return d.mutable_data();
-    }
-};
-
 template <class T>
 struct eigen_helper {};
 
@@ -701,11 +682,12 @@ struct eigen_helper<Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>> {
     typedef E Element;
     static const int N = Eigen::Sizes<Indices...>::count;
     static const int Options = O;
+
     typedef void ValidType;
 
     static std::array<Eigen::Index, N> get_shape(const Type & /*f*/) { return get_shape(); }
 
-    static std::array<Eigen::Index, N> get_shape() { return {Indices...}; }
+    static std::array<Eigen::Index, N> get_shape() { return {{Indices...}}; }
 
     static bool is_correct_shape(const std::array<Eigen::Index, N> &shape) {
         return get_shape() == shape;
