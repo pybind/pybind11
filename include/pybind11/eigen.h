@@ -798,16 +798,16 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                 }
                 {
                     Eigen::aligned_allocator<Type> allocator;
-                    Type* copy = ::new (allocator.allocate(1)) Type(std::move(*src));
+                    Type *copy = ::new (allocator.allocate(1)) Type(std::move(*src));
                     src = copy;
                 }
 
                 parent = capsule(src, [](void *ptr) {
-                    Eigen::aligned_allocator<Type> allocator;
-                    Type* copy = (Type*) ptr;
-                    copy->~Type();
-                    allocator.deallocate(copy, 1);
-                }).release();
+                             Eigen::aligned_allocator<Type> allocator;
+                             Type *copy = (Type *) ptr;
+                             copy->~Type();
+                             allocator.deallocate(copy, 1);
+                         }).release();
                 dec_parent = true;
                 writeable = true;
                 break;
