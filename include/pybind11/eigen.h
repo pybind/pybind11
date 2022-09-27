@@ -659,7 +659,7 @@ template <typename T, typename = void>
 struct get_eigen_data {};
 
 template <typename T>
-struct get_eigen_data<T, std::enable_if_t<std::is_const<T>::value>> {
+struct get_eigen_data<T, enable_if_t<std::is_const<T>::value>> {
     template <typename D>
     static const T *get_data(const D &d) {
         return d.data();
@@ -667,7 +667,7 @@ struct get_eigen_data<T, std::enable_if_t<std::is_const<T>::value>> {
 };
 
 template <typename T>
-struct get_eigen_data<T, std::enable_if_t<!std::is_const<T>::value>> {
+struct get_eigen_data<T, enable_if_t<!std::is_const<T>::value>> {
     template <typename D>
     static T *get_data(D &d) {
         return d.mutable_data();
@@ -878,8 +878,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
             return false;
         }
 
-        value = std::make_unique<Eigen::TensorMap<Type>>(
-            reinterpret_cast<typename H::Element *>(a.mutable_data()), shape);
+        value.reset(new Eigen::TensorMap<Type>(
+            reinterpret_cast<typename H::Element *>(a.mutable_data()), shape));
 
         return true;
     }
