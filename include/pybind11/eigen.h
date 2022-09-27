@@ -648,12 +648,12 @@ struct eigen_to_numpy {};
 
 template <>
 struct eigen_to_numpy<Eigen::ColMajor> {
-    static const int flag = array::f_style;
+    static constexpr int flag = array::f_style;
 };
 
 template <>
 struct eigen_to_numpy<Eigen::RowMajor> {
-    static const int flag = array::c_style;
+    static constexpr int flag = array::c_style;
 };
 
 template <class T>
@@ -665,14 +665,14 @@ struct eigen_helper<Eigen::Tensor<E, dim, O>> {
     typedef Eigen::Tensor<const E, dim, O> ConstType;
 
     typedef E Element;
-    static const int N = dim;
-    static const int Options = O;
+    static constexpr int N = dim;
+    static constexpr int Options = O;
 
     typedef void ValidType;
 
     static std::array<Eigen::Index, N> get_shape(const Type &f) { return f.dimensions(); }
 
-    static bool is_correct_shape(const std::array<Eigen::Index, N> & /*shape*/) { return true; }
+    static constexpr bool is_correct_shape(const std::array<Eigen::Index, N> & /*shape*/) { return true; }
 };
 
 template <typename E, typename std::ptrdiff_t... Indices, int O>
@@ -681,14 +681,14 @@ struct eigen_helper<Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>> {
     typedef Eigen::TensorFixedSize<const E, Eigen::Sizes<Indices...>, O> ConstType;
 
     typedef E Element;
-    static const int N = Eigen::Sizes<Indices...>::count;
-    static const int Options = O;
+    static constexpr int N = Eigen::Sizes<Indices...>::count;
+    static constexpr int Options = O;
 
     typedef void ValidType;
 
     static std::array<Eigen::Index, N> get_shape(const Type & /*f*/) { return get_shape(); }
 
-    static std::array<Eigen::Index, N> get_shape() { return {{Indices...}}; }
+    static constexpr std::array<Eigen::Index, N> get_shape() { return {{Indices...}}; }
 
     static bool is_correct_shape(const std::array<Eigen::Index, N> &shape) {
         return get_shape() == shape;
