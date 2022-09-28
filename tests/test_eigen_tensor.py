@@ -1,7 +1,5 @@
 import pytest
 
-from pybind11_tests import ConstructorStats
-
 np = pytest.importorskip("numpy")
 m = pytest.importorskip("pybind11_tests.eigen_tensor")
 
