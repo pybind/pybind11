@@ -34,6 +34,7 @@
 #endif
 
 #include <iostream>
+
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -644,44 +645,53 @@ public:
     using cast_op_type = Type;
 };
 
-template<typename T>
+template <typename T>
 constexpr int compute_array_flag_from_tensor() {
-    static_assert(((int)T::Layout == (int)Eigen::RowMajor) || ((int)T::Layout == (int)Eigen::ColMajor), "Layout must be row or column major");
-    return ((int)T::Layout == (int)Eigen::RowMajor) ? array::c_style : array::f_style;
+    static_assert(((int) T::Layout == (int) Eigen::RowMajor)
+                      || ((int) T::Layout == (int) Eigen::ColMajor),
+                  "Layout must be row or column major");
+    return ((int) T::Layout == (int) Eigen::RowMajor) ? array::c_style : array::f_style;
 }
-
-
 
 template <typename T>
 struct eigen_tensor_helper {};
 
-template<typename Scalar_, int NumIndices_, int Options_, typename IndexType>
+template <typename Scalar_, int NumIndices_, int Options_, typename IndexType>
 struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>> {
     using T = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
     using ValidType = void;
 
-    static std::array<typename T::Index, T::NumIndices> get_shape(const T &f) { return f.dimensions(); }
+    static std::array<typename T::Index, T::NumIndices> get_shape(const T &f) {
+        return f.dimensions();
+    }
 
-    static constexpr bool is_correct_shape(const std::array<typename T::Index, T::NumIndices> & /*shape*/) {
+    static constexpr bool
+    is_correct_shape(const std::array<typename T::Index, T::NumIndices> & /*shape*/) {
         return true;
     }
 
-    template<size_t... Is>
+    template <size_t... Is>
     static constexpr auto get_dimensions_descriptor_helper(index_sequence<Is...>) {
         return concat(const_name(((void) Is, "?"))...);
     }
 
-    static constexpr auto dimensions_descriptor = get_dimensions_descriptor_helper(make_index_sequence<T::NumIndices>());
+    static constexpr auto dimensions_descriptor
+        = get_dimensions_descriptor_helper(make_index_sequence<T::NumIndices>());
 };
 
-template<typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, typename IndexType>
-struct eigen_tensor_helper<Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>> {
+template <typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, typename IndexType>
+struct eigen_tensor_helper<
+    Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>> {
     using T = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
-    static constexpr std::array<typename T::Index, T::NumIndices> get_shape(const T & /*f*/) { return get_shape(); }
+    static constexpr std::array<typename T::Index, T::NumIndices> get_shape(const T & /*f*/) {
+        return get_shape();
+    }
 
-    static constexpr std::array<typename T::Index, T::NumIndices> get_shape() { return {{Indices...}}; }
+    static constexpr std::array<typename T::Index, T::NumIndices> get_shape() {
+        return {{Indices...}};
+    }
 
     static bool is_correct_shape(const std::array<typename T::Index, T::NumIndices> &shape) {
         return get_shape() == shape;
@@ -690,10 +700,13 @@ struct eigen_tensor_helper<Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices.
     static constexpr auto dimensions_descriptor = concat(const_name<Indices>()...);
 };
 
-template<typename T>
+template <typename T>
 constexpr auto get_tensor_descriptor() {
-    return const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name + const_name("[")
-          + eigen_tensor_helper<T>::dimensions_descriptor +  const_name("], flags.writeable, ") + const_name<(int)T::Layout == (int)Eigen::RowMajor>("flags.c_contiguous", "flags.f_contiguous");
+    return const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name
+           + const_name("[") + eigen_tensor_helper<T>::dimensions_descriptor
+           + const_name("], flags.writeable, ")
+           + const_name<(int) T::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
+                                                                  "flags.f_contiguous");
 }
 
 template <typename Type>
@@ -716,7 +729,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-        value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar*>(a.data()), shape);
+        value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(a.data()), shape);
 
         return true;
     }
@@ -787,10 +800,10 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 }
 
                 parent_object = capsule(src, [](void *ptr) {
-                             Eigen::aligned_allocator<Type> allocator;
-                             Type *copy = (Type *) ptr;
-                             copy->~Type();
-                             allocator.deallocate(copy, 1);
+                    Eigen::aligned_allocator<Type> allocator;
+                    Type *copy = (Type *) ptr;
+                    copy->~Type();
+                    allocator.deallocate(copy, 1);
                 });
                 writeable = true;
                 break;
