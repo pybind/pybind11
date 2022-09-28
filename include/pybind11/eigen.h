@@ -702,12 +702,12 @@ struct eigen_tensor_helper<
 
 template <typename T>
 struct get_tensor_descriptor {
-    static constexpr auto value = const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name
-           + const_name("[") + eigen_tensor_helper<T>::dimensions_descriptor
-           + const_name("], flags.writeable, ")
-           + const_name<(int) T::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
-                                                                  "flags.f_contiguous");
-
+    static constexpr auto value
+        = const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name
+          + const_name("[") + eigen_tensor_helper<T>::dimensions_descriptor
+          + const_name("], flags.writeable, ")
+          + const_name<(int) T::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
+                                                                 "flags.f_contiguous");
 };
 
 template <typename Type>
