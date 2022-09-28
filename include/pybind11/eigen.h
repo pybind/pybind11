@@ -932,7 +932,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
         object parent_object;
-        bool writeable = !std::is_const<C>::value;
+        constexpr bool writeable = !std::is_const<C>::value;
         switch (policy) {
             case return_value_policy::reference:
                 parent_object = none();
