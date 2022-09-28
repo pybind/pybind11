@@ -33,6 +33,7 @@
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
+#include <iostream>
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -643,82 +644,79 @@ public:
     using cast_op_type = Type;
 };
 
-template <int Options>
-struct eigen_to_numpy {};
+template<typename T>
+constexpr int compute_array_flag_from_tensor() {
+    static_assert(((int)T::Layout == (int)Eigen::RowMajor) || ((int)T::Layout == (int)Eigen::ColMajor), "Layout must be row or column major");
+    return ((int)T::Layout == (int)Eigen::RowMajor) ? array::c_style : array::f_style;
+}
 
-template <>
-struct eigen_to_numpy<Eigen::ColMajor> {
-    static constexpr int flag = array::f_style;
-};
 
-template <>
-struct eigen_to_numpy<Eigen::RowMajor> {
-    static constexpr int flag = array::c_style;
-};
 
-template <class T>
-struct eigen_helper {};
+template <typename T>
+struct eigen_tensor_helper {};
 
-template <typename E, int dim, int O>
-struct eigen_helper<Eigen::Tensor<E, dim, O>> {
-    using Type = Eigen::Tensor<E, dim, O>;
-    using ConstType = Eigen::Tensor<const E, dim, O>;
-
-    using Element = E;
-
-    static constexpr int N = dim;
-    static constexpr int Options = O;
-
+template<typename Scalar_, int NumIndices_, int Options_, typename IndexType>
+struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>> {
+    using T = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
     using ValidType = void;
 
-    static std::array<Eigen::Index, N> get_shape(const Type &f) { return f.dimensions(); }
+    static std::array<typename T::Index, T::NumIndices> get_shape(const T &f) { return f.dimensions(); }
 
-    static constexpr bool is_correct_shape(const std::array<Eigen::Index, N> & /*shape*/) {
+    static constexpr bool is_correct_shape(const std::array<typename T::Index, T::NumIndices> & /*shape*/) {
         return true;
     }
+
+    template<size_t... Is>
+    static constexpr auto get_dimensions_descriptor_helper(index_sequence<Is...>) {
+        return concat(const_name(((void) Is, "?"))...);
+    }
+
+    static constexpr auto dimensions_descriptor = get_dimensions_descriptor_helper(make_index_sequence<T::NumIndices>());
 };
 
-template <typename E, typename std::ptrdiff_t... Indices, int O>
-struct eigen_helper<Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>> {
-    using Type = Eigen::TensorFixedSize<E, Eigen::Sizes<Indices...>, O>;
-    using ConstType = Eigen::TensorFixedSize<const E, Eigen::Sizes<Indices...>, O>;
-
-    using Element = E;
-    static constexpr int N = Eigen::Sizes<Indices...>::count;
-    static constexpr int Options = O;
-
+template<typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, typename IndexType>
+struct eigen_tensor_helper<Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>> {
+    using T = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
-    static std::array<Eigen::Index, N> get_shape(const Type & /*f*/) { return get_shape(); }
+    static constexpr std::array<typename T::Index, T::NumIndices> get_shape(const T & /*f*/) { return get_shape(); }
 
-    static constexpr std::array<Eigen::Index, N> get_shape() { return {{Indices...}}; }
+    static constexpr std::array<typename T::Index, T::NumIndices> get_shape() { return {{Indices...}}; }
 
-    static bool is_correct_shape(const std::array<Eigen::Index, N> &shape) {
+    static bool is_correct_shape(const std::array<typename T::Index, T::NumIndices> &shape) {
         return get_shape() == shape;
     }
+
+    static constexpr auto dimensions_descriptor = concat(const_name<Indices>()...);
 };
 
+template<typename T>
+constexpr auto get_tensor_descriptor() {
+    return const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name + const_name("[")
+          + eigen_tensor_helper<T>::dimensions_descriptor +  const_name("], flags.writeable, ") + const_name<(int)T::Layout == (int)Eigen::RowMajor>("flags.c_contiguous", "flags.f_contiguous");
+}
+
 template <typename Type>
-struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
-    using H = eigen_helper<Type>;
-    PYBIND11_TYPE_CASTER(Type, const_name("eigen::Tensor"));
+struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
+    using H = eigen_tensor_helper<Type>;
+    PYBIND11_TYPE_CASTER(Type, get_tensor_descriptor<Type>());
 
     bool load(handle src, bool /*convert*/) {
-        array_t<typename H::Element, eigen_to_numpy<H::Options>::flag> a(
+        array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()> a(
             reinterpret_borrow<object>(src));
 
-        if (a.ndim() != H::N) {
+        if (a.ndim() != Type::NumIndices) {
             return false;
         }
 
-        std::array<EigenIndex, H::N> shape;
-        std::copy(a.shape(), a.shape() + H::N, shape.begin());
+        std::array<typename Type::Index, Type::NumIndices> shape;
+        std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
 
         if (!H::is_correct_shape(shape)) {
             return false;
         }
 
-        value = Eigen::TensorMap<typename H::ConstType>(a.data(), shape);
+        value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar*>(a.data()), shape);
 
         return true;
     }
@@ -775,7 +773,7 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
 
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
-        bool dec_parent = false;
+        object parent_object;
         bool writeable = false;
         switch (policy) {
             case return_value_policy::move:
@@ -788,13 +786,12 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                     src = copy;
                 }
 
-                parent = capsule(src, [](void *ptr) {
+                parent_object = capsule(src, [](void *ptr) {
                              Eigen::aligned_allocator<Type> allocator;
                              Type *copy = (Type *) ptr;
                              copy->~Type();
                              allocator.deallocate(copy, 1);
-                         }).release();
-                dec_parent = true;
+                });
                 writeable = true;
                 break;
 
@@ -802,26 +799,23 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                 if (std::is_const<C>::value) {
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
-                parent = capsule(src, [](void *ptr) { delete (Type *) ptr; }).release();
-                dec_parent = true;
+                parent_object = capsule(src, [](void *ptr) { delete (Type *) ptr; });
                 writeable = true;
                 break;
 
             case return_value_policy::copy:
-                parent = {};
-                dec_parent = false;
+                parent_object = {};
                 writeable = true;
                 break;
 
             case return_value_policy::reference:
-                parent = none().release();
-                dec_parent = true;
+                parent_object = none();
                 writeable = !std::is_const<C>::value;
                 break;
 
             case return_value_policy::reference_internal:
                 // Default should do the right thing
-                dec_parent = false;
+                parent_object = reinterpret_borrow<object>(parent);
                 writeable = !std::is_const<C>::value;
                 break;
 
@@ -829,16 +823,12 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
                 pybind11_fail("pybind11 bug in eigen.h, please file a bug report");
         }
 
-        handle result = array_t<typename H::Element, eigen_to_numpy<H::Options>::flag>(
-                            H::get_shape(*src), src->data(), parent)
+        handle result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
+                            H::get_shape(*src), src->data(), parent_object)
                             .release();
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
-        }
-
-        if (dec_parent) {
-            parent.dec_ref();
         }
 
         return result;
@@ -846,33 +836,33 @@ struct type_caster<Type, typename eigen_helper<Type>::ValidType> {
 };
 
 template <typename Type>
-struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidType> {
-    using H = eigen_helper<Type>;
+struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::ValidType> {
+    using H = eigen_tensor_helper<Type>;
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
         auto a = reinterpret_borrow<array>(src);
-        if ((a.flags() & eigen_to_numpy<H::Options>::flag) == 0) {
+        if ((a.flags() & compute_array_flag_from_tensor<Type>()) == 0) {
             return false;
         }
 
-        if (!a.dtype().is(dtype::of<typename H::Element>())) {
+        if (!a.dtype().is(dtype::of<typename Type::Scalar>())) {
             return false;
         }
 
-        if (a.ndim() != H::N) {
+        if (a.ndim() != Type::NumIndices) {
             return false;
         }
 
-        std::array<EigenIndex, H::N> shape;
-        std::copy(a.shape(), a.shape() + H::N, shape.begin());
+        std::array<typename Type::Index, Type::NumIndices> shape;
+        std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
 
         if (!H::is_correct_shape(shape)) {
             return false;
         }
 
         value.reset(new Eigen::TensorMap<Type>(
-            reinterpret_cast<typename H::Element *>(a.mutable_data()), shape));
+            reinterpret_cast<typename Type::Scalar *>(a.mutable_data()), shape));
 
         return true;
     }
@@ -924,19 +914,16 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
 
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
-        bool dec_parent = false;
-        bool writeable = false;
+        object parent_object;
+        bool writeable = !std::is_const<C>::value;
         switch (policy) {
             case return_value_policy::reference:
-                parent = none().release();
-                dec_parent = true;
-                writeable = !std::is_const<C>::value;
+                parent_object = none();
                 break;
 
             case return_value_policy::reference_internal:
                 // Default should do the right thing
-                dec_parent = false;
-                writeable = !std::is_const<C>::value;
+                parent_object = reinterpret_borrow<object>(parent);
                 break;
 
             default:
@@ -945,13 +932,9 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_helper<Type>::ValidTyp
                               "reference or reference_internal");
         }
 
-        handle result = array_t<typename H::Element, eigen_to_numpy<H::Options>::flag>(
-                            H::get_shape(*src), src->data(), parent)
+        handle result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
+                            H::get_shape(*src), src->data(), parent_object)
                             .release();
-
-        if (dec_parent) {
-            parent.dec_ref();
-        }
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -965,7 +948,7 @@ protected:
     std::unique_ptr<Eigen::TensorMap<Type>> value;
 
 public:
-    static constexpr auto name = const_name("Eigen::TensorMap");
+    static constexpr auto name = get_tensor_descriptor<Type>();
     explicit operator Eigen::TensorMap<Type> *() {
         return value.get();
     } /* NOLINT(bugprone-macro-parentheses) */
