@@ -469,3 +469,9 @@ def test_register_duplicate_class():
         m.register_duplicate_nested_class_type(ClassScope)
     expected = 'generic_type: type "YetAnotherDuplicateNested" is already registered!'
     assert str(exc_info.value) == expected
+
+
+def test_virtual_base():
+    usage = m.AnimalUsage()
+    a = usage.get_animal()
+    assert a == ""

@@ -517,6 +517,125 @@ TEST_SUBMODULE(class_, m) {
         py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
+    class Creature {
+    public:
+        virtual std::string typeName() const = 0;
+        virtual ~Creature() = default;
+    };
+
+    class Animal : public Creature {
+    public:
+        Animal() { std::cout << "Animal created: " << this << std::endl; }
+
+        Animal(const Animal &animal) : Creature(animal) {
+            std::cout << "Animal copied: from " << &animal << " to " << this << std::endl;
+        }
+
+        ~Animal() { std::cout << "Animal deleted: " << this << std::endl; }
+
+        std::string typeName() const override { return _typeName; }
+
+    private:
+        std::string _typeName = "animal";
+    };
+
+    class TerrestrialAnimal : public virtual Animal {
+    public:
+        TerrestrialAnimal() { std::cout << "TerrestrialAnimal created: " << this << std::endl; }
+
+        TerrestrialAnimal(const TerrestrialAnimal &animal) : Animal(animal) {
+            std::cout << "TerrestrialAnimal copied: from " << &animal << " to " << this
+                      << std::endl;
+        }
+
+        ~TerrestrialAnimal() { std::cout << "TerrestrialAnimal deleted: " << this << std::endl; }
+
+        std::string typeName() const override { return _typeName; }
+
+    private:
+        std::string _typeName = "terrestrial";
+    };
+
+    class AquaticAnimal : public virtual Animal {
+    public:
+        AquaticAnimal() { std::cout << "AquaticAnimal created: " << this << std::endl; }
+
+        AquaticAnimal(const AquaticAnimal &animal) : Animal(animal) {
+            std::cout << "AquaticAnimal copied: from " << &animal << " to " << this << std::endl;
+        }
+
+        ~AquaticAnimal() { std::cout << "AquaticAnimal deleted: " << this << std::endl; }
+
+        std::string typeName() const override { return _typeName; }
+
+    private:
+        std::string _typeName = "aquatic";
+    };
+
+    class Frog : public TerrestrialAnimal, public AquaticAnimal {
+    public:
+        Frog() { std::cout << "Frog created: " << this << std::endl; }
+
+        Frog(const Frog &animal)
+            : Animal(animal), TerrestrialAnimal(animal), AquaticAnimal(animal) {
+            std::cout << "Frog copied: from " << &animal << " to " << this << std::endl;
+        }
+
+        ~Frog() { std::cout << "Frog deleted: " << this << std::endl; }
+
+        std::string typeName() const override { return _typeName; }
+
+    private:
+        std::string _typeName = "frog";
+    };
+
+    class AnimalUsage {
+    public:
+        AnimalUsage() { std::cout << "AnimalUsage created: " << this << std::endl; }
+
+        AnimalUsage(const AnimalUsage &u) {
+            std::cout << "AnimalUsage copied: from " << &u << " to " << this << std::endl;
+        }
+
+        ~AnimalUsage() { std::cout << "AnimalUsage deleted: " << this << std::endl; }
+
+        const Animal &getAnimal() { return frog; }
+
+        const AquaticAnimal &getAquaticAnimal() { return frog; }
+
+        const Frog &getFrog() { return frog; }
+
+    private:
+        Frog frog;
+    };
+
+    py::class_<Animal> animal(m, "Animal");
+
+    animal.def(py::init<>());
+    animal.def("type_name", &Animal::typeName);
+
+    py::class_<TerrestrialAnimal, Animal> terrestrialAnimal(m, "TerrestrialAnimal");
+
+    terrestrialAnimal.def(py::init<>());
+    terrestrialAnimal.def("type_name", &TerrestrialAnimal::typeName);
+
+    py::class_<AquaticAnimal, Animal> aquaticAnimal(m, "AquaticAnimal");
+
+    aquaticAnimal.def(py::init<>());
+    aquaticAnimal.def("type_name", &AquaticAnimal::typeName);
+
+    py::class_<Frog, TerrestrialAnimal, AquaticAnimal> frog(m, "Frog");
+
+    frog.def(py::init<>());
+    frog.def("type_name", &Frog::typeName);
+
+    py::class_<AnimalUsage> animalUsage(m, "AnimalUsage");
+
+    animalUsage.def(py::init<>());
+    animalUsage.def(py::init<const AnimalUsage &>(), py::arg("u"));
+    animalUsage.def("get_animal", &AnimalUsage::getAnimal);
+    animalUsage.def("get_aquatic_animal", &AnimalUsage::getAquaticAnimal);
+    animalUsage.def("get_frog", &AnimalUsage::getFrog);
 }
 
 template <int N>

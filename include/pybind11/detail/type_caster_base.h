@@ -892,7 +892,9 @@ template <typename itype>
 struct polymorphic_type_hook_base<itype, detail::enable_if_t<std::is_polymorphic<itype>::value>> {
     static const void *get(const itype *src, const std::type_info *&type) {
         type = src ? &typeid(*src) : nullptr;
-        return dynamic_cast<const void *>(src);
+        const auto *downcasted = dynamic_cast<const void *>(src);
+        assert(downcasted != nullptr || type == nullptr);
+        return downcasted;
     }
 };
 template <typename itype, typename SFINAE = void>
@@ -930,7 +932,7 @@ public:
         const auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;
         const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
-        if (instance_type && !same_type(cast_type, *instance_type)) {
+        if (instance_type && vsrc && !same_type(cast_type, *instance_type)) {
             // This is a base pointer to a derived type. If the derived type is registered
             // with pybind11, we want to make the full derived object available.
             // In the typical case where itype is polymorphic, we get the correct
