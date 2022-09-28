@@ -701,18 +701,19 @@ struct eigen_tensor_helper<
 };
 
 template <typename T>
-constexpr auto get_tensor_descriptor() {
-    return const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name
+struct get_tensor_descriptor {
+    static constexpr auto value = const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name
            + const_name("[") + eigen_tensor_helper<T>::dimensions_descriptor
            + const_name("], flags.writeable, ")
            + const_name<(int) T::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
                                                                   "flags.f_contiguous");
-}
+
+};
 
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     using H = eigen_tensor_helper<Type>;
-    PYBIND11_TYPE_CASTER(Type, get_tensor_descriptor<Type>());
+    PYBIND11_TYPE_CASTER(Type, get_tensor_descriptor<Type>::value);
 
     bool load(handle src, bool /*convert*/) {
         array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()> a(
@@ -961,7 +962,7 @@ protected:
     std::unique_ptr<Eigen::TensorMap<Type>> value;
 
 public:
-    static constexpr auto name = get_tensor_descriptor<Type>();
+    static constexpr auto name = get_tensor_descriptor<Type>::value;
     explicit operator Eigen::TensorMap<Type> *() {
         return value.get();
     } /* NOLINT(bugprone-macro-parentheses) */
