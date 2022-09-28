@@ -670,13 +670,16 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
         return true;
     }
 
+    template <typename T>
+    struct helper {};
+
     template <size_t... Is>
-    static constexpr auto get_dimensions_descriptor_helper(index_sequence<Is...>) {
-        return concat(const_name(((void) Is, "?"))...);
-    }
+    struct helper<index_sequence<Is...>> {
+        static constexpr auto value = concat(const_name(((void) Is, "?"))...);
+    };
 
     static constexpr auto dimensions_descriptor
-        = get_dimensions_descriptor_helper(make_index_sequence<T::NumIndices>());
+        = helper<decltype(make_index_sequence<T::NumIndices>())>::value;
 };
 
 template <typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, typename IndexType>
