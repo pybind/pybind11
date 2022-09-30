@@ -73,15 +73,13 @@ TEST_SUBMODULE(eigen_tensor, m) {
         },
         py::return_value_policy::reference);
 
-    m.def("round_trip_tensor", [](const py::array_t<double> &foo) {
-        auto blah = foo.cast<Eigen::Tensor<double, 3>>();
-        return blah;
+    m.def("round_trip_tensor", [](const Eigen::Tensor<double, 3> &tensor) {
+        return tensor;
     });
 
     m.def(
         "round_trip_view_tensor",
-        [](const py::array_t<double> &foo) {
-            auto view = foo.cast<Eigen::TensorMap<Eigen::Tensor<double, 3>>>();
+        [](Eigen::TensorMap<Eigen::Tensor<double, 3>> view) {
             return view;
         },
         py::return_value_policy::reference);

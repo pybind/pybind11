@@ -26,7 +26,7 @@
 #if defined(_MSC_VER)
 #    pragma warning(push)
 #    pragma warning(disable : 4554) // Tensor.h warning
-//       C5054: operator '&': deprecated between enumerations of different types
+#    pragma warning(disable : 4127) // Tensor.h warning
 #elif defined(__MINGW32__)
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -46,10 +46,10 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T>
 constexpr int compute_array_flag_from_tensor() {
-    static_assert(((int) T::Layout == (int) Eigen::RowMajor)
-                      || ((int) T::Layout == (int) Eigen::ColMajor),
+    static_assert((static_cast<int>(T::Layout) == static_cast<int>(Eigen::RowMajor))
+                      || (static_cast<int>(T::Layout) == static_cast<int>(Eigen::ColMajor)),
                   "Layout must be row or column major");
-    return ((int) T::Layout == (int) Eigen::RowMajor) ? array::c_style : array::f_style;
+    return (static_cast<int>(T::Layout) == static_cast<int>(Eigen::RowMajor)) ? array::c_style : array::f_style;
 }
 
 template <typename T>
@@ -74,7 +74,8 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
 
     template <size_t... Is>
     struct helper<index_sequence<Is...>> {
-        static constexpr auto value = concat(const_name(((void) Is, "?"))...);
+        // Hack to work around gcc 4.8 bugs. Feel free to remove when we drop gcc 4.8 support.
+        static constexpr descr<sizeof...(Is) * 3 - 2> value = concat(const_name(((void) Is, "?"))...);
     };
 
     static constexpr auto dimensions_descriptor
@@ -231,6 +232,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
             case return_value_policy::reference_internal:
                 // Default should do the right thing
+                if (!parent) {
+                    pybind11_fail("Cannot use reference internal when there is no parent");
+                }
                 parent_object = reinterpret_borrow<object>(parent);
                 writeable = !std::is_const<C>::value;
                 break;
@@ -239,15 +243,14 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 pybind11_fail("pybind11 bug in eigen.h, please file a bug report");
         }
 
-        handle result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-                            H::get_shape(*src), src->data(), parent_object)
-                            .release();
+        object result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
+                            H::get_shape(*src), src->data(), parent_object);
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
         }
 
-        return result;
+        return result.release();
     }
 };
 
@@ -339,6 +342,9 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
 
             case return_value_policy::reference_internal:
                 // Default should do the right thing
+                if (!parent) {
+                    pybind11_fail("Cannot use reference internal when there is no parent");
+                }
                 parent_object = reinterpret_borrow<object>(parent);
                 break;
 
@@ -348,15 +354,14 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
                               "reference or reference_internal");
         }
 
-        handle result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-                            H::get_shape(*src), src->data(), parent_object)
-                            .release();
+        object result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
+                            H::get_shape(*src), src->data(), parent_object);
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
         }
 
-        return result;
+        return result.release();
     }
 
 protected:
@@ -367,13 +372,13 @@ public:
     static constexpr auto name = get_tensor_descriptor<Type>::value;
     explicit operator Eigen::TensorMap<Type> *() {
         return value.get();
-    } /* NOLINT(bugprone-macro-parentheses) */
+    }
     explicit operator Eigen::TensorMap<Type> &() {
         return *value;
-    } /* NOLINT(bugprone-macro-parentheses) */
+    }
     explicit operator Eigen::TensorMap<Type> &&() && {
         return std::move(*value);
-    } /* NOLINT(bugprone-macro-parentheses) */
+    }
 
     template <typename T_>
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>;
