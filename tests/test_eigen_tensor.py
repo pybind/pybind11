@@ -1,5 +1,3 @@
-from inspect import signature
-
 import pytest
 
 np = pytest.importorskip("numpy")
