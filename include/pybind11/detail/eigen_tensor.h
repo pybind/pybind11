@@ -223,7 +223,10 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 break;
 
             case return_value_policy::copy:
-                parent_object = {};
+		{
+		    // Clang 3.6 / 3.7 has a very confusing bug that seems to be fixed by adding this scope
+                    parent_object = {};
+		}
                 writeable = true;
                 break;
 
