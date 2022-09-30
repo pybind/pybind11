@@ -1,5 +1,6 @@
-import pytest
 from inspect import signature
+
+import pytest
 
 np = pytest.importorskip("numpy")
 m = pytest.importorskip("pybind11_tests.eigen_tensor")
