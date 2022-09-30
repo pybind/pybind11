@@ -24,28 +24,36 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=0):
 
 
 def test_convert_tensor_to_py():
-    assert_equal_tensor_ref(m.copy_global_tensor())
-    assert_equal_tensor_ref(m.copy_fixed_global_tensor())
-    assert_equal_tensor_ref(m.copy_const_global_tensor())
+    assert_equal_tensor_ref(m.copy_tensor())
+    assert_equal_tensor_ref(m.copy_fixed_tensor())
+    assert_equal_tensor_ref(m.copy_const_tensor())
 
-    assert_equal_tensor_ref(m.reference_global_tensor())
-    assert_equal_tensor_ref(m.reference_view_of_global_tensor())
-    assert_equal_tensor_ref(m.reference_view_of_fixed_global_tensor())
-    assert_equal_tensor_ref(m.reference_const_global_tensor(), writeable=False)
+    assert_equal_tensor_ref(m.move_tensor())
+    assert_equal_tensor_ref(m.move_fixed_tensor())
+
+    assert_equal_tensor_ref(m.take_tensor())
+    assert_equal_tensor_ref(m.take_fixed_tensor())
+
+    assert_equal_tensor_ref(m.reference_tensor())
+    assert_equal_tensor_ref(m.reference_fixed_tensor())
+
+    assert_equal_tensor_ref(m.reference_view_of_tensor())
+    assert_equal_tensor_ref(m.reference_view_of_fixed_tensor())
+    assert_equal_tensor_ref(m.reference_const_tensor(), writeable=False)
 
 
 def test_references_actually_refer():
-    a = m.reference_global_tensor()
+    a = m.reference_tensor()
     a[0, 0, 0] = 100
-    assert_equal_tensor_ref(m.copy_const_global_tensor(), modified=100)
+    assert_equal_tensor_ref(m.copy_const_tensor(), modified=100)
     a[0, 0, 0] = 0
-    assert_equal_tensor_ref(m.copy_const_global_tensor())
+    assert_equal_tensor_ref(m.copy_const_tensor())
 
-    a = m.reference_view_of_global_tensor()
+    a = m.reference_view_of_tensor()
     a[0, 0, 0] = 100
-    assert_equal_tensor_ref(m.copy_const_global_tensor(), modified=100)
+    assert_equal_tensor_ref(m.copy_const_tensor(), modified=100)
     a[0, 0, 0] = 0
-    assert_equal_tensor_ref(m.copy_const_global_tensor())
+    assert_equal_tensor_ref(m.copy_const_tensor())
 
 
 def test_round_trip():
