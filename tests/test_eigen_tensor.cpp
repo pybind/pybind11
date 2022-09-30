@@ -44,34 +44,33 @@ Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>> &get_fixed_tensor() {
 const Eigen::Tensor<double, 3> &get_const_tensor() { return get_tensor(); }
 
 TEST_SUBMODULE(eigen_tensor, m) {
-    m.def("copy_fixed_tensor", []() { return &get_fixed_tensor(); },
-        py::return_value_policy::copy
-    );
+    m.def(
+        "copy_fixed_tensor", []() { return &get_fixed_tensor(); }, py::return_value_policy::copy);
 
-    m.def("copy_tensor", []() { return &get_tensor(); }, 
-        py::return_value_policy::copy
-    );
+    m.def(
+        "copy_tensor", []() { return &get_tensor(); }, py::return_value_policy::copy);
 
-    m.def("copy_const_tensor", []() { return &get_const_tensor(); }, 
-        py::return_value_policy::copy
-    );
+    m.def(
+        "copy_const_tensor", []() { return &get_const_tensor(); }, py::return_value_policy::copy);
 
     m.def("move_fixed_tensor", []() { return get_fixed_tensor(); });
 
     m.def("move_tensor", []() { return get_tensor(); });
 
-    m.def("take_fixed_tensor", []() { return new Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>(get_fixed_tensor()); },
-        py::return_value_policy::take_ownership
-    );
-
-    m.def("take_tensor", []() { return new Eigen::Tensor<double, 3>(get_tensor()); },
-        py::return_value_policy::take_ownership
-    );
+    m.def(
+        "take_fixed_tensor",
+        []() {
+            return new Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>(get_fixed_tensor());
+        },
+        py::return_value_policy::take_ownership);
 
     m.def(
-        "reference_tensor",
-        []() { return &get_tensor(); },
-        py::return_value_policy::reference);
+        "take_tensor",
+        []() { return new Eigen::Tensor<double, 3>(get_tensor()); },
+        py::return_value_policy::take_ownership);
+
+    m.def(
+        "reference_tensor", []() { return &get_tensor(); }, py::return_value_policy::reference);
 
     m.def(
         "reference_fixed_tensor",
