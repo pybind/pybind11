@@ -61,15 +61,12 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
     using T = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
     using ValidType = void;
 
-    static std::array<typename T::Index, T::NumIndices> get_shape(const T &f) {
-        std::array<typename T::Index, T::NumIndices> result;
-        const auto &dims = f.dimensions();
-        std::copy(std::begin(dims), std::end(dims), std::begin(result));
-        return result;
+    static Eigen::DSizes<typename T::Index, T::NumIndices> get_shape(const T &f) {
+        return f.dimensions();
     }
 
     static constexpr bool
-    is_correct_shape(const std::array<typename T::Index, T::NumIndices> & /*shape*/) {
+    is_correct_shape(const Eigen::DSizes<typename T::Index, T::NumIndices> & /*shape*/) {
         return true;
     }
 
@@ -100,15 +97,15 @@ struct eigen_tensor_helper<
     using T = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
-    static constexpr std::array<typename T::Index, T::NumIndices> get_shape(const T & /*f*/) {
+    static constexpr Eigen::DSizes<typename T::Index, T::NumIndices> get_shape(const T & /*f*/) {
         return get_shape();
     }
 
-    static constexpr std::array<typename T::Index, T::NumIndices> get_shape() {
-        return {{Indices...}};
+    static constexpr Eigen::DSizes<typename T::Index, T::NumIndices> get_shape() {
+        return Eigen::DSizes<typename T::Index, T::NumIndices>(Indices...);
     }
 
-    static bool is_correct_shape(const std::array<typename T::Index, T::NumIndices> &shape) {
+    static bool is_correct_shape(const Eigen::DSizes<typename T::Index, T::NumIndices> &shape) {
         return get_shape() == shape;
     }
 
@@ -150,7 +147,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-        std::array<typename Type::Index, Type::NumIndices> shape;
+	Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
         std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
 
         if (!H::is_correct_shape(shape)) {
@@ -295,7 +292,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
             return false;
         }
 
-        std::array<typename Type::Index, Type::NumIndices> shape;
+        Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
         std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
 
         if (!H::is_correct_shape(shape)) {
