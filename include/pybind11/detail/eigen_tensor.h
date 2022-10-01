@@ -63,7 +63,7 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
 
     static std::array<typename T::Index, T::NumIndices> get_shape(const T &f) {
         std::array<typename T::Index, T::NumIndices> result;
-        const auto& dims = f.dimensions();
+        const auto &dims = f.dimensions();
         std::copy(std::begin(dims), std::end(dims), std::begin(result));
         return result;
     }
