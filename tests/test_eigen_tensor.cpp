@@ -57,12 +57,12 @@ TEST_SUBMODULE(eigen_tensor, m) {
 
     m.def("move_tensor", []() { return get_tensor(); });
 
-    m.def(
-        "take_fixed_tensor",
-        []() {
-            return new Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>(get_fixed_tensor());
-        },
-        py::return_value_policy::take_ownership);
+    m.def("take_fixed_tensor", []() { 
+        Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>> allocator;
+        return new (allocator.allocate(1)) Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>(get_fixed_tensor());
+    },
+        py::return_value_policy::take_ownership
+    );
 
     m.def(
         "take_tensor",
