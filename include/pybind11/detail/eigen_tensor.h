@@ -83,14 +83,12 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
     static constexpr auto dimensions_descriptor
         = helper<decltype(make_index_sequence<T::NumIndices>())>::value;
 
-    template<typename... Args>
-    static T* alloc(Args&&... args) {
+    template <typename... Args>
+    static T *alloc(Args &&...args) {
         return new T(std::forward<Args>(args)...);
     }
 
-    static void free(T* tensor) {
-        delete tensor;
-    }
+    static void free(T *tensor) { delete tensor; }
 };
 
 template <typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, typename IndexType>
@@ -113,13 +111,13 @@ struct eigen_tensor_helper<
 
     static constexpr auto dimensions_descriptor = concat(const_name<Indices>()...);
 
-    template<typename... Args>
-    static T* alloc(Args&&... args) {
+    template <typename... Args>
+    static T *alloc(Args &&...args) {
         Eigen::aligned_allocator<T> allocator;
         return ::new (allocator.allocate(1)) T(std::forward<Args>(args)...);
     }
 
-    static void free(T* tensor) {
+    static void free(T *tensor) {
         Eigen::aligned_allocator<T> allocator;
         tensor->~T();
         allocator.deallocate(tensor, 1);
@@ -223,9 +221,8 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
                 src = H::alloc(std::move(*src));
 
-                parent_object = capsule(src, [](void *ptr) {
-                    H::free(reinterpret_cast<Type*>(ptr));
-                });
+                parent_object
+                    = capsule(src, [](void *ptr) { H::free(reinterpret_cast<Type *>(ptr)); });
                 writeable = true;
                 break;
 
@@ -234,9 +231,8 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
 
-                parent_object = capsule(src, [](void *ptr) { 
-                    H::free(reinterpret_cast<Type*>(ptr));
-                });
+                parent_object
+                    = capsule(src, [](void *ptr) { H::free(reinterpret_cast<Type *>(ptr)); });
                 writeable = true;
                 break;
 
