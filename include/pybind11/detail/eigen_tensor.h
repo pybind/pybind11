@@ -147,7 +147,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-	Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
+        Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
         std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
 
         if (!H::is_correct_shape(shape)) {
