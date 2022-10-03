@@ -283,8 +283,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 };
 
 template <typename Type, int Options>
-struct type_caster<Eigen::TensorMap<Type, Options>,
-                   typename eigen_tensor_helper<Type>::ValidType> {
+struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper<Type>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<Type>;
 

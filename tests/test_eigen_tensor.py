@@ -63,9 +63,7 @@ def test_round_trip():
 
 
 def test_aligned_view():
-    copy = np.array(tensor_ref, dtype=np.float64, order="F")
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(m.reference_tensor()))
-    assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(copy))
 
 
 def test_round_trip_references_actually_refer():
