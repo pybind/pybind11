@@ -10,7 +10,10 @@
 #pragma once
 
 #include "detail/eigen_matrix.h"
+
+#if EIGEN_VERSION_AT_LEAST(3, 3, 0)
 #include "detail/eigen_tensor.h"
+#endif
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
 // move constructors that break things.  We could detect this an explicitly copy, but an extra copy
