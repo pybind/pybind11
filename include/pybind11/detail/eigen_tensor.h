@@ -303,7 +303,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
-        if ((Options & Eigen::Aligned) != 0 && !is_tensor_aligned(arr.data())) {
+        // Use temporary to avoid MSVC warning ...
+        bool is_aligned = (Options & Eigen::Aligned) != 0;
+        if (is_aligned && !is_tensor_aligned(arr.data())) {
             return false;
         }
 
