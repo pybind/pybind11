@@ -168,6 +168,15 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
+@pytest.mark.parametrize("func", [m.anyset_contains, m.dict_contains])
+def test_unhashable_exceptions(func):
+    class Unhashable:
+        __hash__ = None
+
+    with pytest.raises(TypeError):
+        func(Unhashable())
+
+
 def test_tuple():
     assert m.tuple_no_args() == ()
     assert m.tuple_ssize_t() == ()

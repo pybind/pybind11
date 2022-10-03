@@ -183,7 +183,7 @@ TEST_SUBMODULE(pytypes, m) {
         return d2;
     });
     m.def("dict_contains",
-          [](const py::dict &dict, py::object val) { return dict.contains(val); });
+          [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
