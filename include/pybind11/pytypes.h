@@ -2022,14 +2022,20 @@ public:
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T>
     void append(T &&val) /* py-non-const */ {
-        PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
+        if (PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) != 0) {
+            throw error_already_set();
+        }
     }
     template <typename IdxType,
               typename ValType,
               detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     void insert(const IdxType &index, ValType &&val) /* py-non-const */ {
-        PyList_Insert(
-            m_ptr, ssize_t_cast(index), detail::object_or_cast(std::forward<ValType>(val)).ptr());
+        if (PyList_Insert(m_ptr,
+                          ssize_t_cast(index),
+                          detail::object_or_cast(std::forward<ValType>(val)).ptr())
+            != 0) {
+            throw error_already_set();
+        }
     }
 };
 
