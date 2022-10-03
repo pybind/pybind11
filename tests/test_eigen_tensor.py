@@ -83,7 +83,8 @@ def test_doc_string(doc):
         == "copy_fixed_tensor() -> numpy.ndarray[numpy.float64[3, 5, 2], flags.writeable, flags.f_contiguous"
     )
 
-    # Ideally this type signature wouldn't have flags.writeable, but I don't see a way to avoid it due to names being set at compile time ...
+    # Ideally this type signature wouldn't have flags.writeable, but 
+    # I don't see a way to avoid it due to names being set at compile time ...
     assert (
         doc(m.reference_const_tensor)
         == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous"
