@@ -2358,7 +2358,7 @@ template <typename D>
 template <typename T>
 bool object_api<D>::contains(T &&item) const {
     auto ret = attr("__contains__")(std::forward<T>(item)).template cast<bool>();
-    if (PyErr_Occurred()) { // TODO test this with a class that override this
+    if (PyErr_Occurred()) {
         throw error_already_set();
     }
     return ret;
