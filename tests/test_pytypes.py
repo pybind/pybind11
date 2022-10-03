@@ -168,13 +168,28 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
-@pytest.mark.parametrize("func", [m.anyset_contains, m.dict_contains])
-def test_unhashable_exceptions(func):
+class CustomContains:
+    d = {"key": None}
+
+    def __contains__(self, m):
+        return m in self.d
+
+
+@pytest.mark.parametrize(
+    "arg,func",
+    [
+        (set(), m.anyset_contains),
+        (dict(), m.dict_contains),
+        (CustomContains(), m.obj_contains),
+    ],
+)
+def test_unhashable_exceptions(arg, func):
     class Unhashable:
         __hash__ = None
 
-    with pytest.raises(TypeError):
-        func(Unhashable())
+    with pytest.raises(TypeError) as exc_info:
+        func(arg, Unhashable())
+    assert "unhashable type:" in str(exc_info.value)
 
 
 def test_tuple():

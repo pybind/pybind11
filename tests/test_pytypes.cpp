@@ -538,6 +538,9 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
 
+    m.def("obj_contains",
+          [](py::object &obj, py::object key) { return obj.contains(std::move(key)); });
+
     m.def("test_number_protocol", [](const py::object &a, const py::object &b) {
         py::list l;
         l.append(a.equal(b));
