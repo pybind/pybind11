@@ -42,10 +42,9 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-bool is_tensor_aligned(const void* data) {
-   return (std::size_t(data) % EIGEN_DEFAULT_ALIGN_BYTES) == 0;
+bool is_tensor_aligned(const void *data) {
+    return (std::size_t(data) % EIGEN_DEFAULT_ALIGN_BYTES) == 0;
 }
-
 
 template <typename T>
 constexpr int compute_array_flag_from_tensor() {
@@ -159,11 +158,12 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-	if (is_tensor_aligned(arr.data())) {
-            value = Eigen::TensorMap<Type, Eigen::Aligned>(const_cast<typename Type::Scalar *>(arr.data()), shape);
-	} else {
+        if (is_tensor_aligned(arr.data())) {
+            value = Eigen::TensorMap<Type, Eigen::Aligned>(
+                const_cast<typename Type::Scalar *>(arr.data()), shape);
+        } else {
             value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(arr.data()), shape);
-	}
+        }
 
         return true;
     }
@@ -283,7 +283,8 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 };
 
 template <typename Type, int Options>
-struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper<Type>::ValidType> {
+struct type_caster<Eigen::TensorMap<Type, Options>,
+                   typename eigen_tensor_helper<Type>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<Type>;
 
@@ -301,10 +302,10 @@ struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper
         if (arr.ndim() != Type::NumIndices) {
             return false;
         }
-	
-	if ((Options & Eigen::Aligned) != 0 && !is_tensor_aligned(arr.data())) {
+
+        if ((Options & Eigen::Aligned) != 0 && !is_tensor_aligned(arr.data())) {
             return false;
-	}
+        }
 
         Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
         std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
@@ -313,8 +314,8 @@ struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper
             return false;
         }
 
-        value.reset(new MapType(
-            reinterpret_cast<typename Type::Scalar *>(arr.mutable_data()), shape));
+        value.reset(
+            new MapType(reinterpret_cast<typename Type::Scalar *>(arr.mutable_data()), shape));
 
         return true;
     }
@@ -323,8 +324,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper
         return cast_impl(&src, policy, parent);
     }
 
-    static handle
-    cast(const MapType &&src, return_value_policy policy, handle parent) {
+    static handle cast(const MapType &&src, return_value_policy policy, handle parent) {
         return cast_impl(&src, policy, parent);
     }
 
@@ -336,8 +336,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper
         return cast_impl(&src, policy, parent);
     }
 
-    static handle
-    cast(const MapType &src, return_value_policy policy, handle parent) {
+    static handle cast(const MapType &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -354,8 +353,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper
         return cast_impl(src, policy, parent);
     }
 
-    static handle
-    cast(const MapType *src, return_value_policy policy, handle parent) {
+    static handle cast(const MapType *src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic) {
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
@@ -403,7 +401,7 @@ protected:
 
 public:
     static constexpr auto name = get_tensor_descriptor<Type>::value;
-    explicit operator MapType  *() { return value.get(); }
+    explicit operator MapType *() { return value.get(); }
     explicit operator MapType &() { return *value; }
     explicit operator MapType &&() && { return std::move(*value); }
 

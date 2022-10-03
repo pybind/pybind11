@@ -61,10 +61,12 @@ def test_references_actually_refer():
 def test_round_trip():
     assert_equal_tensor_ref(m.round_trip_tensor(tensor_ref))
 
+
 def test_aligned_view():
     copy = np.array(tensor_ref, dtype=np.float64, order="F")
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(m.reference_tensor()))
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(copy))
+
 
 def test_round_trip_references_actually_refer():
     # Need to create a copy that matches the type on the C side
