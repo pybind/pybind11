@@ -42,7 +42,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-bool is_tensor_aligned(const void *data) {
+inline bool is_tensor_aligned(const void *data) {
     return (std::size_t(data) % EIGEN_DEFAULT_ALIGN_BYTES) == 0;
 }
 
