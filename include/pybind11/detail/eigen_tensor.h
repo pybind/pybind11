@@ -42,6 +42,11 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+bool is_tensor_aligned(const void* data) {
+   return (std::size_t(data) % EIGEN_DEFAULT_ALIGN_BYTES) == 0;
+}
+
+
 template <typename T>
 constexpr int compute_array_flag_from_tensor() {
     static_assert((static_cast<int>(T::Layout) == static_cast<int>(Eigen::RowMajor))
@@ -154,7 +159,11 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-        value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(arr.data()), shape);
+	if (is_tensor_aligned(arr.data())) {
+            value = Eigen::TensorMap<Type, Eigen::Aligned>(const_cast<typename Type::Scalar *>(arr.data()), shape);
+	} else {
+            value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(arr.data()), shape);
+	}
 
         return true;
     }
@@ -273,8 +282,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
-template <typename Type>
-struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::ValidType> {
+template <typename Type, int Options>
+struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper<Type>::ValidType> {
+    using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<Type>;
 
     bool load(handle src, bool /*convert*/) {
@@ -291,6 +301,10 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
         if (arr.ndim() != Type::NumIndices) {
             return false;
         }
+	
+	if ((Options & Eigen::Aligned) != 0 && !is_tensor_aligned(arr.data())) {
+            return false;
+	}
 
         Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
         std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
@@ -299,22 +313,22 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
             return false;
         }
 
-        value.reset(new Eigen::TensorMap<Type>(
+        value.reset(new MapType(
             reinterpret_cast<typename Type::Scalar *>(arr.mutable_data()), shape));
 
         return true;
     }
 
-    static handle cast(Eigen::TensorMap<Type> &&src, return_value_policy policy, handle parent) {
+    static handle cast(MapType &&src, return_value_policy policy, handle parent) {
         return cast_impl(&src, policy, parent);
     }
 
     static handle
-    cast(const Eigen::TensorMap<Type> &&src, return_value_policy policy, handle parent) {
+    cast(const MapType &&src, return_value_policy policy, handle parent) {
         return cast_impl(&src, policy, parent);
     }
 
-    static handle cast(Eigen::TensorMap<Type> &src, return_value_policy policy, handle parent) {
+    static handle cast(MapType &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -323,7 +337,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
     }
 
     static handle
-    cast(const Eigen::TensorMap<Type> &src, return_value_policy policy, handle parent) {
+    cast(const MapType &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -331,7 +345,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
         return cast(&src, policy, parent);
     }
 
-    static handle cast(Eigen::TensorMap<Type> *src, return_value_policy policy, handle parent) {
+    static handle cast(MapType *src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic) {
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
@@ -341,7 +355,7 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
     }
 
     static handle
-    cast(const Eigen::TensorMap<Type> *src, return_value_policy policy, handle parent) {
+    cast(const MapType *src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic) {
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
@@ -385,13 +399,13 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
 
 protected:
     // TODO: Move to std::optional once std::optional has more support
-    std::unique_ptr<Eigen::TensorMap<Type>> value;
+    std::unique_ptr<MapType> value;
 
 public:
     static constexpr auto name = get_tensor_descriptor<Type>::value;
-    explicit operator Eigen::TensorMap<Type> *() { return value.get(); }
-    explicit operator Eigen::TensorMap<Type> &() { return *value; }
-    explicit operator Eigen::TensorMap<Type> &&() && { return std::move(*value); }
+    explicit operator MapType  *() { return value.get(); }
+    explicit operator MapType &() { return *value; }
+    explicit operator MapType &&() && { return std::move(*value); }
 
     template <typename T_>
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>;

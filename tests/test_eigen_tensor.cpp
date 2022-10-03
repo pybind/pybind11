@@ -102,4 +102,9 @@ TEST_SUBMODULE(eigen_tensor, m) {
         "round_trip_view_tensor",
         [](Eigen::TensorMap<Eigen::Tensor<double, 3>> view) { return view; },
         py::return_value_policy::reference);
+
+    m.def(
+        "round_trip_aligned_view_tensor",
+        [](Eigen::TensorMap<Eigen::Tensor<double, 3>, Eigen::Aligned> view) { return view; },
+        py::return_value_policy::reference);
 }
