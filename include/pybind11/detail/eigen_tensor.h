@@ -134,8 +134,8 @@ struct get_tensor_descriptor {
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
           + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
           + const_name("], flags.writeable, ")
-          + const_name<(int) Type::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
-                                                                    "flags.f_contiguous");
+          + const_name<(int) Type::Layout == (int) Eigen::RowMajor>("flags.c_contiguous]",
+                                                                    "flags.f_contiguous]");
 };
 
 template <typename Type>
