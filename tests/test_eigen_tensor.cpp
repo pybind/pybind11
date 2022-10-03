@@ -1,8 +1,6 @@
 /*
     tests/eigen_tensor.cpp -- automatic conversion of Eigen Tensor
 
-    Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
-
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
@@ -22,19 +20,19 @@ Eigen::Tensor<double, 3> &get_tensor() {
     static Eigen::Tensor<double, 3> *x;
 
     if (!x) {
-        x = new Eigen::Tensor<double, 3>(3, 1, 2);
+        x = new Eigen::Tensor<double, 3>(3, 5, 2);
         reset_tensor(*x);
     }
 
     return *x;
 }
 
-Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>> &get_fixed_tensor() {
-    static Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>> *x;
+Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>> &get_fixed_tensor() {
+    static Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>> *x;
 
     if (!x) {
-        Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>> allocator;
-        x = new (allocator.allocate(1)) Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>();
+        Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>>> allocator;
+        x = new (allocator.allocate(1)) Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>>();
         reset_tensor(*x);
     }
 
@@ -60,10 +58,10 @@ TEST_SUBMODULE(eigen_tensor, m) {
     m.def(
         "take_fixed_tensor",
         []() {
-            Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>>
+            Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>>>
                 allocator;
             return new (allocator.allocate(1))
-                Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>(get_fixed_tensor());
+                Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>>(get_fixed_tensor());
         },
         py::return_value_policy::take_ownership);
 
@@ -93,7 +91,7 @@ TEST_SUBMODULE(eigen_tensor, m) {
     m.def(
         "reference_view_of_fixed_tensor",
         []() {
-            return Eigen::TensorMap<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 1, 2>>>(
+            return Eigen::TensorMap<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>>>(
                 get_fixed_tensor());
         },
         py::return_value_policy::reference);

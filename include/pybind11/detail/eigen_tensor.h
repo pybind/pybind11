@@ -2,8 +2,6 @@
 /*
     pybind11/eigen_tensor.h: Transparent conversion for Eigen tensors
 
-    Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
-
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
@@ -58,15 +56,15 @@ struct eigen_tensor_helper {};
 
 template <typename Scalar_, int NumIndices_, int Options_, typename IndexType>
 struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>> {
-    using T = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
+    using Type = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
     using ValidType = void;
 
-    static Eigen::DSizes<typename T::Index, T::NumIndices> get_shape(const T &f) {
+    static Eigen::DSizes<typename Type::Index, Type::NumIndices> get_shape(const Type &f) {
         return f.dimensions();
     }
 
     static constexpr bool
-    is_correct_shape(const Eigen::DSizes<typename T::Index, T::NumIndices> & /*shape*/) {
+    is_correct_shape(const Eigen::DSizes<typename Type::Index, Type::NumIndices> & /*shape*/) {
         return true;
     }
 
@@ -81,80 +79,80 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
     };
 
     static constexpr auto dimensions_descriptor
-        = helper<decltype(make_index_sequence<T::NumIndices>())>::value;
+        = helper<decltype(make_index_sequence<Type::NumIndices>())>::value;
 
     template <typename... Args>
-    static T *alloc(Args &&...args) {
-        return new T(std::forward<Args>(args)...);
+    static Type *alloc(Args &&...args) {
+        return new Type(std::forward<Args>(args)...);
     }
 
-    static void free(T *tensor) { delete tensor; }
+    static void free(Type *tensor) { delete tensor; }
 };
 
 template <typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, typename IndexType>
 struct eigen_tensor_helper<
     Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>> {
-    using T = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
+    using Type = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
-    static constexpr Eigen::DSizes<typename T::Index, T::NumIndices> get_shape(const T & /*f*/) {
+    static constexpr Eigen::DSizes<typename Type::Index, Type::NumIndices> get_shape(const Type & /*f*/) {
         return get_shape();
     }
 
-    static constexpr Eigen::DSizes<typename T::Index, T::NumIndices> get_shape() {
-        return Eigen::DSizes<typename T::Index, T::NumIndices>(Indices...);
+    static constexpr Eigen::DSizes<typename Type::Index, Type::NumIndices> get_shape() {
+        return Eigen::DSizes<typename Type::Index, Type::NumIndices>(Indices...);
     }
 
-    static bool is_correct_shape(const Eigen::DSizes<typename T::Index, T::NumIndices> &shape) {
+    static bool is_correct_shape(const Eigen::DSizes<typename Type::Index, Type::NumIndices> &shape) {
         return get_shape() == shape;
     }
 
     static constexpr auto dimensions_descriptor = concat(const_name<Indices>()...);
 
     template <typename... Args>
-    static T *alloc(Args &&...args) {
-        Eigen::aligned_allocator<T> allocator;
-        return ::new (allocator.allocate(1)) T(std::forward<Args>(args)...);
+    static Type *alloc(Args &&...args) {
+        Eigen::aligned_allocator<Type> allocator;
+        return ::new (allocator.allocate(1)) Type(std::forward<Args>(args)...);
     }
 
-    static void free(T *tensor) {
-        Eigen::aligned_allocator<T> allocator;
-        tensor->~T();
+    static void free(Type *tensor) {
+        Eigen::aligned_allocator<Type> allocator;
+        tensor->~Type();
         allocator.deallocate(tensor, 1);
     }
 };
 
-template <typename T>
+template <typename Type>
 struct get_tensor_descriptor {
     static constexpr auto value
-        = const_name("numpy.ndarray[") + npy_format_descriptor<typename T::Scalar>::name
-          + const_name("[") + eigen_tensor_helper<T>::dimensions_descriptor
+        = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
+          + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
           + const_name("], flags.writeable, ")
-          + const_name<(int) T::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
+          + const_name<(int) Type::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
                                                                  "flags.f_contiguous");
 };
 
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
-    using H = eigen_tensor_helper<Type>;
+    using Helper = eigen_tensor_helper<Type>;
     PYBIND11_TYPE_CASTER(Type, get_tensor_descriptor<Type>::value);
 
     bool load(handle src, bool /*convert*/) {
-        array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()> a(
+        array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()> arr(
             reinterpret_borrow<object>(src));
 
-        if (a.ndim() != Type::NumIndices) {
+        if (arr.ndim() != Type::NumIndices) {
             return false;
         }
 
-        Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
-        std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
+	    Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
+        std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
 
-        if (!H::is_correct_shape(shape)) {
+        if (!Helper::is_correct_shape(shape)) {
             return false;
         }
 
-        value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(a.data()), shape);
+        value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(arr.data()), shape);
 
         return true;
     }
@@ -219,10 +217,10 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                     pybind11_fail("Cannot move from a constant reference");
                 }
 
-                src = H::alloc(std::move(*src));
+                src = Helper::alloc(std::move(*src));
 
                 parent_object
-                    = capsule(src, [](void *ptr) { H::free(reinterpret_cast<Type *>(ptr)); });
+                    = capsule(src, [](void *ptr) { Helper::free(reinterpret_cast<Type *>(ptr)); });
                 writeable = true;
                 break;
 
@@ -232,7 +230,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 }
 
                 parent_object
-                    = capsule(src, [](void *ptr) { H::free(reinterpret_cast<Type *>(ptr)); });
+                    = capsule(src, [](void *ptr) { Helper::free(reinterpret_cast<Type *>(ptr)); });
                 writeable = true;
                 break;
 
@@ -262,8 +260,8 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 pybind11_fail("pybind11 bug in eigen.h, please file a bug report");
         }
 
-        object result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-            H::get_shape(*src), src->data(), parent_object);
+        auto result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
+            Helper::get_shape(*src), src->data(), parent_object);
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -275,32 +273,32 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
 template <typename Type>
 struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::ValidType> {
-    using H = eigen_tensor_helper<Type>;
+    using Helper = eigen_tensor_helper<Type>;
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
-        auto a = reinterpret_borrow<array>(src);
-        if ((a.flags() & compute_array_flag_from_tensor<Type>()) == 0) {
+        auto arr = reinterpret_borrow<array>(src);
+        if ((arr.flags() & compute_array_flag_from_tensor<Type>()) == 0) {
             return false;
         }
 
-        if (!a.dtype().is(dtype::of<typename Type::Scalar>())) {
+        if (!arr.dtype().is(dtype::of<typename Type::Scalar>())) {
             return false;
         }
 
-        if (a.ndim() != Type::NumIndices) {
+        if (arr.ndim() != Type::NumIndices) {
             return false;
         }
 
         Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
-        std::copy(a.shape(), a.shape() + Type::NumIndices, shape.begin());
+        std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
 
-        if (!H::is_correct_shape(shape)) {
+        if (!Helper::is_correct_shape(shape)) {
             return false;
         }
 
         value.reset(new Eigen::TensorMap<Type>(
-            reinterpret_cast<typename Type::Scalar *>(a.mutable_data()), shape));
+            reinterpret_cast<typename Type::Scalar *>(arr.mutable_data()), shape));
 
         return true;
     }
@@ -373,8 +371,8 @@ struct type_caster<Eigen::TensorMap<Type>, typename eigen_tensor_helper<Type>::V
                               "reference or reference_internal");
         }
 
-        object result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-            H::get_shape(*src), src->data(), parent_object);
+        auto result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
+            Helper::get_shape(*src), src->data(), parent_object);
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
