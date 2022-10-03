@@ -95,7 +95,8 @@ struct eigen_tensor_helper<
     using Type = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
-    static constexpr Eigen::DSizes<typename Type::Index, Type::NumIndices> get_shape(const Type & /*f*/) {
+    static constexpr Eigen::DSizes<typename Type::Index, Type::NumIndices>
+    get_shape(const Type & /*f*/) {
         return get_shape();
     }
 
@@ -103,7 +104,8 @@ struct eigen_tensor_helper<
         return Eigen::DSizes<typename Type::Index, Type::NumIndices>(Indices...);
     }
 
-    static bool is_correct_shape(const Eigen::DSizes<typename Type::Index, Type::NumIndices> &shape) {
+    static bool
+    is_correct_shape(const Eigen::DSizes<typename Type::Index, Type::NumIndices> &shape) {
         return get_shape() == shape;
     }
 
@@ -129,7 +131,7 @@ struct get_tensor_descriptor {
           + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
           + const_name("], flags.writeable, ")
           + const_name<(int) Type::Layout == (int) Eigen::RowMajor>("flags.c_contiguous",
-                                                                 "flags.f_contiguous");
+                                                                    "flags.f_contiguous");
 };
 
 template <typename Type>
@@ -145,7 +147,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-	    Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
+        Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
         std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
 
         if (!Helper::is_correct_shape(shape)) {
