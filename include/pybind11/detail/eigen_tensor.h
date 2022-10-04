@@ -8,14 +8,14 @@
 
 #pragma once
 
+#include "../numpy.h"
+
+// Similar to comments & pragma block in eigen_matrix.h. PLEASE KEEP IN SYNC.
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
    See also:
        https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir
        https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
 */
-
-#include "../numpy.h"
-
 // The C4127 suppression was introduced for Eigen 3.4.0. In theory we could
 // make it version specific, or even remove it later, but considering that
 // 1. C4127 is generally far more distracting than useful for modern template code, and
