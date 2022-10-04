@@ -12,6 +12,12 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+
+ci:
+  autoupdate_commit_msg: "chore(deps): update pre-commit hooks"
+  autofix_commit_msg: "style: pre-commit fixes"
+  autoupdate_schedule: monthly
+
 # third-party content
 exclude: ^tools/JoinPaths.cmake$
 
