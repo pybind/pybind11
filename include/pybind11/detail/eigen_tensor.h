@@ -77,9 +77,18 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
 
     template <size_t... Is>
     struct helper<index_sequence<Is...>> {
-        // Hack to work around gcc 4.8 bugs. Feel free to remove when we drop gcc 4.8 support.
+        #if defined(__GNUC__) && __GNUC__ <= 4
+
+        // Hack to work around gcc 4.8 bugs. 
         static constexpr descr<sizeof...(Is) * 3 - 2> value
             = concat(const_name(((void) Is, "?"))...);
+
+        #else
+
+        static constexpr auto value
+            = concat(const_name(((void) Is, "?"))...);
+        
+        #endif
     };
 
     static constexpr auto dimensions_descriptor
@@ -245,11 +254,16 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 writeable = true;
                 break;
 
-            case return_value_policy::copy: {
-                // Clang 3.6 / 3.7 has a very confusing bug that seems to be fixed by adding this
-                // scope
+            case return_value_policy::copy: 
+            #if defined(__clang_major__) && __clang_major__ <= 3
+            // Hack to work around clang bugs
+            {
                 parent_object = {};
             }
+            #else
+                parent_object = {};
+            #endif
+
                 writeable = true;
                 break;
 
