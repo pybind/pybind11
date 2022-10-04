@@ -77,18 +77,17 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
 
     template <size_t... Is>
     struct helper<index_sequence<Is...>> {
-        #if defined(__GNUC__) && __GNUC__ <= 4
+#if defined(__GNUC__) && __GNUC__ <= 4
 
-        // Hack to work around gcc 4.8 bugs. 
+        // Hack to work around gcc 4.8 bugs.
         static constexpr descr<sizeof...(Is) * 3 - 2> value
             = concat(const_name(((void) Is, "?"))...);
 
-        #else
+#else
 
-        static constexpr auto value
-            = concat(const_name(((void) Is, "?"))...);
-        
-        #endif
+        static constexpr auto value = concat(const_name(((void) Is, "?"))...);
+
+#endif
     };
 
     static constexpr auto dimensions_descriptor
@@ -254,15 +253,13 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 writeable = true;
                 break;
 
-            case return_value_policy::copy: 
-            #if defined(__clang_major__) && __clang_major__ <= 3
-            // Hack to work around clang bugs
-            {
+            case return_value_policy::copy:
+#if defined(__clang_major__) && __clang_major__ <= 3
+                // Hack to work around clang bugs
+                { parent_object = {}; }
+#else
                 parent_object = {};
-            }
-            #else
-                parent_object = {};
-            #endif
+#endif
 
                 writeable = true;
                 break;
@@ -297,7 +294,8 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 };
 
 template <typename Type, int Options>
-struct type_caster<Eigen::TensorMap<Type, Options>, typename eigen_tensor_helper<Type>::ValidType> {
+struct type_caster<Eigen::TensorMap<Type, Options>,
+                   typename eigen_tensor_helper<Type>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<Type>;
 
