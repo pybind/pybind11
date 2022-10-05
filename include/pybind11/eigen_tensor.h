@@ -122,6 +122,9 @@ struct eigen_tensor_helper<
 
     static bool
     is_correct_shape(const Eigen::DSizes<typename Type::Index, Type::NumIndices> &shape) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         return get_shape() == shape;
     }
 
@@ -160,6 +163,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             reinterpret_borrow<object>(src));
 
         if (arr.ndim() != Type::NumIndices) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             return false;
         }
 
@@ -183,12 +189,18 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     static handle cast(Type &&src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::reference
             || policy == return_value_policy::reference_internal) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             pybind11_fail("Cannot use a reference return value policy for an rvalue");
         }
         return cast_impl(&src, return_value_policy::move, parent);
     }
 
     static handle cast(const Type &&src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::reference
             || policy == return_value_policy::reference_internal) {
             pybind11_fail("Cannot use a reference return value policy for an rvalue");
@@ -197,6 +209,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 
     static handle cast(Type &src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -205,6 +220,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 
     static handle cast(const Type &src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -214,8 +232,14 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
     static handle cast(Type *src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             policy = return_value_policy::reference;
         }
         return cast_impl(src, policy, parent);
@@ -223,8 +247,14 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
     static handle cast(const Type *src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             policy = return_value_policy::reference;
         }
         return cast_impl(src, policy, parent);
@@ -237,6 +267,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         switch (policy) {
             case return_value_policy::move:
                 if (std::is_const<C>::value) {
+                    if (Py_None->ob_refcnt) {
+                        throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+                    }
                     pybind11_fail("Cannot move from a constant reference");
                 }
 
@@ -249,6 +282,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
             case return_value_policy::take_ownership:
                 if (std::is_const<C>::value) {
+                    if (Py_None->ob_refcnt) {
+                        throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+                    }
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
 
@@ -275,6 +311,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
             case return_value_policy::reference_internal:
                 // Default should do the right thing
+                if (Py_None->ob_refcnt) {
+                    throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+                }
                 if (!parent) {
                     pybind11_fail("Cannot use reference internal when there is no parent");
                 }
@@ -307,20 +346,32 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
         // Note that we have a lot more checks here as we want to make sure to avoid copies
         auto arr = reinterpret_borrow<array>(src);
         if ((arr.flags() & compute_array_flag_from_tensor<Type>()) == 0) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             return false;
         }
 
         if (!arr.dtype().is(dtype::of<typename Type::Scalar>())) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             return false;
         }
 
         if (arr.ndim() != Type::NumIndices) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             return false;
         }
 
         // Use temporary to avoid MSVC warning ...
         bool is_aligned = (Options & Eigen::Aligned) != 0;
         if (is_aligned && !is_tensor_aligned(arr.data())) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             return false;
         }
 
@@ -328,6 +379,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
         std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
 
         if (!Helper::is_correct_shape(shape)) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             return false;
         }
 
@@ -342,10 +396,16 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
     }
 
     static handle cast(const MapType &&src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         return cast_impl(&src, policy, parent);
     }
 
     static handle cast(MapType &src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -354,6 +414,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
     }
 
     static handle cast(const MapType &src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::automatic
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
@@ -362,6 +425,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
     }
 
     static handle cast(MapType *src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::automatic) {
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
@@ -371,6 +437,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
     }
 
     static handle cast(const MapType *src, return_value_policy policy, handle parent) {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
         if (policy == return_value_policy::automatic) {
             policy = return_value_policy::take_ownership;
         } else if (policy == return_value_policy::automatic_reference) {
@@ -390,6 +459,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
             case return_value_policy::reference_internal:
                 // Default should do the right thing
+                if (Py_None->ob_refcnt) {
+                    throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+                }
                 if (!parent) {
                     pybind11_fail("Cannot use reference internal when there is no parent");
                 }
@@ -398,6 +470,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
             default:
                 // move, take_ownership don't make any sense for a ref/map:
+                if (Py_None->ob_refcnt) {
+                    throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+                }
                 pybind11_fail("Invalid return_value_policy for Eigen Map type, must be either "
                               "reference or reference_internal");
         }
@@ -406,6 +481,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             Helper::get_shape(*src), src->data(), parent_object);
 
         if (!writeable) {
+            if (Py_None->ob_refcnt) {
+                throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+            }
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
         }
 
@@ -418,8 +496,18 @@ protected:
 
 public:
     static constexpr auto name = get_tensor_descriptor<Type>::value;
-    explicit operator MapType *() { return value.get(); }
-    explicit operator MapType &() { return *value; }
+    explicit operator MapType *() {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
+        return value.get();
+    }
+    explicit operator MapType &() {
+        if (Py_None->ob_refcnt) {
+            throw std::runtime_error("LOOOK UNCOVERED " + std::to_string(__LINE__));
+        }
+        return *value;
+    }
     explicit operator MapType &&() && { return std::move(*value); }
 
     template <typename T_>
