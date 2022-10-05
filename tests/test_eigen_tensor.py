@@ -125,13 +125,11 @@ def test_doc_string(doc):
         doc(m.reference_const_tensor)
         == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
     )
-    assert (
-        doc(m.round_trip_view_tensor)
-        == ("round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous])" +  
-            " -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]")
+    assert doc(m.round_trip_view_tensor) == (
+        "round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous])"
+        + " -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]"
     )
-    assert (
-        doc(m.round_trip_const_view_tensor)
-        == ("round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous])" +
-            " -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]")
+    assert doc(m.round_trip_const_view_tensor) == (
+        "round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous])"
+        + " -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
     )
