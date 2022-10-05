@@ -113,16 +113,21 @@ def test_round_trip_references_actually_refer():
 def test_doc_string(doc):
     assert (
         doc(m.copy_tensor)
-        == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]"
+        == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
     )
     assert (
         doc(m.copy_fixed_tensor)
-        == "copy_fixed_tensor() -> numpy.ndarray[numpy.float64[3, 5, 2], flags.writeable, flags.f_contiguous]"
+        == "copy_fixed_tensor() -> numpy.ndarray[numpy.float64[3, 5, 2], flags.f_contiguous]"
     )
-
-    # Ideally this type signature wouldn't have flags.writeable, but
-    # I don't see a way to avoid it due to names being set at compile time ...
     assert (
         doc(m.reference_const_tensor)
-        == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]"
+        == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
+    )
+    assert (
+        doc(m.round_trip_view_tensor)
+        == "round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]) -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]"
+    )
+    assert (
+        doc(m.round_trip_const_view_tensor)
+        == "round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]) -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
     )
