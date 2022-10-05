@@ -31,6 +31,8 @@ main_headers = {
     "include/pybind11/common.h",
     "include/pybind11/complex.h",
     "include/pybind11/eigen.h",
+    "include/pybind11/eigen_matrix.h",
+    "include/pybind11/eigen_tensor.h",
     "include/pybind11/embed.h",
     "include/pybind11/eval.h",
     "include/pybind11/functional.h",
