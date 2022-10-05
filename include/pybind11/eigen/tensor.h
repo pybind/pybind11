@@ -131,24 +131,26 @@ struct eigen_tensor_helper<
     }
 };
 
-template <typename Type, bool AlwaysRead>
+template <typename Type, bool ShowDetails>
 struct get_tensor_descriptor {
+    static constexpr auto details = 
+          const_name<std::is_const<typename Type::Scalar>::value> ("", ", flags.writeable")
+                       + const_name<static_cast<int>(Type::Layout)
+                                    == static_cast<int>(Eigen::RowMajor)>(", flags.c_contiguous",
+                                                                          ", flags.f_contiguous");
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
                   + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
-                  + const_name("]") + const_name
-              < AlwaysRead
-          || std::is_const<typename Type::Scalar>::value
-                 > ("", ", flags.writeable")
-                       + const_name<static_cast<int>(Type::Layout)
-                                    == static_cast<int>(Eigen::RowMajor)>(", flags.c_contiguous]",
-                                                                          ", flags.f_contiguous]");
+                  + const_name("]") + const_name<ShowDetails>(
+                    details,
+                    const_name("")
+                  ) + const_name("]");
 };
 
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     using Helper = eigen_tensor_helper<Type>;
-    static constexpr auto temp_name = get_tensor_descriptor<Type, true>::value;
+    static constexpr auto temp_name = get_tensor_descriptor<Type, false>::value;
     PYBIND11_TYPE_CASTER(Type, temp_name);
 
     bool load(handle src, bool /*convert*/) {
@@ -429,7 +431,7 @@ protected:
     std::unique_ptr<MapType> value;
 
 public:
-    static constexpr auto name = get_tensor_descriptor<Type, false>::value;
+    static constexpr auto name = get_tensor_descriptor<Type, true>::value;
     explicit operator MapType *() { return value.get(); }
     explicit operator MapType &() { return *value; }
     explicit operator MapType &&() && { return std::move(*value); }

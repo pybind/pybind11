@@ -1,15 +1,16 @@
 import pytest
 
 np = pytest.importorskip("numpy")
-m = pytest.importorskip("pybind11_tests.eigen_tensor")
+eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
 
-tensor_ref = np.array(
-    [
-        [[0.0, 15.0], [3.0, 18.0], [6.0, 21.0], [9.0, 24.0], [12.0, 27.0]],
-        [[1.0, 16.0], [4.0, 19.0], [7.0, 22.0], [10.0, 25.0], [13.0, 28.0]],
-        [[2.0, 17.0], [5.0, 20.0], [8.0, 23.0], [11.0, 26.0], [14.0, 29.0]],
-    ],
-)
+submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
+
+tensor_ref = np.zeros((3, 5, 2))
+
+for i in range(3):
+    for j in range(5):
+        for k in range(2):
+            tensor_ref[i, j, k] = i * (5 * 2) + j * 2 + k
 
 indices = (2, 3, 1)
 
@@ -23,8 +24,8 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=0):
 
     np.testing.assert_array_equal(mat, copy)
 
-
-def test_convert_tensor_to_py():
+@pytest.mark.parametrize('m', submodules)
+def test_convert_tensor_to_py(m):
     assert_equal_tensor_ref(m.copy_tensor())
     assert_equal_tensor_ref(m.copy_fixed_tensor())
     assert_equal_tensor_ref(m.copy_const_tensor())
@@ -45,7 +46,8 @@ def test_convert_tensor_to_py():
     assert_equal_tensor_ref(m.reference_const_tensor_v2(), writeable=False)
 
 
-def test_bad_cpp_to_python_casts():
+@pytest.mark.parametrize('m', submodules)
+def test_bad_cpp_to_python_casts(m):
     with pytest.raises(Exception):
         m.reference_tensor_internal()
 
@@ -56,27 +58,33 @@ def test_bad_cpp_to_python_casts():
         m.take_const_tensor()
 
 
-def test_bad_python_to_cpp_casts():
+@pytest.mark.parametrize('m', submodules)
+def test_bad_python_to_cpp_casts(m):
     with pytest.raises(TypeError):
         m.round_trip_tensor(np.zeros((2, 3)))
 
     with pytest.raises(TypeError):
         m.round_trip_tensor(np.zeros(dtype=np.str_, shape=(2, 3, 1)))
 
+    if m.needed_options == "F":
+        bad_options = "C"
+    else:
+        bad_options = "F"
     # Shape, dtype and the order need to be correct for a TensorMap cast
     with pytest.raises(TypeError):
-        m.round_trip_view_tensor(np.zeros((3, 5, 2), dtype=np.float64, order="C"))
+        m.round_trip_view_tensor(np.zeros((3, 5, 2), dtype=np.float64, order=bad_options))
     with pytest.raises(TypeError):
-        m.round_trip_view_tensor(np.zeros((3, 5, 2), dtype=np.float32, order="F"))
+        m.round_trip_view_tensor(np.zeros((3, 5, 2), dtype=np.float32, order=m.needed_options))
     with pytest.raises(TypeError):
-        m.round_trip_view_tensor(np.zeros((3, 5), dtype=np.float64, order="F"))
+        m.round_trip_view_tensor(np.zeros((3, 5), dtype=np.float64, order=m.needed_options))
     with pytest.raises(TypeError):
-        temp = np.zeros((3, 5, 2), dtype=np.float64, order="F")
+        temp = np.zeros((3, 5, 2), dtype=np.float64, order=m.needed_options)
         temp.setflags(write=False)
         m.round_trip_view_tensor(temp)
 
 
-def test_references_actually_refer():
+@pytest.mark.parametrize('m', submodules)
+def test_references_actually_refer(m):
     a = m.reference_tensor()
     temp = a[indices]
     a[indices] = 100
@@ -91,20 +99,22 @@ def test_references_actually_refer():
     assert_equal_tensor_ref(m.copy_const_tensor())
 
 
-def test_round_trip():
+@pytest.mark.parametrize('m', submodules)
+def test_round_trip(m):
     assert_equal_tensor_ref(m.round_trip_tensor(tensor_ref))
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(m.reference_tensor()))
 
-    copy = np.array(tensor_ref, dtype=np.float64, order="F")
+    copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
     assert_equal_tensor_ref(m.round_trip_view_tensor(copy))
     copy.setflags(write=False)
     assert_equal_tensor_ref(m.round_trip_const_view_tensor(copy))
 
-    np.testing.assert_array_equal(tensor_ref[:, ::-1], m.round_trip_tensor(tensor_ref[:, ::-1, :]))
+    np.testing.assert_array_equal(tensor_ref[:, ::-1, :], m.round_trip_tensor(tensor_ref[:, ::-1, :]))
 
-def test_round_trip_references_actually_refer():
+@pytest.mark.parametrize('m', submodules)
+def test_round_trip_references_actually_refer(m):
     # Need to create a copy that matches the type on the C side
-    copy = np.array(tensor_ref, dtype=np.float64, order="F")
+    copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
     a = m.round_trip_view_tensor(copy)
     temp = a[indices]
     a[indices] = 100
@@ -113,24 +123,27 @@ def test_round_trip_references_actually_refer():
     assert_equal_tensor_ref(copy)
 
 
-def test_doc_string(doc):
+@pytest.mark.parametrize('m', submodules)
+def test_doc_string(m, doc):
     assert (
         doc(m.copy_tensor)
-        == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
+        == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
     assert (
         doc(m.copy_fixed_tensor)
-        == "copy_fixed_tensor() -> numpy.ndarray[numpy.float64[3, 5, 2], flags.f_contiguous]"
+        == "copy_fixed_tensor() -> numpy.ndarray[numpy.float64[3, 5, 2]]"
     )
     assert (
         doc(m.reference_const_tensor)
-        == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
+        == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
+
+    order_flag = f'flags.{m.needed_options.lower()}_contiguous'
     assert doc(m.round_trip_view_tensor) == (
-        "round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous])"
-        + " -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, flags.f_contiguous]"
+        f"round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}])"
+        + f" -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}]"
     )
     assert doc(m.round_trip_const_view_tensor) == (
-        "round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous])"
-        + " -> numpy.ndarray[numpy.float64[?, ?, ?], flags.f_contiguous]"
+        f"round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], {order_flag}])"
+        + " -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
