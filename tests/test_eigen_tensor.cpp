@@ -34,6 +34,17 @@ Eigen::Tensor<double, 3, Options> &get_tensor() {
 }
 
 template<int Options>
+Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> &get_tensor_map() {
+    static Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> *x;
+
+    if (!x) {
+        x = new Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>(get_tensor<Options>());
+    }
+
+    return *x;
+}
+
+template<int Options>
 Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> &get_fixed_tensor() {
     static Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> *x;
 
@@ -50,14 +61,29 @@ template<int Options>
 const Eigen::Tensor<double, 3, Options> &get_const_tensor() { return get_tensor<Options>(); }
 
 template<int Options>
+struct CustomExample {
+    CustomExample() {
+        member = get_tensor<Options>();
+    }
+
+    Eigen::Tensor<double, 3, Options> member;
+};
+
+
+template<int Options>
 void init_tensor_module(pybind11::module& m) {
     const char* needed_options = "";
-    if (Options == Eigen::ColMajor) {
+    bool is_major = Options == Eigen::ColMajor;
+    if (is_major) {
         needed_options = "F";
     } else {
         needed_options = "C";
     }
     m.attr("needed_options") = needed_options;
+    
+    py::class_<CustomExample<Options>>(m, "CustomExample")
+        .def(py::init<>())
+        .def_readonly("member", &CustomExample<Options>::member, py::return_value_policy::reference_internal);
 
     m.def(
         "copy_fixed_tensor", []() { return &get_fixed_tensor<Options>(); }, py::return_value_policy::copy);
@@ -127,7 +153,44 @@ void init_tensor_module(pybind11::module& m) {
 
     m.def(
         "reference_view_of_tensor",
-        []() { return Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>(get_tensor<Options>()); },
+        []() { 
+            return get_tensor_map<Options>();
+        },
+        py::return_value_policy::reference);
+
+    m.def(
+        "reference_view_of_tensor_v2",
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> { 
+            return get_tensor_map<Options>(); 
+        },
+        py::return_value_policy::reference);
+
+    m.def(
+        "reference_view_of_tensor_v3",
+        []() { 
+            return &get_tensor_map<Options>(); 
+        },
+        py::return_value_policy::reference);
+
+    m.def(
+        "reference_view_of_tensor_v4",
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>* { 
+            return &get_tensor_map<Options>(); 
+        },
+        py::return_value_policy::reference);
+
+    m.def(
+        "reference_view_of_tensor_v5",
+        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>& { 
+            return get_tensor_map<Options>(); 
+        },
+        py::return_value_policy::reference);
+
+    m.def(
+        "reference_view_of_tensor_v6",
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>& { 
+            return get_tensor_map<Options>(); 
+        },
         py::return_value_policy::reference);
 
     m.def(

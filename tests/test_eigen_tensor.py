@@ -1,3 +1,4 @@
+import sys
 import pytest
 
 np = pytest.importorskip("numpy")
@@ -30,6 +31,14 @@ def test_convert_tensor_to_py(m):
     assert_equal_tensor_ref(m.copy_fixed_tensor())
     assert_equal_tensor_ref(m.copy_const_tensor())
 
+    foo = m.CustomExample()
+    counts = sys.getrefcount(foo)
+    mem = foo.member
+    assert_equal_tensor_ref(mem, writeable=False)
+    new_counts = sys.getrefcount(foo)
+    assert new_counts == counts + 1
+    assert_equal_tensor_ref(mem, writeable=False)
+
     assert_equal_tensor_ref(m.move_tensor())
     assert_equal_tensor_ref(m.move_fixed_tensor())
 
@@ -41,6 +50,11 @@ def test_convert_tensor_to_py(m):
     assert_equal_tensor_ref(m.reference_fixed_tensor())
 
     assert_equal_tensor_ref(m.reference_view_of_tensor())
+    assert_equal_tensor_ref(m.reference_view_of_tensor_v2(), writeable=False)
+    assert_equal_tensor_ref(m.reference_view_of_tensor_v3())
+    assert_equal_tensor_ref(m.reference_view_of_tensor_v4(), writeable=False)
+    assert_equal_tensor_ref(m.reference_view_of_tensor_v5())
+    assert_equal_tensor_ref(m.reference_view_of_tensor_v6(), writeable=False)
     assert_equal_tensor_ref(m.reference_view_of_fixed_tensor())
     assert_equal_tensor_ref(m.reference_const_tensor(), writeable=False)
     assert_equal_tensor_ref(m.reference_const_tensor_v2(), writeable=False)
