@@ -337,7 +337,8 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
-        if (!std::is_const<typename Type::Scalar>::value && !arr.writeable()) {
+        bool needs_writeable = !std::is_const<typename Type::Scalar>::value;
+        if (needs_writeable && !arr.writeable()) {
             return false;
         }
 
