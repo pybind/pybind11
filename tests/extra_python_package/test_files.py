@@ -98,6 +98,7 @@ sdist_files = {
     "pybind11/include/pybind11",
     "pybind11/include/pybind11/detail",
     "pybind11/include/pybind11/stl",
+    "pybind11/include/pybind11/eigen",
     "pybind11/share",
     "pybind11/share/cmake",
     "pybind11/share/cmake/pybind11",
