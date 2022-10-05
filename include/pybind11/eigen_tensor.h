@@ -47,7 +47,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline bool is_tensor_aligned(const void *data) {
-    return (std::size_t(data) % EIGEN_DEFAULT_ALIGN_BYTES) == 0;
+    return (reinterpret_cast<std::size_t>(data) % EIGEN_DEFAULT_ALIGN_BYTES) == 0;
 }
 
 template <typename T>
@@ -146,7 +146,7 @@ struct get_tensor_descriptor {
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
           + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
           + const_name("], flags.writeable, ")
-          + const_name<(int) Type::Layout == (int) Eigen::RowMajor>("flags.c_contiguous]",
+          + const_name<static_cast<int>(Type::Layout) == static_cast<int>(Eigen::RowMajor)>("flags.c_contiguous]",
                                                                     "flags.f_contiguous]");
 };
 
