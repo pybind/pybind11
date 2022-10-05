@@ -43,12 +43,12 @@ def test_convert_tensor_to_py():
     assert_equal_tensor_ref(m.reference_view_of_fixed_tensor())
     assert_equal_tensor_ref(m.reference_const_tensor(), writeable=False)
     assert_equal_tensor_ref(m.reference_const_tensor_v2(), writeable=False)
-    
+
 
 def test_bad_cpp_to_python_casts():
     with pytest.raises(Exception):
         m.reference_tensor_internal()
-    
+
     with pytest.raises(Exception):
         m.move_const_tensor()
 
@@ -75,6 +75,7 @@ def test_bad_python_to_cpp_casts():
         temp.setflags(write=False)
         m.round_trip_view_tensor(temp)
 
+
 def test_references_actually_refer():
     a = m.reference_tensor()
     temp = a[indices]
@@ -93,11 +94,12 @@ def test_references_actually_refer():
 def test_round_trip():
     assert_equal_tensor_ref(m.round_trip_tensor(tensor_ref))
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(m.reference_tensor()))
-    
+
     copy = np.array(tensor_ref, dtype=np.float64, order="F")
     assert_equal_tensor_ref(m.round_trip_view_tensor(copy))
     copy.setflags(write=False)
     assert_equal_tensor_ref(m.round_trip_const_view_tensor(copy))
+
 
 def test_round_trip_references_actually_refer():
     # Need to create a copy that matches the type on the C side

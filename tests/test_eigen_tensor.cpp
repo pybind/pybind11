@@ -55,7 +55,8 @@ TEST_SUBMODULE(eigen_tensor, m) {
 
     m.def("move_tensor", []() { return get_tensor(); });
 
-    m.def("move_const_tensor", []() -> const Eigen::Tensor<double, 3> { return get_const_tensor(); });
+    m.def("move_const_tensor",
+          []() -> const Eigen::Tensor<double, 3> { return get_const_tensor(); });
 
     m.def(
         "take_fixed_tensor",
@@ -71,18 +72,26 @@ TEST_SUBMODULE(eigen_tensor, m) {
         "take_tensor",
         []() { return new Eigen::Tensor<double, 3>(get_tensor()); },
         py::return_value_policy::take_ownership);
-    
-    m.def("take_const_tensor", []() -> const Eigen::Tensor<double, 3>* { return new Eigen::Tensor<double, 3>(get_tensor());},
+
+    m.def(
+        "take_const_tensor",
+        []() -> const Eigen::Tensor<double, 3> * {
+            return new Eigen::Tensor<double, 3>(get_tensor());
+        },
         py::return_value_policy::take_ownership);
 
     m.def(
         "reference_tensor", []() { return &get_tensor(); }, py::return_value_policy::reference);
 
     m.def(
-        "reference_tensor_v2", []() -> Eigen::Tensor<double, 3>& { return get_tensor(); }, py::return_value_policy::reference);
+        "reference_tensor_v2",
+        []() -> Eigen::Tensor<double, 3> & { return get_tensor(); },
+        py::return_value_policy::reference);
 
     m.def(
-        "reference_tensor_internal", []() { return &get_tensor(); }, py::return_value_policy::reference_internal);
+        "reference_tensor_internal",
+        []() { return &get_tensor(); },
+        py::return_value_policy::reference_internal);
 
     m.def(
         "reference_fixed_tensor",
@@ -96,7 +105,7 @@ TEST_SUBMODULE(eigen_tensor, m) {
 
     m.def(
         "reference_const_tensor_v2",
-        []() -> const Eigen::Tensor<double, 3>& { return get_const_tensor(); },
+        []() -> const Eigen::Tensor<double, 3> & { return get_const_tensor(); },
         py::return_value_policy::reference);
 
     m.def(
@@ -126,7 +135,8 @@ TEST_SUBMODULE(eigen_tensor, m) {
 
     m.def(
         "round_trip_const_view_tensor",
-        [](Eigen::TensorMap<Eigen::Tensor<const double, 3>> view) { return Eigen::Tensor<double, 3>(view); },
+        [](Eigen::TensorMap<Eigen::Tensor<const double, 3>> view) {
+            return Eigen::Tensor<double, 3>(view);
+        },
         py::return_value_policy::move);
-
 }
