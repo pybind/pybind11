@@ -5,7 +5,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <pybind11/eigen.h>
+#include <pybind11/eigen_tensor.h>
 
 #include "pybind11_tests.h"
 

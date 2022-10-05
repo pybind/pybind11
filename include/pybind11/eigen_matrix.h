@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "../numpy.h"
+#include "numpy.h"
 
 // Similar to comments & pragma block in eigen_tensor.h. PLEASE KEEP IN SYNC.
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
@@ -41,6 +41,12 @@
 #elif defined(__MINGW32__)
 #    pragma GCC diagnostic pop
 #endif
+
+// Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
+// move constructors that break things.  We could detect this an explicitly copy, but an extra copy
+// of matrices seems highly undesirable.
+static_assert(EIGEN_VERSION_AT_LEAST(3, 2, 7),
+              "Eigen matrix support in pybind11 requires Eigen >= 3.2.7");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
