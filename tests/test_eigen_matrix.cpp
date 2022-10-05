@@ -7,7 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <pybind11/eigen_matrix.h>
+#include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 
 #include "constructor_stats.h"

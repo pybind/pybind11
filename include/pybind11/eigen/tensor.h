@@ -1,6 +1,6 @@
 
 /*
-    pybind11/eigen_tensor.h: Transparent conversion for Eigen tensors
+    pybind11/eigen/tensor.h: Transparent conversion for Eigen tensors
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
@@ -8,20 +8,8 @@
 
 #pragma once
 
-#include "numpy.h"
+#include "../numpy.h"
 
-// Similar to comments & pragma block in eigen_matrix.h. PLEASE KEEP IN SYNC.
-/* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
-   See also:
-       https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir
-       https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
-*/
-
-// The C4127 suppression was introduced for Eigen 3.4.0. In theory we could
-// make it version specific, or even remove it later, but considering that
-// 1. C4127 is generally far more distracting than useful for modern template code, and
-// 2. we definitely want to ignore any MSVC warnings originating from Eigen code,
-//    it is probably best to keep this around indefinitely.
 #if defined(_MSC_VER)
 #    pragma warning(push)
 #    pragma warning(disable : 4554) // Tensor.h warning
@@ -65,6 +53,7 @@ struct eigen_tensor_helper {};
 template <typename Scalar_, int NumIndices_, int Options_, typename IndexType>
 struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>> {
     using Type = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
+    using ConstType = Eigen::Tensor<const Scalar_, NumIndices_, Options_, IndexType>;
     using ValidType = void;
 
     static Eigen::DSizes<typename Type::Index, Type::NumIndices> get_shape(const Type &f) {
@@ -109,6 +98,7 @@ template <typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, ty
 struct eigen_tensor_helper<
     Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>> {
     using Type = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
+    using ConstType = Eigen::TensorFixedSize<const Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
     static constexpr Eigen::DSizes<typename Type::Index, Type::NumIndices>
@@ -144,10 +134,10 @@ template <typename Type>
 struct get_tensor_descriptor {
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
-          + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
-          + const_name("], flags.writeable, ")
+          + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor + const_name("]")
+          + const_name<std::is_const<typename Type::Scalar>::value>("", ", flags.writeable")
           + const_name<static_cast<int>(Type::Layout) == static_cast<int>(Eigen::RowMajor)>(
-              "flags.c_contiguous]", "flags.f_contiguous]");
+              ", flags.c_contiguous]", ", flags.f_contiguous]");
 };
 
 template <typename Type>
@@ -171,10 +161,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         }
 
         if (is_tensor_aligned(arr.data())) {
-            value = Eigen::TensorMap<Type, Eigen::Aligned>(
-                const_cast<typename Type::Scalar *>(arr.data()), shape);
+            value = Eigen::TensorMap<typename Helper::ConstType, Eigen::Aligned>(arr.data(), shape);
         } else {
-            value = Eigen::TensorMap<Type>(const_cast<typename Type::Scalar *>(arr.data()), shape);
+            value = Eigen::TensorMap<typename Helper::ConstType>(arr.data(), shape);
         }
 
         return true;
@@ -297,6 +286,16 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
+template <typename Type, typename S = enable_if_t<std::is_const<Type>::value>>
+const void* get_array_data_for_type(array& arr) {
+    return arr.data();
+}
+
+template <typename Type, typename S = enable_if_t<!std::is_const<Type>::value>>
+void* get_array_data_for_type(array& arr) {
+    return arr.mutable_data();
+}
+
 template <typename Type, int Options>
 struct type_caster<Eigen::TensorMap<Type, Options>,
                    typename eigen_tensor_helper<Type>::ValidType> {
@@ -331,8 +330,12 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
+        if (!std::is_const<typename Type::Scalar>::value && !arr.writeable()) {
+            return false;
+        }
+
         value.reset(
-            new MapType(reinterpret_cast<typename Type::Scalar *>(arr.mutable_data()), shape));
+            new MapType(static_cast<typename Type::Scalar *>(get_array_data_for_type<typename Type::Scalar>(arr)), shape));
 
         return true;
     }

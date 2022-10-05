@@ -49,8 +49,6 @@ detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/descr.h",
-    "include/pybind11/detail/eigen_tensor.h",
-    "include/pybind11/detail/eigen_matrix.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/type_caster_base.h",
@@ -59,6 +57,11 @@ detail_headers = {
 
 stl_headers = {
     "include/pybind11/stl/filesystem.h",
+}
+
+eigen_headers = {
+    "include/pybind11/eigen/tensor.h",
+    "include/pybind11/eigen/matrix.h",
 }
 
 cmake_files = {
@@ -84,7 +87,7 @@ py_files = {
     "setup_helpers.py",
 }
 
-headers = main_headers | detail_headers | stl_headers
+headers = main_headers | detail_headers | stl_headers | eigen_headers
 src_files = headers | cmake_files | pkgconfig_files
 all_files = src_files | py_files
 

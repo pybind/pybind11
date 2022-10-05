@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "eigen_matrix.h"
+#include "eigen/matrix.h"
 
 #if EIGEN_VERSION_AT_LEAST(3, 3, 0)
-#    include "eigen_tensor.h"
+#    include "eigen/tensor.h"
 #endif
