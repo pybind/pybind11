@@ -100,6 +100,7 @@ def test_round_trip():
     copy.setflags(write=False)
     assert_equal_tensor_ref(m.round_trip_const_view_tensor(copy))
 
+    np.testing.assert_array_equal(tensor_ref[:, ::-1], m.round_trip_tensor(tensor_ref[:, ::-1, :]))
 
 def test_round_trip_references_actually_refer():
     # Need to create a copy that matches the type on the C side
