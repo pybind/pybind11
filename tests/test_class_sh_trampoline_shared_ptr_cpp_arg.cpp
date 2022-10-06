@@ -69,6 +69,9 @@ TEST_SUBMODULE(class_sh_trampoline_shared_ptr_cpp_arg, m) {
         .def("has_python_instance", &SpBase::has_python_instance);
 
     m.def("pass_through_shd_ptr", pass_through_shd_ptr);
+    m.def("pass_through_shd_ptr_release_gil",
+          pass_through_shd_ptr,
+          py::call_guard<py::gil_scoped_release>()); // PR #4196
 
     py::classh<SpBaseTester>(m, "SpBaseTester")
         .def(py::init<>())
