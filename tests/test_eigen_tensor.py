@@ -29,6 +29,8 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=0):
 
 @pytest.mark.parametrize("m", submodules)
 def test_reference_internal(m):
+    if not hasattr(sys, "getrefcount"):
+        pytest.skip("No reference counting")
     foo = m.CustomExample()
     counts = sys.getrefcount(foo)
     mem = foo.member

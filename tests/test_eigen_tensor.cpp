@@ -104,12 +104,15 @@ void init_tensor_module(pybind11::module &m) {
 
     m.def("move_tensor", []() { return get_tensor<Options>(); });
 
+    // NOLINTBEGIN(readability-const-return-type)
     m.def("move_const_tensor", []() -> const Eigen::Tensor<double, 3, Options> {
         return get_const_tensor<Options>();
-    }); // NOLINT
+    });
+    // NOLINTEND(readability-const-return-type)
 
     m.def(
         "take_fixed_tensor",
+
         []() {
             Eigen::aligned_allocator<
                 Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>
@@ -167,12 +170,14 @@ void init_tensor_module(pybind11::module &m) {
         []() { return get_tensor_map<Options>(); },
         py::return_value_policy::reference);
 
+    // NOLINTBEGIN(readability-const-return-type)
     m.def(
         "reference_view_of_tensor_v2",
-        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> { // NOLINT
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> {
             return get_tensor_map<Options>();
         },
         py::return_value_policy::reference);
+    // NOLINTEND(readability-const-return-type)
 
     m.def(
         "reference_view_of_tensor_v3",
