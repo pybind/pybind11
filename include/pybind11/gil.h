@@ -19,7 +19,7 @@ class gil_scoped_acquire {
     PyGILState_STATE state;
 
 public:
-    gil_scoped_acquire() { state = PyGILState_Ensure(); }
+    gil_scoped_acquire() : state{PyGILState_Ensure()} {}
     gil_scoped_acquire(const gil_scoped_acquire &) = delete;
     gil_scoped_acquire &operator=(const gil_scoped_acquire &) = delete;
     ~gil_scoped_acquire() { PyGILState_Release(state); }
@@ -30,7 +30,7 @@ class gil_scoped_release {
     PyThreadState *state;
 
 public:
-    gil_scoped_release() { state = PyEval_SaveThread(); }
+    gil_scoped_release() : state{PyEval_SaveThread()} {}
     gil_scoped_release(const gil_scoped_release &) = delete;
     gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
     ~gil_scoped_release() { PyEval_RestoreThread(state); }
