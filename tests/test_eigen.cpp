@@ -201,7 +201,14 @@ TEST_SUBMODULE(eigen, m) {
              int start_row,
              int start_col,
              int block_rows,
-             int block_cols) { return x.block(start_row, start_col, block_rows, block_cols); });
+             int block_cols) {
+              // In case x is a copy made in the type_caster for Eigen::Ref
+              // (https://pybind11.readthedocs.io/en/stable/advanced/cast/eigen.html#pass-by-reference),
+              // returning the Eigen::Ref returned by x.block() will lead to heap-use-after-free,
+              // because the block references the copy, which is destroyed when this function
+              // returns. Therefore the block needs to be returned by value.
+              return Eigen::MatrixXd{x.block(start_row, start_col, block_rows, block_cols)};
+          });
 
     // test_eigen_return_references, test_eigen_keepalive
     // return value referencing/copying tests:
