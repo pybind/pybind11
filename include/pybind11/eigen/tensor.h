@@ -431,10 +431,8 @@ protected:
 
 public:
     static constexpr auto name = get_tensor_descriptor<Type, true>::value;
-    explicit operator MapType *() { 
-        return value.get(); }
-    explicit operator MapType &() { 
-        return *value; }
+    explicit operator MapType *() { return value.get(); }
+    explicit operator MapType &() { return *value; }
     explicit operator MapType &&() && { return std::move(*value); }
 
     template <typename T_>
