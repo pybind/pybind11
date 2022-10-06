@@ -40,10 +40,14 @@ public:
 #else
 
 class gil_scoped_acquire {
+    gil_scoped_acquire(const gil_scoped_acquire &) = delete;
+    gil_scoped_acquire &operator=(const gil_scoped_acquire &) = delete;
     void disarm() {}
 };
 
 class gil_scoped_release {
+    gil_scoped_release(const gil_scoped_release &) = delete;
+    gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
     void disarm() {}
 };
 
