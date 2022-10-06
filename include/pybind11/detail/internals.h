@@ -170,7 +170,9 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
+#    if PYBIND11_INTERNALS_VERSION > 5
     PYBIND11_TLS_KEY_INIT(tstate)
+#    endif // PYBIND11_INTERNALS_VERSION > 5
 #    if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
 #    endif // PYBIND11_INTERNALS_VERSION > 4
@@ -180,6 +182,7 @@ struct internals {
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
 #    endif // PYBIND11_INTERNALS_VERSION > 4
 
+#    if PYBIND11_INTERNALS_VERSION > 5
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
         // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is
         // called. PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does
@@ -188,6 +191,7 @@ struct internals {
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
+#    endif // PYBIND11_INTERNALS_VERSION > 5
     }
 #endif
 };
