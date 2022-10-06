@@ -166,7 +166,7 @@ void init_tensor_module(pybind11::module &m) {
 
     m.def(
         "reference_view_of_tensor",
-        []() { return get_tensor_map<Options>(); },
+        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> { return get_tensor_map<Options>(); },
         py::return_value_policy::reference);
 
     // NOLINTBEGIN(readability-const-return-type)
@@ -221,6 +221,16 @@ void init_tensor_module(pybind11::module &m) {
     m.def(
         "round_trip_view_tensor",
         [](Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> view) { return view; },
+        py::return_value_policy::reference);
+
+    m.def(
+        "round_trip_view_tensor_ref",
+        [](Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>& view) { return view; },
+        py::return_value_policy::reference);
+
+    m.def(
+        "round_trip_view_tensor_ptr",
+        [](Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>* view) { return view; },
         py::return_value_policy::reference);
 
     m.def(

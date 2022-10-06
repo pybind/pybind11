@@ -133,6 +133,8 @@ def test_round_trip(m):
 
     copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
     assert_equal_tensor_ref(m.round_trip_view_tensor(copy))
+    assert_equal_tensor_ref(m.round_trip_view_tensor_ref(copy))
+    assert_equal_tensor_ref(m.round_trip_view_tensor_ptr(copy))
     copy.setflags(write=False)
     assert_equal_tensor_ref(m.round_trip_const_view_tensor(copy))
 
