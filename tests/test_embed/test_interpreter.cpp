@@ -292,11 +292,6 @@ TEST_CASE("Threads") {
     auto locals = py::dict("count"_a = 0);
 
     {
-        // This used to be triggered by py::gil_scoped_release().
-        // TODO: Explain why/how this is relevant to this unit test.
-        py::detail::get_internals();
-        REQUIRE(has_pybind11_internals_static());
-
         py::gil_scoped_release gil_release{};
 
         auto threads = std::vector<std::thread>();
