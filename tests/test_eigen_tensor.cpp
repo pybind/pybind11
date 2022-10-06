@@ -62,11 +62,9 @@ const Eigen::Tensor<double, 3, Options> &get_const_tensor() { return get_tensor<
 
 template<int Options>
 struct CustomExample {
-    CustomExample() {
-        member = get_tensor<Options>();
-    }
+    CustomExample(): member(get_tensor<Options>()) {}
 
-    Eigen::Tensor<double, 3, Options> member;
+    const Eigen::Tensor<double, 3, Options> member;
 };
 
 
@@ -99,7 +97,7 @@ void init_tensor_module(pybind11::module& m) {
     m.def("move_tensor", []() { return get_tensor<Options>(); });
 
     m.def("move_const_tensor",
-          []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); });
+          []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); }); //NOLINT
 
     m.def(
         "take_fixed_tensor",
@@ -160,14 +158,14 @@ void init_tensor_module(pybind11::module& m) {
 
     m.def(
         "reference_view_of_tensor_v2",
-        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> { 
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> {  // NOLINT
             return get_tensor_map<Options>(); 
         },
         py::return_value_policy::reference);
 
     m.def(
         "reference_view_of_tensor_v3",
-        []() { 
+        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>* { 
             return &get_tensor_map<Options>(); 
         },
         py::return_value_policy::reference);

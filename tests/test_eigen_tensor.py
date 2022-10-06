@@ -26,11 +26,7 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=0):
     np.testing.assert_array_equal(mat, copy)
 
 @pytest.mark.parametrize('m', submodules)
-def test_convert_tensor_to_py(m):
-    assert_equal_tensor_ref(m.copy_tensor())
-    assert_equal_tensor_ref(m.copy_fixed_tensor())
-    assert_equal_tensor_ref(m.copy_const_tensor())
-
+def test_reference_internal(m):
     foo = m.CustomExample()
     counts = sys.getrefcount(foo)
     mem = foo.member
@@ -38,6 +34,12 @@ def test_convert_tensor_to_py(m):
     new_counts = sys.getrefcount(foo)
     assert new_counts == counts + 1
     assert_equal_tensor_ref(mem, writeable=False)
+
+@pytest.mark.parametrize('m', submodules)
+def test_convert_tensor_to_py(m):
+    assert_equal_tensor_ref(m.copy_tensor())
+    assert_equal_tensor_ref(m.copy_fixed_tensor())
+    assert_equal_tensor_ref(m.copy_const_tensor())
 
     assert_equal_tensor_ref(m.move_tensor())
     assert_equal_tensor_ref(m.move_fixed_tensor())
