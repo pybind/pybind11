@@ -133,18 +133,14 @@ struct eigen_tensor_helper<
 
 template <typename Type, bool ShowDetails>
 struct get_tensor_descriptor {
-    static constexpr auto details = 
-          const_name<std::is_const<typename Type::Scalar>::value> ("", ", flags.writeable")
-                       + const_name<static_cast<int>(Type::Layout)
-                                    == static_cast<int>(Eigen::RowMajor)>(", flags.c_contiguous",
-                                                                          ", flags.f_contiguous");
+    static constexpr auto details
+        = const_name<std::is_const<typename Type::Scalar>::value>("", ", flags.writeable")
+          + const_name<static_cast<int>(Type::Layout) == static_cast<int>(Eigen::RowMajor)>(
+              ", flags.c_contiguous", ", flags.f_contiguous");
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
-                  + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor
-                  + const_name("]") + const_name<ShowDetails>(
-                    details,
-                    const_name("")
-                  ) + const_name("]");
+          + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor + const_name("]")
+          + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
 template <typename Type>
@@ -247,8 +243,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
             case return_value_policy::take_ownership:
                 if (std::is_const<C>::value) {
-                    // This cast is ugly, and might be UB in some cases, but we don't have an alterantive here as we must free that memory
-                    Helper::free(const_cast<Type*>(src));
+                    // This cast is ugly, and might be UB in some cases, but we don't have an
+                    // alterantive here as we must free that memory
+                    Helper::free(const_cast<Type *>(src));
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
 

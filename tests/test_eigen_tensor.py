@@ -1,4 +1,5 @@
 import sys
+
 import pytest
 
 np = pytest.importorskip("numpy")
@@ -25,7 +26,8 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=0):
 
     np.testing.assert_array_equal(mat, copy)
 
-@pytest.mark.parametrize('m', submodules)
+
+@pytest.mark.parametrize("m", submodules)
 def test_reference_internal(m):
     foo = m.CustomExample()
     counts = sys.getrefcount(foo)
@@ -35,7 +37,8 @@ def test_reference_internal(m):
     assert new_counts == counts + 1
     assert_equal_tensor_ref(mem, writeable=False)
 
-@pytest.mark.parametrize('m', submodules)
+
+@pytest.mark.parametrize("m", submodules)
 def test_convert_tensor_to_py(m):
     assert_equal_tensor_ref(m.copy_tensor())
     assert_equal_tensor_ref(m.copy_fixed_tensor())
@@ -62,7 +65,7 @@ def test_convert_tensor_to_py(m):
     assert_equal_tensor_ref(m.reference_const_tensor_v2(), writeable=False)
 
 
-@pytest.mark.parametrize('m', submodules)
+@pytest.mark.parametrize("m", submodules)
 def test_bad_cpp_to_python_casts(m):
     with pytest.raises(Exception):
         m.reference_tensor_internal()
@@ -74,7 +77,7 @@ def test_bad_cpp_to_python_casts(m):
         m.take_const_tensor()
 
 
-@pytest.mark.parametrize('m', submodules)
+@pytest.mark.parametrize("m", submodules)
 def test_bad_python_to_cpp_casts(m):
     with pytest.raises(TypeError):
         m.round_trip_tensor(np.zeros((2, 3)))
@@ -88,18 +91,24 @@ def test_bad_python_to_cpp_casts(m):
         bad_options = "F"
     # Shape, dtype and the order need to be correct for a TensorMap cast
     with pytest.raises(TypeError):
-        m.round_trip_view_tensor(np.zeros((3, 5, 2), dtype=np.float64, order=bad_options))
+        m.round_trip_view_tensor(
+            np.zeros((3, 5, 2), dtype=np.float64, order=bad_options)
+        )
     with pytest.raises(TypeError):
-        m.round_trip_view_tensor(np.zeros((3, 5, 2), dtype=np.float32, order=m.needed_options))
+        m.round_trip_view_tensor(
+            np.zeros((3, 5, 2), dtype=np.float32, order=m.needed_options)
+        )
     with pytest.raises(TypeError):
-        m.round_trip_view_tensor(np.zeros((3, 5), dtype=np.float64, order=m.needed_options))
+        m.round_trip_view_tensor(
+            np.zeros((3, 5), dtype=np.float64, order=m.needed_options)
+        )
     with pytest.raises(TypeError):
         temp = np.zeros((3, 5, 2), dtype=np.float64, order=m.needed_options)
         temp.setflags(write=False)
         m.round_trip_view_tensor(temp)
 
 
-@pytest.mark.parametrize('m', submodules)
+@pytest.mark.parametrize("m", submodules)
 def test_references_actually_refer(m):
     a = m.reference_tensor()
     temp = a[indices]
@@ -115,7 +124,7 @@ def test_references_actually_refer(m):
     assert_equal_tensor_ref(m.copy_const_tensor())
 
 
-@pytest.mark.parametrize('m', submodules)
+@pytest.mark.parametrize("m", submodules)
 def test_round_trip(m):
     assert_equal_tensor_ref(m.round_trip_tensor(tensor_ref))
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(m.reference_tensor()))
@@ -125,9 +134,12 @@ def test_round_trip(m):
     copy.setflags(write=False)
     assert_equal_tensor_ref(m.round_trip_const_view_tensor(copy))
 
-    np.testing.assert_array_equal(tensor_ref[:, ::-1, :], m.round_trip_tensor(tensor_ref[:, ::-1, :]))
+    np.testing.assert_array_equal(
+        tensor_ref[:, ::-1, :], m.round_trip_tensor(tensor_ref[:, ::-1, :])
+    )
 
-@pytest.mark.parametrize('m', submodules)
+
+@pytest.mark.parametrize("m", submodules)
 def test_round_trip_references_actually_refer(m):
     # Need to create a copy that matches the type on the C side
     copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
@@ -139,11 +151,10 @@ def test_round_trip_references_actually_refer(m):
     assert_equal_tensor_ref(copy)
 
 
-@pytest.mark.parametrize('m', submodules)
+@pytest.mark.parametrize("m", submodules)
 def test_doc_string(m, doc):
     assert (
-        doc(m.copy_tensor)
-        == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
+        doc(m.copy_tensor) == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
     assert (
         doc(m.copy_fixed_tensor)
@@ -154,7 +165,7 @@ def test_doc_string(m, doc):
         == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
 
-    order_flag = f'flags.{m.needed_options.lower()}_contiguous'
+    order_flag = f"flags.{m.needed_options.lower()}_contiguous"
     assert doc(m.round_trip_view_tensor) == (
         f"round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}])"
         + f" -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}]"

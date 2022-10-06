@@ -9,7 +9,6 @@
 
 #include "pybind11_tests.h"
 
-
 template <typename M>
 void reset_tensor(M &x) {
     for (int i = 0; i < 3; i++) {
@@ -21,7 +20,7 @@ void reset_tensor(M &x) {
     }
 }
 
-template<int Options>
+template <int Options>
 Eigen::Tensor<double, 3, Options> &get_tensor() {
     static Eigen::Tensor<double, 3, Options> *x;
 
@@ -33,7 +32,7 @@ Eigen::Tensor<double, 3, Options> &get_tensor() {
     return *x;
 }
 
-template<int Options>
+template <int Options>
 Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> &get_tensor_map() {
     static Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> *x;
 
@@ -44,33 +43,36 @@ Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> &get_tensor_map() {
     return *x;
 }
 
-template<int Options>
+template <int Options>
 Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> &get_fixed_tensor() {
     static Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> *x;
 
     if (!x) {
-        Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>> allocator;
-        x = new (allocator.allocate(1)) Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>();
+        Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>
+            allocator;
+        x = new (allocator.allocate(1))
+            Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>();
         reset_tensor(*x);
     }
 
     return *x;
 }
 
-template<int Options>
-const Eigen::Tensor<double, 3, Options> &get_const_tensor() { return get_tensor<Options>(); }
+template <int Options>
+const Eigen::Tensor<double, 3, Options> &get_const_tensor() {
+    return get_tensor<Options>();
+}
 
-template<int Options>
+template <int Options>
 struct CustomExample {
-    CustomExample(): member(get_tensor<Options>()) {}
+    CustomExample() : member(get_tensor<Options>()) {}
 
     const Eigen::Tensor<double, 3, Options> member;
 };
 
-
-template<int Options>
-void init_tensor_module(pybind11::module& m) {
-    const char* needed_options = "";
+template <int Options>
+void init_tensor_module(pybind11::module &m) {
+    const char *needed_options = "";
     bool is_major = Options == Eigen::ColMajor;
     if (is_major) {
         needed_options = "F";
@@ -78,34 +80,43 @@ void init_tensor_module(pybind11::module& m) {
         needed_options = "C";
     }
     m.attr("needed_options") = needed_options;
-    
+
     py::class_<CustomExample<Options>>(m, "CustomExample")
         .def(py::init<>())
-        .def_readonly("member", &CustomExample<Options>::member, py::return_value_policy::reference_internal);
+        .def_readonly("member",
+                      &CustomExample<Options>::member,
+                      py::return_value_policy::reference_internal);
 
     m.def(
-        "copy_fixed_tensor", []() { return &get_fixed_tensor<Options>(); }, py::return_value_policy::copy);
+        "copy_fixed_tensor",
+        []() { return &get_fixed_tensor<Options>(); },
+        py::return_value_policy::copy);
 
     m.def(
         "copy_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::copy);
 
     m.def(
-        "copy_const_tensor", []() { return &get_const_tensor<Options>(); }, py::return_value_policy::copy);
+        "copy_const_tensor",
+        []() { return &get_const_tensor<Options>(); },
+        py::return_value_policy::copy);
 
     m.def("move_fixed_tensor", []() { return get_fixed_tensor<Options>(); });
 
     m.def("move_tensor", []() { return get_tensor<Options>(); });
 
-    m.def("move_const_tensor",
-          []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); }); //NOLINT
+    m.def("move_const_tensor", []() -> const Eigen::Tensor<double, 3, Options> {
+        return get_const_tensor<Options>();
+    }); // NOLINT
 
     m.def(
         "take_fixed_tensor",
         []() {
-            Eigen::aligned_allocator<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>
+            Eigen::aligned_allocator<
+                Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>
                 allocator;
             return new (allocator.allocate(1))
-                Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>(get_fixed_tensor<Options>());
+                Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>(
+                    get_fixed_tensor<Options>());
         },
         py::return_value_policy::take_ownership);
 
@@ -122,7 +133,9 @@ void init_tensor_module(pybind11::module& m) {
         py::return_value_policy::take_ownership);
 
     m.def(
-        "reference_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::reference);
+        "reference_tensor",
+        []() { return &get_tensor<Options>(); },
+        py::return_value_policy::reference);
 
     m.def(
         "reference_tensor_v2",
@@ -151,55 +164,55 @@ void init_tensor_module(pybind11::module& m) {
 
     m.def(
         "reference_view_of_tensor",
-        []() { 
+        []() { return get_tensor_map<Options>(); },
+        py::return_value_policy::reference);
+
+    m.def(
+        "reference_view_of_tensor_v2",
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> { // NOLINT
             return get_tensor_map<Options>();
         },
         py::return_value_policy::reference);
 
     m.def(
-        "reference_view_of_tensor_v2",
-        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> {  // NOLINT
-            return get_tensor_map<Options>(); 
-        },
-        py::return_value_policy::reference);
-
-    m.def(
         "reference_view_of_tensor_v3",
-        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>* { 
-            return &get_tensor_map<Options>(); 
+        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> * {
+            return &get_tensor_map<Options>();
         },
         py::return_value_policy::reference);
 
     m.def(
         "reference_view_of_tensor_v4",
-        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>* { 
-            return &get_tensor_map<Options>(); 
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> * {
+            return &get_tensor_map<Options>();
         },
         py::return_value_policy::reference);
 
     m.def(
         "reference_view_of_tensor_v5",
-        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>& { 
-            return get_tensor_map<Options>(); 
+        []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> & {
+            return get_tensor_map<Options>();
         },
         py::return_value_policy::reference);
 
     m.def(
         "reference_view_of_tensor_v6",
-        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>& { 
-            return get_tensor_map<Options>(); 
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> & {
+            return get_tensor_map<Options>();
         },
         py::return_value_policy::reference);
 
     m.def(
         "reference_view_of_fixed_tensor",
         []() {
-            return Eigen::TensorMap<Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>(
+            return Eigen::TensorMap<
+                Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>(
                 get_fixed_tensor<Options>());
         },
         py::return_value_policy::reference);
 
-    m.def("round_trip_tensor", [](const Eigen::Tensor<double, 3, Options> &tensor) { return tensor; });
+    m.def("round_trip_tensor",
+          [](const Eigen::Tensor<double, 3, Options> &tensor) { return tensor; });
 
     m.def(
         "round_trip_view_tensor",
@@ -208,7 +221,9 @@ void init_tensor_module(pybind11::module& m) {
 
     m.def(
         "round_trip_aligned_view_tensor",
-        [](Eigen::TensorMap<Eigen::Tensor<double, 3, Options>, Eigen::Aligned> view) { return view; },
+        [](Eigen::TensorMap<Eigen::Tensor<double, 3, Options>, Eigen::Aligned> view) {
+            return view;
+        },
         py::return_value_policy::reference);
 
     m.def(
@@ -217,7 +232,6 @@ void init_tensor_module(pybind11::module& m) {
             return Eigen::Tensor<double, 3, Options>(view);
         },
         py::return_value_policy::move);
-
 }
 
 TEST_SUBMODULE(eigen_tensor, m) {
