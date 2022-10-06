@@ -1580,7 +1580,8 @@ public:
 
 // Nvidia's NVCC is broken between 11.4.0 and 11.8.0
 //   https://github.com/pybind/pybind11/issues/4193
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4) && (__CUDACC_VER_MINOR__ <= 8)
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)            \
+    && (__CUDACC_VER_MINOR__ <= 8)
     template <typename T, typename... Extra>
     class_ &def(const T &op, const Extra &...extra) {
         op.execute(*this, extra...);
