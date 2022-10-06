@@ -105,9 +105,8 @@ void init_tensor_module(pybind11::module &m) {
     m.def("move_tensor", []() { return get_tensor<Options>(); });
 
     // NOLINTBEGIN(readability-const-return-type)
-    m.def("move_const_tensor", []() -> const Eigen::Tensor<double, 3, Options> {
-        return get_const_tensor<Options>();
-    });
+    m.def("move_const_tensor",
+          []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); });
     // NOLINTEND(readability-const-return-type)
 
     m.def(
