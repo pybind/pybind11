@@ -170,19 +170,21 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
-#    if PYBIND11_INTERNALS_VERSION > 5
+#    if PYBIND11_INTERNALS_VERSION < 6
     PYBIND11_TLS_KEY_INIT(tstate)
-#    endif // PYBIND11_INTERNALS_VERSION > 5
+#    endif // PYBIND11_INTERNALS_VERSION < 6
 #    if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
 #    endif // PYBIND11_INTERNALS_VERSION > 4
+#    if PYBIND11_INTERNALS_VERSION < 6
     PyInterpreterState *istate = nullptr;
+#    endif // PYBIND11_INTERNALS_VERSION < 6
     ~internals() {
 #    if PYBIND11_INTERNALS_VERSION > 4
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
 #    endif // PYBIND11_INTERNALS_VERSION > 4
 
-#    if PYBIND11_INTERNALS_VERSION > 5
+#    if PYBIND11_INTERNALS_VERSION < 6
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
         // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is
         // called. PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does
@@ -191,7 +193,7 @@ struct internals {
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
-#    endif // PYBIND11_INTERNALS_VERSION > 5
+#    endif // PYBIND11_INTERNALS_VERSION < 6
     }
 #endif
 };
@@ -442,11 +444,13 @@ PYBIND11_NOINLINE internals &get_internals() {
 #    if PY_VERSION_HEX < 0x03090000
         PyEval_InitThreads();
 #    endif
+#    if PYBIND11_INTERNALS_VERSION < 6
         PyThreadState *tstate = PyThreadState_Get();
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
             pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
         }
         PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
+#    endif
 
 #    if PYBIND11_INTERNALS_VERSION > 4
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
@@ -454,7 +458,9 @@ PYBIND11_NOINLINE internals &get_internals() {
                           "loader_life_support TSS key!");
         }
 #    endif
+#    if PYBIND11_INTERNALS_VERSION < 6
         internals_ptr->istate = tstate->interp;
+#    endif
 #endif
         builtins[id] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
