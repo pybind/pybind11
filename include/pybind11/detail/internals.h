@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "../gil.h"
 #include "../pytypes.h"
 
 #include <exception>
@@ -408,15 +409,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
-    // Ensure that the GIL is held since we will need to make Python calls.
-    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-    struct gil_scoped_acquire_local {
-        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
-        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
-        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
-        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
-        const PyGILState_STATE state;
-    } gil;
+    gil_scoped_acquire gil;
     error_scope err_scope;
 
     PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
