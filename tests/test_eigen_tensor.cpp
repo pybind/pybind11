@@ -71,6 +71,7 @@ struct CustomExample {
     Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> view_member;
 };
 
+
 template <int Options>
 void init_tensor_module(pybind11::module &m) {
     const char *needed_options = "";
@@ -264,7 +265,7 @@ void init_tensor_module(pybind11::module &m) {
 
     m.def(
         "round_trip_const_view_tensor",
-        [](Eigen::TensorMap<Eigen::Tensor<const double, 3, Options>> view) {
+        [](Eigen::TensorMap<const Eigen::Tensor<double, 3, Options>> view) {
             return Eigen::Tensor<double, 3, Options>(view);
         },
         py::return_value_policy::move);

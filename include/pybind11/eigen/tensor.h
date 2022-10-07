@@ -53,7 +53,6 @@ struct eigen_tensor_helper {};
 template <typename Scalar_, int NumIndices_, int Options_, typename IndexType>
 struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>> {
     using Type = Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexType>;
-    using ConstType = Eigen::Tensor<const Scalar_, NumIndices_, Options_, IndexType>;
     using ValidType = void;
 
     static Eigen::DSizes<typename Type::Index, Type::NumIndices> get_shape(const Type &f) {
@@ -98,8 +97,6 @@ template <typename Scalar_, typename std::ptrdiff_t... Indices, int Options_, ty
 struct eigen_tensor_helper<
     Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>> {
     using Type = Eigen::TensorFixedSize<Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
-    using ConstType
-        = Eigen::TensorFixedSize<const Scalar_, Eigen::Sizes<Indices...>, Options_, IndexType>;
     using ValidType = void;
 
     static constexpr Eigen::DSizes<typename Type::Index, Type::NumIndices>
@@ -131,15 +128,15 @@ struct eigen_tensor_helper<
     }
 };
 
-template <typename Type, bool ShowDetails>
+template <typename Type, bool ShowDetails, bool NeedsWriteable = false>
 struct get_tensor_descriptor {
     static constexpr auto details
-        = const_name<std::is_const<typename Type::Scalar>::value>("", ", flags.writeable")
+        = const_name<NeedsWriteable>(", flags.writeable", "")
           + const_name<static_cast<int>(Type::Layout) == static_cast<int>(Eigen::RowMajor)>(
               ", flags.c_contiguous", ", flags.f_contiguous");
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
-          + const_name("[") + eigen_tensor_helper<Type>::dimensions_descriptor + const_name("]")
+          + const_name("[") + eigen_tensor_helper<typename std::remove_const<Type>::type>::dimensions_descriptor + const_name("]")
           + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
@@ -177,9 +174,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
         if (is_tensor_aligned(arr.data())) {
             value
-                = Eigen::TensorMap<typename Helper::ConstType, Eigen::Aligned>(arr.data(), shape);
+                = Eigen::TensorMap<const Type, Eigen::Aligned>(arr.data(), shape);
         } else {
-            value = Eigen::TensorMap<typename Helper::ConstType>(arr.data(), shape);
+            value = Eigen::TensorMap<const Type>(arr.data(), shape);
         }
 
         return true;
@@ -305,21 +302,26 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
-template <typename Type, typename S = enable_if_t<std::is_const<Type>::value>>
-const void *get_array_data_for_type(array &arr) {
-    return arr.data();
+
+template< class T > struct is_const_pointer                    {};
+template< class T > struct is_const_pointer<T*> : std::false_type {};
+template< class T > struct is_const_pointer<const T*>: std::true_type {};
+
+template <typename StoragePointerType, enable_if_t<is_const_pointer<StoragePointerType>::value, bool> = true>
+StoragePointerType get_array_data_for_type(array &arr) {
+    return reinterpret_cast<StoragePointerType>(arr.data());
 }
 
-template <typename Type, typename S = enable_if_t<!std::is_const<Type>::value>>
-void *get_array_data_for_type(array &arr) {
-    return arr.mutable_data();
+template <typename StoragePointerType, enable_if_t<!is_const_pointer<StoragePointerType>::value, bool> = true>
+StoragePointerType get_array_data_for_type(array &arr) {
+    return reinterpret_cast<StoragePointerType>(arr.mutable_data());
 }
 
 template <typename Type, int Options>
-struct type_caster<Eigen::TensorMap<Type, Options>,
-                   typename eigen_tensor_helper<Type>::ValidType> {
+struct type_caster<Eigen::TensorMap<Type, Options>, 
+                   typename eigen_tensor_helper<typename std::remove_const<Type>::type>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
-    using Helper = eigen_tensor_helper<Type>;
+    using Helper = eigen_tensor_helper<typename std::remove_const<Type>::type>;
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
@@ -350,13 +352,12 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
-        constexpr bool needs_writeable = !std::is_const<typename Type::Scalar>::value;
         if (PYBIND11_SILENCE_MSVC_C4127(needs_writeable && !arr.writeable())) {
             return false;
         }
 
-        value.reset(new MapType(static_cast<typename Type::Scalar *>(
-                                    get_array_data_for_type<typename Type::Scalar>(arr)),
+        value.reset(new MapType(
+                                    get_array_data_for_type<typename MapType::StoragePointerType>(arr),
                                 shape));
 
         return true;
@@ -439,13 +440,15 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
         return result.release();
     }
+    
+    static constexpr bool needs_writeable = !is_const_pointer<typename MapType::StoragePointerType>::value;
 
 protected:
     // TODO: Move to std::optional once std::optional has more support
     std::unique_ptr<MapType> value;
 
 public:
-    static constexpr auto name = get_tensor_descriptor<Type, true>::value;
+    static constexpr auto name = get_tensor_descriptor<Type, true, needs_writeable>::value;
     explicit operator MapType *() { return value.get(); }
     explicit operator MapType &() { return *value; }
     explicit operator MapType &&() && { return std::move(*value); }
