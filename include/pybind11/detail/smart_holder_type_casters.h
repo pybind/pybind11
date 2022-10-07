@@ -400,7 +400,7 @@ struct shared_ptr_trampoline_self_life_support {
     PyObject *self;
     explicit shared_ptr_trampoline_self_life_support(instance *inst)
         : self{reinterpret_cast<PyObject *>(inst)} {
-        if (!PyGILState_Check()) throw std::runtime_error("NEEDED HERE: gil_scoped_acquire gil;");
+        gil_scoped_acquire gil;
         Py_INCREF(self);
     }
     void operator()(void *) {
