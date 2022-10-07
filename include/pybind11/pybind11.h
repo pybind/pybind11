@@ -1578,6 +1578,22 @@ public:
         return *this;
     }
 
+// Nvidia's NVCC is broken between 11.4.0 and 11.8.0
+//   https://github.com/pybind/pybind11/issues/4193
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)            \
+    && (__CUDACC_VER_MINOR__ <= 8)
+    template <typename T, typename... Extra>
+    class_ &def(const T &op, const Extra &...extra) {
+        op.execute(*this, extra...);
+        return *this;
+    }
+
+    template <typename T, typename... Extra>
+    class_ &def_cast(const T &op, const Extra &...extra) {
+        op.execute_cast(*this, extra...);
+        return *this;
+    }
+#else
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ &def(const detail::op_<id, ot, L, R> &op, const Extra &...extra) {
         op.execute(*this, extra...);
@@ -1589,6 +1605,7 @@ public:
         op.execute_cast(*this, extra...);
         return *this;
     }
+#endif
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::initimpl::constructor<Args...> &init, const Extra &...extra) {
