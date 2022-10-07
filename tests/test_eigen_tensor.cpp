@@ -65,9 +65,10 @@ const Eigen::Tensor<double, 3, Options> &get_const_tensor() {
 
 template <int Options>
 struct CustomExample {
-    CustomExample() : member(get_tensor<Options>()) {}
+    CustomExample() : member(get_tensor<Options>()), view_member(member) {}
 
-    const Eigen::Tensor<double, 3, Options> member;
+    Eigen::Tensor<double, 3, Options> member;
+    Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> view_member;
 };
 
 template <int Options>
@@ -85,6 +86,9 @@ void init_tensor_module(pybind11::module &m) {
         .def(py::init<>())
         .def_readonly("member",
                       &CustomExample<Options>::member,
+                      py::return_value_policy::reference_internal)
+        .def_readonly("member_view",
+                      &CustomExample<Options>::view_member,
                       py::return_value_policy::reference_internal);
 
     m.def(
@@ -104,10 +108,9 @@ void init_tensor_module(pybind11::module &m) {
 
     m.def("move_tensor", []() { return get_tensor<Options>(); });
 
-    // NOLINTBEGIN(readability-const-return-type)
     m.def("move_const_tensor",
+    // NOLINTNEXTLINE(readability-const-return-type)
           []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); });
-    // NOLINTEND(readability-const-return-type)
 
     m.def(
         "take_fixed_tensor",
@@ -169,14 +172,13 @@ void init_tensor_module(pybind11::module &m) {
         []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> { return get_tensor_map<Options>(); },
         py::return_value_policy::reference);
 
-    // NOLINTBEGIN(readability-const-return-type)
     m.def(
         "reference_view_of_tensor_v2",
+        // NOLINTNEXTLINE(readability-const-return-type)
         []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> {
-            return get_tensor_map<Options>();
-        },
+            return get_tensor_map<Options>(); //NOLINT(readability-const-return-type)
+        }, // NOLINT(readability-const-return-type)
         py::return_value_policy::reference);
-    // NOLINTEND(readability-const-return-type)
 
     m.def(
         "reference_view_of_tensor_v3",
