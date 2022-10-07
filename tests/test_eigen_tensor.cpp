@@ -84,9 +84,8 @@ void init_tensor_module(pybind11::module &m) {
 
     py::class_<CustomExample<Options>>(m, "CustomExample")
         .def(py::init<>())
-        .def_readonly("member",
-                      &CustomExample<Options>::member,
-                      py::return_value_policy::reference_internal)
+        .def_readonly(
+            "member", &CustomExample<Options>::member, py::return_value_policy::reference_internal)
         .def_readonly("member_view",
                       &CustomExample<Options>::view_member,
                       py::return_value_policy::reference_internal);
@@ -109,7 +108,7 @@ void init_tensor_module(pybind11::module &m) {
     m.def("move_tensor", []() { return get_tensor<Options>(); });
 
     m.def("move_const_tensor",
-    // NOLINTNEXTLINE(readability-const-return-type)
+          // NOLINTNEXTLINE(readability-const-return-type)
           []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); });
 
     m.def(
@@ -178,8 +177,8 @@ void init_tensor_module(pybind11::module &m) {
         "reference_view_of_tensor_v2",
         // NOLINTNEXTLINE(readability-const-return-type)
         []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> {
-            return get_tensor_map<Options>(); //NOLINT(readability-const-return-type)
-        }, // NOLINT(readability-const-return-type)
+            return get_tensor_map<Options>(); // NOLINT(readability-const-return-type)
+        },                                    // NOLINT(readability-const-return-type)
         py::return_value_policy::reference);
 
     m.def(
