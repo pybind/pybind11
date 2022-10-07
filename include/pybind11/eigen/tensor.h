@@ -412,7 +412,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
             case return_value_policy::take_ownership:
                 delete src;
-                //fallthrough
+                // fallthrough
             default:
                 // move, take_ownership don't make any sense for a ref/map:
                 pybind11_fail("Invalid return_value_policy for Eigen Map type, must be either "
