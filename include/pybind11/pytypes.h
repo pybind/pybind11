@@ -1829,18 +1829,18 @@ public:
             // guard if destructor called while err indicator is set
             error_scope error_guard;
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr) {
-                if (PyErr_Occurred()) {
-                    throw error_already_set();
-                }
-                pybind11_fail("Unable to get capsule context");
+            if (PyErr_Occurred()) {
+                throw error_already_set();
             }
             const char *name = get_name_in_error_scope(o);
             void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
             }
-            destructor(ptr);
+
+            if (destructor != nullptr) {
+                destructor(ptr);
+            }
         });
 
         if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
