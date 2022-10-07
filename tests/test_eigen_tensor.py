@@ -74,20 +74,22 @@ def test_convert_tensor_to_py(m):
 def test_bad_cpp_to_python_casts(m):
     with pytest.raises(RuntimeError) as exc_info:
         m.reference_tensor_internal()
-    assert str(exc_info.value) == 'Cannot use reference internal when there is no parent'
+    assert (
+        str(exc_info.value) == "Cannot use reference internal when there is no parent"
+    )
 
     with pytest.raises(RuntimeError) as exc_info:
         m.move_const_tensor()
-    assert str(exc_info.value) == 'Cannot move from a constant reference'
+    assert str(exc_info.value) == "Cannot move from a constant reference"
 
     with pytest.raises(RuntimeError) as exc_info:
         m.take_const_tensor()
-    assert str(exc_info.value) == 'Cannot take ownership of a const reference'
+    assert str(exc_info.value) == "Cannot take ownership of a const reference"
 
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_python_to_cpp_casts(m):
-    with pytest.raises(TypeError) as exc_info:
+    with pytest.raises(TypeError):
         m.round_trip_tensor(np.zeros((2, 3)))
 
     with pytest.raises(TypeError):
