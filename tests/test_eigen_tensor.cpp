@@ -71,7 +71,6 @@ struct CustomExample {
     Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> view_member;
 };
 
-
 template <int Options>
 void init_tensor_module(pybind11::module &m) {
     const char *needed_options = "";

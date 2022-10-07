@@ -136,8 +136,9 @@ struct get_tensor_descriptor {
               ", flags.c_contiguous", ", flags.f_contiguous");
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
-          + const_name("[") + eigen_tensor_helper<typename std::remove_const<Type>::type>::dimensions_descriptor + const_name("]")
-          + const_name<ShowDetails>(details, const_name("")) + const_name("]");
+          + const_name("[")
+          + eigen_tensor_helper<typename std::remove_const<Type>::type>::dimensions_descriptor
+          + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
 template <typename Type>
@@ -173,8 +174,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         }
 
         if (is_tensor_aligned(arr.data())) {
-            value
-                = Eigen::TensorMap<const Type, Eigen::Aligned>(arr.data(), shape);
+            value = Eigen::TensorMap<const Type, Eigen::Aligned>(arr.data(), shape);
         } else {
             value = Eigen::TensorMap<const Type>(arr.data(), shape);
         }
@@ -302,24 +302,29 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
+template <class T>
+struct is_const_pointer {};
+template <class T>
+struct is_const_pointer<T *> : std::false_type {};
+template <class T>
+struct is_const_pointer<const T *> : std::true_type {};
 
-template< class T > struct is_const_pointer                    {};
-template< class T > struct is_const_pointer<T*> : std::false_type {};
-template< class T > struct is_const_pointer<const T*>: std::true_type {};
-
-template <typename StoragePointerType, enable_if_t<is_const_pointer<StoragePointerType>::value, bool> = true>
+template <typename StoragePointerType,
+          enable_if_t<is_const_pointer<StoragePointerType>::value, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
     return reinterpret_cast<StoragePointerType>(arr.data());
 }
 
-template <typename StoragePointerType, enable_if_t<!is_const_pointer<StoragePointerType>::value, bool> = true>
+template <typename StoragePointerType,
+          enable_if_t<!is_const_pointer<StoragePointerType>::value, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
     return reinterpret_cast<StoragePointerType>(arr.mutable_data());
 }
 
 template <typename Type, int Options>
-struct type_caster<Eigen::TensorMap<Type, Options>, 
-                   typename eigen_tensor_helper<typename std::remove_const<Type>::type>::ValidType> {
+struct type_caster<
+    Eigen::TensorMap<Type, Options>,
+    typename eigen_tensor_helper<typename std::remove_const<Type>::type>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<typename std::remove_const<Type>::type>;
 
@@ -356,8 +361,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
-        value.reset(new MapType(
-                                    get_array_data_for_type<typename MapType::StoragePointerType>(arr),
+        value.reset(new MapType(get_array_data_for_type<typename MapType::StoragePointerType>(arr),
                                 shape));
 
         return true;
@@ -440,8 +444,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
         return result.release();
     }
-    
-    static constexpr bool needs_writeable = !is_const_pointer<typename MapType::StoragePointerType>::value;
+
+    static constexpr bool needs_writeable
+        = !is_const_pointer<typename MapType::StoragePointerType>::value;
 
 protected:
     // TODO: Move to std::optional once std::optional has more support
