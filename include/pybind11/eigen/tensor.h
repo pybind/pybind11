@@ -149,7 +149,19 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     static constexpr auto temp_name = get_tensor_descriptor<Type, false>::value;
     PYBIND11_TYPE_CASTER(Type, temp_name);
 
-    bool load(handle src, bool /*convert*/) {
+    bool load(handle src, bool convert) {
+        if (!convert) {
+            array temp = array::ensure(src);
+            if (!temp) {
+                return false;
+            }
+        
+            if (!convert && !temp.dtype().is(dtype::of<typename Type::Scalar>())) {
+                return false;
+            }
+        }
+
+
         array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()> arr(
             reinterpret_borrow<object>(src));
 
