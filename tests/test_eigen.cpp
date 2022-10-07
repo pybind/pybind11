@@ -213,6 +213,8 @@ TEST_SUBMODULE(eigen, m) {
            int start_col,
            int block_rows,
            int block_cols) {
+            // See PR #4217 for background. This test is a bit over the top, but might be useful
+            // as a concrete example to point to when explaining the dangling reference trap.
             auto i0 = py::make_tuple(0, 0);
             auto x0_orig = x_obj[*i0].cast<double>();
             if (x(0, 0) != x0_orig) {
