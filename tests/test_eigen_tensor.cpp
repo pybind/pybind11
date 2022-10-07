@@ -227,8 +227,10 @@ void init_tensor_module(pybind11::module &m) {
     m.def("round_trip_tensor",
           [](const Eigen::Tensor<double, 3, Options> &tensor) { return tensor; });
 
-    m.def("round_trip_tensor_noconvert",
-          [](const Eigen::Tensor<double, 3, Options> &tensor) { return tensor; }, py::arg("tensor").noconvert());
+    m.def(
+        "round_trip_tensor_noconvert",
+        [](const Eigen::Tensor<double, 3, Options> &tensor) { return tensor; },
+        py::arg("tensor").noconvert());
 
     m.def("round_trip_tensor2",
           [](const Eigen::Tensor<int32_t, 3, Options> &tensor) { return tensor; });

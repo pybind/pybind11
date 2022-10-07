@@ -103,7 +103,9 @@ def test_bad_python_to_cpp_casts(m):
     with pytest.raises(TypeError):
         m.round_trip_tensor_noconvert(tensor_ref)
 
-    assert_equal_tensor_ref(m.round_trip_tensor_noconvert(tensor_ref.astype(np.float64)))
+    assert_equal_tensor_ref(
+        m.round_trip_tensor_noconvert(tensor_ref.astype(np.float64))
+    )
 
     if m.needed_options == "F":
         bad_options = "C"

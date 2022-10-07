@@ -155,12 +155,11 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             if (!temp) {
                 return false;
             }
-        
+
             if (!convert && !temp.dtype().is(dtype::of<typename Type::Scalar>())) {
                 return false;
             }
         }
-
 
         array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()> arr(
             reinterpret_borrow<object>(src));
