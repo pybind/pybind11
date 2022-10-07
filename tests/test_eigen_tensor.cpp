@@ -136,6 +136,13 @@ void init_tensor_module(pybind11::module &m) {
         py::return_value_policy::take_ownership);
 
     m.def(
+        "take_view_tensor",
+        []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> * {
+            return new Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>(get_tensor<Options>());
+        },
+        py::return_value_policy::take_ownership);
+
+    m.def(
         "reference_tensor",
         []() { return &get_tensor<Options>(); },
         py::return_value_policy::reference);
