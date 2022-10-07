@@ -291,7 +291,8 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("return_capsule_with_explicit_nullptr_dtor", []() {
         py::print("creating capsule with explicit nullptr dtor");
-        return py::capsule(reinterpret_cast<void*>(1234), static_cast<void (*)(void *)>(nullptr)); // PR #4221
+        return py::capsule(reinterpret_cast<void *>(1234),
+                           static_cast<void (*)(void *)>(nullptr)); // PR #4221
     });
 
     // test_accessors
