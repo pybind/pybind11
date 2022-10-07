@@ -82,7 +82,9 @@ def test_bad_cpp_to_python_casts(m):
         m.move_const_tensor()
     assert str(exc_info.value) == "Cannot move from a constant reference"
 
-    with pytest.raises(RuntimeError, match='Cannot take ownership of a const reference'):
+    with pytest.raises(
+        RuntimeError, match="Cannot take ownership of a const reference"
+    ):
         m.take_const_tensor()
     assert str(exc_info.value) == "Cannot take ownership of a const reference"
 
