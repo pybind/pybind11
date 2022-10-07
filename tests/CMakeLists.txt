@@ -128,8 +128,8 @@ set(PYBIND11_TEST_FILES
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
-    test_eigen_tensor
     test_eigen_matrix
+    test_eigen_tensor
     test_enum
     test_eval
     test_exceptions
@@ -234,9 +234,9 @@ list(GET PYBIND11_EIGEN_VERSION_AND_HASH 1 PYBIND11_EIGEN_VERSION_HASH)
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
-list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
+list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
 if(PYBIND11_TEST_FILES_EIGEN_I EQUAL -1)
-  list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
+  list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
 endif()
 if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
@@ -293,12 +293,12 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     endif()
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
   else()
-    list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
+    list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
 
-    list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
+    list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
