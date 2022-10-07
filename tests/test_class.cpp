@@ -56,7 +56,7 @@ atyp_valu rtrn_valu() {
     return obj;
 }
 
-void bind_all(py::module_ m) {
+void bind_all(py::module_ &m) {
     py::class_<atyp_valu>(m, "atyp_valu")
         .def(py::init(&rtrn_valu))
         .def("get_mtxt", get_mtxt<atyp_valu>);
