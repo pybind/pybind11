@@ -87,7 +87,7 @@ py_files = {
     "setup_helpers.py",
 }
 
-headers = main_headers | detail_headers | eigen_headers | stl_headers 
+headers = main_headers | detail_headers | eigen_headers | stl_headers
 src_files = headers | cmake_files | pkgconfig_files
 all_files = src_files | py_files
 
