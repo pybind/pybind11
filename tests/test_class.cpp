@@ -36,6 +36,35 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
+namespace test_class {
+namespace pr4220 { // PR #4220
+
+template <int> // Using int as a trick to easily generate a series of types.
+struct atyp {  // Short for "any type".
+    std::string mtxt;
+};
+
+template <typename T>
+std::string get_mtxt(const T &obj) {
+    return obj.mtxt;
+}
+
+using atyp_valu = atyp<0x0>;
+
+atyp_valu rtrn_valu() {
+    atyp_valu obj{"Value"};
+    return obj;
+}
+
+void bind_all(py::module_ m) {
+    py::class_<atyp_valu>(m, "atyp_valu")
+        .def(py::init(&rtrn_valu))
+        .def("get_mtxt", get_mtxt<atyp_valu>);
+}
+
+} // namespace pr4220
+} // namespace test_class
+
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -517,6 +546,8 @@ TEST_SUBMODULE(class_, m) {
         py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
+
+    test_class::pr4220::bind_all(m);
 }
 
 template <int N>
