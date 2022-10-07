@@ -7,7 +7,7 @@ eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
 
 submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
 
-tensor_ref = np.empty((3, 5, 2), dtype=np.int_)
+tensor_ref = np.empty((3, 5, 2), dtype=np.int64)
 
 for i in range(tensor_ref.shape[0]):
     for j in range(tensor_ref.shape[1]):
