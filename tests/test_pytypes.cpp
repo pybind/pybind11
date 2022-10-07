@@ -289,6 +289,11 @@ TEST_SUBMODULE(pytypes, m) {
         return capsule;
     });
 
+    m.def("return_capsule_with_explicit_nullptr_dtor", []() {
+        py::print("creating capsule with explicit nullptr dtor");
+        return py::capsule((void *) 1234, (void (*)(void *)) nullptr); // PR #4221
+    });
+
     // test_accessors
     m.def("accessor_api", [](const py::object &o) {
         auto d = py::dict();
