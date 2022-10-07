@@ -220,6 +220,9 @@ void init_tensor_module(pybind11::module &m) {
     m.def("round_trip_tensor",
           [](const Eigen::Tensor<double, 3, Options> &tensor) { return tensor; });
 
+    m.def("round_trip_fixed_tensor",
+          [](const Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> &tensor) { return tensor; });
+
     m.def(
         "round_trip_view_tensor",
         [](Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> view) { return view; },

@@ -132,6 +132,7 @@ def test_references_actually_refer(m):
 @pytest.mark.parametrize("m", submodules)
 def test_round_trip(m):
     assert_equal_tensor_ref(m.round_trip_tensor(tensor_ref))
+    assert_equal_tensor_ref(m.round_trip_fixed_tensor(tensor_ref))
     assert_equal_tensor_ref(m.round_trip_aligned_view_tensor(m.reference_tensor()))
 
     copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
