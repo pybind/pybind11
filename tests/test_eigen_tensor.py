@@ -9,9 +9,9 @@ submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
 
 tensor_ref = np.zeros((3, 5, 2))
 
-for i in range(3):
-    for j in range(5):
-        for k in range(2):
+for i in range(tensor_ref.shape[0]):
+    for j in range(tensor_ref.shape[1]):
+        for k in range(tensor_ref.shape[2]):
             tensor_ref[i, j, k] = i * (5 * 2) + j * 2 + k
 
 indices = (2, 3, 1)
