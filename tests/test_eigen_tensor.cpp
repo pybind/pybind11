@@ -74,8 +74,7 @@ struct CustomExample {
 template <int Options>
 void init_tensor_module(pybind11::module &m) {
     const char *needed_options = "";
-    bool is_major = Options == Eigen::ColMajor;
-    if (is_major) {
+    if (PYBIND11_SILENCE_MSVC_C4127(Options == Eigen::ColMajor)) {
         needed_options = "F";
     } else {
         needed_options = "C";

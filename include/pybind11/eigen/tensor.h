@@ -326,8 +326,9 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
         }
 
         // Use temporary to avoid MSVC warning ...
-        bool is_aligned = (Options & Eigen::Aligned) != 0;
-        if (is_aligned && !is_tensor_aligned(arr.data())) {
+        constexpr bool is_aligned = (Options & Eigen::Aligned) != 0;
+
+        if (PYBIND11_SILENCE_MSVC_C4127(is_aligned && !is_tensor_aligned(arr.data()))) {
             return false;
         }
 
@@ -338,8 +339,8 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
-        bool needs_writeable = !std::is_const<typename Type::Scalar>::value;
-        if (needs_writeable && !arr.writeable()) {
+        constexpr bool needs_writeable = !std::is_const<typename Type::Scalar>::value;
+        if (PYBIND11_SILENCE_MSVC_C4127(needs_writeable && !arr.writeable())) {
             return false;
         }
 
