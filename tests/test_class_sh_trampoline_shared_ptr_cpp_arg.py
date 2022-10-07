@@ -132,12 +132,15 @@ def test_infinite():
         break  # Comment out for manual leak checking (use `top` command).
 
 
-def test_std_make_shared_factory():
+@pytest.mark.parametrize(
+    "pass_through_func", [m.pass_through_shd_ptr, m.pass_through_shd_ptr_release_gil]
+)
+def test_std_make_shared_factory(pass_through_func):
     class PyChild(m.SpBase):
         def __init__(self):
             super().__init__(0)
 
     obj = PyChild()
     while True:
-        assert m.pass_through_shd_ptr(obj) is obj
+        assert pass_through_func(obj) is obj
         break  # Comment out for manual leak checking (use `top` command).
