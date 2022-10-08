@@ -469,7 +469,12 @@ struct type_caster<
         return result.release();
     }
     
+        #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
     static constexpr bool needs_writeable = !is_const_pointer<typename get_storage_pointer_type<MapType>::SPT>::value;
+        #else
+        // Handle Eigen bug
+    static constexpr bool needs_writeable = !std::is_const<Type>::value;
+        #endif
 
 protected:
     // TODO: Move to std::optional once std::optional has more support
