@@ -27,7 +27,7 @@
 #    pragma GCC diagnostic pop
 #endif
 
-static_assert(EIGEN_VERSION_AT_LEAST(3, 3,0),
+static_assert(EIGEN_VERSION_AT_LEAST(3, 3, 0),
               "Eigen Tensor support in pybind11 requires Eigen >= 3.3.0");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -173,13 +173,12 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
-
-        #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
+#if EIGEN_VERSION_AT_LEAST(3, 4, 0)
         auto data_pointer = arr.data();
-        #else
+#else
         // Handle Eigen bug
-        auto data_pointer = const_cast<typename Type::Scalar*>(arr.data());
-        #endif
+        auto data_pointer = const_cast<typename Type::Scalar *>(arr.data());
+#endif
 
         if (is_tensor_aligned(arr.data())) {
             value = Eigen::TensorMap<const Type, Eigen::Aligned>(data_pointer, shape);
@@ -317,25 +316,26 @@ struct is_const_pointer<T *> : std::false_type {};
 template <class T>
 struct is_const_pointer<const T *> : std::true_type {};
 
-
-template <typename StoragePointerType, bool needs_writeable,
+template <typename StoragePointerType,
+          bool needs_writeable,
           enable_if_t<!needs_writeable, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
-        #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
+#if EIGEN_VERSION_AT_LEAST(3, 4, 0)
     return reinterpret_cast<StoragePointerType>(arr.data());
-        #else
-        // Handle Eigen bug
-    return reinterpret_cast<StoragePointerType>(const_cast<void*>(arr.data()));
-        #endif
+#else
+    // Handle Eigen bug
+    return reinterpret_cast<StoragePointerType>(const_cast<void *>(arr.data()));
+#endif
 }
 
-template <typename StoragePointerType, bool needs_writeable,
+template <typename StoragePointerType,
+          bool needs_writeable,
           enable_if_t<needs_writeable, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
     return reinterpret_cast<StoragePointerType>(arr.mutable_data());
 }
 
-template <typename T, typename=void>
+template <typename T, typename = void>
 struct get_storage_pointer_type;
 
 template <typename MapType>
@@ -388,12 +388,10 @@ struct type_caster<
             return false;
         }
 
-        auto result = get_array_data_for_type<typename get_storage_pointer_type<MapType>::SPT, needs_writeable>(arr);
+        auto result = get_array_data_for_type<typename get_storage_pointer_type<MapType>::SPT,
+                                              needs_writeable>(arr);
 
-        value.reset(new MapType(
-                                    result,
-                                    shape
-                                    ));
+        value.reset(new MapType(result, shape));
 
         return true;
     }
@@ -475,13 +473,14 @@ struct type_caster<
 
         return result.release();
     }
-    
-        #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
-    static constexpr bool needs_writeable = !is_const_pointer<typename get_storage_pointer_type<MapType>::SPT>::value;
-        #else
-        // Handle Eigen bug
+
+#if EIGEN_VERSION_AT_LEAST(3, 4, 0)
+    static constexpr bool needs_writeable
+        = !is_const_pointer<typename get_storage_pointer_type<MapType>::SPT>::value;
+#else
+    // Handle Eigen bug
     static constexpr bool needs_writeable = !std::is_const<Type>::value;
-        #endif
+#endif
 
 protected:
     // TODO: Move to std::optional once std::optional has more support
