@@ -27,7 +27,7 @@
 #    pragma GCC diagnostic pop
 #endif
 
-static_assert(EIGEN_VERSION_AT_LEAST(3, 3, 0),
+static_assert(EIGEN_VERSION_AT_LEAST(3, 3,0),
               "Eigen Tensor support in pybind11 requires Eigen >= 3.3.0");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
