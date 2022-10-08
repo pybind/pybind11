@@ -6,15 +6,14 @@
 */
 
 #include <pybind11/eigen.h>
-#include <iostream>
 
 #include "pybind11_tests.h"
 
 template <typename M>
 void reset_tensor(M &x) {
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 2; k++) {
+    for (int i = 0; i < x.dimension(0); i++) {
+        for (int j = 0; j < x.dimension(1); j++) {
+            for (int k = 0; k < x.dimension(2); k++) {
                 x(i, j, k) = i * (5 * 2) + j * 2 + k;
             }
         }
@@ -235,7 +234,6 @@ void init_tensor_module(pybind11::module &m) {
 
     m.def("round_trip_tensor2",
           [](const Eigen::Tensor<int32_t, 3, Options> &tensor) { 
-	  std::cerr<<tensor<<std::endl;
 	  return tensor; });
 
     m.def("round_trip_fixed_tensor",

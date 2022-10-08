@@ -10,6 +10,10 @@
 
 #include "../numpy.h"
 
+#if defined(__GNUC__)
+static_assert(__GNUC__ > 5, "Eigen Tensor support in pybind11 requires GCC > 5.0");
+#endif
+
 #if defined(_MSC_VER)
 #    pragma warning(push)
 #    pragma warning(disable : 4554) // Tensor.h warning
@@ -69,17 +73,7 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
 
     template <size_t... Is>
     struct helper<index_sequence<Is...>> {
-#if defined(__GNUC__) && __GNUC__ <= 4
-
-        // Hack to work around gcc 4.8 bugs.
-        static constexpr descr<sizeof...(Is) * 3 - 2> value
-            = concat(const_name(((void) Is, "?"))...);
-
-#else
-
         static constexpr auto value = concat(const_name(((void) Is, "?"))...);
-
-#endif
     };
 
     static constexpr auto dimensions_descriptor
@@ -148,7 +142,6 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     PYBIND11_TYPE_CASTER(Type, temp_name);
 
     bool load(handle src, bool convert) {
-	printf("Loading it %d\n", convert);
         if (!convert) {
             array temp = array::ensure(src);
             if (!temp) {
@@ -242,7 +235,6 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
-	    printf("Working with %d\n", (int) policy);
         object parent_object;
         bool writeable = false;
         switch (policy) {

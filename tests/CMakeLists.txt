@@ -307,6 +307,15 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   endif()
 endif()
 
+# Some code doesn't support gcc 4
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+    list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
+    if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
+        list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
+    endif()
+endif()
+
+
 # Optional dependency for some tests (boost::variant is only supported with version >= 1.56)
 find_package(Boost 1.56)
 
