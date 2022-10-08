@@ -37,32 +37,23 @@ struct NoBraceInitialization {
 };
 
 namespace test_class {
-namespace pr4220 { // PR #4220
+namespace pr4220_tripped_over_this { // PR #4227
 
-template <int> // Using int as a trick to easily generate a series of types.
-struct atyp {  // Short for "any type".
-    std::string mtxt;
-};
+template <int>
+struct SoEmpty {};
 
 template <typename T>
-std::string get_mtxt(const T &obj) {
-    return obj.mtxt;
+std::string get_msg(const T &) {
+    return "This is really only meant to exercise successful compilation.";
 }
 
-using atyp_valu = atyp<0x0>;
+using Empty0 = SoEmpty<0x0>;
 
-atyp_valu rtrn_valu() {
-    atyp_valu obj{"Value"};
-    return obj;
+void bind_empty0(py::module_ &m) {
+    py::class_<Empty0>(m, "Empty0").def(py::init<>()).def("get_msg", get_msg<Empty0>);
 }
 
-void bind_all(py::module_ &m) {
-    py::class_<atyp_valu>(m, "atyp_valu")
-        .def(py::init(&rtrn_valu))
-        .def("get_mtxt", get_mtxt<atyp_valu>);
-}
-
-} // namespace pr4220
+} // namespace pr4220_tripped_over_this
 } // namespace test_class
 
 TEST_SUBMODULE(class_, m) {
@@ -547,7 +538,7 @@ TEST_SUBMODULE(class_, m) {
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
 
-    test_class::pr4220::bind_all(m);
+    test_class::pr4220_tripped_over_this::bind_empty0(m);
 }
 
 template <int N>
