@@ -84,9 +84,7 @@ struct op_impl {};
 /// Operator implementation generator
 template <op_id id, op_type ot, typename L, typename R>
 struct op_ {
-#if defined(PYBIND11_USING_WORKAROUND_FOR_CUDA_11_4_THROUGH_8)
     static constexpr bool op_enable_if_hook = true;
-#endif
     template <typename Class, typename... Extra>
     void execute(Class &cl, const Extra &...extra) const {
         using Base = typename Class::type;
