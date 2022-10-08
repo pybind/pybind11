@@ -391,19 +391,17 @@ struct type_caster<
     }
 
     static handle cast(MapType &&src, return_value_policy policy, handle parent) {
-	if (policy == return_value_policy::take_ownership) {
-		pybind11_fail("wat");
-	}
+        if (policy == return_value_policy::take_ownership) {
+            pybind11_fail("wat");
+        }
         return cast_impl(&src, policy, parent);
     }
 
     static handle cast(const MapType &&src, return_value_policy policy, handle parent) {
-	if (policy == return_value_policy::take_ownership) {
+        if (policy == return_value_policy::take_ownership) {
 
-
-
-		pybind11_fail("wat2");
-	}
+            pybind11_fail("wat2");
+        }
         return cast_impl(&src, policy, parent);
     }
 
