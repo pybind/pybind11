@@ -30,6 +30,7 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=0):
 @pytest.mark.parametrize("m", submodules)
 @pytest.mark.parametrize("member_name", ["member", "member_view"])
 def test_reference_internal(m, member_name):
+    pytest.skip("Debug 7 second")
     if not hasattr(sys, "getrefcount"):
         pytest.skip("No reference counting")
     foo = m.CustomExample()
@@ -72,6 +73,7 @@ def test_convert_tensor_to_py(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_cpp_to_python_casts(m):
+    pytest.skip("Debug 7")
     with pytest.raises(
         RuntimeError, match="Cannot use reference internal when there is no parent"
     ):
