@@ -173,10 +173,18 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             return false;
         }
 
+
+        #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
+        auto data_pointer = arr.data();
+        #else
+        // Handle Eigen bug
+        auto data_pointer = const_cast<typename Type::Scalar*>(arr.data());
+        #endif
+
         if (is_tensor_aligned(arr.data())) {
-            value = Eigen::TensorMap<const Type, Eigen::Aligned>(arr.data(), shape);
+            value = Eigen::TensorMap<const Type, Eigen::Aligned>(data_pointer, shape);
         } else {
-            value = Eigen::TensorMap<const Type>(arr.data(), shape);
+            value = Eigen::TensorMap<const Type>(data_pointer, shape);
         }
 
         return true;
