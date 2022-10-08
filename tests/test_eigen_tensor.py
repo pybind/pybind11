@@ -46,6 +46,7 @@ def test_reference_internal(m, member_name):
 
 @pytest.mark.parametrize("m", submodules)
 def test_convert_tensor_to_py(m):
+    pytest.skip("Debug 7 second")
     assert_equal_tensor_ref(m.copy_tensor())
     assert_equal_tensor_ref(m.copy_fixed_tensor())
     assert_equal_tensor_ref(m.copy_const_tensor())
@@ -96,6 +97,7 @@ def test_bad_cpp_to_python_casts(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_python_to_cpp_casts(m):
+    pytest.skip("Debug 7 second")
     with pytest.raises(TypeError):
         m.round_trip_tensor(np.zeros((2, 3)))
 
@@ -183,6 +185,7 @@ def test_round_trip(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_round_trip_references_actually_refer(m):
+    pytest.skip("Debug 7 second")
     # Need to create a copy that matches the type on the C side
     copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
     a = m.round_trip_view_tensor(copy)
