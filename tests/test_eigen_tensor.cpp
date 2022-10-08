@@ -6,6 +6,7 @@
 */
 
 #include <pybind11/eigen.h>
+#include <iostream>
 
 #include "pybind11_tests.h"
 
@@ -233,7 +234,9 @@ void init_tensor_module(pybind11::module &m) {
         py::arg("tensor").noconvert());
 
     m.def("round_trip_tensor2",
-          [](const Eigen::Tensor<int32_t, 3, Options> &tensor) { return tensor; });
+          [](const Eigen::Tensor<int32_t, 3, Options> &tensor) { 
+	  std::cerr<<tensor<<std::endl;
+	  return tensor; });
 
     m.def("round_trip_fixed_tensor",
           [](const Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> &tensor) {
