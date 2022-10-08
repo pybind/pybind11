@@ -148,6 +148,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     PYBIND11_TYPE_CASTER(Type, temp_name);
 
     bool load(handle src, bool convert) {
+	printf("Loading it %d\n", convert);
         if (!convert) {
             array temp = array::ensure(src);
             if (!temp) {
