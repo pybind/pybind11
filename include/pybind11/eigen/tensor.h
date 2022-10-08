@@ -309,6 +309,7 @@ struct is_const_pointer<T *> : std::false_type {};
 template <class T>
 struct is_const_pointer<const T *> : std::true_type {};
 
+
 template <typename StoragePointerType,
           enable_if_t<is_const_pointer<StoragePointerType>::value, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
@@ -325,12 +326,12 @@ template <typename T, typename=void>
 struct get_storage_pointer_type;
 
 template <typename MapType>
-struct get_storage_pointer_type<MapType, std::void_t<typename MapType::StoragePointerType>> {
+struct get_storage_pointer_type<MapType, void_t<typename MapType::StoragePointerType>> {
     using SPT = typename MapType::StoragePointerType;
 };
 
 template <typename MapType>
-struct get_storage_pointer_type<MapType, std::void_t<typename MapType::PointerArgType>> {
+struct get_storage_pointer_type<MapType, void_t<typename MapType::PointerArgType>> {
     using SPT = typename MapType::PointerArgType;
 };
 
