@@ -321,6 +321,19 @@ StoragePointerType get_array_data_for_type(array &arr) {
     return reinterpret_cast<StoragePointerType>(arr.mutable_data());
 }
 
+template <typename T, typename=void>
+struct get_storage_pointer_type;
+
+template <typename MapType>
+struct get_storage_pointer_type<MapType, std::void_t<typename MapType::StoragePointerType>> {
+    using SPT = typename MapType::StoragePointerType;
+};
+
+template <typename MapType>
+struct get_storage_pointer_type<MapType, std::void_t<typename MapType::PointerArgType>> {
+    using SPT = typename MapType::PointerArgType;
+};
+
 template <typename Type, int Options>
 struct type_caster<
     Eigen::TensorMap<Type, Options>,
@@ -361,8 +374,10 @@ struct type_caster<
             return false;
         }
 
-        value.reset(new MapType(get_array_data_for_type<typename MapType::StoragePointerType>(arr),
-                                shape));
+        value.reset(new MapType(
+                                    get_array_data_for_type<typename get_storage_pointer_type<MapType>::SPT>(arr),
+                                    shape
+                                    ));
 
         return true;
     }
@@ -444,9 +459,8 @@ struct type_caster<
 
         return result.release();
     }
-
-    static constexpr bool needs_writeable
-        = !is_const_pointer<typename MapType::StoragePointerType>::value;
+    
+    static constexpr bool needs_writeable = !is_const_pointer<typename get_storage_pointer_type<MapType>::SPT>::value;
 
 protected:
     // TODO: Move to std::optional once std::optional has more support
