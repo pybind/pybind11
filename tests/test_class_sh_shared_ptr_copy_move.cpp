@@ -48,7 +48,6 @@ PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::FooShPtr,
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::FooSmHld)
 
 namespace pybind11_tests {
-namespace {
 
 TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
     namespace py = pybind11;
@@ -110,5 +109,4 @@ TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
     });
 }
 
-} // namespace
 } // namespace pybind11_tests
