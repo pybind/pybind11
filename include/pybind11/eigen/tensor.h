@@ -10,7 +10,7 @@
 
 #include "../numpy.h"
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 static_assert(__GNUC__ > 5, "Eigen Tensor support in pybind11 requires GCC > 5.0");
 #endif
 
