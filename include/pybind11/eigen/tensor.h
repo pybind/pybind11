@@ -318,14 +318,19 @@ template <class T>
 struct is_const_pointer<const T *> : std::true_type {};
 
 
-template <typename StoragePointerType,
-          enable_if_t<is_const_pointer<StoragePointerType>::value, bool> = true>
+template <typename StoragePointerType, bool needs_writeable,
+          enable_if_t<!needs_writeable, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
+        #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
     return reinterpret_cast<StoragePointerType>(arr.data());
+        #else
+        // Handle Eigen bug
+    return reinterpret_cast<StoragePointerType>(const_cast<void*>(arr.data()));
+        #endif
 }
 
-template <typename StoragePointerType,
-          enable_if_t<!is_const_pointer<StoragePointerType>::value, bool> = true>
+template <typename StoragePointerType, bool needs_writeable,
+          enable_if_t<needs_writeable, bool> = true>
 StoragePointerType get_array_data_for_type(array &arr) {
     return reinterpret_cast<StoragePointerType>(arr.mutable_data());
 }
@@ -383,8 +388,10 @@ struct type_caster<
             return false;
         }
 
+        auto result = get_array_data_for_type<typename get_storage_pointer_type<MapType>::SPT, needs_writeable>(arr);
+
         value.reset(new MapType(
-                                    get_array_data_for_type<typename get_storage_pointer_type<MapType>::SPT>(arr),
+                                    result,
                                     shape
                                     ));
 
