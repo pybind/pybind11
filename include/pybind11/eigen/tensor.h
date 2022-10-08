@@ -241,6 +241,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
     template <typename C>
     static handle cast_impl(C *src, return_value_policy policy, handle parent) {
+	    printf("Working with %d\n", (int) policy);
         object parent_object;
         bool writeable = false;
         switch (policy) {

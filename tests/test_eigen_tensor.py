@@ -6,6 +6,7 @@ np = pytest.importorskip("numpy")
 eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
 
 submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
+submodules = [eigen_tensor.c_style]
 
 tensor_ref = np.empty((3, 5, 2), dtype=np.int64)
 
@@ -145,6 +146,7 @@ def test_bad_python_to_cpp_casts(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_references_actually_refer(m):
+    pytest.skip("Debug 7 second")
     a = m.reference_tensor()
     temp = a[indices]
     a[indices] = 100
@@ -198,6 +200,7 @@ def test_round_trip_references_actually_refer(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_doc_string(m, doc):
+    pytest.skip("Debug 7 second")
     assert (
         doc(m.copy_tensor) == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
