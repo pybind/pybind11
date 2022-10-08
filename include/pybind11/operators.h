@@ -84,11 +84,7 @@ struct op_impl {};
 /// Operator implementation generator
 template <op_id id, op_type ot, typename L, typename R>
 struct op_ {
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)            \
-    && (__CUDACC_VER_MINOR__ <= 8)
-// Nvidia's NVCC is broken between 11.4.0 and 11.8.0
-//   https://github.com/pybind/pybind11/issues/4193
-#    define PYBIND11_USING_WORKAROUND_FOR_CUDA_11_4_THROUGH_8
+#if defined(PYBIND11_USING_WORKAROUND_FOR_CUDA_11_4_THROUGH_8)
     static constexpr bool op_enable_if_hook = true;
 #endif
     template <typename Class, typename... Extra>

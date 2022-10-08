@@ -1178,5 +1178,12 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 #    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif
 
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)            \
+    && (__CUDACC_VER_MINOR__ <= 8) && !defined(PYBIND11_USING_WORKAROUND_FOR_CUDA_11_4_THROUGH_8)
+// Nvidia's NVCC is broken between 11.4.0 and 11.8.0
+//   https://github.com/pybind/pybind11/issues/4193
+#    define PYBIND11_USING_WORKAROUND_FOR_CUDA_11_4_THROUGH_8
+#endif
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
