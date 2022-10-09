@@ -268,6 +268,28 @@ void init_tensor_module(pybind11::module &m) {
             return Eigen::Tensor<double, 3, Options>(view);
         },
         py::return_value_policy::move);
+
+    m.def(
+        "round_trip_rank_0",
+        [](const Eigen::Tensor<double, 0, Options>& tensor) {
+		return tensor;
+        },
+        py::return_value_policy::move);
+
+    m.def(
+        "round_trip_rank_0_noconvert",
+        [](const Eigen::Tensor<double, 0, Options>& tensor) {
+		return tensor;
+        }, py::arg("tensor").noconvert(),
+        py::return_value_policy::move);
+
+    m.def(
+        "round_trip_rank_0_view",
+        [](Eigen::TensorMap<Eigen::Tensor<double, 0, Options>>& tensor) {
+		return tensor;
+        },
+        py::return_value_policy::reference);
+
 }
 
 TEST_SUBMODULE(eigen_tensor, m) {

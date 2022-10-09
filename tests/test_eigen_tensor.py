@@ -177,6 +177,21 @@ def test_round_trip(m):
         tensor_ref[:, ::-1, :], m.round_trip_tensor(tensor_ref[:, ::-1, :])
     )
 
+    assert m.round_trip_rank_0(np.float64(3.5)) == 3.5
+    assert m.round_trip_rank_0(3.5) == 3.5
+
+    with pytest.raises(TypeError):
+        m.round_trip_rank_0_noconvert(np.float64(3.5))
+
+    with pytest.raises(TypeError):
+        m.round_trip_rank_0_noconvert(3.5)
+
+    with pytest.raises(TypeError):
+        m.round_trip_rank_0_view(np.float64(3.5))
+
+    with pytest.raises(TypeError):
+        m.round_trip_rank_0_view(3.5)
+
 
 @pytest.mark.parametrize("m", submodules)
 def test_round_trip_references_actually_refer(m):

@@ -143,6 +143,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
     bool load(handle src, bool convert) {
         if (!convert) {
+	    if (!isinstance<array>(src)) {
+                return false;
+	    }
             array temp = array::ensure(src);
             if (!temp) {
                 return false;
@@ -351,6 +354,9 @@ struct type_caster<
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
+	if (!isinstance<array>(src)) {
+	    return false;
+	}
         auto arr = reinterpret_borrow<array>(src);
         if ((arr.flags() & compute_array_flag_from_tensor<Type>()) == 0) {
             return false;
@@ -391,17 +397,10 @@ struct type_caster<
     }
 
     static handle cast(MapType &&src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::take_ownership) {
-            pybind11_fail("wat");
-        }
         return cast_impl(&src, policy, parent);
     }
 
     static handle cast(const MapType &&src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::take_ownership) {
-
-            pybind11_fail("wat2");
-        }
         return cast_impl(&src, policy, parent);
     }
 
