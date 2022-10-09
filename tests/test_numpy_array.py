@@ -586,6 +586,7 @@ def test_dtype_refcount_leak():
     after = getrefcount(dtype)
     assert after == before
 
+
 def test_round_trip_float():
     arr = np.zeros((), np.float64)
     arr[()] = 37.2

@@ -143,9 +143,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
 
     bool load(handle src, bool convert) {
         if (!convert) {
-	    if (!isinstance<array>(src)) {
+            if (!isinstance<array>(src)) {
                 return false;
-	    }
+            }
             array temp = array::ensure(src);
             if (!temp) {
                 return false;
@@ -354,9 +354,9 @@ struct type_caster<
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
-	if (!isinstance<array>(src)) {
-	    return false;
-	}
+        if (!isinstance<array>(src)) {
+            return false;
+        }
         auto arr = reinterpret_borrow<array>(src);
         if ((arr.flags() & compute_array_flag_from_tensor<Type>()) == 0) {
             return false;
