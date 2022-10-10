@@ -36,6 +36,26 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
+namespace test_class {
+namespace pr4220_tripped_over_this { // PR #4227
+
+template <int>
+struct SoEmpty {};
+
+template <typename T>
+std::string get_msg(const T &) {
+    return "This is really only meant to exercise successful compilation.";
+}
+
+using Empty0 = SoEmpty<0x0>;
+
+void bind_empty0(py::module_ &m) {
+    py::class_<Empty0>(m, "Empty0").def(py::init<>()).def("get_msg", get_msg<Empty0>);
+}
+
+} // namespace pr4220_tripped_over_this
+} // namespace test_class
+
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -517,6 +537,8 @@ TEST_SUBMODULE(class_, m) {
         py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
+
+    test_class::pr4220_tripped_over_this::bind_empty0(m);
 }
 
 template <int N>
