@@ -299,6 +299,17 @@ def test_capsule(capture):
     """
     )
 
+    with capture:
+        a = m.return_capsule_with_explicit_nullptr_dtor()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule with explicit nullptr dtor
+    """
+    )
+
 
 def test_accessors():
     class SubTestObject:

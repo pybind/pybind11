@@ -49,17 +49,31 @@ constexpr forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
+// Checks if a container has a STL style reserve method.
+// This will only return true for a `reserve()` with a `void` return.
+template <typename C>
+using has_reserve_method = std::is_same<decltype(std::declval<C>().reserve(0)), void>;
+
 template <typename Type, typename Key>
 struct set_caster {
     using type = Type;
     using key_conv = make_caster<Key>;
 
+private:
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
+    void reserve_maybe(const anyset &s, Type *) {
+        value.reserve(s.size());
+    }
+    void reserve_maybe(const anyset &, void *) {}
+
+public:
     bool load(handle src, bool convert) {
         if (!isinstance<anyset>(src)) {
             return false;
         }
         auto s = reinterpret_borrow<anyset>(src);
         value.clear();
+        reserve_maybe(s, &value);
         for (auto entry : s) {
             key_conv conv;
             if (!conv.load(entry, convert)) {
@@ -94,12 +108,21 @@ struct map_caster {
     using key_conv = make_caster<Key>;
     using value_conv = make_caster<Value>;
 
+private:
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
+    void reserve_maybe(const dict &d, Type *) {
+        value.reserve(d.size());
+    }
+    void reserve_maybe(const dict &, void *) {}
+
+public:
     bool load(handle src, bool convert) {
         if (!isinstance<dict>(src)) {
             return false;
         }
         auto d = reinterpret_borrow<dict>(src);
         value.clear();
+        reserve_maybe(d, &value);
         for (auto it : d) {
             key_conv kconv;
             value_conv vconv;
@@ -160,9 +183,7 @@ struct list_caster {
     }
 
 private:
-    template <
-        typename T = Type,
-        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
     void reserve_maybe(const sequence &s, Type *) {
         value.reserve(s.size());
     }

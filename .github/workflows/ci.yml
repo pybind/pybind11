@@ -325,8 +325,8 @@ jobs:
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
-    name: "🐍 3.8 • CUDA 11.2 • Ubuntu 20.04"
-    container: nvidia/cuda:11.2.2-devel-ubuntu20.04
+    name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
+    container: nvidia/cuda:11.7.0-devel-ubuntu22.04
 
     steps:
     - uses: actions/checkout@v3
@@ -738,6 +738,9 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=20
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
+          - python: 3.7
+            args: -DCMAKE_CXX_STANDARD=14
+
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
     runs-on: windows-2019

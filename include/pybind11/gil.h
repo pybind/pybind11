@@ -80,6 +80,9 @@ public:
         inc_ref();
     }
 
+    gil_scoped_acquire(const gil_scoped_acquire &) = delete;
+    gil_scoped_acquire &operator=(const gil_scoped_acquire &) = delete;
+
     void inc_ref() { ++tstate->gilstate_counter; }
 
     PYBIND11_NOINLINE void dec_ref() {
@@ -144,6 +147,9 @@ public:
         }
     }
 
+    gil_scoped_release(const gil_scoped_acquire &) = delete;
+    gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
+
     /// This method will disable the PyThreadState_DeleteCurrent call and the
     /// GIL won't be acquired. This method should be used if the interpreter
     /// could be shutting down when this is called, as thread deletion is not
@@ -178,6 +184,8 @@ class gil_scoped_acquire {
 
 public:
     gil_scoped_acquire() { state = PyGILState_Ensure(); }
+    gil_scoped_acquire(const gil_scoped_acquire &) = delete;
+    gil_scoped_acquire &operator=(const gil_scoped_acquire &) = delete;
     ~gil_scoped_acquire() { PyGILState_Release(state); }
     void disarm() {}
 };
@@ -187,6 +195,8 @@ class gil_scoped_release {
 
 public:
     gil_scoped_release() { state = PyEval_SaveThread(); }
+    gil_scoped_release(const gil_scoped_release &) = delete;
+    gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
     ~gil_scoped_release() { PyEval_RestoreThread(state); }
     void disarm() {}
 };
