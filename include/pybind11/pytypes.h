@@ -1834,7 +1834,7 @@ public:
             }
             const char *name = get_name_in_error_scope(o);
             void *ptr = PyCapsule_GetPointer(o, name);
-            if (ptr == nullptr) {
+            if (ptr == nullptr && PyErr_Occurred()) {
                 throw error_already_set();
             }
 
