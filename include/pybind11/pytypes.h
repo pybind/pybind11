@@ -1834,7 +1834,7 @@ public:
             }
             const char *name = get_name_in_error_scope(o);
             void *ptr = PyCapsule_GetPointer(o, name);
-            if (ptr == nullptr && PyErr_Occurred()) {
+            if (ptr == nullptr) {
                 throw error_already_set();
             }
 
@@ -1852,13 +1852,10 @@ public:
         m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
             const char *name = get_name_in_error_scope(o);
             auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, name));
-            if (destructor != nullptr) {
-                destructor();
-            } else {
-                if (PyErr_Occurred()) {
-                    throw error_already_set();
-                }
+            if (destructor == nullptr) {
+                throw error_already_set();
             }
+            destructor();
         });
 
         if (!m_ptr) {
