@@ -17,11 +17,11 @@ for i in range(tensor_ref.shape[0]):
 indices = (2, 3, 1)
 
 
-def assert_equal_tensor_ref(mat, writeable=True, modified=0):
+def assert_equal_tensor_ref(mat, writeable=True, modified=None):
     assert mat.flags.writeable == writeable
 
     copy = np.array(tensor_ref)
-    if modified != 0:
+    if modified is not None:
         copy[indices] = modified
 
     np.testing.assert_array_equal(mat, copy)

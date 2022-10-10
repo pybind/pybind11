@@ -1,4 +1,3 @@
-
 /*
     pybind11/eigen/matrix.h: Transparent conversion for dense and sparse Eigen matrices
 
