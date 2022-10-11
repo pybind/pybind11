@@ -175,16 +175,12 @@ class CustomContains:
         return m in self.d
 
 
+@pytest.mark.xfail("env.PYPY and sys.pypy_version_info < (7, 3, 7)")
 @pytest.mark.parametrize(
     "arg,func",
     [
-        (
-            {
-                1,
-            },
-            m.anyset_contains,
-        ),
-        ({0: 0}, m.dict_contains),
+        (set(), m.anyset_contains),
+        (dict(), m.dict_contains),
         (CustomContains(), m.obj_contains),
     ],
 )
