@@ -5,8 +5,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-
-constexpr const char* TEST_MODULE_NAME = "eigen_tensor";
+constexpr const char *TEST_MODULE_NAME = "eigen_tensor";
 
 #define TEST_NAMESPACE eigen_tensor
 

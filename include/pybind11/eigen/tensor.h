@@ -135,8 +135,8 @@ struct get_tensor_descriptor {
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
-template<typename T, int size>
-std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size>& arr) {
+template <typename T, int size>
+std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
     std::vector<T> result(size);
     for (size_t i = 0; i < size; i++) {
         result[i] = arr[i];

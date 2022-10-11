@@ -288,9 +288,8 @@ void init_tensor_module(pybind11::module &m) {
         py::return_value_policy::reference);
 }
 
-
-void test_module(py::module_ &);                                                    
-test_initializer name(TEST_MODULE_NAME, test_module);                                          
+void test_module(py::module_ &);
+test_initializer name(TEST_MODULE_NAME, test_module);
 void test_module(py::module_ &m) {
     auto f_style = m.def_submodule("f_style");
     auto c_style = m.def_submodule("c_style");
@@ -299,4 +298,4 @@ void test_module(py::module_ &m) {
     init_tensor_module<Eigen::RowMajor>(c_style);
 }
 
-}
+} // namespace TEST_NAMESPACE

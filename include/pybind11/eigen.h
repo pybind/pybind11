@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include <Eigen/src/Core/util/Macros.h>
-
 #include "eigen/matrix.h"
+
+#include <Eigen/src/Core/util/Macros.h>
 
 #if EIGEN_VERSION_AT_LEAST(3, 3, 0)
 #    include "eigen/tensor.h"
