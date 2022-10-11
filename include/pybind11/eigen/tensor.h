@@ -337,8 +337,6 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
-template<typename T>
-using is_pointer_to_const = std::is_const<typename std::remove_pointer<T>::type>;
 
 template <typename StoragePointerType,
           bool needs_writeable,
@@ -500,9 +498,13 @@ struct type_caster<
         return result.release();
     }
 
+
+
 #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
+
     static constexpr bool needs_writeable
-        = !is_pointer_to_const<typename get_storage_pointer_type<MapType>::SPT>::value;
+        = !std::is_const<typename std::remove_pointer<
+            typename get_storage_pointer_type<MapType>::SPT>::type>::value;
 #else
     // Handle Eigen bug
     static constexpr bool needs_writeable = !std::is_const<Type>::value;
