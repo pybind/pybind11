@@ -137,16 +137,22 @@ struct get_tensor_descriptor {
 
 template <typename T, int size>
 std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
-    if (size == 0) {
-        return {};
-    } else {
-        std::vector<T> result(size);
-        for (size_t i = 0; i < size; i++) {
-            result[i] = arr[i];
-        }
+    std::vector<T> result(size);
 
-        return result;
+#if defined(__GNUC__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
+
+    for (size_t i = 0; i < size; i++) {
+        result[i] = arr[i];
     }
+
+#if defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#endif
+
+    return result;
 }
 
 template <typename Type>
