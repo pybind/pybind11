@@ -412,6 +412,8 @@ PYBIND11_NOINLINE internals &get_internals() {
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
         gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
+        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
+        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
@@ -512,8 +514,13 @@ struct local_internals {
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-    static local_internals locals;
-    return locals;
+    // Current static can be created in the interpreter finalization routine. If the later will be
+    // destroyed in another static variable destructor, creation of this static there will cause
+    // static deinitialization fiasco. In order to avoid it we avoid destruction of the
+    // local_internals static. One can read more about the problem and current solution here:
+    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+    static auto *locals = new local_internals();
+    return *locals;
 }
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its

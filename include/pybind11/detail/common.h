@@ -1033,12 +1033,7 @@ PYBIND11_NAMESPACE_END(detail)
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
-#    if (defined(_MSC_VER) && _MSC_VER < 1920) /* MSVC 2017 */                                    \
-        || (defined(__clang__) && __clang_major__ == 5)
-static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
-#    else
-static constexpr detail::overload_cast_impl<Args...> overload_cast;
-#    endif
+static constexpr detail::overload_cast_impl<Args...> overload_cast{};
 #endif
 
 /// Const member function selector for overload_cast

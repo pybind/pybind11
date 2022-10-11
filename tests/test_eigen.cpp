@@ -197,11 +197,40 @@ TEST_SUBMODULE(eigen, m) {
 
     // Return a block of a matrix (gives non-standard strides)
     m.def("block",
-          [](const Eigen::Ref<const Eigen::MatrixXd> &x,
-             int start_row,
-             int start_col,
-             int block_rows,
-             int block_cols) { return x.block(start_row, start_col, block_rows, block_cols); });
+          [m](const py::object &x_obj,
+              int start_row,
+              int start_col,
+              int block_rows,
+              int block_cols) {
+              return m.attr("_block")(x_obj, x_obj, start_row, start_col, block_rows, block_cols);
+          });
+
+    m.def(
+        "_block",
+        [](const py::object &x_obj,
+           const Eigen::Ref<const Eigen::MatrixXd> &x,
+           int start_row,
+           int start_col,
+           int block_rows,
+           int block_cols) {
+            // See PR #4217 for background. This test is a bit over the top, but might be useful
+            // as a concrete example to point to when explaining the dangling reference trap.
+            auto i0 = py::make_tuple(0, 0);
+            auto x0_orig = x_obj[*i0].cast<double>();
+            if (x(0, 0) != x0_orig) {
+                throw std::runtime_error(
+                    "Something in the type_caster for Eigen::Ref is terribly wrong.");
+            }
+            double x0_mod = x0_orig + 1;
+            x_obj[*i0] = x0_mod;
+            auto copy_detected = (x(0, 0) != x0_mod);
+            x_obj[*i0] = x0_orig;
+            if (copy_detected) {
+                throw std::runtime_error("type_caster for Eigen::Ref made a copy.");
+            }
+            return x.block(start_row, start_col, block_rows, block_cols);
+        },
+        py::keep_alive<0, 1>());
 
     // test_eigen_return_references, test_eigen_keepalive
     // return value referencing/copying tests:
