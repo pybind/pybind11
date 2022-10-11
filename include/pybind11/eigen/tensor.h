@@ -135,22 +135,20 @@ struct get_tensor_descriptor {
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
-template <typename T, int size>
-std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
-    std::vector<T> result(size);
-
 #if defined(__GNUC__)
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
 
+template <typename T, int size>
+std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
+    std::vector<T> result(size);
+
+
     for (size_t i = 0; i < size; i++) {
         result[i] = arr[i];
     }
 
-#if defined(__GNUC__)
-#    pragma GCC diagnostic pop
-#endif
 
     return result;
 }
@@ -165,6 +163,10 @@ Eigen::DSizes<T, size> get_shape_for_array(const array& arr) {
 
     return result;
 }
+
+#if defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#endif
 
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
