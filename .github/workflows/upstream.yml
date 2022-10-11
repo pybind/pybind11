@@ -31,7 +31,7 @@ jobs:
       run: sudo apt-get install libboost-dev
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.12
+      uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Prepare env
       run: |
