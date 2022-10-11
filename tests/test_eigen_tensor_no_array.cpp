@@ -6,6 +6,7 @@
 */
 
 
-constexpr const char* TEST_MODULE_NAME = "eigen_tensor";
+constexpr const char* TEST_MODULE_NAME = "eigen_tensor_no_array";
+#define EIGEN_AVOID_STL_ARRAY 
 
 #include "test_eigen_tensor.include.cpp"

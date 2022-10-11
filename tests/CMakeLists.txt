@@ -130,6 +130,7 @@ set(PYBIND11_TEST_FILES
     test_docstring_options
     test_eigen_matrix
     test_eigen_tensor
+    test_eigen_tensor_no_array.cpp
     test_enum
     test_eval
     test_exceptions

@@ -4,8 +4,13 @@ import pytest
 
 np = pytest.importorskip("numpy")
 eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
-
 submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
+try:
+    from pybind11_tests import eigen_tensor_no_array
+    submodules += [eigen_tensor_no_array.c_style, eigen_tensor_no_array.f_style]
+except ImportError:
+    print("Could not load no_array tests", sys.stderr)
+    pass
 
 tensor_ref = np.empty((3, 5, 2), dtype=np.int64)
 

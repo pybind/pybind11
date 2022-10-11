@@ -135,6 +135,16 @@ struct get_tensor_descriptor {
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
+template<typename T, int size>
+std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size>& arr) {
+    std::vector<T> result(size);
+    for (size_t i = 0; i < size; i++) {
+        result[i] = arr[i];
+    }
+
+    return result;
+}
+
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     using Helper = eigen_tensor_helper<Type>;
@@ -164,7 +174,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         }
 
         Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
-        std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
+        for (size_t i = 0; i < Type::NumIndices; i++) {
+            shape[i] = arr.shape()[i];
+        }
 
         if (!Helper::is_correct_shape(shape)) {
             return false;
@@ -296,7 +308,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         }
 
         auto result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-            Helper::get_shape(*src), src->data(), parent_object);
+            convert_dsizes_to_vector(Helper::get_shape(*src)), src->data(), parent_object);
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -378,7 +390,9 @@ struct type_caster<
         }
 
         Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
-        std::copy(arr.shape(), arr.shape() + Type::NumIndices, shape.begin());
+        for (size_t i = 0; i < Type::NumIndices; i++) {
+            shape[i] = arr.shape()[i];
+        }
 
         if (!Helper::is_correct_shape(shape)) {
             return false;
@@ -465,7 +479,7 @@ struct type_caster<
         }
 
         auto result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-            Helper::get_shape(*src), src->data(), parent_object);
+            convert_dsizes_to_vector(Helper::get_shape(*src)), src->data(), parent_object);
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
