@@ -10,4 +10,4 @@ constexpr const char *TEST_MODULE_NAME = "eigen_tensor_no_array";
 
 #define TEST_NAMESPACE eigen_tensor_no_array
 
-#include "test_eigen_tensor.include.cpp"
+#include "test_eigen_tensor.ipp"

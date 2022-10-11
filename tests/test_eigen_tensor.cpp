@@ -9,4 +9,4 @@ constexpr const char *TEST_MODULE_NAME = "eigen_tensor";
 
 #define TEST_NAMESPACE eigen_tensor
 
-#include "test_eigen_tensor.include.cpp"
+#include "test_eigen_tensor.ipp"

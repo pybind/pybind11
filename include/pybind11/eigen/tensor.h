@@ -155,6 +155,17 @@ std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
     return result;
 }
 
+template <typename T, int size>
+Eigen::DSizes<T, size> get_shape_for_array(const array& arr) {
+        Eigen::DSizes<T, size> result;
+    const T* shape = arr.shape();
+        for (size_t i = 0; i < size; i++) {
+            result[i] = shape[i];
+        }
+
+    return result;
+}
+
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     using Helper = eigen_tensor_helper<Type>;
@@ -182,11 +193,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         if (arr.ndim() != Type::NumIndices) {
             return false;
         }
-
-        Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
-        for (size_t i = 0; i < Type::NumIndices; i++) {
-            shape[i] = arr.shape()[i ];
-        }
+        auto shape = get_shape_for_array<typename Type::Index, Type::NumIndices>(arr);
 
         if (!Helper::is_correct_shape(shape)) {
             return false;
@@ -328,12 +335,8 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
-template <class T>
-struct is_const_pointer {};
-template <class T>
-struct is_const_pointer<T *> : std::false_type {};
-template <class T>
-struct is_const_pointer<const T *> : std::true_type {};
+template<typename T>
+using is_pointer_to_const = std::is_const<typename std::remove_pointer<T>::type>;
 
 template <typename StoragePointerType,
           bool needs_writeable,
@@ -399,10 +402,7 @@ struct type_caster<
             return false;
         }
 
-        Eigen::DSizes<typename Type::Index, Type::NumIndices> shape;
-        for (size_t i = 0; i < Type::NumIndices; i++) {
-            shape[i] = arr.shape()[i];
-        }
+        auto shape = get_shape_for_array<typename Type::Index, Type::NumIndices>(arr);
 
         if (!Helper::is_correct_shape(shape)) {
             return false;
@@ -500,7 +500,7 @@ struct type_caster<
 
 #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
     static constexpr bool needs_writeable
-        = !is_const_pointer<typename get_storage_pointer_type<MapType>::SPT>::value;
+        = !is_pointer_to_const<typename get_storage_pointer_type<MapType>::SPT>::value;
 #else
     // Handle Eigen bug
     static constexpr bool needs_writeable = !std::is_const<Type>::value;
