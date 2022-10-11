@@ -298,13 +298,6 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 break;
 
             case return_value_policy::copy:
-#if defined(__clang_major__) && __clang_major__ <= 3
-                // Hack to work around clang bugs
-                { parent_object = {}; }
-#else
-                parent_object = {};
-#endif
-
                 writeable = true;
                 break;
 
@@ -415,7 +408,7 @@ struct type_caster<
         auto result = get_array_data_for_type<typename get_storage_pointer_type<MapType>::SPT,
                                               needs_writeable>(arr);
 
-        value.reset(new MapType(result, shape));
+        value.reset(new MapType(std::move(result), std::move(shape)));
 
         return true;
     }
