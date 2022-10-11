@@ -36,7 +36,7 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=None):
 @pytest.mark.parametrize("m", submodules)
 @pytest.mark.parametrize("member_name", ["member", "member_view"])
 def test_reference_internal(m, member_name):
-    
+
     if not hasattr(sys, "getrefcount"):
         pytest.skip("No reference counting")
     foo = m.CustomExample()
@@ -52,7 +52,7 @@ def test_reference_internal(m, member_name):
 
 @pytest.mark.parametrize("m", submodules)
 def test_convert_tensor_to_py(m):
-    
+
     assert_equal_tensor_ref(m.copy_tensor())
     assert_equal_tensor_ref(m.copy_fixed_tensor())
     assert_equal_tensor_ref(m.copy_const_tensor())
@@ -80,7 +80,7 @@ def test_convert_tensor_to_py(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_cpp_to_python_casts(m):
-    
+
     with pytest.raises(
         RuntimeError, match="Cannot use reference internal when there is no parent"
     ):
@@ -103,7 +103,7 @@ def test_bad_cpp_to_python_casts(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_python_to_cpp_casts(m):
-    
+
     with pytest.raises(TypeError):
         m.round_trip_tensor(np.zeros((2, 3)))
 
@@ -151,7 +151,7 @@ def test_bad_python_to_cpp_casts(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_references_actually_refer(m):
-    
+
     a = m.reference_tensor()
     temp = a[indices]
     a[indices] = 100
@@ -168,7 +168,7 @@ def test_references_actually_refer(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_round_trip(m):
-    
+
     assert_equal_tensor_ref(m.round_trip_tensor(tensor_ref))
 
     with pytest.raises(TypeError):
@@ -207,7 +207,7 @@ def test_round_trip(m):
 
 @pytest.mark.parametrize("m", submodules)
 def test_round_trip_references_actually_refer(m):
-    
+
     # Need to create a copy that matches the type on the C side
     copy = np.array(tensor_ref, dtype=np.float64, order=m.needed_options)
     a = m.round_trip_view_tensor(copy)

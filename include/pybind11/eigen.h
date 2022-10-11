@@ -11,7 +11,6 @@
 
 #include "eigen/matrix.h"
 
-
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #    if __GNUC__ < 5
 #        define PYBIND11_CANT_INCLUDE_TENSOR
