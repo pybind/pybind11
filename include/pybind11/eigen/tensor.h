@@ -135,6 +135,11 @@ struct get_tensor_descriptor {
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
+// When EIGEN_AVOID_STL_ARRAY is defined, Eigen::DSizes<T, 0> does not have the begin() member function. 
+// Falling back to a simple loop works around this issue.
+// 
+// We need to disble the type-limits warning for the inner loop when size = 0.
+
 #if defined(__GNUC__)
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wtype-limits"
@@ -385,7 +390,6 @@ struct type_caster<
             return false;
         }
 
-        // Use temporary to avoid MSVC warning ...
         constexpr bool is_aligned = (Options & Eigen::Aligned) != 0;
 
         if (PYBIND11_SILENCE_MSVC_C4127(is_aligned && !is_tensor_aligned(arr.data()))) {

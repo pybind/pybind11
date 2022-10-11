@@ -104,13 +104,12 @@ void init_tensor_module(pybind11::module &m) {
         []() { return &get_const_tensor<Options>(); },
         py::return_value_policy::copy);
 
-    m.def("move_fixed_tensor", []() { return get_fixed_tensor<Options>(); });
+    m.def("move_fixed_tensor_copy", []() -> Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options> { return get_fixed_tensor<Options>(); }, py::return_value_policy::move);
 
-    m.def("move_tensor", []() { return get_tensor<Options>(); });
+    m.def("move_tensor_copy", []() -> Eigen::Tensor<double, 3, Options> { return get_tensor<Options>();}, py::return_value_policy::move);
 
     m.def("move_const_tensor",
-          // NOLINTNEXTLINE(readability-const-return-type)
-          []() -> const Eigen::Tensor<double, 3, Options> { return get_const_tensor<Options>(); });
+          []() -> const Eigen::Tensor<double, 3, Options>& { return get_const_tensor<Options>(); }, py::return_value_policy::move);
 
     m.def(
         "take_fixed_tensor",

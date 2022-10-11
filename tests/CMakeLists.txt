@@ -130,7 +130,7 @@ set(PYBIND11_TEST_FILES
     test_docstring_options
     test_eigen_matrix
     test_eigen_tensor
-    test_eigen_tensor_no_array.cpp
+    test_eigen_tensor_avoid_stl_array.cpp
     test_enum
     test_eval
     test_exceptions
@@ -303,7 +303,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
-    list(FIND PYBIND11_TEST_FILES test_eigen_tensor_no_array.cpp PYBIND11_TEST_FILES_EIGEN_I)
+    list(FIND PYBIND11_TEST_FILES test_eigen_tensor_avoid_stl_array.cpp PYBIND11_TEST_FILES_EIGEN_I)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
@@ -318,7 +318,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_L
   if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
   endif()
-  list(FIND PYBIND11_TEST_FILES test_eigen_tensor_no_array.cpp PYBIND11_TEST_FILES_EIGEN_I)
+  list(FIND PYBIND11_TEST_FILES test_eigen_tensor_avoid_stl_array.cpp PYBIND11_TEST_FILES_EIGEN_I)
   if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
   endif()
