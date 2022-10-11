@@ -144,22 +144,20 @@ template <typename T, int size>
 std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
     std::vector<T> result(size);
 
-
     for (size_t i = 0; i < size; i++) {
         result[i] = arr[i];
     }
-
 
     return result;
 }
 
 template <typename T, int size>
-Eigen::DSizes<T, size> get_shape_for_array(const array& arr) {
-        Eigen::DSizes<T, size> result;
-    const T* shape = arr.shape();
-        for (size_t i = 0; i < size; i++) {
-            result[i] = shape[i];
-        }
+Eigen::DSizes<T, size> get_shape_for_array(const array &arr) {
+    Eigen::DSizes<T, size> result;
+    const T *shape = arr.shape();
+    for (size_t i = 0; i < size; i++) {
+        result[i] = shape[i];
+    }
 
     return result;
 }
@@ -330,7 +328,6 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     }
 };
 
-
 template <typename StoragePointerType,
           bool needs_writeable,
           enable_if_t<!needs_writeable, bool> = true>
@@ -491,13 +488,10 @@ struct type_caster<
         return result.release();
     }
 
-
-
 #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
 
-    static constexpr bool needs_writeable
-        = !std::is_const<typename std::remove_pointer<
-            typename get_storage_pointer_type<MapType>::SPT>::type>::value;
+    static constexpr bool needs_writeable = !std::is_const<typename std::remove_pointer<
+        typename get_storage_pointer_type<MapType>::SPT>::type>::value;
 #else
     // Handle Eigen bug
     static constexpr bool needs_writeable = !std::is_const<Type>::value;

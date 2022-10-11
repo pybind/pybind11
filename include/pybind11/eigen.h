@@ -14,13 +14,13 @@
 #include <Eigen/src/Core/util/Macros.h>
 
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#   if __GNUC__ < 5
-#       define PYBIND11_CANT_INCLUDE_TENSOR
-#   endif
+#    if __GNUC__ < 5
+#        define PYBIND11_CANT_INCLUDE_TENSOR
+#    endif
 #endif
 
 #if !EIGEN_VERSION_AT_LEAST(3, 3, 0)
-#define PYBIND11_CANT_INCLUDE_TENSOR
+#    define PYBIND11_CANT_INCLUDE_TENSOR
 #endif
 
 #ifndef PYBIND11_CANT_INCLUDE_TENSOR
