@@ -178,8 +178,13 @@ class CustomContains:
 @pytest.mark.parametrize(
     "arg,func",
     [
-        (set(), m.anyset_contains),
-        (dict(), m.dict_contains),
+        (
+            {
+                1,
+            },
+            m.anyset_contains,
+        ),
+        ({0: 0}, m.dict_contains),
         (CustomContains(), m.obj_contains),
     ],
 )
