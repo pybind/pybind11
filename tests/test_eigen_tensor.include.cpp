@@ -9,7 +9,7 @@
 
 #include "pybind11_tests.h"
 
-namespace {
+namespace TEST_NAMESPACE {
 
 template <typename M>
 void reset_tensor(M &x) {
