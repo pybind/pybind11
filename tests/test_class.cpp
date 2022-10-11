@@ -64,13 +64,13 @@ TEST_SUBMODULE(class_, m) {
     py::class_<NoConstructor>(m, "NoConstructor")
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance")
         .def_classmethod(
-            "new_instance_uuid",
-            [](py::object &cls) {
-                py::int_ uuid = getattr(cls, "uuid", py::int_(0));
-                cls.attr("uuid") = uuid + py::int_(1);
+            "new_instance_seq_id",
+            [](py::type &cls) {
+                py::int_ seq_id = getattr(cls, "seq_id", py::int_(0));
+                cls.attr("seq_id") = seq_id + py::int_(1);
                 return NoConstructorNew::new_instance();
             },
-            "Returns a new instance and then increment the uuid");
+            "Returns a new instance and then increment the seq_id");
 
     py::class_<NoConstructorNew>(m, "NoConstructorNew")
         .def(py::init([](const NoConstructorNew &self) { return self; })) // Need a NOOP __init__

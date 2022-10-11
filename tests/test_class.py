@@ -32,9 +32,10 @@ def test_instance_new(msg):
 
 
 def test_classmethod(num_instances=10):
+    assert not hasattr(m.NoConstructor, "seq_id")
     for i in range(num_instances):
-        assert getattr(m.NoConstructor, "uuid", 0) == i
-        m.NoConstructor.new_instance_uuid()
+        m.NoConstructor.new_instance_seq_id()
+        assert m.NoConstructor.seq_id == i + 1
 
 
 def test_type():
