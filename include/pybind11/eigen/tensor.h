@@ -138,7 +138,7 @@ struct get_tensor_descriptor {
 // When EIGEN_AVOID_STL_ARRAY is defined, Eigen::DSizes<T, 0> does not have the begin() member function. 
 // Falling back to a simple loop works around this issue.
 // 
-// We need to disble the type-limits warning for the inner loop when size = 0.
+// We need to disable the type-limits warning for the inner loop when size = 0.
 
 #if defined(__GNUC__)
 #    pragma GCC diagnostic push
