@@ -77,13 +77,12 @@ assert_equal_const_funcs = [
     "reference_const_tensor_v2",
 ]
 
-functions_with_write_flag = [(a, True) for a in assert_equal_funcs] + [(a, False) for a in assert_equal_const_funcs]
 
 @pytest.mark.parametrize("m", submodules)
-@pytest.mark.parametrize("func_name_and_flag", functions_with_write_flag)
-def test_convert_tensor_to_py(m, func_name_and_flag):
-    func_name, write_flag = func_name_and_flag
-    assert_equal_tensor_ref(getattr(m, func_name)(), writeable=write_flag)
+@pytest.mark.parametrize("func_name", assert_equal_funcs + assert_equal_const_funcs)
+def test_convert_tensor_to_py(m, func_name):
+    writeable = func_name in assert_equal_funcs
+    assert_equal_tensor_ref(getattr(m, func_name)(), writeable=writeable)
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_cpp_to_python_casts(m):
