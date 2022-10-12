@@ -483,7 +483,7 @@ struct type_caster<
         }
 
         auto result = array_t<typename Type::Scalar, compute_array_flag_from_tensor<Type>()>(
-            convert_dsizes_to_vector(Helper::get_shape(*src)), src->data(), parent_object);
+            convert_dsizes_to_vector(Helper::get_shape(*src)), src->data(), std::move(parent_object));
 
         if (!writeable) {
             array_proxy(result.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
