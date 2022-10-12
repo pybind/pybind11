@@ -131,7 +131,7 @@ struct get_tensor_descriptor {
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
           + const_name("[")
-          + eigen_tensor_helper<typename std::remove_const<Type>::type>::dimensions_descriptor
+          + eigen_tensor_helper<remove_cv_t<Type>>::dimensions_descriptor
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
@@ -368,9 +368,9 @@ struct get_storage_pointer_type<MapType, void_t<typename MapType::PointerArgType
 template <typename Type, int Options>
 struct type_caster<
     Eigen::TensorMap<Type, Options>,
-    typename eigen_tensor_helper<typename std::remove_const<Type>::type>::ValidType> {
+    typename eigen_tensor_helper<remove_cv_t<Type>>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
-    using Helper = eigen_tensor_helper<typename std::remove_const<Type>::type>;
+    using Helper = eigen_tensor_helper<remove_cv_t<Type>>;
 
     bool load(handle src, bool /*convert*/) {
         // Note that we have a lot more checks here as we want to make sure to avoid copies
