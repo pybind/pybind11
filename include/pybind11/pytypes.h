@@ -1382,7 +1382,7 @@ public:
 private:
     void advance() {
         value = reinterpret_steal<object>(PyIter_Next(m_ptr));
-        if (PyErr_Occurred()) {
+        if (value.ptr() == nullptr && PyErr_Occurred()) {
             throw error_already_set();
         }
     }
