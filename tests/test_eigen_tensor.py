@@ -21,6 +21,7 @@ for i in range(tensor_ref.shape[0]):
 
 indices = (2, 3, 1)
 
+
 def test_import_avoid_stl_array():
     pytest.importorskip("pybind11_tests.eigen_tensor_avoid_stl_array")
     assert len(submodules) == 4
@@ -51,6 +52,7 @@ def test_reference_internal(m, member_name):
     assert_equal_tensor_ref(mem, writeable=False)
     del mem
     assert sys.getrefcount(foo) == counts
+
 
 assert_equal_funcs = [
     "copy_tensor",
@@ -83,6 +85,7 @@ assert_equal_const_funcs = [
 def test_convert_tensor_to_py(m, func_name):
     writeable = func_name in assert_equal_funcs
     assert_equal_tensor_ref(getattr(m, func_name)(), writeable=writeable)
+
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_cpp_to_python_casts(m):

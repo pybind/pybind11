@@ -130,8 +130,7 @@ struct get_tensor_descriptor {
               ", flags.c_contiguous", ", flags.f_contiguous");
     static constexpr auto value
         = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
-          + const_name("[")
-          + eigen_tensor_helper<remove_cv_t<Type>>::dimensions_descriptor
+          + const_name("[") + eigen_tensor_helper<remove_cv_t<Type>>::dimensions_descriptor
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
 
@@ -366,9 +365,8 @@ struct get_storage_pointer_type<MapType, void_t<typename MapType::PointerArgType
 };
 
 template <typename Type, int Options>
-struct type_caster<
-    Eigen::TensorMap<Type, Options>,
-    typename eigen_tensor_helper<remove_cv_t<Type>>::ValidType> {
+struct type_caster<Eigen::TensorMap<Type, Options>,
+                   typename eigen_tensor_helper<remove_cv_t<Type>>::ValidType> {
     using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<remove_cv_t<Type>>;
 
