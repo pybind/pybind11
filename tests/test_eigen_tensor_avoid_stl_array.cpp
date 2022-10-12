@@ -8,7 +8,7 @@
 constexpr const char *test_eigen_tensor_module_name = "eigen_tensor_avoid_stl_array";
 
 #ifndef EIGEN_AVOID_STL_ARRAY
-#define EIGEN_AVOID_STL_ARRAY
+#    define EIGEN_AVOID_STL_ARRAY
 #endif
 
 #define PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE eigen_tensor_avoid_stl_array
