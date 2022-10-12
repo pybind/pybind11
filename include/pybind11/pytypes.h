@@ -1809,16 +1809,16 @@ public:
 
     explicit capsule(const void *value,
                      const char *name = nullptr,
-                     void (*destructor)(PyObject *) = nullptr)
+                     PyCapsule_Destructor destructor = nullptr)
         : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
     }
 
-    PYBIND11_DEPRECATED("Please pass a destructor that takes a void pointer as input")
-    capsule(const void *value, void (*destruct)(PyObject *))
-        : object(PyCapsule_New(const_cast<void *>(value), nullptr, destruct), stolen_t{}) {
+    PYBIND11_DEPRECATED("Please use the ctor with value, name, destructor args")
+    capsule(const void *value, PyCapsule_Destructor destructor)
+        : object(PyCapsule_New(const_cast<void *>(value), nullptr, destructor), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
