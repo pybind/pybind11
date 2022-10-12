@@ -9,7 +9,7 @@
 
 #include "pybind11_tests.h"
 
-namespace TEST_NAMESPACE {
+namespace PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE {
 
 template <typename M>
 void reset_tensor(M &x) {
@@ -298,7 +298,7 @@ void init_tensor_module(pybind11::module &m) {
 }
 
 void test_module(py::module_ &);
-test_initializer name(TEST_MODULE_NAME, test_module);
+test_initializer name(test_eigen_tensor_module_name, test_module);
 void test_module(py::module_ &m) {
     auto f_style = m.def_submodule("f_style");
     auto c_style = m.def_submodule("c_style");
@@ -307,4 +307,4 @@ void test_module(py::module_ &m) {
     init_tensor_module<Eigen::RowMajor>(c_style);
 }
 
-} // namespace TEST_NAMESPACE
+} // namespace PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE

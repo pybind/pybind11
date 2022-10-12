@@ -5,8 +5,12 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-constexpr const char *TEST_MODULE_NAME = "eigen_tensor";
+constexpr const char *test_eigen_tensor_module_name = "eigen_tensor";
 
-#define TEST_NAMESPACE eigen_tensor
+#define PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE eigen_tensor
+
+#ifdef EIGEN_AVOID_STL_ARRAY
+#undef EIGEN_AVOID_STL_ARRAY
+#endif
 
 #include "test_eigen_tensor.inl"

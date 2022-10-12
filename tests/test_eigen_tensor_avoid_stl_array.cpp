@@ -5,9 +5,12 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-constexpr const char *TEST_MODULE_NAME = "eigen_tensor_avoid_stl_array";
-#define EIGEN_AVOID_STL_ARRAY
+constexpr const char *test_eigen_tensor_module_name = "eigen_tensor_avoid_stl_array";
 
-#define TEST_NAMESPACE eigen_tensor_avoid_stl_array
+#ifndef EIGEN_AVOID_STL_ARRAY
+#define EIGEN_AVOID_STL_ARRAY
+#endif
+
+#define PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE eigen_tensor_avoid_stl_array
 
 #include "test_eigen_tensor.inl"
