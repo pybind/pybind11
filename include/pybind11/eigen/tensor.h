@@ -392,7 +392,7 @@ struct type_caster<
 
         constexpr bool is_aligned = (Options & Eigen::Aligned) != 0;
 
-        if (PYBIND11_SILENCE_MSVC_C4127(is_aligned && !is_tensor_aligned(arr.data()))) {
+        if (PYBIND11_SILENCE_MSVC_C4127(is_aligned) && !is_tensor_aligned(arr.data())) {
             return false;
         }
 
@@ -402,7 +402,7 @@ struct type_caster<
             return false;
         }
 
-        if (PYBIND11_SILENCE_MSVC_C4127(needs_writeable && !arr.writeable())) {
+        if (PYBIND11_SILENCE_MSVC_C4127(needs_writeable) && !arr.writeable()) {
             return false;
         }
 

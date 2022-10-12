@@ -10,7 +10,6 @@ try:
 
     submodules += [avoid.c_style, avoid.f_style]
 except ImportError:
-    print("Could not load avoid stl array tests", sys.stderr)
     pass
 
 tensor_ref = np.empty((3, 5, 2), dtype=np.int64)
@@ -21,6 +20,10 @@ for i in range(tensor_ref.shape[0]):
             tensor_ref[i, j, k] = i * (5 * 2) + j * 2 + k
 
 indices = (2, 3, 1)
+
+def test_import_avoid_stl_array():
+    pytest.importorskip("pybind11_tests.eigen_tensor_avoid_stl_array")
+    assert len(submodules) == 4
 
 
 def assert_equal_tensor_ref(mat, writeable=True, modified=None):
@@ -49,34 +52,38 @@ def test_reference_internal(m, member_name):
     del mem
     assert sys.getrefcount(foo) == counts
 
+assert_equal_funcs = [
+    "copy_tensor",
+    "copy_fixed_tensor",
+    "copy_const_tensor",
+    "move_tensor_copy",
+    "move_fixed_tensor_copy",
+    "take_tensor",
+    "take_fixed_tensor",
+    "reference_tensor",
+    "reference_tensor_v2",
+    "reference_fixed_tensor",
+    "reference_view_of_tensor",
+    "reference_view_of_tensor_v3",
+    "reference_view_of_tensor_v5",
+    "reference_view_of_fixed_tensor",
+]
+
+assert_equal_const_funcs = [
+    "reference_view_of_tensor_v2",
+    "reference_view_of_tensor_v4",
+    "reference_view_of_tensor_v6",
+    "reference_const_tensor",
+    "reference_const_tensor_v2",
+]
+
+functions_with_write_flag = [(a, True) for a in assert_equal_funcs] + [(a, False) for a in assert_equal_const_funcs]
 
 @pytest.mark.parametrize("m", submodules)
-def test_convert_tensor_to_py(m):
-
-    assert_equal_tensor_ref(m.copy_tensor())
-    assert_equal_tensor_ref(m.copy_fixed_tensor())
-    assert_equal_tensor_ref(m.copy_const_tensor())
-
-    assert_equal_tensor_ref(m.move_tensor_copy())
-    assert_equal_tensor_ref(m.move_fixed_tensor_copy())
-
-    assert_equal_tensor_ref(m.take_tensor())
-    assert_equal_tensor_ref(m.take_fixed_tensor())
-
-    assert_equal_tensor_ref(m.reference_tensor())
-    assert_equal_tensor_ref(m.reference_tensor_v2())
-    assert_equal_tensor_ref(m.reference_fixed_tensor())
-
-    assert_equal_tensor_ref(m.reference_view_of_tensor())
-    assert_equal_tensor_ref(m.reference_view_of_tensor_v2(), writeable=False)
-    assert_equal_tensor_ref(m.reference_view_of_tensor_v3())
-    assert_equal_tensor_ref(m.reference_view_of_tensor_v4(), writeable=False)
-    assert_equal_tensor_ref(m.reference_view_of_tensor_v5())
-    assert_equal_tensor_ref(m.reference_view_of_tensor_v6(), writeable=False)
-    assert_equal_tensor_ref(m.reference_view_of_fixed_tensor())
-    assert_equal_tensor_ref(m.reference_const_tensor(), writeable=False)
-    assert_equal_tensor_ref(m.reference_const_tensor_v2(), writeable=False)
-
+@pytest.mark.parametrize("func_name_and_flag", functions_with_write_flag)
+def test_convert_tensor_to_py(m, func_name_and_flag):
+    func_name, write_flag = func_name_and_flag
+    assert_equal_tensor_ref(getattr(m, func_name)(), writeable=write_flag)
 
 @pytest.mark.parametrize("m", submodules)
 def test_bad_cpp_to_python_casts(m):
