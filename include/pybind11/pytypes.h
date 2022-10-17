@@ -1382,7 +1382,7 @@ public:
 private:
     void advance() {
         value = reinterpret_steal<object>(PyIter_Next(m_ptr));
-        if (PyErr_Occurred()) {
+        if (value.ptr() == nullptr && PyErr_Occurred()) {
             throw error_already_set();
         }
     }
@@ -1809,16 +1809,16 @@ public:
 
     explicit capsule(const void *value,
                      const char *name = nullptr,
-                     void (*destructor)(PyObject *) = nullptr)
+                     PyCapsule_Destructor destructor = nullptr)
         : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
     }
 
-    PYBIND11_DEPRECATED("Please pass a destructor that takes a void pointer as input")
-    capsule(const void *value, void (*destruct)(PyObject *))
-        : object(PyCapsule_New(const_cast<void *>(value), nullptr, destruct), stolen_t{}) {
+    PYBIND11_DEPRECATED("Please use the ctor with value, name, destructor args")
+    capsule(const void *value, PyCapsule_Destructor destructor)
+        : object(PyCapsule_New(const_cast<void *>(value), nullptr, destructor), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
@@ -1829,7 +1829,7 @@ public:
             // guard if destructor called while err indicator is set
             error_scope error_guard;
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (PyErr_Occurred()) {
+            if (destructor == nullptr && PyErr_Occurred()) {
                 throw error_already_set();
             }
             const char *name = get_name_in_error_scope(o);
@@ -1843,7 +1843,7 @@ public:
             }
         });
 
-        if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
             throw error_already_set();
         }
     }
@@ -1967,7 +1967,11 @@ public:
     void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T>
     bool contains(T &&key) const {
-        return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
+        auto result = PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr());
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return result == 1;
     }
 
 private:
@@ -2053,7 +2057,11 @@ public:
     bool empty() const { return size() == 0; }
     template <typename T>
     bool contains(T &&val) const {
-        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+        auto result = PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return result == 1;
     }
 };
 
