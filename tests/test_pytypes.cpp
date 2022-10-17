@@ -183,7 +183,7 @@ TEST_SUBMODULE(pytypes, m) {
         return d2;
     });
     m.def("dict_contains",
-          [](const py::dict &dict, py::object val) { return dict.contains(val); });
+          [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
@@ -537,6 +537,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
+
+    m.def("obj_contains",
+          [](py::object &obj, const py::object &key) { return obj.contains(key); });
 
     m.def("test_number_protocol", [](const py::object &a, const py::object &b) {
         py::list l;
