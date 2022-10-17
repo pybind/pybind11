@@ -262,7 +262,9 @@
 #    define PYBIND11_HAS_U8STRING
 #endif
 
+// See description of PR #4246:
 #if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF)                                \
+    && !(defined(PYPY_VERSION) && defined(_MSC_VER)) /* Tests hang indefinitely at startup. */    \
     && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
