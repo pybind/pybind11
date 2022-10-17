@@ -82,13 +82,13 @@ struct base {
     .. note:: This is an advanced feature. If you use this, you likely need
               to implement polymorphic_type_hook for your type hierarchy.
  \endrst */
-template <typename T> struct custom_base {
-    using caster = void *(*)(void *);
+template <typename T>
+struct custom_base {
+    using caster = void *(*) (void *);
 
     explicit custom_base(const caster &f) : fn(f) {}
     caster fn;
 };
-
 
 /// Keep patient alive while nurse lives
 template <size_t Nurse, size_t Patient>
@@ -579,8 +579,7 @@ struct process_attribute<base<T>> : process_attribute_default<base<T>> {
 /// Process a custom base attribute
 template <typename T>
 struct process_attribute<custom_base<T>> : process_attribute_default<custom_base<T>> {
-    static void init(const custom_base<T> &b, type_record *r)
-    {
+    static void init(const custom_base<T> &b, type_record *r) {
         r->add_base(typeid(T), b.fn);
         // TODO: rename this to 'nonsimple'?
         r->multiple_inheritance = true;

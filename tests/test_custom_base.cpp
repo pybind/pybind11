@@ -28,7 +28,8 @@ TEST_SUBMODULE(custom_base, m) {
 
     py::class_<Derived>(m, "Derived", py::custom_base<Base>([](void *o) -> void * {
                             return &reinterpret_cast<Derived *>(o)->base;
-                        })).def_readwrite("j", &Derived::j);
+                        }))
+        .def_readwrite("j", &Derived::j);
 
     m.def("create_derived", []() { return new Derived; });
     m.def("create_base", []() { return new Base; });
