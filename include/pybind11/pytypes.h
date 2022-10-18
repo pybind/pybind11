@@ -1967,7 +1967,11 @@ public:
     void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T>
     bool contains(T &&key) const {
-        return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
+        auto result = PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr());
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return result == 1;
     }
 
 private:
@@ -2053,7 +2057,11 @@ public:
     bool empty() const { return size() == 0; }
     template <typename T>
     bool contains(T &&val) const {
-        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+        auto result = PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return result == 1;
     }
 };
 
