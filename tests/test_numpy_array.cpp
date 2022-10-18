@@ -521,4 +521,6 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("test_fmt_desc_double", [](const py::array_t<double> &) {});
     sm.def("test_fmt_desc_const_float", [](const py::array_t<const float> &) {});
     sm.def("test_fmt_desc_const_double", [](const py::array_t<const double> &) {});
+
+    sm.def("round_trip_float", [](double d) { return d; });
 }

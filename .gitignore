@@ -43,3 +43,4 @@ pybind11Targets.cmake
 /pybind11/share/*
 /docs/_build/*
 .ipynb_checkpoints/
+tests/main.cpp
