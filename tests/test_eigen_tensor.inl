@@ -5,7 +5,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <pybind11/eigen.h>
+#include <pybind11/eigen/tensor.h>
 
 #include "pybind11_tests.h"
 
@@ -20,6 +20,20 @@ void reset_tensor(M &x) {
             }
         }
     }
+}
+
+template <typename M>
+bool check_tensor(M &x) {
+    for (int i = 0; i < x.dimension(0); i++) {
+        for (int j = 0; j < x.dimension(1); j++) {
+            for (int k = 0; k < x.dimension(2); k++) {
+                if (x(i, j, k) != (i * (5 * 2) + j * 2 + k)) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 template <int Options>
@@ -82,6 +96,15 @@ void init_tensor_module(pybind11::module &m) {
         needed_options = "C";
     }
     m.attr("needed_options") = needed_options;
+
+    m.def("setup", []() {
+        reset_tensor(get_tensor<Options>());
+        reset_tensor(get_fixed_tensor<Options>());
+    });
+
+    m.def("is_ok", []() {
+        return check_tensor(get_tensor<Options>()) && check_tensor(get_fixed_tensor<Options>());
+    });
 
     py::class_<CustomExample<Options>>(m, "CustomExample")
         .def(py::init<>())

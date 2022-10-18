@@ -10,20 +10,3 @@
 #pragma once
 
 #include "eigen/matrix.h"
-
-#if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#    if __GNUC__ < 5
-#        define PYBIND11_CANT_INCLUDE_TENSOR
-#    endif
-#endif
-
-// IWYU correctness. Relies on the warning suppressions in eigen/matrix.h for simplicity.
-#include <Eigen/Core>
-
-#if !EIGEN_VERSION_AT_LEAST(3, 3, 0)
-#    define PYBIND11_CANT_INCLUDE_TENSOR
-#endif
-
-#ifndef PYBIND11_CANT_INCLUDE_TENSOR
-#    include "eigen/tensor.h"
-#endif
