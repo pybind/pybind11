@@ -1842,8 +1842,8 @@ public:
         }
     }
 
-    capsule(const void *value, void (*destructor)(void *)) {
-        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
+    capsule(const void *value, void (*destructor)(void *), const char *name = nullptr) {
+        m_ptr = PyCapsule_New(const_cast<void *>(value), name, [](PyObject *o) {
             // guard if destructor called while err indicator is set
             error_scope error_guard;
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));

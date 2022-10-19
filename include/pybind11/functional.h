@@ -49,9 +49,19 @@ public:
 #ifndef BAD
         if (auto cfunc = func.cpp_function()) {
             auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
-            if (isinstance<capsule>(cfunc_self)) {
+            if (cfunc_self == nullptr) {
+                PyErr_Clear();
+            } else if (isinstance<capsule>(cfunc_self)) {
                 auto c = reinterpret_borrow<capsule>(cfunc_self);
-                auto *rec = (function_record *) c;
+
+                function_record *rec = nullptr;
+                // THIS IS THE PROBLEM: UNSAFE NO WAY TO FIGURE OUT IF CAPSULE IS FOREIGN
+                // We would need to refactor to store a special string such as
+                // pybind11_function_record Doing so is almost certainly an ABI break though Best
+                // we can do without an ABI break is ignore named capsules
+                if (c.name() == nullptr) {
+                    rec = static_cast<function_record *>(c);
+                }
 
                 while (rec != nullptr) {
                     if (rec->is_stateless
