@@ -7,6 +7,8 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/typing.h>
+
 #include "pybind11_tests.h"
 
 #include <utility>
@@ -820,4 +822,11 @@ TEST_SUBMODULE(pytypes, m) {
         a >>= b;
         return a;
     });
+
+    m.def("annotate_tuple_float_str", [](const py::Tuple<py::float_, py::str> &) {});
+    m.def("annotate_tuple_empty", [](const py::Tuple<> &) {});
+    m.def("annotate_dict_str_int", [](const py::Dict<py::str, int> &) {});
+    m.def("annotate_list_int", [](const py::List<int> &) {});
+    m.def("annotate_set_str", [](const py::Set<std::string> &) {});
+    m.def("annotate_fn", [](const py::Callable<int(py::List<py::str>, py::str)> &) {});
 }
