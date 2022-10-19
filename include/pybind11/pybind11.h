@@ -468,13 +468,20 @@ protected:
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
                 auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
-                capsule rec_capsule = isinstance<capsule>(self) ? reinterpret_borrow<capsule>(self)
-                                                                : capsule(self);
-                chain = (detail::function_record *) rec_capsule;
-                /* Never append a method to an overload chain of a parent class;
-                   instead, hide the parent's overloads in this case */
-                if (!chain->scope.is(rec->scope)) {
+                if (!isinstance<capsule>(self)) {
                     chain = nullptr;
+                } else {
+                    auto rec_capsule = reinterpret_borrow<capsule>(self);
+                    if (rec_capsule.name() == nullptr) {
+                        chain = static_cast<detail::function_record *>(rec_capsule);
+                        /* Never append a method to an overload chain of a parent class;
+                           instead, hide the parent's overloads in this case */
+                        if (!chain->scope.is(rec->scope)) {
+                            chain = nullptr;
+                        }
+                    } else {
+                        chain = nullptr;
+                    }
                 }
             }
             // Don't trigger for things like the default __init__, which are wrapper_descriptors
@@ -1871,9 +1878,14 @@ private:
 
     static detail::function_record *get_function_record(handle h) {
         h = detail::get_function(h);
-        return h ? (detail::function_record *) reinterpret_borrow<capsule>(
-                   PyCFunction_GET_SELF(h.ptr()))
-                 : nullptr;
+        if (!h) {
+            return nullptr;
+        }
+        auto cap = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(h.ptr()));
+        if (cap.name() != nullptr) {
+            return nullptr;
+        }
+        return static_cast<detail::function_record *>(cap);
     }
 };
 

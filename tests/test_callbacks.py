@@ -198,4 +198,4 @@ def test_callback_num_times():
 def test_custom_func():
     func = m.custom_function
     assert func() == 20
-    val = m.roundtrip(func)
+    _ = m.roundtrip(func)
