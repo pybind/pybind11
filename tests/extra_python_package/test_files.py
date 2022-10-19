@@ -62,6 +62,11 @@ detail_headers = {
     "include/pybind11/detail/typeid.h",
 }
 
+eigen_headers = {
+    "include/pybind11/eigen/matrix.h",
+    "include/pybind11/eigen/tensor.h",
+}
+
 stl_headers = {
     "include/pybind11/stl/filesystem.h",
 }
@@ -89,7 +94,7 @@ py_files = {
     "setup_helpers.py",
 }
 
-headers = main_headers | detail_headers | stl_headers
+headers = main_headers | detail_headers | eigen_headers | stl_headers
 src_files = headers | cmake_files | pkgconfig_files
 all_files = src_files | py_files
 
@@ -99,6 +104,7 @@ sdist_files = {
     "pybind11/include",
     "pybind11/include/pybind11",
     "pybind11/include/pybind11/detail",
+    "pybind11/include/pybind11/eigen",
     "pybind11/include/pybind11/stl",
     "pybind11/share",
     "pybind11/share/cmake",
