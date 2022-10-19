@@ -144,6 +144,8 @@ with remove_output("pybind11/include", "pybind11/share"):
             stdout=sys.stdout,
             stderr=sys.stderr,
         )
+        if not global_sdist:
+            Path("pybind11/share/cmake/pybind11/__init__.py").touch()
 
     txt = get_and_replace(setup_py, version=version, extra_cmd=extra_cmd)
     code = compile(txt, setup_py, "exec")
