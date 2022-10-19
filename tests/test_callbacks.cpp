@@ -16,6 +16,8 @@
 
 int dummy_function(int i) { return i + 1; }
 
+static PyMethodDef def;
+
 TEST_SUBMODULE(callbacks, m) {
     // test_callbacks, test_function_signatures
     m.def("test_callback1", [](const py::object &func) { return func(); });
@@ -240,4 +242,17 @@ TEST_SUBMODULE(callbacks, m) {
             f();
         }
     });
+
+    def.ml_name = "example_name";
+    def.ml_doc = "Example doc";
+    def.ml_meth = [](PyObject *, PyObject *) -> PyObject* {
+        auto result = py::cast(20);
+        return result.release().ptr();
+    };
+    def.ml_flags = METH_VARARGS;
+
+    py::capsule rec_capsule(malloc(1), [](void *data) { free(data); });
+    py::handle m_ptr = 
+           PyCFunction_New(&def, rec_capsule.ptr());
+    m.add_object("custom_function", m_ptr);
 }

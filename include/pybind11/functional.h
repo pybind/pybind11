@@ -46,6 +46,7 @@ public:
            stateless (i.e. function pointer or lambda function without
            captured variables), in which case the roundtrip can be avoided.
          */
+        #ifndef BAD
         if (auto cfunc = func.cpp_function()) {
             auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
             if (isinstance<capsule>(cfunc_self)) {
@@ -69,6 +70,7 @@ public:
             // Raising an fail exception here works to prevent the segfault, but only on gcc.
             // See PR #1413 for full details
         }
+        #endif
 
         // ensure GIL is held during functor destruction
         struct func_handle {
