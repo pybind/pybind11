@@ -70,8 +70,8 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
 }
 
 // Need to use a wrapper function to ensure 1 address
-inline const char* function_capsule_name() {
-    static const char* name = "pybind11_function_capsule";
+inline const char *function_capsule_name() {
+    static const char *name = "pybind11_function_capsule";
     return name;
 }
 
@@ -677,8 +677,9 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, function_capsule_name()),
-                              *it = overloads;
+        const function_record *overloads
+            = (function_record *) PyCapsule_GetPointer(self, function_capsule_name()),
+            *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
