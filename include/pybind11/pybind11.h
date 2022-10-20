@@ -478,6 +478,7 @@ protected:
                     chain = nullptr;
                 } else {
                     auto rec_capsule = reinterpret_borrow<capsule>(self);
+                    // Compare the pointers, not the values to ensure that each extension is unique
                     if (rec_capsule.name() == detail::function_capsule_name()) {
                         chain = static_cast<detail::function_record *>(rec_capsule);
                         /* Never append a method to an overload chain of a parent class;
@@ -1890,6 +1891,8 @@ private:
             return nullptr;
         }
         auto cap = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(h.ptr()));
+
+        // Compare the pointers, not the values to ensure that each extension is unique
         if (cap.name() != detail::function_capsule_name()) {
             return nullptr;
         }

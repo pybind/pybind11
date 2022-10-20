@@ -57,7 +57,9 @@ public:
                 // THIS IS THE PROBLEM: UNSAFE NO WAY TO FIGURE OUT IF CAPSULE IS FOREIGN
                 // We would need to refactor to store a special string such as
                 // pybind11_function_record Doing so is almost certainly an ABI break though Best
-                // we can do without an ABI break is ignore named capsules
+                // we can do without an ABI break is ignore capsules with the wrong name
+                //
+                // Note that we compare pointers, not values to ensure each extension is unique
                 if (c.name() == function_capsule_name()) {
                     rec = static_cast<function_record *>(c);
                 }
