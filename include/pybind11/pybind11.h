@@ -69,6 +69,12 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
     return false;
 }
 
+// Need to use a wrapper function to ensure 1 address
+inline const char* function_capsule_name() {
+    static const char* name = "pybind11_function_capsule";
+    return name;
+}
+
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
@@ -472,7 +478,7 @@ protected:
                     chain = nullptr;
                 } else {
                     auto rec_capsule = reinterpret_borrow<capsule>(self);
-                    if (rec_capsule.name() == nullptr) {
+                    if (rec_capsule.name() == detail::function_capsule_name()) {
                         chain = static_cast<detail::function_record *>(rec_capsule);
                         /* Never append a method to an overload chain of a parent class;
                            instead, hide the parent's overloads in this case */
@@ -503,6 +509,7 @@ protected:
 
             capsule rec_capsule(unique_rec.release(),
                                 [](void *ptr) { destruct((detail::function_record *) ptr); });
+            rec_capsule.set_name(detail::function_capsule_name());
             guarded_strdup.release();
 
             object scope_module;
@@ -670,7 +677,7 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
+        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, function_capsule_name()),
                               *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
@@ -1882,7 +1889,7 @@ private:
             return nullptr;
         }
         auto cap = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(h.ptr()));
-        if (cap.name() != nullptr) {
+        if (cap.name() != detail::function_capsule_name()) {
             return nullptr;
         }
         return static_cast<detail::function_record *>(cap);

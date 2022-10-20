@@ -59,7 +59,7 @@ public:
                 // We would need to refactor to store a special string such as
                 // pybind11_function_record Doing so is almost certainly an ABI break though Best
                 // we can do without an ABI break is ignore named capsules
-                if (c.name() == nullptr) {
+                if (c.name() == function_capsule_name()) {
                     rec = static_cast<function_record *>(c);
                 }
 
