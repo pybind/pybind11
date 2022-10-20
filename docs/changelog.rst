@@ -16,7 +16,7 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
-Version 2.10.1 (Oct 20, 2022)
+Version 2.10.1 (Oct 2?, 2022)
 -----------------------------
 
 
@@ -102,6 +102,9 @@ Performance and style:
 
 
 Build system improvements:
+
+* Experimental support for ``cmake.modules`` entrypoint.
+  `#4258 <https://github.com/pybind/pybind11/pull/4258>`_
 
 * Include a pkg-config file when installing pybind11, such as in the Python
   package.
