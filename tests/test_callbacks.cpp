@@ -253,8 +253,8 @@ TEST_SUBMODULE(callbacks, m) {
 
     // rec_capsule with custom name
     constexpr const char *rec_capsule_name = "CUSTOM_REC_CAPSULE";
-    py::capsule rec_capsule(
-        malloc(1), [](void *data) { free(data); }, rec_capsule_name);
+    py::capsule rec_capsule(malloc(1), [](void *data) { free(data); });
+    rec_capsule.set_name(rec_capsule_name);
     py::handle m_ptr = PyCFunction_New(&def, rec_capsule.ptr());
     m.add_object("custom_function", m_ptr);
 }
