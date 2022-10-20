@@ -403,6 +403,10 @@ jobs:
     - name: Install NVidia HPC SDK
       run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.9
 
+    # On CentOS 7, we have to filter a few tests (compiler internal error)
+    # and allow deeper template recursion (not needed on CentOS 8 with a newer
+    # standard library). On some systems, you many need further workarounds:
+    # https://github.com/pybind/pybind11/pull/2475
     - name: Configure
       shell: bash
       run: |
@@ -411,7 +415,8 @@ jobs:
         cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=11 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
-                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0"
+                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
+                            -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
 
     # Building before installing Pip should produce a warning but not an error
     - name: Build
