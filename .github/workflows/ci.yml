@@ -391,7 +391,7 @@ jobs:
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
     runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS7 / PGI 22.3 • x64"
+    name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
     container: centos:7
 
     steps:
@@ -401,7 +401,7 @@ jobs:
       run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3 yum-utils
 
     - name: Install NVidia HPC SDK
-      run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.3
+      run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.9
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
     # and allow deeper template recursion (not needed on CentOS 8 with a newer
@@ -411,12 +411,12 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.3
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.9
         cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=11 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
                             -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
-                            -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
+                            -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     # Building before installing Pip should produce a warning but not an error
     - name: Build
