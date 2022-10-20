@@ -38,15 +38,14 @@ public:
 
         auto func = reinterpret_borrow<function>(src);
 
-/*
-   When passing a C++ function as an argument to another C++
-   function via Python, every function call would normally involve
-   a full C++ -> Python -> C++ roundtrip, which can be prohibitive.
-   Here, we try to at least detect the case where the function is
-   stateless (i.e. function pointer or lambda function without
-   captured variables), in which case the roundtrip can be avoided.
- */
-#ifndef BAD
+        /*
+           When passing a C++ function as an argument to another C++
+           function via Python, every function call would normally involve
+           a full C++ -> Python -> C++ roundtrip, which can be prohibitive.
+           Here, we try to at least detect the case where the function is
+           stateless (i.e. function pointer or lambda function without
+           captured variables), in which case the roundtrip can be avoided.
+         */
         if (auto cfunc = func.cpp_function()) {
             auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
             if (cfunc_self == nullptr) {
@@ -80,7 +79,6 @@ public:
             // Raising an fail exception here works to prevent the segfault, but only on gcc.
             // See PR #1413 for full details
         }
-#endif
 
         // ensure GIL is held during functor destruction
         struct func_handle {

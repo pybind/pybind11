@@ -245,8 +245,15 @@ TEST_SUBMODULE(callbacks, m) {
 
     def.ml_name = "example_name";
     def.ml_doc = "Example doc";
-    def.ml_meth = [](PyObject *, PyObject *) -> PyObject * {
-        auto result = py::cast(20);
+    def.ml_meth = [](PyObject *, PyObject *args) -> PyObject * {
+        if (PyTuple_Size(args) != 1) {
+            throw std::runtime_error("Invalid number of arguments for example_name");
+        }
+        PyObject *first = PyTuple_GetItem(args, 0);
+        if (!PyLong_Check(first)) {
+            throw std::runtime_error("Invalid argument to example_name");
+        }
+        auto result = py::cast(PyLong_AsLong(first) * 9);
         return result.release().ptr();
     };
     def.ml_flags = METH_VARARGS;
@@ -255,6 +262,9 @@ TEST_SUBMODULE(callbacks, m) {
     constexpr const char *rec_capsule_name = "CUSTOM_REC_CAPSULE";
     py::capsule rec_capsule(std::malloc(1), [](void *data) { std::free(data); });
     rec_capsule.set_name(rec_capsule_name);
-    py::handle m_ptr = PyCFunction_New(&def, rec_capsule.ptr());
-    m.add_object("custom_function", m_ptr);
+    m.add_object("custom_function", PyCFunction_New(&def, rec_capsule.ptr()));
+
+    // rec_capsule with nullptr name
+    py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
+    m.add_object("custom_function2", PyCFunction_New(&def, rec_capsule2.ptr()));
 }
