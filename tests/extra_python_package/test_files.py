@@ -160,6 +160,7 @@ def test_build_sdist(monkeypatch, tmpdir):
     files |= {f"pybind11{n}" for n in local_sdist_files}
     files.add("pybind11.egg-info/entry_points.txt")
     files.add("pybind11.egg-info/requires.txt")
+    files.add("pybind11/share/cmake/pybind11/__init__.py")
     assert simpler == files
 
     with open(os.path.join(MAIN_DIR, "tools", "setup_main.py.in"), "rb") as f:
@@ -246,6 +247,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
         "dist-info/entry_points.txt",
         "dist-info/top_level.txt",
     }
+    files.add("pybind11/share/cmake/pybind11/__init__.py")
 
     with zipfile.ZipFile(str(wheel)) as z:
         names = z.namelist()
