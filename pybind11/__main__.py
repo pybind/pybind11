@@ -3,8 +3,16 @@
 import argparse
 import sys
 import sysconfig
+from pathlib import Path
 
-from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
+from .commands import (
+    get_cflags,
+    get_cmake_dir,
+    get_extension,
+    get_include,
+    get_ldflags,
+    get_pkgconfig_dir,
+)
 
 
 def print_includes() -> None:
@@ -41,11 +49,34 @@ def main() -> None:
         action="store_true",
         help="Print the pkgconfig directory, ideal for setting $PKG_CONFIG_PATH.",
     )
+    parser.add_argument(
+        "--cflags",
+        action="store_true",
+        help="Print the simple compile flags",
+    )
+    parser.add_argument(
+        "--ldflags",
+        action="store_true",
+        help="Print the simple link flags",
+    )
+    parser.add_argument(
+        "--extension",
+        type=str,
+        help="Print the suggested compile line for a given file",
+    )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
-    if args.includes:
+    if args.cflags or args.extension:
+        print(get_cflags(), end=" " if args.extension else "\n")
+    elif args.includes:
         print_includes()
+    if args.ldflags or args.extension:
+        print(get_ldflags(), end=" " if args.extension else "\n")
+    if args.extension:
+        extension = Path(args.extension)
+        print(extension, "-o", extension.with_suffix(get_extension()))
+
     if args.cmakedir:
         print(get_cmake_dir())
     if args.pkgconfigdir:

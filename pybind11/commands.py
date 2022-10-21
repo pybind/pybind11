@@ -1,4 +1,6 @@
 import os
+import sys
+import sysconfig
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,3 +37,37 @@ def get_pkgconfig_dir() -> str:
 
     msg = "pybind11 not installed, installation required to access the pkgconfig files"
     raise ImportError(msg)
+
+
+def get_cflags() -> str:
+    """
+    Gets the compile flags needed for a simple module.
+    """
+
+    flags = f"-I{sysconfig.get_path('include')} -I{sysconfig.get_path('platinclude')} -I{get_include()}"
+    cflags = sysconfig.get_config_var("CFLAGS")
+    if cflags:
+        flags += " " + cflags
+        flags += " -std=c++11"
+    return flags
+
+
+def get_ldflags() -> str:
+    """
+    Get the linker flags needed for a simple module.
+    """
+
+    flags = sysconfig.get_config_var("LDFLAGS") or ""
+    if sys.platform.startswith("darwin"):
+        flags += " -undefined dynamic_lookup"
+    elif sys.platform.startswith("linux"):
+        flags += " -fPIC"
+    return flags
+
+
+def get_extension() -> str:
+    """
+    Get the extension suffix on this platform
+    """
+
+    return sysconfig.get_config_var("EXT_SUFFIX") or ""
