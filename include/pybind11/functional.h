@@ -55,8 +55,7 @@ public:
 
                 function_record *rec = nullptr;
                 // Check that we can safely reinterpret the capsule into a function_record
-                // Note that we compare pointers, not values to ensure each extension is unique
-                if (c.name() == function_capsule_name()) {
+                if (detail::is_function_record_capsule(c)) {
                     rec = static_cast<function_record *>(c);
                 }
 

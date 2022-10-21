@@ -75,6 +75,11 @@ inline const char *function_capsule_name() {
     return name;
 }
 
+inline bool is_function_record_capsule(capsule &cap) {
+    // Compare the pointers, not the values to ensure that each extension is unique
+    return cap.name() == function_capsule_name();
+}
+
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
@@ -478,8 +483,7 @@ protected:
                     chain = nullptr;
                 } else {
                     auto rec_capsule = reinterpret_borrow<capsule>(self);
-                    // Compare the pointers, not the values to ensure that each extension is unique
-                    if (rec_capsule.name() == detail::function_capsule_name()) {
+                    if (detail::is_function_record_capsule(rec_capsule)) {
                         chain = static_cast<detail::function_record *>(rec_capsule);
                         /* Never append a method to an overload chain of a parent class;
                            instead, hide the parent's overloads in this case */
@@ -1900,8 +1904,7 @@ private:
             return nullptr;
         }
         auto cap = reinterpret_borrow<capsule>(func_self);
-        // Compare the pointers, not the values to ensure that each extension is unique
-        if (cap.name() != detail::function_capsule_name()) {
+        if (!detail::is_function_record_capsule(cap)) {
             return nullptr;
         }
         return static_cast<detail::function_record *>(cap);
