@@ -2333,7 +2333,7 @@ template <typename Access,
           typename Sentinel,
           typename ValueType,
           typename... Extra>
-iterator make_iterator_impl(Iterator &&first, Sentinel &&last, Extra &&...extra) {
+iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
     using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
     // TODO: state captures only the types of Extra, not the values
 
@@ -2359,7 +2359,7 @@ iterator make_iterator_impl(Iterator &&first, Sentinel &&last, Extra &&...extra)
                 Policy);
     }
 
-    return cast(state{std::forward<Iterator>(first), std::forward<Sentinel>(last), true});
+    return cast(state{first, last, true});
 }
 
 PYBIND11_NAMESPACE_END(detail)
@@ -2370,15 +2370,13 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
           typename... Extra>
-iterator make_iterator(Iterator &&first, Sentinel &&last, Extra &&...extra) {
+iterator make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_access<Iterator>,
                                       Policy,
                                       Iterator,
                                       Sentinel,
                                       ValueType,
-                                      Extra...>(std::forward<Iterator>(first),
-                                                std::forward<Sentinel>(last),
-                                                std::forward<Extra>(extra)...);
+                                      Extra...>(first, last, std::forward<Extra>(extra)...);
 }
 
 /// Makes a python iterator over the keys (`.first`) of a iterator over pairs from a
@@ -2388,15 +2386,13 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
           typename... Extra>
-iterator make_key_iterator(Iterator &&first, Sentinel &&last, Extra &&...extra) {
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_key_access<Iterator>,
                                       Policy,
                                       Iterator,
                                       Sentinel,
                                       KeyType,
-                                      Extra...>(std::forward<Iterator>(first),
-                                                std::forward<Sentinel>(last),
-                                                std::forward<Extra>(extra)...);
+                                      Extra...>(first, last, std::forward<Extra>(extra)...);
 }
 
 /// Makes a python iterator over the values (`.second`) of a iterator over pairs from a
@@ -2406,15 +2402,13 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
           typename... Extra>
-iterator make_value_iterator(Iterator &&first, Sentinel &&last, Extra &&...extra) {
+iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_value_access<Iterator>,
                                       Policy,
                                       Iterator,
                                       Sentinel,
                                       ValueType,
-                                      Extra...>(std::forward<Iterator>(first),
-                                                std::forward<Sentinel>(last),
-                                                std::forward<Extra>(extra)...);
+                                      Extra...>(first, last, std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
