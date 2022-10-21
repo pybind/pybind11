@@ -384,6 +384,7 @@ TEST_SUBMODULE(class_, m) {
 
     protected:
         virtual int foo() const { return value; }
+        virtual void *void_foo() { return (void *) &value; }
 
     private:
         int value = 42;
@@ -392,6 +393,7 @@ TEST_SUBMODULE(class_, m) {
     class TrampolineB : public ProtectedB {
     public:
         int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
+        void *void_foo() override { PYBIND11_OVERRIDE(void *, ProtectedB, void_foo, ); }
     };
 
     class PublicistB : public ProtectedB {
@@ -401,11 +403,18 @@ TEST_SUBMODULE(class_, m) {
         // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
         ~PublicistB() override{}; // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
+        using ProtectedB::void_foo;
     };
+
+    m.def("read_foo", [](const void *original) {
+        const int *ptr = reinterpret_cast<const int *>(original);
+        return *ptr;
+    });
 
     py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
         .def(py::init<>())
-        .def("foo", &PublicistB::foo);
+        .def("foo", &PublicistB::foo)
+        .def("void_foo", &PublicistB::void_foo);
 
     // test_brace_initialization
     struct BraceInitialization {

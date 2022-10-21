@@ -1,6 +1,7 @@
 import pytest
 
 import env  # noqa: F401
+import ctypes
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
@@ -313,6 +314,7 @@ def test_bind_protected_functions():
 
     b = m.ProtectedB()
     assert b.foo() == 42
+    assert m.read_foo(b.void_foo()) == 42
 
     class C(m.ProtectedB):
         def __init__(self):
