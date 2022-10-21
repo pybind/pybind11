@@ -678,9 +678,10 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads
-            = (function_record *) PyCapsule_GetPointer(self, function_capsule_name()),
-            *it = overloads;
+        const function_record *overloads = reinterpret_cast<function_record *>(
+                                  PyCapsule_GetPointer(self, function_capsule_name())),
+                              *it = overloads;
+        assert(overloads != nullptr);
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
@@ -1890,8 +1891,15 @@ private:
         if (!h) {
             return nullptr;
         }
-        auto cap = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(h.ptr()));
 
+        handle self = PyCFunction_GET_SELF(h.ptr());
+        if (!self) {
+            throw error_already_set();
+        }
+        if (!isinstance<capsule>(self)) {
+            return nullptr;
+        }
+        auto cap = reinterpret_borrow<capsule>(self);
         // Compare the pointers, not the values to ensure that each extension is unique
         if (cap.name() != detail::function_capsule_name()) {
             return nullptr;
