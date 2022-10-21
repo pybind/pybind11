@@ -69,9 +69,14 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
     return false;
 }
 
+constexpr const char* function_capsule_name = "pybind11_funciton_capsule_v1";
+
 inline bool is_function_record_capsule(const capsule &cap) {
     // Compare the pointers, not the values to ensure that each extension is unique
-    return cap.name() == get_function_capsule_name();
+    if (cap.name() == nullptr) {
+        return false;
+    }
+    return (std::strcmp(cap.name(), function_capsule_name) == 0);
 }
 
 #if defined(_MSC_VER)
@@ -508,7 +513,7 @@ protected:
 
             capsule rec_capsule(unique_rec.release(),
                                 [](void *ptr) { destruct((detail::function_record *) ptr); });
-            rec_capsule.set_name(detail::get_function_capsule_name());
+            rec_capsule.set_name(detail::function_capsule_name);
             guarded_strdup.release();
 
             object scope_module;
@@ -677,7 +682,7 @@ protected:
 
         /* Iterator over the list of potentially admissible overloads */
         const function_record *overloads = reinterpret_cast<function_record *>(
-                                  PyCapsule_GetPointer(self, get_function_capsule_name())),
+                                  PyCapsule_GetPointer(self, function_capsule_name)),
                               *it = overloads;
         assert(overloads != nullptr);
 
