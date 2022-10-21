@@ -39,7 +39,7 @@ setup(
         "pipx.run": [
              "pybind11 = pybind11.__main__:main",
         ],
-        "cmake.modules": [
+        "cmake.prefix": [
             "pybind11 = pybind11.share.cmake.pybind11",
         ]
     },
