@@ -114,49 +114,7 @@ endif()
 # Full set of test files (you can override these; see below, overrides ignore extension)
 # Any test that has no extension is both .py and .cpp, so 'foo' will add 'foo.cpp' and 'foo.py'.
 # Any test that has an extension is exclusively that and handled as such.
-set(PYBIND11_TEST_FILES
-    test_async
-    test_buffers
-    test_builtin_casters
-    test_call_policies
-    test_callbacks
-    test_chrono
-    test_class
-    test_const_name
-    test_constants_and_functions
-    test_copy_move
-    test_custom_type_casters
-    test_custom_type_setup
-    test_docstring_options
-    test_eigen_matrix
-    test_eigen_tensor
-    test_eigen_tensor_avoid_stl_array.cpp
-    test_enum
-    test_eval
-    test_exceptions
-    test_factory_constructors
-    test_gil_scoped
-    test_iostream
-    test_kwargs_and_defaults
-    test_local_bindings
-    test_methods_and_attributes
-    test_modules
-    test_multiple_inheritance
-    test_numpy_array
-    test_numpy_dtypes
-    test_numpy_vectorize
-    test_opaque_types
-    test_operator_overloading
-    test_pickling
-    test_pytypes
-    test_sequences_and_iterators
-    test_smart_ptr
-    test_stl
-    test_stl_binders
-    test_tagbased_polymorphic
-    test_thread
-    test_union
-    test_virtual_functions)
+set(PYBIND11_TEST_FILES test_exceptions test_gil_scoped)
 
 # Invoking cmake with something like:
 #     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
