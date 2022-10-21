@@ -69,7 +69,7 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
     return false;
 }
 
-constexpr const char* function_capsule_name = "pybind11_funciton_capsule_v1";
+constexpr const char *function_capsule_name = "pybind11_funciton_capsule_v1";
 
 inline bool is_function_record_capsule(const capsule &cap) {
     // Compare the pointers, not the values to ensure that each extension is unique
