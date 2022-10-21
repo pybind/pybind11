@@ -34,7 +34,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 4
+#    define PYBIND11_INTERNALS_VERSION 5
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -491,7 +491,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
-#if defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+#if defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION >= 4
 
     // For ABI compatibility, we can't store the loader_life_support TLS key in
     // the `internals` struct directly.  Instead, we store it in `shared_data` and
@@ -523,7 +523,10 @@ struct local_internals {
         loader_life_support_tls_key
             = static_cast<shared_loader_life_support_data *>(ptr)->loader_life_support_tls_key;
     }
-#endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+#endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION >= 4
+#if PYBIND11_INTERNALS_VERSION == 5
+    const char* function_capsule_name = strdup("pybind11_function_capsule");
+#endif
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
@@ -535,6 +538,14 @@ inline local_internals &get_local_internals() {
     // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
     static auto *locals = new local_internals();
     return *locals;
+}
+
+inline const char* get_function_capsule_name() {
+#if PYBIND11_INTERNALS_VERSION == 5
+    return get_local_internals().function_capsule_name;
+#else
+    return nullptr;
+#endif
 }
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
