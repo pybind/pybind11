@@ -91,7 +91,7 @@ endif()
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
-option(PYBIND11_SIMPLE_GIL "Force use of PYPY GIL acquire/release logic in gil.h" OFF)
+option(PYBIND11_SIMPLE_GIL "Use simpler GIL access logic that does not support disassociation" OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
