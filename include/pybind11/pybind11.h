@@ -71,7 +71,7 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
 
 // Need to use a wrapper function to ensure 1 address
 inline const char *function_capsule_name() {
-    static const char *name = "pybind11_function_capsule";
+    static char name[] = "pybind11_function_capsule";
     return name;
 }
 
