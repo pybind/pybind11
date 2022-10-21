@@ -1,7 +1,7 @@
 version: 1.0.{build}
 branches:
   except:
-    - assert_gil_held_incref_decref_pypy_windows
+    - rwgk:assert_gil_held_incref_decref_pypy_windows
 image:
 - Visual Studio 2017
 test: off
