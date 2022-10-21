@@ -678,9 +678,10 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = reinterpret_cast<function_record *>(
-                                  PyCapsule_GetPointer(self, function_record::function_capsule_name)),
-                              *it = overloads;
+        const function_record *overloads
+            = reinterpret_cast<function_record *>(
+                PyCapsule_GetPointer(self, function_record::function_capsule_name)),
+            *it = overloads;
         assert(overloads != nullptr);
 
         /* Need to know how many arguments + keyword arguments there are to pick the right

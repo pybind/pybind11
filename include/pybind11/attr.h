@@ -189,7 +189,7 @@ struct argument_record {
 struct function_record {
 
     // Update the following whenever this struct is changed
-    static constexpr const char* function_capsule_name = "pybind11_function_capsule_v1";
+    static constexpr const char *function_capsule_name = "pybind11_function_capsule_v1";
 
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
