@@ -91,13 +91,13 @@ endif()
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
-option(PYBIND11_USE_PYPY_GIL "Force use of PYPY GIL acquire/release logic in gil.h" OFF)
+option(PYBIND11_SIMPLE_GIL "Force use of PYPY GIL acquire/release logic in gil.h" OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
 
-if(PYBIND11_USE_PYPY_GIL)
-  add_compile_definitions(USE_PYPY_GIL)
+if(PYBIND11_SIMPLE_GIL)
+  add_compile_definitions(PYBIND11_SIMPLE_GIL)
 endif()
 
 cmake_dependent_option(

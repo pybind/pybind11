@@ -21,7 +21,7 @@ PyThreadState *get_thread_state_unchecked();
 
 PYBIND11_NAMESPACE_END(detail)
 
-#if defined(WITH_THREAD) && !defined(PYPY_VERSION) && !defined(USE_PYPY_GIL)
+#if defined(WITH_THREAD) && !defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL)
 
 /* The functions below essentially reproduce the PyGILState_* API using a RAII
  * pattern, but there are a few important differences:
@@ -178,7 +178,7 @@ private:
     bool disassoc;
     bool active = true;
 };
-#elif defined(PYPY_VERSION) || defined(USE_PYPY_GIL)
+#elif defined(PYPY_VERSION) || defined(PYBIND11_SIMPLE_GIL)
 class gil_scoped_acquire {
     PyGILState_STATE state;
 
