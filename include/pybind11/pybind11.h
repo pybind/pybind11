@@ -1892,14 +1892,14 @@ private:
             return nullptr;
         }
 
-        handle self = PyCFunction_GET_SELF(h.ptr());
-        if (!self) {
+        handle func_self = PyCFunction_GET_SELF(h.ptr());
+        if (!func_self) {
             throw error_already_set();
         }
-        if (!isinstance<capsule>(self)) {
+        if (!isinstance<capsule>(func_self)) {
             return nullptr;
         }
-        auto cap = reinterpret_borrow<capsule>(self);
+        auto cap = reinterpret_borrow<capsule>(func_self);
         // Compare the pointers, not the values to ensure that each extension is unique
         if (cap.name() != detail::function_capsule_name()) {
             return nullptr;
