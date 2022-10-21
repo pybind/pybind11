@@ -38,10 +38,20 @@ TEST_SUBMODULE(gil_scoped, m) {
     m.def("test_callback_virtual_func", [](VirtClass &virt) { virt.virtual_func(); });
     m.def("test_callback_pure_virtual_func", [](VirtClass &virt) { virt.pure_virtual_func(); });
     m.def("test_cross_module_gil", []() {
+        printf("\nLOOOK %s:%d\n", __FILE__, __LINE__);
+        fflush(stdout);
         auto cm = py::module_::import("cross_module_gil_utils");
+        printf("\nLOOOK %s:%d\n", __FILE__, __LINE__);
+        fflush(stdout);
         auto gil_acquire = reinterpret_cast<void (*)()>(
             PyLong_AsVoidPtr(cm.attr("gil_acquire_funcaddr").ptr()));
+        printf("\nLOOOK %s:%d\n", __FILE__, __LINE__);
+        fflush(stdout);
         py::gil_scoped_release gil_release;
+        printf("\nLOOOK %s:%d\n", __FILE__, __LINE__);
+        fflush(stdout);
         gil_acquire();
+        printf("\nLOOOK %s:%d\n", __FILE__, __LINE__);
+        fflush(stdout);
     });
 }
