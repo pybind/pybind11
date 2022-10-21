@@ -75,7 +75,7 @@ inline const char *function_capsule_name() {
     return name;
 }
 
-inline bool is_function_record_capsule(capsule &cap) {
+inline bool is_function_record_capsule(const capsule &cap) {
     // Compare the pointers, not the values to ensure that each extension is unique
     return cap.name() == function_capsule_name();
 }
