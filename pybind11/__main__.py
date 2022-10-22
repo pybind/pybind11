@@ -60,22 +60,30 @@ def main() -> None:
         help="Print the simple link flags",
     )
     parser.add_argument(
-        "--extension",
+        "--embed",
+        action="store_true",
+        help="Show embed version instead of extension",
+    )
+    parser.add_argument(
+        "--file",
         type=str,
         help="Print the suggested compile line for a given file",
     )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
-    if args.cflags or args.extension:
-        print(get_cflags(), end=" " if args.extension else "\n")
+    if args.cflags or args.file:
+        print(get_cflags(), end=" " if args.file else "\n")
     elif args.includes:
         print_includes()
-    if args.ldflags or args.extension:
-        print(get_ldflags(), end=" " if args.extension else "\n")
-    if args.extension:
-        extension = Path(args.extension)
-        print(extension, "-o", extension.with_suffix(get_extension()))
+    if args.ldflags or args.file:
+        print(get_ldflags(args.embed), end=" " if args.file else "\n")
+    if args.file:
+        file = Path(args.file)
+        if args.embed:
+            print(file.name, "-o", file.with_suffix(""))
+        else:
+            print(file.name, "-o", file.with_suffix(get_extension()))
 
     if args.cmakedir:
         print(get_cmake_dir())
