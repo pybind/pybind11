@@ -24,7 +24,7 @@ body:
   - type: Input
     id: version
     attributes:
-      label: What version of pybind11 are you using? Version or hash (if on master) perferable.
+      label: What version (or hash if on master) of pybind11 are you using?
       required: true
 
   - type: textarea
@@ -57,5 +57,3 @@ body:
       label: Is this a regression? Put the last known working version here if it is.
       description: Put the last known working version here if this is a regression.
       value: Not a regression
-
-
