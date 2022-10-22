@@ -405,8 +405,8 @@ TEST_SUBMODULE(class_, m) {
         // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
         ~PublicistB() override{}; // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
-        using ProtectedB::void_foo;
         using ProtectedB::get_self;
+        using ProtectedB::void_foo;
     };
 
     m.def("read_foo", [](const void *original) {
@@ -414,9 +414,8 @@ TEST_SUBMODULE(class_, m) {
         return *ptr;
     });
 
-    m.def("pointers_equal", [](const void *original, const void* comparison) {
-        return original == comparison;
-    });
+    m.def("pointers_equal",
+          [](const void *original, const void *comparison) { return original == comparison; });
 
     py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
         .def(py::init<>())
