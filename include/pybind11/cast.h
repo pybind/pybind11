@@ -1179,11 +1179,9 @@ enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&)
     pybind11_fail("Internal error: cast_safe fallback invoked");
 }
 template <typename T>
-enable_if_t<std::is_same<void, intrinsic_t<T>>::value, void> cast_safe(object &&) {}
+enable_if_t<std::is_void<T>::value, void> cast_safe(object &&) {}
 template <typename T>
-enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>,
-                            std::is_same<void, intrinsic_t<T>>>::value,
-            T>
+enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>, std::is_void<T>>::value, T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
 }
