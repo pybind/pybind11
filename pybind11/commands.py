@@ -1,8 +1,14 @@
 import os
 import sys
 import sysconfig
+from typing import List
 
 DIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def _getvar(varname: str, fmt: str = "{}") -> List[str]:
+    var = sysconfig.get_config_var(varname)
+    return [fmt.format(var.strip())] if var else []
 
 
 def get_include(user: bool = False) -> str:  # pylint: disable=unused-argument
@@ -57,22 +63,25 @@ def get_ldflags(embed: bool) -> str:
     Get the linker flags needed for a simple module.
     """
 
-    flags = sysconfig.get_config_var("LDFLAGS") or ""
+    flags = _getvar("LDFLAGS")
 
     if embed:
-        if not sysconfig.get_config_var("Py_ENABLE_SHARED"):
-            flags += f" -L{sysconfig.get_config_var('LIBPL') or ''}"
-        pyver = sysconfig.get_config_var("VERSION")
-        flags += f" -lpython{pyver}{sys.abiflags}"
-        flags += " " + (sysconfig.get_config_var("LIBS") or "")
-        flags += " " + (sysconfig.get_config_var("SYSLIBS") or "")
+        flags += _getvar("LIBIDR", "-L{}")
+        shared = sysconfig.get_config_var("Py_ENABLE_SHARED")
+        if shared and shared != "0":
+            flags += _getvar("LIBPL", "-L{}")
+        pyver = sysconfig.get_config_var("VERSION") or ""
+        flags += [f"-lpython{pyver}{sys.abiflags}"]
+
+        flags += _getvar("LIBS")
+        flags += _getvar("SYSLIBS")
     else:
         if sys.platform.startswith("darwin"):
-            flags += " -undefined dynamic_lookup"
+            flags += ["-undefined dynamic_lookup"]
         elif sys.platform.startswith("linux"):
-            flags += " -fPIC"
+            flags += ["-fPIC"]
 
-    return flags
+    return " ".join(flags)
 
 
 def get_extension() -> str:

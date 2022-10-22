@@ -66,7 +66,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--file",
-        type=str,
+        type=Path,
         help="Print the suggested compile line for a given file",
     )
     args = parser.parse_args()
@@ -76,14 +76,15 @@ def main() -> None:
         print(get_cflags(), end=" " if args.file else "\n")
     elif args.includes:
         print_includes()
+    if args.file:
+        print(args.file.name)
     if args.ldflags or args.file:
         print(get_ldflags(args.embed), end=" " if args.file else "\n")
     if args.file:
-        file = Path(args.file)
         if args.embed:
-            print(file.name, "-o", file.with_suffix(""))
+            print("-o", args.file.with_suffix(""))
         else:
-            print(file.name, "-o", file.with_suffix(get_extension()))
+            print("-o", args.file.with_suffix(get_extension()))
 
     if args.cmakedir:
         print(get_cmake_dir())
