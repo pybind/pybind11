@@ -74,10 +74,10 @@ def main() -> None:
         parser.print_help()
     if args.cflags or args.file:
         print(get_cflags(), end=" " if args.file else "\n")
-    elif args.includes:
+    elif args.includes and not args.file:
         print_includes()
     if args.file:
-        print(args.file.name)
+        print(args.file.name, end=" ")
     if args.ldflags or args.file:
         print(get_ldflags(args.embed), end=" " if args.file else "\n")
     if args.file:

@@ -77,9 +77,9 @@ def get_ldflags(embed: bool) -> str:
         flags += _getvar("SYSLIBS")
     else:
         if sys.platform.startswith("darwin"):
-            flags += ["-undefined dynamic_lookup"]
+            flags += ["-undefined dynamic_lookup", "-shared"]
         elif sys.platform.startswith("linux"):
-            flags += ["-fPIC"]
+            flags += ["-fPIC", "-shared"]
 
     return " ".join(flags)
 
