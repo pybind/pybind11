@@ -457,3 +457,12 @@ def test_python_override():
     for _ in range(1500):
         assert m.test_override_cache(func()) == 42
         assert m.test_override_cache(func2()) == 0
+
+
+def test_issue_4117():
+    class Lynx(m.Animal):
+        def go(self):
+            return self
+
+    obj = Lynx()
+    assert obj.go() is obj

@@ -230,6 +230,35 @@ inline int test_override_cache(std::shared_ptr<test_override_cache_helper> const
 // are rather long).
 void initialize_inherited_virtuals(py::module_ &m);
 
+namespace issue_4117 { // Broken by PR #3861
+
+class Animal {
+public:
+    virtual ~Animal() {}
+    virtual void *go() = 0;
+};
+
+class PyAnimal : public Animal {
+public:
+    /* Inherit the constructors */
+    using Animal::Animal;
+    /* Trampoline (need one for each virtual function) */
+    void *go() override {
+        PYBIND11_OVERRIDE_PURE(void *, /* Return type */
+                               Animal, /* Parent class */
+                               go,     /* Name of function in C++ (must match Python name) */
+        );
+    }
+};
+
+void bindings(py::module_ m) {
+    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
+        .def(py::init<>())
+        .def("go", &Animal::go);
+}
+
+} // namespace issue_4117
+
 TEST_SUBMODULE(virtual_functions, m) {
     // test_override
     py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
@@ -410,6 +439,8 @@ TEST_SUBMODULE(virtual_functions, m) {
         .def("func", &test_override_cache_helper::func);
 
     m.def("test_override_cache", test_override_cache);
+
+    issue_4117::bindings(m);
 }
 
 // Inheriting virtual methods.  We do two versions here: the repeat-everything version and the
@@ -589,32 +620,3 @@ void initialize_inherited_virtuals(py::module_ &m) {
     m.def("test_gil", &test_gil);
     m.def("test_gil_from_thread", &test_gil_from_thread);
 };
-
-namespace issue4117 { // Broken by PR #3861
-
-class Animal {
-public:
-    virtual ~Animal() {}
-    virtual void *go() = 0;
-};
-
-class PyAnimal : public Animal {
-public:
-    /* Inherit the constructors */
-    using Animal::Animal;
-    /* Trampoline (need one for each virtual function) */
-    void *go() override {
-        PYBIND11_OVERRIDE_PURE(void *, /* Return type */
-                               Animal, /* Parent class */
-                               go,     /* Name of function in C++ (must match Python name) */
-        );
-    }
-};
-
-void bindings(py::module_ m) {
-    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
-        .def(py::init<>())
-        .def("go", &Animal::go);
-}
-
-} // namespace issue4117
