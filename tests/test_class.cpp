@@ -385,6 +385,7 @@ TEST_SUBMODULE(class_, m) {
     protected:
         virtual int foo() const { return value; }
         virtual void *void_foo() { return (void *) &value; }
+        virtual void *get_self() { return (void *) this; }
 
     private:
         int value = 42;
@@ -394,6 +395,7 @@ TEST_SUBMODULE(class_, m) {
     public:
         int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
         void *void_foo() override { PYBIND11_OVERRIDE(void *, ProtectedB, void_foo, ); }
+        void *get_self() override { PYBIND11_OVERRIDE(void *, ProtectedB, get_self, ); }
     };
 
     class PublicistB : public ProtectedB {
@@ -404,6 +406,7 @@ TEST_SUBMODULE(class_, m) {
         ~PublicistB() override{}; // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
         using ProtectedB::void_foo;
+        using ProtectedB::get_self;
     };
 
     m.def("read_foo", [](const void *original) {
@@ -411,10 +414,15 @@ TEST_SUBMODULE(class_, m) {
         return *ptr;
     });
 
+    m.def("pointers_equal", [](const void *original, const void* comparison) {
+        return original == comparison;
+    });
+
     py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
         .def(py::init<>())
         .def("foo", &PublicistB::foo)
-        .def("void_foo", &PublicistB::void_foo);
+        .def("void_foo", &PublicistB::void_foo)
+        .def("get_self", &PublicistB::get_self);
 
     // test_brace_initialization
     struct BraceInitialization {
