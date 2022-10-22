@@ -7,6 +7,7 @@ body:
     attributes:
       value: |
         Maintainers will only make a best effort to triage PRs. Please do your best to make the issue as easy to act on as possible, and only open if clearly a problem with pybind11 (ask first if unsure).
+  
   - type: checkboxes
     id: steps
     attributes:
@@ -19,6 +20,12 @@ body:
           required: true
         - label: Consider asking first in the [Gitter chat room](https://gitter.im/pybind/Lobby) or in a [Discussion](https:/pybind/pybind11/discussions/new).
           required: false
+
+  - type: Input
+    id: version
+    attributes:
+      label: What version of pybind11 are you using? Version or hash (if on master) perferable.
+      required: true
 
   - type: textarea
     id: description
@@ -43,3 +50,12 @@ body:
         issue. If possible, make a PR with a new, failing test to give us a
         starting point to work on!
       render: text
+      
+  - type: Input
+    id: regresssion
+    attributes:
+      label: Is this a regression? Put the last known working version here if it is.
+      description: Put the last known working version here if this is a regression.
+      value: Not a regression
+      
+      
