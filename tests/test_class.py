@@ -1,7 +1,8 @@
+import ctypes
+
 import pytest
 
 import env  # noqa: F401
-import ctypes
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
