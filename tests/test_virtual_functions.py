@@ -460,7 +460,7 @@ def test_python_override():
 
 
 def test_issue_4117():
-    class Lynx(m.Animal):
+    class Lynx(m.Issue4117Animal):
         def go(self):
             return self
 

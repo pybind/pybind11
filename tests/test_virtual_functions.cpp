@@ -252,7 +252,7 @@ public:
 };
 
 void bindings(py::module_ m) {
-    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
+    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Issue4117Animal")
         .def(py::init<>())
         .def("go", &Animal::go);
 }
