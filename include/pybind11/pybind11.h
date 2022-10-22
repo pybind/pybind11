@@ -69,13 +69,6 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
     return false;
 }
 
-inline bool is_function_record_capsule(const capsule &cap) {
-    if (cap.name() == nullptr) {
-        return false;
-    }
-    return (std::strcmp(cap.name(), function_record::function_capsule_name) == 0);
-}
-
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
@@ -510,7 +503,7 @@ protected:
 
             capsule rec_capsule(unique_rec.release(),
                                 [](void *ptr) { destruct((detail::function_record *) ptr); });
-            rec_capsule.set_name(detail::function_record::function_capsule_name);
+            rec_capsule.set_name(detail::get_function_record_capsule_name());
             guarded_strdup.release();
 
             object scope_module;
@@ -678,10 +671,9 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads
-            = reinterpret_cast<function_record *>(
-                PyCapsule_GetPointer(self, function_record::function_capsule_name)),
-            *it = overloads;
+        const function_record *overloads = reinterpret_cast<function_record *>(
+                                  PyCapsule_GetPointer(self, get_function_record_capsule_name())),
+                              *it = overloads;
         assert(overloads != nullptr);
 
         /* Need to know how many arguments + keyword arguments there are to pick the right

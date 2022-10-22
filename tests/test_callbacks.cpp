@@ -16,8 +16,6 @@
 
 int dummy_function(int i) { return i + 1; }
 
-static PyMethodDef def;
-
 TEST_SUBMODULE(callbacks, m) {
     // test_callbacks, test_function_signatures
     m.def("test_callback1", [](const py::object &func) { return func(); });
@@ -243,28 +241,37 @@ TEST_SUBMODULE(callbacks, m) {
         }
     });
 
-    def.ml_name = "example_name";
-    def.ml_doc = "Example doc";
-    def.ml_meth = [](PyObject *, PyObject *args) -> PyObject * {
-        if (PyTuple_Size(args) != 1) {
-            throw std::runtime_error("Invalid number of arguments for example_name");
-        }
-        PyObject *first = PyTuple_GetItem(args, 0);
-        if (!PyLong_Check(first)) {
-            throw std::runtime_error("Invalid argument to example_name");
-        }
-        auto result = py::cast(PyLong_AsLong(first) * 9);
-        return result.release().ptr();
-    };
-    def.ml_flags = METH_VARARGS;
+    auto custom_def = []() {
+        static PyMethodDef def;
+        def.ml_name = "example_name";
+        def.ml_doc = "Example doc";
+        def.ml_meth = [](PyObject *, PyObject *args) -> PyObject * {
+            if (PyTuple_Size(args) != 1) {
+                throw std::runtime_error("Invalid number of arguments for example_name");
+            }
+            PyObject *first = PyTuple_GetItem(args, 0);
+            if (!PyLong_Check(first)) {
+                throw std::runtime_error("Invalid argument to example_name");
+            }
+            auto result = py::cast(PyLong_AsLong(first) * 9);
+            return result.release().ptr();
+        };
+        def.ml_flags = METH_VARARGS;
+        return &def;
+    }();
 
     // rec_capsule with custom name
-    constexpr const char *rec_capsule_name = "CUSTOM_REC_CAPSULE";
+    constexpr const char *rec_capsule_name = "pybind11_function_record_capsule";
     py::capsule rec_capsule(std::malloc(1), [](void *data) { std::free(data); });
     rec_capsule.set_name(rec_capsule_name);
-    m.add_object("custom_function", PyCFunction_New(&def, rec_capsule.ptr()));
+    m.add_object("custom_function", PyCFunction_New(custom_def, rec_capsule.ptr()));
 
+    // This test requires a new ABI version to pass
+#if PYBIND11_INTERNALS_VERSION >= 5
     // rec_capsule with nullptr name
     py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
-    m.add_object("custom_function2", PyCFunction_New(&def, rec_capsule2.ptr()));
+    m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule2.ptr()));
+#else
+    m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule.ptr()));
+#endif
 }

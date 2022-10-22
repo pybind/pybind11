@@ -197,6 +197,11 @@ struct internals {
         PYBIND11_TLS_FREE(tstate);
     }
 #endif
+#if PYBIND11_INTERNALS_VERSION >= 5
+    // Note that we have to invoke strdup to allocate memory to ensure a unique address
+    // We want unique addresses since we use pointer equality to compare function records
+    const char *function_record_capsule_name = strdup("pybind11_function_record_capsule");
+#endif
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
@@ -546,6 +551,25 @@ const char *c_str(Args &&...args) {
     auto &strings = get_internals().static_strings;
     strings.emplace_front(std::forward<Args>(args)...);
     return strings.front().c_str();
+}
+
+inline const char *get_function_record_capsule_name() {
+#if PYBIND11_INTERNALS_VERSION >= 5
+    return get_internals().function_record_capsule_name;
+#else
+    return nullptr;
+#endif
+}
+
+// Determine whether or not the following capsule contains a pybind11 function record.
+// Note that we use internals to make sure that only ABI compatible records are touched.
+//
+// This check is currently used in two places:
+// - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
+// - The sibling feature of cpp_function to allow overloads
+inline bool is_function_record_capsule(const capsule &cap) {
+    // Pointer equality as we rely
+    return cap.name() == get_function_record_capsule_name();
 }
 
 PYBIND11_NAMESPACE_END(detail)
