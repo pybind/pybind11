@@ -241,7 +241,7 @@ TEST_SUBMODULE(callbacks, m) {
         }
     });
 
-    auto custom_def = []() {
+    auto *custom_def = []() {
         static PyMethodDef def;
         def.ml_name = "example_name";
         def.ml_doc = "Example doc";

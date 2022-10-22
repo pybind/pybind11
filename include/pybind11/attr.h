@@ -186,7 +186,6 @@ struct argument_record {
 /// Internal data structure which holds metadata about a bound function (signature, overloads,
 /// etc.)
 struct function_record {
-
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
           is_operator(false), is_method(false), has_args(false), has_kwargs(false),
