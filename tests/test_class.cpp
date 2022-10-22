@@ -384,8 +384,8 @@ TEST_SUBMODULE(class_, m) {
 
     protected:
         virtual int foo() const { return value; }
-        virtual void *void_foo() { return (void *) &value; }
-        virtual void *get_self() { return (void *) this; }
+        virtual void *void_foo() { return static_cast<void *>(&value); }
+        virtual void *get_self() { return static_cast<void *>(this); }
 
     private:
         int value = 42;
