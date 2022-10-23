@@ -568,7 +568,7 @@ inline const char *get_function_record_capsule_name() {
 // - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
 // - The sibling feature of cpp_function to allow overloads
 inline bool is_function_record_capsule(const capsule &cap) {
-    // Pointer equality as we rely
+    // Pointer equality as we rely on internals() to ensure unique pointers
     return cap.name() == get_function_record_capsule_name();
 }
 
