@@ -1896,7 +1896,7 @@ private:
         if (!detail::is_function_record_capsule(cap)) {
             return nullptr;
         }
-        return static_cast<detail::function_record *>(cap);
+        return cap.get_pointer<detail::function_record>();
     }
 };
 
