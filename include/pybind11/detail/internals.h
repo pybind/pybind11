@@ -189,9 +189,6 @@ struct internals {
         PYBIND11_TLS_FREE(tstate);
     }
 #endif
-    internals() = default;
-    internals(const internals &other) = delete;
-    internals &operator=(const internals &other) = delete;
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
