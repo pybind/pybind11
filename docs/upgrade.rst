@@ -15,7 +15,7 @@ v2.10
 
 The current scoped GIL implementation doesn't support nested access. In pybind11
 In 2.10.1, a configuration option ``PYBIND11_SIMPLE_GIL`` was added, defaulting
-to OFF; the simpler GIL implemntation supports nested access, but does not
+to OFF; the simpler GIL implementation supports nested access, but does not
 support dissociation (the ``true`` parameter of ``gil_scope_release``).  In
 pybind11 2.11, we plan to change the default to ON. If you need the old
 behavior, please set ``PYBIND11_SIMPLE_GIL`` to OFF. We plan to have an example
