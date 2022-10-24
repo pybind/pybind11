@@ -6,7 +6,7 @@ namespace cross_module_exception_odr {
 
 class PYBIND11_EXPORT_EXCEPTION evolving : public std::runtime_error {
 public:
-    evolving(const std::string &msg) : std::runtime_error("v1:" + msg) {}
+    explicit evolving(const std::string &msg) : std::runtime_error("v1:" + msg) {}
 };
 
 } // namespace cross_module_exception_odr
