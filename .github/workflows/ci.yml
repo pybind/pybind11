@@ -176,6 +176,10 @@ jobs:
       run: pytest tests/extra_setuptools
       if: "!(matrix.runs-on == 'windows-2022')"
 
+    # This tests ABI compatibility
+    - name: ABI test
+      run: pytest tests/extra_abi
+
 
   deadsnakes:
     strategy:
