@@ -18,14 +18,9 @@ Changes will be summarized here periodically.
 Version 2.10.1 (Oct 24, 2022)
 -----------------------------
 
-There is some concern about ABI compatibility between 2.10.x and previous
-versions, possibly related to exception handling. Please test if this is
-important to you before upgrading, and report an issue or comment on an issue
-if there's a problem. We will be bumping the internal ABI version in an
-upcoming release.
+There is some concern about ABI compatibility between 2.10.x (including this release) and previous versions, possibly related to cross-module exception handling. This is still developing and tracked under `#4105 <https://github.com/pybind/pybind11/pull/4105>`_. Please review if this is important to you before upgrading, and report an issue or comment on an issue if there's a problem.
 
-Using at least this version is recommended if you need Python 3.11 support
-(though 2.10.0 mostly supported it as long as you weren't embedding Python).
+This is the first version to support embedding the newly released Python 3.11.
 
 Changes:
 
