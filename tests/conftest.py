@@ -13,7 +13,10 @@ import textwrap
 import pytest
 
 # Early diagnostic for failed imports
-import pybind11_tests
+try:
+    import pybind11_tests
+except ModuleNotFoundError:
+    pybind11_tests = None
 
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
@@ -201,13 +204,14 @@ def pytest_configure():
 
 
 def pytest_report_header(config):
-    del config  # Unused.
-    assert (
-        pybind11_tests.compiler_info is not None
-    ), "Please update pybind11_tests.cpp if this assert fails."
-    return (
-        "C++ Info:"
-        f" {pybind11_tests.compiler_info}"
-        f" {pybind11_tests.cpp_std}"
-        f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
-    )
+    if pybind11_tests is not None:
+        del config  # Unused.
+        assert (
+            pybind11_tests.compiler_info is not None
+        ), "Please update pybind11_tests.cpp if this assert fails."
+        return (
+            "C++ Info:"
+            f" {pybind11_tests.compiler_info}"
+            f" {pybind11_tests.cpp_std}"
+            f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
+        )

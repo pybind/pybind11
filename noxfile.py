@@ -67,11 +67,15 @@ def tests_abi(session: nox.Session) -> None:
     Run the abi checker.
     """
 
-    session.install("pybind11==2.8.0")
-    session.install("tests/extra_abi", env={"EXAMPLE_NAME": "pet"})
-    session.install(".")
-    session.install("tests/extra_abi", env={"EXAMPLE_NAME": "dog"})
-    session.run("python", "tests/extra_abi/test_installed.py")
+    session.install("pybind11==2.8.0", "--no-build-isolation")
+    session.install(
+        "tests/extra_abi", "--no-build-isolation", env={"EXAMPLE_NAME": "pet"}
+    )
+    session.install(".", "--no-build-isolation")
+    session.install(
+        "tests/extra_abi", "--no-build-isolation", env={"EXAMPLE_NAME": "dog"}
+    )
+    session.run("python", "tests/extra_abi/check_installed.py")
 
 
 @nox.session(reuse_venv=True)
