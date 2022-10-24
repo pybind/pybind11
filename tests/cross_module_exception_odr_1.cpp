@@ -4,10 +4,19 @@
 
 namespace cross_module_exception_odr {
 
+#if defined(_MSC_VER)
+#    pragma warning(push)
+#    pragma warning(disable : 4275)
+#endif
+
 class PYBIND11_EXPORT_EXCEPTION evolving : public std::runtime_error {
 public:
     explicit evolving(const std::string &msg) : std::runtime_error("v1:" + msg) {}
 };
+
+#if defined(_MSC_VER)
+#    pragma warning(pop)
+#endif
 
 } // namespace cross_module_exception_odr
 

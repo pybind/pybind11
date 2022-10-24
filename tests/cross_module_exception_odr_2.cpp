@@ -4,10 +4,19 @@
 
 namespace cross_module_exception_odr {
 
+#if defined(_MSC_VER)
+#    pragma warning(push)
+#    pragma warning(disable : 4275)
+#endif
+
 class PYBIND11_EXPORT_EXCEPTION evolving : public std::exception {
 public:
     const char *what() const noexcept override { return "v2"; }
 };
+
+#if defined(_MSC_VER)
+#    pragma warning(pop)
+#endif
 
 void raise_evolving_from_module_2() { throw evolving(); }
 
