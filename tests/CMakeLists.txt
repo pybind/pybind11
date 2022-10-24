@@ -125,6 +125,8 @@ set(PYBIND11_TEST_FILES
     test_const_name
     test_constants_and_functions
     test_copy_move
+    test_cross_module_exception_odr_1.py
+    test_cross_module_exception_odr_2.py
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
@@ -219,6 +221,8 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
+tests_extra_targets("test_cross_module_exception_odr_1.py" "cross_module_exception_odr_1")
+tests_extra_targets("test_cross_module_exception_odr_2.py" "cross_module_exception_odr_2")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
