@@ -61,6 +61,19 @@ def tests_packaging(session: nox.Session) -> None:
     session.run("pytest", "tests/extra_python_package", *session.posargs)
 
 
+@nox.session
+def tests_abi(session: nox.Session) -> None:
+    """
+    Run the abi checker.
+    """
+
+    session.install("pybind11==2.8.0")
+    session.install("tests/extra_abi", env={"EXAMPLE_NAME": "pet"})
+    session.install(".")
+    session.install("tests/extra_abi", env={"EXAMPLE_NAME": "dog"})
+    session.run("python", "tests/extra_abi/test_installed.py")
+
+
 @nox.session(reuse_venv=True)
 def docs(session: nox.Session) -> None:
     """
