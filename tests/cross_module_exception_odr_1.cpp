@@ -4,9 +4,9 @@
 
 namespace cross_module_exception_odr {
 
-class PYBIND11_EXPORT_EXCEPTION evolving : public std::exception {
+class PYBIND11_EXPORT_EXCEPTION evolving : public std::runtime_error {
 public:
-    const char *what() const noexcept override { return "v1"; }
+    evolving(const std::string &msg) : std::runtime_error("v1:" + msg) {}
 };
 
 } // namespace cross_module_exception_odr
@@ -25,5 +25,5 @@ PYBIND11_MODULE(cross_module_exception_odr_1, m) {
         }
     });
 
-    m.def("raise_evolving", []() { throw evolving(); });
+    m.def("raise_evolving", [](const std::string &msg) { throw evolving(msg); });
 }
