@@ -26,4 +26,8 @@ PYBIND11_MODULE(cross_module_exception_odr_1, m) {
     });
 
     m.def("raise_evolving", [](const std::string &msg) { throw evolving(msg); });
+    m.def("raise_evolving_from_module_2", [](const py::capsule &cap) {
+        auto f = reinterpret_cast<void (*)()>(cap.get_pointer<void>());
+        f();
+    });
 }

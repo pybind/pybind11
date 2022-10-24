@@ -9,6 +9,8 @@ public:
     const char *what() const noexcept override { return "v2"; }
 };
 
+void raise_evolving_from_module_2() { throw evolving(); }
+
 } // namespace cross_module_exception_odr
 
 PYBIND11_MODULE(cross_module_exception_odr_2, m) {
@@ -26,4 +28,8 @@ PYBIND11_MODULE(cross_module_exception_odr_2, m) {
     });
 
     m.def("raise_evolving", []() { throw evolving(); });
+    m.def("get_raise_evolving_from_module_2_capsule", []() {
+        return py::capsule(reinterpret_cast<void *>(&raise_evolving_from_module_2),
+                           "raise_evolving_from_module_2_function_pointer");
+    });
 }
