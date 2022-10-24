@@ -10,18 +10,24 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-
 IN DEVELOPMENT
 --------------
 
 Changes will be summarized here periodically.
 
-Version 2.10.1 (Oct 2?, 2022)
+Version 2.10.1 (Oct 24, 2022)
 -----------------------------
 
+There is some concern about ABI compatibility between 2.10.x and previous
+versions, possibly related to exception handling. Please test if this is
+important to you before upgrading, and report an issue or comment on an issue
+if there's a problem. We will be bumping the internal ABI version in an
+upcoming release.
+
+Using at least this version is recommended if you need Python 3.11 support
+(though 2.10.0 mostly supported it as long as you weren't embedding Python).
 
 Changes:
-
 
 * Allow ``pybind11::capsule`` constructor to take null destructor pointers.
   `#4221 <https://github.com/pybind/pybind11/pull/4221>`_
@@ -31,6 +37,15 @@ Changes:
   `#4119 <https://github.com/pybind/pybind11/pull/4119>`_
 
 Bug fixes:
+
+* Revert perfect forwarding for make_iterator. This broke at least one valid use case. May revisit later.
+  `#4234 <https://github.com/pybind/pybind11/pull/4234>`_
+
+* Fix support for safe casts to void* (regression in 2.10.0).
+  `#4275 <https://github.com/pybind/pybind11/pull/4275>`_
+
+* Fix ``char8_t`` support (regression in 2.9).
+  `#4278 <https://github.com/pybind/pybind11/pull/4278>`_
 
 * Fix MSVC 2019 v.1924 & C++14 mode error for ``overload_cast``.
   `#4188 <https://github.com/pybind/pybind11/pull/4188>`_
@@ -100,8 +115,14 @@ Performance and style:
 * Optimize unpacking_collector when processing ``arg_v`` arguments.
   `#4219 <https://github.com/pybind/pybind11/pull/4219>`_
 
+* Optimize casting C++ object to None.
+  `#4269 <https://github.com/pybind/pybind11/pull/4269>`_
+
 
 Build system improvements:
+
+* CMake: revert overwrite behavior, now opt-in with ``PYBIND11_PYTHONLIBS_OVERRWRITE OFF``.
+  `#4195 <https://github.com/pybind/pybind11/pull/4195>`_
 
 * Include a pkg-config file when installing pybind11, such as in the Python
   package.
