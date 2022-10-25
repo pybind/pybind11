@@ -178,6 +178,7 @@ jobs:
 
     # This tests ABI compatibility
     - name: ABI test
+      if: matrix.python != '3.11-dev'
       run: pytest tests/extra_abi
 
 
