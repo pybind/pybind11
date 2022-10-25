@@ -102,7 +102,7 @@
 // different visibility
 #        define PYBIND11_EXPORT_EXCEPTION
 #    else
-#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
+#        define PYBIND11_EXPORT_EXCEPTION
 #    endif
 #endif
 
