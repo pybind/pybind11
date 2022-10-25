@@ -4,6 +4,13 @@ Extends output capture as needed by pybind11: ignore constructors, optional unor
 Adds docstring and exceptions message sanitizers.
 """
 
+import sys
+
+if sys.platform == "linux":
+    sys.setdlopenflags(0x100 | 0x2)  # RTLD_GLOBAL | RTLD_NOW
+elif sys.platform == "darwin":
+    sys.setdlopenflags(0x8 | 0x2)  # RTLD_GLOBAL | RTLD_NOW
+
 import contextlib
 import difflib
 import gc
