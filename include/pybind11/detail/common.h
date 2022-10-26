@@ -229,6 +229,10 @@
 #    undef copysign
 #endif
 
+#if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#    define PYBIND11_SIMPLE_GIL_MANAGEMENT
+#endif
+
 #if defined(_MSC_VER)
 #    if defined(PYBIND11_DEBUG_MARKER)
 #        define _DEBUG

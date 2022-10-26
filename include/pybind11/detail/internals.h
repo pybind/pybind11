@@ -9,6 +9,10 @@
 
 #pragma once
 
+#if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#    include "../gil.h"
+#endif
+
 #include "../pytypes.h"
 
 #include <exception>
@@ -169,10 +173,12 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
+    // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
 #    if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
 #    endif // PYBIND11_INTERNALS_VERSION > 4
+    // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
     ~internals() {
 #    if PYBIND11_INTERNALS_VERSION > 4
@@ -408,6 +414,10 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
+#if defined(WITH_THREAD)
+#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    gil_scoped_acquire gil;
+#    else
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
@@ -417,6 +427,8 @@ PYBIND11_NOINLINE internals &get_internals() {
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
+#    endif
+#endif
     error_scope err_scope;
 
     PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);

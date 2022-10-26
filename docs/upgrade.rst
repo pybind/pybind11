@@ -13,16 +13,14 @@ modernization and other useful information.
 v2.10
 =====
 
-The current scoped GIL implementation doesn't support nested access. In pybind11
-In 2.10.1, a configuration option ``PYBIND11_SIMPLE_GIL`` was added, defaulting
-to OFF; the simpler GIL implementation supports nested access, but does not
-support dissociation (the ``true`` parameter of ``gil_scope_release``).  In
-pybind11 2.11, we plan to change the default to ON. If you need the old
-behavior, please set ``PYBIND11_SIMPLE_GIL`` to OFF. We plan to have an example
-for manually supporting dissociation.
-
-There may be an unconfirmed ABI breakage between 2.9 and 2.10. We plan to bump
-the internals number in 2.11.
+``py::gil_scoped_acquire`` & ``py::gil_scoped_release`` in pybind11 versions
+< v2.10.1 do not support nested access. In v2.10.1, a configuration option
+``PYBIND11_SIMPLE_GIL_MANAGEMENT`` was added, defaulting to ``OFF``; the
+simpler implementations support nested access, but do not support dissociation
+(``py::gil_scoped_release(true)``). In pybind11 2.11, we plan to change the
+default to ``ON``, to avoid pitfalls of the implementations with dissociation
+(see #4216 for more information). Note that the dissociation feature is very
+rarely used and not exercised in any pybind11 unit tests.
 
 .. _upgrade-guide-2.9:
 
