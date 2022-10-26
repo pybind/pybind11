@@ -369,7 +369,9 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
     return -1;
 }
 
-inline void add_patient(PyObject *nurse, PyObject *patient, size_t placement = detail::KEEP_ALIVE_NO_PLACEMENT) {
+inline void add_patient(PyObject *nurse,
+                        PyObject *patient,
+                        size_t placement = detail::KEEP_ALIVE_NO_PLACEMENT) {
     auto &internals = get_internals();
     auto *instance = reinterpret_cast<detail::instance *>(nurse);
 
@@ -383,7 +385,7 @@ inline void add_patient(PyObject *nurse, PyObject *patient, size_t placement = d
     // add patient with placement
     else {
         // check if the placement is already taken
-        auto& patients_with_placements = internals.patients_with_placements[nurse];
+        auto &patients_with_placements = internals.patients_with_placements[nurse];
         auto existing = patients_with_placements.find(placement);
         if (existing == patients_with_placements.end()) {
             // no patient at a given placement: put the new one
@@ -392,8 +394,7 @@ inline void add_patient(PyObject *nurse, PyObject *patient, size_t placement = d
                 Py_XINCREF(patient);
                 instance->has_patients = true;
             }
-        }
-        else if (existing->second != patient) {
+        } else if (existing->second != patient) {
             // a patient is already there and differs from the new one; exchange
             auto previous_patient = existing->second;
             existing->second = patient;

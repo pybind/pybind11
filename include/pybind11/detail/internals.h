@@ -157,7 +157,8 @@ struct internals {
         inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
-    std::unordered_map<const PyObject *, std::unordered_map<size_t, PyObject *>> patients_with_placements;
+    std::unordered_map<const PyObject *, std::unordered_map<size_t, PyObject *>>
+        patients_with_placements;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across
                                                          // extensions

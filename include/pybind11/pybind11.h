@@ -2185,7 +2185,6 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-
 PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient, size_t placement) {
     // Keeping alive without placement
     if (placement == KEEP_ALIVE_NO_PLACEMENT) {
@@ -2198,13 +2197,12 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient, size_t plac
         auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
         if (!tinfo.empty()) {
             /* It's a pybind-registered type, so we can store the patient in the
-            * internal list. */
+             * internal list. */
             add_patient(nurse.ptr(), patient.ptr());
-        }
-        else {    
+        } else {
             /* Fall back to clever approach based on weak references taken from
-            * Boost.Python. This is not used for pybind-registered types because
-            * the objects can be destroyed out-of-order in a GC pass. */
+             * Boost.Python. This is not used for pybind-registered types because
+             * the objects can be destroyed out-of-order in a GC pass. */
             cpp_function disable_lifesupport([patient](handle weakref) {
                 patient.dec_ref();
                 weakref.dec_ref();
@@ -2223,11 +2221,12 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient, size_t plac
         auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
         if (!tinfo.empty()) {
             /* It's a pybind-registered type, so we can store the patient in the
-            * internal list. */
-            add_patient(nurse.ptr(), patient && !patient.is_none() ? patient.ptr() : nullptr, placement);
-        }
-        else {
-            pybind11_fail("Could not activate keep_alive with placement and Nurse of a non pybind-registered type!");
+             * internal list. */
+            add_patient(
+                nurse.ptr(), patient && !patient.is_none() ? patient.ptr() : nullptr, placement);
+        } else {
+            pybind11_fail("Could not activate keep_alive with placement and Nurse of a non "
+                          "pybind-registered type!");
         }
     }
 }
