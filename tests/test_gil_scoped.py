@@ -91,3 +91,7 @@ def test_python_to_cpp_to_python_from_process():
 def test_cross_module_gil():
     """Makes sure that the GIL can be acquired by another module from a GIL-released state."""
     m.test_cross_module_gil()  # Should not raise a SIGSEGV
+
+
+def test_release_acquire():
+    assert m.test_release_acquire(0xAB) == "171"

@@ -44,4 +44,9 @@ TEST_SUBMODULE(gil_scoped, m) {
         py::gil_scoped_release gil_release;
         gil_acquire();
     });
+    m.def("test_release_acquire", [](const py::object &obj) {
+        py::gil_scoped_release gil_released;
+        py::gil_scoped_acquire gil_acquired;
+        return py::str(obj);
+    });
 }
