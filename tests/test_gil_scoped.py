@@ -33,6 +33,18 @@ def _python_to_cpp_to_python():
     m.test_callback_std_func(lambda: None)
     m.test_callback_virtual_func(extended)
     m.test_callback_pure_virtual_func(extended)
+    m.test_cross_module_gil_released()
+    m.test_cross_module_gil_acquired()
+    m.test_cross_module_gil_inner_custom_released()
+    m.test_cross_module_gil_inner_custom_acquired()
+    m.test_cross_module_gil_inner_pybind11_released()
+    m.test_cross_module_gil_inner_pybind11_acquired()
+    m.test_cross_module_gil_nested_custom_released()
+    m.test_cross_module_gil_nested_custom_acquired()
+    m.test_cross_module_gil_nested_pybind11_released()
+    # m.test_cross_module_gil_nested_pybind11_acquire() # this one dies in test_python_to_cpp_to_python_from_process
+    assert m.test_release_acquire(0xAB) == "171"
+    assert m.test_nested_acquire(0xAB) == "171"
 
 
 def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
@@ -88,10 +100,67 @@ def test_python_to_cpp_to_python_from_process():
     assert _run_in_process(_python_to_cpp_to_python) == 0
 
 
-def test_cross_module_gil():
+def test_cross_module_gil_released():
     """Makes sure that the GIL can be acquired by another module from a GIL-released state."""
-    m.test_cross_module_gil()  # Should not raise a SIGSEGV
+    m.test_cross_module_gil_released()  # Should not raise a SIGSEGV
+
+
+def test_cross_module_gil_acquired():
+    """Makes sure that the GIL can be acquired by another module from a GIL-acquired state."""
+    m.test_cross_module_gil_acquired()  # Should not raise a SIGSEGV
+
+
+def test_cross_module_gil_inner_custom_released():
+    """Makes sure that the GIL can be acquired/released by another module
+    from a GIL-released state using custom locking logic."""
+    m.test_cross_module_gil_inner_custom_released()
+
+
+def test_cross_module_gil_inner_custom_acquired():
+    """Makes sure that the GIL can be acquired/acquired by another module
+    from a GIL-acquired state using custom locking logic."""
+    m.test_cross_module_gil_inner_custom_acquired()
+
+
+def test_cross_module_gil_inner_pybind11_released():
+    """Makes sure that the GIL can be acquired/released by another module
+    from a GIL-released state using pybind11 locking logic."""
+    m.test_cross_module_gil_inner_pybind11_released()
+
+
+def test_cross_module_gil_inner_pybind11_acquired():
+    """Makes sure that the GIL can be acquired/acquired by another module
+    from a GIL-acquired state using pybind11 locking logic."""
+    m.test_cross_module_gil_inner_pybind11_acquired()
+
+
+def test_cross_module_gil_nested_custom_released():
+    """Makes sure that the GIL can be nested acquired/released by another module
+    from a GIL-released state using custom locking logic."""
+    m.test_cross_module_gil_nested_custom_released()
+
+
+def test_cross_module_gil_nested_custom_acquired():
+    """Makes sure that the GIL can be nested acquired/acquired by another module
+    from a GIL-acquired state using custom locking logic."""
+    m.test_cross_module_gil_nested_custom_acquired()
+
+
+def test_cross_module_gil_nested_pybind11_released():
+    """Makes sure that the GIL can be nested acquired/released by another module
+    from a GIL-released state using pybind11 locking logic."""
+    m.test_cross_module_gil_nested_pybind11_released()
+
+
+def test_cross_module_gil_nested_pybind11_acquired():
+    """Makes sure that the GIL can be nested acquired/acquired by another module
+    from a GIL-acquired state using pybind11 locking logic."""
+    m.test_cross_module_gil_nested_pybind11_acquired()
 
 
 def test_release_acquire():
     assert m.test_release_acquire(0xAB) == "171"
+
+
+def test_nested_acquire():
+    assert m.test_nested_acquire(0xAB) == "171"

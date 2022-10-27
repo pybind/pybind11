@@ -11,6 +11,10 @@
 
 #include "pybind11_tests.h"
 
+#define CROSS_MODULE(Function)                                                                    \
+    auto cm = py::module_::import("cross_module_gil_utils");                                      \
+    auto target = reinterpret_cast<void (*)()>(PyLong_AsVoidPtr(cm.attr(Function).ptr()));
+
 class VirtClass {
 public:
     virtual ~VirtClass() = default;
@@ -37,16 +41,65 @@ TEST_SUBMODULE(gil_scoped, m) {
     m.def("test_callback_std_func", [](const std::function<void()> &func) { func(); });
     m.def("test_callback_virtual_func", [](VirtClass &virt) { virt.virtual_func(); });
     m.def("test_callback_pure_virtual_func", [](VirtClass &virt) { virt.pure_virtual_func(); });
-    m.def("test_cross_module_gil", []() {
-        auto cm = py::module_::import("cross_module_gil_utils");
-        auto gil_acquire = reinterpret_cast<void (*)()>(
-            PyLong_AsVoidPtr(cm.attr("gil_acquire_funcaddr").ptr()));
+    m.def("test_cross_module_gil_released", []() {
+        CROSS_MODULE("gil_acquire_funcaddr")
         py::gil_scoped_release gil_release;
-        gil_acquire();
+        target();
+    });
+    m.def("test_cross_module_gil_acquired", []() {
+        CROSS_MODULE("gil_acquire_funcaddr")
+        py::gil_scoped_acquire gil_acquire;
+        target();
+    });
+    m.def("test_cross_module_gil_inner_custom_released", []() {
+        CROSS_MODULE("gil_acquire_inner_custom_funcaddr")
+        py::gil_scoped_release gil_release;
+        target();
+    });
+    m.def("test_cross_module_gil_inner_custom_acquired", []() {
+        CROSS_MODULE("gil_acquire_inner_custom_funcaddr")
+        py::gil_scoped_acquire gil_acquire;
+        target();
+    });
+    m.def("test_cross_module_gil_inner_pybind11_released", []() {
+        CROSS_MODULE("gil_acquire_inner_pybind11_funcaddr")
+        py::gil_scoped_release gil_release;
+        target();
+    });
+    m.def("test_cross_module_gil_inner_pybind11_acquired", []() {
+        CROSS_MODULE("gil_acquire_inner_pybind11_funcaddr")
+        py::gil_scoped_acquire gil_acquire;
+        target();
+    });
+    m.def("test_cross_module_gil_nested_custom_released", []() {
+        CROSS_MODULE("gil_acquire_nested_custom_funcaddr")
+        py::gil_scoped_release gil_release;
+        target();
+    });
+    m.def("test_cross_module_gil_nested_custom_acquired", []() {
+        CROSS_MODULE("gil_acquire_nested_custom_funcaddr")
+        py::gil_scoped_acquire gil_acquire;
+        target();
+    });
+    m.def("test_cross_module_gil_nested_pybind11_released", []() {
+        CROSS_MODULE("gil_acquire_nested_pybind11_funcaddr")
+        py::gil_scoped_release gil_release;
+        target();
+    });
+    m.def("test_cross_module_gil_nested_pybind11_acquired", []() {
+        CROSS_MODULE("gil_acquire_nested_pybind11_funcaddr")
+        py::gil_scoped_acquire gil_acquire;
+        target();
     });
     m.def("test_release_acquire", [](const py::object &obj) {
         py::gil_scoped_release gil_released;
         py::gil_scoped_acquire gil_acquired;
+        return py::str(obj);
+    });
+    m.def("test_nested_acquire", [](const py::object &obj) {
+        py::gil_scoped_release gil_released;
+        py::gil_scoped_acquire gil_acquired_outer;
+        py::gil_scoped_acquire gil_acquired_inner;
         return py::str(obj);
     });
 }
