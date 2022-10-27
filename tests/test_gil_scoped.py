@@ -1,7 +1,19 @@
+import builtins
 import multiprocessing
 import threading
 
+import pytest
+
 from pybind11_tests import gil_scoped as m
+
+
+def get_pybind11_internals_keys():
+    keys = []
+    for key in sorted(dir(builtins)):
+        if key.startswith("__pybind11_internals_"):
+            assert key.endswith("__")
+            keys.append(key)
+    return tuple(keys)
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -108,6 +120,14 @@ def test_cross_module_gil_released():
 def test_cross_module_gil_acquired():
     """Makes sure that the GIL can be acquired by another module from a GIL-acquired state."""
     m.test_cross_module_gil_acquired()  # Should not raise a SIGSEGV
+
+
+def test_report_builtins_internals_keys():
+    """For reporting, not an actual test."""
+    m.test_cross_module_gil_released()  # Any test that imports cross_module_gil_utils
+    keys = get_pybind11_internals_keys()
+    assert len(keys) != 0
+    pytest.skip("builtins internals keys: %s" % ", ".join(keys))
 
 
 def test_cross_module_gil_inner_custom_released():
