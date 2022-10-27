@@ -30,7 +30,7 @@ jobs:
         - '3.6'
         - '3.9'
         - '3.10'
-        - '3.11-dev'
+        - '3.11'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -119,7 +119,7 @@ jobs:
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev' || matrix.python == 'pypy-3.8'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -146,7 +146,7 @@ jobs:
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev' || matrix.python == 'pypy-3.8'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -186,7 +186,7 @@ jobs:
         - python-version: "3.9"
           python-debug: true
           valgrind: true
-        - python-version: "3.11-dev"
+        - python-version: "3.11"
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
