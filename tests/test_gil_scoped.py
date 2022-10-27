@@ -9,11 +9,11 @@ from pybind11_tests import gil_scoped as m
 
 def get_pybind11_internals_keys():
     keys = []
-    for key in sorted(dir(builtins)):
+    for key in dir(builtins):
         if key.startswith("__pybind11_internals_"):
             assert key.endswith("__")
             keys.append(key)
-    return tuple(keys)
+    return tuple(sorted(keys))
 
 
 def _run_in_process(target, *args, **kwargs):
