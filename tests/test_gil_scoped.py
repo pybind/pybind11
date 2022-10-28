@@ -138,6 +138,12 @@ def test_all_basic_tests_completeness():
     assert len(ALL_BASIC_TESTS) == num_found
 
 
+# Issue #2754:
+ThreadSanitizer_exitcode_66_message = (
+    "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
+)
+
+
 def _run_in_process(target, *args, **kwargs):
     """Runs target in process and returns its exitcode after 10s (None if still alive)."""
     process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
@@ -146,6 +152,8 @@ def _run_in_process(target, *args, **kwargs):
         process.start()
         # Do not need to wait much, 10s should be more than enough.
         process.join(timeout=10)
+        if process.exitcode == 66:
+            pass  # NICE-TO-HAVE: Check output for ThreadSanitizer_exitcode_66_message
         return process.exitcode
     finally:
         if process.is_alive():
@@ -166,26 +174,20 @@ def _run_in_threads(target, num_threads, parallel):
         thread.join()
 
 
-# m.defined_THREAD_SANITIZER is used below to skip tests triggering this error (#2754):
-# ThreadSanitizer: starting new threads after multi-threaded fork is not supported.
-
 # TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9
-@pytest.mark.skipif(
-    m.defined_THREAD_SANITIZER, reason="Not compatible with ThreadSanitizer"
-)
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 def test_run_in_process_one_thread(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
+    exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False)
+    if exitcode == 66 and m.defined_THREAD_SANITIZER:
+        pytest.skip(ThreadSanitizer_exitcode_66_message)
+    assert exitcode == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-@pytest.mark.skipif(
-    m.defined_THREAD_SANITIZER, reason="Not compatible with ThreadSanitizer"
-)
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 def test_run_in_process_multiple_threads_parallel(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
@@ -195,20 +197,22 @@ def test_run_in_process_multiple_threads_parallel(test_fn):
     exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=True)
     if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
         pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
+    if exitcode == 66 and m.defined_THREAD_SANITIZER:
+        pytest.skip(ThreadSanitizer_exitcode_66_message)
     assert exitcode == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-@pytest.mark.skipif(
-    m.defined_THREAD_SANITIZER, reason="Not compatible with ThreadSanitizer"
-)
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 def test_run_in_process_multiple_threads_sequential(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False) == 0
+    exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False)
+    if exitcode == 66 and m.defined_THREAD_SANITIZER:
+        pytest.skip(ThreadSanitizer_exitcode_66_message)
+    assert exitcode == 0
 
 
 # TODO: FIXME on macOS Python 3.9
@@ -218,15 +222,9 @@ def test_run_in_process_direct(test_fn):
 
     This test is for completion, but it was never an issue.
     """
-    if m.defined_THREAD_SANITIZER and test_fn in (
-        test_cross_module_gil_nested_custom_released,
-        test_cross_module_gil_nested_custom_acquired,
-        test_cross_module_gil_nested_pybind11_released,
-        test_cross_module_gil_nested_pybind11_acquired,
-        test_multi_acquire_release_cross_module,
-    ):
-        pytest.skip("Not compatible with ThreadSanitizer")
     exitcode = _run_in_process(test_fn)
     if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
         pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
+    if exitcode == 66 and m.defined_THREAD_SANITIZER:
+        pytest.skip(ThreadSanitizer_exitcode_66_message)
     assert exitcode == 0
