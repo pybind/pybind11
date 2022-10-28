@@ -53,7 +53,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // `Py_LIMITED_API` anyway.
 #    if PYBIND11_INTERNALS_VERSION > 4
 #        define PYBIND11_TLS_KEY_REF Py_tss_t &
-#        ifdef __GNUC__
+#        if defined(__GNUC__) && !defined(__INTEL_COMPILER)
 // Clang on macOS warns due to `Py_tss_NEEDS_INIT` not specifying an initializer
 // for every field.
 #            define PYBIND11_TLS_KEY_INIT(var)                                                    \
