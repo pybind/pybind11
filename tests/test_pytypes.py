@@ -248,15 +248,14 @@ def test_str(doc):
     "func",
     [
         m.str_from_bytes_input,
-        m.str_from_string_input,
         m.str_from_cstr_input,
-        m.str_from_object,
+        m.str_from_string_input,
     ],
 )
 def test_surrogate_pairs_unicode_error(func):
     input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
     with pytest.raises(UnicodeDecodeError):
-        m.str_from_bytes_input(input_str)
+        func(input_str)
 
 
 def test_bytes(doc):
