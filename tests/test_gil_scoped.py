@@ -86,7 +86,10 @@ def test_python_to_cpp_to_python_from_thread_multiple_parallel():
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=True) == 0
+    exitcode = _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=True)
+    if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
+        pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
+    assert exitcode == 0
 
 
 # TODO: FIXME on macOS Python 3.9
@@ -107,7 +110,7 @@ def test_python_to_cpp_to_python_from_process():
     This test is for completion, but it was never an issue.
     """
     exitcode = _run_in_process(_python_to_cpp_to_python)
-    if exitcode is None and env.PYPY and env.WIN:
+    if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
         pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
     assert exitcode == 0
 
