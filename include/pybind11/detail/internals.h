@@ -278,9 +278,9 @@ struct type_info {
 #endif
 
 #if PY_VERSION_HEX < 0x03090000
-#  define PYBIND11_INTERPRETER_STATE_GET _PyInterpreterState_Get
+#    define PYBIND11_INTERPRETER_STATE_GET _PyInterpreterState_Get
 #else
-#  define PYBIND11_INTERPRETER_STATE_GET PyInterpreterState_Get
+#    define PYBIND11_INTERPRETER_STATE_GET PyInterpreterState_Get
 #endif
 
 #define PYBIND11_INTERNALS_ID                                                                     \
