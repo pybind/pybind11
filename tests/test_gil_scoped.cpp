@@ -35,6 +35,13 @@ class PyVirtClass : public VirtClass {
 };
 
 TEST_SUBMODULE(gil_scoped, m) {
+    m.attr("defined_THREAD_SANITIZER") =
+#if defined(THREAD_SANITIZER)
+        true;
+#else
+        false;
+#endif
+
     py::class_<VirtClass, PyVirtClass>(m, "VirtClass")
         .def(py::init<>())
         .def("virtual_func", &VirtClass::virtual_func)

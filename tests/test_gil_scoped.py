@@ -166,7 +166,13 @@ def _run_in_threads(target, num_threads, parallel):
         thread.join()
 
 
+# m.defined_THREAD_SANITIZER is used below to skip tests triggering this error (#2754):
+# ThreadSanitizer: starting new threads after multi-threaded fork is not supported.
+
 # TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9
+@pytest.mark.skipif(
+    m.defined_THREAD_SANITIZER, reason="Not compatible with ThreadSanitizer"
+)
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 def test_run_in_process_one_thread(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread.
@@ -177,6 +183,9 @@ def test_run_in_process_one_thread(test_fn):
 
 
 # TODO: FIXME on macOS Python 3.9
+@pytest.mark.skipif(
+    m.defined_THREAD_SANITIZER, reason="Not compatible with ThreadSanitizer"
+)
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 def test_run_in_process_multiple_threads_parallel(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
@@ -190,6 +199,9 @@ def test_run_in_process_multiple_threads_parallel(test_fn):
 
 
 # TODO: FIXME on macOS Python 3.9
+@pytest.mark.skipif(
+    m.defined_THREAD_SANITIZER, reason="Not compatible with ThreadSanitizer"
+)
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 def test_run_in_process_multiple_threads_sequential(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
@@ -206,6 +218,14 @@ def test_run_in_process_direct(test_fn):
 
     This test is for completion, but it was never an issue.
     """
+    if m.defined_THREAD_SANITIZER and test_fn in (
+        test_cross_module_gil_nested_custom_released,
+        test_cross_module_gil_nested_custom_acquired,
+        test_cross_module_gil_nested_pybind11_released,
+        test_cross_module_gil_nested_pybind11_acquired,
+        test_multi_acquire_release_cross_module,
+    ):
+        pytest.skip("Not compatible with ThreadSanitizer")
     exitcode = _run_in_process(test_fn)
     if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
         pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
