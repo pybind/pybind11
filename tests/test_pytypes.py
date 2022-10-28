@@ -244,6 +244,12 @@ def test_str(doc):
         m.str_from_string_from_str(ucs_surrogates_str)
 
 
+def test_surrogate_pairs_unicode_error():
+    input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
+    with pytest.raises(UnicodeDecodeError):
+        m.bytes_to_str_explicit(input_str)
+
+
 def test_bytes(doc):
     assert m.bytes_from_char_ssize_t().decode() == "green"
     assert m.bytes_from_char_size_t().decode() == "purple"

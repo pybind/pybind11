@@ -219,6 +219,9 @@ TEST_SUBMODULE(pytypes, m) {
         return py::make_tuple(s1, s2);
     });
 
+    m.def("bytes_to_str_explicit",
+          [](const py::bytes &encoded_str) { return py::str(encoded_str); });
+
     // test_bytes
     m.def("bytes_from_char_ssize_t", []() { return py::bytes{"green", (py::ssize_t) 5}; });
     m.def("bytes_from_char_size_t", []() { return py::bytes{"purple", (py::size_t) 6}; });
