@@ -8,20 +8,6 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
-.. _upgrade-guide-2.10:
-
-v2.10
-=====
-
-``py::gil_scoped_acquire`` & ``py::gil_scoped_release`` in pybind11 versions
-< v2.10.1 do not support nested access. In v2.10.1, a configuration option
-``PYBIND11_SIMPLE_GIL_MANAGEMENT`` was added, defaulting to ``OFF``. The
-simpler implementations support nested access, but do not support dissociation
-(``py::gil_scoped_release(true)``). In pybind11 2.11, we plan to change the
-default to ``ON``, to avoid pitfalls of the implementations with dissociation
-(see #4216 for more information). Note that the dissociation feature is very
-rarely used and not exercised in any pybind11 unit tests.
-
 .. _upgrade-guide-2.9:
 
 v2.9
