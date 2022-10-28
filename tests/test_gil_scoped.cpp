@@ -118,14 +118,14 @@ TEST_SUBMODULE(gil_scoped, m) {
                 std::string cm_internals_id = target(bits >> 3);
                 internals_ids.add(cm_internals_id);
             };
-            if (bits & 0x1u) {
+            if ((bits & 0x1u) != 0u) {
                 thread_f();
             }
-            if (bits & 0x2u) {
-                std::thread non_python_thread(std::move(thread_f));
+            if ((bits & 0x2u) != 0u) {
+                std::thread non_python_thread(thread_f);
                 non_python_thread.join();
             }
-            if (bits & 0x4u) {
+            if ((bits & 0x4u) != 0u) {
                 thread_f();
             }
         }

@@ -31,16 +31,16 @@ namespace py = pybind11;
 void gil_acquire() { py::gil_scoped_acquire gil; }
 
 std::string gil_multi_acquire_release(unsigned bits) {
-    if (bits & 0x1u) {
+    if ((bits & 0x1u) != 0u) {
         py::gil_scoped_acquire gil;
     }
-    if (bits & 0x2u) {
+    if ((bits & 0x2u) != 0u) {
         py::gil_scoped_release gil;
     }
-    if (bits & 0x4u) {
+    if ((bits & 0x4u) != 0u) {
         py::gil_scoped_acquire gil;
     }
-    if (bits & 0x8u) {
+    if ((bits & 0x8u) != 0u) {
         py::gil_scoped_release gil;
     }
     return PYBIND11_INTERNALS_ID;
