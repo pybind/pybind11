@@ -207,6 +207,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_char_size_t", []() { return py::str{"blue", (py::size_t) 4}; });
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
+    m.def("str_from_bytes_input",
+          [](const py::bytes &encoded_str) { return py::str(encoded_str); });
     m.def("str_from_object", [](const py::object &obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object &obj) { return py::repr(obj); });
     m.def("str_from_handle", [](py::handle h) { return py::str(h); });
@@ -218,9 +220,6 @@ TEST_SUBMODULE(pytypes, m) {
         auto s2 = "{a} + {b} = {c}"_s.format("a"_a = 1, "b"_a = 2, "c"_a = 3);
         return py::make_tuple(s1, s2);
     });
-
-    m.def("bytes_to_str_explicit",
-          [](const py::bytes &encoded_str) { return py::str(encoded_str); });
 
     // test_bytes
     m.def("bytes_from_char_ssize_t", []() { return py::bytes{"green", (py::ssize_t) 5}; });
