@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "common.h"
+
 #if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    include "../gil.h"
 #endif
