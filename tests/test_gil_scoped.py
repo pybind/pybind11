@@ -105,24 +105,37 @@ def test_multi_acquire_release_cross_module():
         assert len(internals_ids) == 2 if bits % 8 else 1
 
 
-def _python_to_cpp_to_python():
-    test_callback_py_obj()
-    test_callback_std_func()
-    test_callback_virtual_func()
-    test_callback_pure_virtual_func()
-    test_cross_module_gil_released()
-    test_cross_module_gil_acquired()
-    test_cross_module_gil_inner_custom_released()
-    test_cross_module_gil_inner_custom_acquired()
-    test_cross_module_gil_inner_pybind11_released()
-    test_cross_module_gil_inner_pybind11_acquired()
-    test_cross_module_gil_nested_custom_released()
-    test_cross_module_gil_nested_custom_acquired()
-    test_cross_module_gil_nested_pybind11_released()
-    test_cross_module_gil_nested_pybind11_acquired()
-    test_release_acquire()
-    test_nested_acquire()
-    test_multi_acquire_release_cross_module()
+# Intentionally putting human review in the loop here, to guard against accidents.
+VARS_BEFORE_ALL_BASIC_TESTS = dict(vars())  # Make a copy of the dict (critical).
+ALL_BASIC_TESTS = (
+    test_callback_py_obj,
+    test_callback_std_func,
+    test_callback_virtual_func,
+    test_callback_pure_virtual_func,
+    test_cross_module_gil_released,
+    test_cross_module_gil_acquired,
+    test_cross_module_gil_inner_custom_released,
+    test_cross_module_gil_inner_custom_acquired,
+    test_cross_module_gil_inner_pybind11_released,
+    test_cross_module_gil_inner_pybind11_acquired,
+    test_cross_module_gil_nested_custom_released,
+    test_cross_module_gil_nested_custom_acquired,
+    test_cross_module_gil_nested_pybind11_released,
+    test_cross_module_gil_nested_pybind11_acquired,
+    test_release_acquire,
+    test_nested_acquire,
+    test_multi_acquire_release_cross_module,
+)
+
+
+def test_all_basic_tests_completeness():
+    num_found = 0
+    for key, value in VARS_BEFORE_ALL_BASIC_TESTS.items():
+        if not key.startswith("test_"):
+            continue
+        assert value in ALL_BASIC_TESTS
+        num_found += 1
+    assert len(ALL_BASIC_TESTS) == num_found
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -139,11 +152,10 @@ def _run_in_process(target, *args, **kwargs):
             process.terminate()
 
 
-def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
-    """Calls different C++ functions that come back to Python, from Python threads."""
+def _run_in_threads(target, num_threads, parallel):
     threads = []
     for _ in range(num_threads):
-        thread = threading.Thread(target=_python_to_cpp_to_python)
+        thread = threading.Thread(target=target)
         thread.daemon = True
         thread.start()
         if parallel:
@@ -155,44 +167,46 @@ def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
 
 
 # TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9
-def test_python_to_cpp_to_python_from_thread():
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+def test_run_in_process_one_thread(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_python_to_cpp_to_python_from_threads, 1) == 0
+    assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-def test_python_to_cpp_to_python_from_thread_multiple_parallel():
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+def test_run_in_process_multiple_threads_parallel(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    exitcode = _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=True)
+    exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=True)
     if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
         pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
     assert exitcode == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-def test_python_to_cpp_to_python_from_thread_multiple_sequential():
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+def test_run_in_process_multiple_threads_sequential(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert (
-        _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=False) == 0
-    )
+    assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False) == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-def test_python_to_cpp_to_python_from_process():
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+def test_run_in_process_direct(test_fn):
     """Makes sure there is no GIL deadlock when using processes.
 
     This test is for completion, but it was never an issue.
     """
-    exitcode = _run_in_process(_python_to_cpp_to_python)
+    exitcode = _run_in_process(test_fn)
     if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
         pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
     assert exitcode == 0
