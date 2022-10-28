@@ -11,6 +11,9 @@
 
 #include "pybind11_tests.h"
 
+#include <string>
+#include <thread>
+
 #define CROSS_MODULE(Function)                                                                    \
     auto cm = py::module_::import("cross_module_gil_utils");                                      \
     auto target = reinterpret_cast<void (*)()>(PyLong_AsVoidPtr(cm.attr(Function).ptr()));
@@ -101,5 +104,31 @@ TEST_SUBMODULE(gil_scoped, m) {
         py::gil_scoped_acquire gil_acquired_outer;
         py::gil_scoped_acquire gil_acquired_inner;
         return py::str(obj);
+    });
+    m.def("test_multi_acquire_release_cross_module", [](unsigned bits) {
+        py::set internals_ids;
+        internals_ids.add(PYBIND11_INTERNALS_ID);
+        {
+            py::gil_scoped_release gil_released;
+            auto thread_f = [bits, &internals_ids]() {
+                py::gil_scoped_acquire gil_acquired;
+                auto cm = py::module_::import("cross_module_gil_utils");
+                auto target = reinterpret_cast<std::string (*)(unsigned)>(
+                    PyLong_AsVoidPtr(cm.attr("gil_multi_acquire_release_funcaddr").ptr()));
+                std::string cm_internals_id = target(bits >> 3);
+                internals_ids.add(cm_internals_id);
+            };
+            if (bits & 0x1u) {
+                thread_f();
+            }
+            if (bits & 0x2u) {
+                std::thread non_python_thread(std::move(thread_f));
+                non_python_thread.join();
+            }
+            if (bits & 0x4u) {
+                thread_f();
+            }
+        }
+        return internals_ids;
     });
 }

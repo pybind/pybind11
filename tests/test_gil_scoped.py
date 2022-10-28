@@ -1,19 +1,7 @@
-import builtins
 import multiprocessing
 import threading
 
-import pytest
-
 from pybind11_tests import gil_scoped as m
-
-
-def get_pybind11_internals_keys():
-    keys = []
-    for key in dir(builtins):
-        if key.startswith("__pybind11_internals_"):
-            assert key.endswith("__")
-            keys.append(key)
-    return tuple(sorted(keys))
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -45,6 +33,7 @@ def _python_to_cpp_to_python():
     m.test_callback_std_func(lambda: None)
     m.test_callback_virtual_func(extended)
     m.test_callback_pure_virtual_func(extended)
+
     m.test_cross_module_gil_released()
     m.test_cross_module_gil_acquired()
     m.test_cross_module_gil_inner_custom_released()
@@ -54,9 +43,14 @@ def _python_to_cpp_to_python():
     m.test_cross_module_gil_nested_custom_released()
     m.test_cross_module_gil_nested_custom_acquired()
     m.test_cross_module_gil_nested_pybind11_released()
-    # m.test_cross_module_gil_nested_pybind11_acquire() # this one dies in test_python_to_cpp_to_python_from_process
+    m.test_cross_module_gil_nested_pybind11_acquired()
+
     assert m.test_release_acquire(0xAB) == "171"
     assert m.test_nested_acquire(0xAB) == "171"
+
+    for bits in range(16 * 8):
+        internals_ids = m.test_multi_acquire_release_cross_module(bits)
+        assert len(internals_ids) == 2 if bits % 8 else 1
 
 
 def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
@@ -122,14 +116,6 @@ def test_cross_module_gil_acquired():
     m.test_cross_module_gil_acquired()  # Should not raise a SIGSEGV
 
 
-def test_report_builtins_internals_keys():
-    """For reporting, not an actual test."""
-    m.test_cross_module_gil_released()  # Any test that imports cross_module_gil_utils
-    keys = get_pybind11_internals_keys()
-    assert len(keys) != 0
-    pytest.skip("builtins internals keys: %s" % ", ".join(keys))
-
-
 def test_cross_module_gil_inner_custom_released():
     """Makes sure that the GIL can be acquired/released by another module
     from a GIL-released state using custom locking logic."""
@@ -184,3 +170,9 @@ def test_release_acquire():
 
 def test_nested_acquire():
     assert m.test_nested_acquire(0xAB) == "171"
+
+
+def test_multi_acquire_release_cross_module():
+    for bits in range(16 * 8):
+        internals_ids = m.test_multi_acquire_release_cross_module(bits)
+        assert len(internals_ids) == 2 if bits % 8 else 1

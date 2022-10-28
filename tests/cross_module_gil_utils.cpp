@@ -6,9 +6,14 @@
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
+#if defined(PYBIND11_INTERNALS_VERSION)
+#    undef PYBIND11_INTERNALS_VERSION
+#endif
+#define PYBIND11_INTERNALS_VERSION 21814642 // Ensure this module has its own `internals` instance.
 #include <pybind11/pybind11.h>
 
 #include <cstdint>
+#include <string>
 #include <thread>
 
 // This file mimics a DSO that makes pybind11 calls but does not define a
@@ -22,9 +27,24 @@
 namespace {
 
 namespace py = pybind11;
+
 void gil_acquire() { py::gil_scoped_acquire gil; }
 
-constexpr char kModuleName[] = "cross_module_gil_utils";
+std::string gil_multi_acquire_release(unsigned bits) {
+    if (bits & 0x1u) {
+        py::gil_scoped_acquire gil;
+    }
+    if (bits & 0x2u) {
+        py::gil_scoped_release gil;
+    }
+    if (bits & 0x4u) {
+        py::gil_scoped_acquire gil;
+    }
+    if (bits & 0x8u) {
+        py::gil_scoped_release gil;
+    }
+    return PYBIND11_INTERNALS_ID;
+}
 
 struct CustomAutoGIL {
     CustomAutoGIL() : gstate(PyGILState_Ensure()) {}
@@ -55,6 +75,8 @@ void gil_acquire_nested() {
     thread.join();
 }
 
+constexpr char kModuleName[] = "cross_module_gil_utils";
+
 struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT, kModuleName, nullptr, 0, nullptr, nullptr, nullptr, nullptr, nullptr};
 
@@ -71,6 +93,7 @@ extern "C" PYBIND11_EXPORT PyObject *PyInit_cross_module_gil_utils() {
         static_assert(sizeof(&gil_acquire) == sizeof(void *),
                       "Function pointer must have the same size as void*");
         ADD_FUNCTION("gil_acquire_funcaddr", gil_acquire)
+        ADD_FUNCTION("gil_multi_acquire_release_funcaddr", gil_multi_acquire_release)
         ADD_FUNCTION("gil_acquire_inner_custom_funcaddr",
                      gil_acquire_inner<CustomAutoGIL, CustomAutoNoGIL>)
         ADD_FUNCTION("gil_acquire_nested_custom_funcaddr",
