@@ -244,7 +244,10 @@ def test_str(doc):
         m.str_from_string_from_str(ucs_surrogates_str)
 
 
-def test_surrogate_pairs_unicode_error():
+@pytest.mark.parametrize(
+    "func", [m.str_from_bytes_input, m.str_from_string_input, m.str_from_object]
+)
+def test_surrogate_pairs_unicode_error(func):
     input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
     with pytest.raises(UnicodeDecodeError):
         m.str_from_bytes_input(input_str)
