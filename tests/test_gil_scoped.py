@@ -1,6 +1,9 @@
 import multiprocessing
 import threading
 
+import pytest
+
+import env
 from pybind11_tests import gil_scoped as m
 
 
@@ -103,7 +106,10 @@ def test_python_to_cpp_to_python_from_process():
 
     This test is for completion, but it was never an issue.
     """
-    assert _run_in_process(_python_to_cpp_to_python) == 0
+    exitcode = _run_in_process(_python_to_cpp_to_python)
+    if exitcode is None and env.PYPY and env.WIN:
+        pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
+    assert exitcode == 0
 
 
 def test_cross_module_gil_released():
