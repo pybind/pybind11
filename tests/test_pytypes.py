@@ -244,6 +244,20 @@ def test_str(doc):
         m.str_from_string_from_str(ucs_surrogates_str)
 
 
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.str_from_bytes_input,
+        m.str_from_cstr_input,
+        m.str_from_std_string_input,
+    ],
+)
+def test_surrogate_pairs_unicode_error(func):
+    input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
+    with pytest.raises(UnicodeDecodeError):
+        func(input_str)
+
+
 def test_bytes(doc):
     assert m.bytes_from_char_ssize_t().decode() == "green"
     assert m.bytes_from_char_size_t().decode() == "purple"

@@ -206,7 +206,12 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_char_ssize_t", []() { return py::str{"red", (py::ssize_t) 3}; });
     m.def("str_from_char_size_t", []() { return py::str{"blue", (py::size_t) 4}; });
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
+    m.def("str_from_std_string_input", [](const std::string &stri) { return py::str(stri); });
+    m.def("str_from_cstr_input", [](const char *c_str) { return py::str(c_str); });
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
+    m.def("str_from_bytes_input",
+          [](const py::bytes &encoded_str) { return py::str(encoded_str); });
+
     m.def("str_from_object", [](const py::object &obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object &obj) { return py::repr(obj); });
     m.def("str_from_handle", [](py::handle h) { return py::str(h); });
