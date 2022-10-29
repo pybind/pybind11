@@ -1,5 +1,6 @@
 import multiprocessing
 import threading
+import time
 
 import pytest
 
@@ -149,9 +150,13 @@ def _run_in_process(target, *args, **kwargs):
     process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
     process.daemon = True
     try:
+        t_start = time.time()
         process.start()
         # Do not need to wait much, 10s should be more than enough.
         process.join(timeout=10)
+        t_delta = time.time() - t_start
+        if process.exitcode is None:
+            assert t_delta > 9.9
         if process.exitcode == 66:
             pass  # NICE-TO-HAVE: Check output for ThreadSanitizer_exitcode_66_message
         return process.exitcode
