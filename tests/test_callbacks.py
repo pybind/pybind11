@@ -196,8 +196,9 @@ def test_callback_num_times():
 
 
 def test_usc_surrogate_exception_callback():
-    # Issue #4287
+    # Issue #4288
     def foo():
         raise RuntimeError("\ud927")
 
-    m.test_callback1(foo)
+    with pytest.raises(RuntimeError):
+        m.test_callback1(foo)
