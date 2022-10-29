@@ -473,7 +473,7 @@ protected:
                 } else {
                     auto rec_capsule = reinterpret_borrow<capsule>(self);
                     if (detail::is_function_record_capsule(rec_capsule)) {
-                        chain = static_cast<detail::function_record *>(rec_capsule);
+                        chain = rec_capsule.get_pointer<detail::function_record>();
                         /* Never append a method to an overload chain of a parent class;
                            instead, hide the parent's overloads in this case */
                         if (!chain->scope.is(rec->scope)) {

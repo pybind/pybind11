@@ -182,6 +182,16 @@ struct internals {
 #    endif // PYBIND11_INTERNALS_VERSION > 4
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
+
+#    if PYBIND11_INTERNALS_VERSION > 4
+    // Note that we have to invoke strdup to allocate memory to ensure a unique address
+    // We want unique addresses since we use pointer equality to compare function records
+    std::string function_record_capsule_name = "pybind11_function_record_capsule";
+#    endif
+
+    internals() = default;
+    internals(const internals &other) = delete;
+    internals &operator=(const internals &other) = delete;
     ~internals() {
 #    if PYBIND11_INTERNALS_VERSION > 4
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
@@ -196,11 +206,6 @@ struct internals {
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
     }
-#endif
-#if PYBIND11_INTERNALS_VERSION >= 5
-    // Note that we have to invoke strdup to allocate memory to ensure a unique address
-    // We want unique addresses since we use pointer equality to compare function records
-    const char *function_record_capsule_name = strdup("pybind11_function_record_capsule");
 #endif
 };
 
@@ -554,15 +559,15 @@ const char *c_str(Args &&...args) {
 }
 
 inline const char *get_function_record_capsule_name() {
-#if PYBIND11_INTERNALS_VERSION >= 5
-    return get_internals().function_record_capsule_name;
+#if PYBIND11_INTERNALS_VERSION > 4
+    return get_internals().function_record_capsule_name.c_str();
 #else
     return nullptr;
 #endif
 }
 
 // Determine whether or not the following capsule contains a pybind11 function record.
-// Note that we use internals to make sure that only ABI compatible records are touched.
+// Note that we use `internals` to make sure that only ABI compatible records are touched.
 //
 // This check is currently used in two places:
 // - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
