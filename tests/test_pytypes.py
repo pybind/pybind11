@@ -249,7 +249,7 @@ def test_str(doc):
     [
         m.str_from_bytes_input,
         m.str_from_cstr_input,
-        m.str_from_string_input,
+        m.str_from_std_string_input,
     ],
 )
 def test_surrogate_pairs_unicode_error(func):
