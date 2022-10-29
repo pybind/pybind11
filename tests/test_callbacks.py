@@ -193,3 +193,11 @@ def test_callback_num_times():
     if len(rates) > 1:
         print("Min    Mean   Max")
         print(f"{min(rates):6.3f} {sum(rates) / len(rates):6.3f} {max(rates):6.3f}")
+
+
+def test_usc_surrogate_exception_callback():
+    # Issue #4287
+    def foo():
+        raise RuntimeError("\ud927")
+
+    m.test_callback1(foo)
