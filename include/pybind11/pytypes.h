@@ -1432,6 +1432,9 @@ public:
     str(const char *c, const SzType &n)
         : object(PyUnicode_FromStringAndSize(c, ssize_t_cast(n)), stolen_t{}) {
         if (!m_ptr) {
+            if (PyErr_Occurred()) {
+                throw error_already_set();
+            }
             pybind11_fail("Could not allocate string object!");
         }
     }
@@ -1441,6 +1444,9 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     str(const char *c = "") : object(PyUnicode_FromString(c), stolen_t{}) {
         if (!m_ptr) {
+            if (PyErr_Occurred()) {
+                throw error_already_set();
+            }
             pybind11_fail("Could not allocate string object!");
         }
     }
@@ -1598,6 +1604,9 @@ inline str::str(const bytes &b) {
     }
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, length));
     if (!obj) {
+        if (PyErr_Occurred()) {
+            throw error_already_set();
+        }
         pybind11_fail("Could not allocate string object!");
     }
     m_ptr = obj.release().ptr();

@@ -11,7 +11,6 @@
 
 #include "../numpy.h"
 
-// Similar to comments & pragma block in eigen_tensor.h. PLEASE KEEP IN SYNC.
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
    See also:
        https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir

@@ -9,8 +9,16 @@ try:
     from pybind11_tests import eigen_tensor_avoid_stl_array as avoid
 
     submodules += [avoid.c_style, avoid.f_style]
-except ImportError:
-    pass
+except ImportError as e:
+    # Ensure config, build, toolchain, etc. issues are not masked here:
+    raise RuntimeError(
+        "import pybind11_tests.eigen_tensor_avoid_stl_array FAILED, while "
+        "import pybind11_tests.eigen_tensor succeeded. "
+        "Please ensure that "
+        "test_eigen_tensor.cpp & "
+        "test_eigen_tensor_avoid_stl_array.cpp "
+        "are built together (or both are not built if Eigen is not available)."
+    ) from e
 
 tensor_ref = np.empty((3, 5, 2), dtype=np.int64)
 

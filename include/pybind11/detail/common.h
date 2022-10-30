@@ -205,11 +205,8 @@
 #    endif
 #endif
 
-#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
-#    define PYBIND11_HAS_U8STRING
-#endif
-
 #include <Python.h>
+// Reminder: WITH_THREAD is always defined if PY_VERSION_HEX >= 0x03070000
 #if PY_VERSION_HEX < 0x03060000
 #    error "PYTHON < 3.6 IS UNSUPPORTED. pybind11 v2.9 was the last to support Python 2 and 3.5."
 #endif
@@ -231,6 +228,10 @@
 
 #if defined(copysign)
 #    undef copysign
+#endif
+
+#if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
 #if defined(_MSC_VER)
@@ -257,6 +258,11 @@
 #    if __has_include(<version>)
 #        include <version>
 #    endif
+#endif
+
+// Must be after including <version> or one of the other headers specified by the standard
+#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
+#    define PYBIND11_HAS_U8STRING
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE

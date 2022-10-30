@@ -16,6 +16,104 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Version 2.10.1 (Oct 2?, 2022)
+-----------------------------
+
+
+Changes:
+
+
+* Allow ``pybind11::capsule`` constructor to take null destructor pointers.
+  `#4221 <https://github.com/pybind/pybind11/pull/4221>`_
+
+* ``embed.h`` was changed so that ``PYTHONPATH`` is used also with Python 3.11
+  (established behavior).
+  `#4119 <https://github.com/pybind/pybind11/pull/4119>`_
+
+Bug fixes:
+
+* Fix MSVC 2019 v.1924 & C++14 mode error for ``overload_cast``.
+  `#4188 <https://github.com/pybind/pybind11/pull/4188>`_
+
+* Make augmented assignment operators non-const for the object-api. Behavior
+  was previously broken for augmented assignment operators.
+  `#4065 <https://github.com/pybind/pybind11/pull/4065>`_
+
+* Add proper error checking to C++ bindings for Python list append and insert.
+  `#4208 <https://github.com/pybind/pybind11/pull/4208>`_
+
+* Work-around for Nvidia's CUDA nvcc compiler in versions 11.4.0 - 11.8.0.
+  `#4220 <https://github.com/pybind/pybind11/pull/4220>`_
+
+* A workaround for PyPy was added in the ``py::error_already_set``
+  implementation, related to PR `#1895 <https://github.com/pybind/pybind11/pull/1895>`_
+  released with v2.10.0.
+  `#4079 <https://github.com/pybind/pybind11/pull/4079>`_
+
+* Fixed compiler errors when C++23 ``std::forward_like`` is available.
+  `#4136 <https://github.com/pybind/pybind11/pull/4136>`_
+
+* Properly raise exceptions in contains methods (like when an object in unhashable).
+  `#4209 <https://github.com/pybind/pybind11/pull/4209>`_
+
+* Further improve another error in exception handling.
+  `#4232 <https://github.com/pybind/pybind11/pull/4232>`_
+
+* ``get_local_internals()`` was made compatible with
+  ``finalize_interpreter()``, fixing potential freezes during interpreter
+  finalization.
+  `#4192 <https://github.com/pybind/pybind11/pull/4192>`_
+
+
+Performance and style:
+
+* Reserve space in set and STL map casters if possible. This will prevent
+  unnecessary rehashing / resizing by knowing the number of keys ahead of time
+  for Python to C++ casting. This improvement will greatly speed up the casting
+  of large unordered maps and sets.
+  `#4194 <https://github.com/pybind/pybind11/pull/4194>`_
+
+* GIL RAII scopes are non-copyable to avoid potential bugs.
+  `#4183 <https://github.com/pybind/pybind11/pull/4183>`_
+
+* Explicitly default all relevant ctors for pytypes in the ``PYBIND11_OBJECT``
+  macros and enforce the clang-tidy checks ``modernize-use-equals-default`` in
+  macros as well.
+  `#4017 <https://github.com/pybind/pybind11/pull/4017>`_
+
+* Optimize iterator advancement in C++ bindings.
+  `#4237 <https://github.com/pybind/pybind11/pull/4237>`_
+
+* Use the modern ``PyObject_GenericGetDict`` and ``PyObject_GenericSetDict``
+  for handling dynamic attribute dictionaries.
+  `#4106 <https://github.com/pybind/pybind11/pull/4106>`_
+
+* Document that users should use ``PYBIND11_NAMESPACE`` instead of using ``pybind11`` when
+  opening namespaces. Using namespace declarations and namespace qualification
+  remain the same as ``pybind11``. This is done to ensure consistent symbol
+  visibility.
+  `#4098 <https://github.com/pybind/pybind11/pull/4098>`_
+
+* Mark ``detail::forward_like`` as constexpr.
+  `#4147 <https://github.com/pybind/pybind11/pull/4147>`_
+
+* Optimize unpacking_collector when processing ``arg_v`` arguments.
+  `#4219 <https://github.com/pybind/pybind11/pull/4219>`_
+
+
+Build system improvements:
+
+* Include a pkg-config file when installing pybind11, such as in the Python
+  package.
+  `#4077 <https://github.com/pybind/pybind11/pull/4077>`_
+
+* Avoid stripping debug symbols when ``CMAKE_BUILD_TYPE`` is set to ``DEBUG``
+  instead of ``Debug``.
+  `#4078 <https://github.com/pybind/pybind11/pull/4078>`_
+
+* Followup to `#3948 <https://github.com/pybind/pybind11/pull/3948>`_, fixing vcpkg again.
+  `#4123 <https://github.com/pybind/pybind11/pull/4123>`_
+
 Version 2.10.0 (Jul 15, 2022)
 -----------------------------
 

@@ -293,7 +293,6 @@ TEST_CASE("Threads") {
 
     {
         py::gil_scoped_release gil_release{};
-        REQUIRE(has_pybind11_internals_static());
 
         auto threads = std::vector<std::thread>();
         for (auto i = 0; i < num_threads; ++i) {

@@ -313,6 +313,8 @@ def test_bind_protected_functions():
 
     b = m.ProtectedB()
     assert b.foo() == 42
+    assert m.read_foo(b.void_foo()) == 42
+    assert m.pointers_equal(b.get_self(), b)
 
     class C(m.ProtectedB):
         def __init__(self):
