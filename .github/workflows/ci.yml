@@ -102,10 +102,12 @@ jobs:
       run: python -m pip install pytest-github-actions-annotate-failures
 
     # First build - C++11 mode and inplace
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here.
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
@@ -129,10 +131,12 @@ jobs:
       run: git clean -fdx
 
     # Second build - C++17 mode and in a build directory
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
     - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
