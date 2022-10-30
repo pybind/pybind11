@@ -15,6 +15,8 @@
 #include <stdexcept>
 #include <utility>
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
+
 // A type that should be raised as an exception in Python
 class MyException : public std::exception {
 public:
@@ -110,7 +112,11 @@ std::string error_already_set_what(const py::object &exc_type, const py::object 
     return py::error_already_set().what();
 }
 
+PYBIND11_NAMESPACE_END(pybind11_tests)
+
 TEST_SUBMODULE(exceptions, m) {
+    using namespace pybind11_tests;
+
     m.def("throw_std_exception",
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
 

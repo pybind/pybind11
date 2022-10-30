@@ -13,14 +13,19 @@
 
 namespace py = pybind11;
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace {
 
 struct OwnsPythonObjects {
     py::object value = py::none();
 };
+
 } // namespace
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
 TEST_SUBMODULE(custom_type_setup, m) {
+    using namespace pybind11_tests;
+
     py::class_<OwnsPythonObjects> cls(
         m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
             auto *type = &heap_type->ht_type;

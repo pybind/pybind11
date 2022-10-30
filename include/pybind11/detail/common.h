@@ -25,8 +25,10 @@
 // on the main `pybind11` namespace.
 #if !defined(PYBIND11_NAMESPACE)
 #    ifdef __GNUG__
-#        define PYBIND11_NAMESPACE pybind11 __attribute__((visibility("hidden")))
+#        define PYBIND11_NS_VISIBILITY(...) __VA_ARGS__ __attribute__((visibility("hidden")))
+#        define PYBIND11_NAMESPACE PYBIND11_NS_VISIBILITY(pybind11)
 #    else
+#        define PYBIND11_NS_VISIBILITY(...) __VA_ARGS__
 #        define PYBIND11_NAMESPACE pybind11
 #    endif
 #endif
