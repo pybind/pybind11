@@ -164,7 +164,7 @@ def _run_in_process(target, *args, **kwargs):
                 "\nprocess.pid STARTED", process.pid, (sys.argv, target, args, kwargs)
             )
             print(
-                "COPY-PASTE-THIS: gdb {} -p {}".format(sys.argv[0], process.pid),
+                f"COPY-PASTE-THIS: gdb {sys.argv[0]} -p {process.pid}",
                 flush=True,
             )
         process.join(timeout=timeout)
