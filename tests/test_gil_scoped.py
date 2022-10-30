@@ -138,7 +138,11 @@ def test_all_basic_tests_completeness():
     assert len(ALL_BASIC_TESTS) == num_found
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (m.intentional_deadlock,)
+def _intentional_deadlock():
+    m.intentional_deadlock()
+
+
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -147,7 +151,7 @@ def _run_in_process(target, *args, **kwargs):
     else:
         test_fn = args[0]
     # Do not need to wait much, 10s should be more than enough.
-    timeout = 0.1 if test_fn is m.intentional_deadlock else 10
+    timeout = 0.1 if test_fn is _intentional_deadlock else 10
     process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
     process.daemon = True
     try:
@@ -164,7 +168,7 @@ def _run_in_process(target, *args, **kwargs):
             pytest.skip(
                 "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
             )
-        elif test_fn is m.intentional_deadlock:
+        elif test_fn is _intentional_deadlock:
             assert process.exitcode is None
             return 0
         elif process.exitcode is None:
