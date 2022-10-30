@@ -4,7 +4,6 @@ import time
 
 import pytest
 
-import env
 from pybind11_tests import gil_scoped as m
 
 
@@ -139,36 +138,50 @@ def test_all_basic_tests_completeness():
     assert len(ALL_BASIC_TESTS) == num_found
 
 
-# Issue #2754:
-ThreadSanitizer_exitcode_66_message = (
-    "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
-)
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (m.intentional_deadlock,)
 
 
 def _run_in_process(target, *args, **kwargs):
-    """Runs target in process and returns its exitcode after 10s (None if still alive)."""
+    if len(args) == 0:
+        test_fn = target
+    else:
+        test_fn = args[0]
+    # Do not need to wait much, 10s should be more than enough.
+    timeout = 0.1 if test_fn is m.intentional_deadlock else 10
     process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
     process.daemon = True
     try:
         t_start = time.time()
         process.start()
-        # Do not need to wait much, 10s should be more than enough.
-        process.join(timeout=10)
+        if timeout >= 100:  # For debugging.
+            print("\nprocess.pid STARTED", process.pid, flush=True)
+        process.join(timeout=timeout)
+        if timeout >= 100:
+            print("\nprocess.pid JOINED", process.pid, flush=True)
         t_delta = time.time() - t_start
-        if process.exitcode is None:
-            assert t_delta > 9.9
-        if process.exitcode == 66:
-            pass  # NICE-TO-HAVE: Check output for ThreadSanitizer_exitcode_66_message
+        if process.exitcode == 66 and m.defined_THREAD_SANITIZER:  # Issue #2754
+            # WOULD-BE-NICE-TO-HAVE: Check that the message below is actually in the output.
+            pytest.skip(
+                "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
+            )
+        elif test_fn is m.intentional_deadlock:
+            assert process.exitcode is None
+            return 0
+        elif process.exitcode is None:
+            assert t_delta > 0.9 * timeout
+            raise RuntimeError(
+                "DEADLOCK, most likely, exactly what this test is meant to detect."
+            )
         return process.exitcode
     finally:
         if process.is_alive():
             process.terminate()
 
 
-def _run_in_threads(target, num_threads, parallel):
+def _run_in_threads(test_fn, num_threads, parallel):
     threads = []
     for _ in range(num_threads):
-        thread = threading.Thread(target=target)
+        thread = threading.Thread(target=test_fn)
         thread.daemon = True
         thread.start()
         if parallel:
@@ -180,56 +193,40 @@ def _run_in_threads(target, num_threads, parallel):
 
 
 # TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
 def test_run_in_process_one_thread(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False)
-    if exitcode == 66 and m.defined_THREAD_SANITIZER:
-        pytest.skip(ThreadSanitizer_exitcode_66_message)
-    assert exitcode == 0
+    assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
 def test_run_in_process_multiple_threads_parallel(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=True)
-    if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
-        pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
-    if exitcode == 66 and m.defined_THREAD_SANITIZER:
-        pytest.skip(ThreadSanitizer_exitcode_66_message)
-    assert exitcode == 0
+    assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=True) == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
 def test_run_in_process_multiple_threads_sequential(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    exitcode = _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False)
-    if exitcode == 66 and m.defined_THREAD_SANITIZER:
-        pytest.skip(ThreadSanitizer_exitcode_66_message)
-    assert exitcode == 0
+    assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False) == 0
 
 
 # TODO: FIXME on macOS Python 3.9
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
 def test_run_in_process_direct(test_fn):
     """Makes sure there is no GIL deadlock when using processes.
 
     This test is for completion, but it was never an issue.
     """
-    exitcode = _run_in_process(test_fn)
-    if exitcode is None and env.PYPY and env.WIN:  # Seems to be flaky.
-        pytest.skip("Ignoring unexpected exitcode None (PYPY WIN)")
-    if exitcode == 66 and m.defined_THREAD_SANITIZER:
-        pytest.skip(ThreadSanitizer_exitcode_66_message)
-    assert exitcode == 0
+    assert _run_in_process(test_fn) == 0

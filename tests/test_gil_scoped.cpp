@@ -42,6 +42,9 @@ TEST_SUBMODULE(gil_scoped, m) {
         false;
 #endif
 
+    m.def("intentional_deadlock",
+          []() { std::thread([]() { py::gil_scoped_acquire gil_acquired; }).join(); });
+
     py::class_<VirtClass, PyVirtClass>(m, "VirtClass")
         .def(py::init<>())
         .def("virtual_func", &VirtClass::virtual_func)
