@@ -165,6 +165,8 @@ def _run_in_process(target, *args, **kwargs):
         t_delta = time.time() - t_start
         if process.exitcode == 66 and m.defined_THREAD_SANITIZER:  # Issue #2754
             # WOULD-BE-NICE-TO-HAVE: Check that the message below is actually in the output.
+            # Maybe this could work:
+            # https://gist.github.com/alexeygrigorev/01ce847f2e721b513b42ea4a6c96905e
             pytest.skip(
                 "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
             )
