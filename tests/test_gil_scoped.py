@@ -1,4 +1,5 @@
 import multiprocessing
+import sys
 import threading
 import time
 
@@ -159,7 +160,13 @@ def _run_in_process(target, *args, **kwargs):
         t_start = time.time()
         process.start()
         if timeout >= 100:  # For debugging.
-            print("\nprocess.pid STARTED", process.pid, flush=True)
+            print(
+                "\nprocess.pid STARTED", process.pid, (sys.argv, target, args, kwargs)
+            )
+            print(
+                "COPY-PASTE-THIS: gdb {} -p {}".format(sys.argv[0], process.pid),
+                flush=True,
+            )
         process.join(timeout=timeout)
         if timeout >= 100:
             print("\nprocess.pid JOINED", process.pid, flush=True)
