@@ -501,7 +501,8 @@ struct error_fetch_and_normalize {
         std::string message_error_string;
         if (m_value) {
             auto value_str = reinterpret_steal<object>(PyObject_Str(m_value.ptr()));
-            constexpr const char *message_unavailable_exc = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
+            constexpr const char *message_unavailable_exc
+                = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
             if (!value_str) {
                 message_error_string = detail::error_string();
                 result = message_unavailable_exc;
