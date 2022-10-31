@@ -18,9 +18,7 @@ Changes will be summarized here periodically.
 Version 2.10.1 (Oct 24, 2022)
 -----------------------------
 
-There is some concern about ABI compatibility between 2.10.x (including this release) and previous versions, possibly related to cross-module exception handling. This is still developing and tracked under `#4105 <https://github.com/pybind/pybind11/pull/4105>`_. Please review if this is important to you before upgrading, and report an issue or comment on an issue if there's a problem.
-
-This is the first version to support embedding the newly released Python 3.11.
+This is the first version to fully support embedding the newly released Python 3.11.
 
 Changes:
 
@@ -31,16 +29,34 @@ Changes:
   (established behavior).
   `#4119 <https://github.com/pybind/pybind11/pull/4119>`_
 
+* A ``PYBIND11_SIMPLE_GIL_MANAGEMENT`` option was added (cmake, C++ define),
+  along with many additional tests in ``test_gil_scoped.py``. The option may be
+  useful to try when debugging GIL-related issues, to determine if the more
+  complex default implementation is or is not to blame. See #4216 for
+  background. WARNING: Please be careful to not create ODR violations when
+  using the option: everything that is linked together with mutual symbol
+  visibility needs to be rebuilt.
+  `#4216 <https://github.com/pybind/pybind11/pull/4216>`_
+
 Bug fixes:
 
-* Revert perfect forwarding for make_iterator. This broke at least one valid use case. May revisit later.
+* Fixed a bug where ``UnicodeDecodeError`` was not propagated from various
+  ``py::str`` ctors when decoding surrogate utf characters.
+  `#4294 <https://github.com/pybind/pybind11/pull/4294>`_
+
+* Revert perfect forwarding for ``make_iterator``. This broke at least one
+  valid use case. May revisit later.
   `#4234 <https://github.com/pybind/pybind11/pull/4234>`_
 
-* Fix support for safe casts to void* (regression in 2.10.0).
+* Fix support for safe casts to ``void*`` (regression in 2.10.0).
   `#4275 <https://github.com/pybind/pybind11/pull/4275>`_
 
 * Fix ``char8_t`` support (regression in 2.9).
   `#4278 <https://github.com/pybind/pybind11/pull/4278>`_
+
+* Unicode surrogate character in Python exception message leads to process
+  termination in ``error_already_set::what()``.
+  `#4297 <https://github.com/pybind/pybind11/pull/4297>`_
 
 * Fix MSVC 2019 v.1924 & C++14 mode error for ``overload_cast``.
   `#4188 <https://github.com/pybind/pybind11/pull/4188>`_
@@ -110,7 +126,7 @@ Performance and style:
 * Optimize unpacking_collector when processing ``arg_v`` arguments.
   `#4219 <https://github.com/pybind/pybind11/pull/4219>`_
 
-* Optimize casting C++ object to None.
+* Optimize casting C++ object to ``None``.
   `#4269 <https://github.com/pybind/pybind11/pull/4269>`_
 
 
