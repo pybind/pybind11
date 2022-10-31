@@ -38,6 +38,11 @@ Changes:
   visibility needs to be rebuilt.
   `#4216 <https://github.com/pybind/pybind11/pull/4216>`_
 
+* ``PYBIND11_EXPORT_EXCEPTION`` was made non-empty only under macOS. This makes
+  Linux builds safer, and enables the removal of warning suppression pragmas for
+  Windows.
+  `#4298 <https://github.com/pybind/pybind11/pull/4298>`_
+
 Bug fixes:
 
 * Fixed a bug where ``UnicodeDecodeError`` was not propagated from various
