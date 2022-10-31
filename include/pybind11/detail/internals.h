@@ -445,7 +445,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
     }
 
-    if (internals_pp) {
+    if (internals_pp && *internals_pp) {
         // We loaded builtins through python's builtins, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
         // initial exception translator, below, so add another for our local exception classes.
@@ -457,7 +457,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
-        internals_pp = new internals *();
+        if (!internals_pp) {
+            internals_pp = new internals *();
+        }
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
