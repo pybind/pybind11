@@ -623,12 +623,6 @@ inline std::string error_string() {
 
 PYBIND11_NAMESPACE_END(detail)
 
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4275 4251)
-//     warning C4275: An exported class was derived from a class that wasn't exported.
-//     Can be ignored when derived from a STL class.
-#endif
 /// Fetch and hold an error which was already set in Python.  An instance of this is typically
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
@@ -688,9 +682,6 @@ private:
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     static void m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr);
 };
-#if defined(_MSC_VER)
-#    pragma warning(pop)
-#endif
 
 /// Replaces the current Python error indicator with the chosen error, performing a
 /// 'raise from' to indicate that the chosen error was caused by the original error.
