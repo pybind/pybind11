@@ -15,7 +15,7 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
-Version 2.10.1 (Oct 24, 2022)
+Version 2.10.1 (Oct 31, 2022)
 -----------------------------
 
 This is the first version to fully support embedding the newly released Python 3.11.
