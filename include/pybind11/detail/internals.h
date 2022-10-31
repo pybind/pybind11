@@ -277,12 +277,6 @@ struct type_info {
 #    endif
 #endif
 
-#if PY_VERSION_HEX < 0x03090000
-#    define PYBIND11_INTERPRETER_STATE_GET _PyInterpreterState_Get
-#else
-#    define PYBIND11_INTERPRETER_STATE_GET PyInterpreterState_Get
-#endif
-
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
         PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
@@ -425,21 +419,30 @@ PYBIND11_NOINLINE internals &get_internals() {
     } gil;
     error_scope err_scope;
 
-    const char *id_cstr = PYBIND11_INTERNALS_ID;
-    PYBIND11_STR_TYPE id(id_cstr);
+    constexpr const char *id_cstr = PYBIND11_INTERNALS_ID;
+    str id(id_cstr);
 
-    dict state_dict
-        = reinterpret_borrow<dict>(PyInterpreterState_GetDict(PYBIND11_INTERPRETER_STATE_GET()));
-    if (!state_dict)
-        pybind11_fail("get_internals(): PyInterpreterState_GetDict() failed!");
+    dict state_dict;
+#if PY_VERSION_HEX < 0x03080000
+    state_dict = reinterpret_borrow<dict>(PyEval_GetBuiltins());
+#elif PY_VERSION_HEX < 0x03090000
+    state_dict = reinterpret_borrow<dict>(PyInterpreterState_GetDict(_PyInterpreterState_Get()));
+#else
+    state_dict = reinterpret_borrow<dict>(PyInterpreterState_GetDict(PyInterpreterState_Get()));
+#endif
+
+    if (!state_dict) {
+        pybind11_fail("get_internals(): could not acquire state dictionary!");
+    }
 
     if (state_dict.contains(id_cstr)) {
         object o = state_dict[id];
         // May fail if 'capsule_obj' is not a capsule, or if it has a different
         // name. We clear the error status below in that case
         internals_pp = static_cast<internals **>(PyCapsule_GetPointer(o.ptr(), id_cstr));
-        if (!internals_pp)
+        if (!internals_pp) {
             PyErr_Clear();
+        }
     }
 
     if (internals_pp) {
