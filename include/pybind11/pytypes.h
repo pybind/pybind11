@@ -501,11 +501,29 @@ struct error_fetch_and_normalize {
         std::string message_error_string;
         if (m_value) {
             auto value_str = reinterpret_steal<object>(PyObject_Str(m_value.ptr()));
+            constexpr const char *message_unavailable_exc
+                = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
             if (!value_str) {
                 message_error_string = detail::error_string();
-                result = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
+                result = message_unavailable_exc;
             } else {
-                result = value_str.cast<std::string>();
+                // Not using `value_str.cast<std::string>()`, to not potentially throw a secondary
+                // error_already_set that will then result in process termination (#4288).
+                auto value_bytes = reinterpret_steal<object>(
+                    PyUnicode_AsEncodedString(value_str.ptr(), "utf-8", "backslashreplace"));
+                if (!value_bytes) {
+                    message_error_string = detail::error_string();
+                    result = message_unavailable_exc;
+                } else {
+                    char *buffer = nullptr;
+                    Py_ssize_t length = 0;
+                    if (PyBytes_AsStringAndSize(value_bytes.ptr(), &buffer, &length) == -1) {
+                        message_error_string = detail::error_string();
+                        result = message_unavailable_exc;
+                    } else {
+                        result = std::string(buffer, static_cast<std::size_t>(length));
+                    }
+                }
             }
         } else {
             result = "<MESSAGE UNAVAILABLE>";

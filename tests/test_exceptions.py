@@ -275,6 +275,20 @@ def test_local_translator(msg):
     assert msg(excinfo.value) == "this mod"
 
 
+def test_error_already_set_message_with_unicode_surrogate():  # Issue #4288
+    assert m.error_already_set_what(RuntimeError, "\ud927") == (
+        "RuntimeError: \\ud927",
+        False,
+    )
+
+
+def test_error_already_set_message_with_malformed_utf8():
+    assert m.error_already_set_what(RuntimeError, b"\x80") == (
+        "RuntimeError: b'\\x80'",
+        False,
+    )
+
+
 class FlakyException(Exception):
     def __init__(self, failure_point):
         if failure_point == "failure_point_init":
