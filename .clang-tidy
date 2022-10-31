@@ -63,6 +63,8 @@ Checks: |
   -bugprone-unused-raii,
 
 CheckOptions:
+- key:             modernize-use-equals-default.IgnoreMacros
+  value:           false
 - key:             performance-for-range-copy.WarnOnAllAutoCopies
   value:           true
 - key:             performance-inefficient-string-concatenation.StrictMode

@@ -313,6 +313,8 @@ def test_bind_protected_functions():
 
     b = m.ProtectedB()
     assert b.foo() == 42
+    assert m.read_foo(b.void_foo()) == 42
+    assert m.pointers_equal(b.get_self(), b)
 
     class C(m.ProtectedB):
         def __init__(self):
@@ -469,3 +471,10 @@ def test_register_duplicate_class():
         m.register_duplicate_nested_class_type(ClassScope)
     expected = 'generic_type: type "YetAnotherDuplicateNested" is already registered!'
     assert str(exc_info.value) == expected
+
+
+def test_pr4220_tripped_over_this():
+    assert (
+        m.Empty0().get_msg()
+        == "This is really only meant to exercise successful compilation."
+    )

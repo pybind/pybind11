@@ -26,6 +26,22 @@ def test_iterator(doc):
     assert doc(m.get_iterator) == "get_iterator() -> Iterator"
 
 
+@pytest.mark.parametrize(
+    "pytype, from_iter_func",
+    [
+        (frozenset, m.get_frozenset_from_iterable),
+        (list, m.get_list_from_iterable),
+        (set, m.get_set_from_iterable),
+        (tuple, m.get_tuple_from_iterable),
+    ],
+)
+def test_from_iterable(pytype, from_iter_func):
+    my_iter = iter(range(10))
+    s = from_iter_func(my_iter)
+    assert type(s) == pytype
+    assert s == pytype(range(10))
+
+
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
 
@@ -152,6 +168,31 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
+class CustomContains:
+    d = {"key": None}
+
+    def __contains__(self, m):
+        return m in self.d
+
+
+@pytest.mark.parametrize(
+    "arg,func",
+    [
+        (set(), m.anyset_contains),
+        (dict(), m.dict_contains),
+        (CustomContains(), m.obj_contains),
+    ],
+)
+@pytest.mark.xfail("env.PYPY and sys.pypy_version_info < (7, 3, 10)", strict=False)
+def test_unhashable_exceptions(arg, func):
+    class Unhashable:
+        __hash__ = None
+
+    with pytest.raises(TypeError) as exc_info:
+        func(arg, Unhashable())
+    assert "unhashable type:" in str(exc_info.value)
+
+
 def test_tuple():
     assert m.tuple_no_args() == ()
     assert m.tuple_ssize_t() == ()
@@ -201,6 +242,20 @@ def test_str(doc):
     ucs_surrogates_str = "\udcc3"
     with pytest.raises(UnicodeEncodeError):
         m.str_from_string_from_str(ucs_surrogates_str)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.str_from_bytes_input,
+        m.str_from_cstr_input,
+        m.str_from_std_string_input,
+    ],
+)
+def test_surrogate_pairs_unicode_error(func):
+    input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
+    with pytest.raises(UnicodeDecodeError):
+        func(input_str)
 
 
 def test_bytes(doc):
@@ -280,6 +335,17 @@ def test_capsule(capture):
         == """
         created capsule (1234, 'pointer type description')
         destructing capsule (1234, 'pointer type description')
+    """
+    )
+
+    with capture:
+        a = m.return_capsule_with_explicit_nullptr_dtor()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule with explicit nullptr dtor
     """
     )
 
@@ -739,3 +805,75 @@ def test_populate_obj_str_attrs():
     new_attrs = {k: v for k, v in new_o.__dict__.items() if not k.startswith("_")}
     assert all(isinstance(v, str) for v in new_attrs.values())
     assert len(new_attrs) == pop
+
+
+@pytest.mark.parametrize(
+    "a,b", [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))]
+)
+def test_inplace_append(a, b):
+    expected = a + b
+    assert m.inplace_append(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))])
+def test_inplace_subtract(a, b):
+    expected = a - b
+    assert m.inplace_subtract(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), ([1], 3)])
+def test_inplace_multiply(a, b):
+    expected = a * b
+    assert m.inplace_multiply(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(6, 3), (6.0, 3.0)])
+def test_inplace_divide(a, b):
+    expected = a / b
+    assert m.inplace_divide(a, b) == expected
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (False, True),
+        (
+            set(),
+            {
+                1,
+            },
+        ),
+    ],
+)
+def test_inplace_or(a, b):
+    expected = a | b
+    assert m.inplace_or(a, b) == expected
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (True, False),
+        (
+            {1, 2, 3},
+            {
+                1,
+            },
+        ),
+    ],
+)
+def test_inplace_and(a, b):
+    expected = a & b
+    assert m.inplace_and(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(8, 1), (-3, 2)])
+def test_inplace_lshift(a, b):
+    expected = a << b
+    assert m.inplace_lshift(a, b) == expected
+
+
+@pytest.mark.parametrize("a,b", [(8, 1), (-2, 2)])
+def test_inplace_rshift(a, b):
+    expected = a >> b
+    assert m.inplace_rshift(a, b) == expected

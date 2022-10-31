@@ -36,6 +36,26 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
+namespace test_class {
+namespace pr4220_tripped_over_this { // PR #4227
+
+template <int>
+struct SoEmpty {};
+
+template <typename T>
+std::string get_msg(const T &) {
+    return "This is really only meant to exercise successful compilation.";
+}
+
+using Empty0 = SoEmpty<0x0>;
+
+void bind_empty0(py::module_ &m) {
+    py::class_<Empty0>(m, "Empty0").def(py::init<>()).def("get_msg", get_msg<Empty0>);
+}
+
+} // namespace pr4220_tripped_over_this
+} // namespace test_class
+
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -364,6 +384,8 @@ TEST_SUBMODULE(class_, m) {
 
     protected:
         virtual int foo() const { return value; }
+        virtual void *void_foo() { return static_cast<void *>(&value); }
+        virtual void *get_self() { return static_cast<void *>(this); }
 
     private:
         int value = 42;
@@ -372,6 +394,8 @@ TEST_SUBMODULE(class_, m) {
     class TrampolineB : public ProtectedB {
     public:
         int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
+        void *void_foo() override { PYBIND11_OVERRIDE(void *, ProtectedB, void_foo, ); }
+        void *get_self() override { PYBIND11_OVERRIDE(void *, ProtectedB, get_self, ); }
     };
 
     class PublicistB : public ProtectedB {
@@ -381,11 +405,23 @@ TEST_SUBMODULE(class_, m) {
         // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
         ~PublicistB() override{}; // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
+        using ProtectedB::get_self;
+        using ProtectedB::void_foo;
     };
+
+    m.def("read_foo", [](const void *original) {
+        const int *ptr = reinterpret_cast<const int *>(original);
+        return *ptr;
+    });
+
+    m.def("pointers_equal",
+          [](const void *original, const void *comparison) { return original == comparison; });
 
     py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
         .def(py::init<>())
-        .def("foo", &PublicistB::foo);
+        .def("foo", &PublicistB::foo)
+        .def("void_foo", &PublicistB::void_foo)
+        .def("get_self", &PublicistB::get_self);
 
     // test_brace_initialization
     struct BraceInitialization {
@@ -517,6 +553,8 @@ TEST_SUBMODULE(class_, m) {
         py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
+
+    test_class::pr4220_tripped_over_this::bind_empty0(m);
 }
 
 template <int N>

@@ -248,7 +248,7 @@ public:
         return false;
     }
     static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
-        return none().inc_ref();
+        return none().release();
     }
     PYBIND11_TYPE_CASTER(T, const_name("None"));
 };
@@ -291,7 +291,7 @@ public:
         if (ptr) {
             return capsule(ptr).release();
         }
-        return none().inc_ref();
+        return none().release();
     }
 
     template <typename T>
@@ -537,7 +537,7 @@ public:
 
     static handle cast(const CharT *src, return_value_policy policy, handle parent) {
         if (src == nullptr) {
-            return pybind11::none().inc_ref();
+            return pybind11::none().release();
         }
         return StringCaster::cast(StringType(src), policy, parent);
     }
@@ -1179,11 +1179,9 @@ enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&)
     pybind11_fail("Internal error: cast_safe fallback invoked");
 }
 template <typename T>
-enable_if_t<std::is_same<void, intrinsic_t<T>>::value, void> cast_safe(object &&) {}
+enable_if_t<std::is_void<T>::value, void> cast_safe(object &&) {}
 template <typename T>
-enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>,
-                            std::is_same<void, intrinsic_t<T>>>::value,
-            T>
+enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>, std::is_void<T>>::value, T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
 }
@@ -1545,7 +1543,7 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
-        m_kwargs[a.name] = a.value;
+        m_kwargs[a.name] = std::move(a.value);
     }
 
     void process(list & /*args_list*/, detail::kwargs_proxy kp) {

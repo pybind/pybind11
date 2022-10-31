@@ -537,7 +537,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 class dtype : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
+    PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_)
 
     explicit dtype(const buffer_info &info) {
         dtype descr(_dtype_from_pep3118()(pybind11::str(info.format)));
@@ -1401,7 +1401,7 @@ PYBIND11_NOINLINE void register_structured_dtype(any_container<field_descriptor>
     oss << '}';
     auto format_str = oss.str();
 
-    // Sanity check: verify that NumPy properly parses our buffer format string
+    // Smoke test: verify that NumPy properly parses our buffer format string
     auto &api = npy_api::get();
     auto arr = array(buffer_info(nullptr, itemsize, format_str, 1));
     if (!api.PyArray_EquivTypes_(dtype_ptr, arr.dtype().ptr())) {
@@ -1865,9 +1865,13 @@ private:
         }
 
         auto result = returned_array::create(trivial, shape);
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wreturn-std-move"
+#endif
 
         if (size == 0) {
-            return std::move(result);
+            return result;
         }
 
         /* Call the function */
@@ -1878,7 +1882,10 @@ private:
             apply_trivial(buffers, params, mutable_data, size, i_seq, vi_seq, bi_seq);
         }
 
-        return std::move(result);
+        return result;
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic pop
+#endif
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>

@@ -185,8 +185,8 @@ def test_custom(msg):
     with pytest.raises(m.MyException5) as excinfo:
         try:
             m.throws5()
-        except m.MyException5_1:
-            raise RuntimeError("Exception error: caught child from parent")
+        except m.MyException5_1 as err:
+            raise RuntimeError("Exception error: caught child from parent") from err
     assert msg(excinfo.value) == "this is a helper-defined translated exception"
 
 
@@ -275,6 +275,20 @@ def test_local_translator(msg):
     assert msg(excinfo.value) == "this mod"
 
 
+def test_error_already_set_message_with_unicode_surrogate():  # Issue #4288
+    assert m.error_already_set_what(RuntimeError, "\ud927") == (
+        "RuntimeError: \\ud927",
+        False,
+    )
+
+
+def test_error_already_set_message_with_malformed_utf8():
+    assert m.error_already_set_what(RuntimeError, b"\x80") == (
+        "RuntimeError: b'\\x80'",
+        False,
+    )
+
+
 class FlakyException(Exception):
     def __init__(self, failure_point):
         if failure_point == "failure_point_init":
@@ -360,3 +374,9 @@ def test_error_already_set_double_restore():
         "Internal error: pybind11::detail::error_fetch_and_normalize::restore()"
         " called a second time. ORIGINAL ERROR: ValueError: Random error."
     )
+
+
+def test_pypy_oserror_normalization():
+    # https://github.com/pybind/pybind11/issues/4075
+    what = m.test_pypy_oserror_normalization()
+    assert "this_filename_must_not_exist" in what
