@@ -43,6 +43,9 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+static constexpr const char *internals_function_record_capsule_name
+    = "pybind11_function_record_capsule";
+
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -186,7 +189,7 @@ struct internals {
 #    if PYBIND11_INTERNALS_VERSION > 4
     // Note that we have to invoke strdup to allocate memory to ensure a unique address
     // We want unique addresses since we use pointer equality to compare function records
-    std::string function_record_capsule_name = "pybind11_function_record_capsule";
+    std::string function_record_capsule_name = internals_function_record_capsule_name;
 #    endif
 
     internals() = default;
