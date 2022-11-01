@@ -187,7 +187,7 @@ struct internals {
     PyInterpreterState *istate = nullptr;
 
 #    if PYBIND11_INTERNALS_VERSION > 4
-    // Note that we have to invoke strdup to allocate memory to ensure a unique address
+    // Note that we have to use a std::string to allocate memory to ensure a unique address
     // We want unique addresses since we use pointer equality to compare function records
     std::string function_record_capsule_name = internals_function_record_capsule_name;
 #    endif
