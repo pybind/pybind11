@@ -144,7 +144,7 @@ def _intentional_deadlock():
 
 
 ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
-SKIP_IF_DEADLOCK = True  # See PR #4216
+SKIP_IF_DEADLOCK = False  # See PR #4216
 
 
 def _run_in_process(target, *args, **kwargs):

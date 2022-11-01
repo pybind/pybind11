@@ -7,6 +7,8 @@ Adds docstring and exceptions message sanitizers.
 import contextlib
 import difflib
 import gc
+import multiprocessing
+import os
 import re
 import textwrap
 
@@ -14,6 +16,9 @@ import pytest
 
 # Early diagnostic for failed imports
 import pybind11_tests
+
+if os.name != "nt":
+    multiprocessing.set_start_method("forkserver")
 
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
