@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace pybind11_tests {
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace class_sh_trampoline_basic {
 
 template <int SerNo> // Using int as a trick to easily generate a series of types.
@@ -74,7 +74,7 @@ void wrap(py::module_ m, const char *py_class_name) {
 }
 
 } // namespace class_sh_trampoline_basic
-} // namespace pybind11_tests
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_basic::Abase<0>)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_basic::Abase<1>)

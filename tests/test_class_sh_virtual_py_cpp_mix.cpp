@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace pybind11_tests {
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace class_sh_virtual_py_cpp_mix {
 
 class Base {
@@ -44,7 +44,7 @@ struct CppDerivedVirtualOverrider : CppDerived, py::trampoline_self_life_support
 };
 
 } // namespace class_sh_virtual_py_cpp_mix
-} // namespace pybind11_tests
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::Base)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::CppDerivedPlain)

@@ -48,7 +48,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
             if (p) {
                 std::rethrow_exception(p);
             }
-        } catch (const shared_exception &e) {
+        } catch (const pybind11_tests::shared_exception &e) {
             PyErr_SetString(PyExc_KeyError, e.what());
         }
     });

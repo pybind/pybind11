@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace {
 
 struct Big5 { // Also known as "rule of five".
@@ -42,10 +43,13 @@ struct Big5Trampoline : Big5, py::trampoline_self_life_support {
 };
 
 } // namespace
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Big5)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::Big5)
 
 TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
+    using namespace pybind11_tests;
+
     py::classh<Big5, Big5Trampoline>(m, "Big5")
         .def(py::init<std::string>())
         .def_readonly("history", &Big5::history);

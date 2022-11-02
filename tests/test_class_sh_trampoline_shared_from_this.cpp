@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NS_VISIBILITY(pybind11_tests))
 namespace {
 
 struct Sft : std::enable_shared_from_this<Sft> {
@@ -99,11 +100,14 @@ std::shared_ptr<Sft> make_pure_cpp_sft_shd_ptr(const std::string &history_seed) 
 std::shared_ptr<Sft> pass_through_shd_ptr(const std::shared_ptr<Sft> &obj) { return obj; }
 
 } // namespace
+PYBIND11_NAMESPACE_END(pybind11_tests)
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::Sft)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::SftSharedPtrStash)
 
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
+    using namespace pybind11_tests;
+
     py::classh<Sft, SftTrampoline>(m, "Sft")
         .def(py::init<const std::string &>())
         .def(py::init([](const std::string &history, int) {
