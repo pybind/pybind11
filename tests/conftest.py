@@ -18,6 +18,7 @@ import pytest
 import pybind11_tests
 
 if os.name != "nt":
+    # https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
     multiprocessing.set_start_method("forkserver")
 
 _long_marker = re.compile(r"([0-9])L")
