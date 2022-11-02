@@ -170,7 +170,7 @@ TEST_CASE("There can be only one interpreter") {
 
 bool has_pybind11_internals_builtin() {
     py::dict state_dict;
-#if PY_VERSION_HEX < 0x03080000
+#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
     state_dict = py::reinterpret_borrow<py::dict>(PyEval_GetBuiltins());
 #elif PY_VERSION_HEX < 0x03090000
     state_dict
