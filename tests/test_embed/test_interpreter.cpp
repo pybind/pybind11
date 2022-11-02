@@ -169,8 +169,15 @@ TEST_CASE("There can be only one interpreter") {
 }
 
 bool has_pybind11_internals_builtin() {
-    auto builtins = py::handle(PyEval_GetBuiltins());
-    return builtins.contains(PYBIND11_INTERNALS_ID);
+    py::dict state_dict;
+#if PY_VERSION_HEX < 0x03080000
+    state_dict = py::reinterpret_borrow<py::dict>(PyEval_GetBuiltins());
+#elif PY_VERSION_HEX < 0x03090000
+    state_dict = py::reinterpret_borrow<py::dict>(PyInterpreterState_GetDict(_PyInterpreterState_Get()));
+#else
+    state_dict = py::reinterpret_borrow<py::dict>(PyInterpreterState_GetDict(PyInterpreterState_Get()));
+#endif
+    return state_dict.contains(PYBIND11_INTERNALS_ID);
 };
 
 bool has_pybind11_internals_static() {
