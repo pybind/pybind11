@@ -421,6 +421,26 @@ inline void translate_local_exception(std::exception_ptr p) {
 }
 #endif
 
+inline object get_internals_state_dict() {
+    object state_dict;
+#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
+#else
+#  if PY_VERSION_HEX < 0x03090000
+    PyInterpreterState *istate = _PyInterpreterState_Get();
+#else
+    PyInterpreterState *istate = PyInterpreterState_Get();
+#endif
+    if (istate)
+        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+#endif
+    if (!state_dict) {
+        raise_from(PyExc_SystemError, "get_internals(): could not acquire state dictionary!");
+    }
+
+    return state_dict;
+}
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     internals **&internals_pp = get_internals_pp();
@@ -448,18 +468,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     constexpr const char *id_cstr = PYBIND11_INTERNALS_ID;
     str id(id_cstr);
 
-    dict state_dict;
-#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
-    state_dict = reinterpret_borrow<dict>(PyEval_GetBuiltins());
-#elif PY_VERSION_HEX < 0x03090000
-    state_dict = reinterpret_borrow<dict>(PyInterpreterState_GetDict(_PyInterpreterState_Get()));
-#else
-    state_dict = reinterpret_borrow<dict>(PyInterpreterState_GetDict(PyInterpreterState_Get()));
-#endif
-
-    if (!state_dict) {
-        pybind11_fail("get_internals(): could not acquire state dictionary!");
-    }
+    dict state_dict = get_internals_state_dict();
 
     if (state_dict.contains(id_cstr)) {
         object o = state_dict[id];
