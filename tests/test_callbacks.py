@@ -193,3 +193,16 @@ def test_callback_num_times():
     if len(rates) > 1:
         print("Min    Mean   Max")
         print(f"{min(rates):6.3f} {sum(rates) / len(rates):6.3f} {max(rates):6.3f}")
+
+
+def test_custom_func():
+    assert m.custom_function(4) == 36
+    assert m.roundtrip(m.custom_function)(4) == 36
+
+
+@pytest.mark.skipif(
+    m.custom_function2 is None, reason="Current PYBIND11_INTERNALS_VERSION too low"
+)
+def test_custom_func2():
+    assert m.custom_function2(3) == 27
+    assert m.roundtrip(m.custom_function2)(3) == 27
