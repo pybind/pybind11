@@ -154,8 +154,7 @@ def _run_in_process(target, *args, **kwargs):
         test_fn = args[0]
     # Do not need to wait much, 10s should be more than enough.
     timeout = 0.1 if test_fn is _intentional_deadlock else 10
-    mp_ctx = multiprocessing.get_context("spawn")
-    process = mp_ctx.Process(target=target, args=args, kwargs=kwargs)
+    process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
     process.daemon = True
     try:
         t_start = time.time()
