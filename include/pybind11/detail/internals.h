@@ -406,11 +406,11 @@ inline object get_internals_state_dict() {
 #if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
-#  if PY_VERSION_HEX < 0x03090000
+#    if PY_VERSION_HEX < 0x03090000
     PyInterpreterState *istate = _PyInterpreterState_Get();
-#else
+#    else
     PyInterpreterState *istate = PyInterpreterState_Get();
-#endif
+#    endif
     if (istate)
         state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
 #endif
