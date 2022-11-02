@@ -431,8 +431,9 @@ inline object get_internals_state_dict() {
 #    else
     PyInterpreterState *istate = PyInterpreterState_Get();
 #    endif
-    if (istate)
+    if (istate) {
         state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+    }
 #endif
     if (!state_dict) {
         raise_from(PyExc_SystemError, "get_internals(): could not acquire state dictionary!");
