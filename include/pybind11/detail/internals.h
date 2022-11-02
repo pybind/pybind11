@@ -449,7 +449,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     str id(id_cstr);
 
     dict state_dict;
-#if PY_VERSION_HEX < 0x03080000
+#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
     state_dict = reinterpret_borrow<dict>(PyEval_GetBuiltins());
 #elif PY_VERSION_HEX < 0x03090000
     state_dict = reinterpret_borrow<dict>(PyInterpreterState_GetDict(_PyInterpreterState_Get()));
