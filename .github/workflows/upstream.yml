@@ -1,4 +1,3 @@
-
 name: Upstream
 
 on:
@@ -7,24 +6,25 @@ on:
 
 concurrency:
   group: upstream-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   PIP_ONLY_BINARY: numpy
+  PYTEST_TIMEOUT: 300
 
 jobs:
   standard:
-    name: "🐍 3.11 latest internals • ubuntu-latest • x64"
+    name: "🐍 3.12 latest internals • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup Python 3.11
+    - name: Setup Python 3.12
       uses: actions/setup-python@v4
       with:
-        python-version: "3.11-dev"
+        python-version: "3.12-dev"
 
     - name: Setup Boost (Linux)
       if: runner.os == 'Linux'
