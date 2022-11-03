@@ -468,13 +468,20 @@ protected:
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
                 auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
-                capsule rec_capsule = isinstance<capsule>(self) ? reinterpret_borrow<capsule>(self)
-                                                                : capsule(self);
-                chain = (detail::function_record *) rec_capsule;
-                /* Never append a method to an overload chain of a parent class;
-                   instead, hide the parent's overloads in this case */
-                if (!chain->scope.is(rec->scope)) {
+                if (!isinstance<capsule>(self)) {
                     chain = nullptr;
+                } else {
+                    auto rec_capsule = reinterpret_borrow<capsule>(self);
+                    if (detail::is_function_record_capsule(rec_capsule)) {
+                        chain = rec_capsule.get_pointer<detail::function_record>();
+                        /* Never append a method to an overload chain of a parent class;
+                           instead, hide the parent's overloads in this case */
+                        if (!chain->scope.is(rec->scope)) {
+                            chain = nullptr;
+                        }
+                    } else {
+                        chain = nullptr;
+                    }
                 }
             }
             // Don't trigger for things like the default __init__, which are wrapper_descriptors
@@ -496,6 +503,7 @@ protected:
 
             capsule rec_capsule(unique_rec.release(),
                                 [](void *ptr) { destruct((detail::function_record *) ptr); });
+            rec_capsule.set_name(detail::get_function_record_capsule_name());
             guarded_strdup.release();
 
             object scope_module;
@@ -661,10 +669,13 @@ protected:
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
         using namespace detail;
+        assert(isinstance<capsule>(self));
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
+        const function_record *overloads = reinterpret_cast<function_record *>(
+                                  PyCapsule_GetPointer(self, get_function_record_capsule_name())),
                               *it = overloads;
+        assert(overloads != nullptr);
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
@@ -1871,9 +1882,22 @@ private:
 
     static detail::function_record *get_function_record(handle h) {
         h = detail::get_function(h);
-        return h ? (detail::function_record *) reinterpret_borrow<capsule>(
-                   PyCFunction_GET_SELF(h.ptr()))
-                 : nullptr;
+        if (!h) {
+            return nullptr;
+        }
+
+        handle func_self = PyCFunction_GET_SELF(h.ptr());
+        if (!func_self) {
+            throw error_already_set();
+        }
+        if (!isinstance<capsule>(func_self)) {
+            return nullptr;
+        }
+        auto cap = reinterpret_borrow<capsule>(func_self);
+        if (!detail::is_function_record_capsule(cap)) {
+            return nullptr;
+        }
+        return cap.get_pointer<detail::function_record>();
     }
 };
 

@@ -240,4 +240,41 @@ TEST_SUBMODULE(callbacks, m) {
             f();
         }
     });
+
+    auto *custom_def = []() {
+        static PyMethodDef def;
+        def.ml_name = "example_name";
+        def.ml_doc = "Example doc";
+        def.ml_meth = [](PyObject *, PyObject *args) -> PyObject * {
+            if (PyTuple_Size(args) != 1) {
+                throw std::runtime_error("Invalid number of arguments for example_name");
+            }
+            PyObject *first = PyTuple_GetItem(args, 0);
+            if (!PyLong_Check(first)) {
+                throw std::runtime_error("Invalid argument to example_name");
+            }
+            auto result = py::cast(PyLong_AsLong(first) * 9);
+            return result.release().ptr();
+        };
+        def.ml_flags = METH_VARARGS;
+        return &def;
+    }();
+
+    // rec_capsule with name that has the same value (but not pointer) as our internal one
+    // This capsule should be detected by our code as foreign and not inspected as the pointers
+    // shouldn't match
+    constexpr const char *rec_capsule_name
+        = pybind11::detail::internals_function_record_capsule_name;
+    py::capsule rec_capsule(std::malloc(1), [](void *data) { std::free(data); });
+    rec_capsule.set_name(rec_capsule_name);
+    m.add_object("custom_function", PyCFunction_New(custom_def, rec_capsule.ptr()));
+
+    // This test requires a new ABI version to pass
+#if PYBIND11_INTERNALS_VERSION > 4
+    // rec_capsule with nullptr name
+    py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
+    m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule2.ptr()));
+#else
+    m.add_object("custom_function2", py::none());
+#endif
 }
