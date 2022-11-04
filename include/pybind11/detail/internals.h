@@ -117,20 +117,7 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 #if defined(__GLIBCXX__)
 inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
 using type_hash = std::hash<std::type_index>;
-// using type_equal_to = std::equal_to<std::type_index>;
-struct type_equal_to {
-    bool operator()(const std::type_index &lhs, const std::type_index &rhs) const {
-        bool result = (lhs == rhs);
-        printf("\nLOOOK __GLIBCXX__ [lhs=%s] %s:%d\n", lhs.name(), __FILE__, __LINE__);
-        printf("LOOOK __GLIBCXX__ [rhs=%s] %s:%d\n", rhs.name(), __FILE__, __LINE__);
-        printf("LOOOK __GLIBCXX__ [(lhs==rhs)=%s] %s:%d\n",
-               (result ? "TRUE" : "FALSE"),
-               __FILE__,
-               __LINE__);
-        fflush(stdout);
-        return result;
-    }
-};
+using type_equal_to = std::equal_to<std::type_index>;
 #else
 inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) {
     return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
@@ -149,16 +136,7 @@ struct type_hash {
 
 struct type_equal_to {
     bool operator()(const std::type_index &lhs, const std::type_index &rhs) const {
-        // return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-        bool result = (lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0);
-        printf("\nLOOOK ___OTHER___ [lhs=%s] %s:%d\n", lhs.name(), __FILE__, __LINE__);
-        printf("LOOOK ___OTHER___ [rhs=%s] %s:%d\n", rhs.name(), __FILE__, __LINE__);
-        printf("LOOOK ___OTHER___ [(lhs==rhs)=%s] %s:%d\n",
-               (result ? "TRUE" : "FALSE"),
-               __FILE__,
-               __LINE__);
-        fflush(stdout);
-        return result;
+        return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
     }
 };
 #endif
