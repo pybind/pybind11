@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pybind11_tests import unnamed_namespace_b as m
 
 
