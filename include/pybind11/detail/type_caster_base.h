@@ -524,9 +524,10 @@ PYBIND11_NOINLINE std::string error_string() {
             trace = trace->tb_next;
 
         PyFrameObject *frame = trace->tb_frame;
+        Py_XINCREF(frame);
         errorString += "\n\nAt:\n";
         while (frame) {
-#if PY_VERSION_HEX >= 0x03090000
+#if PY_VERSION_HEX >= 0x030900B1
             PyCodeObject *f_code = PyFrame_GetCode(frame);
 #else
             PyCodeObject *f_code = frame->f_code;
@@ -537,8 +538,15 @@ PYBIND11_NOINLINE std::string error_string() {
                 "  " + handle(f_code->co_filename).cast<std::string>() +
                 "(" + std::to_string(lineno) + "): " +
                 handle(f_code->co_name).cast<std::string>() + "\n";
-            frame = frame->f_back;
             Py_DECREF(f_code);
+#if PY_VERSION_HEX >= 0x030900B1
+            auto *b_frame = PyFrame_GetBack(frame);
+#else
+            auto *b_frame = frame->f_back;
+            Py_XINCREF(b_frame);
+#endif
+            Py_DECREF(frame);
+            frame = b_frame;
         }
     }
 #endif
