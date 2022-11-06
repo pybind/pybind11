@@ -114,35 +114,10 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 // libstdc++, this doesn't happen: equality and the type_index hash are based on the type name,
 // which works.  If not under a known-good stl, provide our own name-based hash and equality
 // functions that use the type name.
-#if defined(__GLIBCXX__)
 inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
-using type_hash = std::hash<std::type_index>;
-using type_equal_to = std::equal_to<std::type_index>;
-#else
-inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) {
-    return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-}
-
-struct type_hash {
-    size_t operator()(const std::type_index &t) const {
-        size_t hash = 5381;
-        const char *ptr = t.name();
-        while (auto c = static_cast<unsigned char>(*ptr++)) {
-            hash = (hash * 33) ^ c;
-        }
-        return hash;
-    }
-};
-
-struct type_equal_to {
-    bool operator()(const std::type_index &lhs, const std::type_index &rhs) const {
-        return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-    }
-};
-#endif
 
 template <typename value_type>
-using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
+using type_map = std::unordered_map<std::type_index, value_type>;
 
 struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
