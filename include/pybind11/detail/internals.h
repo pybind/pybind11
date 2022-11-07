@@ -114,7 +114,7 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 // libstdc++, this doesn't happen: equality and the type_index hash are based on the type name,
 // which works.  If not under a known-good stl, provide our own name-based hash and equality
 // functions that use the type name.
-#if defined(__GLIBCXX__) || defined(WIN32) || defined(_WIN32)
+#if !defined(_LIBCPP_VERSION)
 inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
 using type_hash = std::hash<std::type_index>;
 using type_equal_to = std::equal_to<std::type_index>;
