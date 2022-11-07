@@ -210,7 +210,10 @@ struct internals {
     }
 #endif
 
-    std::unordered_map<std::type_index, std::vector<std::string>> std_type_index_registry;
+    std::unordered_map<std::type_index, std::vector<std::string>>
+        std_type_index_registry_unnamed_namespace;
+    std::unordered_map<std::type_index, std::vector<std::string>>
+        std_type_index_registry_named_namespace;
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
