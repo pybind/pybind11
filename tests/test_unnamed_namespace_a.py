@@ -5,8 +5,8 @@ from pybind11_tests import unnamed_namespace_b as mb
 
 
 @pytest.mark.xfail(
-    "m.defined___clang__",
-    reason="Known issue with all clang versions: https://github.com/pybind/pybind11/pull/4316",
+    "m.defined___clang__ or m.defined__LIBCPP_VERSION",
+    reason="Known issues: https://github.com/pybind/pybind11/pull/4319",
     strict=False,
 )
 def test_have_class_any_struct():
@@ -21,8 +21,8 @@ def test_have_at_least_one_class_any_struct():
 
 
 @pytest.mark.xfail(
-    "m.defined___clang__",
-    reason="Known issue with all clang versions: https://github.com/pybind/pybind11/pull/4316",
+    "m.defined___clang__ or m.defined__LIBCPP_VERSION",
+    reason="Known issues: https://github.com/pybind/pybind11/pull/4319",
     strict=True,
 )
 def test_have_both_class_any_struct():

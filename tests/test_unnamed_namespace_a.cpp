@@ -16,4 +16,10 @@ TEST_SUBMODULE(unnamed_namespace_a, m) {
 #else
         false;
 #endif
+    m.attr("defined__LIBCPP_VERSION") =
+#if defined(_LIBCPP_VERSION)
+        true;
+#else
+        false;
+#endif
 }

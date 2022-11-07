@@ -61,8 +61,8 @@ interactive Python session demonstrating this example is shown below:
 .. note::
 
     Binding C++ types in unnamed namespaces (also known as anonymous namespaces)
-    works reliably only with GCC and MSVC, but not with CLANG.
-    See `#4316 <https://github.com/pybind/pybind11/pull/4316>`_ for background.
+    works reliably only with GCC and MSVC, but not with CLANG, or if libc++ is used.
+    See `#4319 <https://github.com/pybind/pybind11/pull/4319>`_ for background.
     If portability is a concern, it is therefore not recommended to bind C++
     types in unnamed namespaces. It will be safest to manually pick unique
     namespace names.
