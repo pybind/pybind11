@@ -58,6 +58,15 @@ interactive Python session demonstrating this example is shown below:
     Static member functions can be bound in the same way using
     :func:`class_::def_static`.
 
+.. note::
+
+    Binding C++ types in unnamed namespaces (also known as anonymous namespaces)
+    works reliably only with GCC and MSVC, but not with CLANG.
+    See `#4316 <https://github.com/pybind/pybind11/pull/4316>`_ for background.
+    If portability is a concern, it is therefore not recommended to bind C++
+    types in unnamed namespaces. It will be safest to manually pick unique
+    namespace names.
+
 Keyword and default arguments
 =============================
 It is possible to specify keyword and default arguments using the syntax
