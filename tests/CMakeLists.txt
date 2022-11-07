@@ -133,6 +133,8 @@ set(PYBIND11_TEST_FILES
     test_eigen_tensor_avoid_stl_array.cpp
     test_enum
     test_eval
+    test_exc_named_namespace_a.py
+    test_exc_named_namespace_b.py
     test_exceptions
     test_factory_constructors
     test_gil_scoped
@@ -142,8 +144,6 @@ set(PYBIND11_TEST_FILES
     test_methods_and_attributes
     test_modules
     test_multiple_inheritance
-    test_named_namespace_a.py
-    test_named_namespace_b.py
     test_numpy_array
     test_numpy_dtypes
     test_numpy_vectorize
@@ -223,8 +223,8 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
-tests_extra_targets("test_named_namespace_a.py" "named_namespace_a")
-tests_extra_targets("test_named_namespace_b.py" "named_namespace_b")
+tests_extra_targets("test_exc_named_namespace_a.py" "named_namespace_a")
+tests_extra_targets("test_exc_named_namespace_b.py" "named_namespace_b")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
