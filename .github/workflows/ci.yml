@@ -30,7 +30,7 @@ jobs:
         - '3.6'
         - '3.9'
         - '3.10'
-        - '3.11-dev'
+        - '3.11'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -102,10 +102,12 @@ jobs:
       run: python -m pip install pytest-github-actions-annotate-failures
 
     # First build - C++11 mode and inplace
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here.
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
@@ -119,7 +121,7 @@ jobs:
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev' || matrix.python == 'pypy-3.8'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -129,10 +131,12 @@ jobs:
       run: git clean -fdx
 
     # Second build - C++17 mode and in a build directory
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
     - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
@@ -146,7 +150,7 @@ jobs:
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev' || matrix.python == 'pypy-3.8'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -186,7 +190,7 @@ jobs:
         - python-version: "3.9"
           python-debug: true
           valgrind: true
-        - python-version: "3.11-dev"
+        - python-version: "3.11"
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
@@ -391,7 +395,7 @@ jobs:
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
     runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS7 / PGI 22.3 • x64"
+    name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
     container: centos:7
 
     steps:
@@ -401,7 +405,7 @@ jobs:
       run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3 yum-utils
 
     - name: Install NVidia HPC SDK
-      run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.3
+      run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.9
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
     # and allow deeper template recursion (not needed on CentOS 8 with a newer
@@ -411,12 +415,12 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.3
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.9
         cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=11 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
                             -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
-                            -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
+                            -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     # Building before installing Pip should produce a warning but not an error
     - name: Build
@@ -757,7 +761,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.11.0
+      uses: ilammy/msvc-dev-cmd@v1.12.0
       with:
         arch: x86
 
@@ -810,7 +814,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.11.0
+      uses: ilammy/msvc-dev-cmd@v1.12.0
       with:
         arch: x86
 

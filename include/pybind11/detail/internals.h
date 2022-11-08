@@ -9,6 +9,12 @@
 
 #pragma once
 
+#include "common.h"
+
+#if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#    include "../gil.h"
+#endif
+
 #include "../pytypes.h"
 
 #include <exception>
@@ -37,6 +43,8 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+constexpr const char *internals_function_record_capsule_name = "pybind11_function_record_capsule";
+
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -49,7 +57,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // `Py_LIMITED_API` anyway.
 #    if PYBIND11_INTERNALS_VERSION > 4
 #        define PYBIND11_TLS_KEY_REF Py_tss_t &
-#        ifdef __GNUC__
+#        if defined(__GNUC__) && !defined(__INTEL_COMPILER)
 // Clang on macOS warns due to `Py_tss_NEEDS_INIT` not specifying an initializer
 // for every field.
 #            define PYBIND11_TLS_KEY_INIT(var)                                                    \
@@ -169,11 +177,23 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
+    // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
 #    if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
 #    endif // PYBIND11_INTERNALS_VERSION > 4
+    // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
+
+#    if PYBIND11_INTERNALS_VERSION > 4
+    // Note that we have to use a std::string to allocate memory to ensure a unique address
+    // We want unique addresses since we use pointer equality to compare function records
+    std::string function_record_capsule_name = internals_function_record_capsule_name;
+#    endif
+
+    internals() = default;
+    internals(const internals &other) = delete;
+    internals &operator=(const internals &other) = delete;
     ~internals() {
 #    if PYBIND11_INTERNALS_VERSION > 4
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
@@ -408,6 +428,10 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
+#if defined(WITH_THREAD)
+#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    gil_scoped_acquire gil;
+#    else
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
@@ -417,6 +441,8 @@ PYBIND11_NOINLINE internals &get_internals() {
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
+#    endif
+#endif
     error_scope err_scope;
 
     PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
@@ -532,6 +558,25 @@ const char *c_str(Args &&...args) {
     auto &strings = get_internals().static_strings;
     strings.emplace_front(std::forward<Args>(args)...);
     return strings.front().c_str();
+}
+
+inline const char *get_function_record_capsule_name() {
+#if PYBIND11_INTERNALS_VERSION > 4
+    return get_internals().function_record_capsule_name.c_str();
+#else
+    return nullptr;
+#endif
+}
+
+// Determine whether or not the following capsule contains a pybind11 function record.
+// Note that we use `internals` to make sure that only ABI compatible records are touched.
+//
+// This check is currently used in two places:
+// - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
+// - The sibling feature of cpp_function to allow overloads
+inline bool is_function_record_capsule(const capsule &cap) {
+    // Pointer equality as we rely on internals() to ensure unique pointers
+    return cap.name() == get_function_record_capsule_name();
 }
 
 PYBIND11_NAMESPACE_END(detail)

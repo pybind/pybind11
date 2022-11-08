@@ -151,9 +151,13 @@ if(NOT _PYTHON_SUCCESS MATCHES 0)
   return()
 endif()
 
+option(
+  PYBIND11_PYTHONLIBS_OVERWRITE
+  "Overwrite cached values read from Python library (classic search). Turn off if cross-compiling and manually setting these values."
+  ON)
 # Can manually set values when cross-compiling
 macro(_PYBIND11_GET_IF_UNDEF lst index name)
-  if(NOT DEFINED "${name}")
+  if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED "${name}")
     list(GET "${lst}" "${index}" "${name}")
   endif()
 endmacro()

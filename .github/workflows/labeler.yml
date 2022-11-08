@@ -10,7 +10,11 @@ jobs:
     steps:
 
     - uses: actions/labeler@main
-      if: github.event.pull_request.merged == true
+      if: >
+        github.event.pull_request.merged == true &&
+        !startsWith(github.event.pull_request.title, 'chore(deps):') &&
+        !startsWith(github.event.pull_request.title, 'ci(fix):') &&
+        !startsWith(github.event.pull_request.title, 'docs(changelog):')
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         configuration-path: .github/labeler_merged.yml

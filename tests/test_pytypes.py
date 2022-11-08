@@ -168,6 +168,31 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
+class CustomContains:
+    d = {"key": None}
+
+    def __contains__(self, m):
+        return m in self.d
+
+
+@pytest.mark.parametrize(
+    "arg,func",
+    [
+        (set(), m.anyset_contains),
+        (dict(), m.dict_contains),
+        (CustomContains(), m.obj_contains),
+    ],
+)
+@pytest.mark.xfail("env.PYPY and sys.pypy_version_info < (7, 3, 10)", strict=False)
+def test_unhashable_exceptions(arg, func):
+    class Unhashable:
+        __hash__ = None
+
+    with pytest.raises(TypeError) as exc_info:
+        func(arg, Unhashable())
+    assert "unhashable type:" in str(exc_info.value)
+
+
 def test_tuple():
     assert m.tuple_no_args() == ()
     assert m.tuple_ssize_t() == ()
@@ -217,6 +242,20 @@ def test_str(doc):
     ucs_surrogates_str = "\udcc3"
     with pytest.raises(UnicodeEncodeError):
         m.str_from_string_from_str(ucs_surrogates_str)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.str_from_bytes_input,
+        m.str_from_cstr_input,
+        m.str_from_std_string_input,
+    ],
+)
+def test_surrogate_pairs_unicode_error(func):
+    input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
+    with pytest.raises(UnicodeDecodeError):
+        func(input_str)
 
 
 def test_bytes(doc):

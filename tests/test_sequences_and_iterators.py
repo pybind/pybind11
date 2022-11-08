@@ -241,3 +241,11 @@ def test_iterator_rvp():
     assert list(m.make_iterator_1()) == [1, 2, 3]
     assert list(m.make_iterator_2()) == [1, 2, 3]
     assert not isinstance(m.make_iterator_1(), type(m.make_iterator_2()))
+
+
+def test_carray_iterator():
+    """#4100: Check for proper iterator overload with C-Arrays"""
+    args_gt = list(float(i) for i in range(3))
+    arr_h = m.CArrayHolder(*args_gt)
+    args = list(arr_h)
+    assert args_gt == args
