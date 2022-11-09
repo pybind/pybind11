@@ -16,10 +16,6 @@ jobs:
 
     name: 'build_and_test ${{ matrix.os }}'
 
-    defaults:
-      run:
-        shell: pwsh
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
