@@ -9,7 +9,7 @@ jobs:
   build_and_test:
     strategy:
       matrix:
-        os: windows-latest
+        os: [windows-latest]
 
     runs-on: '${{ matrix.os }}'
 
