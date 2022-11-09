@@ -1,0 +1,37 @@
+name: WindowsClang
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    strategy:
+      matrix:
+        os: windows-latest
+
+    runs-on: '${{ matrix.os }}'
+
+    name: 'build_and_test ${{ matrix.os }}'
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Clean up PATH
+        uses: egor-tensin/cleanup-path@v2
+        if: runner.os == 'Windows'
+
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+        if: matrix.toolset == 'clang'
+
+      - name: Show Clang version
+        run: |
+          clang --version
+          clang++ --version
