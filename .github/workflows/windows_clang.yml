@@ -35,11 +35,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v3
 
       - name: Prepare env
-        run: |
-          python -m pip install -r tests/requirements.txt
-
-      - name: Show Clang version
-        run: clang --version
+        run: python -m pip install -r tests/requirements.txt
 
       - name: Show Clang++ version
         run: clang++ --version
@@ -47,7 +43,7 @@ jobs:
       - name: Show CMake version
         run: cmake --version
 
-      - name: Configure Clang C++17
+      - name: Configure Clang
         run: >
           cmake -G Ninja -S . -B .
           -DCMAKE_VERBOSE_MAKEFILE=ON
@@ -58,10 +54,10 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
-      - name: Build Clang C++17
+      - name: Build Clang
         run: cmake --build . -j 2
 
-      - name: Python tests Clang C++17
+      - name: Python tests Clang
         run: cmake --build . --target pytest -j 2
 
       - name: Clean directory
