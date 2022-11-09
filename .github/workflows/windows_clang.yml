@@ -23,11 +23,6 @@ jobs:
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
 
-      - name: Show Clang version
-        run: |
-          clang --version
-          clang++ --version
-
       - name: Setup Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
@@ -39,6 +34,15 @@ jobs:
       - name: Prepare env
         run: |
           python -m pip install -r tests/requirements.txt
+
+      - name: Show Clang version
+        run: clang --version
+
+      - name: Show Clang++ version
+        run: clang++ --version
+
+      - name: Show CMake version
+        run: cmake --version
 
       - name: Configure Clang C++17
         run: >
