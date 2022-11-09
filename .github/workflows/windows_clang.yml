@@ -10,6 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
+        python: [3.10]
 
     runs-on: '${{ matrix.os }}'
 
@@ -21,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Clean up PATH
         uses: egor-tensin/cleanup-path@v2
@@ -34,3 +35,35 @@ jobs:
         run: |
           clang --version
           clang++ --version
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Update CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+
+      - name: Prepare env
+        run: |
+          python -m pip install -r tests/requirements.txt
+
+      - name: Configure Clang C++17
+        run: >
+          cmake -S . -B .
+          -DPYBIND11_WERROR=OFF
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=OFF
+          -DDOWNLOAD_EIGEN=OFF
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+
+      - name: Build Clang C++17
+        run: cmake --build . -j 2
+
+      - name: Python tests Clang C++17
+        run: cmake --build . --target pytest -j 2
+
+      - name: Clean directory
+        run: git clean -fdx
