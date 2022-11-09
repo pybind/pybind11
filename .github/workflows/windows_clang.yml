@@ -20,10 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Clean up PATH
-        uses: egor-tensin/cleanup-path@v2
-        if: runner.os == 'Windows'
-
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
 
