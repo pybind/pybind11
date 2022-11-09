@@ -50,11 +50,11 @@ jobs:
       - name: Configure Clang C++17
         run: >
           cmake -G Ninja -S . -B .
+          -DCMAKE_VERBOSE_MAKEFILE=ON
           -DPYBIND11_WERROR=OFF
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=OFF
           -DDOWNLOAD_EIGEN=OFF
-          -DCMAKE_C_COMPILER=clang
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
