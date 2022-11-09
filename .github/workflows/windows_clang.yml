@@ -47,7 +47,6 @@ jobs:
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=OFF
           -DDOWNLOAD_EIGEN=OFF
-          -DCMAKE_C_COMPILER=clang
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
