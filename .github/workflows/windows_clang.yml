@@ -31,6 +31,9 @@ jobs:
       - name: Update CMake
         uses: jwlawson/actions-setup-cmake@v1.13
 
+      - name: Install ninja-build tool
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
       - name: Prepare env
         run: |
           python -m pip install -r tests/requirements.txt
@@ -46,11 +49,12 @@ jobs:
 
       - name: Configure Clang C++17
         run: >
-          cmake -S . -B .
+          cmake -G Ninja -S . -B .
           -DPYBIND11_WERROR=OFF
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=OFF
           -DDOWNLOAD_EIGEN=OFF
+          -DCMAKE_C_COMPILER=clang
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
