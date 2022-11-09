@@ -29,7 +29,6 @@ jobs:
 
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
-        if: matrix.toolset == 'clang'
 
       - name: Show Clang version
         run: |
