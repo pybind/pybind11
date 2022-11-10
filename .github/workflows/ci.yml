@@ -967,3 +967,73 @@ jobs:
 
     - name: Interface test C++17
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
+
+  windows_clang:
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python: ['3.10']
+
+    runs-on: "${{ matrix.os }}"
+
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
+
+    steps:
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Update CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+
+      - name: Install ninja-build tool
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
+      - name: Run pip installs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements.txt
+
+      - name: Show Clang++ version
+        run: clang++ --version
+
+      - name: Show CMake version
+        run: cmake --version
+
+      # TODO: WERROR=ON
+      - name: Configure Clang
+        run: >
+          cmake -G Ninja -S . -B .
+          -DCMAKE_VERBOSE_MAKEFILE=ON
+          -DPYBIND11_WERROR=OFF
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Clean directory
+        run: git clean -fdx
