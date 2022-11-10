@@ -968,7 +968,7 @@ jobs:
     - name: Interface test C++17
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
 
-  WindowsClang:
+  windows_clang:
 
     strategy:
       matrix:
@@ -977,7 +977,7 @@ jobs:
 
     runs-on: "${{ matrix.os }}"
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }}"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
 
     steps:
       - name: Checkout
