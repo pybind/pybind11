@@ -22,3 +22,9 @@ jobs:
 
       - name: Show Clang++ version /usr/local/opt/llvm/bin
         run: PATH="/usr/local/opt/llvm/bin:$PATH" clang++ --version
+
+      - name: Update PATH
+        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Show Clang++ version after Update PATH
+        run: clang++ --version
