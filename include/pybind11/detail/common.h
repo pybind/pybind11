@@ -96,7 +96,7 @@
 #endif
 
 #if !defined(PYBIND11_EXPORT_EXCEPTION)
-#    if defined(__apple_build_version__)
+#    if defined(_LIBCPP_VERSION)
 #        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
 #    else
 #        define PYBIND11_EXPORT_EXCEPTION
