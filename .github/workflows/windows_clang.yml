@@ -61,8 +61,7 @@ jobs:
       - name: Python tests Clang
         run: cmake --build . --target pytest -j 2
 
-      - name: C++ tests Clang
-        run: cmake --build . --target cpptest -j 2
+      # UNAVAILABLE: cpptest
 
       - name: Interface test Clang
         run: cmake --build . --target test_cmake_build -j 2
