@@ -58,19 +58,15 @@ jobs:
 
       - name: Build
         run: cmake --build . -j 2
-        continue-on-error: true
 
       - name: Python tests
         run: cmake --build . --target pytest -j 2
-        continue-on-error: true
 
       - name: C++ tests
         run: cmake --build . --target cpptest -j 2
-        continue-on-error: true
 
       - name: Interface test
         run: cmake --build . --target test_cmake_build -j 2
-        continue-on-error: true
 
       - name: Clean directory
         run: git clean -fdx
