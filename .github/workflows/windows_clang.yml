@@ -51,7 +51,7 @@ jobs:
           -DPYBIND11_WERROR=OFF
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=OFF
+          -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
@@ -61,7 +61,8 @@ jobs:
       - name: Python tests Clang
         run: cmake --build . --target pytest -j 2
 
-      # UNAVAILABLE: cpptest
+      - name: C++ tests
+        run: cmake --build . --target cpptest -j 2
 
       - name: Interface test Clang
         run: cmake --build . --target test_cmake_build -j 2
