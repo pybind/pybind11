@@ -6,15 +6,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_and_test:
+  WindowsClang:
+
     strategy:
       matrix:
         os: [windows-latest]
         python: ['3.10']
 
-    runs-on: '${{ matrix.os }}'
+    runs-on: "${{ matrix.os }}"
 
-    name: 'build_and_test ${{ matrix.os }}'
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }}"
 
     steps:
       - name: Checkout
