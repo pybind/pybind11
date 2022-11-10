@@ -1,0 +1,24 @@
+name: WIP
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  macos_brew_install_llvm:
+    name: "macos-latest • brew install llvm"
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: brew install llvm
+        run: brew install llvm
+
+      - name: Show Clang++ version
+        run: clang++ --version
+
+      - name: Show Clang++ version /usr/local/opt/llvm/bin
+        run: PATH="/usr/local/opt/llvm/bin:$PATH" clang++ --version
