@@ -40,6 +40,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -r tests/requirements.txt
+          python3 -m pip install numpy
 
       - name: Show CMake version
         run: cmake --version
