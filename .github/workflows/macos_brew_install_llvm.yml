@@ -10,21 +10,24 @@ jobs:
     name: "macos-latest • brew install llvm"
     runs-on: macos-latest
 
+    env:
+      LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: brew install llvm
-        run: brew install llvm
-
-      - name: Show Clang++ version
-        run: clang++ --version
-
       - name: Show Clang++ version /usr/local/opt/llvm/bin
         run: PATH="/usr/local/opt/llvm/bin:$PATH" clang++ --version
 
-      - name: Update PATH
-        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+      - name: Show env
+        run: env
 
-      - name: Show Clang++ version after Update PATH
+      - name: Show Clang++ version before brew install llvm
+        run: clang++ --version
+
+      - name: brew install llvm
+        run: brew install llvm
+
+      - name: Show Clang++ version after brew install llvm
         run: clang++ --version
