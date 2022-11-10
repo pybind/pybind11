@@ -48,7 +48,7 @@ jobs:
         run: >
           cmake -S . -B .
           -DCMAKE_VERBOSE_MAKEFILE=ON
-          -DPYBIND11_WERROR=OFF
+          -DPYBIND11_WERROR=ON
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
