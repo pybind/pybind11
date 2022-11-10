@@ -133,8 +133,6 @@ set(PYBIND11_TEST_FILES
     test_eigen_tensor_avoid_stl_array.cpp
     test_enum
     test_eval
-    test_exc_named_namespace_a.py
-    test_exc_named_namespace_b.py
     test_exceptions
     test_factory_constructors
     test_gil_scoped
@@ -158,8 +156,6 @@ set(PYBIND11_TEST_FILES
     test_tagbased_polymorphic
     test_thread
     test_union
-    test_unnamed_namespace_a
-    test_unnamed_namespace_b
     test_virtual_functions)
 
 # Invoking cmake with something like:
@@ -223,8 +219,6 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
-tests_extra_targets("test_exc_named_namespace_a.py" "named_namespace_a")
-tests_extra_targets("test_exc_named_namespace_b.py" "named_namespace_b")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
