@@ -980,6 +980,9 @@ jobs:
     name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
 
     steps:
+      - name: Show env
+        run: env
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -997,8 +1000,10 @@ jobs:
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v3
 
-      - name: Prepare env
-        run: python -m pip install -r tests/requirements.txt
+      - name: Run pip installs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements.txt
 
       - name: Show Clang++ version
         run: clang++ --version
@@ -1018,16 +1023,16 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
-      - name: Build Clang
+      - name: Build
         run: cmake --build . -j 2
 
-      - name: Python tests Clang
+      - name: Python tests
         run: cmake --build . --target pytest -j 2
 
       - name: C++ tests
         run: cmake --build . --target cpptest -j 2
 
-      - name: Interface test Clang
+      - name: Interface test
         run: cmake --build . --target test_cmake_build -j 2
 
       - name: Clean directory
