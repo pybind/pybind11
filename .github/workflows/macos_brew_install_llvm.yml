@@ -12,14 +12,16 @@ jobs:
 
     env:
       LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
-      PATH: "/usr/local/opt/llvm/bin:$PATH"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Update PATH
+        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
 
       - name: Show env
         run: env
+
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Show Clang++ version before brew install llvm
         run: clang++ --version
