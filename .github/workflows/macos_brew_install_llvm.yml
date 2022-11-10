@@ -11,6 +11,7 @@ jobs:
     runs-on: macos-latest
 
     env:
+      # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
       LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
 
     steps:
@@ -35,8 +36,10 @@ jobs:
       - name: Update CMake
         uses: jwlawson/actions-setup-cmake@v1.13
 
-      - name: Prepare env
-        run: python -m pip install -r tests/requirements.txt
+      - name: Run pip installs
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tests/requirements.txt
 
       - name: Show CMake version
         run: cmake --version
@@ -51,6 +54,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
       - name: Build
         run: cmake --build . -j 2
