@@ -10,6 +10,12 @@ TEST_SUBMODULE(unnamed_namespace_a, m) {
     } else {
         m.attr("unnamed_namespace_a_any_struct") = py::none();
     }
+    m.attr("defined_WIN32_or__WIN32") =
+#if defined(WIN32) || defined(_WIN32)
+        true;
+#else
+        false;
+#endif
     m.attr("defined___clang__") =
 #if defined(__clang__)
         true;

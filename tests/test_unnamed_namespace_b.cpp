@@ -10,16 +10,4 @@ TEST_SUBMODULE(unnamed_namespace_b, m) {
     } else {
         m.attr("unnamed_namespace_b_any_struct") = py::none();
     }
-    m.attr("defined___clang__") =
-#if defined(__clang__)
-        true;
-#else
-        false;
-#endif
-    m.attr("defined__LIBCPP_VERSION") =
-#if defined(_LIBCPP_VERSION)
-        true;
-#else
-        false;
-#endif
 }
