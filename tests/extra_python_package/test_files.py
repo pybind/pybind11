@@ -36,6 +36,7 @@ main_headers = {
     "include/pybind11/functional.h",
     "include/pybind11/gil.h",
     "include/pybind11/iostream.h",
+    "include/pybind11/native_enum.h",
     "include/pybind11/numpy.h",
     "include/pybind11/operators.h",
     "include/pybind11/options.h",

@@ -34,7 +34,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 4
+#    define PYBIND11_INTERNALS_VERSION 5
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -208,6 +208,9 @@ struct internals {
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
     }
+#endif
+#if PYBIND11_INTERNALS_VERSION > 4
+    type_map<PyObject *> native_enum_types;
 #endif
 };
 

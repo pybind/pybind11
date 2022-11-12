@@ -43,3 +43,9 @@ def test_return_color_fail():
     with pytest.raises(ValueError) as excinfo_cast:
         m.return_color(2)
     assert str(excinfo_cast.value) == str(excinfo_direct.value)
+
+
+def test_wip_color():
+    assert isinstance(m.WIPcolor, enum.EnumMeta)
+    for name, value in COLOR_MEMBERS:
+        assert m.WIPcolor[name] == value

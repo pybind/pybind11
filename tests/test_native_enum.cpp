@@ -1,4 +1,4 @@
-// #include <pybind11/native_enum.h>
+#include <pybind11/native_enum.h>
 
 #include "pybind11_tests.h"
 
@@ -77,4 +77,10 @@ TEST_SUBMODULE(native_enum, m) {
 
     m.def("pass_color", pass_color);
     m.def("return_color", return_color);
+
+    py::native_enum<color>(m, "WIPcolor")
+        .value("red", color::red)
+        .value("yellow", color::yellow)
+        .value("green", color::green)
+        .value("blue", color::blue);
 }
