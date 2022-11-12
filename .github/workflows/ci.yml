@@ -1037,3 +1037,70 @@ jobs:
 
       - name: Clean directory
         run: git clean -fdx
+
+  macos_brew_install_llvm:
+    name: "macos-latest • brew install llvm"
+    runs-on: macos-latest
+
+    env:
+      # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
+      LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
+
+    steps:
+      - name: Update PATH
+        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Show Clang++ version before brew install llvm
+        run: clang++ --version
+
+      - name: brew install llvm
+        run: brew install llvm
+
+      - name: Show Clang++ version after brew install llvm
+        run: clang++ --version
+
+      - name: Update CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+
+      - name: Run pip installs
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tests/requirements.txt
+          python3 -m pip install numpy
+          python3 -m pip install scipy
+
+      - name: Show CMake version
+        run: cmake --version
+
+      - name: CMake Configure
+        run: >
+          cmake -S . -B .
+          -DCMAKE_VERBOSE_MAKEFILE=ON
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Clean directory
+        run: git clean -fdx
