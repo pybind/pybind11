@@ -29,7 +29,7 @@ def test_pass_color_success(name, value):
 def test_pass_color_fail():
     with pytest.raises(TypeError) as excinfo:
         m.pass_color(None)
-    assert "<enum 'color'>" in str(excinfo.value)
+    assert "test_native_enum::color" in str(excinfo.value)
 
 
 @pytest.mark.parametrize("name,value", COLOR_MEMBERS)
@@ -43,9 +43,3 @@ def test_return_color_fail():
     with pytest.raises(ValueError) as excinfo_cast:
         m.return_color(2)
     assert str(excinfo_cast.value) == str(excinfo_direct.value)
-
-
-def test_wip_color():
-    assert isinstance(m.WIPcolor, enum.EnumMeta)
-    for name, value in COLOR_MEMBERS:
-        assert m.WIPcolor[name] == value

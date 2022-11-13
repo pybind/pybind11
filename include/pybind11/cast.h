@@ -50,11 +50,19 @@ cast_op(make_caster<T> &&caster) {
 
 template <typename EnumType>
 class type_caster<EnumType, detail::enable_if_t<std::is_enum<EnumType>::value>> {
+private:
+    using Underlying = typename std::underlying_type<EnumType>::type;
+
 public:
     static constexpr auto name = const_name<EnumType>();
 
     template <typename SrcType>
     static handle cast(SrcType &&src, return_value_policy, handle parent) {
+        auto const &natives = get_internals().native_enum_types;
+        auto found = natives.find(std::type_index(typeid(EnumType)));
+        if (found != natives.end()) {
+            return handle(found->second)(static_cast<Underlying>(src)).release();
+        }
         return type_caster_base<EnumType>::cast(
             std::forward<SrcType>(src),
             // Fixes https://github.com/pybind/pybind11/pull/3643#issuecomment-1022987818:
@@ -63,6 +71,19 @@ public:
     }
 
     bool load(handle src, bool convert) {
+        auto const &natives = get_internals().native_enum_types;
+        auto found = natives.find(std::type_index(typeid(EnumType)));
+        if (found != natives.end()) {
+            if (!isinstance(src, found->second)) {
+                return false;
+            }
+            type_caster<Underlying> underlying_caster;
+            if (!underlying_caster.load(src.attr("value"), convert)) {
+                pybind11_fail("native_enum internal consistency failure.");
+            }
+            value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            return true;
+        }
         if (!pybind11_enum_) {
             pybind11_enum_.reset(new type_caster_base<EnumType>());
         }
@@ -73,10 +94,20 @@ public:
     using cast_op_type = detail::cast_op_type<T>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType *() { return pybind11_enum_->operator EnumType *(); }
+    operator EnumType *() {
+        if (!pybind11_enum_) {
+            return &value;
+        }
+        return pybind11_enum_->operator EnumType *();
+    }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType &() { return pybind11_enum_->operator EnumType &(); }
+    operator EnumType &() {
+        if (!pybind11_enum_) {
+            return value;
+        }
+        return pybind11_enum_->operator EnumType &();
+    }
 
 private:
     std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
