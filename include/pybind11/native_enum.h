@@ -23,13 +23,7 @@ public:
 
     template <typename... Extra>
     native_enum(const handle &scope, const char *name, const Extra &.../*extra*/)
-        : m_scope(reinterpret_borrow<object>(scope)), m_name(name) {
-        constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
-        constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
-        if (is_arithmetic || is_convertible) {
-            // IGNORED.
-        }
-    }
+        : m_scope(reinterpret_borrow<object>(scope)), m_name(name) {}
 
     /// Export enumeration entries into the parent scope
     native_enum &export_values() { return *this; }
