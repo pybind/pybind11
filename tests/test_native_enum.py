@@ -43,3 +43,9 @@ def test_return_color_fail():
     with pytest.raises(ValueError) as excinfo_cast:
         m.return_color(2)
     assert str(excinfo_cast.value) == str(excinfo_direct.value)
+
+
+def test_type_caster_enum_type_enabled_false():
+    # This is really only a "does it compile" test.
+    assert m.pass_some_proto_enum(None) is None
+    assert m.return_some_proto_enum() is None

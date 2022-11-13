@@ -21,10 +21,45 @@ enum class altitude : char {
 // the constant d is 0, the constant e is 1, the constant f is 3
 enum { d, e, f = e + 2 };
 
-int pass_color(color e) { return static_cast<int>(e); }
-color return_color(int i) { return static_cast<color>(i); }
+// https://github.com/protocolbuffers/protobuf/blob/d70b5c5156858132decfdbae0a1103e6a5cb1345/src/google/protobuf/generated_enum_util.h#L52-L53
+template <typename T>
+struct is_proto_enum : std::false_type {};
+
+enum some_proto_enum : int { Zero, One };
+
+template <>
+struct is_proto_enum<some_proto_enum> : std::true_type {};
 
 } // namespace test_native_enum
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename ProtoEnumType>
+struct type_caster_enum_type_enabled<
+    ProtoEnumType,
+    detail::enable_if_t<test_native_enum::is_proto_enum<ProtoEnumType>::value>> : std::false_type {
+};
+
+// https://github.com/pybind/pybind11_protobuf/blob/a50899c2eb604fc5f25deeb8901eff6231b8b3c0/pybind11_protobuf/enum_type_caster.h#L101-L105
+template <typename ProtoEnumType>
+struct type_caster<ProtoEnumType,
+                   detail::enable_if_t<test_native_enum::is_proto_enum<ProtoEnumType>::value>> {
+    static handle
+    cast(const ProtoEnumType & /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
+        return py::none();
+    }
+
+    bool load(handle /*src*/, bool /*convert*/) {
+        value = static_cast<ProtoEnumType>(0);
+        return true;
+    }
+
+    PYBIND11_TYPE_CASTER(ProtoEnumType, const_name<ProtoEnumType>());
+};
+
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 TEST_SUBMODULE(native_enum, m) {
     using namespace test_native_enum;
@@ -35,6 +70,9 @@ TEST_SUBMODULE(native_enum, m) {
         .value("green", color::green)
         .value("blue", color::blue);
 
-    m.def("pass_color", pass_color);
-    m.def("return_color", return_color);
+    m.def("pass_color", [](color e) { return static_cast<int>(e); });
+    m.def("return_color", [](int i) { return static_cast<color>(i); });
+
+    m.def("pass_some_proto_enum", [](some_proto_enum) { return py::none(); });
+    m.def("return_some_proto_enum", []() { return some_proto_enum::Zero; });
 }

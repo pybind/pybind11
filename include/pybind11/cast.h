@@ -48,8 +48,13 @@ cast_op(make_caster<T> &&caster) {
         template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
+template <typename EnumType, typename SFINAE = void>
+struct type_caster_enum_type_enabled : std::true_type {};
+
 template <typename EnumType>
-class type_caster<EnumType, detail::enable_if_t<std::is_enum<EnumType>::value>> {
+class type_caster<EnumType,
+                  detail::enable_if_t<std::is_enum<EnumType>::value
+                                      && type_caster_enum_type_enabled<EnumType>::value>> {
 private:
     using Underlying = typename std::underlying_type<EnumType>::type;
 
