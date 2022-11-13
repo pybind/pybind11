@@ -264,6 +264,25 @@ public:
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 
+#if PY_VERSION_HEX >= 0x030B0000
+    explicit scoped_interpreter(const PyConfig& config,
+                                bool add_program_dir_to_path = true) {
+        if (Py_IsInitialized() != 0) {
+            pybind11_fail("The interpreter is already running");
+        }
+        PyStatus status = Py_InitializeFromConfig(&config);
+        if (PyStatus_Exception(status)) {
+            throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg : "Failed to init CPython");
+        }
+        if (add_program_dir_to_path) {
+            PyRun_SimpleString("import sys, os.path; "
+                               "sys.path.insert(0, "
+                               "os.path.abspath(os.path.dirname(sys.argv[0])) "
+                               "if sys.argv and os.path.exists(sys.argv[0]) else '')");
+        }
+    }
+#endif
+
     scoped_interpreter(const scoped_interpreter &) = delete;
     scoped_interpreter(scoped_interpreter &&other) noexcept { other.is_valid = false; }
     scoped_interpreter &operator=(const scoped_interpreter &) = delete;
