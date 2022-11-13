@@ -48,6 +48,41 @@ cast_op(make_caster<T> &&caster) {
         template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
+template <typename EnumType>
+class type_caster<EnumType, detail::enable_if_t<std::is_enum<EnumType>::value>> {
+public:
+    static constexpr auto name = const_name<EnumType>();
+
+    template <typename SrcType>
+    static handle cast(SrcType &&src, return_value_policy, handle parent) {
+        return type_caster_base<EnumType>::cast(
+            std::forward<SrcType>(src),
+            // Fixes https://github.com/pybind/pybind11/pull/3643#issuecomment-1022987818:
+            return_value_policy::copy,
+            parent);
+    }
+
+    bool load(handle src, bool convert) {
+        if (!pybind11_enum_) {
+            pybind11_enum_.reset(new type_caster_base<EnumType>());
+        }
+        return pybind11_enum_->load(src, convert);
+    }
+
+    template <typename T>
+    using cast_op_type = detail::cast_op_type<T>;
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator EnumType *() { return pybind11_enum_->operator EnumType *(); }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator EnumType &() { return pybind11_enum_->operator EnumType &(); }
+
+private:
+    std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
+    EnumType value;
+};
+
 template <typename type>
 class type_caster<std::reference_wrapper<type>> {
 private:
