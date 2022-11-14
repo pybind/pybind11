@@ -367,7 +367,7 @@ using is_pod_struct
                                          // we need a standard layout type
 #if defined(__GLIBCXX__)                                                                          \
     && (__GLIBCXX__ < 20150422 || __GLIBCXX__ == 20150426 || __GLIBCXX__ == 20150623              \
-        || __GLIBCXX__ == 20150626 || __GLIBCXX__ == 20160803)
+        || __GLIBCXX__ == 20150626 || __GLIBCXX__ == 20160726 || __GLIBCXX__ == 20160803)
              // libstdc++ < 5 (including versions 4.8.5, 4.9.3 and 4.9.4 which were released after
              // 5) don't implement is_trivially_copyable, so approximate it
              std::is_trivially_destructible<T>,
