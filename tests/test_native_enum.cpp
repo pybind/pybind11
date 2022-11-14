@@ -70,9 +70,27 @@ TEST_SUBMODULE(native_enum, m) {
         .value("green", color::green)
         .value("blue", color::blue);
 
+    m.def("isinstance_color", [](const py::object &obj) { return py::isinstance<color>(obj); });
+
     m.def("pass_color", [](color e) { return static_cast<int>(e); });
     m.def("return_color", [](int i) { return static_cast<color>(i); });
 
     m.def("pass_some_proto_enum", [](some_proto_enum) { return py::none(); });
     m.def("return_some_proto_enum", []() { return some_proto_enum::Zero; });
+
+    m.def("obj_cast_color", [](const py::object &obj) {
+        if (
+            // GOOD:
+            obj.cast<color>()
+            // ERROR static_cast(!cast_is_temporary_value_reference):
+            //  *obj.cast<color *>
+            // GOOD:
+            //  py::cast<color>(obj)
+            // ERROR static_cast(!cast_is_temporary_value_reference):
+            //  *py::cast<color *>(obj)
+            == color::green) {
+            return 1;
+        }
+        return 0;
+    });
 }

@@ -16,6 +16,11 @@ def test_enum_color_type():
     assert isinstance(m.color, enum.EnumMeta)
 
 
+def test_pybind11_isinstance_color():
+    assert not m.isinstance_color(None)
+    assert not m.isinstance_color(m.color)  # TODO: NEEDS FIXING
+
+
 @pytest.mark.parametrize("name,value", COLOR_MEMBERS)
 def test_enum_color_members(name, value):
     assert m.color[name] == value
@@ -49,3 +54,11 @@ def test_type_caster_enum_type_enabled_false():
     # This is really only a "does it compile" test.
     assert m.pass_some_proto_enum(None) is None
     assert m.return_some_proto_enum() is None
+
+
+def test_obj_cast_color():
+    assert m.obj_cast_color(m.color.green) == 1
+    assert m.obj_cast_color(m.color.blue) == 0
+    with pytest.raises(RuntimeError) as excinfo:
+        m.obj_cast_color(None)
+    assert str(excinfo.value).startswith("Unable to cast Python instance of type ")
