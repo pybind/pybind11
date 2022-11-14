@@ -4,6 +4,12 @@ import pytest
 
 from pybind11_tests import native_enum as m
 
+SMALLENUM_MEMBERS = (
+    ("a", 0),
+    ("b", 1),
+    ("c", 2),
+)
+
 COLOR_MEMBERS = (
     ("red", 0),
     ("yellow", 1),
@@ -12,8 +18,9 @@ COLOR_MEMBERS = (
 )
 
 
-def test_enum_color_type():
-    assert isinstance(m.color, enum.EnumMeta)
+@pytest.mark.parametrize("enum_type", (m.smallenum, m.color))
+def test_enum_color_type(enum_type):
+    assert isinstance(enum_type, enum.EnumMeta)
 
 
 def test_pybind11_isinstance_color():
@@ -21,9 +28,12 @@ def test_pybind11_isinstance_color():
     assert not m.isinstance_color(m.color)  # TODO: NEEDS FIXING
 
 
-@pytest.mark.parametrize("name,value", COLOR_MEMBERS)
-def test_enum_color_members(name, value):
-    assert m.color[name] == value
+@pytest.mark.parametrize(
+    "enum_type,members", ((m.smallenum, SMALLENUM_MEMBERS), (m.color, COLOR_MEMBERS))
+)
+def test_enum_color_members(enum_type, members):
+    for name, value in members:
+        assert enum_type[name] == value
 
 
 @pytest.mark.parametrize("name,value", COLOR_MEMBERS)

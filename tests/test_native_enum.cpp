@@ -18,9 +18,6 @@ enum class altitude : char {
     low = 'l', // trailing comma only allowed after CWG518
 };
 
-// the constant d is 0, the constant e is 1, the constant f is 3
-enum { d, e, f = e + 2 };
-
 // https://github.com/protocolbuffers/protobuf/blob/d70b5c5156858132decfdbae0a1103e6a5cb1345/src/google/protobuf/generated_enum_util.h#L52-L53
 template <typename T>
 struct is_proto_enum : std::false_type {};
@@ -63,6 +60,11 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 TEST_SUBMODULE(native_enum, m) {
     using namespace test_native_enum;
+
+    py::native_enum<smallenum>(m, "smallenum")
+        .value("a", smallenum::a)
+        .value("b", smallenum::b)
+        .value("c", smallenum::c);
 
     py::native_enum<color>(m, "color")
         .value("red", color::red)
