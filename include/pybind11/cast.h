@@ -48,13 +48,8 @@ cast_op(make_caster<T> &&caster) {
         template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
-template <typename EnumType, typename SFINAE = void>
-struct type_caster_enum_type_enabled : std::true_type {};
-
 template <typename EnumType>
-class type_caster<EnumType,
-                  detail::enable_if_t<std::is_enum<EnumType>::value
-                                      && type_caster_enum_type_enabled<EnumType>::value>> {
+class type_caster_enum_type {
 private:
     using Underlying = typename std::underlying_type<EnumType>::type;
 
@@ -87,37 +82,42 @@ public:
                 pybind11_fail("native_enum internal consistency failure.");
             }
             value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            value_ptr = &value;
             return true;
         }
         if (!pybind11_enum_) {
             pybind11_enum_.reset(new type_caster_base<EnumType>());
         }
-        return pybind11_enum_->load(src, convert);
+        if (pybind11_enum_->load(src, convert)) {
+            value_ptr = pybind11_enum_->operator EnumType *();
+            return true;
+        }
+        return false;
     }
 
     template <typename T>
     using cast_op_type = detail::cast_op_type<T>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType *() {
-        if (!pybind11_enum_) {
-            return &value;
-        }
-        return pybind11_enum_->operator EnumType *();
-    }
+    operator EnumType *() { return value_ptr; }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType &() {
-        if (!pybind11_enum_) {
-            return value;
-        }
-        return pybind11_enum_->operator EnumType &();
-    }
+    operator EnumType &() { return *value_ptr; }
 
 private:
     std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
     EnumType value;
+    EnumType *value_ptr = nullptr;
 };
+
+template <typename EnumType, typename SFINAE = void>
+struct type_caster_enum_type_enabled : std::true_type {};
+
+template <typename EnumType>
+class type_caster<EnumType,
+                  detail::enable_if_t<std::is_enum<EnumType>::value
+                                      && type_caster_enum_type_enabled<EnumType>::value>>
+    : public type_caster_enum_type<EnumType> {};
 
 template <typename type>
 class type_caster<std::reference_wrapper<type>> {
@@ -1053,10 +1053,11 @@ using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 // non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
 // everything else returns a reference/pointer to a local variable.
 template <typename type>
-using cast_is_temporary_value_reference
-    = bool_constant<(std::is_reference<type>::value || std::is_pointer<type>::value)
-                    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
-                    && !std::is_same<intrinsic_t<type>, void>::value>;
+using cast_is_temporary_value_reference = bool_constant<
+    (std::is_reference<type>::value || std::is_pointer<type>::value)
+    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
+    && !std::is_base_of<type_caster_enum_type<intrinsic_t<type>>, make_caster<type>>::value
+    && !std::is_same<intrinsic_t<type>, void>::value>;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared
