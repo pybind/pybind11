@@ -1116,7 +1116,6 @@ T cast(const handle &handle) {
         = std::is_base_of<type_caster_enum_type<intrinsic_t<T>>, make_caster<T>>::value;
     static_assert(!cast_is_temporary_value_reference<T>::value || is_enum_cast,
                   "Unable to cast type to reference: value is local to type caster");
-    auto lt = load_type<T>(handle);
 #ifndef NDEBUG
     if (is_enum_cast) {
         auto const &natives = get_internals().native_enum_types;
@@ -1126,7 +1125,7 @@ T cast(const handle &handle) {
         }
     }
 #endif
-    return cast_op<T>(std::move(lt));
+    return cast_op<T>(load_type<T>(handle));
 }
 
 // pytype -> pytype (calls converting constructor)
