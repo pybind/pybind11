@@ -88,6 +88,42 @@ inline wchar_t *widen_chars(const char *safe_arg) {
 
 PYBIND11_NAMESPACE_END(detail)
 
+inline void precheck_interpreter() {
+    if (Py_IsInitialized() != 0) {
+        pybind11_fail("The interpreter is already running");
+    }
+}
+
+#if PY_VERSION_HEX >= 0x030B0000
+class config_guard
+{
+public:
+    config_guard(PyConfig& config): m_config{config}{}
+    ~config_guard(){PyConfig_Clear(&m_config);}
+private:
+    PyConfig& m_config;
+};
+
+/*!
+ * \warning should not be called by user
+ * \todo put it into the scoped_interpreter's private section?
+ */
+inline void _initialize_interpreter(const PyConfig &config, bool add_program_dir_to_path) {
+    PyStatus status = Py_InitializeFromConfig(&config);
+    if (PyStatus_Exception(status)) {
+        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
+                                                          : "Failed to init CPython");
+    }
+    if (add_program_dir_to_path) {
+        PyRun_SimpleString("import sys, os.path; "
+                           "sys.path.insert(0, "
+                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
+                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
+    }
+}
+
+#endif
+
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
@@ -111,9 +147,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    if (Py_IsInitialized() != 0) {
-        pybind11_fail("The interpreter is already running");
-    }
+    precheck_interpreter();
 
 #if PY_VERSION_HEX < 0x030B0000
 
@@ -152,6 +186,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
 #else
     PyConfig config;
+    config_guard{config};
     PyConfig_InitIsolatedConfig(&config);
     config.isolated = 0;
     config.use_environment = 1;
@@ -161,22 +196,10 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
     if (PyStatus_Exception(status)) {
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
-        PyConfig_Clear(&config);
         throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
                                                           : "Failed to prepare CPython");
     }
-    status = Py_InitializeFromConfig(&config);
-    PyConfig_Clear(&config);
-    if (PyStatus_Exception(status)) {
-        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
-                                                          : "Failed to init CPython");
-    }
-    if (add_program_dir_to_path) {
-        PyRun_SimpleString("import sys, os.path; "
-                           "sys.path.insert(0, "
-                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
-                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
-    }
+    _initialize_interpreter(config, add_program_dir_to_path);
 #endif
 }
 
@@ -266,20 +289,8 @@ public:
 
 #if PY_VERSION_HEX >= 0x030B0000
     explicit scoped_interpreter(const PyConfig &config, bool add_program_dir_to_path = true) {
-        if (Py_IsInitialized() != 0) {
-            pybind11_fail("The interpreter is already running");
-        }
-        PyStatus status = Py_InitializeFromConfig(&config);
-        if (PyStatus_Exception(status)) {
-            throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
-                                                              : "Failed to init CPython");
-        }
-        if (add_program_dir_to_path) {
-            PyRun_SimpleString("import sys, os.path; "
-                               "sys.path.insert(0, "
-                               "os.path.abspath(os.path.dirname(sys.argv[0])) "
-                               "if sys.argv and os.path.exists(sys.argv[0]) else '')");
-        }
+        precheck_interpreter();
+        _initialize_interpreter(config, add_program_dir_to_path);
     }
 #endif
 
