@@ -64,3 +64,12 @@ def test_type_caster_enum_type_enabled_false():
     # This is really only a "does it compile" test.
     assert m.pass_some_proto_enum(None) is None
     assert m.return_some_proto_enum() is None
+
+
+@pytest.mark.skipif(
+    m.obj_cast_color_ptr is None, reason="NDEBUG disables cast safety check"
+)
+def test_obj_cast_color_ptr():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.obj_cast_color_ptr(m.color.red)
+    assert str(excinfo.value) == "Unable to cast native enum type to reference"

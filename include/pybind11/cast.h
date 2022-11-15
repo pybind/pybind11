@@ -1119,7 +1119,7 @@ T cast(const handle &handle) {
 #ifndef NDEBUG
     if (is_enum_cast) {
         auto const &natives = get_internals().native_enum_types;
-        auto found = natives.find(std::type_index(typeid(intrinsic_type<T>)));
+        auto found = natives.find(std::type_index(typeid(intrinsic_t<T>)));
         if (found != natives.end()) {
             pybind11_fail("Unable to cast native enum type to reference");
         }

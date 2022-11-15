@@ -79,4 +79,10 @@ TEST_SUBMODULE(native_enum, m) {
 
     m.def("pass_some_proto_enum", [](some_proto_enum) { return py::none(); });
     m.def("return_some_proto_enum", []() { return some_proto_enum::Zero; });
+
+#ifndef NDEBUG
+    m.def("obj_cast_color_ptr", [](const py::object &obj) { obj.cast<color *>(); });
+#else
+    m.attr("obj_cast_color_ptr") = py::none();
+#endif
 }
