@@ -18,6 +18,10 @@ enum class altitude : char {
     low = 'l', // trailing comma only allowed after CWG518
 };
 
+enum class export_values { exv0, exv1 };
+
+enum class member_doc { mem0, mem1, mem2 };
+
 // https://github.com/protocolbuffers/protobuf/blob/d70b5c5156858132decfdbae0a1103e6a5cb1345/src/google/protobuf/generated_enum_util.h#L52-L53
 template <typename T>
 struct is_proto_enum : std::false_type {};
@@ -75,6 +79,16 @@ TEST_SUBMODULE(native_enum, m) {
     py::native_enum<altitude>(m, "altitude")
         .value("high", altitude::high)
         .value("low", altitude::low);
+
+    py::native_enum<export_values>(m, "export_values")
+        .value("exv0", export_values::exv0)
+        .value("exv1", export_values::exv1)
+        .export_values();
+
+    py::native_enum<member_doc>(m, "member_doc")
+        .value("mem0", member_doc::mem0, "docA")
+        .value("mem1", member_doc::mem1)
+        .value("mem2", member_doc::mem2, "docC");
 
     m.def("isinstance_color", [](const py::object &obj) { return py::isinstance<color>(obj); });
 

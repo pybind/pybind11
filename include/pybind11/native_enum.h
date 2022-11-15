@@ -19,14 +19,17 @@ public:
     native_enum(const object &scope, const char *name) : m_scope(scope), m_name(name) {}
 
     /// Export enumeration entries into the parent scope
-    native_enum &export_values() { return *this; }
+    native_enum &export_values() {
+        m_export_values = true;
+        return *this;
+    }
 
     /// Add an enumeration entry
     native_enum &value(char const *name, Type value, const char *doc = nullptr) {
-        if (doc) {
-            // IGNORED.
-        }
         m_members.append(make_tuple(name, static_cast<Underlying>(value)));
+        if (doc) {
+            m_docs.append(make_tuple(name, doc));
+        }
         return *this;
     }
 
@@ -39,19 +42,30 @@ public:
         constexpr bool use_int_enum = std::numeric_limits<Underlying>::is_integer
                                       && !std::is_same<Underlying, bool>::value
                                       && !detail::is_std_char_type<Underlying>::value;
-        auto int_enum = enum_module.attr(use_int_enum ? "IntEnum" : "Enum");
-        auto int_enum_color = int_enum(m_name, m_members);
-        int_enum_color.attr("__module__") = m_scope;
-        m_scope.attr(m_name) = int_enum_color;
+        auto py_enum_type = enum_module.attr(use_int_enum ? "IntEnum" : "Enum");
+        auto py_enum = py_enum_type(m_name, m_members);
+        py_enum.attr("__module__") = m_scope;
+        m_scope.attr(m_name) = py_enum;
+        if (m_export_values) {
+            for (auto member : m_members) {
+                auto member_name = member[int_(0)];
+                m_scope.attr(member_name) = py_enum[member_name];
+            }
+        }
+        for (auto doc : m_docs) {
+            py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
+        }
         // Intentionally leak Python reference.
         detail::get_internals().native_enum_types[std::type_index(typeid(Type))]
-            = int_enum_color.release().ptr();
+            = py_enum.release().ptr();
     }
 
 private:
     object m_scope;
     str m_name;
+    bool m_export_values = false;
     list m_members;
+    list m_docs;
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

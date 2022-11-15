@@ -22,9 +22,22 @@ ALTITUDE_MEMBERS = (
     ("low", "l"),
 )
 
+EXPORT_VALUES_MEMBERS = (
+    ("exv0", 0),
+    ("exv1", 1),
+)
 
-@pytest.mark.parametrize("enum_type", (m.smallenum, m.color, m.altitude))
-def test_enum_color_type(enum_type):
+MEMBER_DOC_MEMBERS = (
+    ("mem0", 0),
+    ("mem1", 1),
+    ("mem2", 2),
+)
+
+
+@pytest.mark.parametrize(
+    "enum_type", (m.smallenum, m.color, m.altitude, m.export_values, m.member_doc)
+)
+def test_enum_type(enum_type):
     assert isinstance(enum_type, enum.EnumMeta)
 
 
@@ -34,11 +47,25 @@ def test_enum_color_type(enum_type):
         (m.smallenum, SMALLENUM_MEMBERS),
         (m.color, COLOR_MEMBERS),
         (m.altitude, ALTITUDE_MEMBERS),
+        (m.export_values, EXPORT_VALUES_MEMBERS),
+        (m.member_doc, MEMBER_DOC_MEMBERS),
     ),
 )
-def test_enum_color_members(enum_type, members):
+def test_enum_members(enum_type, members):
     for name, value in members:
         assert enum_type[name].value == value
+
+
+def test_export_values():
+    assert m.exv0 is m.export_values.exv0
+    assert m.exv1 is m.export_values.exv1
+
+
+def test_member_doc():
+    pure_native = enum.IntEnum("pure_native", (("mem", 0),))
+    assert m.member_doc.mem0.__doc__ == "docA"
+    assert m.member_doc.mem1.__doc__ == pure_native.mem.__doc__
+    assert m.member_doc.mem2.__doc__ == "docC"
 
 
 def test_pybind11_isinstance_color():
