@@ -24,8 +24,13 @@ def test_enum_color_type(enum_type):
 
 
 def test_pybind11_isinstance_color():
+    for name, _ in COLOR_MEMBERS:
+        assert m.isinstance_color(m.color[name])
+    assert not m.isinstance_color(m.color)
+    for name, _ in SMALLENUM_MEMBERS:
+        assert not m.isinstance_color(m.smallenum[name])
+    assert not m.isinstance_color(m.smallenum)
     assert not m.isinstance_color(None)
-    assert not m.isinstance_color(m.color)  # TODO: NEEDS FIXING
 
 
 @pytest.mark.parametrize(

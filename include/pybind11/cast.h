@@ -123,6 +123,26 @@ class type_caster<EnumType,
                                       && type_caster_enum_type_enabled<EnumType>::value>>
     : public type_caster_enum_type<EnumType> {};
 
+template <typename T, detail::enable_if_t<std::is_enum<T>::value, int> = 0>
+bool isinstance_native_enum_impl(handle obj, const std::type_info &tp) {
+    auto const &natives = get_internals().native_enum_types;
+    auto found = natives.find(tp);
+    if (found == natives.end()) {
+        return false;
+    }
+    return isinstance(obj, found->second);
+}
+
+template <typename T, detail::enable_if_t<!std::is_enum<T>::value, int> = 0>
+bool isinstance_native_enum_impl(handle, const std::type_info &) {
+    return false;
+}
+
+template <typename T>
+bool isinstance_native_enum(handle obj, const std::type_info &tp) {
+    return isinstance_native_enum_impl<intrinsic_t<T>>(obj, tp);
+}
+
 template <typename type>
 class type_caster<std::reference_wrapper<type>> {
 private:
