@@ -95,13 +95,13 @@ inline void precheck_interpreter() {
 }
 
 #if PY_VERSION_HEX >= 0x030B0000
-class config_guard
-{
+class config_guard {
 public:
-    config_guard(PyConfig& config): m_config{config}{}
-    ~config_guard(){PyConfig_Clear(&m_config);}
+    config_guard(PyConfig &config) : m_config{config} {}
+    ~config_guard() { PyConfig_Clear(&m_config); }
+
 private:
-    PyConfig& m_config;
+    PyConfig &m_config;
 };
 
 /*!
