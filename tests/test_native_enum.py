@@ -17,10 +17,28 @@ COLOR_MEMBERS = (
     ("blue", 21),
 )
 
+ALTITUDE_MEMBERS = (
+    ("high", "h"),
+    ("low", "l"),
+)
 
-@pytest.mark.parametrize("enum_type", (m.smallenum, m.color))
+
+@pytest.mark.parametrize("enum_type", (m.smallenum, m.color, m.altitude))
 def test_enum_color_type(enum_type):
     assert isinstance(enum_type, enum.EnumMeta)
+
+
+@pytest.mark.parametrize(
+    "enum_type,members",
+    (
+        (m.smallenum, SMALLENUM_MEMBERS),
+        (m.color, COLOR_MEMBERS),
+        (m.altitude, ALTITUDE_MEMBERS),
+    ),
+)
+def test_enum_color_members(enum_type, members):
+    for name, value in members:
+        assert enum_type[name].value == value
 
 
 def test_pybind11_isinstance_color():
@@ -31,14 +49,6 @@ def test_pybind11_isinstance_color():
         assert not m.isinstance_color(m.smallenum[name])
     assert not m.isinstance_color(m.smallenum)
     assert not m.isinstance_color(None)
-
-
-@pytest.mark.parametrize(
-    "enum_type,members", ((m.smallenum, SMALLENUM_MEMBERS), (m.color, COLOR_MEMBERS))
-)
-def test_enum_color_members(enum_type, members):
-    for name, value in members:
-        assert enum_type[name] == value
 
 
 def test_pass_color_success():

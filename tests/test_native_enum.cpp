@@ -72,6 +72,10 @@ TEST_SUBMODULE(native_enum, m) {
         .value("green", color::green)
         .value("blue", color::blue);
 
+    py::native_enum<altitude>(m, "altitude")
+        .value("high", altitude::high)
+        .value("low", altitude::low);
+
     m.def("isinstance_color", [](const py::object &obj) { return py::isinstance<color>(obj); });
 
     m.def("pass_color", [](color e) { return static_cast<int>(e); });

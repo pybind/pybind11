@@ -15,15 +15,8 @@ template <typename Type>
 class native_enum {
 public:
     using Underlying = typename std::underlying_type<Type>::type;
-    // Scalar is the integer representation of underlying type
-    using Scalar = detail::conditional_t<detail::any_of<detail::is_std_char_type<Underlying>,
-                                                        std::is_same<Underlying, bool>>::value,
-                                         detail::equivalent_integer_t<Underlying>,
-                                         Underlying>;
 
-    template <typename... Extra>
-    native_enum(const handle &scope, const char *name, const Extra &.../*extra*/)
-        : m_scope(reinterpret_borrow<object>(scope)), m_name(name) {}
+    native_enum(const object &scope, const char *name) : m_scope(scope), m_name(name) {}
 
     /// Export enumeration entries into the parent scope
     native_enum &export_values() { return *this; }
@@ -33,7 +26,7 @@ public:
         if (doc) {
             // IGNORED.
         }
-        m_members.append(make_tuple(name, static_cast<Scalar>(value)));
+        m_members.append(make_tuple(name, static_cast<Underlying>(value)));
         return *this;
     }
 
@@ -43,7 +36,10 @@ public:
     ~native_enum() {
         // Any exception here will terminate the process.
         auto enum_module = module_::import("enum");
-        auto int_enum = enum_module.attr("IntEnum");
+        constexpr bool use_int_enum = std::numeric_limits<Underlying>::is_integer
+                                      && !std::is_same<Underlying, bool>::value
+                                      && !detail::is_std_char_type<Underlying>::value;
+        auto int_enum = enum_module.attr(use_int_enum ? "IntEnum" : "Enum");
         auto int_enum_color = int_enum(m_name, m_members);
         int_enum_color.attr("__module__") = m_scope;
         m_scope.attr(m_name) = int_enum_color;
