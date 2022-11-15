@@ -41,9 +41,9 @@ def test_enum_color_members(enum_type, members):
         assert enum_type[name] == value
 
 
-@pytest.mark.parametrize("name,value", COLOR_MEMBERS)
-def test_pass_color_success(name, value):
-    assert m.pass_color(m.color[name]) == value
+def test_pass_color_success():
+    for name, value in COLOR_MEMBERS:
+        assert m.pass_color(m.color[name]) == value
 
 
 def test_pass_color_fail():
@@ -52,9 +52,9 @@ def test_pass_color_fail():
     assert "test_native_enum::color" in str(excinfo.value)
 
 
-@pytest.mark.parametrize("name,value", COLOR_MEMBERS)
-def test_return_color_success(name, value):
-    assert m.return_color(value) == m.color[name]
+def test_return_color_success():
+    for name, value in COLOR_MEMBERS:
+        assert m.return_color(value) == m.color[name]
 
 
 def test_return_color_fail():
