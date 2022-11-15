@@ -64,11 +64,3 @@ def test_type_caster_enum_type_enabled_false():
     # This is really only a "does it compile" test.
     assert m.pass_some_proto_enum(None) is None
     assert m.return_some_proto_enum() is None
-
-
-def test_obj_cast_color():
-    assert m.obj_cast_color(m.color.green) == 1
-    assert m.obj_cast_color(m.color.blue) == 0
-    with pytest.raises(RuntimeError) as excinfo:
-        m.obj_cast_color(None)
-    assert str(excinfo.value).startswith("Unable to cast Python instance ")

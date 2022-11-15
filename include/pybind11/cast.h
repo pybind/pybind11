@@ -82,32 +82,36 @@ public:
                 pybind11_fail("native_enum internal consistency failure.");
             }
             value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
-            value_ptr = &value;
             return true;
         }
         if (!pybind11_enum_) {
             pybind11_enum_.reset(new type_caster_base<EnumType>());
         }
-        if (pybind11_enum_->load(src, convert)) {
-            value_ptr = pybind11_enum_->operator EnumType *();
-            return true;
-        }
-        return false;
+        return pybind11_enum_->load(src, convert);
     }
 
     template <typename T>
     using cast_op_type = detail::cast_op_type<T>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType *() { return value_ptr; }
+    operator EnumType *() {
+        if (!pybind11_enum_) {
+            return &value;
+        }
+        return pybind11_enum_->operator EnumType *();
+    }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType &() { return *value_ptr; }
+    operator EnumType &() {
+        if (!pybind11_enum_) {
+            return value;
+        }
+        return pybind11_enum_->operator EnumType &();
+    }
 
 private:
     std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
     EnumType value;
-    EnumType *value_ptr = nullptr;
 };
 
 template <typename EnumType, typename SFINAE = void>
@@ -1053,11 +1057,10 @@ using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 // non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
 // everything else returns a reference/pointer to a local variable.
 template <typename type>
-using cast_is_temporary_value_reference = bool_constant<
-    (std::is_reference<type>::value || std::is_pointer<type>::value)
-    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
-    && !std::is_base_of<type_caster_enum_type<intrinsic_t<type>>, make_caster<type>>::value
-    && !std::is_same<intrinsic_t<type>, void>::value>;
+using cast_is_temporary_value_reference
+    = bool_constant<(std::is_reference<type>::value || std::is_pointer<type>::value)
+                    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
+                    && !std::is_same<intrinsic_t<type>, void>::value>;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared
@@ -1109,9 +1112,21 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 T cast(const handle &handle) {
     using namespace detail;
-    static_assert(!cast_is_temporary_value_reference<T>::value,
+    constexpr bool is_enum_cast
+        = std::is_base_of<type_caster_enum_type<intrinsic_t<T>>, make_caster<T>>::value;
+    static_assert(!cast_is_temporary_value_reference<T>::value || is_enum_cast,
                   "Unable to cast type to reference: value is local to type caster");
-    return cast_op<T>(load_type<T>(handle));
+    auto lt = load_type<T>(handle);
+#ifndef NDEBUG
+    if (is_enum_cast) {
+        auto const &natives = get_internals().native_enum_types;
+        auto found = natives.find(std::type_index(typeid(intrinsic_type<T>)));
+        if (found != natives.end()) {
+            pybind11_fail("Unable to cast native enum type to reference");
+        }
+    }
+#endif
+    return cast_op<T>(std::move(lt));
 }
 
 // pytype -> pytype (calls converting constructor)

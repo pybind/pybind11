@@ -79,12 +79,4 @@ TEST_SUBMODULE(native_enum, m) {
 
     m.def("pass_some_proto_enum", [](some_proto_enum) { return py::none(); });
     m.def("return_some_proto_enum", []() { return some_proto_enum::Zero; });
-
-    m.def("obj_cast_color", [](const py::object &obj) {
-        // https://github.com/OpenImageIO/oiio/blob/30ea4ebdfab11aec291befbaff446f2a7d24835b/src/python/py_oiio.h#L300
-        if (*obj.cast<color *>() == color::green) {
-            return 1;
-        }
-        return 0;
-    });
 }
