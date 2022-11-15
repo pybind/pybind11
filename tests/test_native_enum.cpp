@@ -84,9 +84,12 @@ TEST_SUBMODULE(native_enum, m) {
     m.def("pass_some_proto_enum", [](some_proto_enum) { return py::none(); });
     m.def("return_some_proto_enum", []() { return some_proto_enum::Zero; });
 
-#ifndef NDEBUG
-    m.def("obj_cast_color_ptr", [](const py::object &obj) { obj.cast<color *>(); });
+#if defined(__MINGW32__)
+    m.attr("obj_cast_color_ptr") = "MinGW: dangling pointer to an unnamed temporary may be used "
+                                   "[-Werror=dangling-pointer=]";
+#elif defined(NDEBUG)
+    m.attr("obj_cast_color_ptr") = "NDEBUG disables cast safety check";
 #else
-    m.attr("obj_cast_color_ptr") = py::none();
+    m.def("obj_cast_color_ptr", [](const py::object &obj) { obj.cast<color *>(); });
 #endif
 }

@@ -264,6 +264,9 @@ def test_docstring_signatures():
             assert "arg0" not in (attr.__doc__ or "")
 
 
+@pytest.mark.skipif(
+    isinstance(m.obj_cast_UnscopedEnum_ptr, str), reason=m.obj_cast_UnscopedEnum_ptr
+)
 def test_obj_cast_unscoped_enum_ptr():
     assert m.obj_cast_UnscopedEnum_ptr(m.UnscopedEnum.ETwo) == 2
     assert m.obj_cast_UnscopedEnum_ptr(m.UnscopedEnum.EOne) == 1

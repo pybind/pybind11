@@ -81,9 +81,7 @@ def test_type_caster_enum_type_enabled_false():
     assert m.return_some_proto_enum() is None
 
 
-@pytest.mark.skipif(
-    m.obj_cast_color_ptr is None, reason="NDEBUG disables cast safety check"
-)
+@pytest.mark.skipif(isinstance(m.obj_cast_color_ptr, str), reason=m.obj_cast_color_ptr)
 def test_obj_cast_color_ptr():
     with pytest.raises(RuntimeError) as excinfo:
         m.obj_cast_color_ptr(m.color.red)
