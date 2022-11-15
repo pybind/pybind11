@@ -6,7 +6,9 @@
 
 #include "pybind11.h"
 
+#include <limits>
 #include <type_traits>
+#include <typeindex>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
