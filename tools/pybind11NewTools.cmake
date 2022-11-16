@@ -9,8 +9,6 @@ if(CMAKE_VERSION VERSION_LESS 3.12)
   message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
 
-include_guard(GLOBAL)
-
 get_property(
   is_config
   TARGET pybind11::headers
@@ -135,7 +133,9 @@ if(DEFINED ${_Python}_INCLUDE_DIRS)
   # This needs to be a target to be included after the local pybind11
   # directory, just in case there there is an installed pybind11 sitting
   # next to Python's includes. It also ensures Python is a SYSTEM library.
-  add_library(pybind11::python_headers INTERFACE IMPORTED)
+  if (NOT TARGET pybind11::python_headers)
+    add_library(pybind11::python_headers INTERFACE IMPORTED)
+  endif()
   set_property(
     TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
                                              "$<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>")
