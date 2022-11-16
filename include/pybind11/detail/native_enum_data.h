@@ -30,7 +30,7 @@ public:
     native_enum_data &operator=(const native_enum_data &) = delete;
 
     // This is a separate public function only to enable easy unit testing.
-    std::string was_not_added_error_message() {
+    std::string was_not_added_error_message() const {
         return "`native_enum` was not added to any module."
                " Use e.g. `m += native_enum<...>(\""
                + enum_name + "\")` to fix.";
