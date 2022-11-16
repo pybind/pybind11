@@ -20,7 +20,7 @@ class native_enum : public detail::native_enum_data {
 public:
     using Underlying = typename std::underlying_type<Type>::type;
 
-    native_enum(const char *name)
+    explicit native_enum(const char *name)
         : detail::native_enum_data(name,
                                    std::type_index(typeid(Type)),
                                    std::numeric_limits<Underlying>::is_integer
