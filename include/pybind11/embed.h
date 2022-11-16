@@ -55,6 +55,7 @@
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(pybind11_init_impl_, name));                     \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
                                                & variable) // NOLINT(bugprone-macro-parentheses)
+#define PYCONFIG_SUPPORT_PY_VERSION (0x030B0000)
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -86,29 +87,14 @@ inline wchar_t *widen_chars(const char *safe_arg) {
     return widened_arg;
 }
 
-PYBIND11_NAMESPACE_END(detail)
-
 inline void precheck_interpreter() {
     if (Py_IsInitialized() != 0) {
         pybind11_fail("The interpreter is already running");
     }
 }
 
-#if PY_VERSION_HEX >= 0x030B0000
-class config_guard {
-public:
-    config_guard(PyConfig &config) : m_config{config} {}
-    ~config_guard() { PyConfig_Clear(&m_config); }
-
-private:
-    PyConfig &m_config;
-};
-
-/*!
- * \warning should not be called by user
- * \todo put it into the scoped_interpreter's private section?
- */
-inline void _initialize_interpreter(const PyConfig &config, bool add_program_dir_to_path) {
+#if PY_VERSION_HEX >= PYCONFIG_SUPPORT_PY_VERSION
+inline void initialize_interpreter(const PyConfig &config, bool add_program_dir_to_path) {
     PyStatus status = Py_InitializeFromConfig(&config);
     if (PyStatus_Exception(status)) {
         throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
@@ -121,7 +107,20 @@ inline void _initialize_interpreter(const PyConfig &config, bool add_program_dir
                            "if sys.argv and os.path.exists(sys.argv[0]) else '')");
     }
 }
+#endif
 
+PYBIND11_NAMESPACE_END(detail)
+
+#if PY_VERSION_HEX >= PYCONFIG_SUPPORT_PY_VERSION
+struct scoped_config {
+    scoped_config() = default;
+    ~scoped_config() { PyConfig_Clear(&config); };
+
+    scoped_config(const scoped_config &) = delete;
+    scoped_config &operator=(const scoped_config &) = delete;
+
+    PyConfig config;
+};
 #endif
 
 /** \rst
@@ -147,9 +146,9 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    precheck_interpreter();
+    detail::precheck_interpreter();
 
-#if PY_VERSION_HEX < 0x030B0000
+#if PY_VERSION_HEX < PYCONFIG_SUPPORT_PY_VERSION
 
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 #    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
@@ -185,21 +184,21 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
 #else
-    PyConfig config;
-    config_guard{config};
-    PyConfig_InitIsolatedConfig(&config);
-    config.isolated = 0;
-    config.use_environment = 1;
-    config.install_signal_handlers = init_signal_handlers ? 1 : 0;
+    scoped_config scoped_cfg;
+    PyConfig_InitIsolatedConfig(&scoped_cfg.config);
+    scoped_cfg.config.isolated = 0;
+    scoped_cfg.config.use_environment = 1;
+    scoped_cfg.config.install_signal_handlers = init_signal_handlers ? 1 : 0;
 
-    PyStatus status = PyConfig_SetBytesArgv(&config, argc, const_cast<char *const *>(argv));
+    PyStatus status
+        = PyConfig_SetBytesArgv(&scoped_cfg.config, argc, const_cast<char *const *>(argv));
     if (PyStatus_Exception(status)) {
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
         throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
                                                           : "Failed to prepare CPython");
     }
-    _initialize_interpreter(config, add_program_dir_to_path);
+    detail::initialize_interpreter(scoped_cfg.config, add_program_dir_to_path);
 #endif
 }
 
@@ -287,10 +286,10 @@ public:
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 
-#if PY_VERSION_HEX >= 0x030B0000
+#if PY_VERSION_HEX >= PYCONFIG_SUPPORT_PY_VERSION
     explicit scoped_interpreter(const PyConfig &config, bool add_program_dir_to_path = true) {
-        precheck_interpreter();
-        _initialize_interpreter(config, add_program_dir_to_path);
+        detail::precheck_interpreter();
+        detail::initialize_interpreter(config, add_program_dir_to_path);
     }
 #endif
 
