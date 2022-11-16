@@ -25,7 +25,19 @@ public:
                                    std::type_index(typeid(Type)),
                                    std::numeric_limits<Underlying>::is_integer
                                        && !std::is_same<Underlying, bool>::value
-                                       && !detail::is_std_char_type<Underlying>::value) {}
+                                       && !detail::is_std_char_type<Underlying>::value) {
+        if (detail::get_local_type_info(typeid(Type))
+            || detail::get_global_type_info(typeid(Type))) {
+            pybind11_fail(
+                "pybind11::native_enum<...>(\"" + enum_name_encoded
+                + "\") is already registered as a `pybind11::enum_` or `pybind11::class_`!");
+        }
+        if (detail::get_internals().native_enum_types.count(enum_type_index)) {
+            pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
+                          + "\") is already registered!");
+        }
+        arm_correct_use_check();
+    }
 
     /// Export enumeration entries into the parent scope
     native_enum &export_values() {
@@ -35,10 +47,12 @@ public:
 
     /// Add an enumeration entry
     native_enum &value(char const *name, Type value, const char *doc = nullptr) {
+        disarm_correct_use_check();
         members.append(make_tuple(name, static_cast<Underlying>(value)));
         if (doc) {
             docs.append(make_tuple(name, doc));
         }
+        arm_correct_use_check();
         return *this;
     }
 

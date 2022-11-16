@@ -1271,16 +1271,24 @@ public:
     }
 
     module_ &operator+=(const detail::native_enum_data &data) {
-        data.set_was_added_to_module();
+        data.disarm_correct_use_check();
+        if (hasattr(*this, data.enum_name)) {
+            pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+                          + "\"): an object with that name is already defined");
+        }
         auto enum_module = import("enum");
         auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
-        pybind11::str py_enum_name(data.enum_name);
-        auto py_enum = py_enum_type(py_enum_name, data.members);
+        auto py_enum = py_enum_type(data.enum_name, data.members);
         py_enum.attr("__module__") = *this;
-        this->attr(py_enum_name) = py_enum;
+        this->attr(data.enum_name) = py_enum;
         if (data.export_values_flag) {
             for (auto member : data.members) {
                 auto member_name = member[int_(0)];
+                if (hasattr(*this, member_name)) {
+                    pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+                                  + "\").value(\"" + member_name.cast<std::string>()
+                                  + "\"): an object with that name is already defined");
+                }
                 this->attr(member_name) = py_enum[member_name];
             }
         }
@@ -2195,6 +2203,15 @@ public:
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+        {
+            auto const &natives = detail::get_internals().native_enum_types;
+            auto found = natives.find(std::type_index(typeid(Type)));
+            if (found != natives.end()) {
+                pybind11_fail("pybind11::enum_ \"" + std::string(name)
+                              + "\" is already registered as a pybind11::native_enum!");
+            }
+        }
+
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);

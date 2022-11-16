@@ -111,7 +111,56 @@ TEST_SUBMODULE(native_enum, m) {
 
     m.def("native_enum_data_was_not_added_error_message", [](const char *enum_name) {
         py::detail::native_enum_data data(enum_name, std::type_index(typeid(void)), false);
-        data.set_was_added_to_module();
+        data.disarm_correct_use_check();
         return data.was_not_added_error_message();
     });
+
+    m.def("native_enum_ctor_malformed_utf8", [](const char *malformed_utf8) {
+        enum fake { x };
+        py::native_enum<fake>{malformed_utf8};
+    });
+
+    m.def("native_enum_value_malformed_utf8", [](const char *malformed_utf8) {
+        enum fake { x };
+        py::native_enum<fake>("fake").value(malformed_utf8, fake::x);
+    });
+
+    m.def("double_registration_native_enum", [](py::module_ m) {
+        enum fake { x };
+        m += py::native_enum<fake>("fake_double_registration_native_enum").value("x", fake::x);
+        py::native_enum<fake>("fake_double_registration_native_enum");
+    });
+
+    m.def("native_enum_name_clash", [](py::module_ m) {
+        enum fake { x };
+        m += py::native_enum<fake>("fake_native_enum_name_clash").value("x", fake::x);
+    });
+
+    m.def("native_enum_value_name_clash", [](py::module_ m) {
+        enum fake { x };
+        m += py::native_enum<fake>("fake_native_enum_value_name_clash")
+                 .value("fake_native_enum_value_name_clash_x", fake::x)
+                 .export_values();
+    });
+
+    m.def("double_registration_enum_before_native_enum", [](const py::module_ &m) {
+        enum fake { x };
+        py::enum_<fake>(m, "fake_enum_first").value("x", fake::x);
+        py::native_enum<fake>("fake_enum_first").value("x", fake::x);
+    });
+
+    m.def("double_registration_native_enum_before_enum", [](py::module_ m) {
+        enum fake { x };
+        m += py::native_enum<fake>("fake_native_enum_first").value("x", fake::x);
+        py::enum_<fake>(m, "name_must_be_different_to_reach_desired_code_path");
+    });
+
+#if defined(PYBIND11_NEGATE_THIS_CONDITION_FOR_LOCAL_TESTING) && !defined(NDEBUG)
+    m.def("native_enum_correct_use_failure", []() {
+        enum fake { x };
+        py::native_enum<fake>("fake_native_enum_correct_use_failure").value("x", fake::x);
+    });
+#else
+    m.attr("native_enum_correct_use_failure") = "For local testing only: terminates process";
+#endif
 }

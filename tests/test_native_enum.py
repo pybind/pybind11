@@ -121,3 +121,70 @@ def test_native_enum_data_was_not_added_error_message():
         "`native_enum` was not added to any module."
         ' Use e.g. `m += native_enum<...>("Fake")` to fix.'
     )
+
+
+@pytest.mark.parametrize(
+    "func", (m.native_enum_ctor_malformed_utf8, m.native_enum_value_malformed_utf8)
+)
+def test_native_enum_malformed_utf8(func):
+    malformed_utf8 = b"\x80"
+    with pytest.raises(UnicodeDecodeError):
+        func(malformed_utf8)
+
+
+def test_double_registration_native_enum():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.double_registration_native_enum(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_double_registration_native_enum") is already registered!'
+    )
+
+
+def test_native_enum_name_clash():
+    m.fake_native_enum_name_clash = None
+    with pytest.raises(RuntimeError) as excinfo:
+        m.native_enum_name_clash(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_native_enum_name_clash"):'
+        " an object with that name is already defined"
+    )
+
+
+def test_native_enum_value_name_clash():
+    m.fake_native_enum_value_name_clash_x = None
+    with pytest.raises(RuntimeError) as excinfo:
+        m.native_enum_value_name_clash(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_native_enum_value_name_clash")'
+        '.value("fake_native_enum_value_name_clash_x"):'
+        " an object with that name is already defined"
+    )
+
+
+def test_double_registration_enum_before_native_enum():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.double_registration_enum_before_native_enum(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_enum_first") is already registered'
+        " as a `pybind11::enum_` or `pybind11::class_`!"
+    )
+
+
+def test_double_registration_native_enum_before_enum():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.double_registration_native_enum_before_enum(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::enum_ "name_must_be_different_to_reach_desired_code_path"'
+        " is already registered as a pybind11::native_enum!"
+    )
+
+
+def test_native_enum_correct_use_failure():
+    if not isinstance(m.native_enum_correct_use_failure, str):
+        m.native_enum_correct_use_failure()
+        pytest.fail("Process termination expected.")

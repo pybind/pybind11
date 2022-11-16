@@ -17,41 +17,42 @@ public:
     native_enum_data(const char *enum_name,
                      const std::type_index &enum_type_index,
                      bool use_int_enum)
-        : enum_name{enum_name}, enum_type_index{enum_type_index}, use_int_enum{use_int_enum} {}
-
-    std::string enum_name;
-    std::type_index enum_type_index;
-    bool use_int_enum;
-    bool export_values_flag = false;
-    list members;
-    list docs;
+        : correct_use_check{false}, enum_name_encoded{enum_name}, enum_type_index{enum_type_index},
+          use_int_enum{use_int_enum}, export_values_flag{false}, enum_name{enum_name} {}
 
     native_enum_data(const native_enum_data &) = delete;
     native_enum_data &operator=(const native_enum_data &) = delete;
+
+    void disarm_correct_use_check() const { correct_use_check = false; }
+    void arm_correct_use_check() const { correct_use_check = true; }
 
     // This is a separate public function only to enable easy unit testing.
     std::string was_not_added_error_message() const {
         return "`native_enum` was not added to any module."
                " Use e.g. `m += native_enum<...>(\""
-               + enum_name + "\")` to fix.";
+               + enum_name_encoded + "\")` to fix.";
     }
 
-#if defined(NDEBUG)
-    void set_was_added_to_module() const {};
-#else
-    void set_was_added_to_module() const { was_added_to_module = true; }
-
-private:
-    mutable bool was_added_to_module = false;
-
-public:
+#if !defined(NDEBUG)
     // This dtor cannot easily be unit tested because it terminates the process.
     ~native_enum_data() {
-        if (!was_added_to_module) {
+        if (correct_use_check) {
             pybind11_fail(was_not_added_error_message());
         }
     }
 #endif
+
+private:
+    mutable bool correct_use_check;
+
+public:
+    std::string enum_name_encoded;
+    std::type_index enum_type_index;
+    bool use_int_enum;
+    bool export_values_flag;
+    str enum_name;
+    list members;
+    list docs;
 };
 
 PYBIND11_NAMESPACE_END(detail)
