@@ -55,7 +55,7 @@
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(pybind11_init_impl_, name));                     \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
                                                & variable) // NOLINT(bugprone-macro-parentheses)
-#define PYCONFIG_SUPPORT_PY_VERSION (0x030B0000)
+#define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION (0x030B0000)
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -93,7 +93,7 @@ inline void precheck_interpreter() {
     }
 }
 
-#if PY_VERSION_HEX >= PYCONFIG_SUPPORT_PY_VERSION
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION
 inline void initialize_interpreter(const PyConfig &config, bool add_program_dir_to_path) {
     PyStatus status = Py_InitializeFromConfig(&config);
     if (PyStatus_Exception(status)) {
@@ -111,7 +111,7 @@ inline void initialize_interpreter(const PyConfig &config, bool add_program_dir_
 
 PYBIND11_NAMESPACE_END(detail)
 
-#if PY_VERSION_HEX >= PYCONFIG_SUPPORT_PY_VERSION
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION
 struct scoped_config {
     scoped_config() = default;
     ~scoped_config() { PyConfig_Clear(&config); };
@@ -148,7 +148,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    bool add_program_dir_to_path = true) {
     detail::precheck_interpreter();
 
-#if PY_VERSION_HEX < PYCONFIG_SUPPORT_PY_VERSION
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION
 
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 #    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
@@ -286,7 +286,7 @@ public:
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 
-#if PY_VERSION_HEX >= PYCONFIG_SUPPORT_PY_VERSION
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION
     explicit scoped_interpreter(const PyConfig &config, bool add_program_dir_to_path = true) {
         detail::precheck_interpreter();
         detail::initialize_interpreter(config, add_program_dir_to_path);
@@ -307,5 +307,7 @@ public:
 private:
     bool is_valid = true;
 };
+
+#undef PYBIND11_PYCONFIG_SUPPORT_PY_VERSION
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
