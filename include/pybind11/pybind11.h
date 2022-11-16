@@ -1273,9 +1273,9 @@ public:
     module_ &operator+=(const detail::native_enum_data &data) {
         auto enum_module = import("enum");
         auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
-        auto py_enum = py_enum_type(data.name, data.members);
+        auto py_enum = py_enum_type(data.enum_name, data.members);
         py_enum.attr("__module__") = *this;
-        this->attr(data.name) = py_enum;
+        this->attr(data.enum_name) = py_enum;
         if (data.export_values_flag) {
             for (auto member : data.members) {
                 auto member_name = member[int_(0)];

@@ -13,10 +13,12 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 struct native_enum_data {
-    native_enum_data(const char *name, const std::type_index &enum_type_index, bool use_int_enum)
-        : name{name}, enum_type_index{enum_type_index}, use_int_enum{use_int_enum} {}
+    native_enum_data(const char *enum_name,
+                     const std::type_index &enum_type_index,
+                     bool use_int_enum)
+        : enum_name{enum_name}, enum_type_index{enum_type_index}, use_int_enum{use_int_enum} {}
 
-    str name;
+    str enum_name;
     std::type_index enum_type_index;
     bool use_int_enum;
     bool export_values_flag = false;
