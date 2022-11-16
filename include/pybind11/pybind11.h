@@ -12,6 +12,7 @@
 
 #include "detail/class.h"
 #include "detail/init.h"
+#include "detail/native_enum_data.h"
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
@@ -1267,6 +1268,26 @@ public:
         //       returned from PyInit_...
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
+    }
+
+    module_ &operator+=(const detail::native_enum_data &data) {
+        auto enum_module = import("enum");
+        auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
+        auto py_enum = py_enum_type(data.name, data.members);
+        py_enum.attr("__module__") = *this;
+        this->attr(data.name) = py_enum;
+        if (data.export_values_flag) {
+            for (auto member : data.members) {
+                auto member_name = member[int_(0)];
+                this->attr(member_name) = py_enum[member_name];
+            }
+        }
+        for (auto doc : data.docs) {
+            py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
+        }
+        // Intentionally leak Python reference.
+        detail::get_internals().native_enum_types[data.enum_type_index] = py_enum.release().ptr();
+        return *this;
     }
 };
 

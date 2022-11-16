@@ -65,30 +65,30 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 TEST_SUBMODULE(native_enum, m) {
     using namespace test_native_enum;
 
-    py::native_enum<smallenum>(m, "smallenum")
-        .value("a", smallenum::a)
-        .value("b", smallenum::b)
-        .value("c", smallenum::c);
+    m += py::native_enum<smallenum>("smallenum")
+             .value("a", smallenum::a)
+             .value("b", smallenum::b)
+             .value("c", smallenum::c);
 
-    py::native_enum<color>(m, "color")
-        .value("red", color::red)
-        .value("yellow", color::yellow)
-        .value("green", color::green)
-        .value("blue", color::blue);
+    m += py::native_enum<color>("color")
+             .value("red", color::red)
+             .value("yellow", color::yellow)
+             .value("green", color::green)
+             .value("blue", color::blue);
 
-    py::native_enum<altitude>(m, "altitude")
-        .value("high", altitude::high)
-        .value("low", altitude::low);
+    m += py::native_enum<altitude>("altitude")
+             .value("high", altitude::high)
+             .value("low", altitude::low);
 
-    py::native_enum<export_values>(m, "export_values")
-        .value("exv0", export_values::exv0)
-        .value("exv1", export_values::exv1)
-        .export_values();
+    m += py::native_enum<export_values>("export_values")
+             .value("exv0", export_values::exv0)
+             .value("exv1", export_values::exv1)
+             .export_values();
 
-    py::native_enum<member_doc>(m, "member_doc")
-        .value("mem0", member_doc::mem0, "docA")
-        .value("mem1", member_doc::mem1)
-        .value("mem2", member_doc::mem2, "docC");
+    m += py::native_enum<member_doc>("member_doc")
+             .value("mem0", member_doc::mem0, "docA")
+             .value("mem1", member_doc::mem1)
+             .value("mem2", member_doc::mem2, "docC");
 
     m.def("isinstance_color", [](const py::object &obj) { return py::isinstance<color>(obj); });
 
