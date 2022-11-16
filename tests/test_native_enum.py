@@ -113,3 +113,11 @@ def test_obj_cast_color_ptr():
     with pytest.raises(RuntimeError) as excinfo:
         m.obj_cast_color_ptr(m.color.red)
     assert str(excinfo.value) == "Unable to cast native enum type to reference"
+
+
+def test_native_enum_data_was_not_added_error_message():
+    msg = m.native_enum_data_was_not_added_error_message("Fake")
+    assert msg == (
+        "`native_enum` was not added to any module."
+        ' Use e.g. `m += native_enum<...>("Fake")` to fix.'
+    )

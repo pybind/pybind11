@@ -2,6 +2,8 @@
 
 #include "pybind11_tests.h"
 
+#include <typeindex>
+
 namespace test_native_enum {
 
 // https://en.cppreference.com/w/cpp/language/enum
@@ -106,4 +108,10 @@ TEST_SUBMODULE(native_enum, m) {
 #else
     m.def("obj_cast_color_ptr", [](const py::object &obj) { obj.cast<color *>(); });
 #endif
+
+    m.def("native_enum_data_was_not_added_error_message", [](const char *enum_name) {
+        py::detail::native_enum_data data(enum_name, std::type_index(typeid(void)), false);
+        data.set_was_added_to_module();
+        return data.was_not_added_error_message();
+    });
 }

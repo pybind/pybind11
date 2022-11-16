@@ -1271,11 +1271,13 @@ public:
     }
 
     module_ &operator+=(const detail::native_enum_data &data) {
+        data.set_was_added_to_module();
         auto enum_module = import("enum");
         auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
-        auto py_enum = py_enum_type(data.enum_name, data.members);
+        pybind11::str py_enum_name(data.enum_name);
+        auto py_enum = py_enum_type(py_enum_name, data.members);
         py_enum.attr("__module__") = *this;
-        this->attr(data.enum_name) = py_enum;
+        this->attr(py_enum_name) = py_enum;
         if (data.export_values_flag) {
             for (auto member : data.members) {
                 auto member_name = member[int_(0)];
