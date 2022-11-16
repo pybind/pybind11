@@ -133,7 +133,7 @@ if(DEFINED ${_Python}_INCLUDE_DIRS)
   # This needs to be a target to be included after the local pybind11
   # directory, just in case there there is an installed pybind11 sitting
   # next to Python's includes. It also ensures Python is a SYSTEM library.
-  if (NOT TARGET pybind11::python_headers)
+  if(NOT TARGET pybind11::python_headers)
     add_library(pybind11::python_headers INTERFACE IMPORTED)
   endif()
   set_property(
