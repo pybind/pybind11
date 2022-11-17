@@ -26,8 +26,8 @@ public:
                                    std::numeric_limits<Underlying>::is_integer
                                        && !std::is_same<Underlying, bool>::value
                                        && !detail::is_std_char_type<Underlying>::value) {
-        if (detail::get_local_type_info(typeid(Type))
-            || detail::get_global_type_info(typeid(Type))) {
+        if (detail::get_local_type_info(typeid(Type)) != nullptr
+            || detail::get_global_type_info(typeid(Type)) != nullptr) {
             pybind11_fail(
                 "pybind11::native_enum<...>(\"" + enum_name_encoded
                 + "\") is already registered as a `pybind11::enum_` or `pybind11::class_`!");
