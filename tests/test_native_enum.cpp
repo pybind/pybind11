@@ -67,6 +67,8 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 TEST_SUBMODULE(native_enum, m) {
     using namespace test_native_enum;
 
+    m.attr("PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID") = PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID;
+
     m += py::native_enum<smallenum>("smallenum")
              .value("a", smallenum::a)
              .value("b", smallenum::b)

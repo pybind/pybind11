@@ -1,8 +1,17 @@
 import enum
+import re
 
 import pytest
 
 from pybind11_tests import native_enum as m
+
+
+def test_abi_id():
+    assert re.match(
+        "__pybind11_native_enum_type_map_v1_.*__$",
+        m.PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID,
+    )
+
 
 SMALLENUM_MEMBERS = (
     ("a", 0),

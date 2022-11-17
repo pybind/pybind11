@@ -34,7 +34,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 5
+#    define PYBIND11_INTERNALS_VERSION 4
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -209,9 +209,6 @@ struct internals {
         PYBIND11_TLS_FREE(tstate);
     }
 #endif
-#if PYBIND11_INTERNALS_VERSION > 4
-    type_map<PyObject *> native_enum_types;
-#endif
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
@@ -300,15 +297,16 @@ struct type_info {
 #    endif
 #endif
 
+#define PYBIND11_ABI_ID                                                                           \
+    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
+        PYBIND11_BUILD_TYPE
+
 #define PYBIND11_INTERNALS_ID                                                                     \
-    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE "__"
+    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_ABI_ID "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
-    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE "__"
+    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_ABI_ID "_" \
+                                                                                              "_"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -445,6 +443,21 @@ inline object get_python_state_dict() {
     return state_dict;
 }
 
+#if defined(WITH_THREAD)
+#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+using gil_scoped_acquire_simple = gil_scoped_acquire;
+#    else
+// Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
+struct gil_scoped_acquire_simple {
+    gil_scoped_acquire_simple() : state(PyGILState_Ensure()) {}
+    gil_scoped_acquire_simple(const gil_scoped_acquire_simple &) = delete;
+    gil_scoped_acquire_simple &operator=(const gil_scoped_acquire_simple &) = delete;
+    ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
+    const PyGILState_STATE state;
+};
+#    endif
+#endif
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     internals **&internals_pp = get_internals_pp();
@@ -452,21 +465,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
-#if defined(WITH_THREAD)
-#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-    gil_scoped_acquire gil;
-#    else
-    // Ensure that the GIL is held since we will need to make Python calls.
-    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-    struct gil_scoped_acquire_local {
-        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
-        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
-        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
-        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
-        const PyGILState_STATE state;
-    } gil;
-#    endif
-#endif
+    gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
     constexpr const char *id_cstr = PYBIND11_INTERNALS_ID;
@@ -645,5 +644,56 @@ T &get_or_create_shared_data(const std::string &name) {
     }
     return *ptr;
 }
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+#define PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID                                                      \
+    "__pybind11_native_enum_type_map_v1" PYBIND11_ABI_ID "__"
+
+using native_enum_type_map = type_map<PyObject *>;
+
+inline native_enum_type_map **&get_native_enum_types_pp() {
+    static native_enum_type_map **native_enum_types_pp = nullptr;
+    return native_enum_types_pp;
+}
+
+PYBIND11_NOINLINE native_enum_type_map &get_native_enum_type_map() {
+    native_enum_type_map **&native_enum_type_map_pp = get_native_enum_types_pp();
+    if (native_enum_type_map_pp && *native_enum_type_map_pp) {
+        return **native_enum_type_map_pp;
+    }
+
+    gil_scoped_acquire_simple gil;
+    error_scope err_scope;
+
+    constexpr const char *id_cstr = PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID;
+    str id(id_cstr);
+
+    dict state_dict = get_python_state_dict();
+
+    if (state_dict.contains(id_cstr)) {
+        void *raw_ptr = PyCapsule_GetPointer(state_dict[id].ptr(), id_cstr);
+        if (raw_ptr == nullptr) {
+            raise_from(PyExc_SystemError,
+                       "pybind11::detail::get_native_enum_type_map(): Retrieve "
+                       "native_enum_type_map** from capsule FAILED");
+        }
+        native_enum_type_map_pp = static_cast<native_enum_type_map **>(raw_ptr);
+    }
+
+    if (native_enum_type_map_pp && *native_enum_type_map_pp) {
+        return **native_enum_type_map_pp;
+    }
+
+    if (!native_enum_type_map_pp) {
+        native_enum_type_map_pp = new native_enum_type_map *();
+    }
+    auto *&native_enum_type_map_ptr = *native_enum_type_map_pp;
+    native_enum_type_map_ptr = new native_enum_type_map();
+    state_dict[id] = capsule(native_enum_type_map_pp, id_cstr);
+    return **native_enum_type_map_pp;
+}
+
+PYBIND11_NAMESPACE_END(detail)
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

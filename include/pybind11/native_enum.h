@@ -32,7 +32,7 @@ public:
                 "pybind11::native_enum<...>(\"" + enum_name_encoded
                 + "\") is already registered as a `pybind11::enum_` or `pybind11::class_`!");
         }
-        if (detail::get_internals().native_enum_types.count(enum_type_index)) {
+        if (detail::get_native_enum_type_map().count(enum_type_index)) {
             pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                           + "\") is already registered!");
         }
