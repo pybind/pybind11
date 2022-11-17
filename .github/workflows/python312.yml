@@ -39,7 +39,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install --prefer-binary -r tests/requirements.txt
         python -m pip install --prefer-binary numpy
-        python -m pip install --prefer-binary scipy
+    #   python -m pip install --prefer-binary scipy
 
     - name: Show platform info
       run: python -m platform
@@ -120,7 +120,7 @@ jobs:
     - name: C++ tests C++17 max DPYBIND11_INTERNALS_VERSION
       run: cmake --build build17max --target cpptest
 
-    - name: Interface test
+    - name: Interface test C++17 max DPYBIND11_INTERNALS_VERSION
       run: cmake --build build17max --target test_cmake_build
 
     # Ensure the setup_helpers module can build packages using setuptools
