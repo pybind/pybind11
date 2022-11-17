@@ -55,7 +55,7 @@
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(pybind11_init_impl_, name));                     \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
                                                & variable) // NOLINT(bugprone-macro-parentheses)
-#define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION (0x030B0000)
+#define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION (0x03080000)
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
