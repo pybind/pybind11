@@ -424,9 +424,30 @@ inline void translate_local_exception(std::exception_ptr p) {
 }
 #endif
 
+inline object get_python_state_dict() {
+    object state_dict;
+#if (PYBIND11_INTERNALS_VERSION <= 4 && PY_VERSION_HEX < 0x030C0000)                              \
+    || PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
+#else
+#    if PY_VERSION_HEX < 0x03090000
+    PyInterpreterState *istate = _PyInterpreterState_Get();
+#    else
+    PyInterpreterState *istate = PyInterpreterState_Get();
+#    endif
+    if (istate) {
+        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+    }
+#endif
+    if (!state_dict) {
+        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
+    }
+    return state_dict;
+}
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto **&internals_pp = get_internals_pp();
+    internals **&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp) {
         return **internals_pp;
     }
@@ -448,11 +469,22 @@ PYBIND11_NOINLINE internals &get_internals() {
 #endif
     error_scope err_scope;
 
-    PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
-    auto builtins = handle(PyEval_GetBuiltins());
-    if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_pp = static_cast<internals **>(capsule(builtins[id]));
+    constexpr const char *id_cstr = PYBIND11_INTERNALS_ID;
+    str id(id_cstr);
 
+    dict state_dict = get_python_state_dict();
+
+    if (state_dict.contains(id_cstr)) {
+        void *raw_ptr = PyCapsule_GetPointer(state_dict[id].ptr(), id_cstr);
+        if (raw_ptr == nullptr) {
+            raise_from(
+                PyExc_SystemError,
+                "pybind11::detail::get_internals(): Retrieve internals** from capsule FAILED");
+        }
+        internals_pp = static_cast<internals **>(raw_ptr);
+    }
+
+    if (internals_pp && *internals_pp) {
         // We loaded builtins through python's builtins, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
         // initial exception translator, below, so add another for our local exception classes.
@@ -488,7 +520,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 #    endif
         internals_ptr->istate = tstate->interp;
 #endif
-        builtins[id] = capsule(internals_pp);
+        state_dict[id] = capsule(internals_pp, id_cstr);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
