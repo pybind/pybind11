@@ -168,6 +168,18 @@ TEST_CASE("There can be only one interpreter") {
     py::initialize_interpreter();
 }
 
+TEST_CASE("Custom PyConfig") {
+    py::finalize_interpreter();
+    pybind11::scoped_config conf{};
+    PyConfig_InitPythonConfig(&conf.config);
+    REQUIRE_NOTHROW(py::scoped_interpreter{conf.config});
+    {
+        py::scoped_interpreter p{conf.config};
+        REQUIRE(py::module_::import("widget_module").attr("add")(1, 41).cast<int>() == 42);
+    }
+    py::initialize_interpreter();
+}
+
 bool has_pybind11_internals_builtin() {
     auto builtins = py::handle(PyEval_GetBuiltins());
     return builtins.contains(PYBIND11_INTERNALS_ID);
