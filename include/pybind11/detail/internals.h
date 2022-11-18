@@ -18,6 +18,7 @@
 #include "../pytypes.h"
 
 #include <exception>
+#include <string>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
@@ -311,8 +312,6 @@ struct type_info {
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
 inline internals **&get_internals_pp() {
-    // The reason for the double-indirection is documented here:
-    // https://github.com/pybind/pybind11/pull/1092
     static internals **internals_pp = nullptr;
     return internals_pp;
 }
@@ -649,61 +648,63 @@ T &get_or_create_shared_data(const std::string &name) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-struct native_enum_type_map_v1 {
-    static constexpr const char *abi_id_c_str
-        = "__pybind11_native_enum_type_map_v1" PYBIND11_ABI_ID "__";
+template <typename AdapterType>
+struct cross_extension_shared_state {
+    static constexpr const char *abi_id() { return AdapterType::abi_id(); }
 
-    using native_enum_type_map = type_map<PyObject *>;
+    using payload_type = typename AdapterType::payload_type;
 
-    static native_enum_type_map **&native_enum_type_map_pp() {
-        static native_enum_type_map **pp;
+    static payload_type **&payload_pp() {
+        // The reason for the double-indirection is documented here:
+        // https://github.com/pybind/pybind11/pull/1092
+        static payload_type **pp;
         return pp;
     }
 
-    static native_enum_type_map *get_existing() {
-        if (native_enum_type_map_pp() && *native_enum_type_map_pp()) {
-            return *native_enum_type_map_pp();
+    static payload_type *get_existing() {
+        if (payload_pp() && *payload_pp()) {
+            return *payload_pp();
         }
 
         gil_scoped_acquire_simple gil;
         error_scope err_scope;
 
-        str abi_id_str(abi_id_c_str);
+        str abi_id_str(AdapterType::abi_id());
         dict state_dict = get_python_state_dict();
         if (!state_dict.contains(abi_id_str)) {
             return nullptr;
         }
 
-        void *raw_ptr = PyCapsule_GetPointer(state_dict[abi_id_str].ptr(), abi_id_c_str);
+        void *raw_ptr = PyCapsule_GetPointer(state_dict[abi_id_str].ptr(), AdapterType::abi_id());
         if (raw_ptr == nullptr) {
             raise_from(PyExc_SystemError,
-                       "pybind11::detail::native_enum_type_map::get_existing():"
-                       " Retrieve native_enum_type_map** from capsule FAILED");
+                       ("pybind11::detail::cross_extension_shared_state::get_existing():"
+                        " Retrieve payload_type** from capsule FAILED for ABI ID \""
+                        + std::string(AdapterType::abi_id()) + "\"")
+                           .c_str());
         }
-        native_enum_type_map_pp() = static_cast<native_enum_type_map **>(raw_ptr);
-        return *native_enum_type_map_pp();
+        payload_pp() = static_cast<payload_type **>(raw_ptr);
+        return *payload_pp();
     }
 
-    static native_enum_type_map &get() {
+    static payload_type &get() {
         if (get_existing() != nullptr) {
-            return **native_enum_type_map_pp();
+            return **payload_pp();
         }
-        if (native_enum_type_map_pp() == nullptr) {
-            native_enum_type_map_pp() = new native_enum_type_map *();
+        if (payload_pp() == nullptr) {
+            payload_pp() = new payload_type *();
         }
-        *native_enum_type_map_pp() = new native_enum_type_map();
-        get_python_state_dict()[abi_id_c_str] = capsule(native_enum_type_map_pp(), abi_id_c_str);
-        return **native_enum_type_map_pp();
+        *payload_pp() = new payload_type();
+        get_python_state_dict()[AdapterType::abi_id()]
+            = capsule(payload_pp(), AdapterType::abi_id());
+        return **payload_pp();
     }
 
     struct scoped_clear {
         // To be called BEFORE Py_Finalize().
         scoped_clear() {
             if (get_existing() != nullptr) {
-                for (auto it : **native_enum_type_map_pp()) {
-                    Py_DECREF(it.second);
-                }
-                (*native_enum_type_map_pp())->clear();
+                AdapterType::payload_clear(**payload_pp());
                 arm_dtor = true;
             }
         }
@@ -711,8 +712,8 @@ struct native_enum_type_map_v1 {
         // To be called AFTER Py_Finalize().
         ~scoped_clear() {
             if (arm_dtor) {
-                delete *native_enum_type_map_pp();
-                *native_enum_type_map_pp() = nullptr;
+                delete *payload_pp();
+                *payload_pp() = nullptr;
             }
         }
 
@@ -723,6 +724,22 @@ struct native_enum_type_map_v1 {
     };
 };
 
+struct native_enum_type_map_v1_adapter {
+    static constexpr const char *abi_id() {
+        return "__pybind11_native_enum_type_map_v1" PYBIND11_ABI_ID "__";
+    }
+
+    using payload_type = type_map<PyObject *>;
+
+    static void payload_clear(payload_type &payload) {
+        for (auto it : payload) {
+            Py_DECREF(it.second);
+        }
+        payload.clear();
+    }
+};
+
+using native_enum_type_map_v1 = cross_extension_shared_state<native_enum_type_map_v1_adapter>;
 using native_enum_type_map = native_enum_type_map_v1;
 
 PYBIND11_NAMESPACE_END(detail)
