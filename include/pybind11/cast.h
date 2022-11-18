@@ -58,7 +58,7 @@ public:
 
     template <typename SrcType>
     static handle cast(SrcType &&src, return_value_policy, handle parent) {
-        auto const &natives = get_native_enum_type_map();
+        auto const &natives = native_enum_type_map::get();
         auto found = natives.find(std::type_index(typeid(EnumType)));
         if (found != natives.end()) {
             return handle(found->second)(static_cast<Underlying>(src)).release();
@@ -71,7 +71,7 @@ public:
     }
 
     bool load(handle src, bool convert) {
-        auto const &natives = get_native_enum_type_map();
+        auto const &natives = native_enum_type_map::get();
         auto found = natives.find(std::type_index(typeid(EnumType)));
         if (found != natives.end()) {
             if (!isinstance(src, found->second)) {
@@ -125,7 +125,7 @@ class type_caster<EnumType,
 
 template <typename T, detail::enable_if_t<std::is_enum<T>::value, int> = 0>
 bool isinstance_native_enum_impl(handle obj, const std::type_info &tp) {
-    auto const &natives = get_native_enum_type_map();
+    auto const &natives = native_enum_type_map::get();
     auto found = natives.find(tp);
     if (found == natives.end()) {
         return false;
@@ -1138,7 +1138,7 @@ T cast(const handle &handle) {
                   "Unable to cast type to reference: value is local to type caster");
 #ifndef NDEBUG
     if (is_enum_cast) {
-        auto const &natives = get_native_enum_type_map();
+        auto const &natives = native_enum_type_map::get();
         auto found = natives.find(std::type_index(typeid(intrinsic_t<T>)));
         if (found != natives.end()) {
             pybind11_fail("Unable to cast native enum type to reference");

@@ -9,11 +9,17 @@ import difflib
 import gc
 import re
 import textwrap
+import traceback
 
 import pytest
 
 # Early diagnostic for failed imports
-import pybind11_tests
+try:
+    import pybind11_tests
+except Exception:
+    # pytest does not show the traceback without this.
+    traceback.print_exc()
+    raise
 
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")

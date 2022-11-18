@@ -8,8 +8,7 @@ from pybind11_tests import native_enum as m
 
 def test_abi_id():
     assert re.match(
-        "__pybind11_native_enum_type_map_v1_.*__$",
-        m.PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID,
+        "__pybind11_native_enum_type_map_v1_.*__$", m.native_enum_type_map_abi_id_c_str
     )
 
 

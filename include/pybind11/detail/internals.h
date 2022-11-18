@@ -311,6 +311,8 @@ struct type_info {
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
 inline internals **&get_internals_pp() {
+    // The reason for the double-indirection is documented here:
+    // https://github.com/pybind/pybind11/pull/1092
     static internals **internals_pp = nullptr;
     return internals_pp;
 }
@@ -647,52 +649,81 @@ T &get_or_create_shared_data(const std::string &name) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#define PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID                                                      \
-    "__pybind11_native_enum_type_map_v1" PYBIND11_ABI_ID "__"
+struct native_enum_type_map_v1 {
+    static constexpr const char *abi_id_c_str
+        = "__pybind11_native_enum_type_map_v1" PYBIND11_ABI_ID "__";
 
-using native_enum_type_map = type_map<PyObject *>;
+    using native_enum_type_map = type_map<PyObject *>;
 
-inline native_enum_type_map **&get_native_enum_types_pp() {
-    static native_enum_type_map **native_enum_types_pp = nullptr;
-    return native_enum_types_pp;
-}
-
-PYBIND11_NOINLINE native_enum_type_map &get_native_enum_type_map() {
-    native_enum_type_map **&native_enum_type_map_pp = get_native_enum_types_pp();
-    if (native_enum_type_map_pp && *native_enum_type_map_pp) {
-        return **native_enum_type_map_pp;
+    static native_enum_type_map **&native_enum_type_map_pp() {
+        static native_enum_type_map **pp;
+        return pp;
     }
 
-    gil_scoped_acquire_simple gil;
-    error_scope err_scope;
+    static native_enum_type_map *get_existing() {
+        if (native_enum_type_map_pp() && *native_enum_type_map_pp()) {
+            return *native_enum_type_map_pp();
+        }
 
-    constexpr const char *id_cstr = PYBIND11_NATIVE_ENUM_TYPE_MAP_ABI_ID;
-    str id(id_cstr);
+        gil_scoped_acquire_simple gil;
+        error_scope err_scope;
 
-    dict state_dict = get_python_state_dict();
+        str abi_id_str(abi_id_c_str);
+        dict state_dict = get_python_state_dict();
+        if (!state_dict.contains(abi_id_str)) {
+            return nullptr;
+        }
 
-    if (state_dict.contains(id_cstr)) {
-        void *raw_ptr = PyCapsule_GetPointer(state_dict[id].ptr(), id_cstr);
+        void *raw_ptr = PyCapsule_GetPointer(state_dict[abi_id_str].ptr(), abi_id_c_str);
         if (raw_ptr == nullptr) {
             raise_from(PyExc_SystemError,
-                       "pybind11::detail::get_native_enum_type_map(): Retrieve "
-                       "native_enum_type_map** from capsule FAILED");
+                       "pybind11::detail::native_enum_type_map::get_existing():"
+                       " Retrieve native_enum_type_map** from capsule FAILED");
         }
-        native_enum_type_map_pp = static_cast<native_enum_type_map **>(raw_ptr);
+        native_enum_type_map_pp() = static_cast<native_enum_type_map **>(raw_ptr);
+        return *native_enum_type_map_pp();
     }
 
-    if (native_enum_type_map_pp && *native_enum_type_map_pp) {
-        return **native_enum_type_map_pp;
+    static native_enum_type_map &get() {
+        if (get_existing() != nullptr) {
+            return **native_enum_type_map_pp();
+        }
+        if (native_enum_type_map_pp() == nullptr) {
+            native_enum_type_map_pp() = new native_enum_type_map *();
+        }
+        *native_enum_type_map_pp() = new native_enum_type_map();
+        get_python_state_dict()[abi_id_c_str] = capsule(native_enum_type_map_pp(), abi_id_c_str);
+        return **native_enum_type_map_pp();
     }
 
-    if (!native_enum_type_map_pp) {
-        native_enum_type_map_pp = new native_enum_type_map *();
-    }
-    auto *&native_enum_type_map_ptr = *native_enum_type_map_pp;
-    native_enum_type_map_ptr = new native_enum_type_map();
-    state_dict[id] = capsule(native_enum_type_map_pp, id_cstr);
-    return **native_enum_type_map_pp;
-}
+    struct scoped_clear {
+        // To be called BEFORE Py_Finalize().
+        scoped_clear() {
+            if (get_existing() != nullptr) {
+                for (auto it : **native_enum_type_map_pp()) {
+                    Py_DECREF(it.second);
+                }
+                (*native_enum_type_map_pp())->clear();
+                arm_dtor = true;
+            }
+        }
+
+        // To be called AFTER Py_Finalize().
+        ~scoped_clear() {
+            if (arm_dtor) {
+                delete *native_enum_type_map_pp();
+                *native_enum_type_map_pp() = nullptr;
+            }
+        }
+
+        scoped_clear(const scoped_clear &) = delete;
+        scoped_clear &operator=(const scoped_clear &) = delete;
+
+        bool arm_dtor = false;
+    };
+};
+
+using native_enum_type_map = native_enum_type_map_v1;
 
 PYBIND11_NAMESPACE_END(detail)
 

@@ -1295,8 +1295,7 @@ public:
         for (auto doc : data.docs) {
             py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
         }
-        // Intentionally leak Python reference.
-        detail::get_native_enum_type_map()[data.enum_type_index] = py_enum.release().ptr();
+        detail::native_enum_type_map::get()[data.enum_type_index] = py_enum.release().ptr();
         return *this;
     }
 };
@@ -2204,7 +2203,7 @@ public:
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         {
-            auto const &natives = detail::get_native_enum_type_map();
+            auto const &natives = detail::native_enum_type_map::get();
             auto found = natives.find(std::type_index(typeid(Type)));
             if (found != natives.end()) {
                 pybind11_fail("pybind11::enum_ \"" + std::string(name)
