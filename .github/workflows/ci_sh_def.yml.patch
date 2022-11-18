@@ -1,5 +1,5 @@
---- ci.yml	2022-10-30 13:26:32.377345870 -0700
-+++ ci_sh_def.yml	2022-10-30 13:32:48.125051576 -0700
+--- ci.yml	2022-11-18 08:56:49.472080960 -0800
++++ ci_sh_def.yml	2022-11-18 09:00:36.986976092 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -177,3 +177,19 @@
  
      - name: Build C++17
        run: cmake --build build3 -j 2
+@@ -1023,6 +1049,7 @@
+           -DDOWNLOAD_EIGEN=ON
+           -DCMAKE_CXX_COMPILER=clang++
+           -DCMAKE_CXX_STANDARD=17
++          -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+ 
+       - name: Build
+         run: cmake --build . -j 2
+@@ -1089,6 +1116,7 @@
+           -DDOWNLOAD_EIGEN=ON
+           -DCMAKE_CXX_COMPILER=clang++
+           -DCMAKE_CXX_STANDARD=17
++          -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+           -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+ 
+       - name: Build
