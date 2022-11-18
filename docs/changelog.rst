@@ -10,18 +10,17 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-
 IN DEVELOPMENT
 --------------
 
 Changes will be summarized here periodically.
 
-Version 2.10.1 (Oct 2?, 2022)
+Version 2.10.1 (Oct 31, 2022)
 -----------------------------
 
+This is the first version to fully support embedding the newly released Python 3.11.
 
 Changes:
-
 
 * Allow ``pybind11::capsule`` constructor to take null destructor pointers.
   `#4221 <https://github.com/pybind/pybind11/pull/4221>`_
@@ -30,7 +29,39 @@ Changes:
   (established behavior).
   `#4119 <https://github.com/pybind/pybind11/pull/4119>`_
 
+* A ``PYBIND11_SIMPLE_GIL_MANAGEMENT`` option was added (cmake, C++ define),
+  along with many additional tests in ``test_gil_scoped.py``. The option may be
+  useful to try when debugging GIL-related issues, to determine if the more
+  complex default implementation is or is not to blame. See #4216 for
+  background. WARNING: Please be careful to not create ODR violations when
+  using the option: everything that is linked together with mutual symbol
+  visibility needs to be rebuilt.
+  `#4216 <https://github.com/pybind/pybind11/pull/4216>`_
+
+* ``PYBIND11_EXPORT_EXCEPTION`` was made non-empty only under macOS. This makes
+  Linux builds safer, and enables the removal of warning suppression pragmas for
+  Windows.
+  `#4298 <https://github.com/pybind/pybind11/pull/4298>`_
+
 Bug fixes:
+
+* Fixed a bug where ``UnicodeDecodeError`` was not propagated from various
+  ``py::str`` ctors when decoding surrogate utf characters.
+  `#4294 <https://github.com/pybind/pybind11/pull/4294>`_
+
+* Revert perfect forwarding for ``make_iterator``. This broke at least one
+  valid use case. May revisit later.
+  `#4234 <https://github.com/pybind/pybind11/pull/4234>`_
+
+* Fix support for safe casts to ``void*`` (regression in 2.10.0).
+  `#4275 <https://github.com/pybind/pybind11/pull/4275>`_
+
+* Fix ``char8_t`` support (regression in 2.9).
+  `#4278 <https://github.com/pybind/pybind11/pull/4278>`_
+
+* Unicode surrogate character in Python exception message leads to process
+  termination in ``error_already_set::what()``.
+  `#4297 <https://github.com/pybind/pybind11/pull/4297>`_
 
 * Fix MSVC 2019 v.1924 & C++14 mode error for ``overload_cast``.
   `#4188 <https://github.com/pybind/pybind11/pull/4188>`_
@@ -100,8 +131,14 @@ Performance and style:
 * Optimize unpacking_collector when processing ``arg_v`` arguments.
   `#4219 <https://github.com/pybind/pybind11/pull/4219>`_
 
+* Optimize casting C++ object to ``None``.
+  `#4269 <https://github.com/pybind/pybind11/pull/4269>`_
+
 
 Build system improvements:
+
+* CMake: revert overwrite behavior, now opt-in with ``PYBIND11_PYTHONLIBS_OVERRWRITE OFF``.
+  `#4195 <https://github.com/pybind/pybind11/pull/4195>`_
 
 * Include a pkg-config file when installing pybind11, such as in the Python
   package.

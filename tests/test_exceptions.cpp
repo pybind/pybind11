@@ -105,11 +105,6 @@ struct PythonAlreadySetInDestructor {
     py::str s;
 };
 
-std::string error_already_set_what(const py::object &exc_type, const py::object &exc_value) {
-    PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
-    return py::error_already_set().what();
-}
-
 TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception",
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
