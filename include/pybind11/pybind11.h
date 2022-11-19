@@ -2203,9 +2203,7 @@ public:
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         {
-            auto const &natives = detail::native_enum_type_map::get();
-            auto found = natives.find(std::type_index(typeid(Type)));
-            if (found != natives.end()) {
+            if (detail::native_enum_type_map::get().count(std::type_index(typeid(Type))) != 0) {
                 pybind11_fail("pybind11::enum_ \"" + std::string(name)
                               + "\" is already registered as a pybind11::native_enum!");
             }

@@ -1138,9 +1138,7 @@ T cast(const handle &handle) {
                   "Unable to cast type to reference: value is local to type caster");
 #ifndef NDEBUG
     if (is_enum_cast) {
-        auto const &natives = native_enum_type_map::get();
-        auto found = natives.find(std::type_index(typeid(intrinsic_t<T>)));
-        if (found != natives.end()) {
+        if (native_enum_type_map::get().count(std::type_index(typeid(intrinsic_t<T>))) != 0) {
             pybind11_fail("Unable to cast native enum type to reference");
         }
     }
