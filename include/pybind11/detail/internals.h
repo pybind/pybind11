@@ -688,8 +688,9 @@ struct cross_extension_shared_state {
     }
 
     static payload_type &get() {
-        if (get_existing() != nullptr) {
-            return **payload_pp();
+        payload_type *existing = get_existing();
+        if (existing != nullptr) {
+            return *existing;
         }
         if (payload_pp() == nullptr) {
             payload_pp() = new payload_type *();
@@ -703,8 +704,9 @@ struct cross_extension_shared_state {
     struct scoped_clear {
         // To be called BEFORE Py_Finalize().
         scoped_clear() {
-            if (get_existing() != nullptr) {
-                AdapterType::payload_clear(**payload_pp());
+            payload_type *existing = get_existing();
+            if (existing != nullptr) {
+                AdapterType::payload_clear(*existing);
                 arm_dtor = true;
             }
         }
