@@ -213,6 +213,8 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
  \endrst */
 inline void finalize_interpreter() {
+    cross_extension_shared_states::native_enum_type_map::scoped_clear native_enum_type_map_clear;
+
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
 

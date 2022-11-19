@@ -9,34 +9,24 @@
 
 #pragma once
 
-#include "common.h"
-
-#if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-#    include "../gil.h"
-#endif
-
 #include "../pytypes.h"
+#include "abi_platform_id.h"
+#include "common.h"
+#include "cross_extension_shared_state.h"
 #include "smart_holder_sfinae_hooks_only.h"
+#include "type_map.h"
 
 #include <exception>
-
-/// Tracks the `internals` and `type_info` ABI version independent of the main library version.
-///
-/// Some portions of the code use an ABI that is conditional depending on this
-/// version number.  That allows ABI-breaking changes to be "pre-implemented".
-/// Once the default version number is incremented, the conditional logic that
-/// no longer applies can be removed.  Additionally, users that need not
-/// maintain ABI compatibility can increase the version number in order to take
-/// advantage of any functionality/efficiency improvements that depend on the
-/// newer ABI.
-///
-/// WARNING: If you choose to manually increase the ABI version, note that
-/// pybind11 may not be tested as thoroughly with a non-default ABI version, and
-/// further ABI-incompatible changes may be made before the ABI is officially
-/// changed to the new version.
-#ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 4
-#endif
+#include <forward_list>
+#include <new>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -108,42 +98,6 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 #    endif
 #    define PYBIND11_TLS_FREE(key) (void) key
 #endif
-
-// Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
-// other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
-// even when `A` is the same, non-hidden-visibility type (e.g. from a common include).  Under
-// libstdc++, this doesn't happen: equality and the type_index hash are based on the type name,
-// which works.  If not under a known-good stl, provide our own name-based hash and equality
-// functions that use the type name.
-#if defined(__GLIBCXX__)
-inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
-using type_hash = std::hash<std::type_index>;
-using type_equal_to = std::equal_to<std::type_index>;
-#else
-inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) {
-    return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-}
-
-struct type_hash {
-    size_t operator()(const std::type_index &t) const {
-        size_t hash = 5381;
-        const char *ptr = t.name();
-        while (auto c = static_cast<unsigned char>(*ptr++)) {
-            hash = (hash * 33) ^ c;
-        }
-        return hash;
-    }
-};
-
-struct type_equal_to {
-    bool operator()(const std::type_index &lhs, const std::type_index &rhs) const {
-        return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-    }
-};
-#endif
-
-template <typename value_type>
-using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
@@ -240,83 +194,13 @@ struct type_info {
     bool module_local : 1;
 };
 
-/// On MSVC, debug and release builds are not ABI-compatible!
-#if defined(_MSC_VER) && defined(_DEBUG)
-#    define PYBIND11_BUILD_TYPE "_debug"
-#else
-#    define PYBIND11_BUILD_TYPE ""
-#endif
-
-/// Let's assume that different compilers are ABI-incompatible.
-/// A user can manually set this string if they know their
-/// compiler is compatible.
-#ifndef PYBIND11_COMPILER_TYPE
-#    if defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__INTEL_COMPILER)
-#        define PYBIND11_COMPILER_TYPE "_icc"
-#    elif defined(__clang__)
-#        define PYBIND11_COMPILER_TYPE "_clang"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
-#    elif defined(__MINGW32__)
-#        define PYBIND11_COMPILER_TYPE "_mingw"
-#    elif defined(__CYGWIN__)
-#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#    elif defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_gcc"
-#    else
-#        define PYBIND11_COMPILER_TYPE "_unknown"
-#    endif
-#endif
-
-/// Also standard libs
-#ifndef PYBIND11_STDLIB
-#    if defined(_LIBCPP_VERSION)
-#        define PYBIND11_STDLIB "_libcpp"
-#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#        define PYBIND11_STDLIB "_libstdcpp"
-#    else
-#        define PYBIND11_STDLIB ""
-#    endif
-#endif
-
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-#ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    else
-#        define PYBIND11_BUILD_ABI ""
-#    endif
-#endif
-
-#ifndef PYBIND11_INTERNALS_KIND
-#    if defined(WITH_THREAD)
-#        define PYBIND11_INTERNALS_KIND ""
-#    else
-#        define PYBIND11_INTERNALS_KIND "_without_thread"
-#    endif
-#endif
-
-/// See README_smart_holder.rst:
-/// Classic / Conservative / Progressive cross-module compatibility
-#ifndef PYBIND11_INTERNALS_SH_DEF
-#    if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)
-#        define PYBIND11_INTERNALS_SH_DEF ""
-#    else
-#        define PYBIND11_INTERNALS_SH_DEF "_sh_def"
-#    endif
-#endif
-
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE PYBIND11_INTERNALS_SH_DEF "__"
+        PYBIND11_PLATFORM_ABI_ID_V4 "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE PYBIND11_INTERNALS_SH_DEF "__"
+        PYBIND11_PLATFORM_ABI_ID_V4 "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -434,33 +318,30 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto **&internals_pp = get_internals_pp();
+    internals **&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp) {
         return **internals_pp;
     }
 
-#if defined(WITH_THREAD)
-#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-    gil_scoped_acquire gil;
-#    else
-    // Ensure that the GIL is held since we will need to make Python calls.
-    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-    struct gil_scoped_acquire_local {
-        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
-        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
-        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
-        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
-        const PyGILState_STATE state;
-    } gil;
-#    endif
-#endif
+    gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
-    PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
-    auto builtins = handle(PyEval_GetBuiltins());
-    if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_pp = static_cast<internals **>(capsule(builtins[id]));
+    constexpr const char *id_cstr = PYBIND11_INTERNALS_ID;
+    str id(id_cstr);
 
+    dict state_dict = get_python_state_dict();
+
+    if (state_dict.contains(id_cstr)) {
+        void *raw_ptr = PyCapsule_GetPointer(state_dict[id].ptr(), id_cstr);
+        if (raw_ptr == nullptr) {
+            raise_from(
+                PyExc_SystemError,
+                "pybind11::detail::get_internals(): Retrieve internals** from capsule FAILED");
+        }
+        internals_pp = static_cast<internals **>(raw_ptr);
+    }
+
+    if (internals_pp && *internals_pp) {
         // We loaded builtins through python's builtins, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
         // initial exception translator, below, so add another for our local exception classes.
@@ -496,7 +377,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 #    endif
         internals_ptr->istate = tstate->interp;
 #endif
-        builtins[id] = capsule(internals_pp);
+        state_dict[id] = capsule(internals_pp, id_cstr);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();

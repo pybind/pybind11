@@ -12,6 +12,7 @@
 
 #include "detail/class.h"
 #include "detail/init.h"
+#include "detail/native_enum_data.h"
 #include "detail/smart_holder_sfinae_hooks_only.h"
 #include "attr.h"
 #include "gil.h"
@@ -1269,6 +1270,36 @@ public:
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
     }
+
+    module_ &operator+=(const detail::native_enum_data &data) {
+        data.disarm_correct_use_check();
+        if (hasattr(*this, data.enum_name)) {
+            pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+                          + "\"): an object with that name is already defined");
+        }
+        auto enum_module = import("enum");
+        auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
+        auto py_enum = py_enum_type(data.enum_name, data.members);
+        py_enum.attr("__module__") = *this;
+        this->attr(data.enum_name) = py_enum;
+        if (data.export_values_flag) {
+            for (auto member : data.members) {
+                auto member_name = member[int_(0)];
+                if (hasattr(*this, member_name)) {
+                    pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+                                  + "\").value(\"" + member_name.cast<std::string>()
+                                  + "\"): an object with that name is already defined");
+                }
+                this->attr(member_name) = py_enum[member_name];
+            }
+        }
+        for (auto doc : data.docs) {
+            py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
+        }
+        cross_extension_shared_states::native_enum_type_map::get()[data.enum_type_index]
+            = py_enum.release().ptr();
+        return *this;
+    }
 };
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
@@ -2427,6 +2458,15 @@ public:
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+        {
+            if (cross_extension_shared_states::native_enum_type_map::get().count(
+                    std::type_index(typeid(Type)))
+                != 0) {
+                pybind11_fail("pybind11::enum_ \"" + std::string(name)
+                              + "\" is already registered as a pybind11::native_enum!");
+            }
+        }
+
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);

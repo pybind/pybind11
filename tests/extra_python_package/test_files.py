@@ -36,6 +36,7 @@ main_headers = {
     "include/pybind11/functional.h",
     "include/pybind11/gil.h",
     "include/pybind11/iostream.h",
+    "include/pybind11/native_enum.h",
     "include/pybind11/numpy.h",
     "include/pybind11/operators.h",
     "include/pybind11/options.h",
@@ -48,17 +49,21 @@ main_headers = {
 }
 
 detail_headers = {
+    "include/pybind11/detail/abi_platform_id.h",
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
+    "include/pybind11/detail/cross_extension_shared_state.h",
     "include/pybind11/detail/descr.h",
     "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/native_enum_data.h",
     "include/pybind11/detail/smart_holder_poc.h",
     "include/pybind11/detail/smart_holder_sfinae_hooks_only.h",
     "include/pybind11/detail/smart_holder_type_casters.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/type_caster_odr_guard.h",
+    "include/pybind11/detail/type_map.h",
     "include/pybind11/detail/typeid.h",
 }
 
