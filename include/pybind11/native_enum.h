@@ -6,6 +6,7 @@
 
 #include "detail/common.h"
 #include "detail/native_enum_data.h"
+#include "detail/type_caster_base.h"
 #include "cast.h"
 
 #include <limits>
@@ -32,7 +33,7 @@ public:
                 "pybind11::native_enum<...>(\"" + enum_name_encoded
                 + "\") is already registered as a `pybind11::enum_` or `pybind11::class_`!");
         }
-        if (detail::native_enum_type_map::get().count(enum_type_index)) {
+        if (cross_extension_shared_states::native_enum_type_map::get().count(enum_type_index)) {
             pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                           + "\") is already registered!");
         }

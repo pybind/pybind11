@@ -16,27 +16,21 @@
 #endif
 
 #include "../pytypes.h"
+#include "abi_platform_id.h"
+#include "cross_extension_shared_state.h"
+#include "type_map.h"
 
 #include <exception>
+#include <forward_list>
+#include <new>
+#include <stdexcept>
 #include <string>
-
-/// Tracks the `internals` and `type_info` ABI version independent of the main library version.
-///
-/// Some portions of the code use an ABI that is conditional depending on this
-/// version number.  That allows ABI-breaking changes to be "pre-implemented".
-/// Once the default version number is incremented, the conditional logic that
-/// no longer applies can be removed.  Additionally, users that need not
-/// maintain ABI compatibility can increase the version number in order to take
-/// advantage of any functionality/efficiency improvements that depend on the
-/// newer ABI.
-///
-/// WARNING: If you choose to manually increase the ABI version, note that
-/// pybind11 may not be tested as thoroughly with a non-default ABI version, and
-/// further ABI-incompatible changes may be made before the ABI is officially
-/// changed to the new version.
-#ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 4
-#endif
+#include <type_traits>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -108,42 +102,6 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 #    endif
 #    define PYBIND11_TLS_FREE(key) (void) key
 #endif
-
-// Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
-// other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
-// even when `A` is the same, non-hidden-visibility type (e.g. from a common include).  Under
-// libstdc++, this doesn't happen: equality and the type_index hash are based on the type name,
-// which works.  If not under a known-good stl, provide our own name-based hash and equality
-// functions that use the type name.
-#if defined(__GLIBCXX__)
-inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
-using type_hash = std::hash<std::type_index>;
-using type_equal_to = std::equal_to<std::type_index>;
-#else
-inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) {
-    return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-}
-
-struct type_hash {
-    size_t operator()(const std::type_index &t) const {
-        size_t hash = 5381;
-        const char *ptr = t.name();
-        while (auto c = static_cast<unsigned char>(*ptr++)) {
-            hash = (hash * 33) ^ c;
-        }
-        return hash;
-    }
-};
-
-struct type_equal_to {
-    bool operator()(const std::type_index &lhs, const std::type_index &rhs) const {
-        return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
-    }
-};
-#endif
-
-template <typename value_type>
-using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
@@ -240,74 +198,13 @@ struct type_info {
     bool module_local : 1;
 };
 
-/// On MSVC, debug and release builds are not ABI-compatible!
-#if defined(_MSC_VER) && defined(_DEBUG)
-#    define PYBIND11_BUILD_TYPE "_debug"
-#else
-#    define PYBIND11_BUILD_TYPE ""
-#endif
-
-/// Let's assume that different compilers are ABI-incompatible.
-/// A user can manually set this string if they know their
-/// compiler is compatible.
-#ifndef PYBIND11_COMPILER_TYPE
-#    if defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__INTEL_COMPILER)
-#        define PYBIND11_COMPILER_TYPE "_icc"
-#    elif defined(__clang__)
-#        define PYBIND11_COMPILER_TYPE "_clang"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
-#    elif defined(__MINGW32__)
-#        define PYBIND11_COMPILER_TYPE "_mingw"
-#    elif defined(__CYGWIN__)
-#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#    elif defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_gcc"
-#    else
-#        define PYBIND11_COMPILER_TYPE "_unknown"
-#    endif
-#endif
-
-/// Also standard libs
-#ifndef PYBIND11_STDLIB
-#    if defined(_LIBCPP_VERSION)
-#        define PYBIND11_STDLIB "_libcpp"
-#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#        define PYBIND11_STDLIB "_libstdcpp"
-#    else
-#        define PYBIND11_STDLIB ""
-#    endif
-#endif
-
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-#ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    else
-#        define PYBIND11_BUILD_ABI ""
-#    endif
-#endif
-
-#ifndef PYBIND11_INTERNALS_KIND
-#    if defined(WITH_THREAD)
-#        define PYBIND11_INTERNALS_KIND ""
-#    else
-#        define PYBIND11_INTERNALS_KIND "_without_thread"
-#    endif
-#endif
-
-#define PYBIND11_ABI_ID                                                                           \
-    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
-        PYBIND11_BUILD_TYPE
-
 #define PYBIND11_INTERNALS_ID                                                                     \
-    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_ABI_ID "__"
+    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
+        PYBIND11_PLATFORM_ABI_ID_V4 "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
-    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_ABI_ID "_" \
-                                                                                              "_"
+    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
+        PYBIND11_PLATFORM_ABI_ID_V4 "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -421,42 +318,6 @@ inline void translate_local_exception(std::exception_ptr p) {
         return;
     }
 }
-#endif
-
-inline object get_python_state_dict() {
-    object state_dict;
-#if (PYBIND11_INTERNALS_VERSION <= 4 && PY_VERSION_HEX < 0x030C0000)                              \
-    || PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
-    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
-#else
-#    if PY_VERSION_HEX < 0x03090000
-    PyInterpreterState *istate = _PyInterpreterState_Get();
-#    else
-    PyInterpreterState *istate = PyInterpreterState_Get();
-#    endif
-    if (istate) {
-        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
-    }
-#endif
-    if (!state_dict) {
-        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
-    }
-    return state_dict;
-}
-
-#if defined(WITH_THREAD)
-#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-using gil_scoped_acquire_simple = gil_scoped_acquire;
-#    else
-// Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-struct gil_scoped_acquire_simple {
-    gil_scoped_acquire_simple() : state(PyGILState_Ensure()) {}
-    gil_scoped_acquire_simple(const gil_scoped_acquire_simple &) = delete;
-    gil_scoped_acquire_simple &operator=(const gil_scoped_acquire_simple &) = delete;
-    ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
-    const PyGILState_STATE state;
-};
-#    endif
 #endif
 
 /// Return a reference to the current `internals` data
@@ -645,105 +506,5 @@ T &get_or_create_shared_data(const std::string &name) {
     }
     return *ptr;
 }
-
-PYBIND11_NAMESPACE_BEGIN(detail)
-
-template <typename AdapterType>
-struct cross_extension_shared_state {
-    static constexpr const char *abi_id() { return AdapterType::abi_id(); }
-
-    using payload_type = typename AdapterType::payload_type;
-
-    static payload_type **&payload_pp() {
-        // The reason for the double-indirection is documented here:
-        // https://github.com/pybind/pybind11/pull/1092
-        static payload_type **pp;
-        return pp;
-    }
-
-    static payload_type *get_existing() {
-        if (payload_pp() && *payload_pp()) {
-            return *payload_pp();
-        }
-
-        gil_scoped_acquire_simple gil;
-        error_scope err_scope;
-
-        str abi_id_str(AdapterType::abi_id());
-        dict state_dict = get_python_state_dict();
-        if (!state_dict.contains(abi_id_str)) {
-            return nullptr;
-        }
-
-        void *raw_ptr = PyCapsule_GetPointer(state_dict[abi_id_str].ptr(), AdapterType::abi_id());
-        if (raw_ptr == nullptr) {
-            raise_from(PyExc_SystemError,
-                       ("pybind11::detail::cross_extension_shared_state::get_existing():"
-                        " Retrieve payload_type** from capsule FAILED for ABI ID \""
-                        + std::string(AdapterType::abi_id()) + "\"")
-                           .c_str());
-        }
-        payload_pp() = static_cast<payload_type **>(raw_ptr);
-        return *payload_pp();
-    }
-
-    static payload_type &get() {
-        payload_type *existing = get_existing();
-        if (existing != nullptr) {
-            return *existing;
-        }
-        if (payload_pp() == nullptr) {
-            payload_pp() = new payload_type *();
-        }
-        *payload_pp() = new payload_type();
-        get_python_state_dict()[AdapterType::abi_id()]
-            = capsule(payload_pp(), AdapterType::abi_id());
-        return **payload_pp();
-    }
-
-    struct scoped_clear {
-        // To be called BEFORE Py_Finalize().
-        scoped_clear() {
-            payload_type *existing = get_existing();
-            if (existing != nullptr) {
-                AdapterType::payload_clear(*existing);
-                arm_dtor = true;
-            }
-        }
-
-        // To be called AFTER Py_Finalize().
-        ~scoped_clear() {
-            if (arm_dtor) {
-                delete *payload_pp();
-                *payload_pp() = nullptr;
-            }
-        }
-
-        scoped_clear(const scoped_clear &) = delete;
-        scoped_clear &operator=(const scoped_clear &) = delete;
-
-        bool arm_dtor = false;
-    };
-};
-
-struct native_enum_type_map_v1_adapter {
-    static constexpr const char *abi_id() {
-        return "__pybind11_native_enum_type_map_v1" PYBIND11_ABI_ID "__";
-    }
-
-    using payload_type = type_map<PyObject *>;
-
-    static void payload_clear(payload_type &payload) {
-        for (auto it : payload) {
-            Py_DECREF(it.second);
-        }
-        payload.clear();
-    }
-};
-
-using native_enum_type_map_v1 = cross_extension_shared_state<native_enum_type_map_v1_adapter>;
-using native_enum_type_map = native_enum_type_map_v1;
-
-PYBIND11_NAMESPACE_END(detail)
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -1295,7 +1295,8 @@ public:
         for (auto doc : data.docs) {
             py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
         }
-        detail::native_enum_type_map::get()[data.enum_type_index] = py_enum.release().ptr();
+        cross_extension_shared_states::native_enum_type_map::get()[data.enum_type_index]
+            = py_enum.release().ptr();
         return *this;
     }
 };
@@ -2203,7 +2204,9 @@ public:
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         {
-            if (detail::native_enum_type_map::get().count(std::type_index(typeid(Type))) != 0) {
+            if (cross_extension_shared_states::native_enum_type_map::get().count(
+                    std::type_index(typeid(Type)))
+                != 0) {
                 pybind11_fail("pybind11::enum_ \"" + std::string(name)
                               + "\" is already registered as a pybind11::native_enum!");
             }
