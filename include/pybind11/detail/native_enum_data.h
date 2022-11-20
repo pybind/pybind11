@@ -84,4 +84,46 @@ using native_enum_type_map = native_enum_type_map_v1;
 
 PYBIND11_NAMESPACE_END(cross_extension_shared_states)
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline void native_enum_add_to_parent(object parent, const detail::native_enum_data &data) {
+    data.disarm_correct_use_check();
+    if (hasattr(parent, data.enum_name)) {
+        pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+                      + "\"): an object with that name is already defined");
+    }
+    auto enum_module = reinterpret_steal<object>(PyImport_ImportModule("enum"));
+    if (!enum_module) {
+        raise_from(PyExc_SystemError,
+                   "`import enum` FAILED at " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
+    }
+    auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
+    auto py_enum = py_enum_type(data.enum_name, data.members);
+    if (hasattr(parent, "__module__")) {
+        // Enum nested in class:
+        py_enum.attr("__module__") = parent.attr("__module__");
+    } else {
+        py_enum.attr("__module__") = parent;
+    }
+    parent.attr(data.enum_name) = py_enum;
+    if (data.export_values_flag) {
+        for (auto member : data.members) {
+            auto member_name = member[int_(0)];
+            if (hasattr(parent, member_name)) {
+                pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+                              + "\").value(\"" + member_name.cast<std::string>()
+                              + "\"): an object with that name is already defined");
+            }
+            parent.attr(member_name) = py_enum[member_name];
+        }
+    }
+    for (auto doc : data.docs) {
+        py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
+    }
+    cross_extension_shared_states::native_enum_type_map::get()[data.enum_type_index]
+        = py_enum.release().ptr();
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

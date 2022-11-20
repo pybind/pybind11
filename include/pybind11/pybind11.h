@@ -1272,32 +1272,7 @@ public:
     }
 
     module_ &operator+=(const detail::native_enum_data &data) {
-        data.disarm_correct_use_check();
-        if (hasattr(*this, data.enum_name)) {
-            pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
-                          + "\"): an object with that name is already defined");
-        }
-        auto enum_module = import("enum");
-        auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
-        auto py_enum = py_enum_type(data.enum_name, data.members);
-        py_enum.attr("__module__") = *this;
-        this->attr(data.enum_name) = py_enum;
-        if (data.export_values_flag) {
-            for (auto member : data.members) {
-                auto member_name = member[int_(0)];
-                if (hasattr(*this, member_name)) {
-                    pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
-                                  + "\").value(\"" + member_name.cast<std::string>()
-                                  + "\"): an object with that name is already defined");
-                }
-                this->attr(member_name) = py_enum[member_name];
-            }
-        }
-        for (auto doc : data.docs) {
-            py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
-        }
-        cross_extension_shared_states::native_enum_type_map::get()[data.enum_type_index]
-            = py_enum.release().ptr();
+        detail::native_enum_add_to_parent(*this, data);
         return *this;
     }
 };
@@ -2065,6 +2040,11 @@ public:
             }
         }
         def_property_static_impl(name, fget, fset, rec_active);
+        return *this;
+    }
+
+    class_ &operator+=(const detail::native_enum_data &data) {
+        detail::native_enum_add_to_parent(*this, data);
         return *this;
     }
 
