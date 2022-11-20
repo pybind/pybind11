@@ -1774,11 +1774,17 @@ public:
                       " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)?");
 #ifdef PYBIND11_STRICT_ASSERTS_CLASS_HOLDER_VS_TYPE_CASTER_MIX
         // Strict conditions cannot be enforced universally at the moment (PR #2836).
-        static_assert(holder_is_smart_holder == wrapped_type_uses_smart_holder_type_caster,
+        static_assert(holder_is_smart_holder
+                          == (wrapped_type_uses_smart_holder_type_caster
+                              || (detail::type_uses_type_caster_enum_type<type>::value
+                                  && detail::smart_holder_is_default_holder_type)),
                       "py::class_ holder vs type_caster mismatch:"
                       " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)"
                       " or collision with custom py::detail::type_caster<T>?");
-        static_assert(!holder_is_smart_holder == type_caster_type_is_type_caster_base_subtype,
+        static_assert(!holder_is_smart_holder
+                          == (type_caster_type_is_type_caster_base_subtype
+                              || (detail::type_uses_type_caster_enum_type<type>::value
+                                  && !detail::smart_holder_is_default_holder_type)),
                       "py::class_ holder vs type_caster mismatch:"
                       " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)"
                       " or collision with custom py::detail::type_caster<T>?");
@@ -2072,7 +2078,8 @@ private:
     template <typename T = type,
               detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
     void generic_type_initialize(const detail::type_record &record) {
-        generic_type::initialize(record, detail::type_caster<T>::get_local_load_function_ptr());
+        generic_type::initialize(
+            record, detail::type_caster_classh_enum_aware<T>::get_local_load_function_ptr());
     }
 
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
@@ -2144,7 +2151,8 @@ private:
               typename A = type_alias,
               detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
-        detail::type_caster<T>::template init_instance_for_type<T, A>(inst, holder_ptr);
+        detail::type_caster_classh_enum_aware<T>::template init_instance_for_type<T, A>(
+            inst, holder_ptr);
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.

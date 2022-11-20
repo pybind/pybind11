@@ -21,6 +21,13 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+constexpr bool smart_holder_is_default_holder_type =
+#ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+    true;
+#else
+    false;
+#endif
+
 template <typename T>
 struct is_smart_holder_type : std::false_type {};
 

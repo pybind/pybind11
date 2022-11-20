@@ -61,12 +61,6 @@ using make_caster_for_intrinsic = type_caster<type>;
 template <typename type>
 using make_caster = make_caster_for_intrinsic<intrinsic_t<type>>;
 
-template <typename T>
-struct type_uses_smart_holder_type_caster {
-    static constexpr bool value
-        = std::is_base_of<smart_holder_type_caster_base_tag, make_caster<T>>::value;
-};
-
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
 typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
@@ -94,7 +88,7 @@ public:
         if (found != natives.end()) {
             return handle(found->second)(static_cast<Underlying>(src)).release();
         }
-        return type_caster_base<EnumType>::cast(
+        return type_caster_for_class_<EnumType>::cast(
             std::forward<SrcType>(src),
             // Fixes https://github.com/pybind/pybind11/pull/3643#issuecomment-1022987818:
             return_value_policy::copy,
@@ -116,7 +110,7 @@ public:
             return true;
         }
         if (!pybind11_enum_) {
-            pybind11_enum_.reset(new type_caster_base<EnumType>());
+            pybind11_enum_.reset(new type_caster_for_class_<EnumType>());
         }
         return pybind11_enum_->load(src, convert);
     }
@@ -141,18 +135,43 @@ public:
     }
 
 private:
-    std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
+    std::unique_ptr<type_caster_for_class_<EnumType>> pybind11_enum_;
     EnumType value;
 };
 
 template <typename EnumType, typename SFINAE = void>
 struct type_caster_enum_type_enabled : std::true_type {};
 
+template <typename T>
+struct type_uses_type_caster_enum_type {
+    static constexpr bool value
+        = std::is_enum<T>::value && type_caster_enum_type_enabled<T>::value;
+};
+
 template <typename EnumType>
-class type_caster<EnumType,
-                  detail::enable_if_t<std::is_enum<EnumType>::value
-                                      && type_caster_enum_type_enabled<EnumType>::value>>
+class type_caster<EnumType, detail::enable_if_t<type_uses_type_caster_enum_type<EnumType>::value>>
     : public type_caster_enum_type<EnumType> {};
+
+template <typename T>
+struct type_uses_smart_holder_type_caster {
+    static constexpr bool value
+        = std::is_base_of<smart_holder_type_caster_base_tag, make_caster<T>>::value
+#ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+          || type_uses_type_caster_enum_type<T>::value
+#endif
+        ;
+};
+
+template <typename T, typename SFINAE = void>
+struct type_caster_classh_enum_aware : type_caster<T> {};
+
+#ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+template <typename EnumType>
+struct type_caster_classh_enum_aware<
+    EnumType,
+    detail::enable_if_t<type_uses_type_caster_enum_type<EnumType>::value>>
+    : type_caster_for_class_<EnumType> {};
+#endif
 
 template <typename T, detail::enable_if_t<std::is_enum<T>::value, int> = 0>
 bool isinstance_native_enum_impl(handle obj, const std::type_info &tp) {
