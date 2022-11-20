@@ -112,6 +112,13 @@ TEST_SUBMODULE(native_enum, m) {
     m.def("obj_cast_color_ptr", [](const py::object &obj) { obj.cast<color *>(); });
 #endif
 
+    m.def("py_cast_color_handle", [](py::handle obj) {
+        // Exercises `if (is_enum_cast && cast_is_temporary_value_reference<T>::value)`
+        // in `T cast(const handle &handle)`
+        auto e = py::cast<color>(obj);
+        return static_cast<int>(e);
+    });
+
     m.def("native_enum_data_was_not_added_error_message", [](const char *enum_name) {
         py::detail::native_enum_data data(enum_name, std::type_index(typeid(void)), false);
         data.disarm_correct_use_check();

@@ -123,6 +123,11 @@ def test_obj_cast_color_ptr():
     assert str(excinfo.value) == "Unable to cast native enum type to reference"
 
 
+def test_py_cast_color_handle():
+    for name, value in COLOR_MEMBERS:
+        assert m.py_cast_color_handle(m.color[name]) == value
+
+
 def test_native_enum_data_was_not_added_error_message():
     msg = m.native_enum_data_was_not_added_error_message("Fake")
     assert msg == (

@@ -1135,11 +1135,11 @@ using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 // non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
 // everything else returns a reference/pointer to a local variable.
 template <typename type>
-using cast_is_temporary_value_reference
-    = bool_constant<(std::is_reference<type>::value || std::is_pointer<type>::value)
-                    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
-                    && !type_uses_smart_holder_type_caster<intrinsic_t<type>>::value
-                    && !std::is_same<intrinsic_t<type>, void>::value>;
+using cast_is_temporary_value_reference = bool_constant<
+    (std::is_reference<type>::value || std::is_pointer<type>::value)
+    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
+    && !std::is_base_of<smart_holder_type_caster_base_tag, make_caster<type>>::value
+    && !std::is_same<intrinsic_t<type>, void>::value>;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared
@@ -1193,12 +1193,11 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 T cast(const handle &handle) {
     using namespace detail;
-    constexpr bool is_enum_cast
-        = std::is_base_of<type_caster_enum_type<intrinsic_t<T>>, make_caster<T>>::value;
+    constexpr bool is_enum_cast = type_uses_type_caster_enum_type<intrinsic_t<T>>::value;
     static_assert(!cast_is_temporary_value_reference<T>::value || is_enum_cast,
                   "Unable to cast type to reference: value is local to type caster");
 #ifndef NDEBUG
-    if (is_enum_cast) {
+    if (is_enum_cast && cast_is_temporary_value_reference<T>::value) {
         if (cross_extension_shared_states::native_enum_type_map::get().count(
                 std::type_index(typeid(intrinsic_t<T>)))
             != 0) {
