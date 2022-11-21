@@ -1197,7 +1197,7 @@ T cast(const handle &handle) {
     static_assert(!cast_is_temporary_value_reference<T>::value || is_enum_cast,
                   "Unable to cast type to reference: value is local to type caster");
 #ifndef NDEBUG
-    if (is_enum_cast && cast_is_temporary_value_reference<T>::value) {
+    if (PYBIND11_SILENCE_MSVC_C4127(is_enum_cast && cast_is_temporary_value_reference<T>::value)) {
         if (cross_extension_shared_states::native_enum_type_map::get().count(
                 std::type_index(typeid(intrinsic_t<T>)))
             != 0) {
