@@ -208,7 +208,11 @@ struct pybind_function_type_data {
 
         set_vectorcall_set_offset(type, offsetof(pybind_function, vectorcall));
 
-        type.tp_flags = Py_TPFLAGS_METHOD_DESCRIPTOR | Py_TPFLAGS_DEFAULT | pybind_vectorcall_flag;
+        type.tp_flags = Py_TPFLAGS_DEFAULT | pybind_vectorcall_flag;
+
+#ifdef Py_TPFLAGS_METHOD_DESCRIPTOR
+        type.tp_flags |= Py_TPFLAGS_METHOD_DESCRIPTOR;
+#endif
 
         type.tp_descr_get = [](PyObject *self, PyObject *obj, PyObject *) -> PyObject * {
             // std::cout << "Ideally shouldn't be calling tp_descr_get ... " << obj << std::endl;
