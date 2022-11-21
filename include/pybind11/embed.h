@@ -118,6 +118,9 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 #if PY_VERSION_HEX < 0x030B0000
 
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
+#    if PY_VERSION_HEX < 0x03070000
+    PyEval_InitThreads();
+#    endif
 
     // Before it was special-cased in python 3.8, passing an empty or null argv
     // caused a segfault, so we have to reimplement the special case ourselves.
@@ -168,6 +171,9 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
                                                           : "Failed to init CPython");
     }
+#    if PY_VERSION_HEX < 0x03070000
+    PyEval_InitThreads();
+#    endif
     if (add_program_dir_to_path) {
         PyRun_SimpleString("import sys, os.path; "
                            "sys.path.insert(0, "

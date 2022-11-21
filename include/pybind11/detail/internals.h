@@ -468,9 +468,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
 
-#    if PY_VERSION_HEX < 0x03090000
-        PyEval_InitThreads();
-#    endif
         PyThreadState *tstate = PyThreadState_Get();
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
             pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
