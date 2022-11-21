@@ -9,7 +9,6 @@
 
 #pragma once
 
-<<<<<<< HEAD
 #include "common.h"
 
 #if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
@@ -17,9 +16,7 @@
 #endif
 
 #include "../pytypes.h"
-    =======
 #include "internal_pytypes.h"
-    >>>>>>> 6e7eee17... Squashed commit of the following:
 
 #include <exception>
 
@@ -41,9 +38,9 @@
 #    define PYBIND11_INTERNALS_VERSION 4
 #endif
 
-    PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-        using ExceptionTranslator = void(*)(std::exception_ptr);
+using ExceptionTranslator = void (*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 

@@ -38,48 +38,6 @@ public:
 
         auto func = reinterpret_borrow<function>(src);
 
-<<<<<<< HEAD
-        /*
-           When passing a C++ function as an argument to another C++
-           function via Python, every function call would normally involve
-           a full C++ -> Python -> C++ roundtrip, which can be prohibitive.
-           Here, we try to at least detect the case where the function is
-           stateless (i.e. function pointer or lambda function without
-           captured variables), in which case the roundtrip can be avoided.
-         */
-        if (auto cfunc = func.cpp_function()) {
-            auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
-            if (cfunc_self == nullptr) {
-                PyErr_Clear();
-            } else if (isinstance<capsule>(cfunc_self)) {
-                auto c = reinterpret_borrow<capsule>(cfunc_self);
-
-                function_record *rec = nullptr;
-                // Check that we can safely reinterpret the capsule into a function_record
-                if (detail::is_function_record_capsule(c)) {
-                    rec = c.get_pointer<function_record>();
-                }
-
-                while (rec != nullptr) {
-                    if (rec->is_stateless
-                        && same_type(typeid(function_type),
-                                     *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
-                        struct capture {
-                            function_type f;
-                        };
-                        value = ((capture *) &rec->data)->f;
-                        return true;
-                    }
-                    rec = rec->next;
-                }
-            }
-            // PYPY segfaults here when passing builtin function like sum.
-            // Raising an fail exception here works to prevent the segfault, but only on gcc.
-            // See PR #1413 for full details
-        }
-
-=======
->>>>>>> 6e7eee17... Squashed commit of the following:
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;
