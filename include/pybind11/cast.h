@@ -34,6 +34,8 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+struct argument_record;
+
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -1350,33 +1352,6 @@ using is_kw_only = std::is_same<intrinsic_t<T>, kw_only>;
 template <typename T>
 using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 
-// forward declaration (definition in attr.h)
-struct function_record;
-
-/// Internal data associated with a single function call
-struct function_call {
-    function_call(const function_record &f, handle p); // Implementation in attr.h
-
-    /// The function data:
-    const function_record &func;
-
-    /// Arguments passed to the function:
-    std::vector<handle> args;
-
-    /// The `convert` value the arguments should be loaded with
-    std::vector<bool> args_convert;
-
-    /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
-    /// present, are also in `args` but without a reference).
-    object args_ref, kwargs_ref;
-
-    /// The parent, if any
-    handle parent;
-
-    /// If this is a call to an initializer, this argument contains `self`
-    handle init_self;
-};
-
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
@@ -1397,13 +1372,18 @@ public:
 
     // py::args argument position; -1 if not present.
     static constexpr int args_pos = constexpr_last<argument_is_args, Args...>();
+    static constexpr bool has_args = args_pos != -1;
 
     static_assert(args_pos == -1 || args_pos == constexpr_first<argument_is_args, Args...>(),
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
-    bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
+    bool load_args(const std::array<handle, sizeof...(Args)> &args,
+                   const std::array<argument_record, sizeof...(Args)> &infos,
+                   bool force_noconvert) {
+        return load_impl_sequence(args, infos, force_noconvert, indices{});
+    }
 
     template <typename Return, typename Guard, typename Func>
     // NOLINTNEXTLINE(readability-const-return-type)
@@ -1420,16 +1400,26 @@ public:
     }
 
 private:
-    static bool load_impl_sequence(function_call &, index_sequence<>) { return true; }
+    static bool load_impl_sequence(const std::array<handle, sizeof...(Args)> &,
+                                   const std::array<argument_record, sizeof...(Args)> &,
+                                   bool,
+                                   index_sequence<>) {
+        return true;
+    }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
-#ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
+    bool load_impl_sequence(const std::array<handle, sizeof...(Args)> &args,
+                            const std::array<argument_record, sizeof...(Args)> &infos,
+                            bool force_noconvert,
+                            index_sequence<Is...>) {
+#ifdef __cpp_fold_expression
+        if ((...
+             || !std::get<Is>(argcasters).load(args[Is], infos[Is].convert && !force_noconvert))) {
             return false;
         }
 #else
-        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...}) {
+        for (bool r :
+             {std::get<Is>(argcasters).load(args[Is], infos[Is].convert && !force_noconvert)...}) {
             if (!r) {
                 return false;
             }

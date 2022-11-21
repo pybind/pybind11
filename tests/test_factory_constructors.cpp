@@ -253,13 +253,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     py::class_<TestFactory3, std::shared_ptr<TestFactory3>> pyTestFactory3(m, "TestFactory3");
     pyTestFactory3
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct3(v); }))
-        .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }));
-    ignoreOldStyleInitWarnings([&pyTestFactory3]() {
-        pyTestFactory3.def("__init__", [](TestFactory3 &self, std::string v) {
-            new (&self) TestFactory3(std::move(v));
-        }); // placement-new ctor
-    });
-    pyTestFactory3
+        .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }))
+        .def(py::init([](std::string v) { return new TestFactory3(std::move(v)); }))
         // factories returning a derived type:
         .def(py::init(c4a)) // derived ptr
         .def(py::init([](pointer_tag, TF5_tag, int a) { return new TestFactory5(a); }))
@@ -387,12 +382,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     // Since these overloads have the same number of arguments, the dispatcher will try each of
     // them until the arguments convert.  Thus we can get a pre-allocation here when passing a
     // single non-integer:
-    ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def("__init__", [](NoisyAlloc *a, int i) {
-            new (a) NoisyAlloc(i);
-        }); // Regular constructor, runs first, requires preallocation
-    });
 
+    pyNoisyAlloc.def(py::init([](int i) { return new NoisyAlloc(i); }));
     pyNoisyAlloc.def(py::init([](double d) { return new NoisyAlloc(d); }));
 
     // The two-argument version: first the factory pointer overload.
@@ -400,17 +391,11 @@ TEST_SUBMODULE(factory_constructors, m) {
     // Return-by-value:
     pyNoisyAlloc.def(py::init([](double d, int) { return NoisyAlloc(d); }));
     // Old-style placement new init; requires preallocation
-    ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def("__init__",
-                         [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); });
-    });
+    pyNoisyAlloc.def(py::init([](double d, double) { return new NoisyAlloc(d); }));
     // Requires deallocation of previous overload preallocated value:
     pyNoisyAlloc.def(py::init([](int i, double) { return new NoisyAlloc(i); }));
     // Regular again: requires yet another preallocation
-    ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def(
-            "__init__", [](NoisyAlloc &a, int i, const std::string &) { new (&a) NoisyAlloc(i); });
-    });
+    pyNoisyAlloc.def(py::init([](int i, const std::string &) { return new NoisyAlloc(i); }));
 
     // static_assert testing (the following def's should all fail with appropriate compilation
     // errors):

@@ -846,16 +846,6 @@ inline ssize_t hash(handle obj) {
 /// @} python_builtins
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-inline handle get_function(handle value) {
-    if (value) {
-        if (PyInstanceMethod_Check(value.ptr())) {
-            value = PyInstanceMethod_GET_FUNCTION(value.ptr());
-        } else if (PyMethod_Check(value.ptr())) {
-            value = PyMethod_GET_FUNCTION(value.ptr());
-        }
-    }
-    return value;
-}
 
 // Reimplementation of python's dict helper functions to ensure that exceptions
 // aren't swallowed (see #2862)
@@ -2115,14 +2105,6 @@ public:
 class function : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(function, object, PyCallable_Check)
-    handle cpp_function() const {
-        handle fun = detail::get_function(m_ptr);
-        if (fun && PyCFunction_Check(fun.ptr())) {
-            return fun;
-        }
-        return handle();
-    }
-    bool is_cpp_function() const { return (bool) cpp_function(); }
 };
 
 class staticmethod : public object {

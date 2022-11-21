@@ -23,14 +23,6 @@ def test_instance(msg):
     assert cstats.alive() == 0
 
 
-def test_instance_new(msg):
-    instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
-    cstats = ConstructorStats.get(m.NoConstructorNew)
-    assert cstats.alive() == 1
-    del instance
-    assert cstats.alive() == 0
-
-
 def test_type():
     assert m.check_type(1) == m.DerivedClass1
     with pytest.raises(RuntimeError) as execinfo:
@@ -88,7 +80,14 @@ def test_docstrings(doc):
         Get value using a method
     """
     )
-    assert doc(UserType.value) == "Get/set value using a property"
+    assert (
+        doc(UserType.value)
+        == """
+        (self: m.UserType) -> int
+
+        Get/set value using a property
+    """
+    )
 
     assert (
         doc(m.NoConstructor.new_instance)

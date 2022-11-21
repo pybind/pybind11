@@ -307,6 +307,7 @@ PYBIND11_WARNING_POP
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <typeindex>
 #include <unordered_map>
@@ -346,9 +347,6 @@ PYBIND11_WARNING_POP
 //               behavior.
 
 /// Compatibility macros for Python 2 / Python 3 versions TODO: remove
-#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
-#define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
-#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
 #define PYBIND11_BYTES_CHECK PyBytes_Check
 #define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
@@ -830,11 +828,69 @@ constexpr int constexpr_first() {
     return constexpr_impl::first(0, Predicate<Ts>::value...);
 }
 
+template <template <typename> class Predicate, typename Tuple>
+struct constexpr_first_tuple {};
+
+template <template <typename> class Predicate, typename... Ts>
+struct constexpr_first_tuple<Predicate, std::tuple<Ts...>> {
+    static constexpr int value = constexpr_first<Predicate, Ts...>();
+};
+
 /// Return the index of the last type in Ts which satisfies Predicate<T>, or -1 if none match.
 template <template <typename> class Predicate, typename... Ts>
 constexpr int constexpr_last() {
     return constexpr_impl::last(0, -1, Predicate<Ts>::value...);
 }
+
+template <typename T, size_t i>
+struct indexed_sequence_entry {
+    using type = T;
+    static constexpr size_t index = i;
+};
+
+template <typename T, size_t i>
+struct intrinsic_type<indexed_sequence_entry<T, i>> {
+    using type = typename intrinsic_type<T>::type;
+};
+
+template <template <typename> class Predicate, size_t, size_t, typename...>
+struct create_indexed_sequence {};
+
+template <template <typename> class Predicate,
+          size_t current_index,
+          size_t skip_index,
+          typename First,
+          typename... Ts>
+struct create_indexed_sequence<Predicate, current_index, skip_index, First, Ts...> {
+    static constexpr size_t actual_current
+        = (current_index == skip_index) ? (current_index + 1) : current_index;
+    static constexpr size_t next = Predicate<First>::value ? actual_current + 1 : actual_current;
+    using child = typename create_indexed_sequence<Predicate, next, skip_index, Ts...>::value;
+    using value = decltype(std::tuple_cat(
+        std::declval<std::tuple<indexed_sequence_entry<First, actual_current>>>(),
+        std::declval<child>()));
+};
+
+template <template <typename> class Predicate, size_t current_index, size_t skip_index>
+struct create_indexed_sequence<Predicate, current_index, skip_index> {
+    using value = std::tuple<>;
+};
+
+using Example
+    = create_indexed_sequence<std::is_scalar, 0, 1, bool, int, std::string, float>::value;
+
+static_assert(
+    std::is_same<std::tuple_element<0, Example>::type, indexed_sequence_entry<bool, 0>>::value,
+    "should work");
+static_assert(
+    std::is_same<std::tuple_element<1, Example>::type, indexed_sequence_entry<int, 2>>::value,
+    "should work");
+static_assert(std::is_same<std::tuple_element<2, Example>::type,
+                           indexed_sequence_entry<std::string, 3>>::value,
+              "should work");
+static_assert(
+    std::is_same<std::tuple_element<3, Example>::type, indexed_sequence_entry<float, 3>>::value,
+    "should work");
 
 /// Return the Nth element from the parameter pack
 template <size_t N, typename T, typename... Ts>
@@ -1229,6 +1285,25 @@ constexpr
 // defining PYBIND11_DETAILED_ERROR_MESSAGES.
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
 #    define PYBIND11_DETAILED_ERROR_MESSAGES
+#endif
+
+#if (defined(__GNUC__) && __GNUC__ == 4 && !defined(__clang__))
+
+// From https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57350#c11
+inline void *align(std::size_t alignment, std::size_t size, void *&ptr, std::size_t &space) {
+    std::uintptr_t pn = reinterpret_cast<std::uintptr_t>(ptr);
+    std::uintptr_t aligned = (pn + alignment - 1) & -alignment;
+    std::size_t padding = aligned - pn;
+    if (space < size + padding)
+        return nullptr;
+    space -= padding;
+    return ptr = reinterpret_cast<void *>(aligned);
+}
+
+#else
+
+constexpr auto align = std::align;
+
 #endif
 
 PYBIND11_NAMESPACE_END(detail)

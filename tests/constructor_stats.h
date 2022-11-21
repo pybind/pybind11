@@ -74,10 +74,11 @@ inspection/testing in python) by using the functions with `print_` replaced with
 
 class ConstructorStats {
 protected:
-    std::unordered_map<void *, int> _instances; // Need a map rather than set because members can
-                                                // shared address with parents
-    std::list<std::string> _values;             // Used to track values
-                                                // (e.g. of value constructors)
+    std::unordered_map<void *, int> _instances; // Need a map rather than set because members
+    // can
+    //  shared address with parents
+    std::list<std::string> _values; // Used to track values
+                                    // (e.g. of value constructors)
 public:
     int default_constructions = 0;
     int copy_constructions = 0;

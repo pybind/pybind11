@@ -9,6 +9,7 @@
 
 #pragma once
 
+<<<<<<< HEAD
 #include "common.h"
 
 #if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
@@ -16,6 +17,9 @@
 #endif
 
 #include "../pytypes.h"
+    =======
+#include "internal_pytypes.h"
+    >>>>>>> 6e7eee17... Squashed commit of the following:
 
 #include <exception>
 
@@ -37,9 +41,9 @@
 #    define PYBIND11_INTERNALS_VERSION 4
 #endif
 
-PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+    PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-using ExceptionTranslator = void (*)(std::exception_ptr);
+        using ExceptionTranslator = void(*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -521,8 +525,12 @@ struct local_internals {
         }
         // We can't help but leak the TLS key, because Python never unloads extension modules.
     };
+#endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+
+    pybind_function_type_data function_data;
 
     local_internals() {
+#if defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
         auto &internals = get_internals();
         // Get or create the `loader_life_support_stack_key`.
         auto &ptr = internals.shared_data["_life_support"];
@@ -531,8 +539,8 @@ struct local_internals {
         }
         loader_life_support_tls_key
             = static_cast<shared_loader_life_support_data *>(ptr)->loader_life_support_tls_key;
-    }
 #endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+    }
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
@@ -557,24 +565,7 @@ const char *c_str(Args &&...args) {
     return strings.front().c_str();
 }
 
-inline const char *get_function_record_capsule_name() {
-#if PYBIND11_INTERNALS_VERSION > 4
-    return get_internals().function_record_capsule_name.c_str();
-#else
-    return nullptr;
-#endif
-}
-
-// Determine whether or not the following capsule contains a pybind11 function record.
-// Note that we use `internals` to make sure that only ABI compatible records are touched.
-//
-// This check is currently used in two places:
-// - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
-// - The sibling feature of cpp_function to allow overloads
-inline bool is_function_record_capsule(const capsule &cap) {
-    // Pointer equality as we rely on internals() to ensure unique pointers
-    return cap.name() == get_function_record_capsule_name();
-}
+inline PyTypeObject *pybind_function_type() { return &(get_local_internals().function_data.type); }
 
 PYBIND11_NAMESPACE_END(detail)
 

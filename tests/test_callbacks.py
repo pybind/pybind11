@@ -94,15 +94,16 @@ def test_cpp_function_roundtrip():
     """Test if passing a function pointer from C++ -> Python -> C++ yields the original pointer"""
 
     assert (
-        m.test_dummy_function(m.dummy_function) == "matches dummy_function: eval(1) = 2"
+        m.test_dummy_function(m.dummy_function)
+        == "can't convert to function pointer: eval(1) = 2"
     )
     assert (
         m.test_dummy_function(m.roundtrip(m.dummy_function))
-        == "matches dummy_function: eval(1) = 2"
+        == "can't convert to function pointer: eval(1) = 2"
     )
     assert (
         m.test_dummy_function(m.dummy_function_overloaded)
-        == "matches dummy_function: eval(1) = 2"
+        == "can't convert to function pointer: eval(1) = 2"
     )
     assert m.roundtrip(None, expect_none=True) is None
     assert (

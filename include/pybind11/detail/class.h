@@ -165,21 +165,6 @@ extern "C" inline int pybind11_meta_setattro(PyObject *obj, PyObject *name, PyOb
     }
 }
 
-/**
- * Python 3's PyInstanceMethod_Type hides itself via its tp_descr_get, which prevents aliasing
- * methods via cls.attr("m2") = cls.attr("m1"): instead the tp_descr_get returns a plain function,
- * when called on a class, or a PyMethod, when called on an instance.  Override that behaviour here
- * to do a special case bypass for PyInstanceMethod_Types.
- */
-extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name) {
-    PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
-    if (descr && PyInstanceMethod_Check(descr)) {
-        Py_INCREF(descr);
-        return descr;
-    }
-    return PyType_Type.tp_getattro(obj, name);
-}
-
 /// metaclass `__call__` function that is used to create all pybind11 objects.
 extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
 
@@ -274,7 +259,6 @@ inline PyTypeObject *make_default_metaclass() {
     type->tp_call = pybind11_meta_call;
 
     type->tp_setattro = pybind11_meta_setattro;
-    type->tp_getattro = pybind11_meta_getattro;
 
     type->tp_dealloc = pybind11_meta_dealloc;
 

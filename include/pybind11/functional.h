@@ -38,6 +38,7 @@ public:
 
         auto func = reinterpret_borrow<function>(src);
 
+<<<<<<< HEAD
         /*
            When passing a C++ function as an argument to another C++
            function via Python, every function call would normally involve
@@ -77,6 +78,8 @@ public:
             // See PR #1413 for full details
         }
 
+=======
+>>>>>>> 6e7eee17... Squashed commit of the following:
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;

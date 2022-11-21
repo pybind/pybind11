@@ -34,6 +34,7 @@ endforeach()
 if(PYBIND11_VERSION_PATCH MATCHES [[\.([a-zA-Z0-9]+)$]])
   set(pybind11_VERSION_TYPE "${CMAKE_MATCH_1}")
 endif()
+
 string(REGEX MATCH "^[0-9]+" PYBIND11_VERSION_PATCH "${PYBIND11_VERSION_PATCH}")
 
 project(
@@ -52,7 +53,7 @@ endif()
 
 # Check if pybind11 is being used directly or via add_subdirectory
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-  ### Warn if not an out-of-source builds
+  # Warn if not an out-of-source builds
   if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(lines
         "You are building in-place. If that is not what you intended to "
@@ -129,6 +130,10 @@ set(PYBIND11_HEADERS
     include/pybind11/eigen/matrix.h
     include/pybind11/eigen/tensor.h
     include/pybind11/embed.h
+    include/pybind11/detail/function_record.h
+    include/pybind11/detail/internal_pytypes.h
+    include/pybind11/detail/vendor/optional.h
+    include/pybind11/detail/python_compat.h
     include/pybind11/eval.h
     include/pybind11/gil.h
     include/pybind11/iostream.h
@@ -152,9 +157,11 @@ if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)
   set(_pybind11_disk_only ${_pybind11_header_check})
   list(REMOVE_ITEM _pybind11_here_only ${_pybind11_header_check})
   list(REMOVE_ITEM _pybind11_disk_only ${PYBIND11_HEADERS})
+
   if(_pybind11_here_only)
     message(AUTHOR_WARNING "PYBIND11_HEADERS has extra files:" ${_pybind11_here_only})
   endif()
+
   if(_pybind11_disk_only)
     message(AUTHOR_WARNING "PYBIND11_HEADERS is missing files:" ${_pybind11_disk_only})
   endif()
@@ -196,6 +203,7 @@ if(NOT TARGET pybind11_headers)
 
   target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
                                                      cxx_right_angle_brackets)
+
   if(NOT "${PYBIND11_INTERNALS_VERSION}" STREQUAL "")
     target_compile_definitions(
       pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")
@@ -206,6 +214,7 @@ else()
 endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
+
 # https://github.com/jtojnar/cmake-snips/#concatenating-paths-when-building-pkg-config-files
 # TODO: cmake 3.20 adds the cmake_path() function, which obsoletes this snippet
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/JoinPaths.cmake")
@@ -277,6 +286,7 @@ if(PYBIND11_INSTALL)
   if(NOT prefix_for_pc_file)
     set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
   endif()
+
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
                  "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)

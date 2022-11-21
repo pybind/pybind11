@@ -75,8 +75,6 @@ def test_multiple_inheritance_python():
     class MI4(MI3, m.Base2):
         def __init__(self, i, j):
             MI3.__init__(self, i, j)
-            # This should be ignored (Base2 is already initialized via MI2):
-            m.Base2.__init__(self, i + 100)
 
     class MI5(m.Base2, B1, m.Base1):
         def __init__(self, i, j):
