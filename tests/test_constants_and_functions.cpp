@@ -53,8 +53,8 @@ int f1(int x) noexcept { return x + 1; }
 int f2(int x) noexcept(true) { return x + 2; }
 int f3(int x) noexcept(false) { return x + 3; }
 PYBIND11_WARNING_PUSH
-PYBIND11_DISABLE_WARNING_GCC("-Wdeprecated")
-PYBIND11_DISABLE_WARNING_CLANG("-Wdeprecated")
+PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
+PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
 // NOLINTNEXTLINE(modernize-use-noexcept)
 int f4(int x) throw() { return x + 4; } // Deprecated equivalent to noexcept(true)
 PYBIND11_WARNING_POP
@@ -66,8 +66,8 @@ struct C {
     int m5(int x) noexcept(false) { return x - 5; }
     int m6(int x) const noexcept(false) { return x - 6; }
     PYBIND11_WARNING_PUSH
-    PYBIND11_DISABLE_WARNING_GCC("-Wdeprecated")
-    PYBIND11_DISABLE_WARNING_CLANG("-Wdeprecated")
+    PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
+    PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
     // NOLINTNEXTLINE(modernize-use-noexcept)
     int m7(int x) throw() { return x - 7; }
     // NOLINTNEXTLINE(modernize-use-noexcept)
@@ -122,7 +122,7 @@ TEST_SUBMODULE(constants_and_functions, m) {
     m.def("f2", f2);
 
     PYBIND11_WARNING_PUSH
-    PYBIND11_DISABLE_WARNING_INTEL(878) // incompatible exception specifications
+    PYBIND11_WARNING_DISABLE_INTEL(878) // incompatible exception specifications
     m.def("f3", f3);
     PYBIND11_WARNING_POP
 

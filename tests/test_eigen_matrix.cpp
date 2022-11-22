@@ -13,7 +13,7 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
-PYBIND11_DISABLE_WARNING_MSVC(4996)
+PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #include <Eigen/Cholesky>
 

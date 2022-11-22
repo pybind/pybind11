@@ -36,7 +36,7 @@ static_assert(std::is_signed<Py_intptr_t>::value, "Py_intptr_t must be signed");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-PYBIND11_DISABLE_WARNING_MSVC(4127)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 class array; // Forward declaration
 
@@ -1870,7 +1870,7 @@ private:
 
         PYBIND11_WARNING_PUSH
 #ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
-        PYBIND11_DISABLE_WARNING_CLANG("-Wreturn-std-move")
+        PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
 #endif
 
         if (size == 0) {

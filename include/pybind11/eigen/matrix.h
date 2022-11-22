@@ -17,9 +17,9 @@
        https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
 */
 PYBIND11_WARNING_PUSH
-PYBIND11_DISABLE_WARNING_MSVC(5054) // https://github.com/pybind/pybind11/pull/3741
+PYBIND11_WARNING_DISABLE_MSVC(5054) // https://github.com/pybind/pybind11/pull/3741
 //       C5054: operator '&': deprecated between enumerations of different types
-PYBIND11_DISABLE_WARNING_GCC("-Wmaybe-uninitialized")
+PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
@@ -34,7 +34,7 @@ static_assert(EIGEN_VERSION_AT_LEAST(3, 2, 7),
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-PYBIND11_DISABLE_WARNING_MSVC(4127)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 // Provide a convenience alias for easier pass-by-ref usage with fully dynamic strides:
 using EigenDStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;

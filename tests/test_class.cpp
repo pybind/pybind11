@@ -22,7 +22,7 @@
 
 #include <utility>
 
-PYBIND11_DISABLE_WARNING_MSVC(4324)
+PYBIND11_WARNING_DISABLE_MSVC(4324)
 //     warning C4324: structure was padded due to alignment specifier
 
 // test_brace_initialization

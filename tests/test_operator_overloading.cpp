@@ -139,11 +139,11 @@ std::string abs(const Vector2 &) { return "abs(Vector2)"; }
 // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
 #if defined(__APPLE__) && defined(__clang__)
 #    if (__clang_major__ >= 10)
-PYBIND11_DISABLE_WARNING_CLANG("-Wself-assign-overloaded")
+PYBIND11_WARNING_DISABLE_CLANG("-Wself-assign-overloaded")
 #    endif
 #elif defined(__clang__)
 #    if (__clang_major__ >= 7)
-PYBIND11_DISABLE_WARNING_CLANG("-Wself-assign-overloaded")
+PYBIND11_WARNING_DISABLE_CLANG("-Wself-assign-overloaded")
 #    endif
 #endif
 

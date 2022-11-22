@@ -15,9 +15,9 @@ static_assert(__GNUC__ > 5, "Eigen Tensor support in pybind11 requires GCC > 5.0
 
 // Disable warnings for Eigen
 PYBIND11_WARNING_PUSH
-PYBIND11_DISABLE_WARNING_MSVC(4554)
-PYBIND11_DISABLE_WARNING_MSVC(4127)
-PYBIND11_DISABLE_WARNING_GCC("-Wmaybe-uninitialized")
+PYBIND11_WARNING_DISABLE_MSVC(4554)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
 
 #include <unsupported/Eigen/CXX11/Tensor>
 
@@ -28,7 +28,7 @@ static_assert(EIGEN_VERSION_AT_LEAST(3, 3, 0),
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-PYBIND11_DISABLE_WARNING_MSVC(4127)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -134,7 +134,7 @@ struct get_tensor_descriptor {
 // We need to disable the type-limits warning for the inner loop when size = 0.
 
 PYBIND11_WARNING_PUSH
-PYBIND11_DISABLE_WARNING_GCC("-Wtype-limits")
+PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
 
 template <typename T, int size>
 std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {

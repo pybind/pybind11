@@ -47,7 +47,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         PYBIND11_WARNING_PUSH
 
 #ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
-        PYBIND11_DISABLE_WARNING_CLANG("-Wreturn-std-move")
+        PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
 #endif
         return args;
         PYBIND11_WARNING_POP

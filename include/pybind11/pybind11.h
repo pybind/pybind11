@@ -45,10 +45,10 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
    No other GCC version generates this warning.
  */
 #if defined(__GNUC__) && __GNUC__ == 7
-PYBIND11_DISABLE_WARNING_GCC("-Wnoexcept-type")
+PYBIND11_WARNING_DISABLE_GCC("-Wnoexcept-type")
 #endif
 
-PYBIND11_DISABLE_WARNING_MSVC(4127)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -185,13 +185,13 @@ protected:
             PYBIND11_WARNING_PUSH
 
 #if defined(__GNUG__) && __GNUC__ >= 6
-            PYBIND11_DISABLE_WARNING_GCC("-Wplacement-new")
+            PYBIND11_WARNING_DISABLE_GCC("-Wplacement-new")
 #endif
 
             new ((capture *) &rec->data) capture{std::forward<Func>(f)};
 
 #if !PYBIND11_HAS_STD_LAUNDER
-            PYBIND11_DISABLE_WARNING_GCC("-Wstrict-aliasing")
+            PYBIND11_WARNING_DISABLE_GCC("-Wstrict-aliasing")
 #endif
 
             // UB without std::launder, but without breaking ABI and/or

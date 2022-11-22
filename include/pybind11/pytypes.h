@@ -33,7 +33,7 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-PYBIND11_DISABLE_WARNING_MSVC(4127)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 /* A few forward declarations */
 class handle;
@@ -887,7 +887,7 @@ object object_or_cast(T &&o);
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
 
 PYBIND11_WARNING_PUSH
-PYBIND11_DISABLE_WARNING_MSVC(4522) // warning C4522: multiple assignment operators specified
+PYBIND11_WARNING_DISABLE_MSVC(4522) // warning C4522: multiple assignment operators specified
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;

@@ -74,7 +74,7 @@ PYBIND11_NAMESPACE_END(pybind11)
 
 TEST_SUBMODULE(builtin_casters, m) {
     PYBIND11_WARNING_PUSH
-    PYBIND11_DISABLE_WARNING_MSVC(4127)
+    PYBIND11_WARNING_DISABLE_MSVC(4127)
 
     // test_simple_string
     m.def("string_roundtrip", [](const char *s) { return s; });

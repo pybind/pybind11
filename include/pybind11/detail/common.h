@@ -41,27 +41,27 @@
 #endif
 
 #ifdef PYBIND11_COMPILER_MSVC
-#    define PYBIND11_DISABLE_WARNING_MSVC(name) PYBIND11_PRAGMA(warning(disable : name))
+#    define PYBIND11_WARNING_DISABLE_MSVC(name) PYBIND11_PRAGMA(warning(disable : name))
 #else
-#    define PYBIND11_DISABLE_WARNING_MSVC(name)
+#    define PYBIND11_WARNING_DISABLE_MSVC(name)
 #endif
 
 #ifdef PYBIND11_COMPILER_CLANG
-#    define PYBIND11_DISABLE_WARNING_CLANG(name) PYBIND11_PRAGMA(clang diagnostic ignored name)
+#    define PYBIND11_WARNING_DISABLE_CLANG(name) PYBIND11_PRAGMA(clang diagnostic ignored name)
 #else
-#    define PYBIND11_DISABLE_WARNING_CLANG(name)
+#    define PYBIND11_WARNING_DISABLE_CLANG(name)
 #endif
 
 #ifdef PYBIND11_COMPILER_GCC
-#    define PYBIND11_DISABLE_WARNING_GCC(name) PYBIND11_PRAGMA(GCC diagnostic ignored name)
+#    define PYBIND11_WARNING_DISABLE_GCC(name) PYBIND11_PRAGMA(GCC diagnostic ignored name)
 #else
-#    define PYBIND11_DISABLE_WARNING_GCC(name)
+#    define PYBIND11_WARNING_DISABLE_GCC(name)
 #endif
 
 #ifdef PYBIND11_COMPILER_INTEL
-#    define PYBIND11_DISABLE_WARNING_INTEL(name) PYBIND11_PRAGMA(warning disable name)
+#    define PYBIND11_WARNING_DISABLE_INTEL(name) PYBIND11_PRAGMA(warning disable name)
 #else
-#    define PYBIND11_DISABLE_WARNING_INTEL(name)
+#    define PYBIND11_WARNING_DISABLE_INTEL(name)
 #endif
 
 #define PYBIND11_NAMESPACE_BEGIN(name)                                                            \
@@ -204,7 +204,7 @@
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
 PYBIND11_WARNING_PUSH
-PYBIND11_DISABLE_WARNING_MSVC(4505)
+PYBIND11_WARNING_DISABLE_MSVC(4505)
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
 #    if defined(_DEBUG) && !defined(Py_DEBUG)
 // Workaround for a VS 2022 issue.
