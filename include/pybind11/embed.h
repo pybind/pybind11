@@ -171,9 +171,6 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
                                                           : "Failed to init CPython");
     }
-#    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
-    PyEval_InitThreads();
-#    endif
     if (add_program_dir_to_path) {
         PyRun_SimpleString("import sys, os.path; "
                            "sys.path.insert(0, "
