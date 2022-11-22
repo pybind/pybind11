@@ -168,17 +168,19 @@ TEST_CASE("There can be only one interpreter") {
     py::initialize_interpreter();
 }
 
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 TEST_CASE("Custom PyConfig") {
     py::finalize_interpreter();
-    pybind11::scoped_config conf{};
-    PyConfig_InitPythonConfig(&conf.config);
-    REQUIRE_NOTHROW(py::scoped_interpreter{conf.config});
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+    REQUIRE_NOTHROW(py::scoped_interpreter{&config});
     {
-        py::scoped_interpreter p{conf.config};
+        py::scoped_interpreter p{&config};
         REQUIRE(py::module_::import("widget_module").attr("add")(1, 41).cast<int>() == 42);
     }
     py::initialize_interpreter();
 }
+#endif
 
 bool has_pybind11_internals_builtin() {
     auto builtins = py::handle(PyEval_GetBuiltins());
