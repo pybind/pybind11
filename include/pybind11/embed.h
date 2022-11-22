@@ -98,8 +98,7 @@ inline void initialize_interpreter(PyConfig *config,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    PyStatus status
-        = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
+    PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
     if (PyStatus_Exception(status)) {
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
@@ -123,9 +122,9 @@ inline void initialize_interpreter(PyConfig *config,
 }
 #else
 inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
-                                           int argc,
-                                           const char *const *argv,
-                                           bool add_program_dir_to_path) {
+                                                int argc,
+                                                const char *const *argv,
+                                                bool add_program_dir_to_path) {
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 #    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
     PyEval_InitThreads();
@@ -189,7 +188,8 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    bool add_program_dir_to_path = true) {
     detail::precheck_interpreter();
 #if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
-    detail::initialize_interpreter_pre_pyconfig(init_signal_handlers, argc, argv, add_program_dir_to_path);
+    detail::initialize_interpreter_pre_pyconfig(
+        init_signal_handlers, argc, argv, add_program_dir_to_path);
 #else
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
