@@ -692,6 +692,15 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
          mapped_type_descr = detail::make_caster<MappedType>::name;
     std::string key_type_name(key_type_descr.text), mapped_type_name(mapped_type_descr.text);
 
+    // If key type isn't properly wrapped, fall back to C++ names
+    if (key_type_name == "%") {
+        key_type_name = type_id<KeyType>();
+    }
+    // Similarly for value type:
+    if (mapped_type_name == "%") {
+        mapped_type_name = type_id<MappedType>();
+    }
+
     // Wrap KeysView[KeyType] if it wasn't already wrapped
     if (!detail::get_type_info(typeid(KeysView))) {
         class_<KeysView> keys_view(
