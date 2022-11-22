@@ -99,18 +99,18 @@ inline void initialize_interpreter(PyConfig *config,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
     PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
-    if (PyStatus_Exception(status)) {
+    if (PyStatus_Exception(status) != 0) {
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
         PyConfig_Clear(config);
-        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
-                                                          : "Failed to prepare CPython");
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to prepare CPython");
     }
     status = Py_InitializeFromConfig(config);
-    if (PyStatus_Exception(status)) {
+    if (PyStatus_Exception(status) != 0) {
         PyConfig_Clear(config);
-        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
-                                                          : "Failed to init CPython");
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to init CPython");
     }
     if (add_program_dir_to_path) {
         PyRun_SimpleString("import sys, os.path; "
