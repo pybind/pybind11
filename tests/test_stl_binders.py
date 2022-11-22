@@ -309,3 +309,25 @@ def test_map_delitem():
     del um["ua"]
     assert sorted(list(um)) == ["ub"]
     assert sorted(list(um.items())) == [("ub", 2.6)]
+
+
+def test_map_view_types():
+    map_string_double = m.MapStringDouble()
+    unordered_map_string_double = m.UnorderedMapStringDouble()
+    map_string_double_const = m.MapStringDoubleConst()
+    unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
+
+    keys_type = type(map_string_double.keys())
+    assert isinstance(unordered_map_string_double.keys(), keys_type)
+    assert isinstance(map_string_double_const.keys(), keys_type)
+    assert isinstance(unordered_map_string_double_const.keys(), keys_type)
+
+    values_type = type(map_string_double.values())
+    assert isinstance(unordered_map_string_double.values(), values_type)
+    assert isinstance(map_string_double_const.values(), values_type)
+    assert isinstance(unordered_map_string_double_const.values(), values_type)
+
+    items_type = type(map_string_double.items())
+    assert isinstance(unordered_map_string_double.items(), items_type)
+    assert isinstance(map_string_double_const.items(), items_type)
+    assert isinstance(unordered_map_string_double_const.items(), items_type)
