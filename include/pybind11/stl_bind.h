@@ -668,9 +668,13 @@ template <typename Map, typename holder_type = std::unique_ptr<Map>, typename...
 class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&...args) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
-    using KeysView = detail::keys_view<KeyType>;
-    using ValuesView = detail::values_view<MappedType>;
-    using ItemsView = detail::items_view<KeyType, MappedType>;
+    using StrippedKeyType =
+        typename std::remove_cv<typename std::remove_reference<KeyType>::type>::type;
+    using StrippedMappedType =
+        typename std::remove_cv<typename std::remove_reference<MappedType>::type>::type;
+    using KeysView = detail::keys_view<StrippedKeyType>;
+    using ValuesView = detail::values_view<StrippedMappedType>;
+    using ItemsView = detail::items_view<StrippedKeyType, StrippedMappedType>;
     using Class_ = class_<Map, holder_type>;
 
     // If either type is a non-module-local bound type then make the map binding non-local as well;
