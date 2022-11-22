@@ -93,11 +93,14 @@ inline void precheck_interpreter() {
     }
 }
 
+PYBIND11_NAMESPACE_END(detail)
+
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 inline void initialize_interpreter(PyConfig *config,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
+    detail::precheck_interpreter();
     PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
     if (PyStatus_Exception(status) != 0) {
         // A failure here indicates a character-encoding failure or the python
@@ -125,6 +128,7 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
                                                 int argc,
                                                 const char *const *argv,
                                                 bool add_program_dir_to_path) {
+    detail::precheck_interpreter();
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 #    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
     PyEval_InitThreads();
@@ -161,8 +165,6 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
 }
 #endif
 
-PYBIND11_NAMESPACE_END(detail)
-
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
@@ -186,17 +188,15 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    detail::precheck_interpreter();
 #if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
-    detail::initialize_interpreter_pre_pyconfig(
-        init_signal_handlers, argc, argv, add_program_dir_to_path);
+    initialize_interpreter_pre_pyconfig(init_signal_handlers, argc, argv, add_program_dir_to_path);
 #else
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
     config.isolated = 0;
     config.use_environment = 1;
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
-    detail::initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
+    initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
 #endif
 }
 
@@ -289,8 +289,7 @@ public:
                                 int argc = 0,
                                 const char *const *argv = nullptr,
                                 bool add_program_dir_to_path = true) {
-        detail::precheck_interpreter();
-        detail::initialize_interpreter(config, argc, argv, add_program_dir_to_path);
+        initialize_interpreter(config, argc, argv, add_program_dir_to_path);
     }
 #endif
 
