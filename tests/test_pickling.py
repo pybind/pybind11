@@ -10,11 +10,19 @@ from pybind11_tests import pickling as m
 def test_pickle_simple_callable():
     assert m.simple_callable() == 20220426
 
-    # To document broken behavior: currently it fails universally with
-    # all C Python versions.
-    with pytest.raises(TypeError) as excinfo:
-        pickle.dumps(m.simple_callable)
-    assert re.search("can.*t pickle '?pybind11_function'? object", str(excinfo.value))
+    if env.PYPY:
+        # To document broken behavior: currently it fails universally with
+        # all C Python versions.
+        with pytest.raises(pickle.PicklingError) as excinfo:
+            pickle.dumps(m.simple_callable)
+        assert re.search("Can.*t pickle .*pybind11_function.*", str(excinfo.value))
+
+    else:
+        # To document broken behavior: currently it fails universally with
+        # all C Python versions.
+        with pytest.raises(TypeError) as excinfo:
+            pickle.dumps(m.simple_callable)
+        assert re.search("can.*t pickle '?pybind11_function'? object", str(excinfo.value))
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])

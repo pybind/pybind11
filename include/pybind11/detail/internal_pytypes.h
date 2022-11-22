@@ -39,12 +39,12 @@ using pybind_function_ptr
 
 // The definition of the PyObject pybind_function
 struct pybind_function {
-    PyObject_HEAD
+    PyObject_VAR_HEAD
 
-    // We construct a pybind_function for a target Functor by taking in the arguments directly
-    // This lets us emplace the Functor directly within the pybind_function's storage
-    template <typename Functor, typename... Args>
-    explicit pybind_function(Functor *, Args &&...args) {
+        // We construct a pybind_function for a target Functor by taking in the arguments directly
+        // This lets us emplace the Functor directly within the pybind_function's storage
+        template <typename Functor, typename... Args>
+        explicit pybind_function(Functor *, Args &&...args) {
         using TypeToStore = typename std::remove_reference<Functor>::type;
 
         // Construct the target Functor within the pybind_function
@@ -82,18 +82,32 @@ struct pybind_function {
         };
 
         // A vectorcall implementation for that Functor
-        // Same as above, but wish exception handling
+        // Same as above, but with exception handling
         vectorcall = [](PyObject *self_ptr,
                         PyObject *const *args,
                         size_t nargs_with_flag,
                         PyObject *kwnames) -> PyObject * {
             assert(PyObject_TypeCheck(self_ptr, pybind_function_type()));
 
-            return handle_exception([&]() {
+            return handle_exception([&]() -> PyObject * {
                 pybind_function *func = (pybind_function *) self_ptr;
+                std::string n = func->name;
                 TypeToStore *functor = (TypeToStore *) func->data;
                 size_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
+                if (n == "foo_helper3") {
+                    std::cout << "Don't even call it!" << std::endl;
+
+                    PyErr_SetString(PyExc_SystemError, "Double fancy exception for foo");
+                    return nullptr;
+                }
                 auto result = (*functor)(args, nargs, kwnames, false);
+
+                if (n == "foo" || n == "foo_static" || n == "foo_helper" || n == "foo_helper2") {
+                    std::cout << "Calling method " << func->name << std::endl;
+
+                    PyErr_SetString(PyExc_SystemError, "Fancy exception for foo");
+                    return nullptr;
+                }
 
                 if (!result) {
                     return raise_type_error(&func, 1, args, nargs, kwnames);

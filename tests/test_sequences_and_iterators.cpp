@@ -42,6 +42,64 @@ bool operator==(const NonZeroIterator<std::pair<A, B>> &it, const NonZeroSentine
     return !(*it).first || !(*it).second;
 }
 
+struct custom_function {
+    PyObject_HEAD
+    const char *name = "custom_func";
+    const char *doc = "custom_func_doc";
+    const char *module = "custom_func_module";
+};
+
+struct custom_function_type {
+    PyTypeObject type;
+    std::array<PyMemberDef, 4> members;
+
+    custom_function_type() {
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+        type = {PyVarObject_HEAD_INIT(&PyType_Type, 0)};
+        PyMemberDef name_def = {const_cast<char *>("__name__"),
+                                T_STRING,
+                                static_cast<Py_ssize_t>(offsetof(custom_function, name))};
+        PyMemberDef doc_def = {const_cast<char *>("__doc__"),
+                               T_STRING,
+                               static_cast<Py_ssize_t>(offsetof(custom_function, doc))};
+        PyMemberDef module_def = {const_cast<char *>("__module__"),
+                                  T_STRING,
+                                  static_cast<Py_ssize_t>(offsetof(custom_function, module))};
+        PyMemberDef null_def = {nullptr};
+
+        members[0] = name_def;
+        members[1] = doc_def;
+        members[2] = module_def;
+        members[3] = null_def;
+
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
+#    pragma GCC diagnostic pop
+#endif
+        type.tp_getattro = PyObject_GenericGetAttr;
+        type.tp_name = "cusotm_function";
+        type.tp_basicsize = sizeof(custom_function);
+        type.tp_members = members.data();
+        type.tp_call = [](PyObject *self, PyObject *args, PyObject *kwargs) -> PyObject * {
+            std::cout << "Calling custom function with except" << std::endl;
+
+            PyErr_SetString(PyExc_SystemError, "Fancier exception for custom fancy func");
+            return nullptr;
+
+            return PyLong_FromLong(34);
+        };
+
+        type.tp_flags = Py_TPFLAGS_DEFAULT;
+
+        int ret = PyType_Ready(&type);
+        if (ret != 0) {
+            py::pybind11_fail("Could not create pybind_function type");
+        }
+    }
+};
+
 /* Iterator where dereferencing returns prvalues instead of references. */
 template <typename T>
 class NonRefIterator {
@@ -257,6 +315,75 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         size_t m_size;
         float *m_data;
     };
+
+    class Simpler {
+    public:
+        Simpler(size_t v) : val(v) {}
+
+        size_t get_val() const { return val; }
+
+    private:
+        size_t val;
+    };
+
+    {
+
+        PyCFunction func = [](PyObject *, PyObject *) -> PyObject * {
+            std::cout << "Calling the simple func" << std::endl;
+
+            return PyLong_FromLong(34);
+        };
+
+        auto def = new PyMethodDef();
+        std::memset(def, 0, sizeof(PyMethodDef));
+        def->ml_name = "testing_no_except";
+        def->ml_meth = func;
+        def->ml_flags = METH_VARARGS;
+
+        PyObject *m_ptr = PyCFunction_NewEx(def, nullptr, nullptr);
+        m.add_object("simple_func", m_ptr);
+    }
+
+    {
+
+        PyCFunction func = [](PyObject *, PyObject *) -> PyObject * {
+            std::cout << "Calling the fancy func" << std::endl;
+
+            PyErr_SetString(PyExc_SystemError, "Fancy exception for fancy func");
+            return nullptr;
+        };
+
+        auto def = new PyMethodDef();
+        std::memset(def, 0, sizeof(PyMethodDef));
+        def->ml_name = "testing_except";
+        def->ml_meth = func;
+        def->ml_flags = METH_VARARGS;
+
+        PyObject *m_ptr = PyCFunction_NewEx(def, nullptr, nullptr);
+        m.add_object("fancy_func", m_ptr);
+    }
+
+    {
+        custom_function_type *t = new custom_function_type();
+        PyObject *om = (PyObject *) PyObject_New(custom_function, (PyTypeObject *) t);
+
+        m.add_object("custom_fancy_func", om);
+    }
+
+    m.add_object("simple_val", py::cast(3));
+
+    m.def("foo_helper", [](const Simpler &s) {
+        std::cout << "Calling simpler helper " << s.get_val() << std::endl;
+    });
+    m.def("foo_helper2",
+          [](const py::handle &s) { std::cout << "Calling simpler helper2 " << std::endl; });
+    m.def("foo_helper3",
+          [](const py::handle &s) { std::cout << "Calling simpler helper3 " << std::endl; });
+    m.def("foo_helper_no_except", [](const py::object &s) {
+        std::cout << "Calling simpler helper no except " << std::endl;
+    });
+    py::class_<Simpler>(m, "Simpler").def(py::init<size_t>());
+
     py::class_<Sequence>(m, "Sequence")
         .def(py::init<size_t>())
         .def(py::init<const std::vector<float> &>())
@@ -312,6 +439,11 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
                      start += step;
                  }
              })
+        .def("foo",
+             [](Sequence &s) -> void { std::cout << "Calling it " << s.size() << std::endl; })
+        .def_static(
+            "foo_static",
+            [](Sequence &s) -> void { std::cout << "Calling static " << s.size() << std::endl; })
         /// Comparisons
         .def(py::self == py::self)
         .def(py::self != py::self)

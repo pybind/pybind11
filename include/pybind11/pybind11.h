@@ -19,6 +19,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <new>
 #include <string>
@@ -1259,6 +1260,16 @@ struct iterator_state {
     Iterator it;
     Sentinel end;
     bool first_or_done;
+    iterator_state(Iterator i, Sentinel e, bool f) : it(i), end(e), first_or_done(f) {
+        std::cout << "Creating iterator ... " << this << std::endl;
+    }
+
+    iterator_state(const iterator_state &other)
+        : it(other.it), end(other.end), first_or_done(other.first_or_done) {
+        std::cout << "Creating copy of iterator " << this << std::endl;
+    }
+
+    ~iterator_state() { std::cout << "Destroying iterator ... " << this << std::endl; }
 };
 
 // Note: these helpers take the iterator by non-const reference because some
@@ -1339,7 +1350,8 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
                 Policy);
     }
 
-    return cast(state{first, last, true});
+    iterator result = cast(state{first, last, true});
+    return result;
 }
 
 PYBIND11_NAMESPACE_END(detail)
@@ -1576,6 +1588,9 @@ inline PyObject *handle_exception(const F &f) {
         exception.
         */
 
+        PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
+        return nullptr;
+
         auto &local_exception_translators = get_local_internals().registered_exception_translators;
         if (apply_exception_translators(local_exception_translators)) {
             return nullptr;
@@ -1584,8 +1599,6 @@ inline PyObject *handle_exception(const F &f) {
         if (apply_exception_translators(exception_translators)) {
             return nullptr;
         }
-
-        PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
         return nullptr;
     }
 }

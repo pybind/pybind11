@@ -1,5 +1,9 @@
 import pytest
+import inspect
 from pytest import approx
+import gc
+import weakref
+import sys
 
 from pybind11_tests import ConstructorStats
 from pybind11_tests import sequences_and_iterators as m
@@ -94,6 +98,95 @@ def test_sliceable():
     assert sliceable[50:60:1] == (50, 60, 1)
     assert sliceable[50:60:-1] == (50, 60, -1)
 
+counter = None
+
+class NobodyCares:
+    def __init__(self):
+        print("Constructing it!")
+        self.x = 3
+
+    def foo(self):
+        raise RuntimeError("This is really bad")
+
+    def blah(self):
+        print("Got it!")
+
+    def __del__(self):
+        print("This has been deleted")
+
+def test_sequence_simpler2():
+    global counter
+    counter = 0
+    it = NobodyCares()
+    def done(b):
+        print("Deleted the it?")
+    a = weakref.ref(it, done)
+    try:
+        it.foo()
+    except Exception as e:
+        print("Got exception ", e)
+        del e
+    assert counter == 1
+    print_ref(a)
+    del it
+    gc.collect()
+    assert counter == 0
+
+def print_ref(it):
+    item = it()
+    if item is None:
+        return
+    referrers = gc.get_referrers(it())
+    print("referrers: ")
+    for referrer in referrers:
+        print(referrer)
+
+def python_dummy(a):
+    print("Calling dummy")
+    raise RuntimeError("Shoot")
+
+class PythonDummyCall:
+    def __init__(self):
+        pass
+
+    def __call__(self, a):
+        print("Calling dummy class", a)
+        raise RuntimeError("Shot")
+
+def h(it):
+    try:
+        print("Try")
+        if False:
+            m.foo_helper3(it)
+        elif False:
+            print(m.custom_fancy_func(it))
+    except Exception as e:
+        print("Got exception ", e)
+        del e
+
+def test_sequence_simpler():
+    print(m.simple_val)
+    # it = m.Simpler(1)
+    it = NobodyCares()
+    def done(b):
+        print("Deleted the it?")
+    a = weakref.ref(it, done)
+
+    f = PythonDummyCall()
+    h(it)
+    assert a() is not None
+    for _ in range(10):
+        gc.collect()
+    print_ref(a)
+    del it
+    for _ in range(10):
+        gc.collect()
+    print(a)
+    print("Getting refs")
+    print_ref(a)
+    for _ in range(10):
+        gc.collect()
+    assert a() is None
 
 def test_sequence():
     cstats = ConstructorStats.get(m.Sequence)
