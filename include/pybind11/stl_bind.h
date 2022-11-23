@@ -662,8 +662,8 @@ struct items_view {
     virtual ~items_view() = default;
 };
 
-template <typename Map>
-struct KeysViewImpl : public keys_view<typename Map::key_type> {
+template <typename Map, typename KeysView>
+struct KeysViewImpl : public KeysView {
     explicit KeysViewImpl(Map &map) : map(map) {}
     size_t __len__() override { return map.size(); }
     iterator __iter__() override { return make_key_iterator(map.begin(), map.end()); }
@@ -678,16 +678,16 @@ struct KeysViewImpl : public keys_view<typename Map::key_type> {
     Map &map;
 };
 
-template <typename Map>
-struct ValuesViewImpl : public values_view<typename Map::mapped_type> {
+template <typename Map, typename ValuesView>
+struct ValuesViewImpl : public ValuesView {
     explicit ValuesViewImpl(Map &map) : map(map) {}
     size_t __len__() override { return map.size(); }
     iterator __iter__() override { return make_value_iterator(map.begin(), map.end()); }
     Map &map;
 };
 
-template <typename Map>
-struct ItemsViewImpl : public items_view<typename Map::key_type, typename Map::mapped_type> {
+template <typename Map, typename ItemsView>
+struct ItemsViewImpl : public ItemsView {
     explicit ItemsViewImpl(Map &map) : map(map) {}
     size_t __len__() override { return map.size(); }
     iterator __iter__() override { return make_iterator(map.begin(), map.end()); }
@@ -763,7 +763,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     if (!detail::get_type_info(typeid(ItemsView))) {
         class_<ItemsView> items_view(
             scope,
-            ("ItemsView[" + key_type_name + ", " + mapped_type_name + "]").c_str(),
+            ("ItemsView[" + key_type_name + ", ").append(mapped_type_name + "]").c_str(),
             pybind11::module_local(local));
         items_view.def("__len__", &ItemsView::__len__);
         items_view.def("__iter__",
@@ -790,19 +790,25 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
 
     cl.def(
         "keys",
-        [](Map &m) { return std::unique_ptr<KeysView>(new detail::KeysViewImpl<Map>(m)); },
+        [](Map &m) {
+            return std::unique_ptr<KeysView>(new detail::KeysViewImpl<Map, KeysView>(m));
+        },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
     cl.def(
         "values",
-        [](Map &m) { return std::unique_ptr<ValuesView>(new detail::ValuesViewImpl<Map>(m)); },
+        [](Map &m) {
+            return std::unique_ptr<ValuesView>(new detail::ValuesViewImpl<Map, ValuesView>(m));
+        },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
     cl.def(
         "items",
-        [](Map &m) { return std::unique_ptr<ItemsView>(new detail::ItemsViewImpl<Map>(m)); },
+        [](Map &m) {
+            return std::unique_ptr<ItemsView>(new detail::ItemsViewImpl<Map, ItemsView>(m));
+        },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
