@@ -720,8 +720,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     }
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
-    static constexpr auto key_type_descr = detail::make_caster<KeyType>::name;
-    static constexpr auto mapped_type_descr = detail::make_caster<MappedType>::name;
+    auto key_type_descr = detail::make_caster<KeyType>::name;
+    auto mapped_type_descr = detail::make_caster<MappedType>::name;
     std::string key_type_name(key_type_descr.text), mapped_type_name(mapped_type_descr.text);
 
     // If key type isn't properly wrapped, fall back to C++ names
