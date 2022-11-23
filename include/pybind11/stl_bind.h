@@ -662,6 +662,38 @@ struct items_view {
     virtual ~items_view() = default;
 };
 
+template <typename Map>
+struct KeysViewImpl : public keys_view<typename Map::key_type> {
+    explicit KeysViewImpl(Map &map) : map(map) {}
+    size_t __len__() override { return map.size(); }
+    iterator __iter__() override { return make_key_iterator(map.begin(), map.end()); }
+    bool __contains__(const typename Map::key_type &k) override {
+        auto it = map.find(k);
+        if (it == map.end()) {
+            return false;
+        }
+        return true;
+    }
+    bool __contains__(const object &) override { return false; }
+    Map &map;
+};
+
+template <typename Map>
+struct ValuesViewImpl : public values_view<typename Map::mapped_type> {
+    explicit ValuesViewImpl(Map &map) : map(map) {}
+    size_t __len__() override { return map.size(); }
+    iterator __iter__() override { return make_value_iterator(map.begin(), map.end()); }
+    Map &map;
+};
+
+template <typename Map>
+struct ItemsViewImpl : public items_view<typename Map::key_type, typename Map::mapped_type> {
+    explicit ItemsViewImpl(Map &map) : map(map) {}
+    size_t __len__() override { return map.size(); }
+    iterator __iter__() override { return make_iterator(map.begin(), map.end()); }
+    Map &map;
+};
+
 PYBIND11_NAMESPACE_END(detail)
 
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
@@ -688,8 +720,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     }
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
-    auto key_type_descr = detail::make_caster<KeyType>::name;
-    auto mapped_type_descr = detail::make_caster<MappedType>::name;
+    static constexpr auto key_type_descr = detail::make_caster<KeyType>::name;
+    static constexpr auto mapped_type_descr = detail::make_caster<MappedType>::name;
     std::string key_type_name(key_type_descr.text), mapped_type_name(mapped_type_descr.text);
 
     // If key type isn't properly wrapped, fall back to C++ names
@@ -758,53 +790,19 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
 
     cl.def(
         "keys",
-        [](Map &m) {
-            struct KeysViewImpl : public KeysView {
-                Map &map;
-                explicit KeysViewImpl(Map &map) : map(map) {}
-                size_t __len__() override { return map.size(); }
-                iterator __iter__() override { return make_key_iterator(map.begin(), map.end()); }
-                bool __contains__(const KeyType &k) override {
-                    auto it = map.find(k);
-                    if (it == map.end()) {
-                        return false;
-                    }
-                    return true;
-                }
-                bool __contains__(const object &) override { return false; }
-            };
-            return std::unique_ptr<KeysView>(new KeysViewImpl(m));
-        },
+        [](Map &m) { return std::unique_ptr<KeysView>(new detail::KeysViewImpl<Map>(m)); },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
     cl.def(
         "values",
-        [](Map &m) {
-            struct ValuesViewImpl : public ValuesView {
-                Map &map;
-                explicit ValuesViewImpl(Map &map) : map(map) {}
-                size_t __len__() override { return map.size(); }
-                iterator __iter__() override {
-                    return make_value_iterator(map.begin(), map.end());
-                }
-            };
-            return std::unique_ptr<ValuesView>(new ValuesViewImpl(m));
-        },
+        [](Map &m) { return std::unique_ptr<ValuesView>(new detail::ValuesViewImpl<Map>(m)); },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
     cl.def(
         "items",
-        [](Map &m) {
-            struct ItemsViewImpl : public ItemsView {
-                Map &map;
-                explicit ItemsViewImpl(Map &map) : map(map) {}
-                size_t __len__() override { return map.size(); }
-                iterator __iter__() override { return make_iterator(map.begin(), map.end()); }
-            };
-            return std::unique_ptr<ItemsView>(new ItemsViewImpl(m));
-        },
+        [](Map &m) { return std::unique_ptr<ItemsView>(new detail::ItemsViewImpl<Map>(m)); },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
