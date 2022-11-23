@@ -55,7 +55,6 @@
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(pybind11_init_impl_, name));                     \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
                                                & variable) // NOLINT(bugprone-macro-parentheses)
-#define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX (0x03080000)
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -93,37 +92,11 @@ inline void precheck_interpreter() {
     }
 }
 
-PYBIND11_NAMESPACE_END(detail)
+#if !defined(PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX)
+#    define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX (0x03080000)
+#endif
 
-#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
-inline void initialize_interpreter(PyConfig *config,
-                                   int argc = 0,
-                                   const char *const *argv = nullptr,
-                                   bool add_program_dir_to_path = true) {
-    detail::precheck_interpreter();
-    PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
-    if (PyStatus_Exception(status) != 0) {
-        // A failure here indicates a character-encoding failure or the python
-        // interpreter out of memory. Give up.
-        PyConfig_Clear(config);
-        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
-                                                               : "Failed to prepare CPython");
-    }
-    status = Py_InitializeFromConfig(config);
-    if (PyStatus_Exception(status) != 0) {
-        PyConfig_Clear(config);
-        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
-                                                               : "Failed to init CPython");
-    }
-    if (add_program_dir_to_path) {
-        PyRun_SimpleString("import sys, os.path; "
-                           "sys.path.insert(0, "
-                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
-                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
-    }
-    PyConfig_Clear(config);
-}
-#else
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
                                                 int argc,
                                                 const char *const *argv,
@@ -165,6 +138,38 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
 }
 #endif
 
+PYBIND11_NAMESPACE_END(detail)
+
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+inline void initialize_interpreter(PyConfig *config,
+                                   int argc = 0,
+                                   const char *const *argv = nullptr,
+                                   bool add_program_dir_to_path = true) {
+    detail::precheck_interpreter();
+    PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
+    if (PyStatus_Exception(status) != 0) {
+        // A failure here indicates a character-encoding failure or the python
+        // interpreter out of memory. Give up.
+        PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to prepare CPython");
+    }
+    status = Py_InitializeFromConfig(config);
+    if (PyStatus_Exception(status) != 0) {
+        PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to init CPython");
+    }
+    if (add_program_dir_to_path) {
+        PyRun_SimpleString("import sys, os.path; "
+                           "sys.path.insert(0, "
+                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
+                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
+    }
+    PyConfig_Clear(config);
+}
+#endif
+
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
@@ -189,7 +194,8 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
 #if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
-    initialize_interpreter_pre_pyconfig(init_signal_handlers, argc, argv, add_program_dir_to_path);
+    detail::initialize_interpreter_pre_pyconfig(
+        init_signal_handlers, argc, argv, add_program_dir_to_path);
 #else
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
