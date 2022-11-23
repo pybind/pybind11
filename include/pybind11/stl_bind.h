@@ -761,17 +761,17 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m) {
             struct KeysViewImpl : public KeysView {
                 Map &map;
-                KeysViewImpl(Map &map) : map(map) {}
-                size_t __len__() { return map.size(); }
-                iterator __iter__() { return make_key_iterator(map.begin(), map.end()); }
-                bool __contains__(const KeyType &k) {
+                explicit KeysViewImpl(Map &map) : map(map) {}
+                size_t __len__() override { return map.size(); }
+                iterator __iter__() override { return make_key_iterator(map.begin(), map.end()); }
+                bool __contains__(const KeyType &k) override {
                     auto it = map.find(k);
                     if (it == map.end()) {
                         return false;
                     }
                     return true;
                 }
-                bool __contains__(const object &) { return false; }
+                bool __contains__(const object &) override { return false; }
             };
             return std::unique_ptr<KeysView>(new KeysViewImpl(m));
         },
@@ -783,9 +783,11 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m) {
             struct ValuesViewImpl : public ValuesView {
                 Map &map;
-                ValuesViewImpl(Map &map) : map(map) {}
-                size_t __len__() { return map.size(); }
-                iterator __iter__() { return make_value_iterator(map.begin(), map.end()); }
+                explicit ValuesViewImpl(Map &map) : map(map) {}
+                size_t __len__() override { return map.size(); }
+                iterator __iter__() override {
+                    return make_value_iterator(map.begin(), map.end());
+                }
             };
             return std::unique_ptr<ValuesView>(new ValuesViewImpl(m));
         },
@@ -797,9 +799,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m) {
             struct ItemsViewImpl : public ItemsView {
                 Map &map;
-                ItemsViewImpl(Map &map) : map(map) {}
-                size_t __len__() { return map.size(); }
-                iterator __iter__() { return make_iterator(map.begin(), map.end()); }
+                explicit ItemsViewImpl(Map &map) : map(map) {}
+                size_t __len__() override { return map.size(); }
+                iterator __iter__() override { return make_iterator(map.begin(), map.end()); }
             };
             return std::unique_ptr<ItemsView>(new ItemsViewImpl(m));
         },
