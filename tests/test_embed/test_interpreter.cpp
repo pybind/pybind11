@@ -196,7 +196,6 @@ TEST_CASE("Custom PyConfig with argv") {
         REQUIRE(cpp_widget.argv0() == "");
     }
     py::initialize_interpreter();
-
 }
 
 TEST_CASE("Add program dir to path") {
