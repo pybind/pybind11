@@ -727,7 +727,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     // If key type isn't properly wrapped, fall back to C++ names
     if (key_type_name == "%") {
         if (auto *key_info = detail::get_type_info(typeid(KeyType))) {
-            handle th((PyObject *) tinfo->type);
+            handle th((PyObject *) key_info->type);
             key_type_name = th.attr("__module__").cast<std::string>() + "."
                             + th.attr("__qualname__").cast<std::string>();
         } else {
@@ -737,7 +737,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     // Similarly for value type:
     if (mapped_type_name == "%") {
         if (auto *mapped_info = detail::get_type_info(typeid(MappedType))) {
-            handle th((PyObject *) tinfo->type);
+            handle th((PyObject *) mapped_info->type);
             mapped_type_name = th.attr("__module__").cast<std::string>() + "."
                                + th.attr("__qualname__").cast<std::string>();
         } else {
