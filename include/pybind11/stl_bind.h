@@ -726,11 +726,23 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
 
     // If key type isn't properly wrapped, fall back to C++ names
     if (key_type_name == "%") {
-        key_type_name = type_id<KeyType>();
+        if (auto *key_info = detail::get_type_info(typeid(KeyType))) {
+            handle th((PyObject *) tinfo->type);
+            key_type_name = th.attr("__module__").cast<std::string>() + "."
+                            + th.attr("__qualname__").cast<std::string>();
+        } else {
+            key_type_name = type_id<KeyType>();
+        }
     }
     // Similarly for value type:
     if (mapped_type_name == "%") {
-        mapped_type_name = type_id<MappedType>();
+        if (auto *mapped_info = detail::get_type_info(typeid(MappedType))) {
+            handle th((PyObject *) tinfo->type);
+            mapped_type_name = th.attr("__module__").cast<std::string>() + "."
+                               + th.attr("__qualname__").cast<std::string>();
+        } else {
+            mapped_type_name = type_id<MappedType>();
+        }
     }
 
     // Wrap KeysView[KeyType] if it wasn't already wrapped
