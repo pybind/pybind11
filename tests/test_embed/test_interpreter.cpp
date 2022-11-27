@@ -185,18 +185,18 @@ TEST_CASE("Custom PyConfig with argv") {
     py::finalize_interpreter();
     {
         PyConfig config;
-        PyConfig_InitPythonConfig(&config);
-        config.install_signal_handlers = 1;
+        PyConfig_InitIsolatedConfig(&config);
         char *argv[] = {strdup("a.out")};
         py::scoped_interpreter argv_scope{&config, 1, argv};
         std::free(argv[0]);
         auto module = py::module::import("test_interpreter");
         auto py_widget = module.attr("DerivedWidget")("The question");
         const auto &cpp_widget = py_widget.cast<const Widget &>();
-        REQUIRE(cpp_widget.argv0() == "");
+        REQUIRE(cpp_widget.argv0() == "a.out");
     }
     py::initialize_interpreter();
 }
+#endif
 
 TEST_CASE("Add program dir to path") {
     static auto get_sys_path_size = []() -> size_t {
@@ -204,20 +204,25 @@ TEST_CASE("Add program dir to path") {
         return py::len(sys_path);
     };
     py::finalize_interpreter();
-    PyConfig config;
-    PyConfig_InitPythonConfig(&config);
-    size_t sys_path_default_size;
+    size_t sys_path_default_size = 0;
     {
-        py::scoped_interpreter scoped_interp{&config, 0, nullptr, false};
+        py::scoped_interpreter scoped_interp{true, 0, nullptr, false};
         sys_path_default_size = get_sys_path_size();
     }
     {
+        py::scoped_interpreter scoped_interp{}; // expected to append 1 elem to sys.path
+        REQUIRE(get_sys_path_size() == sys_path_default_size + 1);
+    }
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+    {
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
         py::scoped_interpreter scoped_interp{&config}; // expected to append 1 elem to sys.path
         REQUIRE(get_sys_path_size() == sys_path_default_size + 1);
     }
+#endif
     py::initialize_interpreter();
 }
-#endif
 
 bool has_pybind11_internals_builtin() {
     auto builtins = py::handle(PyEval_GetBuiltins());
