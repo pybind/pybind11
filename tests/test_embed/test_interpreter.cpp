@@ -210,15 +210,15 @@ TEST_CASE("Add program dir to path") {
         sys_path_default_size = get_sys_path_size();
     }
     {
-        py::scoped_interpreter scoped_interp{}; // expected to append 1 elem to sys.path
-        REQUIRE(get_sys_path_size() == sys_path_default_size + 1);
+        py::scoped_interpreter scoped_interp{}; // expected to append some to sys.path
+        REQUIRE(get_sys_path_size() > sys_path_default_size);
     }
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
     {
         PyConfig config;
         PyConfig_InitPythonConfig(&config);
-        py::scoped_interpreter scoped_interp{&config}; // expected to append 1 elem to sys.path
-        REQUIRE(get_sys_path_size() == sys_path_default_size + 1);
+        py::scoped_interpreter scoped_interp{&config}; // expected to append some to sys.path
+        REQUIRE(get_sys_path_size() > sys_path_default_size);
     }
 #endif
     py::initialize_interpreter();
