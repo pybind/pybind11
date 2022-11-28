@@ -52,24 +52,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// Apply all the extensions translators from a list
-// Return true if one of the translators completed without raising an exception
-// itself. Return of false indicates that if there are other translators
-// available, they should be tried.
-inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &translators) {
-    auto last_exception = std::current_exception();
-
-    for (auto &translator : translators) {
-        try {
-            translator(last_exception);
-            return true;
-        } catch (...) {
-            last_exception = std::current_exception();
-        }
-    }
-    return false;
-}
-
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
