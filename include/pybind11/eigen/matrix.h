@@ -16,29 +16,15 @@
        https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir
        https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
 */
-// The C4127 suppression was introduced for Eigen 3.4.0. In theory we could
-// make it version specific, or even remove it later, but considering that
-// 1. C4127 is generally far more distracting than useful for modern template code, and
-// 2. we definitely want to ignore any MSVC warnings originating from Eigen code,
-//    it is probably best to keep this around indefinitely.
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4127) // C4127: conditional expression is constant
-#    pragma warning(disable : 5054) // https://github.com/pybind/pybind11/pull/3741
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(5054) // https://github.com/pybind/pybind11/pull/3741
 //       C5054: operator '&': deprecated between enumerations of different types
-#elif defined(__MINGW32__)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
+PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#if defined(_MSC_VER)
-#    pragma warning(pop)
-#elif defined(__MINGW32__)
-#    pragma GCC diagnostic pop
-#endif
+PYBIND11_WARNING_POP
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
 // move constructors that break things.  We could detect this an explicitly copy, but an extra copy
@@ -47,6 +33,8 @@ static_assert(EIGEN_VERSION_AT_LEAST(3, 2, 7),
               "Eigen matrix support in pybind11 requires Eigen >= 3.2.7");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 // Provide a convenience alias for easier pass-by-ref usage with fully dynamic strides:
 using EigenDStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
@@ -189,8 +177,7 @@ struct EigenProps {
             EigenIndex np_rows = a.shape(0), np_cols = a.shape(1),
                        np_rstride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar)),
                        np_cstride = a.strides(1) / static_cast<ssize_t>(sizeof(Scalar));
-            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows)
-                || (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols)) {
+            if ((fixed_rows && np_rows != rows) || (fixed_cols && np_cols != cols)) {
                 return false;
             }
 
@@ -203,7 +190,7 @@ struct EigenProps {
                          stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
 
         if (vector) { // Eigen type is a compile-time vector
-            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n) {
+            if (fixed && size != n) {
                 return false; // Vector size mismatch
             }
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
@@ -220,7 +207,7 @@ struct EigenProps {
             }
             return {1, n, stride};
         } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
-        if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) {
+        if (fixed_rows && rows != n) {
             return false;
         }
         return {n, 1, stride};
