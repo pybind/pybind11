@@ -700,10 +700,8 @@ template <typename Map, typename holder_type = std::unique_ptr<Map>, typename...
 class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&...args) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
-    using StrippedKeyType =
-        typename std::remove_cv<typename std::remove_reference<KeyType>::type>::type;
-    using StrippedMappedType =
-        typename std::remove_cv<typename std::remove_reference<MappedType>::type>::type;
+    using StrippedKeyType = detail::remove_cvref_t<KeyType>;
+    using StrippedMappedType = detail::remove_cvref_t<MappedType>;
     using KeysView = detail::keys_view<StrippedKeyType>;
     using ValuesView = detail::values_view<StrippedMappedType>;
     using ItemsView = detail::items_view<StrippedKeyType, StrippedMappedType>;
