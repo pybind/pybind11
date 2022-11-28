@@ -44,9 +44,6 @@ bool operator==(const NonZeroIterator<std::pair<A, B>> &it, const NonZeroSentine
 
 struct custom_function {
     PyObject_HEAD
-    const char *name = "custom_func";
-    const char *doc = "custom_func_doc";
-    const char *module = "custom_func_module";
 };
 
 struct custom_function_type {
