@@ -248,6 +248,13 @@ def test_throw_nested_exception():
     assert str(excinfo.value.__cause__) == "Inner Exception"
 
 
+def test_throw_custom_nested_exception():
+    with pytest.raises(m.MyException5) as excinfo:
+        m.throw_custom_nested_exception()
+    assert str(excinfo.value) == "Outer Exception"
+    assert str(excinfo.value.__cause__) == "Inner Exception"
+
+
 # This can often happen if you wrap a pybind11 class in a Python wrapper
 def test_invalid_repr():
     class MyRepr:

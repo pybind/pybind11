@@ -2541,7 +2541,9 @@ public:
     }
 
     // Sets the current python exception to this exception object with the given message
-    void operator()(const char *message) { PyErr_SetString(m_ptr, message); }
+    void operator()(const char *message) {
+        detail::raise_err(m_ptr, message);
+    }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2573,6 +2575,8 @@ register_exception_impl(handle scope, const char *name, handle base, bool isLoca
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
+            detail::handle_nested_exception(e, p);
+
             detail::get_exception_object<CppException>()(e.what());
         }
     });

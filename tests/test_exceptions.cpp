@@ -305,6 +305,14 @@ TEST_SUBMODULE(exceptions, m) {
         }
     });
 
+    m.def("throw_custom_nested_exception", []() {
+        try {
+            throw std::runtime_error("Inner Exception");
+        } catch (const std::runtime_error &) {
+            std::throw_with_nested(MyException5("Outer Exception"));
+        }
+    });
+
     m.def("error_already_set_what", [](const py::object &exc_type, const py::object &exc_value) {
         PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
         std::string what = py::error_already_set().what();
