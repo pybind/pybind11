@@ -17,7 +17,16 @@
 // Additional convention: 0xD = dev
 #define PYBIND11_VERSION_HEX 0x020B00D1
 
-// You should never need to push and pop manually as these are done in namespace begin and end
+// Define some generic pybind11 helper macros for warning management.
+//
+// Note that compiler-specific push/pop pairs are baked into the
+// PYBIND11_NAMESPACE_BEGIN/PYBIND11_NAMESPACE_END pair of macros. Therefore manual
+// PYBIND11_WARNING_PUSH/PYBIND11_WARNING_POP are usually only needed in `#include` sections.
+//
+// If you find you need to suppress a warning, please try to make the suppression as local as
+// possible using these macros. Please also be sure to push/pop with the pybind11 macros. Please
+// only use compiler specifics if you need to check specific versions, e.g. Apple Clang vs. vanilla
+// Clang.
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPILER_MSVC
 #    define PYBIND11_PRAGMA(...) __pragma(__VA_ARGS__)
