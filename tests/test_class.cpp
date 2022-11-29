@@ -22,10 +22,8 @@
 
 #include <utility>
 
-#if defined(_MSC_VER)
-#    pragma warning(disable : 4324)
+PYBIND11_WARNING_DISABLE_MSVC(4324)
 //     warning C4324: structure was padded due to alignment specifier
-#endif
 
 // test_brace_initialization
 struct NoBraceInitialization {
