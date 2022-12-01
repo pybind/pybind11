@@ -6,14 +6,14 @@
 
 // The first base class.
 struct Base0 {
-    virtual ~Base0() {}
+    virtual ~Base0() = default;
 };
 
 using Base0Ptr = std::shared_ptr<Base0>;
 
 // The second base class.
 struct Base1 {
-    virtual ~Base1() {}
+    virtual ~Base1() = default;
     std::vector<int> vec = {1, 2, 3, 4, 5};
 };
 
@@ -21,7 +21,7 @@ using Base1Ptr = std::shared_ptr<Base1>;
 
 // The derived class.
 struct Derived : Base1, Base0 {
-    virtual ~Derived() {}
+    ~Derived() override = default;
 };
 
 using DerivedPtr = std::shared_ptr<Derived>;
