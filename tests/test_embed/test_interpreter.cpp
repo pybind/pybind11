@@ -14,6 +14,11 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 namespace py = pybind11;
 using namespace py::literals;
 
+size_t get_sys_path_size() {
+    auto sys_path = py::module::import("sys").attr("path");
+    return py::len(sys_path);
+}
+
 class Widget {
 public:
     explicit Widget(std::string message) : message(std::move(message)) {}
@@ -196,41 +201,39 @@ TEST_CASE("Custom PyConfig with argv") {
 }
 #endif
 
-TEST_CASE("Add program dir to path") {
-    static auto get_sys_path_size = []() -> size_t {
-        auto sys_path = py::module::import("sys").attr("path");
-        return py::len(sys_path);
-    };
-    static auto validate_path_len = [](size_t default_len) {
-#if PY_VERSION_HEX < 0x030A0000
-        // It seems a value remains in sys.path
-        // left by the previous call of scoped_interpreter ctor.
-        REQUIRE(get_sys_path_size() > default_len);
-#else
-        REQUIRE(get_sys_path_size() == default_len + 1);
-#endif
-    };
+TEST_CASE("Add program dir to path pre-PyConfig") {
     py::finalize_interpreter();
-
-    size_t sys_path_default_size = 0;
+    size_t path_size_add_program_dir_to_path_false = 0;
     {
         py::scoped_interpreter scoped_interp{true, 0, nullptr, false};
-        sys_path_default_size = get_sys_path_size();
+        path_size_add_program_dir_to_path_false = get_sys_path_size();
     }
     {
-        py::scoped_interpreter scoped_interp{}; // expected to append some to sys.path
-        validate_path_len(sys_path_default_size);
+        py::scoped_interpreter scoped_interp{};
+        REQUIRE(get_sys_path_size() == path_size_add_program_dir_to_path_false + 1);
     }
+    py::initialize_interpreter();
+}
+
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+TEST_CASE("Add program dir to path using PyConfig") {
+    py::finalize_interpreter();
+    size_t path_size_add_program_dir_to_path_false = 0;
     {
         PyConfig config;
         PyConfig_InitPythonConfig(&config);
-        py::scoped_interpreter scoped_interp{&config}; // expected to append some to sys.path
-        validate_path_len(sys_path_default_size);
+        py::scoped_interpreter scoped_interp{&config, 0, nullptr, false};
+        path_size_add_program_dir_to_path_false = get_sys_path_size();
     }
-#endif
+    {
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+        py::scoped_interpreter scoped_interp{&config};
+        REQUIRE(get_sys_path_size() == path_size_add_program_dir_to_path_false + 1);
+    }
     py::initialize_interpreter();
 }
+#endif
 
 bool has_pybind11_internals_builtin() {
     auto builtins = py::handle(PyEval_GetBuiltins());
