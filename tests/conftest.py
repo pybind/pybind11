@@ -20,15 +20,17 @@ import pybind11_tests
 
 @pytest.fixture(scope="session", autouse=True)
 def always_forkserver_on_unix():
-    if os.name != "nt":
-        # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
-        # In a nutshell: fork() after starting threads == flakiness in the form of deadlocks.
-        # It is actually a well-known pitfall, unfortunately without guard rails.
-        # "forkserver" is more performant than "spawn" (~9s vs ~13s for tests/test_gil_scoped.py,
-        # visit the issuecomment link above for details).
-        # Windows does not have fork() and the associated pitfall, therefore it is best left
-        # running with defaults.
-        multiprocessing.set_start_method("forkserver")
+    if os.name == "nt":
+        return
+
+    # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
+    # In a nutshell: fork() after starting threads == flakiness in the form of deadlocks.
+    # It is actually a well-known pitfall, unfortunately without guard rails.
+    # "forkserver" is more performant than "spawn" (~9s vs ~13s for tests/test_gil_scoped.py,
+    # visit the issuecomment link above for details).
+    # Windows does not have fork() and the associated pitfall, therefore it is best left
+    # running with defaults.
+    multiprocessing.set_start_method("forkserver")
 
 
 _long_marker = re.compile(r"([0-9])L")
