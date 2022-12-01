@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 
+#include "pybind11_tests.h"
+
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -26,7 +28,7 @@ struct Derived : Base1, Base0 {
 
 using DerivedPtr = std::shared_ptr<Derived>;
 
-PYBIND11_MODULE(example, m) {
+TEST_SUBMODULE(mi_debug, m) {
     // Expose the bases.
     pybind11::class_<Base0, Base0Ptr> bs0(m, "Base0");
     pybind11::class_<Base1, Base1Ptr> bs1(m, "Base1");
