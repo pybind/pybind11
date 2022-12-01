@@ -132,22 +132,18 @@ struct hash<HashMe> {
 // Not a good abs function, but easy to test.
 std::string abs(const Vector2 &) { return "abs(Vector2)"; }
 
-// MSVC & Intel warns about unknown pragmas, and warnings are errors.
-#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic push
 // clang 7.0.0 and Apple LLVM 10.0.1 introduce `-Wself-assign-overloaded` to
 // `-Wall`, which is used here for overloading (e.g. `py::self += py::self `).
-// Here, we suppress the warning using `#pragma diagnostic`.
+// Here, we suppress the warning
 // Taken from: https://github.com/RobotLocomotion/drake/commit/aaf84b46
 // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
-#    if defined(__APPLE__) && defined(__clang__)
-#        if (__clang_major__ >= 10)
-#            pragma GCC diagnostic ignored "-Wself-assign-overloaded"
-#        endif
-#    elif defined(__clang__)
-#        if (__clang_major__ >= 7)
-#            pragma GCC diagnostic ignored "-Wself-assign-overloaded"
-#        endif
+#if defined(__APPLE__) && defined(__clang__)
+#    if (__clang_major__ >= 10)
+PYBIND11_WARNING_DISABLE_CLANG("-Wself-assign-overloaded")
+#    endif
+#elif defined(__clang__)
+#    if (__clang_major__ >= 7)
+PYBIND11_WARNING_DISABLE_CLANG("-Wself-assign-overloaded")
 #    endif
 #endif
 
@@ -283,6 +279,3 @@ TEST_SUBMODULE(operators, m) {
 
     m.def("get_unhashable_HashMe_set", []() { return std::unordered_set<HashMe>{{"one"}}; });
 }
-#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic pop
-#endif
