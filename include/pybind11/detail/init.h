@@ -209,7 +209,7 @@ void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, 
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = unq_ptr.get();
     no_nullptr(ptr);
-    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
         throw type_error("pybind11::init(): construction failed: returned std::unique_ptr pointee "
                          "is not an alias instance");
     }
@@ -246,7 +246,7 @@ void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, boo
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = shd_ptr.get();
     no_nullptr(ptr);
-    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
         throw type_error("pybind11::init(): construction failed: returned std::shared_ptr pointee "
                          "is not an alias instance");
     }
