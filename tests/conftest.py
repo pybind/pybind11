@@ -7,6 +7,8 @@ Adds docstring and exceptions message sanitizers.
 import contextlib
 import difflib
 import gc
+import multiprocessing
+import os
 import re
 import textwrap
 
@@ -14,6 +16,16 @@ import pytest
 
 # Early diagnostic for failed imports
 import pybind11_tests
+
+if os.name != "nt":
+    # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
+    # In a nutshell: fork() after starting threads == flakiness in the form of deadlocks.
+    # It is actually a well-known pitfall, unfortunately without guard rails.
+    # "forkserver" is more performant than "spawn" (~9s vs ~13s for tests/test_gil_scoped.py,
+    # visit the issuecomment link above for details).
+    # Windows does not have fork() and the associated pitfall, therefore it is best left
+    # running with defaults.
+    multiprocessing.set_start_method("forkserver")
 
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
