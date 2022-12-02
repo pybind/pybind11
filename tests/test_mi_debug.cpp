@@ -50,7 +50,7 @@ TEST_SUBMODULE(mi_debug, m) {
 
     m.def("make_derived_as_base0", []() -> std::shared_ptr<Base0> {
         auto ret_der = std::make_shared<Derived>();
-        auto ret = std::shared_ptr<Base0>(ret_der);
+        auto ret = std::dynamic_pointer_cast<Base0>(ret_der);
         return ret;
     });
 
