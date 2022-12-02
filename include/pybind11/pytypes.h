@@ -33,6 +33,8 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+
 /* A few forward declarations */
 class handle;
 class object;
@@ -884,10 +886,8 @@ object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
 
-#if defined(_MSC_VER) && _MSC_VER < 1920
-#    pragma warning(push)
-#    pragma warning(disable : 4522) // warning C4522: multiple assignment operators specified
-#endif
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(4522) // warning C4522: multiple assignment operators specified
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;
@@ -951,9 +951,7 @@ private:
     key_type key;
     mutable object cache;
 };
-#if defined(_MSC_VER) && _MSC_VER < 1920
-#    pragma warning(pop)
-#endif
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(accessor_policies)
 struct obj_attr {
@@ -1693,7 +1691,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))) {
+    if (sizeof(Unsigned) <= sizeof(unsigned long)) {
         unsigned long v = PyLong_AsUnsignedLong(o);
         return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
@@ -1710,7 +1708,7 @@ public:
     template <typename T, detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     int_(T value) {
-        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
+        if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLong((long) value);
             } else {

@@ -36,6 +36,8 @@ static_assert(std::is_signed<Py_intptr_t>::value, "Py_intptr_t must be signed");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+
 class array; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -875,7 +877,7 @@ public:
      */
     template <typename T, ssize_t Dims = -1>
     detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() & {
-        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims) {
+        if (Dims >= 0 && ndim() != Dims) {
             throw std::domain_error("array has incorrect number of dimensions: "
                                     + std::to_string(ndim()) + "; expected "
                                     + std::to_string(Dims));
@@ -893,7 +895,7 @@ public:
      */
     template <typename T, ssize_t Dims = -1>
     detail::unchecked_reference<T, Dims> unchecked() const & {
-        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims) {
+        if (Dims >= 0 && ndim() != Dims) {
             throw std::domain_error("array has incorrect number of dimensions: "
                                     + std::to_string(ndim()) + "; expected "
                                     + std::to_string(Dims));
@@ -1865,9 +1867,10 @@ private:
         }
 
         auto result = returned_array::create(trivial, shape);
+
+        PYBIND11_WARNING_PUSH
 #ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wreturn-std-move"
+        PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
 #endif
 
         if (size == 0) {
@@ -1883,9 +1886,7 @@ private:
         }
 
         return result;
-#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
-#    pragma clang diagnostic pop
-#endif
+        PYBIND11_WARNING_POP
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>

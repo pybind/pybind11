@@ -9,7 +9,9 @@
 
 #include "pybind11_tests.h"
 
-namespace PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE {
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE)
+
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 template <typename M>
 void reset_tensor(M &x) {
@@ -90,7 +92,7 @@ struct CustomExample {
 template <int Options>
 void init_tensor_module(pybind11::module &m) {
     const char *needed_options = "";
-    if (PYBIND11_SILENCE_MSVC_C4127(Options == Eigen::ColMajor)) {
+    if (Options == Eigen::ColMajor) {
         needed_options = "F";
     } else {
         needed_options = "C";
@@ -330,4 +332,4 @@ void test_module(py::module_ &m) {
     init_tensor_module<Eigen::RowMajor>(c_style);
 }
 
-} // namespace PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE
+PYBIND11_NAMESPACE_END(PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE)

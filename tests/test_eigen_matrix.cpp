@@ -13,9 +13,7 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
-#if defined(_MSC_VER)
-#    pragma warning(disable : 4996) // C4996: std::unary_negation is deprecated
-#endif
+PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #include <Eigen/Cholesky>
 

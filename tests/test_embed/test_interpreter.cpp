@@ -1,10 +1,8 @@
 #include <pybind11/embed.h>
 
-#ifdef _MSC_VER
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
-#    pragma warning(disable : 4996)
-#endif
+PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #include <catch.hpp>
 #include <cstdlib>
@@ -15,6 +13,11 @@
 
 namespace py = pybind11;
 using namespace py::literals;
+
+size_t get_sys_path_size() {
+    auto sys_path = py::module::import("sys").attr("path");
+    return py::len(sys_path);
+}
 
 class Widget {
 public:
@@ -167,6 +170,70 @@ TEST_CASE("There can be only one interpreter") {
     }
     py::initialize_interpreter();
 }
+
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+TEST_CASE("Custom PyConfig") {
+    py::finalize_interpreter();
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+    REQUIRE_NOTHROW(py::scoped_interpreter{&config});
+    {
+        py::scoped_interpreter p{&config};
+        REQUIRE(py::module_::import("widget_module").attr("add")(1, 41).cast<int>() == 42);
+    }
+    py::initialize_interpreter();
+}
+
+TEST_CASE("Custom PyConfig with argv") {
+    py::finalize_interpreter();
+    {
+        PyConfig config;
+        PyConfig_InitIsolatedConfig(&config);
+        char *argv[] = {strdup("a.out")};
+        py::scoped_interpreter argv_scope{&config, 1, argv};
+        std::free(argv[0]);
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0() == "a.out");
+    }
+    py::initialize_interpreter();
+}
+#endif
+
+TEST_CASE("Add program dir to path pre-PyConfig") {
+    py::finalize_interpreter();
+    size_t path_size_add_program_dir_to_path_false = 0;
+    {
+        py::scoped_interpreter scoped_interp{true, 0, nullptr, false};
+        path_size_add_program_dir_to_path_false = get_sys_path_size();
+    }
+    {
+        py::scoped_interpreter scoped_interp{};
+        REQUIRE(get_sys_path_size() == path_size_add_program_dir_to_path_false + 1);
+    }
+    py::initialize_interpreter();
+}
+
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+TEST_CASE("Add program dir to path using PyConfig") {
+    py::finalize_interpreter();
+    size_t path_size_add_program_dir_to_path_false = 0;
+    {
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+        py::scoped_interpreter scoped_interp{&config, 0, nullptr, false};
+        path_size_add_program_dir_to_path_false = get_sys_path_size();
+    }
+    {
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+        py::scoped_interpreter scoped_interp{&config};
+        REQUIRE(get_sys_path_size() == path_size_add_program_dir_to_path_false + 1);
+    }
+    py::initialize_interpreter();
+}
+#endif
 
 bool has_pybind11_internals_builtin() {
     auto builtins = py::handle(PyEval_GetBuiltins());
