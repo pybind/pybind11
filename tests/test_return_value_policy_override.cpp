@@ -24,7 +24,9 @@ struct obj {
 struct nocopy {
     std::string mtxt;
     nocopy(const std::string &mtxt_) : mtxt(mtxt_) {}
+    nocopy(const nocopy &) = delete;
     nocopy(nocopy &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    nocopy &operator=(const nocopy &) = delete;
     nocopy &operator=(nocopy &&other) {
         mtxt = other.mtxt + "_MvCtor";
         return *this;
@@ -51,9 +53,13 @@ const obj &return_const_reference() {
     return value;
 }
 
-std::shared_ptr<obj> return_shared_pointer() { return std::make_shared<obj>("shared_pointer"); }
+std::shared_ptr<obj> return_shared_pointer() {
+    return std::shared_ptr<obj>(new obj("shared_pointer"));
+}
 
-std::unique_ptr<obj> return_unique_pointer() { return std::make_unique<obj>("unique_pointer"); }
+std::unique_ptr<obj> return_unique_pointer() {
+    return std::unique_ptr<obj>(new obj("unique_pointer"));
+}
 
 nocopy &return_reference_nocopy() {
     static nocopy value("reference_nocopy");
