@@ -86,37 +86,22 @@ inline wchar_t *widen_chars(const char *safe_arg) {
     return widened_arg;
 }
 
-PYBIND11_NAMESPACE_END(detail)
-
-/** \rst
-    Initialize the Python interpreter. No other pybind11 or CPython API functions can be
-    called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
-    optional `init_signal_handlers` parameter can be used to skip the registration of
-    signal handlers (see the `Python documentation`_ for details). Calling this function
-    again after the interpreter has already been initialized is a fatal error.
-
-    If initializing the Python interpreter fails, then the program is terminated.  (This
-    is controlled by the CPython runtime and is an exception to pybind11's normal behavior
-    of throwing exceptions on errors.)
-
-    The remaining optional parameters, `argc`, `argv`, and `add_program_dir_to_path` are
-    used to populate ``sys.argv`` and ``sys.path``.
-    See the |PySys_SetArgvEx documentation|_ for details.
-
-    .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
-    .. |PySys_SetArgvEx documentation| replace:: ``PySys_SetArgvEx`` documentation
-    .. _PySys_SetArgvEx documentation: https://docs.python.org/3/c-api/init.html#c.PySys_SetArgvEx
- \endrst */
-inline void initialize_interpreter(bool init_signal_handlers = true,
-                                   int argc = 0,
-                                   const char *const *argv = nullptr,
-                                   bool add_program_dir_to_path = true) {
+inline void precheck_interpreter() {
     if (Py_IsInitialized() != 0) {
         pybind11_fail("The interpreter is already running");
     }
+}
 
-#if PY_VERSION_HEX < 0x030B0000
+#if !defined(PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX)
+#    define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX (0x03080000)
+#endif
 
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
+                                                int argc,
+                                                const char *const *argv,
+                                                bool add_program_dir_to_path) {
+    detail::precheck_interpreter();
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 #    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
     PyEval_InitThreads();
@@ -150,26 +135,30 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
     auto *pysys_argv = widened_argv.get();
 
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
-#else
-    PyConfig config;
-    PyConfig_InitIsolatedConfig(&config);
-    config.isolated = 0;
-    config.use_environment = 1;
-    config.install_signal_handlers = init_signal_handlers ? 1 : 0;
+}
+#endif
 
-    PyStatus status = PyConfig_SetBytesArgv(&config, argc, const_cast<char *const *>(argv));
-    if (PyStatus_Exception(status)) {
+PYBIND11_NAMESPACE_END(detail)
+
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+inline void initialize_interpreter(PyConfig *config,
+                                   int argc = 0,
+                                   const char *const *argv = nullptr,
+                                   bool add_program_dir_to_path = true) {
+    detail::precheck_interpreter();
+    PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
+    if (PyStatus_Exception(status) != 0) {
         // A failure here indicates a character-encoding failure or the python
         // interpreter out of memory. Give up.
-        PyConfig_Clear(&config);
-        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
-                                                          : "Failed to prepare CPython");
+        PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to prepare CPython");
     }
-    status = Py_InitializeFromConfig(&config);
-    PyConfig_Clear(&config);
-    if (PyStatus_Exception(status)) {
-        throw std::runtime_error(PyStatus_IsError(status) ? status.err_msg
-                                                          : "Failed to init CPython");
+    status = Py_InitializeFromConfig(config);
+    if (PyStatus_Exception(status) != 0) {
+        PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to init CPython");
     }
     if (add_program_dir_to_path) {
         PyRun_SimpleString("import sys, os.path; "
@@ -177,6 +166,43 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                            "os.path.abspath(os.path.dirname(sys.argv[0])) "
                            "if sys.argv and os.path.exists(sys.argv[0]) else '')");
     }
+    PyConfig_Clear(config);
+}
+#endif
+
+/** \rst
+    Initialize the Python interpreter. No other pybind11 or CPython API functions can be
+    called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
+    optional `init_signal_handlers` parameter can be used to skip the registration of
+    signal handlers (see the `Python documentation`_ for details). Calling this function
+    again after the interpreter has already been initialized is a fatal error.
+
+    If initializing the Python interpreter fails, then the program is terminated.  (This
+    is controlled by the CPython runtime and is an exception to pybind11's normal behavior
+    of throwing exceptions on errors.)
+
+    The remaining optional parameters, `argc`, `argv`, and `add_program_dir_to_path` are
+    used to populate ``sys.argv`` and ``sys.path``.
+    See the |PySys_SetArgvEx documentation|_ for details.
+
+    .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
+    .. |PySys_SetArgvEx documentation| replace:: ``PySys_SetArgvEx`` documentation
+    .. _PySys_SetArgvEx documentation: https://docs.python.org/3/c-api/init.html#c.PySys_SetArgvEx
+ \endrst */
+inline void initialize_interpreter(bool init_signal_handlers = true,
+                                   int argc = 0,
+                                   const char *const *argv = nullptr,
+                                   bool add_program_dir_to_path = true) {
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+    detail::initialize_interpreter_pre_pyconfig(
+        init_signal_handlers, argc, argv, add_program_dir_to_path);
+#else
+    PyConfig config;
+    PyConfig_InitIsolatedConfig(&config);
+    config.isolated = 0;
+    config.use_environment = 1;
+    config.install_signal_handlers = init_signal_handlers ? 1 : 0;
+    initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
 #endif
 }
 
@@ -263,6 +289,15 @@ public:
                                 bool add_program_dir_to_path = true) {
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
+
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+    explicit scoped_interpreter(PyConfig *config,
+                                int argc = 0,
+                                const char *const *argv = nullptr,
+                                bool add_program_dir_to_path = true) {
+        initialize_interpreter(config, argc, argv, add_program_dir_to_path);
+    }
+#endif
 
     scoped_interpreter(const scoped_interpreter &) = delete;
     scoped_interpreter(scoped_interpreter &&other) noexcept { other.is_valid = false; }
