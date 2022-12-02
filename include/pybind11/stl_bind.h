@@ -641,56 +641,56 @@ auto map_if_insertion_operator(Class_ &cl, std::string const &name)
 
 template <typename KeyType>
 struct keys_view {
-    virtual size_t __len__() = 0;
-    virtual iterator __iter__() = 0;
-    virtual bool __contains__(const KeyType &k) = 0;
-    virtual bool __contains__(const object &k) = 0;
+    virtual size_t len() = 0;
+    virtual iterator iter() = 0;
+    virtual bool contains(const KeyType &k) = 0;
+    virtual bool contains(const object &k) = 0;
     virtual ~keys_view() = default;
 };
 
 template <typename MappedType>
 struct values_view {
-    virtual size_t __len__() = 0;
-    virtual iterator __iter__() = 0;
+    virtual size_t len() = 0;
+    virtual iterator iter() = 0;
     virtual ~values_view() = default;
 };
 
 template <typename KeyType, typename MappedType>
 struct items_view {
-    virtual size_t __len__() = 0;
-    virtual iterator __iter__() = 0;
+    virtual size_t len() = 0;
+    virtual iterator iter() = 0;
     virtual ~items_view() = default;
 };
 
 template <typename Map, typename KeysView>
 struct KeysViewImpl : public KeysView {
     explicit KeysViewImpl(Map &map) : map(map) {}
-    size_t __len__() override { return map.size(); }
-    iterator __iter__() override { return make_key_iterator(map.begin(), map.end()); }
-    bool __contains__(const typename Map::key_type &k) override {
+    size_t len() override { return map.size(); }
+    iterator iter() override { return make_key_iterator(map.begin(), map.end()); }
+    bool contains(const typename Map::key_type &k) override {
         auto it = map.find(k);
         if (it == map.end()) {
             return false;
         }
         return true;
     }
-    bool __contains__(const object &) override { return false; }
+    bool contains(const object &) override { return false; }
     Map &map;
 };
 
 template <typename Map, typename ValuesView>
 struct ValuesViewImpl : public ValuesView {
     explicit ValuesViewImpl(Map &map) : map(map) {}
-    size_t __len__() override { return map.size(); }
-    iterator __iter__() override { return make_value_iterator(map.begin(), map.end()); }
+    size_t len() override { return map.size(); }
+    iterator iter() override { return make_value_iterator(map.begin(), map.end()); }
     Map &map;
 };
 
 template <typename Map, typename ItemsView>
 struct ItemsViewImpl : public ItemsView {
     explicit ItemsViewImpl(Map &map) : map(map) {}
-    size_t __len__() override { return map.size(); }
-    iterator __iter__() override { return make_iterator(map.begin(), map.end()); }
+    size_t len() override { return map.size(); }
+    iterator iter() override { return make_iterator(map.begin(), map.end()); }
     Map &map;
 };
 
@@ -747,25 +747,25 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     if (!detail::get_type_info(typeid(KeysView))) {
         class_<KeysView> keys_view(
             scope, ("KeysView[" + key_type_name + "]").c_str(), pybind11::module_local(local));
-        keys_view.def("__len__", &KeysView::__len__);
+        keys_view.def("__len__", &KeysView::len);
         keys_view.def("__iter__",
-                      &KeysView::__iter__,
+                      &KeysView::iter,
                       keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
         );
         keys_view.def("__contains__",
-                      static_cast<bool (KeysView::*)(const KeyType &)>(&KeysView::__contains__));
+                      static_cast<bool (KeysView::*)(const KeyType &)>(&KeysView::contains));
         // Fallback for when the object is not of the key type
         keys_view.def("__contains__",
-                      static_cast<bool (KeysView::*)(const object &)>(&KeysView::__contains__));
+                      static_cast<bool (KeysView::*)(const object &)>(&KeysView::contains));
     }
     // Similarly for ValuesView:
     if (!detail::get_type_info(typeid(ValuesView))) {
         class_<ValuesView> values_view(scope,
                                        ("ValuesView[" + mapped_type_name + "]").c_str(),
                                        pybind11::module_local(local));
-        values_view.def("__len__", &ValuesView::__len__);
+        values_view.def("__len__", &ValuesView::len);
         values_view.def("__iter__",
-                        &ValuesView::__iter__,
+                        &ValuesView::iter,
                         keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
         );
     }
@@ -775,9 +775,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
             scope,
             ("ItemsView[" + key_type_name + ", ").append(mapped_type_name + "]").c_str(),
             pybind11::module_local(local));
-        items_view.def("__len__", &ItemsView::__len__);
+        items_view.def("__len__", &ItemsView::len);
         items_view.def("__iter__",
-                       &ItemsView::__iter__,
+                       &ItemsView::iter,
                        keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
         );
     }
