@@ -326,12 +326,12 @@ The class ``options`` allows you to selectively suppress auto-generated signatur
 
 pybind11 also appends all members of an enum to the resulting enum docstring,
 this default behaviour can be disabled by using the ``disable_enum_members_docstring()``
-function of the ``options`` classe.
+function of the ``options`` class.
 
 With ``disable_user_defined_docstrings()`` all user defined docstrings of
 ``module_::def()``, ``class_::def()`` and ``enum_()`` are discarded, but the
 function signatures and enum members are included in the docstring, unless they
-are disabled seperately.
+are disabled separately.
 
 Note that changes to the settings affect only function bindings created during the
 lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function,
