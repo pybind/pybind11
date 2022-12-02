@@ -41,10 +41,16 @@ def test_docstring_options():
     assert not m.DocstringTestFoo.value_prop.__doc__
 
     # Check existig behaviour of enum docstings
-    assert m.DocstringTestEnum1.__doc__ == "Enum docstring\n\nMembers:\n\n  Member1\n\n  Member2"
+    assert (
+        m.DocstringTestEnum1.__doc__
+        == "Enum docstring\n\nMembers:\n\n  Member1\n\n  Member2"
+    )
 
     # options.enable_enum_members_docstring()
-    assert m.DocstringTestEnum2.__doc__ == "Enum docstring\n\nMembers:\n\n  Member1\n\n  Member2"
+    assert (
+        m.DocstringTestEnum2.__doc__
+        == "Enum docstring\n\nMembers:\n\n  Member1\n\n  Member2"
+    )
 
     # options.disable_enum_members_docstring()
     assert m.DocstringTestEnum3.__doc__ == "Enum docstring"

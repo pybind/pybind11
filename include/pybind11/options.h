@@ -47,12 +47,12 @@ public:
         return *this;
     }
 
-    options& disable_enum_members_docstring() & {
+    options &disable_enum_members_docstring() & {
         global_state().show_enum_members_docstring = false;
         return *this;
     }
 
-    options& enable_enum_members_docstring() & {
+    options &enable_enum_members_docstring() & {
         global_state().show_enum_members_docstring = true;
         return *this;
     }
