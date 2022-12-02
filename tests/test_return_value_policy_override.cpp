@@ -1,11 +1,69 @@
+#include <pybind11/smart_holder.h>
+
 #include "pybind11_tests.h"
 
 namespace test_return_value_policy_override {
 
 struct some_type {};
 
+struct obj {
+    std::string mtxt;
+    obj(const std::string &mtxt_) : mtxt(mtxt_) {}
+    obj(const obj &other) { mtxt = other.mtxt + "_CpCtor"; }
+    obj(obj &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    obj &operator=(const obj &other) {
+        mtxt = other.mtxt + "_CpCtor";
+        return *this;
+    }
+    obj &operator=(obj &&other) {
+        mtxt = other.mtxt + "_MvCtor";
+        return *this;
+    }
+};
+
+struct nocopy {
+    std::string mtxt;
+    nocopy(const std::string &mtxt_) : mtxt(mtxt_) {}
+    nocopy(nocopy &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    nocopy &operator=(nocopy &&other) {
+        mtxt = other.mtxt + "_MvCtor";
+        return *this;
+    }
+};
+
+obj *return_pointer() {
+    static obj value("pointer");
+    return &value;
+}
+
+const obj *return_const_pointer() {
+    static obj value("const_pointer");
+    return &value;
+}
+
+obj &return_reference() {
+    static obj value("reference");
+    return value;
+}
+
+const obj &return_const_reference() {
+    static obj value("const_reference");
+    return value;
+}
+
+std::shared_ptr<obj> return_shared_pointer() { return std::make_shared<obj>("shared_pointer"); }
+
+std::unique_ptr<obj> return_unique_pointer() { return std::make_unique<obj>("unique_pointer"); }
+
+nocopy &return_reference_nocopy() {
+    static nocopy value("reference_nocopy");
+    return value;
+}
+
 } // namespace test_return_value_policy_override
 
+using test_return_value_policy_override::nocopy;
+using test_return_value_policy_override::obj;
 using test_return_value_policy_override::some_type;
 
 namespace pybind11 {
@@ -51,6 +109,9 @@ struct type_caster<some_type> : type_caster_base<some_type> {
 } // namespace detail
 } // namespace pybind11
 
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(obj)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(nocopy)
+
 TEST_SUBMODULE(return_value_policy_override, m) {
     m.def("return_value_with_default_policy", []() { return some_type(); });
     m.def(
@@ -79,4 +140,39 @@ TEST_SUBMODULE(return_value_policy_override, m) {
             return &value;
         },
         py::return_value_policy::_clif_automatic);
+
+    py::classh<obj>(m, "object").def(py::init<std::string>()).def_readonly("mtxt", &obj::mtxt);
+    m.def(
+        "return_object_value_with_policy_clif_automatic",
+        []() { return obj("value"); },
+        py::return_value_policy::_clif_automatic);
+    // test_return_value_policy_override::return_pointer with default policy
+    // causes crash
+    m.def("return_object_pointer_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_pointer,
+          py::return_value_policy::_clif_automatic);
+    // test_return_value_policy_override::return_const_pointer with default
+    // policy causes crash
+    m.def("return_object_const_pointer_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_const_pointer,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_object_reference_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_reference,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_object_const_reference_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_const_reference,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_object_unique_ptr_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_unique_pointer,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_object_shared_ptr_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_shared_pointer,
+          py::return_value_policy::_clif_automatic);
+
+    py::classh<nocopy>(m, "nocopy")
+        .def(py::init<std::string>())
+        .def_readonly("mtxt", &nocopy::mtxt);
+    m.def("return_nocopy_reference_with_policy_clif_automatic",
+          &test_return_value_policy_override::return_reference_nocopy,
+          py::return_value_policy::_clif_automatic);
 }
