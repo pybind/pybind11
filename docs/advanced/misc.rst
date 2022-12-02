@@ -324,12 +324,12 @@ The class ``options`` allows you to selectively suppress auto-generated signatur
         m.def("add", [](int a, int b) { return a + b; }, "A function which adds two numbers");
     }
 
-pybind11 also appends all members of an enum to the resulting enum docstring,
-this default behaviour can be disabled by using the ``disable_enum_members_docstring()``
+pybind11 also appends all members of an enum to the resulting enum docstring.
+This default behavior can be disabled by using the ``disable_enum_members_docstring()``
 function of the ``options`` class.
 
 With ``disable_user_defined_docstrings()`` all user defined docstrings of
-``module_::def()``, ``class_::def()`` and ``enum_()`` are discarded, but the
+``module_::def()``, ``class_::def()`` and ``enum_()`` are disabled, but the
 function signatures and enum members are included in the docstring, unless they
 are disabled separately.
 
