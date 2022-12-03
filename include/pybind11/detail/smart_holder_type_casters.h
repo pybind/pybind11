@@ -356,8 +356,6 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
 
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(WrappedType)));
-  printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) v_h.value_ptr(), __FILE__, __LINE__); fflush(stdout);
-  // long *BAD = nullptr; *BAD = 101;
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
@@ -652,7 +650,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     }
 
     static handle cast(T const *src, return_value_policy policy, handle parent) {
-  printf("\nLOOOK [%lu] IsBase0Still %s:%d\n", (std::size_t) src, __FILE__, __LINE__); fflush(stdout);
         auto st = type_caster_base<T>::src_and_type(src);
         if (policy == return_value_policy::_clif_automatic) {
             policy = return_value_policy::copy;
@@ -705,7 +702,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                                                        void *(*copy_constructor)(const void *),
                                                        void *(*move_constructor)(const void *),
                                                        const void *existing_holder = nullptr) {
-  printf("\nLOOOK [%lu] IsDerivedAlready %s:%d\n", (std::size_t) _src, __FILE__, __LINE__); fflush(stdout);
         if (!tinfo) { // no type info: error will be set already
             return handle();
         }
@@ -798,7 +794,6 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static constexpr auto name = const_name<T>();
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
-  printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) src.get(), __FILE__, __LINE__); fflush(stdout);
         switch (policy) {
             case return_value_policy::automatic:
             case return_value_policy::automatic_reference:
@@ -840,10 +835,9 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
         inst_raw_ptr->owned = true;
         void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
         valueptr = src_raw_void_ptr;
-  printf("\nLOOOK [%lu] IsBase0 %s:%d\n", (std::size_t) valueptr, __FILE__, __LINE__); fflush(stdout);
-  printf("\nLOOOK [%lu] IsDerived %s:%d\n", (std::size_t) st.first, __FILE__, __LINE__); fflush(stdout);
 
-        auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(std::shared_ptr<void>(src, const_cast<void *>(st.first)));
+        auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(
+            std::shared_ptr<void>(src, const_cast<void *>(st.first)));
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
         if (policy == return_value_policy::reference_internal) {

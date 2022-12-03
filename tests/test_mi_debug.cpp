@@ -56,11 +56,7 @@ TEST_SUBMODULE(mi_debug, m) {
 
     m.def("make_derived_as_base0", []() -> std::shared_ptr<Base0> {
         auto ret_der = std::make_shared<Derived>();
-        printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) ret_der.get(), __FILE__, __LINE__);
-        fflush(stdout);
         auto ret = std::dynamic_pointer_cast<Base0>(ret_der);
-        printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) ret.get(), __FILE__, __LINE__);
-        fflush(stdout);
         return ret;
     });
 
@@ -68,11 +64,7 @@ TEST_SUBMODULE(mi_debug, m) {
         "make_derived_as_base0_raw_ptr",
         []() {
             auto ret_der = new Derived{};
-            printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) ret_der, __FILE__, __LINE__);
-            fflush(stdout);
             auto ret = dynamic_cast<Base0 *>(ret_der);
-            printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) ret, __FILE__, __LINE__);
-            fflush(stdout);
             return ret;
         },
         py::return_value_policy::take_ownership);
@@ -89,11 +81,7 @@ TEST_SUBMODULE(mi_debug, m) {
 
     // class_ OK
     // classh FAIL
-    m.def("get_vec_size_raw_ptr_derived", [](const Derived *obj) {
-        printf("\nLOOOK [%lu] %s:%d\n", (std::size_t) obj, __FILE__, __LINE__);
-        fflush(stdout);
-        return obj->vec.size();
-    });
+    m.def("get_vec_size_raw_ptr_derived", [](const Derived *obj) { return obj->vec.size(); });
 
     // class_ OK
     // classh FAIL
