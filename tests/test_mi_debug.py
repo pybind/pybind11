@@ -7,7 +7,10 @@ def test_get_vec_size_raw_ptr_base0():
 
 
 def test_get_vec_size_raw_ptr_derived():
+    obj = m.make_derived_as_base0()
+    print("\nLOOOK", obj)
     obj = m.make_derived_as_base0_raw_ptr()
+    print("\nLOOOK", obj)
     assert m.get_vec_size_raw_ptr_derived(obj) == 5
 
 
