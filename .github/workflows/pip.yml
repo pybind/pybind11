@@ -42,8 +42,8 @@ jobs:
   # This runs the packaging tests and also builds and saves the packages as
   # artifacts.
   packaging:
-    name: 🐍 3.8 • 📦 & 📦 tests • ubuntu-20.04
-    runs-on: ubuntu-20.04
+    name: 🐍 3.8 • 📦 & 📦 tests • ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -85,7 +85,7 @@ jobs:
   # When a GitHub release is made, upload the artifacts to PyPI
   upload:
     name: Upload to PyPI
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: [packaging]
 
