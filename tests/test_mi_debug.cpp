@@ -63,8 +63,8 @@ TEST_SUBMODULE(mi_debug, m) {
     m.def(
         "make_derived_as_base0_raw_ptr",
         []() {
-            auto ret_der = new Derived{};
-            auto ret = dynamic_cast<Base0 *>(ret_der);
+            auto *ret_der = new Derived{};
+            auto *ret = dynamic_cast<Base0 *>(ret_der);
             return ret;
         },
         py::return_value_policy::take_ownership);
@@ -72,7 +72,7 @@ TEST_SUBMODULE(mi_debug, m) {
     // class_ OK
     // classh FAIL
     m.def("get_vec_size_raw_ptr_base0", [](const Base0 *obj) -> std::size_t {
-        auto obj_der = dynamic_cast<const Derived *>(obj);
+        const auto *obj_der = dynamic_cast<const Derived *>(obj);
         if (obj_der == nullptr) {
             return 0;
         }
