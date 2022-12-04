@@ -1011,9 +1011,8 @@ PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
         handle th((PyObject *) type_data->type);
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
-    } else {
-        return clean_type_id(ti.name());
     }
+    return clean_type_id(ti.name());
 }
 
 PYBIND11_NAMESPACE_END(detail)
