@@ -10,7 +10,7 @@
 #pragma once
 
 #include "detail/common.h"
-#include "detail/typeid.h"
+#include "detail/type_caster_base.h"
 #include "cast.h"
 #include "operators.h"
 
@@ -724,23 +724,11 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
 
     // If key type isn't properly wrapped, fall back to C++ names
     if (key_type_name == "%") {
-        if (auto *key_info = detail::get_type_info(typeid(KeyType))) {
-            handle th((PyObject *) key_info->type);
-            key_type_name = th.attr("__module__").cast<std::string>() + '.'
-                            + th.attr("__qualname__").cast<std::string>();
-        } else {
-            key_type_name = type_id<KeyType>();
-        }
+        key_type_name = detail::type_info_description(typeid(KeyType));
     }
     // Similarly for value type:
     if (mapped_type_name == "%") {
-        if (auto *mapped_info = detail::get_type_info(typeid(MappedType))) {
-            handle th((PyObject *) mapped_info->type);
-            mapped_type_name = th.attr("__module__").cast<std::string>() + '.'
-                               + th.attr("__qualname__").cast<std::string>();
-        } else {
-            mapped_type_name = type_id<MappedType>();
-        }
+        mapped_type_name = detail::type_info_description(typeid(MappedType));
     }
 
     // Wrap KeysView[KeyType] if it wasn't already wrapped
