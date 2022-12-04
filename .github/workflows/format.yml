@@ -18,7 +18,7 @@ env:
 jobs:
   pre-commit:
     name: Format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -35,7 +35,7 @@ jobs:
     # When making changes here, please also review the "Clang-Tidy" section
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: silkeh/clang:13
     steps:
     - uses: actions/checkout@v3

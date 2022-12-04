@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, windows-2022, macos-latest]
         python:
         - '3.6'
         - '3.9'
@@ -42,12 +42,12 @@ jobs:
         # We support an optional key: args, for cmake args
         include:
           # Just add a key
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
@@ -194,7 +194,7 @@ jobs:
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
@@ -265,7 +265,7 @@ jobs:
 
   # Testing on clang using the excellent silkeh clang docker images
   clang:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -327,7 +327,7 @@ jobs:
 
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
     container: nvidia/cuda:11.7.0-devel-ubuntu22.04
 
@@ -394,7 +394,7 @@ jobs:
 
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
     container: centos:7
 
@@ -443,7 +443,7 @@ jobs:
 
   # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -593,7 +593,7 @@ jobs:
   # Testing on CentOS (manylinux uses a centos base, and this is an easy way
   # to get GCC 4.8, which is the manylinux1 compiler).
   centos:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -650,7 +650,7 @@ jobs:
   # This tests an "install" with the CMake tools
   install-classic:
     name: "🐍 3.7 • Debian • x86 •  Install"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: i386/debian:buster
 
     steps:
@@ -694,7 +694,7 @@ jobs:
   # basic validation check on the SDist.
   doxygen:
     name: "Documentation build test"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
