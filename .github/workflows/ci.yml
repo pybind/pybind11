@@ -27,7 +27,6 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, windows-2022, macos-latest]
         python:
-        - '3.6'
         - '3.9'
         - '3.10'
         - '3.11'
@@ -43,7 +42,7 @@ jobs:
         include:
           # Just add a key
           - runs-on: ubuntu-latest
-            python: '3.6'
+            python: '3.9'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
