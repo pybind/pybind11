@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from pybind11_tests import return_value_policy_override as m
@@ -18,14 +20,14 @@ def test_return_pointer():
 @pytest.mark.parametrize(
     "func, expected",
     [
-        (m.return_value, "value_MvCtor"),
+        (m.return_value, "value(_MvCtor)*_MvCtor"),
         (m.return_pointer, "pointer"),
         (m.return_const_pointer, "const_pointer_CpCtor"),
         (m.return_reference, "reference_MvCtor"),
         (m.return_const_reference, "const_reference_CpCtor"),
         (m.return_unique_pointer, "unique_pointer"),
         (m.return_shared_pointer, "shared_pointer"),
-        (m.return_value_nocopy, "value_nocopy_MvCtor"),
+        (m.return_value_nocopy, "value_nocopy(_MvCtor)*_MvCtor"),
         (m.return_pointer_nocopy, "pointer_nocopy"),
         (m.return_reference_nocopy, "reference_nocopy_MvCtor"),
         (m.return_unique_pointer_nocopy, "unique_pointer_nocopy"),
@@ -42,4 +44,4 @@ def test_return_pointer():
     ],
 )
 def test_clif_automatic_return_value_policy_override(func, expected):
-    assert func().mtxt == expected
+    assert re.match(expected, func().mtxt)
