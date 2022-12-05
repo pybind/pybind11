@@ -113,11 +113,6 @@ std::unique_ptr<type_cp0_mv1> return_unique_pointer_nocopy() {
     return std::unique_ptr<type_cp0_mv1>(new type_cp0_mv1("unique_pointer_nocopy"));
 }
 
-type_cp1_mv0 return_value_nomove() {
-    type_cp1_mv0 value("value_nomove");
-    return const_cast<const type_cp1_mv0 &>(value);
-}
-
 type_cp1_mv0 *return_pointer_nomove() {
     static type_cp1_mv0 value("pointer_nomove");
     return &value;
@@ -294,9 +289,6 @@ TEST_SUBMODULE(return_value_policy_override, m) {
     py::classh<type_cp1_mv0>(m, "type_cp1_mv0")
         .def(py::init<std::string>())
         .def_readonly("mtxt", &type_cp1_mv0::mtxt);
-    m.def("return_value_nomove",
-          &test_return_value_policy_override::return_value_nomove,
-          py::return_value_policy::_clif_automatic);
     m.def("return_pointer_nomove",
           &test_return_value_policy_override::return_pointer_nomove,
           py::return_value_policy::_clif_automatic);
