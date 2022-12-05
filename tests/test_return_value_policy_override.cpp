@@ -6,71 +6,163 @@ namespace test_return_value_policy_override {
 
 struct some_type {};
 
-struct obj {
+// cp = copyable, mv = movable, 1 = yes, 0 = no
+struct type_cp1_mv1 {
     std::string mtxt;
-    obj(const std::string &mtxt_) : mtxt(mtxt_) {}
-    obj(const obj &other) { mtxt = other.mtxt + "_CpCtor"; }
-    obj(obj &&other) { mtxt = other.mtxt + "_MvCtor"; }
-    obj &operator=(const obj &other) {
+    type_cp1_mv1(const std::string &mtxt_) : mtxt(mtxt_) {}
+    type_cp1_mv1(const type_cp1_mv1 &other) { mtxt = other.mtxt + "_CpCtor"; }
+    type_cp1_mv1(type_cp1_mv1 &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    type_cp1_mv1 &operator=(const type_cp1_mv1 &other) {
         mtxt = other.mtxt + "_CpCtor";
         return *this;
     }
-    obj &operator=(obj &&other) {
+    type_cp1_mv1 &operator=(type_cp1_mv1 &&other) {
         mtxt = other.mtxt + "_MvCtor";
         return *this;
     }
 };
 
-struct nocopy {
+// nocopy
+struct type_cp0_mv1 {
     std::string mtxt;
-    nocopy(const std::string &mtxt_) : mtxt(mtxt_) {}
-    nocopy(const nocopy &) = delete;
-    nocopy(nocopy &&other) { mtxt = other.mtxt + "_MvCtor"; }
-    nocopy &operator=(const nocopy &) = delete;
-    nocopy &operator=(nocopy &&other) {
+    type_cp0_mv1(const std::string &mtxt_) : mtxt(mtxt_) {}
+    type_cp0_mv1(const type_cp0_mv1 &) = delete;
+    type_cp0_mv1(type_cp0_mv1 &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    type_cp0_mv1 &operator=(const type_cp0_mv1 &) = delete;
+    type_cp0_mv1 &operator=(type_cp0_mv1 &&other) {
         mtxt = other.mtxt + "_MvCtor";
         return *this;
     }
 };
 
-obj *return_pointer() {
-    static obj value("pointer");
+// nomove
+struct type_cp1_mv0 {
+    std::string mtxt;
+    type_cp1_mv0(const std::string &mtxt_) : mtxt(mtxt_) {}
+    type_cp1_mv0(const type_cp1_mv0 &other) { mtxt = other.mtxt + "_CpCtor"; }
+    type_cp1_mv0(type_cp1_mv0 &&other) = delete;
+    type_cp1_mv0 &operator=(const type_cp1_mv0 &other) {
+        mtxt = other.mtxt + "_CpCtor";
+        return *this;
+    }
+    type_cp1_mv0 &operator=(type_cp1_mv0 &&other) = delete;
+};
+
+// nocopy_nomove
+struct type_cp0_mv0 {
+    std::string mtxt;
+    type_cp0_mv0(const std::string &mtxt_) : mtxt(mtxt_) {}
+    type_cp0_mv0(const type_cp0_mv0 &) = delete;
+    type_cp0_mv0(type_cp0_mv0 &&other) = delete;
+    type_cp0_mv0 &operator=(const type_cp0_mv0 &other) = delete;
+    type_cp0_mv0 &operator=(type_cp0_mv0 &&other) = delete;
+};
+
+type_cp1_mv1 return_value() { return type_cp1_mv1{"value"}; }
+
+type_cp1_mv1 *return_pointer() {
+    static type_cp1_mv1 value("pointer");
     return &value;
 }
 
-const obj *return_const_pointer() {
-    static obj value("const_pointer");
+const type_cp1_mv1 *return_const_pointer() {
+    static type_cp1_mv1 value("const_pointer");
     return &value;
 }
 
-obj &return_reference() {
-    static obj value("reference");
+type_cp1_mv1 &return_reference() {
+    static type_cp1_mv1 value("reference");
     return value;
 }
 
-const obj &return_const_reference() {
-    static obj value("const_reference");
+const type_cp1_mv1 &return_const_reference() {
+    static type_cp1_mv1 value("const_reference");
     return value;
 }
 
-std::shared_ptr<obj> return_shared_pointer() {
-    return std::shared_ptr<obj>(new obj("shared_pointer"));
+std::shared_ptr<type_cp1_mv1> return_shared_pointer() {
+    return std::make_shared<type_cp1_mv1>("shared_pointer");
 }
 
-std::unique_ptr<obj> return_unique_pointer() {
-    return std::unique_ptr<obj>(new obj("unique_pointer"));
+std::unique_ptr<type_cp1_mv1> return_unique_pointer() {
+    return std::unique_ptr<type_cp1_mv1>(new type_cp1_mv1("unique_pointer"));
 }
 
-nocopy &return_reference_nocopy() {
-    static nocopy value("reference_nocopy");
+type_cp0_mv1 return_value_nocopy() { return type_cp0_mv1{"value_nocopy"}; }
+
+type_cp0_mv1 *return_pointer_nocopy() {
+    static type_cp0_mv1 value("pointer_nocopy");
+    return &value;
+}
+
+const type_cp0_mv1 *return_const_pointer_nocopy() {
+    static type_cp0_mv1 value("const_pointer_nocopy");
+    return &value;
+}
+
+type_cp0_mv1 &return_reference_nocopy() {
+    static type_cp0_mv1 value("reference_nocopy");
     return value;
+}
+
+std::shared_ptr<type_cp0_mv1> return_shared_pointer_nocopy() {
+    return std::make_shared<type_cp0_mv1>("shared_pointer_nocopy");
+}
+
+std::unique_ptr<type_cp0_mv1> return_unique_pointer_nocopy() {
+    return std::unique_ptr<type_cp0_mv1>(new type_cp0_mv1("unique_pointer_nocopy"));
+}
+
+type_cp1_mv0 return_value_nomove() { return type_cp1_mv0{"value_nomove"}; }
+
+type_cp1_mv0 *return_pointer_nomove() {
+    static type_cp1_mv0 value("pointer_nomove");
+    return &value;
+}
+
+const type_cp1_mv0 *return_const_pointer_nomove() {
+    static type_cp1_mv0 value("const_pointer_nomove");
+    return &value;
+}
+
+type_cp1_mv0 &return_reference_nomove() {
+    static type_cp1_mv0 value("reference_nomove");
+    return value;
+}
+
+const type_cp1_mv0 &return_const_reference_nomove() {
+    static type_cp1_mv0 value("const_reference_nomove");
+    return value;
+}
+
+std::shared_ptr<type_cp1_mv0> return_shared_pointer_nomove() {
+    return std::make_shared<type_cp1_mv0>("shared_pointer_nomove");
+}
+
+std::unique_ptr<type_cp1_mv0> return_unique_pointer_nomove() {
+    return std::unique_ptr<type_cp1_mv0>(new type_cp1_mv0("unique_pointer_nomove"));
+}
+
+type_cp0_mv0 *return_pointer_nocopy_nomove() {
+    static type_cp0_mv0 value("pointer_nocopy_nomove");
+    return &value;
+}
+
+std::shared_ptr<type_cp0_mv0> return_shared_pointer_nocopy_nomove() {
+    return std::make_shared<type_cp0_mv0>("shared_pointer_nocopy_nomove");
+}
+
+std::unique_ptr<type_cp0_mv0> return_unique_pointer_nocopy_nomove() {
+    return std::unique_ptr<type_cp0_mv0>(new type_cp0_mv0("unique_pointer_nocopy_nomove"));
 }
 
 } // namespace test_return_value_policy_override
 
-using test_return_value_policy_override::nocopy;
-using test_return_value_policy_override::obj;
 using test_return_value_policy_override::some_type;
+using test_return_value_policy_override::type_cp0_mv0;
+using test_return_value_policy_override::type_cp0_mv1;
+using test_return_value_policy_override::type_cp1_mv0;
+using test_return_value_policy_override::type_cp1_mv1;
 
 namespace pybind11 {
 namespace detail {
@@ -115,8 +207,10 @@ struct type_caster<some_type> : type_caster_base<some_type> {
 } // namespace detail
 } // namespace pybind11
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(obj)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(nocopy)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(type_cp1_mv1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(type_cp0_mv1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(type_cp1_mv0)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(type_cp0_mv0)
 
 TEST_SUBMODULE(return_value_policy_override, m) {
     m.def("return_value_with_default_policy", []() { return some_type(); });
@@ -147,38 +241,92 @@ TEST_SUBMODULE(return_value_policy_override, m) {
         },
         py::return_value_policy::_clif_automatic);
 
-    py::classh<obj>(m, "object").def(py::init<std::string>()).def_readonly("mtxt", &obj::mtxt);
-    m.def(
-        "return_object_value_with_policy_clif_automatic",
-        []() { return obj("value"); },
-        py::return_value_policy::_clif_automatic);
+    py::classh<type_cp1_mv1>(m, "type_cp1_mv1")
+        .def(py::init<std::string>())
+        .def_readonly("mtxt", &type_cp1_mv1::mtxt);
+    m.def("return_value",
+          &test_return_value_policy_override::return_value,
+          py::return_value_policy::_clif_automatic);
     // test_return_value_policy_override::return_pointer with default policy
     // causes crash
-    m.def("return_object_pointer_with_policy_clif_automatic",
+    m.def("return_pointer",
           &test_return_value_policy_override::return_pointer,
           py::return_value_policy::_clif_automatic);
     // test_return_value_policy_override::return_const_pointer with default
     // policy causes crash
-    m.def("return_object_const_pointer_with_policy_clif_automatic",
+    m.def("return_const_pointer",
           &test_return_value_policy_override::return_const_pointer,
           py::return_value_policy::_clif_automatic);
-    m.def("return_object_reference_with_policy_clif_automatic",
+    m.def("return_reference",
           &test_return_value_policy_override::return_reference,
           py::return_value_policy::_clif_automatic);
-    m.def("return_object_const_reference_with_policy_clif_automatic",
+    m.def("return_const_reference",
           &test_return_value_policy_override::return_const_reference,
           py::return_value_policy::_clif_automatic);
-    m.def("return_object_unique_ptr_with_policy_clif_automatic",
+    m.def("return_unique_pointer",
           &test_return_value_policy_override::return_unique_pointer,
           py::return_value_policy::_clif_automatic);
-    m.def("return_object_shared_ptr_with_policy_clif_automatic",
+    m.def("return_shared_pointer",
           &test_return_value_policy_override::return_shared_pointer,
           py::return_value_policy::_clif_automatic);
 
-    py::classh<nocopy>(m, "nocopy")
+    py::classh<type_cp0_mv1>(m, "type_cp0_mv1")
         .def(py::init<std::string>())
-        .def_readonly("mtxt", &nocopy::mtxt);
-    m.def("return_nocopy_reference_with_policy_clif_automatic",
+        .def_readonly("mtxt", &type_cp0_mv1::mtxt);
+    m.def("return_value_nocopy",
+          &test_return_value_policy_override::return_value_nocopy,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_pointer_nocopy",
+          &test_return_value_policy_override::return_pointer_nocopy,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_const_pointer_nocopy",
+          &test_return_value_policy_override::return_const_pointer_nocopy,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_reference_nocopy",
           &test_return_value_policy_override::return_reference_nocopy,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_shared_pointer_nocopy",
+          &test_return_value_policy_override::return_shared_pointer_nocopy,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_unique_pointer_nocopy",
+          &test_return_value_policy_override::return_unique_pointer_nocopy,
+          py::return_value_policy::_clif_automatic);
+
+    py::classh<type_cp1_mv0>(m, "type_cp1_mv0")
+        .def(py::init<std::string>())
+        .def_readonly("mtxt", &type_cp1_mv0::mtxt);
+    m.def("return_value_nomove",
+          &test_return_value_policy_override::return_value_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_pointer_nomove",
+          &test_return_value_policy_override::return_pointer_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_const_pointer_nomove",
+          &test_return_value_policy_override::return_const_pointer_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_reference_nomove",
+          &test_return_value_policy_override::return_reference_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_const_reference_nomove",
+          &test_return_value_policy_override::return_const_reference_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_shared_pointer_nomove",
+          &test_return_value_policy_override::return_shared_pointer_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_unique_pointer_nomove",
+          &test_return_value_policy_override::return_unique_pointer_nomove,
+          py::return_value_policy::_clif_automatic);
+
+    py::classh<type_cp0_mv0>(m, "type_cp0_mv0")
+        .def(py::init<std::string>())
+        .def_readonly("mtxt", &type_cp0_mv0::mtxt);
+    m.def("return_pointer_nocopy_nomove",
+          &test_return_value_policy_override::return_pointer_nocopy_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_shared_pointer_nocopy_nomove",
+          &test_return_value_policy_override::return_shared_pointer_nocopy_nomove,
+          py::return_value_policy::_clif_automatic);
+    m.def("return_unique_pointer_nocopy_nomove",
+          &test_return_value_policy_override::return_unique_pointer_nocopy_nomove,
           py::return_value_policy::_clif_automatic);
 }
