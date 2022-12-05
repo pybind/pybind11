@@ -82,8 +82,10 @@ inline void type_caster_odr_guard_impl(const std::type_info &intrinsic_type_info
                         + reg_iter->second + "\", SourceLocation2=\"" + source_file_line_from_sloc
                         + "\"");
         if (throw_disabled) {
+#    if defined(PYBIND11_DETAIL_TYPE_CASTER_ODR_GUARD_IMPL_DEBUG)
             std::fprintf(stderr, "\nDISABLED std::system_error: %s\n", msg.c_str());
             std::fflush(stderr);
+#    endif
             type_caster_odr_violation_detected_counter()++;
         } else {
             throw std::system_error(std::make_error_code(std::errc::state_not_recoverable), msg);
