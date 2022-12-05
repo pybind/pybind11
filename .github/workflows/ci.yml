@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, windows-2022, macos-latest]
         python:
         - '3.6'
         - '3.9'
@@ -42,12 +42,12 @@ jobs:
         # We support an optional key: args, for cmake args
         include:
           # Just add a key
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
@@ -194,7 +194,7 @@ jobs:
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
