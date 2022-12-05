@@ -9,14 +9,14 @@ struct some_type {};
 // cp = copyable, mv = movable, 1 = yes, 0 = no
 struct type_cp1_mv1 {
     std::string mtxt;
-    type_cp1_mv1(const std::string &mtxt_) : mtxt(mtxt_) {}
+    explicit type_cp1_mv1(const std::string &mtxt_) : mtxt(mtxt_) {}
     type_cp1_mv1(const type_cp1_mv1 &other) { mtxt = other.mtxt + "_CpCtor"; }
-    type_cp1_mv1(type_cp1_mv1 &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    type_cp1_mv1(type_cp1_mv1 &&other) noexcept { mtxt = other.mtxt + "_MvCtor"; }
     type_cp1_mv1 &operator=(const type_cp1_mv1 &other) {
         mtxt = other.mtxt + "_CpCtor";
         return *this;
     }
-    type_cp1_mv1 &operator=(type_cp1_mv1 &&other) {
+    type_cp1_mv1 &operator=(type_cp1_mv1 &&other) noexcept {
         mtxt = other.mtxt + "_MvCtor";
         return *this;
     }
@@ -25,11 +25,11 @@ struct type_cp1_mv1 {
 // nocopy
 struct type_cp0_mv1 {
     std::string mtxt;
-    type_cp0_mv1(const std::string &mtxt_) : mtxt(mtxt_) {}
+    explicit type_cp0_mv1(const std::string &mtxt_) : mtxt(mtxt_) {}
     type_cp0_mv1(const type_cp0_mv1 &) = delete;
-    type_cp0_mv1(type_cp0_mv1 &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    type_cp0_mv1(type_cp0_mv1 &&other) noexcept { mtxt = other.mtxt + "_MvCtor"; }
     type_cp0_mv1 &operator=(const type_cp0_mv1 &) = delete;
-    type_cp0_mv1 &operator=(type_cp0_mv1 &&other) {
+    type_cp0_mv1 &operator=(type_cp0_mv1 &&other) noexcept {
         mtxt = other.mtxt + "_MvCtor";
         return *this;
     }
@@ -38,7 +38,7 @@ struct type_cp0_mv1 {
 // nomove
 struct type_cp1_mv0 {
     std::string mtxt;
-    type_cp1_mv0(const std::string &mtxt_) : mtxt(mtxt_) {}
+    explicit type_cp1_mv0(const std::string &mtxt_) : mtxt(mtxt_) {}
     type_cp1_mv0(const type_cp1_mv0 &other) { mtxt = other.mtxt + "_CpCtor"; }
     type_cp1_mv0(type_cp1_mv0 &&other) = delete;
     type_cp1_mv0 &operator=(const type_cp1_mv0 &other) {
@@ -51,7 +51,7 @@ struct type_cp1_mv0 {
 // nocopy_nomove
 struct type_cp0_mv0 {
     std::string mtxt;
-    type_cp0_mv0(const std::string &mtxt_) : mtxt(mtxt_) {}
+    explicit type_cp0_mv0(const std::string &mtxt_) : mtxt(mtxt_) {}
     type_cp0_mv0(const type_cp0_mv0 &) = delete;
     type_cp0_mv0(type_cp0_mv0 &&other) = delete;
     type_cp0_mv0 &operator=(const type_cp0_mv0 &other) = delete;
