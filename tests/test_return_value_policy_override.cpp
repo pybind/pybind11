@@ -113,7 +113,10 @@ std::unique_ptr<type_cp0_mv1> return_unique_pointer_nocopy() {
     return std::unique_ptr<type_cp0_mv1>(new type_cp0_mv1("unique_pointer_nocopy"));
 }
 
-type_cp1_mv0 return_value_nomove() { return type_cp1_mv0{"value_nomove"}; }
+type_cp1_mv0 return_value_nomove() {
+    type_cp1_mv0 value("value_nomove");
+    return const_cast<const type_cp1_mv0 &>(value);
+}
 
 type_cp1_mv0 *return_pointer_nomove() {
     static type_cp1_mv0 value("pointer_nomove");

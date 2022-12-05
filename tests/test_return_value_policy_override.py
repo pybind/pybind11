@@ -30,7 +30,7 @@ def test_return_pointer():
         (m.return_reference_nocopy, "reference_nocopy_MvCtor"),
         (m.return_unique_pointer_nocopy, "unique_pointer_nocopy"),
         (m.return_shared_pointer_nocopy, "shared_pointer_nocopy"),
-        (m.return_value_nomove, "value_nomove_CpCtor"),
+        (m.return_value_nomove, "value_nomove_CpCtor_CpCtor"),
         (m.return_pointer_nomove, "pointer_nomove"),
         (m.return_const_pointer_nomove, "const_pointer_nomove_CpCtor"),
         (m.return_reference_nomove, "reference_nomove_CpCtor"),
