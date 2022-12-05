@@ -247,13 +247,9 @@ TEST_SUBMODULE(return_value_policy_override, m) {
     m.def("return_value",
           &test_return_value_policy_override::return_value,
           py::return_value_policy::_clif_automatic);
-    // test_return_value_policy_override::return_pointer with default policy
-    // causes crash
     m.def("return_pointer",
           &test_return_value_policy_override::return_pointer,
           py::return_value_policy::_clif_automatic);
-    // test_return_value_policy_override::return_const_pointer with default
-    // policy causes crash
     m.def("return_const_pointer",
           &test_return_value_policy_override::return_const_pointer,
           py::return_value_policy::_clif_automatic);
