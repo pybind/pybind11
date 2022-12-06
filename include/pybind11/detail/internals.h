@@ -516,6 +516,7 @@ struct local_internals {
     struct shared_loader_life_support_data {
         PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
         shared_loader_life_support_data() {
+            // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
             if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
                 pybind11_fail("local_internals: could not successfully initialize the "
                               "loader_life_support TLS key!");
