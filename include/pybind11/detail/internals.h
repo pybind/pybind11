@@ -77,7 +77,6 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #    else
 #        define PYBIND11_TLS_KEY_REF Py_tss_t *
 #        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
-// NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
 #        define PYBIND11_TLS_KEY_CREATE(var)                                                      \
             (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
 #        define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
@@ -470,12 +469,14 @@ PYBIND11_NOINLINE internals &get_internals() {
 #if defined(WITH_THREAD)
 
         PyThreadState *tstate = PyThreadState_Get();
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
             pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
         }
         PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
 
 #    if PYBIND11_INTERNALS_VERSION > 4
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
             pybind11_fail("get_internals: could not successfully initialize the "
                           "loader_life_support TSS key!");
