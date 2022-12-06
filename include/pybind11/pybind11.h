@@ -1426,9 +1426,9 @@ template <typename T, enable_if_t<has_operator_delete<T>::value, int> = 0>
 void call_operator_delete(T *p, size_t, size_t) {
     T::operator delete(p);
 }
-template <
-    typename T,
-    enable_if_t<!has_operator_delete<T>::value && has_operator_delete_size<T>::value, int> = 0>
+template <typename T,
+          enable_if_t<!has_operator_delete<T>::value && has_operator_delete_size<T>::value, int>
+          = 0>
 void call_operator_delete(T *p, size_t s, size_t) {
     T::operator delete(p, s);
 }

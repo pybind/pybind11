@@ -24,7 +24,7 @@ exclude: ^tools/JoinPaths.cmake$
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v4.3.0"
+  rev: "v4.4.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -41,7 +41,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v3.2.0"
+  rev: "v3.3.0"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -80,7 +80,7 @@ repos:
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v2.1.1"
+  rev: "v2.1.2"
   hooks:
   - id: pycln
     stages: [manual]
@@ -108,7 +108,7 @@ repos:
 
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
-  rev: "5.0.4"
+  rev: "6.0.0"
   hooks:
   - id: flake8
     exclude: ^(docs/.*|tools/.*)$
@@ -116,7 +116,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.15.5"
+  rev: "v2.15.8"
   hooks:
   - id: pylint
     files: ^pybind11
@@ -132,7 +132,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v0.982"
+  rev: "v0.991"
   hooks:
   - id: mypy
     args: []
@@ -141,7 +141,7 @@ repos:
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
-  rev: "0.48"
+  rev: "0.49"
   hooks:
   - id: check-manifest
     # This is a slow hook, so only run this if --hook-stage manual is passed
@@ -175,7 +175,7 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v14.0.6"
+  rev: "v15.0.4"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
