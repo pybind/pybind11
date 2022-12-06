@@ -77,6 +77,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #    else
 #        define PYBIND11_TLS_KEY_REF Py_tss_t *
 #        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
+// NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
 #        define PYBIND11_TLS_KEY_CREATE(var)                                                      \
             (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
 #        define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
