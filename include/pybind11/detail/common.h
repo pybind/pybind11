@@ -34,17 +34,17 @@
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning(pop))
 #elif defined(__INTEL_COMPILER)
 #    define PYBIND11_COMPILER_INTEL
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning pop)
 #elif defined(__clang__)
 #    define PYBIND11_COMPILER_CLANG
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(clang diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(clang diagnostic push)
 #elif defined(__GNUC__)
 #    define PYBIND11_COMPILER_GCC
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(GCC diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(GCC diagnostic pop)
 #endif
