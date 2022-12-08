@@ -1388,14 +1388,32 @@ protected:
                                   handle fset,
                                   detail::function_record *rec_func) {
         const auto is_static = (rec_func != nullptr) && !(rec_func->is_method && rec_func->scope);
-        const auto has_doc = (rec_func != nullptr) && (rec_func->doc != nullptr)
-                             && pybind11::options::show_user_defined_docstrings();
+
+        std::string doc;
+        if (rec_func != nullptr) {
+            if (pybind11::options::show_function_signatures()) {
+                doc += name;
+                if (rec_func->signature != nullptr) {
+                    std::string sig = rec_func->signature;
+                    size_t ret = sig.rfind(" -> ");
+                    if (ret != std::string::npos) {
+                        doc += ": ";
+                        doc += sig.substr(ret + 4);
+                    }
+                }
+                doc += "\n\n";
+            }
+            if (rec_func->doc != nullptr && pybind11::options::show_user_defined_docstrings()) {
+                doc += rec_func->doc;
+            }
+        }
+
         auto property = handle(
             (PyObject *) (is_static ? get_internals().static_property_type : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
                               fset.ptr() ? fset : none(),
                               /*deleter*/ none(),
-                              pybind11::str(has_doc ? rec_func->doc : ""));
+                              pybind11::str(doc));
     }
 };
 

@@ -79,10 +79,29 @@ TEST_SUBMODULE(docstring_options, m) {
             void setValue(int v) { value = v; }
             int getValue() const { return value; }
         };
-        py::class_<DocstringTestFoo>(m, "DocstringTestFoo", "This is a class docstring")
-            .def_property("value_prop",
-                          &DocstringTestFoo::getValue,
-                          &DocstringTestFoo::setValue,
-                          "This is a property docstring");
+        py::class_<DocstringTestFoo> c(m, "DocstringTestFoo", "This is a class docstring");
+
+        c.def_property("value_prop1",
+                       &DocstringTestFoo::getValue,
+                       &DocstringTestFoo::setValue,
+                       "This is a property docstring");
+
+        {
+            py::options nested_options;
+            nested_options.enable_user_defined_docstrings();
+
+            c.def_property("value_prop2",
+                           &DocstringTestFoo::getValue,
+                           &DocstringTestFoo::setValue,
+                           "This is a property docstring");
+
+            c.def_property(
+                "value_prop3", &DocstringTestFoo::getValue, &DocstringTestFoo::setValue);
+
+            options.disable_function_signatures();
+
+            c.def_property(
+                "value_prop4", &DocstringTestFoo::getValue, &DocstringTestFoo::setValue);
+        }
     }
 }

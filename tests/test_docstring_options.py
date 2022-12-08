@@ -38,4 +38,14 @@ def test_docstring_options():
 
     # Suppression of user-defined docstrings for non-function objects
     assert not m.DocstringTestFoo.__doc__
-    assert not m.DocstringTestFoo.value_prop.__doc__
+
+    assert m.DocstringTestFoo.value_prop1.__doc__ == "value_prop1: int\n\n"
+
+    assert (
+        m.DocstringTestFoo.value_prop2.__doc__
+        == "value_prop2: int\n\nThis is a property docstring"
+    )
+
+    assert m.DocstringTestFoo.value_prop3.__doc__ == "value_prop3: int\n\n"
+
+    assert not m.DocstringTestFoo.value_prop4.__doc__
