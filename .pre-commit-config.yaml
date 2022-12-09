@@ -112,6 +112,7 @@ repos:
   hooks:
   - id: flake8
     exclude: ^(docs/.*|tools/.*)$
+    args: ["--ignore=B905,N818,W503"]
     additional_dependencies: *flake8_dependencies
 
 # PyLint has native support - not always usable, but works for us
