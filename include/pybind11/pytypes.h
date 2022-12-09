@@ -232,7 +232,8 @@ public:
         detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
                                                            detail::is_pyobj_ptr_or_nullptr_t<T>>,
                                            std::is_convertible<T, PyObject *>>::value,
-                            int> = 0>
+                            int>
+        = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
 
@@ -249,6 +250,11 @@ public:
 #ifdef PYBIND11_HANDLE_REF_DEBUG
         inc_ref_counter(1);
 #endif
+#if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+        if (m_ptr != nullptr && !PyGILState_Check()) {
+            throw std::runtime_error("pybind11::handle::inc_ref() PyGILState_Check() failure.");
+        }
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -259,6 +265,11 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &dec_ref() const & {
+#if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+        if (m_ptr != nullptr && !PyGILState_Check()) {
+            throw std::runtime_error("pybind11::handle::dec_ref() PyGILState_Check() failure.");
+        }
+#endif
         Py_XDECREF(m_ptr);
         return *this;
     }

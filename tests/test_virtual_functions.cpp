@@ -173,7 +173,8 @@ struct AdderBase {
     using DataVisitor = std::function<void(const Data &)>;
 
     virtual void
-    operator()(const Data &first, const Data &second, const DataVisitor &visitor) const = 0;
+    operator()(const Data &first, const Data &second, const DataVisitor &visitor) const
+        = 0;
     virtual ~AdderBase() = default;
     AdderBase() = default;
     AdderBase(const AdderBase &) = delete;

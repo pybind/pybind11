@@ -85,4 +85,57 @@ TEST_SUBMODULE(docstring_options, m) {
                           &DocstringTestFoo::setValue,
                           "This is a property docstring");
     }
+
+    {
+        enum class DocstringTestEnum1 { Member1, Member2 };
+
+        py::enum_<DocstringTestEnum1>(m, "DocstringTestEnum1", "Enum docstring")
+            .value("Member1", DocstringTestEnum1::Member1)
+            .value("Member2", DocstringTestEnum1::Member2);
+    }
+
+    {
+        py::options options;
+        options.enable_enum_members_docstring();
+
+        enum class DocstringTestEnum2 { Member1, Member2 };
+
+        py::enum_<DocstringTestEnum2>(m, "DocstringTestEnum2", "Enum docstring")
+            .value("Member1", DocstringTestEnum2::Member1)
+            .value("Member2", DocstringTestEnum2::Member2);
+    }
+
+    {
+        py::options options;
+        options.disable_enum_members_docstring();
+
+        enum class DocstringTestEnum3 { Member1, Member2 };
+
+        py::enum_<DocstringTestEnum3>(m, "DocstringTestEnum3", "Enum docstring")
+            .value("Member1", DocstringTestEnum3::Member1)
+            .value("Member2", DocstringTestEnum3::Member2);
+    }
+
+    {
+        py::options options;
+        options.disable_user_defined_docstrings();
+
+        enum class DocstringTestEnum4 { Member1, Member2 };
+
+        py::enum_<DocstringTestEnum4>(m, "DocstringTestEnum4", "Enum docstring")
+            .value("Member1", DocstringTestEnum4::Member1)
+            .value("Member2", DocstringTestEnum4::Member2);
+    }
+
+    {
+        py::options options;
+        options.disable_user_defined_docstrings();
+        options.disable_enum_members_docstring();
+
+        enum class DocstringTestEnum5 { Member1, Member2 };
+
+        py::enum_<DocstringTestEnum5>(m, "DocstringTestEnum5", "Enum docstring")
+            .value("Member1", DocstringTestEnum5::Member1)
+            .value("Member2", DocstringTestEnum5::Member2);
+    }
 }

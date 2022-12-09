@@ -34,17 +34,17 @@
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning(pop))
 #elif defined(__INTEL_COMPILER)
 #    define PYBIND11_COMPILER_INTEL
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning pop)
 #elif defined(__clang__)
 #    define PYBIND11_COMPILER_CLANG
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(clang diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(clang diagnostic push)
 #elif defined(__GNUC__)
 #    define PYBIND11_COMPILER_GCC
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(GCC diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(GCC diagnostic pop)
 #endif
@@ -321,6 +321,15 @@ PYBIND11_WARNING_POP
 // Must be after including <version> or one of the other headers specified by the standard
 #if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
 #    define PYBIND11_HAS_U8STRING
+#endif
+
+// See description of PR #4246:
+#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF)                                \
+    && !(defined(PYPY_VERSION)                                                                    \
+         && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
+                                  process (see PR #4268) */                                       \
+    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
