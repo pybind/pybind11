@@ -667,13 +667,7 @@ struct KeysViewImpl : public KeysView {
     explicit KeysViewImpl(Map &map) : map(map) {}
     size_t len() override { return map.size(); }
     iterator iter() override { return make_key_iterator(map.begin(), map.end()); }
-    bool contains(const typename Map::key_type &k) override {
-        auto it = map.find(k);
-        if (it == map.end()) {
-            return false;
-        }
-        return true;
-    }
+    bool contains(const typename Map::key_type &k) override { return map.find(k) != map.end(); }
     bool contains(const object &) override { return false; }
     Map &map;
 };
