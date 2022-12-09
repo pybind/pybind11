@@ -90,7 +90,7 @@ struct block_int_to_str {
 TEST_SUBMODULE(descr_src_loc, m) {
     using namespace pybind11_tests::descr_src_loc;
 
-#    define ATTR_OFFS(B) m.attr(#    B "_offset") = B::offset;
+#    define ATTR_OFFS(B) m.attr(#B "_offset") = B::offset;
 #    define ATTR_BLKC(B, C)                                                                       \
         m.attr(#B "_" #C) = py::make_tuple(B::C.text, B::C.sloc.file, B::C.sloc.line);
 
