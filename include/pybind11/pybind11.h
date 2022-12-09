@@ -1979,16 +1979,19 @@ struct enum_base {
                         std::string docstring;
                         dict entries = arg.attr("__entries");
                         if (((PyTypeObject *) arg.ptr())->tp_doc) {
-                            docstring
-                                += std::string(((PyTypeObject *) arg.ptr())->tp_doc) + "\n\n";
+                            docstring += std::string(
+                                reinterpret_cast<PyTypeObject *>(arg.ptr())->tp_doc);
+                            docstring += "\n\n";
                         }
                         docstring += "Members:";
                         for (auto kv : entries) {
                             auto key = std::string(pybind11::str(kv.first));
                             auto comment = kv.second[int_(1)];
-                            docstring += "\n\n  " + key;
+                            docstring += "\n\n  ";
+                            docstring += key;
                             if (!comment.is_none()) {
-                                docstring += " : " + (std::string) pybind11::str(comment);
+                                docstring += " : ";
+                                docstring += pybind11::str(comment).cast<std::string>();
                             }
                         }
                         return docstring;
