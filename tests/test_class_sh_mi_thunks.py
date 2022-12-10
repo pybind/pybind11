@@ -17,7 +17,6 @@ def test_ptrdiff_drvd_base0():
     [
         m.vec_size_base0_raw_ptr,
         m.vec_size_base0_shared_ptr,
-        m.vec_size_base0_unique_ptr,
     ],
 )
 @pytest.mark.parametrize(
@@ -28,24 +27,30 @@ def test_ptrdiff_drvd_base0():
         m.get_drvd_as_base0_unique_ptr,
     ],
 )
-def test_get_vec_size(get_fn, vec_size_fn):
+def test_get_vec_size_raw_shared(get_fn, vec_size_fn):
     obj = get_fn()
-    if (
-        get_fn is m.get_drvd_as_base0_shared_ptr
-        and vec_size_fn is m.vec_size_base0_unique_ptr
-    ):
-        with pytest.raises(ValueError) as exc_info:
-            vec_size_fn(obj)
-        assert (
-            str(exc_info.value)
-            == "Cannot disown external shared_ptr (loaded_as_unique_ptr)."
-        )
-    else:
-        assert vec_size_fn(obj) == 5
-        if vec_size_fn is m.vec_size_base0_unique_ptr:
-            with pytest.raises(ValueError) as exc_info:
-                vec_size_fn(obj)
-            assert (
-                str(exc_info.value)
-                == "Missing value for wrapped C++ type: Python instance was disowned."
-            )
+    assert vec_size_fn(obj) == 5
+
+
+@pytest.mark.parametrize(
+    "get_fn", [m.get_drvd_as_base0_raw_ptr, m.get_drvd_as_base0_unique_ptr]
+)
+def test_get_vec_size_unique(get_fn):
+    obj = get_fn()
+    assert m.vec_size_base0_unique_ptr(obj) == 5
+    with pytest.raises(ValueError) as exc_info:
+        m.vec_size_base0_unique_ptr(obj)
+    assert (
+        str(exc_info.value)
+        == "Missing value for wrapped C++ type: Python instance was disowned."
+    )
+
+
+def test_get_shared_vec_size_unique():
+    obj = m.get_drvd_as_base0_shared_ptr()
+    with pytest.raises(ValueError) as exc_info:
+        m.vec_size_base0_unique_ptr(obj)
+    assert (
+        str(exc_info.value)
+        == "Cannot disown external shared_ptr (loaded_as_unique_ptr)."
+    )
