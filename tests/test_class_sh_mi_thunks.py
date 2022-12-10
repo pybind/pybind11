@@ -1,6 +1,6 @@
 import pytest
 
-from pybind11_tests import mi_debug as m
+from pybind11_tests import class_sh_mi_thunks as m
 
 
 @pytest.mark.parametrize(

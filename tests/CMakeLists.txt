@@ -127,6 +127,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_disowning_mi
     test_class_sh_factory_constructors
     test_class_sh_inheritance
+    test_class_sh_mi_thunks
     test_class_sh_module_local.py
     test_class_sh_property
     test_class_sh_shared_ptr_copy_move
@@ -158,7 +159,6 @@ set(PYBIND11_TEST_FILES
     test_kwargs_and_defaults
     test_local_bindings
     test_methods_and_attributes
-    test_mi_debug
     test_modules
     test_multiple_inheritance
     test_numpy_array

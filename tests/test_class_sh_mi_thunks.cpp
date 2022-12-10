@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace test_mi_debug {
+namespace test_class_sh_mi_thunks {
 
 struct Base0 {
     virtual ~Base0() = default;
@@ -28,14 +28,14 @@ struct Derived : Base1, Base0 {
     Derived(const Derived &) = delete;
 };
 
-} // namespace test_mi_debug
+} // namespace test_class_sh_mi_thunks
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_mi_debug::Base0)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_mi_debug::Base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_mi_debug::Derived)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base0)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Derived)
 
-TEST_SUBMODULE(mi_debug, m) {
-    using namespace test_mi_debug;
+TEST_SUBMODULE(class_sh_mi_thunks, m) {
+    using namespace test_class_sh_mi_thunks;
 
     py::classh<Base0> bs0(m, "Base0");
     py::classh<Base1> bs1(m, "Base1");
