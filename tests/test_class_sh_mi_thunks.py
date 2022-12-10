@@ -3,8 +3,8 @@ import pytest
 from pybind11_tests import class_sh_mi_thunks as m
 
 
-def test_ptrdiff_derived_base0():
-    ptrdiff = m.ptrdiff_derived_base0()
+def test_ptrdiff_drvd_base0():
+    ptrdiff = m.ptrdiff_drvd_base0()
     # A failure here does not (necessarily) mean that there is a bug, but that
     # test_class_sh_mi_thunks is not exercising what it is supposed to.
     # If this ever fails on some platforms: use pytest.skip()
@@ -23,15 +23,15 @@ def test_ptrdiff_derived_base0():
 @pytest.mark.parametrize(
     "get_fn",
     [
-        m.get_derived_as_base0_raw_ptr,
-        m.get_derived_as_base0_shared_ptr,
-        m.get_derived_as_base0_unique_ptr,
+        m.get_drvd_as_base0_raw_ptr,
+        m.get_drvd_as_base0_shared_ptr,
+        m.get_drvd_as_base0_unique_ptr,
     ],
 )
 def test_get_vec_size(get_fn, vec_size_fn):
     obj = get_fn()
     if (
-        get_fn is m.get_derived_as_base0_shared_ptr
+        get_fn is m.get_drvd_as_base0_shared_ptr
         and vec_size_fn is m.vec_size_base0_unique_ptr
     ):
         with pytest.raises(ValueError) as exc_info:
