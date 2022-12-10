@@ -44,7 +44,7 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
 
     m.def("ptrdiff_drvd_base0", []() {
         auto drvd = std::unique_ptr<Derived>(new Derived);
-        auto base0 = dynamic_cast<Base0 *>(drvd.get());
+        auto *base0 = dynamic_cast<Base0 *>(drvd.get());
         return std::ptrdiff_t(reinterpret_cast<char *>(drvd.get())
                               - reinterpret_cast<char *>(base0));
     });
