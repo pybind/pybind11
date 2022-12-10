@@ -13,6 +13,7 @@
 #include "detail/common.h"
 
 #include <deque>
+#include <iostream>
 #include <list>
 #include <map>
 #include <ostream>
@@ -116,6 +117,10 @@ private:
     void reserve_maybe(const dict &, void *) {}
 
 public:
+#define DEBUG(value) std::cerr << __func__ << ": " << &value << " #: " << value.size() << "\n"
+
+    map_caster() { DEBUG(value); }
+    ~map_caster() { DEBUG(value); }
     bool load(handle src, bool convert) {
         if (!isinstance<dict>(src)) {
             return false;
@@ -131,11 +136,13 @@ public:
             }
             value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
         }
+        DEBUG(value);
         return true;
     }
 
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
+        DEBUG(src);
         dict d;
         return_value_policy policy_key = policy;
         return_value_policy policy_value = policy;
@@ -156,9 +163,40 @@ public:
         return d.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type,
-                         const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
-                             + const_name("]"));
+protected:
+    Type value;
+
+public:
+    static constexpr auto name = _("Dict[") + key_conv::name + _(", ") + value_conv::name + _("]");
+    template <typename T, enable_if_t<std::is_same<Type, remove_cv_t<T>>::value, int> = 0>
+    static handle cast(T *src, return_value_policy policy, handle parent) {
+        if (!src)
+            return none().release();
+        if (policy == return_value_policy::take_ownership) {
+            auto h = cast(std::move(*src), policy, parent);
+            delete src;
+            return h;
+        } else {
+            return cast(*src, policy, parent);
+        }
+    }
+    operator Type *() {
+        DEBUG(value);
+        return &value;
+    }
+    operator Type &() {
+        DEBUG(value);
+        return value;
+    }
+    operator Type &&() && {
+        DEBUG(value);
+        return std::move(value);
+    }
+
+    template <typename T>
+    using cast_op_type = pybind11::detail::movable_cast_op_type<T>;
+
+#undef DEBUG
 };
 
 template <typename Type, typename Value>
