@@ -37,6 +37,13 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Derived)
 TEST_SUBMODULE(class_sh_mi_thunks, m) {
     using namespace test_class_sh_mi_thunks;
 
+    m.def("ptrdiff_derived_base0", []() {
+        auto drvd = std::unique_ptr<Derived>(new Derived{});
+        auto base0 = dynamic_cast<Base0 *>(drvd.get());
+        return std::ptrdiff_t(reinterpret_cast<char *>(drvd.get())
+                              - reinterpret_cast<char *>(base0));
+    });
+
     py::classh<Base0> bs0(m, "Base0");
     py::classh<Base1> bs1(m, "Base1");
     py::classh<Derived, Base1, Base0>(m, "Derived");
