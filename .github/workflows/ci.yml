@@ -48,6 +48,12 @@ jobs:
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
           - runs-on: ubuntu-20.04
+            python: '3.8'
+            # Add a build with no optimizations
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
+              -DCMAKE_BUILD_TYPE=none -DCMAKE_CXX_FLAGS="-DNDEBUG"
+          - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
@@ -293,6 +299,9 @@ jobs:
             std: 20
           - clang: 14
             std: 20
+          - clang: 10
+            std: 14
+            args: -DCMAKE_BUILD_TYPE=none -DCMAKE_CXX_FLAGS="-DNDEBUG"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}"
@@ -310,6 +319,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        ${{ matrix.args }}
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
