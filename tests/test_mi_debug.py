@@ -16,7 +16,7 @@ from pybind11_tests import mi_debug as m
     [
         m.get_derived_as_base0_raw_ptr,
         m.get_derived_as_base0_shared_ptr,
-        # *** FAILS *** m.get_derived_as_base0_unique_ptr,
+        m.get_derived_as_base0_unique_ptr,
     ],
 )
 def test_get_vec_size(get_fn, vec_size_fn):

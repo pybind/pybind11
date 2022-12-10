@@ -386,8 +386,8 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     template <typename T, typename D>
     static smart_holder smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                                      bool void_cast_raw_ptr) {
-        return pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr),
-                                                               void_cast_raw_ptr);
+        void *void_ptr = void_cast_raw_ptr ? static_cast<void *>(unq_ptr.get()) : nullptr;
+        return pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr), void_ptr);
     }
 
     template <typename T>
@@ -891,17 +891,16 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
             return none().release();
         }
 
-        auto src_raw_ptr = src.get();
-        auto st = type_caster_base<T>::src_and_type(src_raw_ptr);
+        auto st = type_caster_base<T>::src_and_type(src.get());
         if (st.second == nullptr) {
             return handle(); // no type info: error will be set already
         }
 
-        void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
+        void *src_raw_void_ptr = const_cast<void *>(st.first);
         const detail::type_info *tinfo = st.second;
         if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
             auto *self_life_support
-                = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(src_raw_ptr);
+                = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(src.get());
             if (self_life_support != nullptr) {
                 value_and_holder &v_h = self_life_support->v_h;
                 if (v_h.inst != nullptr && v_h.vh != nullptr) {
@@ -927,8 +926,14 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
         valueptr = src_raw_void_ptr;
 
-        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src),
-                                                                      /*void_cast_raw_ptr*/ false);
+        if (static_cast<void *>(src.get()) == src_raw_void_ptr) {
+            // This is a multiple-inheritance situation that is incompatible with the current
+            // shared_from_this handling (see PR #3023).
+            // SMART_HOLDER_WIP: IMPROVABLE: Is there a better solution?
+            src_raw_void_ptr = nullptr;
+        }
+        auto smhldr
+            = pybindit::memory::smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
         if (policy == return_value_policy::reference_internal) {
