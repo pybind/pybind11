@@ -22,7 +22,9 @@ def test_pickle_simple_callable():
         # all C Python versions.
         with pytest.raises(TypeError) as excinfo:
             pickle.dumps(m.simple_callable)
-        assert re.search("can.*t pickle '?pybind11_function'? object", str(excinfo.value))
+        assert re.search(
+            "can.*t pickle '?pybind11_function'? object", str(excinfo.value)
+        )
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
