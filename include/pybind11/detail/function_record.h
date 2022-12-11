@@ -401,7 +401,7 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
     function_wrapper(const function_wrapper &other) = delete;
 
     tl::optional<PyObject *>
-    operator()(PyObject *const *args, size_t nargs, PyObject *kwnames, bool force_noconvert) {
+    operator()(PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames, bool force_noconvert) {
 
         {
             tl::optional<loader_life_support> life_support;
@@ -546,8 +546,10 @@ struct function_overload_set {
         }
     }
 
-    tl::optional<PyObject *>
-    operator()(PyObject *const *args, size_t nargs, PyObject *kwnames, bool /*force_noconvert*/) {
+    tl::optional<PyObject *> operator()(PyObject *const *args,
+                                        Py_ssize_t nargs,
+                                        PyObject *kwnames,
+                                        bool /*force_noconvert*/) {
         // Pass 1, force noconvert
         for (size_t i = 0; i < children.size(); i++) {
             pybind_function &child = get_child(i);

@@ -77,7 +77,7 @@ struct pybind_function {
                   PyObject *kwnames,
                   bool force_noconvert) -> tl::optional<PyObject *> {
             auto *functor = reinterpret_cast<TypeToStore *>(func.data);
-            size_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
+            Py_ssize_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
             return (*functor)(args, nargs, kwnames, force_noconvert);
         };
 
@@ -93,7 +93,7 @@ struct pybind_function {
                 pybind_function *func = (pybind_function *) self_ptr;
                 std::string n = func->name;
                 TypeToStore *functor = (TypeToStore *) func->data;
-                size_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
+                Py_ssize_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
                 auto result = (*functor)(args, nargs, kwnames, false);
 
                 if (!result) {

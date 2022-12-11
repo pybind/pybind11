@@ -27,7 +27,7 @@ constexpr auto pybind_vectorcall_call = PyVectorcall_Call;
 
 constexpr size_t pybind_vectorcall_arguments_offset = PY_VECTORCALL_ARGUMENTS_OFFSET;
 
-inline size_t pybind_vectorcall_nargs(size_t nargs_with_flag) {
+inline Py_ssize_t pybind_vectorcall_nargs(size_t nargs_with_flag) {
     return PyVectorcall_NARGS(nargs_with_flag);
 }
 
@@ -43,7 +43,9 @@ using pybind_vectorcallfunc = PyObject *(*) (PyObject *, PyObject *const *, size
 constexpr size_t pybind_vectorcall_arguments_offset
     = (static_cast<size_t>(1)) << (static_cast<size_t>(8 * sizeof(size_t) - 1));
 
-inline size_t pybind_vectorcall_nargs(size_t n) { return n & ~pybind_vectorcall_arguments_offset; }
+inline Py_ssize_t pybind_vectorcall_nargs(size_t n) {
+    return n & ~pybind_vectorcall_arguments_offset;
+}
 
 inline PyObject *pybind_vectorcall_call(PyObject *callable, PyObject *args, PyObject *kwargs) {
     Py_ssize_t num_pos_args = PyTuple_GET_SIZE(args);
