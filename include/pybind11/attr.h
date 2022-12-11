@@ -384,11 +384,16 @@ template <>
 struct process_attribute<arg> : process_attribute_default<arg> {
     template <typename RecordType>
     static void init(const arg &a, RecordType &r) {
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_INTEL(186) // "Pointless" comparison with zero
+
         if (r.arginfo_index >= RecordType::nargs_pos && (!a.name || a.name[0] == '\0')) {
             pybind11_fail(
                 "arg(): cannot specify an unnamed argument after a kw_only() annotation or "
                 "args() argument");
         }
+
+        PYBIND11_WARNING_PUSH
 
         if (r.arginfo_index == RecordType::nargs_pos && RecordType::has_args) {
             r.arginfo_index++;

@@ -47,6 +47,9 @@ struct pybind_function {
         explicit pybind_function(Functor *, Args &&...args) {
         using TypeToStore = typename std::remove_reference<Functor>::type;
 
+        // In case of an exception while constructing data, we need to init this to nullptr
+        deleter = nullptr;
+
         // Construct the target Functor within the pybind_function
         // Note the alignment requirements
         {
@@ -130,7 +133,12 @@ struct pybind_function {
 
     pybind_function(const pybind_function &other) = delete;
 
-    ~pybind_function() { deleter(data); }
+    ~pybind_function() {
+        // Deleter will be nullptr is an exception was thrown during construction
+        if (deleter != nullptr) {
+            deleter(data);
+        }
+    }
 
     // How much storage do we need to store a particular Functor?
     template <typename Functor>
@@ -249,13 +257,15 @@ inline PyObject *pybind_backup_impl_vectorcall(PyObject *callable,
 // Note that this takes the arguments for the constructor and
 // emplaces it within the pybind_function
 template <typename Functor, typename... Args>
-handle create_pybind_function(Args &&...args) {
+object create_pybind_function(Args &&...args) {
     pybind_function *om = PyObject_NewVar(
         pybind_function, pybind_function_type(), pybind_function::item_size<Functor>());
 
+    object obj = reinterpret_steal<object>(handle(reinterpret_cast<PyObject *>(om)));
+
     new (om) pybind_function((Functor *) nullptr, std::forward<Args>(args)...);
 
-    return (PyObject *) om;
+    return obj;
 }
 
 inline void append_note_if_missing_header_is_suspected(std::string &msg) {

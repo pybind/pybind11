@@ -55,7 +55,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
     static constexpr const size_t nargs = sizeof...(Args);
 
     static constexpr const bool has_args = cast_in::has_args;
-    static constexpr const size_t args_pos = static_cast<size_t>(cast_in::args_pos);
+    static constexpr const size_t args_pos = has_args ? static_cast<size_t>(cast_in::args_pos) : 0;
 
     static constexpr const bool has_kwargs = cast_in::has_kwargs;
 
@@ -110,7 +110,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
     static_assert(!(has_args && has_kw_only_args) || (kw_only_pos == args_pos + 1),
                   "py::kw_only must come before the args parameter");
 
-    static_assert(!(new_style_constructor) || (args_pos >= 1),
+    static_assert(!(new_style_constructor) || (nargs >= 1),
                   "A constructor must have at least one argument, the value and holder");
 
     std::array<argument_record, nargs> argument_info;
@@ -601,13 +601,11 @@ struct function_overload_set {
 template <typename Func, typename Return, typename... Args, typename... Extra>
 object create_pybind_function_wrapper(Func &&f, Return (*)(Args...), const Extra &...extra) {
     using wrapper_type = function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>;
-    return reinterpret_steal<object>(
-        create_pybind_function<wrapper_type>(std::forward<Func>(f), extra...));
+    return create_pybind_function<wrapper_type>(std::forward<Func>(f), extra...);
 }
 
 inline object create_pybind_function_overload_set(object existing_function) {
-    return reinterpret_steal<object>(
-        create_pybind_function<function_overload_set>(existing_function));
+    return create_pybind_function<function_overload_set>(existing_function);
 }
 
 inline object combine_functions(object existing_function, object new_function, bool prepend) {
