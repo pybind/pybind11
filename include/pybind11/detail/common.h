@@ -1297,12 +1297,12 @@ inline void *align(std::size_t alignment, std::size_t size, void *&ptr, std::siz
     if (space < size + padding)
         return nullptr;
     space -= padding;
-    return ptr = reinterpret_cast<void *>(aligned);
+    return ptr = static_cast<void *>(aligned);
 }
 
 #else
 
-constexpr auto align = std::align;
+using align = std::align;
 
 #endif
 

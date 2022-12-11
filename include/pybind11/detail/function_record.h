@@ -36,13 +36,13 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
-    std::string name;
-    std::string desc;
-    object value;     ///< Associated Python object
-    bool convert : 1; ///< True if the argument is allowed to convert when loading
-    bool none : 1;    ///< True if None is allowed when loading
+    std::string name = "";
+    std::string desc = "";
+    object value();          ///< Associated Python object
+    bool convert : 1 = true; ///< True if the argument is allowed to convert when loading
+    bool none : 1 = true;    ///< True if None is allowed when loading
 
-    argument_record() : name(""), desc(""), value(), convert(true), none(true) {}
+    argument_record() = default;
 };
 
 template <typename...>
@@ -65,7 +65,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
         has_arg_annotations = any_of<is_keyword<Extra>...>::value,
         new_style_constructor = any_of<std::is_same<is_new_style_constructor, Extra>...>::value,
         is_prepend = any_of<std::is_same<prepend, Extra>...>::value,
-        is_temporary_casts = !any_of<std::is_same<has_no_temporary_casts, Extra>...>::value,
+        is_temporary_casts = none_of<std::is_same<has_no_temporary_casts, Extra>...>::value,
         has_operator = any_of<std::is_same<is_operator, Extra>...>::value;
 
     static constexpr const bool has_self = any_of<std::is_same<is_method, Extra>...>::value;
@@ -422,7 +422,7 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
 
             std::array<handle, sizeof...(Args)> call_args;
 
-            typename metadata_type::cast_in loader;
+            using loader = metadata_type::cast_in;
             value_and_holder self_value_and_holder;
             bool valid_args = metadata.process_args(
                 call_args, loader, self_value_and_holder, args, nargs, kwnames, force_noconvert);
@@ -573,6 +573,7 @@ struct function_overload_set {
         }
 
         std::vector<pybind_function *> functions;
+        functions.reserve(children.size());
         for (size_t i = 0; i < children.size(); i++) {
             functions.push_back(&get_child(i));
         }
