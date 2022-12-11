@@ -1302,7 +1302,7 @@ inline void *align(std::size_t alignment, std::size_t size, void *&ptr, std::siz
 
 #else
 
-using align = std::align;
+constexpr auto align = std::align;
 
 #endif
 

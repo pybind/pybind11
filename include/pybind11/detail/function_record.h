@@ -36,13 +36,13 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
-    std::string name = "";
-    std::string desc = "";
-    object value();          ///< Associated Python object
-    bool convert : 1 = true; ///< True if the argument is allowed to convert when loading
-    bool none : 1 = true;    ///< True if None is allowed when loading
+    std::string name;
+    std::string desc;
+    object value;     ///< Associated Python object
+    bool convert : 1; ///< True if the argument is allowed to convert when loading
+    bool none : 1;    ///< True if None is allowed when loading
 
-    argument_record() = default;
+    argument_record() : name(""), desc(""), value(), convert(true), none(true) {}
 };
 
 template <typename...>
@@ -163,7 +163,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
 
         // This warning is currently broken for some reason. It gets confused and incorrectly
         // throws.
-        PYBIND11_WARNING_DISABLE_GCC("-Warray-bound")
+        PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
 
         constexpr auto sig
             = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
@@ -422,7 +422,7 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
 
             std::array<handle, sizeof...(Args)> call_args;
 
-            using loader = metadata_type::cast_in;
+            typename metadata_type::cast_in loader;
             value_and_holder self_value_and_holder;
             bool valid_args = metadata.process_args(
                 call_args, loader, self_value_and_holder, args, nargs, kwnames, force_noconvert);
