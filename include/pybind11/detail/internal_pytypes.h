@@ -94,20 +94,7 @@ struct pybind_function {
                 std::string n = func->name;
                 TypeToStore *functor = (TypeToStore *) func->data;
                 size_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
-                if (n == "foo_helper3") {
-                    std::cout << "Don't even call it!" << std::endl;
-
-                    PyErr_SetString(PyExc_SystemError, "Double fancy exception for foo");
-                    return nullptr;
-                }
                 auto result = (*functor)(args, nargs, kwnames, false);
-
-                if (n == "foo" || n == "foo_static" || n == "foo_helper" || n == "foo_helper2") {
-                    std::cout << "Calling method " << func->name << std::endl;
-
-                    PyErr_SetString(PyExc_SystemError, "Fancy exception for foo");
-                    return nullptr;
-                }
 
                 if (!result) {
                     return raise_type_error(&func, 1, args, nargs, kwnames);
@@ -183,10 +170,10 @@ struct pybind_function_type_data {
     std::array<PyMemberDef, 4> members;
 
     pybind_function_type_data() {
-#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
+
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wmissing-field-initializers")
+
         type = {PyVarObject_HEAD_INIT(&PyType_Type, 0)};
         PyMemberDef name_def = {const_cast<char *>("__name__"),
                                 T_STRING,
@@ -204,9 +191,8 @@ struct pybind_function_type_data {
         members[2] = module_def;
         members[3] = null_def;
 
-#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic pop
-#endif
+        PYBIND11_WARNING_POP
+
         type.tp_getattro = PyObject_GenericGetAttr;
         type.tp_name = "pybind11_function";
         type.tp_basicsize = sizeof(pybind_function);
@@ -229,7 +215,6 @@ struct pybind_function_type_data {
 #endif
 
         type.tp_descr_get = [](PyObject *self, PyObject *obj, PyObject *) -> PyObject * {
-            // std::cout << "Ideally shouldn't be calling tp_descr_get ... " << obj << std::endl;
             if (obj == nullptr) {
                 Py_INCREF(self);
                 return self;

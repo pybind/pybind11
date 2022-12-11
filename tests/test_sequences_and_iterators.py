@@ -1,6 +1,3 @@
-import gc
-import weakref
-
 import pytest
 from pytest import approx
 
@@ -96,55 +93,6 @@ def test_sliceable():
     assert sliceable[::-10] == (99, -1, -10)
     assert sliceable[50:60:1] == (50, 60, 1)
     assert sliceable[50:60:-1] == (50, 60, -1)
-
-
-counter = None
-
-
-class NobodyCares:
-    def __init__(self):
-        print("Constructing it!")
-        self.x = 3
-
-    def foo(self):
-        raise RuntimeError("This is really bad")
-
-    def blah(self):
-        print("Got it!")
-
-    def __del__(self):
-        print("This has been deleted")
-
-
-def test_sequence_simpler2():
-    global counter
-    counter = 0
-    it = NobodyCares()
-
-    def done(b):
-        print("Deleted the it?")
-
-    a = weakref.ref(it, done)
-    try:
-        it.foo()
-    except Exception as e:
-        print("Got exception ", e)
-        del e
-    assert counter == 1
-    print_ref(a)
-    del it
-    gc.collect()
-    assert counter == 0
-
-
-def print_ref(it):
-    item = it()
-    if item is None:
-        return
-    referrers = gc.get_referrers(it())
-    print("referrers: ")
-    for referrer in referrers:
-        print(referrer)
 
 
 def test_sequence():

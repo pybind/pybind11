@@ -46,30 +46,11 @@ constexpr size_t pybind_vectorcall_arguments_offset
 inline size_t pybind_vectorcall_nargs(size_t n) { return n & ~pybind_vectorcall_arguments_offset; }
 
 inline PyObject *pybind_vectorcall_call(PyObject *callable, PyObject *args, PyObject *kwargs) {
-    PyObject *name = PyObject_GetAttrString(callable, "__name__");
-    if (name == nullptr) {
-        std::cout << "This should never happen ... " << std::endl;
-        abort();
-    }
-    Py_ssize_t size;
-    const char *data = PyUnicode_AsUTF8AndSize(name, &size);
-    std::string n(data, size);
-    if (n == "foo_helper3") {
-        std::cout << "Don't even call it double plus good!" << std::endl;
-
-        PyErr_SetString(PyExc_SystemError, "Triple fancy exception for foo");
-        return nullptr;
-    }
-
     Py_ssize_t num_pos_args = PyTuple_GET_SIZE(args);
-    std::cout << "Working through the call " << num_pos_args << " ";
 
     Py_ssize_t num_args = num_pos_args;
     if (kwargs != nullptr) {
         num_args += PyDict_Size(kwargs);
-        std::cout << PyDict_Size(kwargs) << std::endl;
-    } else {
-        std::cout << std::endl;
     }
 
     if (num_args > 1000) {

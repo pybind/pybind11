@@ -179,7 +179,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
                 }
                 // Separator for keyword-only arguments, placed before the kw
                 // arguments start (unless we are already putting an *args)
-                if (PYBIND11_SILENCE_MSVC_C4127(!has_args && arg_index == nargs_pos)) {
+                if (!has_args && arg_index == nargs_pos) {
                     signature += "*, ";
                 }
                 if (!argument_info[arg_index].name.empty()) {
@@ -196,8 +196,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
                 }
                 // Separator for positional-only arguments (placed after the
                 // argument, rather than before like *
-                if (PYBIND11_SILENCE_MSVC_C4127(has_pos_only_args
-                                                && (arg_index + 1) == nargs_pos_only)) {
+                if (has_pos_only_args && (arg_index + 1) == nargs_pos_only) {
                     signature += ", /";
                 }
                 if (!is_starred) {
@@ -212,7 +211,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
                     handle th((PyObject *) tinfo->type);
                     signature += th.attr("__module__").cast<std::string>() + "."
                                  + th.attr("__qualname__").cast<std::string>();
-                } else if (PYBIND11_SILENCE_MSVC_C4127(new_style_constructor && arg_index == 0)) {
+                } else if (new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.
                     signature += current_scope.attr("__module__").template cast<std::string>()
@@ -400,7 +399,7 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
 
         {
             tl::optional<loader_life_support> life_support;
-            if (PYBIND11_SILENCE_MSVC_C4127(metadata.is_temporary_casts)) {
+            if (metadata.is_temporary_casts) {
                 life_support.emplace();
             }
 
@@ -422,8 +421,8 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
                 return tl::nullopt;
             }
 
-            if (PYBIND11_SILENCE_MSVC_C4127(metadata_type::new_style_constructor
-                                            && self_value_and_holder.instance_registered())) {
+            if (metadata_type::new_style_constructor
+                && self_value_and_holder.instance_registered()) {
                 PyErr_SetString(PyExc_SystemError,
                                 "Trying to call __init__ a second time on a C++ class, invalid");
                 return nullptr;
@@ -463,8 +462,8 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call_args, parent, result);
 
-            if (PYBIND11_SILENCE_MSVC_C4127(metadata_type::new_style_constructor
-                                            && !self_value_and_holder.holder_constructed())) {
+            if (metadata_type::new_style_constructor
+                && !self_value_and_holder.holder_constructed()) {
                 auto *pi = reinterpret_cast<instance *>(parent.ptr());
                 self_value_and_holder.type->init_instance(pi, nullptr);
             }

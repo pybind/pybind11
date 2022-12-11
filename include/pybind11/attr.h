@@ -345,7 +345,7 @@ template <>
 struct process_attribute<is_method> : process_attribute_default<is_method> {
     template <typename RecordType>
     static void init(const is_method &s, RecordType &r) {
-        if (PYBIND11_SILENCE_MSVC_C4127(RecordType::nargs > 0)) {
+        if (RecordType::nargs > 0) {
             if (r.arginfo_index != 0) {
                 pybind11_fail("is_method must come before any arguments when mapping");
             }
