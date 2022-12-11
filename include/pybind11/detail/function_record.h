@@ -159,6 +159,12 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
     functor_metadata(const functor_metadata &) = delete;
 
     void init_signature_and_doc() {
+        PYBIND11_WARNING_PUSH
+
+        // This warning is currently broken for some reason. It gets confused and incorrectly
+        // throws.
+        PYBIND11_WARNING_DISABLE_GCC("-Warray-bound")
+
         constexpr auto sig
             = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(sig)::types();
@@ -251,6 +257,8 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
                 doc += '\n';
             }
         }
+
+        PYBIND11_WARNING_POP
     }
 
     // Process the arguments
@@ -264,9 +272,12 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
                       size_t nargs_input,
                       PyObject *kwnames,
                       bool force_noconvert = false) const {
+        PYBIND11_WARNING_PUSH
+
+        PYBIND11_WARNING_DISABLE_INTEL(186) // "Pointless" comparison with zero
+
 #if defined(__CUDACC__)
-#    pragma push
-#    pragma diag_suppress 186 //  pointless comparison of unsigned integer with zero
+#    pragma nv_diag_suppress 186 //  pointless comparison of unsigned integer with zero
 #endif
 
         for (size_t i = 0; i < nargs; i++) {
@@ -355,9 +366,8 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
         }
 
         return arg_loader.load_args(call_args, argument_info, force_noconvert);
-#if defined(__CUDACC__)
-#    pragma pop
-#endif
+
+        PYBIND11_WARNING_POP
     }
 
     // Cast the return type to a handle

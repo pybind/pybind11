@@ -53,6 +53,7 @@ detail_headers = {
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+    "include/pybind11/detail/vendor/optional.h",
 }
 
 eigen_headers = {
@@ -97,6 +98,7 @@ sdist_files = {
     "pybind11/include",
     "pybind11/include/pybind11",
     "pybind11/include/pybind11/detail",
+    "pybind11/include/pybind11/detail/vendor",
     "pybind11/include/pybind11/eigen",
     "pybind11/include/pybind11/stl",
     "pybind11/share",

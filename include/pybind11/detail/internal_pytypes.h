@@ -173,6 +173,7 @@ struct pybind_function_type_data {
 
         PYBIND11_WARNING_PUSH
         PYBIND11_WARNING_DISABLE_GCC("-Wmissing-field-initializers")
+        PYBIND11_WARNING_DISABLE_CLANG("-Wmissing-field-initializers")
 
         type = {PyVarObject_HEAD_INIT(&PyType_Type, 0)};
         PyMemberDef name_def = {const_cast<char *>("__name__"),
