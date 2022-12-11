@@ -55,7 +55,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
     static constexpr const size_t nargs = sizeof...(Args);
 
     static constexpr const bool has_args = cast_in::has_args;
-    static constexpr const size_t args_pos = has_args ? static_cast<size_t>(cast_in::args_pos) : 0;
+    static constexpr const size_t args_pos = static_cast<size_t>(cast_in::args_pos);
 
     static constexpr const bool has_kwargs = cast_in::has_kwargs;
 
@@ -107,7 +107,7 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
                   "py::pos_only may be specified only once");
     static_assert(!(has_kw_only_args && has_pos_only_args) || pos_only_pos < kw_only_pos,
                   "py::pos_only must come before py::kw_only");
-    static_assert(!(has_args && has_kw_only_args) || (kw_only_pos == args_pos + 1),
+    static_assert(!(has_args && has_kw_only_args) || ((kw_only_pos - 1) == args_pos),
                   "py::kw_only must come before the args parameter");
 
     static_assert(!(new_style_constructor) || (nargs >= 1),
