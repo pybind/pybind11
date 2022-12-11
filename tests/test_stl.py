@@ -67,6 +67,11 @@ def test_map(doc):
     assert doc(m.load_map) == "load_map(arg0: Dict[str, str]) -> bool"
 
 
+def test_copy_map():
+    # this segfaults in my use case, but not here:
+    m.copy_map({"pi": 3.14, "zero": 0.0, "one": 0.0})
+
+
 def test_set(doc):
     """std::set <-> set"""
     s = m.cast_set()
