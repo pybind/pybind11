@@ -357,7 +357,7 @@ inline PyObject *raise_type_error(pybind_function **functions,
                 msg += PyUnicode_AsUTF8(entry);
                 msg += "=";
                 try {
-                    msg += pybind11::repr(args[nargs + static_cast<Py_ssize_t>(i)]);
+                    msg += pybind11::repr(args[nargs + static_cast<size_t>(i)]);
                 } catch (const error_already_set &) {
                     msg += "<repr raised Error>";
                 }
