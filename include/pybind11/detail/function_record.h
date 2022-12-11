@@ -392,7 +392,7 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
     const bool has_operator;
     const bool is_constructor;
 
-    explicit function_wrapper(Func &&in_f, const Extra &...extra)
+    function_wrapper(Func &&in_f, const Extra &...extra)
         : f(std::forward<Func>(in_f)), metadata(extra...), name(metadata.name),
           signature(metadata.signature), module(metadata.module), doc(metadata.doc),
           original_doc(metadata.original_doc), current_scope(metadata.current_scope.ptr()),
@@ -480,7 +480,7 @@ struct function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>
 };
 
 struct function_overload_set {
-    function_overload_set(handle child) {
+    function_overload_set(object child) {
         add_function(child, false);
         module = std::string(get_child(0).module);
         name = std::string(get_child(0).name);
@@ -489,16 +489,16 @@ struct function_overload_set {
         is_constructor = get_child(0).is_constructor;
     }
 
-    void add_function(handle new_child, bool prepend) {
+    void add_function(object new_child, bool prepend) {
         assert(PyObject_TypeCheck(new_child.ptr(), pybind_function_type()));
 
         size_t insert_index = 0;
         if (prepend) {
             insert_index = 0;
-            children.insert(std::begin(children), reinterpret_borrow<object>(new_child));
+            children.insert(std::begin(children), std::move(new_child));
         } else {
             insert_index = children.size();
-            children.push_back(reinterpret_borrow<object>(new_child));
+            children.push_back(std::move(new_child));
         }
 
         if (get_child(insert_index).is_overload_set) {
@@ -599,16 +599,18 @@ struct function_overload_set {
 };
 
 template <typename Func, typename Return, typename... Args, typename... Extra>
-handle create_pybind_function_wrapper(Func &&f, Return (*)(Args...), const Extra &...extra) {
+object create_pybind_function_wrapper(Func &&f, Return (*)(Args...), const Extra &...extra) {
     using wrapper_type = function_wrapper<Return, std::tuple<Args...>, std::tuple<Extra...>, Func>;
-    return create_pybind_function<wrapper_type>(std::forward<Func>(f), extra...);
+    return reinterpret_steal<object>(
+        create_pybind_function<wrapper_type>(std::forward<Func>(f), extra...));
 }
 
-inline handle create_pybind_function_overload_set(handle existing_function) {
-    return create_pybind_function<function_overload_set>(existing_function);
+inline object create_pybind_function_overload_set(object existing_function) {
+    return reinterpret_steal<object>(
+        create_pybind_function<function_overload_set>(existing_function));
 }
 
-inline handle combine_functions(handle existing_function, handle new_function, bool prepend) {
+inline object combine_functions(object existing_function, object new_function, bool prepend) {
     pybind_function *new_wrapper = (pybind_function *) new_function.ptr();
 
     if (!PyObject_TypeCheck(existing_function.ptr(), pybind_function_type())) {
@@ -617,20 +619,18 @@ inline handle combine_functions(handle existing_function, handle new_function, b
                           + new_wrapper->name);
         }
 
-        return new_function.ptr();
+        return new_function;
     }
 
     pybind_function *wrapper = (pybind_function *) existing_function.ptr();
 
     if (wrapper->current_scope != new_wrapper->current_scope) {
-        return new_function.ptr();
+        return new_function;
     }
 
     if (!wrapper->is_overload_set) {
         existing_function = create_pybind_function_overload_set(existing_function);
         wrapper = (pybind_function *) existing_function.ptr();
-    } else {
-        existing_function.inc_ref();
     }
 
     function_overload_set *wrapped = (function_overload_set *) wrapper->data;

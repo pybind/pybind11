@@ -53,8 +53,8 @@ struct name {
 
 /// Annotation indicating that a function is an overload associated with a given "sibling"
 struct sibling {
-    handle value;
-    explicit sibling(const handle &value) : value(value.ptr()) {}
+    object value;
+    explicit sibling(const object &_value) : value(_value) {}
 };
 
 /// Annotation indicating that a class derives from another given type

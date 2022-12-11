@@ -69,12 +69,10 @@
 
 #ifdef PYBIND11_COMPILER_INTEL
 #    define PYBIND11_WARNING_DISABLE_INTEL(name) PYBIND11_PRAGMA(warning disable name)
+#elif defined(__CUDACC__)
+#    define PYBIND11_WARNING_DISABLE_INTEL(name) PYBIND11_PRAGMA(nv_diag_suppress name)
 #else
 #    define PYBIND11_WARNING_DISABLE_INTEL(name)
-#endif
-
-#if defined(__CUDACC__)
-#    define PYBIND11_WARNING_DISABLE_INTEL(name) PYBIND11_PRAGMA(nv_diag_suppress name)
 #endif
 
 #define PYBIND11_NAMESPACE_BEGIN(name)                                                            \

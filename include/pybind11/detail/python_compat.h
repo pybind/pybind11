@@ -13,7 +13,7 @@ inline PyObject *pybind_backup_impl_vectorcall(PyObject *callable,
                                                size_t nargs,
                                                PyObject *kwnames);
 
-#ifdef Py_TPFLAGS_HAVE_VECTORCALL_NO
+#ifdef Py_TPFLAGS_HAVE_VECTORCALL
 // Actual vectorcall implementation
 
 constexpr unsigned long pybind_vectorcall_flag = Py_TPFLAGS_HAVE_VECTORCALL;

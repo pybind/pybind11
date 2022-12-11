@@ -131,9 +131,13 @@ private:
 
         bool has_prepend = detail::any_of<std::is_same<prepend, Extra>...>::value;
 
-        handle new_function
+        object new_function
             = detail::create_pybind_function_wrapper(std::forward<Func>(f), a, extra...);
-        m_ptr = detail::combine_functions(sib.value, new_function, has_prepend).ptr();
+
+        object combined = detail::combine_functions(sib.value, new_function, has_prepend);
+
+        m_ptr = combined.ptr();
+        inc_ref();
     }
 };
 
