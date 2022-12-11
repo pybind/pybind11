@@ -73,6 +73,10 @@
 #    define PYBIND11_WARNING_DISABLE_INTEL(name)
 #endif
 
+#if defined(__CUDACC__)
+#    define PYBIND11_WARNING_DISABLE_INTEL(name) PYBIND11_PRAGMA(nv_diag_suppress name)
+#endif
+
 #define PYBIND11_NAMESPACE_BEGIN(name)                                                            \
     namespace name {                                                                              \
     PYBIND11_WARNING_PUSH
@@ -1297,7 +1301,7 @@ inline void *align(std::size_t alignment, std::size_t size, void *&ptr, std::siz
     if (space < size + padding)
         return nullptr;
     space -= padding;
-    return ptr = static_cast<void *>(aligned);
+    return ptr = reinterpret_cast<void *>(aligned);
 }
 
 #else

@@ -396,11 +396,14 @@ struct process_attribute<arg> : process_attribute_default<arg> {
 
         if (a.name != nullptr) {
             r.argument_info[r.arginfo_index].name = a.name;
+            PYBIND11_WARNING_PUSH
+            PYBIND11_WARNING_DISABLE_INTEL(186) // "Pointless" comparison with zero
             if (r.arginfo_index < RecordType::nargs_pos_only) {
                 r.argument_index[a.name] = -1;
             } else {
                 r.argument_index[a.name] = static_cast<ssize_t>(r.arginfo_index);
             }
+            PYBIND11_WARNING_PUSH
         }
 
         r.argument_info[r.arginfo_index].convert = !a.flag_noconvert;

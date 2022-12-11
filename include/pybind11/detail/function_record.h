@@ -276,10 +276,6 @@ struct functor_metadata<Return, std::tuple<Args...>, std::tuple<Extra...>> {
 
         PYBIND11_WARNING_DISABLE_INTEL(186) // "Pointless" comparison with zero
 
-#if defined(__CUDACC__)
-#    pragma nv_diag_suppress 186 //  pointless comparison of unsigned integer with zero
-#endif
-
         for (size_t i = 0; i < nargs; i++) {
             assert(!call_args[i]);
         }
