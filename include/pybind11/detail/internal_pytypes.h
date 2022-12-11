@@ -18,7 +18,7 @@ inline PyObject *handle_exception(const F &f);
 inline PyObject *raise_type_error(pybind_function **functions,
                                   size_t num_functions,
                                   PyObject *const *args,
-                                  size_t nargs,
+                                  Py_ssize_t nargs,
                                   PyObject *kwnames);
 struct function_overload_set;
 // End of forward declarations
@@ -34,8 +34,8 @@ inline PyTypeObject *pybind_function_type();
 
 // The core of the pybind_function class, the callback pointer
 // Each pybind_function contains one of these
-using pybind_function_ptr
-    = tl::optional<PyObject *> (*)(pybind_function &, PyObject *const *, size_t, PyObject *, bool);
+using pybind_function_ptr = tl::optional<PyObject *> (*)(
+    pybind_function &, PyObject *const *, Py_ssize_t, PyObject *, bool);
 
 // The definition of the PyObject pybind_function
 struct pybind_function {
@@ -73,11 +73,10 @@ struct pybind_function {
         // The core function that applies the Functor
         func = [](pybind_function &func,
                   PyObject *const *args,
-                  size_t nargs_with_flag,
+                  Py_ssize_t nargs,
                   PyObject *kwnames,
                   bool force_noconvert) -> tl::optional<PyObject *> {
             auto *functor = reinterpret_cast<TypeToStore *>(func.data);
-            Py_ssize_t nargs = pybind_vectorcall_nargs(nargs_with_flag);
             return (*functor)(args, nargs, kwnames, force_noconvert);
         };
 
@@ -272,7 +271,7 @@ inline void append_note_if_missing_header_is_suspected(std::string &msg) {
 inline PyObject *raise_type_error(pybind_function **functions,
                                   size_t num_functions,
                                   PyObject *const *args,
-                                  size_t nargs,
+                                  Py_ssize_t nargs,
                                   PyObject *kwnames) {
     pybind_function *first_function = functions[0];
 
@@ -330,7 +329,7 @@ inline PyObject *raise_type_error(pybind_function **functions,
         }
         msg += "\nInvoked with: ";
         bool some_args = false;
-        for (size_t ti = is_constructor ? 1 : 0; ti < nargs; ++ti) {
+        for (Py_ssize_t ti = is_constructor ? 1 : 0; ti < nargs; ++ti) {
             if (!some_args) {
                 some_args = true;
             } else {
