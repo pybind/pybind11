@@ -204,6 +204,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_map", [](const std::map<std::string, std::string> &map) {
         return map.at("key") == "value" && map.at("key2") == "value2";
     });
+    m.def("pass_map_string_double", [](const std::map<std::string, double> &) {});
 
     // test_set
     m.def("cast_set", []() { return std::set<std::string>{"key1", "key2"}; });
