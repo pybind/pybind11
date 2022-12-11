@@ -64,11 +64,18 @@ jobs:
     - name: Python tests C++11
       run: cmake --build build11 --target pytest -j 2
 
+    # python-3.12.0-alpha.1-linux-22.04-x64.tar.gz  PASSED
+    # python-3.12.0-alpha.2-linux-22.04-x64.tar.gz  FAILED
+    # python-3.12.0-alpha.3-linux-22.04-x64.tar.gz  FAILED
+    #     free(): invalid pointer
+    #     Custom PyConfig
+    #     /home/runner/work/pybind11/pybind11/tests/test_embed/test_interpreter.cpp:175
+    #     /home/runner/work/pybind11/pybind11/tests/test_embed/test_interpreter.cpp:179: FAILED:
     # - name: C++ tests C++11
     #   run: cmake --build build11 --target cpptest -j 2
 
-    # - name: Interface test C++11
-    #   run: cmake --build build11 --target test_cmake_build
+    - name: Interface test C++11
+      run: cmake --build build11 --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -93,8 +100,8 @@ jobs:
     # - name: C++ tests C++17
     #   run: cmake --build build17 --target cpptest
 
-    # - name: Interface test C++17
-    #   run: cmake --build build17 --target test_cmake_build
+    - name: Interface test C++17
+      run: cmake --build build17 --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -120,8 +127,8 @@ jobs:
     # - name: C++ tests C++17 max DPYBIND11_INTERNALS_VERSION
     #   run: cmake --build build17max --target cpptest
 
-    # - name: Interface test C++17 max DPYBIND11_INTERNALS_VERSION
-    #   run: cmake --build build17max --target test_cmake_build
+    - name: Interface test C++17 max DPYBIND11_INTERNALS_VERSION
+      run: cmake --build build17max --target test_cmake_build
 
     # Ensure the setup_helpers module can build packages using setuptools
     - name: Setuptools helpers test
