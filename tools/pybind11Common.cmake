@@ -311,10 +311,22 @@ function(_pybind11_generate_lto target prefer_thin_lto)
         HAS_FLTO "-flto${cxx_append}" "-flto${linker_append}" PYBIND11_LTO_CXX_FLAGS
         PYBIND11_LTO_LINKER_FLAGS)
     endif()
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    # IntelLLVM equivalent to LTO is called IPO; also IntelLLVM is WIN32/UNIX
+    if(WIN32)
+      _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_INTEL_IPO "-Qipo" "-Qipo"
+        PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+    else()
+      _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_INTEL_IPO "-ipo" "-ipo"
+        PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+    endif()
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     # Intel equivalent to LTO is called IPO
-    _pybind11_return_if_cxx_and_linker_flags_work(HAS_INTEL_IPO "-ipo" "-ipo"
-                                                  PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+    _pybind11_return_if_cxx_and_linker_flags_work(
+      HAS_INTEL_IPO "-ipo" "-ipo"
+      PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
   elseif(MSVC)
     # cmake only interprets libraries as linker flags when they start with a - (otherwise it
     # converts /LTCG to \LTCG as if it was a Windows path).  Luckily MSVC supports passing flags
