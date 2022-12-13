@@ -107,6 +107,7 @@ jobs:
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
         -DDOWNLOAD_CATCH=ON
@@ -136,6 +137,7 @@ jobs:
     - name: Configure C++17
       run: >
         cmake -S . -B build2
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
         -DDOWNLOAD_CATCH=ON
@@ -158,6 +160,7 @@ jobs:
     - name: Configure (unstable ABI)
       run: >
         cmake -S . -B build3
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -244,6 +247,7 @@ jobs:
         SETUPTOOLS_USE_DISTUTILS: stdlib
       run: >
         cmake -S . -B build
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -308,6 +312,7 @@ jobs:
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -340,7 +345,7 @@ jobs:
       run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
 
     - name: Configure
-      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+      run: cmake -S . -B build -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
 
     - name: Build
       run: cmake --build build -j2 --verbose
@@ -378,7 +383,7 @@ jobs:
 #      run: |
 #        source /etc/profile.d/modules.sh
 #        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.11
-#        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+#        cmake -S . -B build -DCMAKE_VERBOSE_MAKEFILE=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 #
 #    - name: Build
 #      run: cmake --build build -j 2 --verbose
@@ -476,6 +481,7 @@ jobs:
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -530,6 +536,7 @@ jobs:
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake -S . -B build-11     \
+        -DCMAKE_VERBOSE_MAKEFILE=ON \
         -DPYBIND11_WERROR=ON    \
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
@@ -562,6 +569,7 @@ jobs:
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake -S . -B build-17     \
+        -DCMAKE_VERBOSE_MAKEFILE=ON \
         -DPYBIND11_WERROR=ON    \
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
@@ -628,6 +636,7 @@ jobs:
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DCMAKE_BUILD_TYPE=MinSizeRel
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -775,6 +784,7 @@ jobs:
       run: >
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A Win32
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -828,6 +838,7 @@ jobs:
       run: >
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A Win32
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -868,6 +879,7 @@ jobs:
     - name: Configure C++20
       run: >
         cmake -S . -B build
+        -DCMAKE_VERBOSE_MAKEFILE=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
