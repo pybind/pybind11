@@ -1,0 +1,112 @@
+
+name: Upstream
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: upstream-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_ONLY_BINARY: numpy
+
+jobs:
+  standard:
+    name: "🐍 3.11 latest internals • ubuntu-latest • x64"
+    runs-on: ubuntu-latest
+    if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11-dev"
+
+    - name: Setup Boost (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get install libboost-dev
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.13
+
+    - name: Prepare env
+      run: |
+        python -m pip install -r tests/requirements.txt
+
+    - name: Setup annotations on Linux
+      if: runner.os == 'Linux'
+      run: python -m pip install pytest-github-actions-annotate-failures
+
+    # First build - C++11 mode and inplace
+    - name: Configure C++11
+      run: >
+        cmake -S . -B .
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=11
+
+    - name: Build C++11
+      run: cmake --build . -j 2
+
+    - name: Python tests C++11
+      run: cmake --build . --target pytest -j 2
+
+    - name: C++11 tests
+      run: cmake --build .  --target cpptest -j 2
+
+    - name: Interface test C++11
+      run: cmake --build . --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    # Second build - C++17 mode and in a build directory
+    - name: Configure C++17
+      run: >
+        cmake -S . -B build2
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=17
+        ${{ matrix.args }}
+        ${{ matrix.args2 }}
+
+    - name: Build
+      run: cmake --build build2 -j 2
+
+    - name: Python tests
+      run: cmake --build build2 --target pytest
+
+    - name: C++ tests
+      run: cmake --build build2 --target cpptest
+
+    # Third build - C++17 mode with unstable ABI
+    - name: Configure (unstable ABI)
+      run: >
+        cmake -S . -B build3
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=17
+        -DPYBIND11_INTERNALS_VERSION=10000000
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+        ${{ matrix.args }}
+
+    - name: Build (unstable ABI)
+      run: cmake --build build3 -j 2
+
+    - name: Python tests (unstable ABI)
+      run: cmake --build build3 --target pytest
+
+    - name: Interface test
+      run: cmake --build build3 --target test_cmake_build
+
+    # This makes sure the setup_helpers module can build packages using
+    # setuptools
+    - name: Setuptools helpers test
+      run: pytest tests/extra_setuptools
