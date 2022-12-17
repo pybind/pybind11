@@ -293,7 +293,10 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     endif()
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
 
-    tests_extra_targets("test_eigen_tensor.py" "test_eigen_tensor_avoid_stl_array")
+    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
+      tests_extra_targets("test_eigen_tensor.py" "test_eigen_tensor_avoid_stl_array")
+    endif()
+
   else()
     list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
