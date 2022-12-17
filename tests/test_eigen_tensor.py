@@ -6,7 +6,7 @@ np = pytest.importorskip("numpy")
 eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
 submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
 try:
-    from pybind11_tests import eigen_tensor_avoid_stl_array as avoid
+    import test_eigen_tensor_avoid_stl_array as avoid
 
     submodules += [avoid.c_style, avoid.f_style]
 except ImportError as e:
@@ -42,7 +42,7 @@ def cleanup():
 
 
 def test_import_avoid_stl_array():
-    pytest.importorskip("pybind11_tests.eigen_tensor_avoid_stl_array")
+    pytest.importorskip("test_eigen_tensor_avoid_stl_array")
     assert len(submodules) == 4
 
 
