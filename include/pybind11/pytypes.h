@@ -33,6 +33,8 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+
 /* A few forward declarations */
 class handle;
 class object;
@@ -230,7 +232,8 @@ public:
         detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
                                                            detail::is_pyobj_ptr_or_nullptr_t<T>>,
                                            std::is_convertible<T, PyObject *>>::value,
-                            int> = 0>
+                            int>
+        = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
 
@@ -247,6 +250,11 @@ public:
 #ifdef PYBIND11_HANDLE_REF_DEBUG
         inc_ref_counter(1);
 #endif
+#if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+        if (m_ptr != nullptr && !PyGILState_Check()) {
+            throw std::runtime_error("pybind11::handle::inc_ref() PyGILState_Check() failure.");
+        }
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -257,6 +265,11 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &dec_ref() const & {
+#if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+        if (m_ptr != nullptr && !PyGILState_Check()) {
+            throw std::runtime_error("pybind11::handle::dec_ref() PyGILState_Check() failure.");
+        }
+#endif
         Py_XDECREF(m_ptr);
         return *this;
     }
@@ -623,12 +636,6 @@ inline std::string error_string() {
 
 PYBIND11_NAMESPACE_END(detail)
 
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4275 4251)
-//     warning C4275: An exported class was derived from a class that wasn't exported.
-//     Can be ignored when derived from a STL class.
-#endif
 /// Fetch and hold an error which was already set in Python.  An instance of this is typically
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
@@ -688,9 +695,6 @@ private:
     ///          crashes (undefined behavior) if the Python interpreter is finalizing.
     static void m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr);
 };
-#if defined(_MSC_VER)
-#    pragma warning(pop)
-#endif
 
 /// Replaces the current Python error indicator with the chosen error, performing a
 /// 'raise from' to indicate that the chosen error was caused by the original error.
@@ -893,10 +897,8 @@ object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
 
-#if defined(_MSC_VER) && _MSC_VER < 1920
-#    pragma warning(push)
-#    pragma warning(disable : 4522) // warning C4522: multiple assignment operators specified
-#endif
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(4522) // warning C4522: multiple assignment operators specified
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;
@@ -960,9 +962,7 @@ private:
     key_type key;
     mutable object cache;
 };
-#if defined(_MSC_VER) && _MSC_VER < 1920
-#    pragma warning(pop)
-#endif
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(accessor_policies)
 struct obj_attr {
@@ -1702,7 +1702,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))) {
+    if (sizeof(Unsigned) <= sizeof(unsigned long)) {
         unsigned long v = PyLong_AsUnsignedLong(o);
         return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
@@ -1719,7 +1719,7 @@ public:
     template <typename T, detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     int_(T value) {
-        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
+        if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLong((long) value);
             } else {

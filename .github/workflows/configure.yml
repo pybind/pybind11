@@ -9,6 +9,10 @@ on:
       - stable
       - v*
 
+env:
+  # For cmake:
+  VERBOSE: 1
+
 jobs:
   # This tests various versions of CMake in various combinations, to make sure
   # the configure step passes.
@@ -16,12 +20,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, macos-latest, windows-latest]
+        runs-on: [ubuntu-20.04, macos-latest, windows-latest]
         arch: [x64]
         cmake: ["3.23"]
 
         include:
-        - runs-on: ubuntu-latest
+        - runs-on: ubuntu-20.04
           arch: x64
           cmake: 3.4
 

@@ -7,15 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <pybind11/eigen.h>
+#include <pybind11/eigen/matrix.h>
 #include <pybind11/stl.h>
 
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
-#if defined(_MSC_VER)
-#    pragma warning(disable : 4996) // C4996: std::unary_negation is deprecated
-#endif
+PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #include <Eigen/Cholesky>
 
@@ -81,7 +79,7 @@ struct CustomOperatorNew {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
 
-TEST_SUBMODULE(eigen, m) {
+TEST_SUBMODULE(eigen_matrix, m) {
     using FixedMatrixR = Eigen::Matrix<float, 5, 6, Eigen::RowMajor>;
     using FixedMatrixC = Eigen::Matrix<float, 5, 6>;
     using DenseMatrixR = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;

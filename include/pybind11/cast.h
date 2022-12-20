@@ -29,6 +29,9 @@
 #include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename type, typename SFINAE = void>
@@ -88,7 +91,8 @@ public:                                                                         
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
-                  int> = 0>                                                                       \
+                  int>                                                                            \
+              = 0>                                                                                \
     static ::pybind11::handle cast(                                                               \
         T_ *src, ::pybind11::return_value_policy policy, ::pybind11::handle parent) {             \
         if (!src)                                                                                 \
@@ -389,7 +393,7 @@ struct string_caster {
 
         // For UTF-8 we avoid the need for a temporary `bytes` object by using
         // `PyUnicode_AsUTF8AndSize`.
-        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N == 8)) {
+        if (UTF_N == 8) {
             Py_ssize_t size = -1;
             const auto *buffer
                 = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
@@ -416,7 +420,7 @@ struct string_caster {
             = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
         // Skip BOM for UTF-16/32
-        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N > 8)) {
+        if (UTF_N > 8) {
             buffer++;
             length--;
         }
@@ -572,7 +576,7 @@ public:
         // figure out how long the first encoded character is in bytes to distinguish between these
         // two errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as
         // those can fit into a single char value.
-        if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 8) && str_len > 1 && str_len <= 4) {
+        if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
             // low bits only: 0-127
             // 0b110xxxxx - start of 2-byte sequence
@@ -598,7 +602,7 @@ public:
         // UTF-16 is much easier: we can only have a surrogate pair for values above U+FFFF, thus a
         // surrogate pair with total length 2 instantly indicates a range error (but not a "your
         // string was too long" error).
-        else if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 16) && str_len == 2) {
+        else if (StringCaster::UTF_N == 16 && str_len == 2) {
             one_char = static_cast<CharT>(value[0]);
             if (one_char >= 0xD800 && one_char < 0xE000) {
                 throw value_error("Character code point not in range(0x10000)");

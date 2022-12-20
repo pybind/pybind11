@@ -47,6 +47,16 @@ public:
         return *this;
     }
 
+    options &disable_enum_members_docstring() & {
+        global_state().show_enum_members_docstring = false;
+        return *this;
+    }
+
+    options &enable_enum_members_docstring() & {
+        global_state().show_enum_members_docstring = true;
+        return *this;
+    }
+
     // Getter methods (return the global state):
 
     static bool show_user_defined_docstrings() {
@@ -54,6 +64,10 @@ public:
     }
 
     static bool show_function_signatures() { return global_state().show_function_signatures; }
+
+    static bool show_enum_members_docstring() {
+        return global_state().show_enum_members_docstring;
+    }
 
     // This type is not meant to be allocated on the heap.
     void *operator new(size_t) = delete;
@@ -63,6 +77,8 @@ private:
         bool show_user_defined_docstrings = true; //< Include user-supplied texts in docstrings.
         bool show_function_signatures = true;     //< Include auto-generated function signatures
                                                   //  in docstrings.
+        bool show_enum_members_docstring = true;  //< Include auto-generated member list in enum
+                                                  //  docstrings.
     };
 
     static state &global_state() {

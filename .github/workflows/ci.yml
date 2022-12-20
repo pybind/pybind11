@@ -17,6 +17,8 @@ env:
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
+  # For cmake:
+  VERBOSE: 1
 
 jobs:
   # This is the "main" test suite, which tests a large number of different
@@ -25,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, windows-2022, macos-latest]
         python:
         - '3.6'
         - '3.9'
@@ -42,12 +44,12 @@ jobs:
         # We support an optional key: args, for cmake args
         include:
           # Just add a key
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
@@ -194,13 +196,13 @@ jobs:
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
-      uses: deadsnakes/action@v2.1.1
+      uses: deadsnakes/action@v3.0.0
       with:
         python-version: ${{ matrix.python-version }}
         debug: ${{ matrix.python-debug }}
@@ -918,7 +920,7 @@ jobs:
     - name: Configure C++11
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
 
     - name: Build C++11
       run: cmake --build build -j 2
@@ -936,7 +938,7 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++14
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
 
     - name: Build C++14
       run: cmake --build build2 -j 2
@@ -954,7 +956,7 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++17
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
 
     - name: Build C++17
       run: cmake --build build3 -j 2
@@ -967,3 +969,138 @@ jobs:
 
     - name: Interface test C++17
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
+
+  windows_clang:
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python: ['3.10']
+
+    runs-on: "${{ matrix.os }}"
+
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
+
+    steps:
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Update CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+
+      - name: Install ninja-build tool
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
+      - name: Run pip installs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements.txt
+
+      - name: Show Clang++ version
+        run: clang++ --version
+
+      - name: Show CMake version
+        run: cmake --version
+
+      # TODO: WERROR=ON
+      - name: Configure Clang
+        run: >
+          cmake -G Ninja -S . -B .
+          -DPYBIND11_WERROR=OFF
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Clean directory
+        run: git clean -fdx
+
+  macos_brew_install_llvm:
+    name: "macos-latest • brew install llvm"
+    runs-on: macos-latest
+
+    env:
+      # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
+      LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
+
+    steps:
+      - name: Update PATH
+        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Show Clang++ version before brew install llvm
+        run: clang++ --version
+
+      - name: brew install llvm
+        run: brew install llvm
+
+      - name: Show Clang++ version after brew install llvm
+        run: clang++ --version
+
+      - name: Update CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+
+      - name: Run pip installs
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tests/requirements.txt
+          python3 -m pip install numpy
+          python3 -m pip install scipy
+
+      - name: Show CMake version
+        run: cmake --version
+
+      - name: CMake Configure
+        run: >
+          cmake -S . -B .
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Clean directory
+        run: git clean -fdx

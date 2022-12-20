@@ -43,6 +43,8 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+constexpr const char *internals_function_record_capsule_name = "pybind11_function_record_capsule";
+
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -182,6 +184,16 @@ struct internals {
 #    endif // PYBIND11_INTERNALS_VERSION > 4
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
+
+#    if PYBIND11_INTERNALS_VERSION > 4
+    // Note that we have to use a std::string to allocate memory to ensure a unique address
+    // We want unique addresses since we use pointer equality to compare function records
+    std::string function_record_capsule_name = internals_function_record_capsule_name;
+#    endif
+
+    internals() = default;
+    internals(const internals &other) = delete;
+    internals &operator=(const internals &other) = delete;
     ~internals() {
 #    if PYBIND11_INTERNALS_VERSION > 4
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
@@ -456,9 +468,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
 
-#    if PY_VERSION_HEX < 0x03090000
-        PyEval_InitThreads();
-#    endif
         PyThreadState *tstate = PyThreadState_Get();
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
             pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
@@ -546,6 +555,25 @@ const char *c_str(Args &&...args) {
     auto &strings = get_internals().static_strings;
     strings.emplace_front(std::forward<Args>(args)...);
     return strings.front().c_str();
+}
+
+inline const char *get_function_record_capsule_name() {
+#if PYBIND11_INTERNALS_VERSION > 4
+    return get_internals().function_record_capsule_name.c_str();
+#else
+    return nullptr;
+#endif
+}
+
+// Determine whether or not the following capsule contains a pybind11 function record.
+// Note that we use `internals` to make sure that only ABI compatible records are touched.
+//
+// This check is currently used in two places:
+// - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
+// - The sibling feature of cpp_function to allow overloads
+inline bool is_function_record_capsule(const capsule &cap) {
+    // Pointer equality as we rely on internals() to ensure unique pointers
+    return cap.name() == get_function_record_capsule_name();
 }
 
 PYBIND11_NAMESPACE_END(detail)
