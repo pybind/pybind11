@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+import env
 from pybind11_tests import gil_scoped as m
 
 
@@ -144,7 +145,6 @@ def _intentional_deadlock():
 
 
 ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
-SKIP_IF_DEADLOCK = True  # See PR #4216
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -181,7 +181,7 @@ def _run_in_process(target, *args, **kwargs):
         elif process.exitcode is None:
             assert t_delta > 0.9 * timeout
             msg = "DEADLOCK, most likely, exactly what this test is meant to detect."
-            if SKIP_IF_DEADLOCK:
+            if env.PYPY and env.WIN:
                 pytest.skip(msg)
             raise RuntimeError(msg)
         return process.exitcode

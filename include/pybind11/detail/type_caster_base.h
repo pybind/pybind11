@@ -1006,5 +1006,14 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
+PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
+    if (auto *type_data = get_type_info(ti)) {
+        handle th((PyObject *) type_data->type);
+        return th.attr("__module__").cast<std::string>() + '.'
+               + th.attr("__qualname__").cast<std::string>();
+    }
+    return clean_type_id(ti.name());
+}
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

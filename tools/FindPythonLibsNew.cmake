@@ -208,7 +208,9 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX "${PYTHON_PREFIX}")
 string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR "${PYTHON_INCLUDE_DIR}")
 string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES "${PYTHON_SITE_PACKAGES}")
 
-if(CMAKE_HOST_WIN32)
+if(DEFINED PYTHON_LIBRARY)
+  # Don't write to PYTHON_LIBRARY if it's already set
+elseif(CMAKE_HOST_WIN32)
   set(PYTHON_LIBRARY "${PYTHON_PREFIX}/libs/python${PYTHON_LIBRARY_SUFFIX}.lib")
 
   # when run in a venv, PYTHON_PREFIX points to it. But the libraries remain in the
@@ -274,7 +276,7 @@ if(NOT PYTHON_DEBUG_LIBRARY)
 endif()
 set(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
-find_package_message(PYTHON "Found PythonLibs: ${PYTHON_LIBRARY}"
+find_package_message(PYTHON "Found PythonLibs: ${PYTHON_LIBRARIES}"
                      "${PYTHON_EXECUTABLE}${PYTHON_VERSION_STRING}")
 
 set(PYTHONLIBS_FOUND TRUE)

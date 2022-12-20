@@ -4,6 +4,7 @@ import pytest
 
 import env
 import pybind11_cross_module_tests as cm
+import pybind11_tests  # noqa: F401
 from pybind11_tests import exceptions as m
 
 
@@ -72,9 +73,9 @@ def test_cross_module_exceptions(msg):
 
 # TODO: FIXME
 @pytest.mark.xfail(
-    "env.PYPY and env.MACOS",
+    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang'))",
     raises=RuntimeError,
-    reason="Expected failure with PyPy and libc++ (Issue #2847 & PR #2999)",
+    reason="See Issue #2847, PR #2999, PR #4324",
 )
 def test_cross_module_exception_translator():
     with pytest.raises(KeyError):

@@ -73,6 +73,9 @@ PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
 
 TEST_SUBMODULE(builtin_casters, m) {
+    PYBIND11_WARNING_PUSH
+    PYBIND11_WARNING_DISABLE_MSVC(4127)
+
     // test_simple_string
     m.def("string_roundtrip", [](const char *s) { return s; });
 
@@ -86,7 +89,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     std::wstring wstr;
     wstr.push_back(0x61);   // a
     wstr.push_back(0x2e18); // ⸘
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(wchar_t) == 2)) {
+    if (sizeof(wchar_t) == 2) {
         wstr.push_back(mathbfA16_1);
         wstr.push_back(mathbfA16_2);
     } // 𝐀, utf16
@@ -113,7 +116,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     // Under Python 2.7, invalid unicode UTF-32 characters didn't appear to trigger
     // UnicodeDecodeError
     m.def("bad_utf32_string", [=]() { return std::u32string({a32, char32_t(0xd800), z32}); });
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(wchar_t) == 2)) {
+    if (sizeof(wchar_t) == 2) {
         m.def("bad_wchar_string", [=]() {
             return std::wstring({wchar_t(0x61), wchar_t(0xd800)});
         });
@@ -384,4 +387,6 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("takes_const_ref", [](const ConstRefCasted &x) { return x.tag; });
     m.def("takes_const_ref_wrap",
           [](std::reference_wrapper<const ConstRefCasted> x) { return x.get().tag; });
+
+    PYBIND11_WARNING_POP
 }
