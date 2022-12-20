@@ -6,17 +6,17 @@ np = pytest.importorskip("numpy")
 eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
 submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
 try:
-    from pybind11_tests import eigen_tensor_avoid_stl_array as avoid
+    import eigen_tensor_avoid_stl_array as avoid
 
     submodules += [avoid.c_style, avoid.f_style]
 except ImportError as e:
     # Ensure config, build, toolchain, etc. issues are not masked here:
     raise RuntimeError(
-        "import pybind11_tests.eigen_tensor_avoid_stl_array FAILED, while "
+        "import eigen_tensor_avoid_stl_array FAILED, while "
         "import pybind11_tests.eigen_tensor succeeded. "
         "Please ensure that "
         "test_eigen_tensor.cpp & "
-        "test_eigen_tensor_avoid_stl_array.cpp "
+        "eigen_tensor_avoid_stl_array.cpp "
         "are built together (or both are not built if Eigen is not available)."
     ) from e
 
@@ -42,7 +42,7 @@ def cleanup():
 
 
 def test_import_avoid_stl_array():
-    pytest.importorskip("pybind11_tests.eigen_tensor_avoid_stl_array")
+    pytest.importorskip("eigen_tensor_avoid_stl_array")
     assert len(submodules) == 4
 
 
