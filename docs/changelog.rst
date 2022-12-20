@@ -15,6 +15,60 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Version 2.10.2 (Dec 20, 2022)
+-----------------------------
+
+Changes:
+
+* ``scoped_interpreter`` constructor taking ``PyConfig``.
+  `#4330 <https://github.com/pybind/pybind11/pull/4330>`_
+
+* ``pybind11/eigen/tensor.h`` adds converters to and from ``Eigen::Tensor`` and
+  ``Eigen::TensorMap``.
+  `#4201 <https://github.com/pybind/pybind11/pull/4201>`_
+
+* ``PyGILState_Check()``'s  were integrated to ``pybind11::handle``
+  ``inc_ref()`` & ``dec_ref()``. The added GIL checks are guarded by
+  ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``, which is the default only if
+  ``NDEBUG`` is not defined.
+  `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
+
+* Add option for enable/disable enum members in docstring.
+  `#2768 <https://github.com/pybind/pybind11/pull/2768>`_
+
+* Fixed typing of ``KeysView``, ``ValuesView`` and ``ItemsView`` in ``bind_map``.
+  `#4353 <https://github.com/pybind/pybind11/pull/4353>`_
+
+Bug fixes:
+
+* Bug fix affecting only Python 3.6 under very specific, uncommon conditions:
+  move ``PyEval_InitThreads()`` call to the correct location.
+  `#4350 <https://github.com/pybind/pybind11/pull/4350>`_
+
+* Fix segfault bug when passing foreign native functions to functional.h.
+  `#4254 <https://github.com/pybind/pybind11/pull/4254>`_
+
+Build system improvements:
+
+* Support setting PYTHON_LIBRARIES manually for Windows ARM cross-compilation
+  (classic mode).
+  `#4406 <https://github.com/pybind/pybind11/pull/4406>`_
+
+* Extend IPO/LTO detection for ICX (a.k.a IntelLLVM) compiler.
+  `#4402 <https://github.com/pybind/pybind11/pull/4402>`_
+
+* Allow calling ``find_package(pybind11 CONFIG)`` multiple times from separate
+  directories in the same CMake project and properly link Python (new mode).
+  `#4401 <https://github.com/pybind/pybind11/pull/4401>`_
+
+* ``multiprocessing_set_spawn`` in pytest fixture for added safety.
+  `#4377 <https://github.com/pybind/pybind11/pull/4377>`_
+
+* Fixed a bug in two pybind11/tools cmake scripts causing "Unknown arguments specified" errors.
+  `#4327 <https://github.com/pybind/pybind11/pull/4327>`_
+
+
+
 Version 2.10.1 (Oct 31, 2022)
 -----------------------------
 
@@ -94,7 +148,6 @@ Bug fixes:
   ``finalize_interpreter()``, fixing potential freezes during interpreter
   finalization.
   `#4192 <https://github.com/pybind/pybind11/pull/4192>`_
-
 
 Performance and style:
 
