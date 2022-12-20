@@ -27,28 +27,26 @@ Changes:
   ``Eigen::TensorMap``.
   `#4201 <https://github.com/pybind/pybind11/pull/4201>`_
 
-* Add option for enable/disable enum members in docstring.
-  `#2768 <https://github.com/pybind/pybind11/pull/2768>`_
-
-Bug fixes:
-
-
-* Bug fix affecting only Python 3.6 under very specific, uncommon conditions:
-  move ``PyEval_InitThreads()`` call to the correct location.
-  `#4350 <https://github.com/pybind/pybind11/pull/4350>`_
-
-* Fixed typing of ``KeysView``, ``ValuesView`` and ``ItemsView`` in ``bind_map``.
-  `#4353 <https://github.com/pybind/pybind11/pull/4353>`_
-
 * ``PyGILState_Check()``'s  were integrated to ``pybind11::handle``
   ``inc_ref()`` & ``dec_ref()``. The added GIL checks are guarded by
   ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``, which is the default only if
   ``NDEBUG`` is not defined.
   `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
 
+* Add option for enable/disable enum members in docstring.
+  `#2768 <https://github.com/pybind/pybind11/pull/2768>`_
+
+* Fixed typing of ``KeysView``, ``ValuesView`` and ``ItemsView`` in ``bind_map``.
+  `#4353 <https://github.com/pybind/pybind11/pull/4353>`_
+
+Bug fixes:
+
+* Bug fix affecting only Python 3.6 under very specific, uncommon conditions:
+  move ``PyEval_InitThreads()`` call to the correct location.
+  `#4350 <https://github.com/pybind/pybind11/pull/4350>`_
+
 * Fix segfault bug when passing foreign native functions to functional.h.
   `#4254 <https://github.com/pybind/pybind11/pull/4254>`_
-
 
 Build system improvements:
 
@@ -150,7 +148,6 @@ Bug fixes:
   ``finalize_interpreter()``, fixing potential freezes during interpreter
   finalization.
   `#4192 <https://github.com/pybind/pybind11/pull/4192>`_
-
 
 Performance and style:
 
