@@ -15,4 +15,4 @@
 
 #include "pybind11_tests.h"
 
-test_initializer name("eigen_tensor", test_module);
+test_initializer egien_tensor("eigen_tensor", eigen_tensor_test::test_module);
