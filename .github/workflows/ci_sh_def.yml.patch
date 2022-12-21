@@ -1,5 +1,5 @@
---- ci.yml	2022-12-13 11:06:14.516312703 -0800
-+++ ci_sh_def.yml	2022-12-13 11:08:12.198929480 -0800
+--- ci.yml	2022-12-20 23:43:35.128945529 -0800
++++ ci_sh_def.yml	2022-12-20 23:51:45.301579967 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -27,7 +27,7 @@
    cancel-in-progress: true
  
  env:
-@@ -113,6 +125,7 @@
+@@ -114,6 +126,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -43,7 +43,7 @@
          ${{ matrix.args }}
  
      - name: Build
-@@ -165,6 +179,7 @@
+@@ -164,6 +178,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=17
@@ -51,7 +51,7 @@
          -DPYBIND11_INTERNALS_VERSION=10000000
          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
          ${{ matrix.args }}
-@@ -253,6 +268,7 @@
+@@ -251,6 +266,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=17
@@ -59,7 +59,7 @@
  
      - name: Build
        run: cmake --build build -j 2
-@@ -316,6 +332,7 @@
+@@ -313,6 +329,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -67,16 +67,16 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -345,7 +362,7 @@
+@@ -342,7 +359,7 @@
        run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
  
      - name: Configure
--      run: cmake -S . -B build -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
-+      run: cmake -S . -B build -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+-      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
++      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
  
      - name: Build
        run: cmake --build build -j2 --verbose
-@@ -425,7 +442,7 @@
+@@ -422,7 +439,7 @@
          cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                              -DCMAKE_CXX_STANDARD=11 \
                              -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
@@ -85,7 +85,7 @@
                              -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
  
      # Building before installing Pip should produce a warning but not an error
-@@ -485,6 +502,7 @@
+@@ -481,6 +498,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -93,7 +93,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -541,6 +559,7 @@
+@@ -536,6 +554,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=11             \
@@ -101,7 +101,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -574,6 +593,7 @@
+@@ -568,6 +587,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=17             \
@@ -109,7 +109,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -642,6 +662,7 @@
+@@ -635,6 +655,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -117,7 +117,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -692,6 +713,7 @@
+@@ -685,6 +706,7 @@
          cmake ../pybind11-tests
          -DDOWNLOAD_CATCH=ON
          -DPYBIND11_WERROR=ON
@@ -125,7 +125,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -788,6 +810,7 @@
+@@ -780,6 +802,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -133,7 +133,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -843,6 +866,7 @@
+@@ -834,6 +857,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -141,7 +141,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build --config Debug -j 2
-@@ -884,6 +908,7 @@
+@@ -874,6 +898,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=20
@@ -149,34 +149,34 @@
  
      - name: Build C++20
        run: cmake --build build -j 2
-@@ -931,7 +956,7 @@
+@@ -921,7 +946,7 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
--      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
-+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build
  
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -949,7 +974,7 @@
+@@ -939,7 +964,7 @@
        run: git clean -fdx
  
      - name: Configure C++14
--      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
-+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build2
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build2
  
      - name: Build C++14
        run: cmake --build build2 -j 2
-@@ -967,7 +992,7 @@
+@@ -957,7 +982,7 @@
        run: git clean -fdx
  
      - name: Configure C++17
--      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
-+      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build3
+-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
++      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" -S . -B build3
  
      - name: Build C++17
        run: cmake --build build3 -j 2
-@@ -1035,6 +1060,7 @@
+@@ -1024,6 +1049,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
@@ -184,7 +184,7 @@
  
        - name: Build
          run: cmake --build . -j 2
-@@ -1101,6 +1127,7 @@
+@@ -1089,6 +1115,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
