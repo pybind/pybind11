@@ -11,6 +11,8 @@ concurrency:
 
 env:
   PIP_ONLY_BINARY: numpy
+  # For cmake:
+  VERBOSE: 1
 
 jobs:
   standard:

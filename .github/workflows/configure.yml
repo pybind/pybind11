@@ -9,6 +9,10 @@ on:
       - stable
       - v*
 
+env:
+  # For cmake:
+  VERBOSE: 1
+
 jobs:
   # This tests various versions of CMake in various combinations, to make sure
   # the configure step passes.

@@ -130,7 +130,6 @@ set(PYBIND11_TEST_FILES
     test_docstring_options
     test_eigen_matrix
     test_eigen_tensor
-    test_eigen_tensor_avoid_stl_array.cpp
     test_enum
     test_eval
     test_exceptions
@@ -294,6 +293,11 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       set(EIGEN3_VERSION ${EIGEN3_VERSION_STRING})
     endif()
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
+
+    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
+      tests_extra_targets("test_eigen_tensor.py" "eigen_tensor_avoid_stl_array")
+    endif()
+
   else()
     list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
@@ -301,11 +305,6 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     endif()
 
     list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
-    if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-      list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-    endif()
-    list(FIND PYBIND11_TEST_FILES test_eigen_tensor_avoid_stl_array.cpp
-         PYBIND11_TEST_FILES_EIGEN_I)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
@@ -317,10 +316,6 @@ endif()
 # Some code doesn't support gcc 4
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
   list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
-  if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-    list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-  endif()
-  list(FIND PYBIND11_TEST_FILES test_eigen_tensor_avoid_stl_array.cpp PYBIND11_TEST_FILES_EIGEN_I)
   if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
   endif()
