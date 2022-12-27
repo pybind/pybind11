@@ -1,0 +1,36 @@
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Issue 4420 Reproducer
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+      - name: install-rtools
+        run: |
+          choco install rtools --no-progress
+          echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
+      - name: show-gfortran
+        run: |
+          gcc --version
+          gfortran --version
+      - name: pip-packages
+        run: |
+          pip install pybind11==2.10.2 meson ninja
+      - name: pull in isolated reproducer
+        run: |
+          git clone https://github.com/tylerjereddy/pybind_repro.git
+          cd pybind_repro
+          meson setup builddir
+          cd builddir
+          ninja
+          python -c "import pypocketfft"
