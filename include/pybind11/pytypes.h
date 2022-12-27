@@ -252,7 +252,7 @@ public:
 #endif
 #if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
         if (m_ptr != nullptr && !PyGILState_Check()) {
-            throw std::runtime_error("pybind11::handle::inc_ref() PyGILState_Check() failure.");
+            throw_gilstate_error("pybind11::handle::inc_ref()");
         }
 #endif
         Py_XINCREF(m_ptr);
@@ -267,7 +267,7 @@ public:
     const handle &dec_ref() const & {
 #if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
         if (m_ptr != nullptr && !PyGILState_Check()) {
-            throw std::runtime_error("pybind11::handle::dec_ref() PyGILState_Check() failure.");
+            throw_gilstate_error("pybind11::handle::dec_ref()");
         }
 #endif
         Py_XDECREF(m_ptr);
@@ -298,6 +298,22 @@ protected:
 
 #ifdef PYBIND11_HANDLE_REF_DEBUG
 private:
+    void throw_gilstate_error(const std::string &function_name) const {
+        fprintf(stderr,
+                "%s is being called while PyGILState_Check() is failing. "
+                "This usually indicates that you are calling pybind11 functions without holding "
+                "the GIL or before "
+                "Python (and/or this Python module) is finished initializing.\n",
+                function_name.c_str());
+        if (Py_TYPE(m_ptr)->tp_name != nullptr) {
+            fprintf(stderr,
+                    "The failing %s call was triggered on a %s object.\n",
+                    function_name.c_str(),
+                    Py_TYPE(m_ptr)->tp_name);
+        }
+        throw std::runtime_error(function_name + " PyGILState_Check() failure.");
+    }
+
     static std::size_t inc_ref_counter(std::size_t add) {
         thread_local std::size_t counter = 0;
         counter += add;
