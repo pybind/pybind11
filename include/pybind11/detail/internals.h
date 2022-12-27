@@ -469,12 +469,14 @@ PYBIND11_NOINLINE internals &get_internals() {
 #if defined(WITH_THREAD)
 
         PyThreadState *tstate = PyThreadState_Get();
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
             pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
         }
         PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
 
 #    if PYBIND11_INTERNALS_VERSION > 4
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
             pybind11_fail("get_internals: could not successfully initialize the "
                           "loader_life_support TSS key!");
@@ -514,6 +516,7 @@ struct local_internals {
     struct shared_loader_life_support_data {
         PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
         shared_loader_life_support_data() {
+            // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
             if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
                 pybind11_fail("local_internals: could not successfully initialize the "
                               "loader_life_support TLS key!");
