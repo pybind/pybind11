@@ -329,7 +329,8 @@ PYBIND11_WARNING_POP
          && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
                                   process (see PR #4268) */                                       \
     && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
-#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+// TODO: Actually enable the following define in the 2.11 release
+// define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
