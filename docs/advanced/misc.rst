@@ -142,6 +142,8 @@ following checklist.
   destructors can sometimes get invoked in weird and unexpected circumstances as a result
   of exceptions.
 
+- You should try running your code in a debug build. That will enable additional assertions
+  within pybind11 that can throw exceptions on some GIL errors, in particular during reference counting operations.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
