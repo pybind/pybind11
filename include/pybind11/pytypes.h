@@ -299,11 +299,12 @@ protected:
 private:
 #ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
     void throw_gilstate_error(const std::string &function_name) const {
-        fprintf(stderr,
-                "%s is being called while the GIL is either not held or invalid. Please see "
-                "https://pybind11.readthedocs.io/en/stable/advanced/"
-                "misc.html#global-interpreter-lock-gil for debugging advice.\n",
-                function_name.c_str());
+        fprintf(
+            stderr,
+            "%s is being called while the GIL is either not held or invalid. Please see "
+            "https://pybind11.readthedocs.io/en/stable/advanced/"
+            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n",
+            function_name.c_str());
         fflush(stderr);
         if (Py_TYPE(m_ptr)->tp_name != nullptr) {
             fprintf(stderr,
