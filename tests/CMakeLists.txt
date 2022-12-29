@@ -144,6 +144,7 @@ set(PYBIND11_TEST_FILES
     test_numpy_array
     test_numpy_dtypes
     test_numpy_vectorize
+    test_object_tracking
     test_opaque_types
     test_operator_overloading
     test_pickling
