@@ -9,13 +9,11 @@
 
 #include "pybind11_tests.h"
 
-struct Beed {
-};
+struct Beed {};
 struct Pod {
-    Beed &beed() {
-        return _beed;
-    }
-  private:
+    Beed &beed() { return _beed; }
+
+private:
     Beed _beed;
 };
 
