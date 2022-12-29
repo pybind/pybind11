@@ -1,5 +1,5 @@
 /*
-    tests/test_object.cpp -- test object tracking
+    tests/test_object_tracking.cpp -- test object tracking
 
     Copyright (c) 2022 Zhixiong Tang <dvorak4tzx@gmail.com>
 
@@ -9,17 +9,17 @@
 
 #include "pybind11_tests.h"
 
-struct Beed {};
+struct Bead {};
 struct Pod {
-    Beed &beed() { return _beed; }
+    Bead &bead() { return _bead; }
 
 private:
-    Beed _beed;
+    Bead _bead;
 };
 
 TEST_SUBMODULE(object_, m) {
     namespace py = pybind11;
     using rvp = py::return_value_policy;
-    py::class_<Beed>(m, "Beed").def(py::init<>());
-    py::class_<Pod>(m, "Pod").def(py::init<>()).def("beed", &Pod::beed, rvp::reference_internal);
+    py::class_<Bead>(m, "Bead").def(py::init<>());
+    py::class_<Pod>(m, "Pod").def(py::init<>()).def("bead", &Pod::bead, rvp::reference_internal);
 }

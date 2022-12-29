@@ -1,7 +1,3 @@
-import os
-
-import pytest
-
 from pybind11_tests import object_ as m
 
 
@@ -10,7 +6,7 @@ def test_objects():
     objects = []
     objects_ids = set()
     for _ in range(5):
-        ref_internal_obj = p.beed()
+        ref_internal_obj = p.bead()
         objects.append(ref_internal_obj)
         objects_ids.add(id(ref_internal_obj))
     for o1 in objects:
