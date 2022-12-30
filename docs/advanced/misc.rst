@@ -118,6 +118,34 @@ The ``call_go`` wrapper can also be simplified using the ``call_guard`` policy
     m.def("call_go", &call_go, py::call_guard<py::gil_scoped_release>());
 
 
+Common Sources Of Global Interpreter Lock Errors
+==================================================================
+
+Failing to properly hold the Global Interpreter Lock (GIL) is one of the
+more common sources of bugs within code that uses pybind11. If you are
+running into GIL related errors, we highly recommend you consult the
+following checklist.
+
+- Do you have any global variables that are pybind11 objects or invoke
+  pybind11 functions in either their constructor or destructor? You are generally
+  not allowed to invoke any Python function in a global static context. We recommend
+  using lazy initialization and then intentionally leaking at the end of the program.
+
+- Do you have any pybind11 objects that are members of other C++ structures? One
+  commonly overlooked requirement is that pybind11 objects have to increase their reference count
+  whenever their copy constructor is called. Thus, you need to be holding the GIL to invoke
+  the copy constructor of any C++ class that has a pybind11 member. This can sometimes be very
+  tricky to track for complicated programs Think carefully when you make a pybind11 object
+  a member in another struct.
+
+- C++ destructors that invoke Python functions can be particularly troublesome as
+  destructors can sometimes get invoked in weird and unexpected circumstances as a result
+  of exceptions.
+
+- You should try running your code in a debug build. That will enable additional assertions
+  within pybind11 that will throw exceptions on certain GIL handling errors
+  (reference counting operations).
+
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
 
