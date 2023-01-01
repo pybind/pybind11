@@ -5,6 +5,11 @@ from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
 
+def test_obj_class_name():
+    assert m.obj_class_name(UserType(1)) == "pybind11_tests.UserType"
+    assert m.obj_class_name(UserType) == "pybind11_tests.UserType"
+
+
 def test_repr():
     assert "pybind11_type" in repr(type(UserType))
     assert "UserType" in repr(UserType)
