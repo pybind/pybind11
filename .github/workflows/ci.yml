@@ -293,8 +293,6 @@ jobs:
             std: 20
           - clang: 14
             std: 20
-          - clang: 15
-            std: 20
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}"
