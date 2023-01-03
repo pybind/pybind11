@@ -399,7 +399,7 @@ struct process_attribute<doc> : process_attribute_default<doc> {
 template <>
 struct process_attribute<const char *> : process_attribute_default<const char *> {
     static void init(const char *d, function_record *r) { r->doc = const_cast<char *>(d); }
-    static void init(const char *d, type_record *r) { r->doc = const_cast<char *>(d); }
+    static void init(const char *d, type_record *r) { r->doc = d; }
 };
 template <>
 struct process_attribute<char *> : process_attribute<const char *> {};
