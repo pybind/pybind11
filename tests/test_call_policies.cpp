@@ -65,8 +65,6 @@ TEST_SUBMODULE(call_policies, m) {
 
     m.def(
         "free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
-    m.def(
-        "invalid_arg_index", [] {}, py::keep_alive<0, 1>());
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc

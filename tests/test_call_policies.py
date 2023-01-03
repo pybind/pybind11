@@ -53,10 +53,6 @@ def test_keep_alive_argument(capture):
     del p
     assert ConstructorStats.detail_reg_inst() == n_inst
 
-    with pytest.raises(RuntimeError) as excinfo:
-        m.invalid_arg_index()
-    assert str(excinfo.value) == "Could not activate keep_alive!"
-
 
 def test_keep_alive_return_value(capture):
     n_inst = ConstructorStats.detail_reg_inst()

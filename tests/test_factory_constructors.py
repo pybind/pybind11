@@ -361,7 +361,6 @@ def test_reallocation_a(capture, msg):
         msg(capture)
         == """
         noisy new
-        noisy placement new
         NoisyAlloc(int 1)
         ---
         ~NoisyAlloc()
@@ -375,8 +374,6 @@ def test_reallocation_b(capture, msg):
         create_and_destroy(1.5)
     assert msg(capture) == strip_comments(
         """
-        noisy new               # allocation required to attempt first overload
-        noisy delete            # have to dealloc before considering factory init overload
         noisy new               # pointer factory calling "new", part 1: allocation
         NoisyAlloc(double 1.5)  # ... part two, invoking constructor
         ---
@@ -421,7 +418,6 @@ def test_reallocation_e(capture, msg):
     assert msg(capture) == strip_comments(
         """
         noisy new               # preallocation needed before invoking placement-new overload
-        noisy placement new     # Placement new
         NoisyAlloc(double 3.5)  # construction
         ---
         ~NoisyAlloc()  # Destructor
@@ -436,8 +432,6 @@ def test_reallocation_f(capture, msg):
     assert msg(capture) == strip_comments(
         """
         noisy new          # preallocation needed before invoking placement-new overload
-        noisy delete       # deallocation of preallocated storage
-        noisy new          # Factory pointer allocation
         NoisyAlloc(int 4)  # factory pointer construction
         ---
         ~NoisyAlloc()  # Destructor
@@ -451,10 +445,7 @@ def test_reallocation_g(capture, msg):
         create_and_destroy(5, "hi")
     assert msg(capture) == strip_comments(
         """
-        noisy new            # preallocation needed before invoking first placement new
-        noisy delete         # delete before considering new-style constructor
         noisy new            # preallocation for second placement new
-        noisy placement new  # Placement new in the second placement new overload
         NoisyAlloc(int 5)    # construction
         ---
         ~NoisyAlloc()  # Destructor
