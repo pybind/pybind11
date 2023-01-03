@@ -41,20 +41,20 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v3.3.0"
+  rev: "v3.3.1"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
 
 # Nicely sort includes
 - repo: https://github.com/PyCQA/isort
-  rev: "5.10.1"
+  rev: "5.11.4"
   hooks:
   - id: isort
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: "22.10.0" # Keep in sync with blacken-docs
+  rev: "22.12.0" # Keep in sync with blacken-docs
   hooks:
   - id: black
 
@@ -116,7 +116,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.15.8"
+  rev: "v2.15.9"
   hooks:
   - id: pylint
     files: ^pybind11
@@ -160,7 +160,7 @@ repos:
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.8.0.4"
+  rev: "v0.9.0.2"
   hooks:
   - id: shellcheck
 
@@ -175,7 +175,7 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v15.0.4"
+  rev: "v15.0.6"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]

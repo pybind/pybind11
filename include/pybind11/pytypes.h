@@ -250,9 +250,9 @@ public:
 #ifdef PYBIND11_HANDLE_REF_DEBUG
         inc_ref_counter(1);
 #endif
-#if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
         if (m_ptr != nullptr && !PyGILState_Check()) {
-            throw std::runtime_error("pybind11::handle::inc_ref() PyGILState_Check() failure.");
+            throw_gilstate_error("pybind11::handle::inc_ref()");
         }
 #endif
         Py_XINCREF(m_ptr);
@@ -265,9 +265,9 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &dec_ref() const & {
-#if defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
         if (m_ptr != nullptr && !PyGILState_Check()) {
-            throw std::runtime_error("pybind11::handle::dec_ref() PyGILState_Check() failure.");
+            throw_gilstate_error("pybind11::handle::dec_ref()");
         }
 #endif
         Py_XDECREF(m_ptr);
@@ -296,8 +296,28 @@ public:
 protected:
     PyObject *m_ptr = nullptr;
 
-#ifdef PYBIND11_HANDLE_REF_DEBUG
 private:
+#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+    void throw_gilstate_error(const std::string &function_name) const {
+        fprintf(
+            stderr,
+            "%s is being called while the GIL is either not held or invalid. Please see "
+            "https://pybind11.readthedocs.io/en/stable/advanced/"
+            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n",
+            function_name.c_str());
+        fflush(stderr);
+        if (Py_TYPE(m_ptr)->tp_name != nullptr) {
+            fprintf(stderr,
+                    "The failing %s call was triggered on a %s object.\n",
+                    function_name.c_str(),
+                    Py_TYPE(m_ptr)->tp_name);
+            fflush(stderr);
+        }
+        throw std::runtime_error(function_name + " PyGILState_Check() failure.");
+    }
+#endif
+
+#ifdef PYBIND11_HANDLE_REF_DEBUG
     static std::size_t inc_ref_counter(std::size_t add) {
         thread_local std::size_t counter = 0;
         counter += add;
@@ -443,7 +463,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
 inline const char *obj_class_name(PyObject *obj) {
-    if (Py_TYPE(obj) == &PyType_Type) {
+    if (PyType_Check(obj)) {
         return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
     }
     return Py_TYPE(obj)->tp_name;
@@ -481,7 +501,7 @@ struct error_fetch_and_normalize {
                             "active exception.");
         }
         const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
-        if (exc_type_name_orig == nullptr) {
+        if (exc_type_name_norm == nullptr) {
             pybind11_fail("Internal error: " + std::string(called)
                           + " failed to obtain the name "
                             "of the normalized active exception type.");

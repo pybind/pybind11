@@ -11,11 +11,11 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 10
-#define PYBIND11_VERSION_PATCH 2
+#define PYBIND11_VERSION_PATCH 3
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020A0200
+#define PYBIND11_VERSION_HEX 0x020A0300
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -329,7 +329,8 @@ PYBIND11_WARNING_POP
          && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
                                   process (see PR #4268) */                                       \
     && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
-#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+// The following define will be enabled by default in the 2.11 release
+// define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE

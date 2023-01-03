@@ -15,6 +15,39 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Changes:
+
+* ``PyGILState_Check()``'s in ``pybind11::handle``'s ``inc_ref()`` &
+  ``dec_ref()`` are now enabled by default again.
+  `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
+
+Build system improvements:
+
+* Update clang-tidy to 15 in CI.
+  `#4387 <https://github.com/pybind/pybind11/pull/4387>`_
+
+
+Version 2.10.3 (Jan 3, 2023)
+----------------------------
+
+Changes:
+
+* Temporarily made our GIL status assertions (added in 2.10.2) disabled by
+  default (re-enable manually by defining
+  ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``, will be enabled in 2.11).
+  `#4432 <https://github.com/pybind/pybind11/pull/4432>`_
+
+* Improved error messages when ``inc_ref``/``dec_ref`` are called with an
+  invalid GIL state.
+  `#4427 <https://github.com/pybind/pybind11/pull/4427>`_
+  `#4436 <https://github.com/pybind/pybind11/pull/4436>`_
+
+Bug Fixes:
+
+* Some minor touchups found by static analyzers.
+  `#4440 <https://github.com/pybind/pybind11/pull/4440>`_
+
+
 Version 2.10.2 (Dec 20, 2022)
 -----------------------------
 
@@ -30,7 +63,7 @@ Changes:
 * ``PyGILState_Check()``'s  were integrated to ``pybind11::handle``
   ``inc_ref()`` & ``dec_ref()``. The added GIL checks are guarded by
   ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``, which is the default only if
-  ``NDEBUG`` is not defined.
+  ``NDEBUG`` is not defined. (Made non-default in 2.10.3, will be active in 2.11)
   `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
 
 * Add option for enable/disable enum members in docstring.
