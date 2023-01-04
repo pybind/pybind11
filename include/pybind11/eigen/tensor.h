@@ -176,7 +176,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 return false;
             }
 
-            if (!convert && !temp.dtype().is(dtype::of<typename Type::Scalar>())) {
+            if (!temp.dtype().is(dtype::of<typename Type::Scalar>())) {
                 return false;
             }
         }

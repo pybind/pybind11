@@ -501,7 +501,7 @@ struct error_fetch_and_normalize {
                             "active exception.");
         }
         const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
-        if (exc_type_name_orig == nullptr) {
+        if (exc_type_name_norm == nullptr) {
             pybind11_fail("Internal error: " + std::string(called)
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
