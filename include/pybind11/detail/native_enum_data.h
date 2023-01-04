@@ -21,8 +21,8 @@ public:
     native_enum_data(const char *enum_name,
                      const std::type_index &enum_type_index,
                      bool use_int_enum)
-        : correct_use_check{false}, enum_name_encoded{enum_name}, enum_type_index{enum_type_index},
-          use_int_enum{use_int_enum}, export_values_flag{false}, enum_name{enum_name} {}
+        : enum_name_encoded{enum_name}, enum_type_index{enum_type_index},
+          use_int_enum{use_int_enum}, enum_name{enum_name} {}
 
     native_enum_data(const native_enum_data &) = delete;
     native_enum_data &operator=(const native_enum_data &) = delete;
@@ -47,13 +47,13 @@ public:
 #endif
 
 private:
-    mutable bool correct_use_check;
+    mutable bool correct_use_check{false};
 
 public:
     std::string enum_name_encoded;
     std::type_index enum_type_index;
     bool use_int_enum;
-    bool export_values_flag;
+    bool export_values_flag{false};
     str enum_name;
     list members;
     list docs;
