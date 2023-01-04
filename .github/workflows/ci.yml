@@ -285,8 +285,6 @@ jobs:
           - clang: 5
             std: 14
           - clang: 10
-            std: 20
-          - clang: 10
             std: 17
           - clang: 11
             std: 20

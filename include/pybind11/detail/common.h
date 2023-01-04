@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 10
-#define PYBIND11_VERSION_PATCH 2
+#define PYBIND11_VERSION_MINOR 11
+#define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020A0200
+#define PYBIND11_VERSION_HEX 0x020B00D1
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -436,7 +436,7 @@ PYBIND11_WARNING_POP
 
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
-    imports an extension module. The module name is given as the fist argument and it
+    imports an extension module. The module name is given as the first argument and it
     should not be in quotes. The second macro argument defines a variable of type
     `py::module_` which can be used to initialize the module.
 

@@ -1,8 +1,17 @@
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
+
+
+def test_obj_class_name():
+    if env.PYPY:
+        expected_name = "UserType"
+    else:
+        expected_name = "pybind11_tests.UserType"
+    assert m.obj_class_name(UserType(1)) == expected_name
+    assert m.obj_class_name(UserType) == expected_name
 
 
 def test_repr():

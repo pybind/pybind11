@@ -355,13 +355,17 @@ void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) 
     using DiffType = typename Vector::difference_type;
     using ItType = typename Vector::iterator;
     cl.def("__getitem__", [](const Vector &v, DiffType i) -> T {
-        if (i < 0 && (i += v.size()) < 0) {
+        if (i < 0) {
+            i += v.size();
+            if (i < 0) {
+                throw index_error();
+            }
+        }
+        auto i_st = static_cast<SizeType>(i);
+        if (i_st >= v.size()) {
             throw index_error();
         }
-        if ((SizeType) i >= v.size()) {
-            throw index_error();
-        }
-        return v[(SizeType) i];
+        return v[i_st];
     });
 
     cl.def(

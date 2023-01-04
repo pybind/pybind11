@@ -99,6 +99,8 @@ void m_defs(py::module_ &m) {
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
 TEST_SUBMODULE(pytypes, m) {
+    m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
+
     handle_from_move_only_type_with_operator_PyObject::m_defs(m);
 
     // test_bool
