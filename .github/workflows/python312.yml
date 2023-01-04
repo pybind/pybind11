@@ -15,6 +15,8 @@ jobs:
   standard:
     name: "🐍 3.12 latest • ubuntu-latest • x64"
     runs-on: ubuntu-latest
+
+    # Hint: Select the 'python dev' label in the PR web view.
     # if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
@@ -38,8 +40,8 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install --prefer-binary -r tests/requirements.txt
-        python -m pip install --prefer-binary numpy
-    #   python -m pip install --prefer-binary scipy
+    #   python -m pip install --prefer-binary numpy  # SLOW
+    #   python -m pip install --prefer-binary scipy  # FAILED ~Nov 2022
 
     - name: Show platform info
       run: python -m platform
@@ -64,8 +66,17 @@ jobs:
     - name: Python tests C++11
       run: cmake --build build11 --target pytest -j 2
 
-    - name: C++ tests C++11
-      run: cmake --build build11 --target cpptest -j 2
+    # python-3.12.0-alpha.1-linux-22.04-x64.tar.gz  PASSED
+    # python-3.12.0-alpha.2-linux-22.04-x64.tar.gz  FAILED
+    # python-3.12.0-alpha.3-linux-22.04-x64.tar.gz  FAILED
+    #     free(): invalid pointer
+    #     Custom PyConfig
+    #     /home/runner/work/pybind11/pybind11/tests/test_embed/test_interpreter.cpp:175
+    #     /home/runner/work/pybind11/pybind11/tests/test_embed/test_interpreter.cpp:179: FAILED:
+    # gdb traceback points here:
+    #     https://github.com/python/cpython/blame/54289f85b2af1ecf046089ddf535dda1bdf6af24/Python/import.c#L524
+    # - name: C++ tests C++11
+    #   run: cmake --build build11 --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build build11 --target test_cmake_build
@@ -90,8 +101,8 @@ jobs:
     - name: Python tests C++17
       run: cmake --build build17 --target pytest
 
-    - name: C++ tests C++17
-      run: cmake --build build17 --target cpptest
+    # - name: C++ tests C++17
+    #   run: cmake --build build17 --target cpptest
 
     - name: Interface test C++17
       run: cmake --build build17 --target test_cmake_build
@@ -117,8 +128,8 @@ jobs:
     - name: Python tests C++17 max DPYBIND11_INTERNALS_VERSION
       run: cmake --build build17max --target pytest
 
-    - name: C++ tests C++17 max DPYBIND11_INTERNALS_VERSION
-      run: cmake --build build17max --target cpptest
+    # - name: C++ tests C++17 max DPYBIND11_INTERNALS_VERSION
+    #   run: cmake --build build17max --target cpptest
 
     - name: Interface test C++17 max DPYBIND11_INTERNALS_VERSION
       run: cmake --build build17max --target test_cmake_build
