@@ -34,17 +34,17 @@
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning(pop))
 #elif defined(__INTEL_COMPILER)
 #    define PYBIND11_COMPILER_INTEL
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning pop)
 #elif defined(__clang__)
 #    define PYBIND11_COMPILER_CLANG
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(clang diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(clang diagnostic push)
 #elif defined(__GNUC__)
 #    define PYBIND11_COMPILER_GCC
-#    define PYBIND11_PRAGMA(...) _Pragma(#    __VA_ARGS__)
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(GCC diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(GCC diagnostic pop)
 #endif
@@ -323,6 +323,15 @@ PYBIND11_WARNING_POP
 #    define PYBIND11_HAS_U8STRING
 #endif
 
+// See description of PR #4246:
+#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF)                                \
+    && !(defined(PYPY_VERSION)                                                                    \
+         && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
+                                  process (see PR #4268) */                                       \
+    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+#endif
+
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
 //             (probably surprising and never documented, but this was the
@@ -427,7 +436,7 @@ PYBIND11_WARNING_POP
 
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
-    imports an extension module. The module name is given as the fist argument and it
+    imports an extension module. The module name is given as the first argument and it
     should not be in quotes. The second macro argument defines a variable of type
     `py::module_` which can be used to initialize the module.
 

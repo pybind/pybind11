@@ -5,8 +5,6 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-constexpr const char *test_eigen_tensor_module_name = "eigen_tensor";
-
 #define PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE eigen_tensor
 
 #ifdef EIGEN_AVOID_STL_ARRAY
@@ -14,3 +12,7 @@ constexpr const char *test_eigen_tensor_module_name = "eigen_tensor";
 #endif
 
 #include "test_eigen_tensor.inl"
+
+#include "pybind11_tests.h"
+
+test_initializer egien_tensor("eigen_tensor", eigen_tensor_test::test_module);

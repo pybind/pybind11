@@ -74,6 +74,8 @@ PYBIND11_TYPE_CASTER_BASE_HOLDER(MismatchDerived2, std::shared_ptr<MismatchDeriv
 PYBIND11_TYPE_CASTER_BASE_HOLDER(SamePointer, std::unique_ptr<SamePointer>)
 
 TEST_SUBMODULE(class_, m) {
+    m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
+
     // test_instance
     struct NoConstructor {
         NoConstructor() = default;

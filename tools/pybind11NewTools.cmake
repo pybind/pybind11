@@ -9,7 +9,7 @@ if(CMAKE_VERSION VERSION_LESS 3.12)
   message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
 
-include_guard(GLOBAL)
+include_guard(DIRECTORY)
 
 get_property(
   is_config

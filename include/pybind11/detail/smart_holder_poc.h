@@ -301,7 +301,7 @@ struct smart_holder {
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
-                                        bool void_cast_raw_ptr = false) {
+                                        void *void_ptr = nullptr) {
         smart_holder hld;
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
@@ -311,8 +311,8 @@ struct smart_holder {
         } else {
             gd = make_guarded_custom_deleter<T, D>(true);
         }
-        if (void_cast_raw_ptr) {
-            hld.vptr.reset(static_cast<void *>(unq_ptr.get()), std::move(gd));
+        if (void_ptr != nullptr) {
+            hld.vptr.reset(void_ptr, std::move(gd));
         } else {
             hld.vptr.reset(unq_ptr.get(), std::move(gd));
         }

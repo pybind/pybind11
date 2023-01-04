@@ -176,7 +176,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 return false;
             }
 
-            if (!convert && !temp.dtype().is(dtype::of<typename Type::Scalar>())) {
+            if (!temp.dtype().is(dtype::of<typename Type::Scalar>())) {
                 return false;
             }
         }
@@ -279,7 +279,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             case return_value_policy::take_ownership:
                 if (std::is_const<C>::value) {
                     // This cast is ugly, and might be UB in some cases, but we don't have an
-                    // alterantive here as we must free that memory
+                    // alternative here as we must free that memory
                     Helper::free(const_cast<Type *>(src));
                     pybind11_fail("Cannot take ownership of a const reference");
                 }

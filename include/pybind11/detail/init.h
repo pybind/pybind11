@@ -157,9 +157,9 @@ void construct(value_and_holder &v_h, Alias<Class> *alias_ptr, bool) {
 // holder.  This also handles types like std::shared_ptr<T> and std::unique_ptr<T> where T is a
 // derived type (through those holder's implicit conversion from derived class holder
 // constructors).
-template <
-    typename Class,
-    detail::enable_if_t<!detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+template <typename Class,
+          detail::enable_if_t<!detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int>
+          = 0>
 void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
@@ -201,10 +201,10 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     v_h.value_ptr() = new Alias<Class>(std::move(result));
 }
 
-template <
-    typename Class,
-    typename D = std::default_delete<Cpp<Class>>,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+template <typename Class,
+          typename D = std::default_delete<Cpp<Class>>,
+          detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int>
+          = 0>
 void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = unq_ptr.get();
@@ -224,10 +224,10 @@ void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, 
     v_h.type->init_instance(v_h.inst, &smhldr);
 }
 
-template <
-    typename Class,
-    typename D = std::default_delete<Alias<Class>>,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Alias<Class>>::value, int> = 0>
+template <typename Class,
+          typename D = std::default_delete<Alias<Class>>,
+          detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Alias<Class>>::value, int>
+          = 0>
 void construct(value_and_holder &v_h,
                std::unique_ptr<Alias<Class>, D> &&unq_ptr,
                bool /*need_alias*/) {
@@ -239,9 +239,9 @@ void construct(value_and_holder &v_h,
     v_h.type->init_instance(v_h.inst, &smhldr);
 }
 
-template <
-    typename Class,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+template <typename Class,
+          detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int>
+          = 0>
 void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = shd_ptr.get();
@@ -255,9 +255,9 @@ void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, boo
     v_h.type->init_instance(v_h.inst, &smhldr);
 }
 
-template <
-    typename Class,
-    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Alias<Class>>::value, int> = 0>
+template <typename Class,
+          detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Alias<Class>>::value, int>
+          = 0>
 void construct(value_and_holder &v_h,
                std::shared_ptr<Alias<Class>> &&shd_ptr,
                bool /*need_alias*/) {
@@ -282,10 +282,11 @@ struct constructor {
             extra...);
     }
 
-    template <typename Class,
-              typename... Extra,
-              enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value,
-                          int> = 0>
+    template <
+        typename Class,
+        typename... Extra,
+        enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value, int>
+        = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -302,10 +303,11 @@ struct constructor {
             extra...);
     }
 
-    template <typename Class,
-              typename... Extra,
-              enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value,
-                          int> = 0>
+    template <
+        typename Class,
+        typename... Extra,
+        enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value, int>
+        = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -321,10 +323,11 @@ struct constructor {
 // Implementing class for py::init_alias<...>()
 template <typename... Args>
 struct alias_constructor {
-    template <typename Class,
-              typename... Extra,
-              enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value,
-                          int> = 0>
+    template <
+        typename Class,
+        typename... Extra,
+        enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value, int>
+        = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
