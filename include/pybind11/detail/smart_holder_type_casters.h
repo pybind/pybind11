@@ -403,6 +403,7 @@ struct shared_ptr_trampoline_self_life_support {
         gil_scoped_acquire gil;
         Py_INCREF(self);
     }
+    // NOLINTNEXTLINE(readability-make-member-function-const)
     void operator()(void *) {
         gil_scoped_acquire gil;
         Py_DECREF(self);
