@@ -1,5 +1,5 @@
---- ci.yml	2022-12-20 23:43:35.128945529 -0800
-+++ ci_sh_def.yml	2022-12-20 23:51:45.301579967 -0800
+--- ci.yml	2023-01-03 19:40:01.489281529 -0800
++++ ci_sh_def.yml	2023-01-03 19:40:50.224704081 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -59,7 +59,7 @@
  
      - name: Build
        run: cmake --build build -j 2
-@@ -313,6 +329,7 @@
+@@ -311,6 +327,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -67,7 +67,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -342,7 +359,7 @@
+@@ -340,7 +357,7 @@
        run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
  
      - name: Configure
@@ -76,7 +76,7 @@
  
      - name: Build
        run: cmake --build build -j2 --verbose
-@@ -422,7 +439,7 @@
+@@ -420,7 +437,7 @@
          cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                              -DCMAKE_CXX_STANDARD=11 \
                              -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
@@ -85,7 +85,7 @@
                              -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
  
      # Building before installing Pip should produce a warning but not an error
-@@ -481,6 +498,7 @@
+@@ -479,6 +496,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -93,7 +93,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -536,6 +554,7 @@
+@@ -534,6 +552,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=11             \
@@ -101,7 +101,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -568,6 +587,7 @@
+@@ -566,6 +585,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=17             \
@@ -109,7 +109,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -635,6 +655,7 @@
+@@ -633,6 +653,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -117,7 +117,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -685,6 +706,7 @@
+@@ -683,6 +704,7 @@
          cmake ../pybind11-tests
          -DDOWNLOAD_CATCH=ON
          -DPYBIND11_WERROR=ON
@@ -125,7 +125,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -780,6 +802,7 @@
+@@ -778,6 +800,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -133,7 +133,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -834,6 +857,7 @@
+@@ -832,6 +855,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -141,7 +141,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build --config Debug -j 2
-@@ -874,6 +898,7 @@
+@@ -872,6 +896,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=20
@@ -149,7 +149,7 @@
  
      - name: Build C++20
        run: cmake --build build -j 2
-@@ -921,7 +946,7 @@
+@@ -919,7 +944,7 @@
      - name: Configure C++11
        # LTO leads to many undefined reference like
        # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
@@ -158,7 +158,7 @@
  
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -939,7 +964,7 @@
+@@ -937,7 +962,7 @@
        run: git clean -fdx
  
      - name: Configure C++14
@@ -167,7 +167,7 @@
  
      - name: Build C++14
        run: cmake --build build2 -j 2
-@@ -957,7 +982,7 @@
+@@ -955,7 +980,7 @@
        run: git clean -fdx
  
      - name: Configure C++17
@@ -176,7 +176,7 @@
  
      - name: Build C++17
        run: cmake --build build3 -j 2
-@@ -1024,6 +1049,7 @@
+@@ -1022,6 +1047,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
@@ -184,7 +184,7 @@
  
        - name: Build
          run: cmake --build . -j 2
-@@ -1089,6 +1115,7 @@
+@@ -1087,6 +1113,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
