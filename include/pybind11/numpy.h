@@ -25,6 +25,15 @@
 #include <typeindex>
 #include <utility>
 #include <vector>
+#include <iostream>
+
+
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+typedef SSIZE_T ssize_t;
+#endif
+
 
 /* This will be true on all flat address space platforms and allows us to reduce the
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
@@ -624,6 +633,15 @@ public:
     /// Flags for the array descriptor
     char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
 
+    /// NumPy array type char
+    char type() const { return detail::array_descriptor_proxy(m_ptr)->type; }
+
+    /// NumPy array type num
+    int type_num() const { return detail::array_descriptor_proxy(m_ptr)->type_num; }
+
+    /// NumPy array element size
+    int elsize() const { return detail::array_descriptor_proxy(m_ptr)->elsize; }
+
 private:
     static object _dtype_from_pep3118() {
         static PyObject *obj = module_::import("numpy.core._internal")
@@ -825,6 +843,9 @@ public:
 
     /// Return the NumPy array flags
     int flags() const { return detail::array_proxy(m_ptr)->flags; }
+
+    /// Mutable NumPy array flags
+    int& flags() { return detail::array_proxy(m_ptr)->flags; }
 
     /// If set, the array is writeable (otherwise the buffer is read-only)
     bool writeable() const {
