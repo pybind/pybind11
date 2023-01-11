@@ -27,12 +27,6 @@
 #include <utility>
 #include <vector>
 
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4127) // warning C4127: Conditional expression is constant
-typedef SSIZE_T ssize_t;
-#endif
-
 /* This will be true on all flat address space platforms and allows us to reduce the
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
