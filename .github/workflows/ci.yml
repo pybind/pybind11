@@ -280,6 +280,8 @@ jobs:
           - dev
         std:
           - 11
+        container_suffix:
+          - ""
         include:
           - clang: 5
             std: 14
@@ -293,9 +295,12 @@ jobs:
             std: 20
           - clang: 14
             std: 20
+          - clang: 15
+            std: 20
+            container_suffix: "-bullseye"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
-    container: "silkeh/clang:${{ matrix.clang }}"
+    container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
 
     steps:
     - uses: actions/checkout@v3
