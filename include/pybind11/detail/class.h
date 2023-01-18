@@ -448,6 +448,8 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     auto *type = Py_TYPE(self);
 
     // If this is a GC tracked object, untrack it first
+    // Note that the track call is implicitly done by the
+    // default tp_alloc, which we never override.
     if (PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC) != 0) {
         PyObject_GC_UnTrack(self);
     }
