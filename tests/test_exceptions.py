@@ -381,3 +381,13 @@ def test_pypy_oserror_normalization():
     # https://github.com/pybind/pybind11/issues/4075
     what = m.test_pypy_oserror_normalization()
     assert "this_filename_must_not_exist" in what
+
+
+def test_sane_hidden_exception():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_hidden_error(lambda: None)
+
+    # Always display the python type even if the C++ type isn't available
+    assert str(excinfo.value).startswith(
+        "Unable to cast Python instance of type <class 'NoneType'> to C++ type"
+    )
