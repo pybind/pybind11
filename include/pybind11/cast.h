@@ -1018,12 +1018,13 @@ type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &ha
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error(
-            "Unable to cast Python instance of type " + static_cast<std::string>(str(type::handle_of(handle)))
+            "Unable to cast Python instance of type "
+            + str(type::handle_of(handle)).cast<std::string>()
             + " to C++ type '?' (#define "
               "PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type "
-                         + (std::string) str(type::handle_of(handle)) + " to C++ type '"
+                         + str(type::handle_of(handle)).cast<std::string>() + " to C++ type '"
                          + type_id<T>() + "'");
 #endif
     }
@@ -1087,13 +1088,13 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error(
-            "Unable to cast Python " + (std::string) str(type::handle_of(obj))
+            "Unable to cast Python " + str(type::handle_of(obj)).cast<std::string>()
             + " instance to C++ rvalue: instance has multiple references"
               " (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
-        throw cast_error("Unable to move from Python " + (std::string) str(type::handle_of(obj))
-                         + " instance to C++ " + type_id<T>()
-                         + " instance: instance has multiple references");
+        throw cast_error("Unable to move from Python "
+                         + str(type::handle_of(obj)).cast<std::string>() + " instance to C++ "
+                         + type_id<T>() + " instance: instance has multiple references");
 #endif
     }
 

@@ -1225,7 +1225,7 @@ constexpr
 #endif
 
 // Pybind offers detailed error messages by default for all builts that are debug (through the
-// negation of ndebug). This can also be manually enabled by users, for any builds, through
+// negation of NDEBUG). This can also be manually enabled by users, for any builds, through
 // defining PYBIND11_DETAILED_ERROR_MESSAGES.
 //
 // Pybind attempts to provide useful error messages by default. Specifically, this macro will
