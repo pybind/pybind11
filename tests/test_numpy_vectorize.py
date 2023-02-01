@@ -149,7 +149,7 @@ def test_docs(doc):
         doc(m.vectorized_func)
         == """
         vectorized_func(arg0: numpy.ndarray[numpy.int32], arg1: numpy.ndarray[numpy.float32], arg2: numpy.ndarray[numpy.float64]) -> object
-    """  # noqa: E501 line too long
+    """
     )
 
 

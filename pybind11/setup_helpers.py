@@ -271,7 +271,7 @@ def auto_cpp_level(compiler: Any) -> Union[str, int]:
     raise RuntimeError(msg)
 
 
-class build_ext(_build_ext):  # type: ignore[misc] # noqa: N801
+class build_ext(_build_ext):  # type: ignore[misc]
     """
     Customized build_ext that allows an auto-search for the highest supported
     C++ level for Pybind11Extension. This is only needed for the auto-search
@@ -341,7 +341,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:  # pylint: disable=unused-argument
+def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.

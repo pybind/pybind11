@@ -14,7 +14,7 @@ def test_vector(doc):
 
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
-    assert m.load_bool_vector(tuple([True, False]))
+    assert m.load_bool_vector((True, False))
 
     assert doc(m.cast_vector) == "cast_vector() -> List[int]"
     assert doc(m.load_vector) == "load_vector(arg0: List[int]) -> bool"
@@ -23,7 +23,7 @@ def test_vector(doc):
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
 
 
-def test_deque(doc):
+def test_deque():
     """std::deque <-> list"""
     lst = m.cast_deque()
     assert lst == [1]
@@ -95,7 +95,8 @@ def test_recursive_casting():
 
     # Issue #853 test case:
     z = m.cast_unique_ptr_vector()
-    assert z[0].value == 7 and z[1].value == 42
+    assert z[0].value == 7
+    assert z[1].value == 42
 
 
 def test_move_out_container():

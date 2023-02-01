@@ -54,7 +54,8 @@ def test_to_python():
     mat2 = np.array(mat, copy=False)
     assert mat2.shape == (5, 4)
     assert abs(mat2).sum() == 11
-    assert mat2[2, 3] == 4 and mat2[3, 2] == 7
+    assert mat2[2, 3] == 4
+    assert mat2[3, 2] == 7
     mat2[2, 3] = 5
     assert mat2[2, 3] == 5
 

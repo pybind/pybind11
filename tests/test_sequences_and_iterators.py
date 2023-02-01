@@ -1,5 +1,5 @@
 import pytest
-from pytest import approx
+from pytest import approx  # noqa: PT013
 
 from pybind11_tests import ConstructorStats
 from pybind11_tests import sequences_and_iterators as m
@@ -72,13 +72,13 @@ def test_iterator_referencing():
     vec = m.VectorNonCopyableIntPair()
     vec.append([3, 4])
     vec.append([5, 7])
-    assert [int(x) for x in vec.keys()] == [3, 5]
+    assert [int(x) for x in vec] == [3, 5]
     assert [int(x) for x in vec.values()] == [4, 7]
-    for x in vec.keys():
+    for x in vec:
         x.set(int(x) + 1)
     for x in vec.values():
         x.set(int(x) + 10)
-    assert [int(x) for x in vec.keys()] == [4, 6]
+    assert [int(x) for x in vec] == [4, 6]
     assert [int(x) for x in vec.values()] == [14, 17]
 
 
@@ -103,7 +103,8 @@ def test_sequence():
 
     assert "Sequence" in repr(s)
     assert len(s) == 5
-    assert s[0] == 0 and s[3] == 0
+    assert s[0] == 0
+    assert s[3] == 0
     assert 12.34 not in s
     s[0], s[3] = 12.34, 56.78
     assert 12.34 in s
@@ -245,7 +246,7 @@ def test_iterator_rvp():
 
 def test_carray_iterator():
     """#4100: Check for proper iterator overload with C-Arrays"""
-    args_gt = list(float(i) for i in range(3))
+    args_gt = [float(i) for i in range(3)]
     arr_h = m.CArrayHolder(*args_gt)
     args = list(arr_h)
     assert args_gt == args

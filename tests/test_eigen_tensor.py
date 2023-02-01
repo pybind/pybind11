@@ -11,14 +11,15 @@ try:
     submodules += [avoid.c_style, avoid.f_style]
 except ImportError as e:
     # Ensure config, build, toolchain, etc. issues are not masked here:
-    raise RuntimeError(
+    msg = (
         "import eigen_tensor_avoid_stl_array FAILED, while "
         "import pybind11_tests.eigen_tensor succeeded. "
         "Please ensure that "
         "test_eigen_tensor.cpp & "
         "eigen_tensor_avoid_stl_array.cpp "
         "are built together (or both are not built if Eigen is not available)."
-    ) from e
+    )
+    raise RuntimeError(msg) from e
 
 tensor_ref = np.empty((3, 5, 2), dtype=np.int64)
 
@@ -147,10 +148,7 @@ def test_bad_python_to_cpp_casts(m):
         m.round_trip_tensor_noconvert(tensor_ref.astype(np.float64))
     )
 
-    if m.needed_options == "F":
-        bad_options = "C"
-    else:
-        bad_options = "F"
+    bad_options = "C" if m.needed_options == "F" else "F"
     # Shape, dtype and the order need to be correct for a TensorMap cast
     with pytest.raises(
         TypeError, match=r"^round_trip_view_tensor\(\): incompatible function arguments"
@@ -173,19 +171,19 @@ def test_bad_python_to_cpp_casts(m):
             np.zeros((3, 5), dtype=np.float64, order=m.needed_options)
         )
 
+    temp = np.zeros((3, 5, 2), dtype=np.float64, order=m.needed_options)
     with pytest.raises(
         TypeError, match=r"^round_trip_view_tensor\(\): incompatible function arguments"
     ):
-        temp = np.zeros((3, 5, 2), dtype=np.float64, order=m.needed_options)
         m.round_trip_view_tensor(
             temp[:, ::-1, :],
         )
 
+    temp = np.zeros((3, 5, 2), dtype=np.float64, order=m.needed_options)
+    temp.setflags(write=False)
     with pytest.raises(
         TypeError, match=r"^round_trip_view_tensor\(\): incompatible function arguments"
     ):
-        temp = np.zeros((3, 5, 2), dtype=np.float64, order=m.needed_options)
-        temp.setflags(write=False)
         m.round_trip_view_tensor(temp)
 
 
@@ -282,9 +280,9 @@ def test_doc_string(m, doc):
     order_flag = f"flags.{m.needed_options.lower()}_contiguous"
     assert doc(m.round_trip_view_tensor) == (
         f"round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}])"
-        + f" -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}]"
+        f" -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}]"
     )
     assert doc(m.round_trip_const_view_tensor) == (
         f"round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], {order_flag}])"
-        + " -> numpy.ndarray[numpy.float64[?, ?, ?]]"
+        " -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
