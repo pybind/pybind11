@@ -135,7 +135,6 @@ def normalize_line_endings(value: bytes) -> bytes:
 
 
 def test_build_sdist(monkeypatch, tmpdir):
-
     monkeypatch.chdir(MAIN_DIR)
 
     subprocess.run(
@@ -186,7 +185,6 @@ def test_build_sdist(monkeypatch, tmpdir):
 
 
 def test_build_global_dist(monkeypatch, tmpdir):
-
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
     subprocess.run(
