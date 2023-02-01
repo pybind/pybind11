@@ -24,7 +24,6 @@ def print_includes() -> None:
 
 
 def main() -> None:
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--includes",
