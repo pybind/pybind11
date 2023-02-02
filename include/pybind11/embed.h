@@ -259,7 +259,8 @@ inline void finalize_interpreter() {
 
     // Local internals contains data managed by the current interpreter, so we must clear them to
     // avoid undefined behaviors when initializing another interpreter
-    // Must be cleared after Py_Finalize() so atexit and other hooks can use registered_types
+    // Must be cleared only after Py_Finalize() so atexit and other hooks can still use
+    // registered_types
     detail::get_local_internals().registered_types_cpp.clear();
     detail::get_local_internals().registered_exception_translators.clear();
 
