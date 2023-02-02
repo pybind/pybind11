@@ -94,7 +94,8 @@ def test_noconvert_args(msg):
 
 def test_custom_caster_destruction():
     """Tests that returning a pointer to a type that gets converted with a custom type caster gets
-    destroyed when the function has py::return_value_policy::take_ownership policy applied."""
+    destroyed when the function has py::return_value_policy::take_ownership policy applied.
+    """
 
     cstats = m.destruction_tester_cstats()
     # This one *doesn't* have take_ownership: the pointer should be used but not destroyed:
