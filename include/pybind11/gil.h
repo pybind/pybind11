@@ -152,8 +152,8 @@ public:
         }
     }
 
-    gil_scoped_release(const gil_scoped_acquire &) = delete;
-    gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
+    gil_scoped_release(const gil_scoped_release &) = delete;
+    gil_scoped_release &operator=(const gil_scoped_release &) = delete;
 
     /// This method will disable the PyThreadState_DeleteCurrent call and the
     /// GIL won't be acquired. This method should be used if the interpreter
@@ -203,7 +203,7 @@ class gil_scoped_release {
 public:
     gil_scoped_release() : state{PyEval_SaveThread()} {}
     gil_scoped_release(const gil_scoped_release &) = delete;
-    gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
+    gil_scoped_release &operator=(const gil_scoped_release &) = delete;
     ~gil_scoped_release() { PyEval_RestoreThread(state); }
     void disarm() {}
 };
@@ -230,7 +230,7 @@ public:
         (void) (this != (this + 1));
     }
     gil_scoped_release(const gil_scoped_release &) = delete;
-    gil_scoped_release &operator=(const gil_scoped_acquire &) = delete;
+    gil_scoped_release &operator=(const gil_scoped_release &) = delete;
     void disarm() {}
 };
 
