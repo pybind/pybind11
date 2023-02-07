@@ -358,7 +358,6 @@ def clean_up(app, exception):
 
 
 def setup(app):
-
     # Add hook for building doxygen xml when needed
     app.connect("builder-inited", generate_doxygen_xml)
 

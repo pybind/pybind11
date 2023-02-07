@@ -198,9 +198,10 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         init_signal_handlers, argc, argv, add_program_dir_to_path);
 #else
     PyConfig config;
-    PyConfig_InitIsolatedConfig(&config);
-    config.isolated = 0;
-    config.use_environment = 1;
+    PyConfig_InitPythonConfig(&config);
+    // See PR #4473 for background
+    config.parse_argv = 0;
+
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
     initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
 #endif
@@ -253,12 +254,15 @@ inline void finalize_interpreter() {
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_ptr_ptr = capsule(builtins[id]);
     }
-    // Local internals contains data managed by the current interpreter, so we must clear them to
-    // avoid undefined behaviors when initializing another interpreter
-    detail::get_local_internals().registered_types_cpp.clear();
-    detail::get_local_internals().registered_exception_translators.clear();
 
     Py_Finalize();
+
+    // Local internals contains data managed by the current interpreter, so we must clear them to
+    // avoid undefined behaviors when initializing another interpreter
+    // Must be cleared only after Py_Finalize() so atexit and other hooks can still use
+    // registered_types
+    detail::get_local_internals().registered_types_cpp.clear();
+    detail::get_local_internals().registered_exception_translators.clear();
 
     if (internals_ptr_ptr) {
         delete *internals_ptr_ptr;
