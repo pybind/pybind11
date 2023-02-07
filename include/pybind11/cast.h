@@ -464,11 +464,12 @@ struct string_caster {
         return true;
     }
 
-    static handle cast(const StringType &src, return_value_policy policy, handle /* parent */) {
+    static handle
+    cast(const StringType &src, const return_value_policy_pack &rvpp, handle /* parent */) {
         const char *buffer = reinterpret_cast<const char *>(src.data());
         auto nbytes = ssize_t(src.size() * sizeof(CharT));
         handle s;
-        if (policy == return_value_policy::_return_as_bytes) {
+        if (rvpp.policy == return_value_policy::_return_as_bytes) {
             s = PyBytes_FromStringAndSize(buffer, nbytes);
         } else {
             s = decode_utfN(buffer, nbytes);
@@ -676,22 +677,22 @@ public:
     }
 
     template <typename T>
-    static handle cast(T &&src, return_value_policy policy, handle parent) {
-        return cast_impl(std::forward<T>(src), policy, parent, indices{});
+    static handle cast(T &&src, const return_value_policy_pack &rvpp, handle parent) {
+        return cast_impl(std::forward<T>(src), rvpp, parent, indices{});
     }
 
     // copied from the PYBIND11_TYPE_CASTER macro
     template <typename T>
-    static handle cast(T *src, return_value_policy policy, handle parent) {
+    static handle cast(T *src, const return_value_policy_pack &rvpp, handle parent) {
         if (!src) {
             return none().release();
         }
-        if (policy == return_value_policy::take_ownership) {
-            auto h = cast(std::move(*src), policy, parent);
+        if (rvpp.policy == return_value_policy::take_ownership) {
+            auto h = cast(std::move(*src), rvpp, parent);
             delete src;
             return h;
         }
-        return cast(*src, policy, parent);
+        return cast(*src, rvpp, parent);
     }
 
     static constexpr auto name
@@ -733,12 +734,14 @@ protected:
 
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <typename T, size_t... Is>
-    static handle
-    cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
-        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
-        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
+    static handle cast_impl(T &&src,
+                            const return_value_policy_pack &rvpp,
+                            handle parent,
+                            index_sequence<Is...>) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, rvpp, parent);
+        PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(rvpp, parent);
         std::array<object, size> entries{{reinterpret_steal<object>(
-            make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...}};
+            make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), rvpp.get(Is), parent))...}};
         for (const auto &entry : entries) {
             if (!entry) {
                 return handle();

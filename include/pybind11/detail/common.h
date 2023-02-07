@@ -560,6 +560,30 @@ enum class return_value_policy : uint8_t {
 #define PYBIND11_HAS_RETURN_VALUE_POLICY_RETURN_AS_BYTES
 #define PYBIND11_HAS_RETURN_VALUE_POLICY_CLIF_AUTOMATIC
 
+struct return_value_policy_pack {
+    return_value_policy policy = return_value_policy::automatic;
+    std::vector<return_value_policy_pack> vec_rvpp;
+
+    return_value_policy_pack() = default;
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    return_value_policy_pack(return_value_policy policy) : policy(policy) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    return_value_policy_pack(std::initializer_list<return_value_policy_pack> vec_rvpp)
+        : vec_rvpp(vec_rvpp) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator return_value_policy() const { return policy; }
+
+    return_value_policy_pack get(std::size_t i) const {
+        if (vec_rvpp.empty()) {
+            return policy;
+        }
+        return vec_rvpp.at(i);
+    }
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline static constexpr int log2(size_t n, int k = 0) {

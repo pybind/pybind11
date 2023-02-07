@@ -135,19 +135,19 @@ public:
     }
 
     template <typename T>
-    static handle cast(T &&src, return_value_policy policy, handle parent) {
+    static handle cast(T &&src, const return_value_policy_pack &rvpp, handle parent) {
         dict d;
-        return_value_policy policy_key = policy;
-        return_value_policy policy_value = policy;
+        return_value_policy_pack rvpp_key = rvpp.get(0);
+        return_value_policy_pack rvpp_value = rvpp.get(1);
         if (!std::is_lvalue_reference<T>::value) {
-            policy_key = return_value_policy_override<Key>::policy(policy_key);
-            policy_value = return_value_policy_override<Value>::policy(policy_value);
+            rvpp_key.policy = return_value_policy_override<Key>::policy(rvpp_key.policy);
+            rvpp_value.policy = return_value_policy_override<Value>::policy(rvpp_value.policy);
         }
         for (auto &&kv : src) {
             auto key = reinterpret_steal<object>(
-                key_conv::cast(detail::forward_like<T>(kv.first), policy_key, parent));
+                key_conv::cast(detail::forward_like<T>(kv.first), rvpp_key, parent));
             auto value = reinterpret_steal<object>(
-                value_conv::cast(detail::forward_like<T>(kv.second), policy_value, parent));
+                value_conv::cast(detail::forward_like<T>(kv.second), rvpp_value, parent));
             if (!key || !value) {
                 return handle();
             }

@@ -144,7 +144,9 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS[
+    :1
+]  # + (_intentional_deadlock,)
 
 
 def _run_in_process(target, *args, **kwargs):

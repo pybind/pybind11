@@ -117,11 +117,12 @@ struct type_caster_odr_guard : TypeCasterType {
 
     // The original author of this function is @amauryfa
     template <typename CType, typename... Arg>
-    static handle cast(CType &&src, return_value_policy policy, handle parent, Arg &&...arg) {
+    static handle
+    cast(CType &&src, const return_value_policy_pack &rvpp, handle parent, Arg &&...arg) {
         if (translation_unit_local) {
         }
         return TypeCasterType::cast(
-            std::forward<CType>(src), policy, parent, std::forward<Arg>(arg)...);
+            std::forward<CType>(src), rvpp, parent, std::forward<Arg>(arg)...);
     }
 };
 
