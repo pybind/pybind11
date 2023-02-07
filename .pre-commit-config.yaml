@@ -116,7 +116,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.16.0"
+  rev: "v2.16.1"
   hooks:
   - id: pylint
     files: ^pybind11
