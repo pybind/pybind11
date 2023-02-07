@@ -314,16 +314,16 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-std::forward_list<ExceptionTranslator> &get_exception_translators();
-std::forward_list<ExceptionTranslator> &get_local_exception_translators();
+const std::forward_list<ExceptionTranslator>& get_exception_translators();
+const std::forward_list<ExceptionTranslator>& get_local_exception_translators();
 
 // Apply all the extensions translators from a list
 // Return true if one of the translators completed without raising an exception
 // itself. Return of false indicates that if there are other translators
 // available, they should be tried.
-inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &translators,
+inline bool apply_exception_translators(const std::forward_list<ExceptionTranslator> &translators,
                                         std::exception_ptr last_exception) {
-    for (auto &translator : translators) {
+    for (const auto &translator : translators) {
         try {
             translator(last_exception);
             return true;
@@ -334,7 +334,7 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
     return false;
 }
 
-inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &translators) {
+inline bool apply_exception_translators(const std::forward_list<ExceptionTranslator> &translators) {
     return apply_exception_translators(translators, std::current_exception());
 }
 
@@ -343,12 +343,12 @@ template <class T,
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     std::exception_ptr nested = exc.nested_ptr();
     if (nested != nullptr && nested != p) {
-        auto &local_translators = get_local_exception_translators();
+        const auto &local_translators = get_local_exception_translators();
         if (apply_exception_translators(local_translators, nested)) {
             return true;
         }
 
-        auto &translators = get_exception_translators();
+        const auto &translators = get_exception_translators();
         if (apply_exception_translators(translators, nested)) {
             return true;
         }
@@ -521,7 +521,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     return **internals_pp;
 }
 
-inline std::forward_list<ExceptionTranslator> &get_exception_translators() {
+inline const std::forward_list<ExceptionTranslator>& get_exception_translators() {
     return get_internals().registered_exception_translators;
 }
 
@@ -581,7 +581,7 @@ inline local_internals &get_local_internals() {
     return *locals;
 }
 
-inline std::forward_list<ExceptionTranslator> &get_local_exception_translators() {
+inline const std::forward_list<ExceptionTranslator>& get_local_exception_translators() {
     return get_local_internals().registered_exception_translators;
 }
 
