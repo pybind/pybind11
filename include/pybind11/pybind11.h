@@ -2523,9 +2523,7 @@ public:
     }
 
     // Sets the current python exception to this exception object with the given message
-    void operator()(const char *message) {
-        detail::raise_err(m_ptr, message);
-    }
+    void operator()(const char *message) { detail::raise_err(m_ptr, message); }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
