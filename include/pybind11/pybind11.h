@@ -238,8 +238,8 @@ protected:
             auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy_pack rvpp = call.func.rvpp;
-            rvpp.policy = return_value_policy_override<Return>::policy(rvpp.policy);
+            return_value_policy_pack rvpp
+                = call.func.rvpp.override_policy(return_value_policy_override<Return>::policy);
 
             /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
             using Guard = extract_guard_t<Extra...>;

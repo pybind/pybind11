@@ -140,8 +140,8 @@ public:
         return_value_policy_pack rvpp_key = rvpp.get(0);
         return_value_policy_pack rvpp_value = rvpp.get(1);
         if (!std::is_lvalue_reference<T>::value) {
-            rvpp_key.policy = return_value_policy_override<Key>::policy(rvpp_key.policy);
-            rvpp_value.policy = return_value_policy_override<Value>::policy(rvpp_value.policy);
+            rvpp_key = rvpp_key.override_policy(return_value_policy_override<Key>::policy);
+            rvpp_value = rvpp_value.override_policy(return_value_policy_override<Value>::policy);
         }
         for (auto &&kv : src) {
             auto key = reinterpret_steal<object>(

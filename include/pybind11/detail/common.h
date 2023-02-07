@@ -561,8 +561,9 @@ enum class return_value_policy : uint8_t {
 #define PYBIND11_HAS_RETURN_VALUE_POLICY_CLIF_AUTOMATIC
 
 struct return_value_policy_pack {
+    using vec_rvpp_t = std::vector<return_value_policy_pack>;
+    vec_rvpp_t vec_rvpp;
     return_value_policy policy = return_value_policy::automatic;
-    std::vector<return_value_policy_pack> vec_rvpp;
 
     return_value_policy_pack() = default;
 
@@ -575,6 +576,18 @@ struct return_value_policy_pack {
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator return_value_policy() const { return policy; }
+
+    return_value_policy_pack(const vec_rvpp_t &vec_rvpp, return_value_policy policy)
+        : vec_rvpp(vec_rvpp), policy(policy) {}
+
+    return_value_policy_pack override_policy(return_value_policy policy) const {
+        return return_value_policy_pack(vec_rvpp, policy);
+    }
+
+    return_value_policy_pack
+    override_policy(return_value_policy (*func)(return_value_policy)) const {
+        return override_policy(func(policy));
+    }
 
     return_value_policy_pack get(std::size_t i) const {
         if (vec_rvpp.empty()) {
