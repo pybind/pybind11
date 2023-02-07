@@ -211,54 +211,6 @@ struct internals {
 #endif
 };
 
-internals &get_internals();
-
-// the internals struct (above) is shared between all the modules. local_internals are only
-// for a single module. Any changes made to internals may require an update to
-// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
-// restricted to a single module. Whether a module has local internals or not should not
-// impact any other modules, because the only things accessing the local internals is the
-// module that contains them.
-struct local_internals {
-    type_map<type_info *> registered_types_cpp;
-    std::forward_list<ExceptionTranslator> registered_exception_translators;
-#if defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
-
-    // For ABI compatibility, we can't store the loader_life_support TLS key in
-    // the `internals` struct directly.  Instead, we store it in `shared_data` and
-    // cache a copy in `local_internals`.  If we allocated a separate TLS key for
-    // each instance of `local_internals`, we could end up allocating hundreds of
-    // TLS keys if hundreds of different pybind11 modules are loaded (which is a
-    // plausible number).
-    PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
-
-    // Holds the shared TLS key for the loader_life_support stack.
-    struct shared_loader_life_support_data {
-        PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
-        shared_loader_life_support_data() {
-            if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
-                pybind11_fail("local_internals: could not successfully initialize the "
-                              "loader_life_support TLS key!");
-            }
-        }
-        // We can't help but leak the TLS key, because Python never unloads extension modules.
-    };
-
-    local_internals() {
-        auto &internals = get_internals();
-        // Get or create the `loader_life_support_stack_key`.
-        auto &ptr = internals.shared_data["_life_support"];
-        if (!ptr) {
-            ptr = new shared_loader_life_support_data;
-        }
-        loader_life_support_tls_key
-            = static_cast<shared_loader_life_support_data *>(ptr)->loader_life_support_tls_key;
-    }
-#endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
-};
-
-local_internals &get_local_internals();
-
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
@@ -362,6 +314,9 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
+std::forward_list<ExceptionTranslator>& get_exception_translators();
+std::forward_list<ExceptionTranslator>& get_local_exception_translators();
+
 // Apply all the extensions translators from a list
 // Return true if one of the translators completed without raising an exception
 // itself. Return of false indicates that if there are other translators
@@ -388,12 +343,12 @@ template <class T,
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     std::exception_ptr nested = exc.nested_ptr();
     if (nested != nullptr && nested != p) {
-        auto &local_translators = get_local_internals().registered_exception_translators;
+        auto &local_translators = get_local_exception_translators();
         if (apply_exception_translators(local_translators, nested)) {
             return true;
         }
 
-        auto &translators = get_internals().registered_exception_translators;
+        auto &translators = get_exception_translators();
         if (apply_exception_translators(translators, nested)) {
             return true;
         }
@@ -566,6 +521,10 @@ PYBIND11_NOINLINE internals &get_internals() {
     return **internals_pp;
 }
 
+inline std::forward_list<ExceptionTranslator>& get_exception_translators() {
+    return get_internals().registered_exception_translators;
+}
+
 // the internals struct (above) is shared between all the modules. local_internals are only
 // for a single module. Any changes made to internals may require an update to
 // PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
@@ -620,6 +579,10 @@ inline local_internals &get_local_internals() {
     // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
     static auto *locals = new local_internals();
     return *locals;
+}
+
+inline std::forward_list<ExceptionTranslator>& get_local_exception_translators() {
+    return get_local_internals().registered_exception_translators;
 }
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
