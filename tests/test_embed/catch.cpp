@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
     setenv("PYTHONPATH", updated_pythonpath.c_str(), /*replace=*/1);
 #endif
 
+    { py::scoped_interpreter guard; }
     py::scoped_interpreter guard{};
 
     auto result = Catch::Session().run(argc, argv);
