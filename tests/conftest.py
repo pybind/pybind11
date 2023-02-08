@@ -11,11 +11,17 @@ import multiprocessing
 import os
 import re
 import textwrap
+import traceback
 
 import pytest
 
 # Early diagnostic for failed imports
-import pybind11_tests
+try:
+    import pybind11_tests
+except Exception:
+    # pytest does not show the traceback without this.
+    traceback.print_exc()
+    raise
 
 
 @pytest.fixture(scope="session", autouse=True)

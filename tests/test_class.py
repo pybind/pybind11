@@ -185,7 +185,6 @@ def test_inheritance(msg):
 
 
 def test_inheritance_init(msg):
-
     # Single base
     class Python(m.Pet):
         def __init__(self):
