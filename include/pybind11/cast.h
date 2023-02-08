@@ -140,6 +140,34 @@ public:                                                                         
     template <typename T_>                                                                        \
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
 
+#define PYBIND11_TYPE_CASTER_RVPP(type, py_name)                                                  \
+protected:                                                                                        \
+    type value;                                                                                   \
+                                                                                                  \
+public:                                                                                           \
+    static constexpr auto name = py_name;                                                         \
+    template <typename T_,                                                                        \
+              ::pybind11::detail::enable_if_t<                                                    \
+                  std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
+                  int>                                                                            \
+              = 0>                                                                                \
+    static ::pybind11::handle cast(                                                               \
+        T_ *src, ::pybind11::return_value_policy_pack rvpp, ::pybind11::handle parent) {          \
+        if (!src)                                                                                 \
+            return ::pybind11::none().release();                                                  \
+        if (rvpp.policy == ::pybind11::return_value_policy::take_ownership) {                     \
+            auto h = cast(std::move(*src), rvpp, parent);                                         \
+            delete src;                                                                           \
+            return h;                                                                             \
+        }                                                                                         \
+        return cast(*src, rvpp, parent);                                                          \
+    }                                                                                             \
+    operator type *() { return &value; }               /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &() { return value; }                /* NOLINT(bugprone-macro-parentheses) */   \
+    operator type &&() && { return std::move(value); } /* NOLINT(bugprone-macro-parentheses) */   \
+    template <typename T_>                                                                        \
+    using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
+
 template <typename CharT>
 using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
 #if defined(PYBIND11_HAS_U8STRING)
