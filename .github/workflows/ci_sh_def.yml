@@ -96,6 +96,9 @@ jobs:
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.13
+      # TEMPORARILY pin version because 3.26.0-rc1 is failing under macOS:
+      with:
+        cmake-version: '3.25.2'
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -297,6 +300,8 @@ jobs:
           - dev
         std:
           - 11
+        container_suffix:
+          - ""
         include:
           - clang: 5
             std: 14
@@ -310,9 +315,12 @@ jobs:
             std: 20
           - clang: 14
             std: 20
+          - clang: 15
+            std: 20
+            container_suffix: "-bullseye"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
-    container: "silkeh/clang:${{ matrix.clang }}"
+    container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
 
     steps:
     - uses: actions/checkout@v3
@@ -784,7 +792,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.12.0
+      uses: ilammy/msvc-dev-cmd@v1.12.1
       with:
         arch: x86
 
@@ -838,7 +846,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.12.0
+      uses: ilammy/msvc-dev-cmd@v1.12.1
       with:
         arch: x86
 
@@ -1093,6 +1101,9 @@ jobs:
 
       - name: Update CMake
         uses: jwlawson/actions-setup-cmake@v1.13
+        # TEMPORARILY pin version because 3.26.0-rc1 is failing under macOS:
+        with:
+          cmake-version: '3.25.2'
 
       - name: Run pip installs
         run: |
