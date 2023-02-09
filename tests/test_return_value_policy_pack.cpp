@@ -2,8 +2,14 @@
 
 #include "pybind11_tests.h"
 
+#include <array>
+#include <map>
+#include <optional>
+#include <set>
 #include <string>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace {
 
@@ -24,6 +30,28 @@ MapString return_map_string() { return MapString({return_pair_string()}); }
 using MapPairString = std::map<PairString, PairString>;
 
 MapPairString return_map_pair_string() { return MapPairString({return_nested_pair_string()}); }
+
+using SetPairString = std::set<PairString>;
+
+SetPairString return_set_pair_string() { return SetPairString({return_pair_string()}); }
+
+using VectorPairString = std::vector<PairString>;
+
+VectorPairString return_vector_pair_string() { return VectorPairString({return_pair_string()}); }
+
+using ArrayPairString = std::array<PairString, 1>;
+
+ArrayPairString return_array_pair_string() { return ArrayPairString({return_pair_string()}); }
+
+using OptionalPairString = std::optional<PairString>;
+
+OptionalPairString return_optional_pair_string() {
+    return OptionalPairString(return_pair_string());
+}
+
+using VariantPairString = std::variant<PairString>;
+
+VariantPairString return_variant_pair_string() { return VariantPairString(return_pair_string()); }
 
 } // namespace
 
@@ -68,11 +96,56 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
         py::return_value_policy_pack({rvpb, rvpc}));
 
     m.def(
-        "return_dict_sbbs",
+        "return_map_sbbs",
         []() { return return_map_pair_string(); },
         py::return_value_policy_pack({{rvpc, rvpb}, {rvpb, rvpc}}));
     m.def(
-        "return_dict_bssb",
+        "return_map_bssb",
         []() { return return_map_pair_string(); },
         py::return_value_policy_pack({{rvpb, rvpc}, {rvpc, rvpb}}));
+
+    m.def(
+        "return_set_sb",
+        []() { return return_set_pair_string(); },
+        py::return_value_policy_pack({rvpc, rvpb}));
+    m.def(
+        "return_set_bs",
+        []() { return return_set_pair_string(); },
+        py::return_value_policy_pack({rvpb, rvpc}));
+
+    m.def(
+        "return_vector_sb",
+        []() { return return_vector_pair_string(); },
+        py::return_value_policy_pack({rvpc, rvpb}));
+    m.def(
+        "return_vector_bs",
+        []() { return return_vector_pair_string(); },
+        py::return_value_policy_pack({rvpb, rvpc}));
+
+    m.def(
+        "return_array_sb",
+        []() { return return_array_pair_string(); },
+        py::return_value_policy_pack({rvpc, rvpb}));
+    m.def(
+        "return_array_bs",
+        []() { return return_array_pair_string(); },
+        py::return_value_policy_pack({rvpb, rvpc}));
+
+    m.def(
+        "return_optional_sb",
+        []() { return return_optional_pair_string(); },
+        py::return_value_policy_pack({rvpc, rvpb}));
+    m.def(
+        "return_optional_bs",
+        []() { return return_optional_pair_string(); },
+        py::return_value_policy_pack({rvpb, rvpc}));
+
+    m.def(
+        "return_variant_sb",
+        []() { return return_variant_pair_string(); },
+        py::return_value_policy_pack({rvpc, rvpb}));
+    m.def(
+        "return_variant_bs",
+        []() { return return_variant_pair_string(); },
+        py::return_value_policy_pack({rvpb, rvpc}));
 }
