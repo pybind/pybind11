@@ -19,6 +19,7 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <valarray>
 
 // See `detail/common.h` for implementation of these guards.
@@ -418,7 +419,7 @@ struct variant_caster<V<Ts...>> {
 
     template <typename Variant>
     static handle cast(Variant &&src, return_value_policy_pack rvpp, handle parent) {
-        return visit_helper<V>::call(variant_caster_visitor{rvpp, parent},
+        return visit_helper<V>::call(variant_caster_visitor{std::move(rvpp), parent},
                                      std::forward<Variant>(src));
     }
 
