@@ -314,8 +314,8 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-const std::forward_list<ExceptionTranslator>& get_exception_translators();
-const std::forward_list<ExceptionTranslator>& get_local_exception_translators();
+const std::forward_list<ExceptionTranslator> &get_exception_translators();
+const std::forward_list<ExceptionTranslator> &get_local_exception_translators();
 
 // Apply all the extensions translators from a list
 // Return true if one of the translators completed without raising an exception
@@ -334,7 +334,8 @@ inline bool apply_exception_translators(const std::forward_list<ExceptionTransla
     return false;
 }
 
-inline bool apply_exception_translators(const std::forward_list<ExceptionTranslator> &translators) {
+inline bool
+apply_exception_translators(const std::forward_list<ExceptionTranslator> &translators) {
     return apply_exception_translators(translators, std::current_exception());
 }
 
@@ -521,7 +522,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     return **internals_pp;
 }
 
-inline const std::forward_list<ExceptionTranslator>& get_exception_translators() {
+inline const std::forward_list<ExceptionTranslator> &get_exception_translators() {
     return get_internals().registered_exception_translators;
 }
 
@@ -581,7 +582,7 @@ inline local_internals &get_local_internals() {
     return *locals;
 }
 
-inline const std::forward_list<ExceptionTranslator>& get_local_exception_translators() {
+inline const std::forward_list<ExceptionTranslator> &get_local_exception_translators() {
     return get_local_internals().registered_exception_translators;
 }
 
