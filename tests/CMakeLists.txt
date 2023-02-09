@@ -169,7 +169,7 @@ if(PYBIND11_TEST_OVERRIDE)
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
     if(NOT ${test_name} IN_LIST TEST_OVERRIDE_NO_EXT
-    )# If not in the whitelist, add to be filtered out.
+    )# If not in the allowlist, add to be filtered out.
       list(APPEND PYBIND11_TEST_FILTER ${test_name})
     endif()
   endforeach()
