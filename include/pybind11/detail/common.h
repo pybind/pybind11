@@ -580,8 +580,8 @@ struct return_value_policy_pack {
     return_value_policy_pack(const vec_rvpp_t &vec_rvpp, return_value_policy policy)
         : vec_rvpp(vec_rvpp), policy(policy) {}
 
-    return_value_policy_pack override_policy(return_value_policy policy) const {
-        return return_value_policy_pack(vec_rvpp, policy);
+    return_value_policy_pack override_policy(return_value_policy new_policy) const {
+        return return_value_policy_pack(vec_rvpp, new_policy);
     }
 
     return_value_policy_pack
