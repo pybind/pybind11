@@ -212,7 +212,7 @@ struct function_record {
     /// Pointer to custom destructor for 'data' (if needed)
     void (*free_data)(function_record *ptr) = nullptr;
 
-    /// Return value options associated with this function
+    /// Return value policies associated with this function
     return_value_policy_pack rvpp;
 
     /// True if name == '__init__'
