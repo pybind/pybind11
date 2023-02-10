@@ -106,7 +106,12 @@ public:
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 // casts the returned object as a rvalue to the return type
-                return hfunc.f(std::forward<Args>(args)...).template cast<Return>();
+                // return_value_policy::automatic_reference is the default return_value_policy for
+                // `f.operator()`. Specifying it here explicitly for clarity.
+                return hfunc.f
+                    .template operator()<return_value_policy::automatic_reference>(
+                        std::forward<Args>(args)...)
+                    .template cast<Return>();
             }
         };
 
