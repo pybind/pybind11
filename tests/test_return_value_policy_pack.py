@@ -109,3 +109,19 @@ def test_return_optional_pair_string(func, expected):
     assert isinstance(p, tuple)
     assert len(p) == 2
     assert all(isinstance(e, t) for e, t in zip(p, expected))
+
+
+@pytest.mark.parametrize(
+    "func, expected",
+    [
+        (m.call_callback_pass_pair_string_rtn_s, repr(("", ""))),
+        (m.call_callback_pass_pair_string_rtn_b, repr(("", "")).encode()),
+    ],
+)
+def test_wip(func, expected):
+    def cb(p):
+        assert isinstance(p, tuple)
+        assert len(p) == 2
+        return repr(p)
+
+    assert func(cb) == expected

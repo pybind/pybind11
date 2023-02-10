@@ -115,16 +115,16 @@ public:
     }
 
     template <typename Func>
-    static handle cast(Func &&f_, return_value_policy policy, handle /* parent */) {
+    static handle cast(Func &&f_, return_value_policy_pack rvpp, handle /* parent */) {
         if (!f_) {
             return none().release();
         }
 
         auto result = f_.template target<function_type>();
         if (result) {
-            return cpp_function(*result, policy).release();
+            return cpp_function(*result, rvpp).release();
         }
-        return cpp_function(std::forward<Func>(f_), policy).release();
+        return cpp_function(std::forward<Func>(f_), rvpp).release();
     }
 
     PYBIND11_TYPE_CASTER(type,

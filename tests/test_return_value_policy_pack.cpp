@@ -1,3 +1,4 @@
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
 #include "pybind11_tests.h"
@@ -52,6 +53,11 @@ OptionalPairString return_optional_pair_string() {
 using VariantPairString = std::variant<PairString>;
 
 VariantPairString return_variant_pair_string() { return VariantPairString(return_pair_string()); }
+
+std::string call_callback_pass_pair_string(const std::function<std::string(PairString)> &cb) {
+    auto p = return_pair_string();
+    return cb(p);
+}
 
 } // namespace
 
@@ -148,4 +154,8 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
         "return_variant_bs",
         []() { return return_variant_pair_string(); },
         py::return_value_policy_pack({rvpb, rvpc}));
+
+    // Here the rvp is applied to the return value of call_callback_pass_pair_string:
+    m.def("call_callback_pass_pair_string_rtn_s", call_callback_pass_pair_string);
+    m.def("call_callback_pass_pair_string_rtn_b", call_callback_pass_pair_string, rvpb);
 }
