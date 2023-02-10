@@ -184,7 +184,7 @@ TEST_CASE("Custom PyConfig") {
     py::initialize_interpreter();
 }
 
-TEST_CASE("Custom PyConfig with argv") {
+TEST_CASE("scoped_interpreter with PyConfig_InitIsolatedConfig and argv") {
     py::finalize_interpreter();
     {
         PyConfig config;
@@ -196,6 +196,26 @@ TEST_CASE("Custom PyConfig with argv") {
         auto py_widget = module.attr("DerivedWidget")("The question");
         const auto &cpp_widget = py_widget.cast<const Widget &>();
         REQUIRE(cpp_widget.argv0() == "a.out");
+    }
+    py::initialize_interpreter();
+}
+
+TEST_CASE("scoped_interpreter with PyConfig_InitPythonConfig and argv") {
+    py::finalize_interpreter();
+    {
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+
+        // `initialize_interpreter() overrides the default value for config.parse_argv (`1`) by
+        // changing it to `0`. This test exercises `scoped_interpreter` with the default config.
+        char *argv[] = {strdup("a.out"), strdup("arg1")};
+        py::scoped_interpreter argv_scope(&config, 2, argv);
+        std::free(argv[0]);
+        std::free(argv[1]);
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0() == "arg1");
     }
     py::initialize_interpreter();
 }
