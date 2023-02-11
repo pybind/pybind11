@@ -359,7 +359,7 @@ struct type_record {
 
 inline function_call::function_call(const function_record &f, handle p) : func(f), parent(p) {
     args.reserve(f.nargs);
-    args_convert.reserve(f.nargs);
+    args_policies.reserve(f.nargs);
 }
 
 /// Tag for a new-style `__init__` defined in `detail/init.h`

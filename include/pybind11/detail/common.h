@@ -608,9 +608,6 @@ struct from_python_policies {
     from_python_policies(bool convert) : convert(convert) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    from_python_policies(const std::vector<bool>::reference &convert) : convert(convert) {}
-
-    // NOLINTNEXTLINE(google-explicit-constructor)
     from_python_policies(std::initializer_list<return_value_policy_pack> vec_rvpp)
         : vec_rvpp(vec_rvpp) {}
 

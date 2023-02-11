@@ -769,7 +769,7 @@ protected:
 
                     call.init_self = PyTuple_GET_ITEM(args_in, 0);
                     call.args.emplace_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
-                    call.args_convert.push_back(false);
+                    call.args_policies.push_back(from_python_policies(false));
                     ++args_copied;
                 }
 
@@ -790,7 +790,8 @@ protected:
                         break;
                     }
                     call.args.push_back(arg);
-                    call.args_convert.push_back(arg_rec ? arg_rec->Zonvert : true);
+                    call.args_policies.push_back(
+                        from_python_policies(arg_rec ? arg_rec->Zonvert : true));
                 }
                 if (bad_arg) {
                     continue; // Maybe it was meant for another overload (issue #688)
@@ -814,7 +815,7 @@ protected:
                         }
                         if (value) {
                             call.args.push_back(value);
-                            call.args_convert.push_back(arg_rec.Zonvert);
+                            call.args_policies.push_back(from_python_policies(arg_rec.Zonvert));
                         } else {
                             break;
                         }
@@ -862,7 +863,7 @@ protected:
                             }
 
                             call.args.push_back(value);
-                            call.args_convert.push_back(arg_rec.Zonvert);
+                            call.args_policies.push_back(from_python_policies(arg_rec.Zonvert));
                         } else {
                             break;
                         }
@@ -900,7 +901,7 @@ protected:
                     } else {
                         call.args[func.nargs_pos] = extra_args;
                     }
-                    call.args_convert.push_back(false);
+                    call.args_policies.push_back(from_python_policies(false));
                     call.args_ref = std::move(extra_args);
                 }
 
@@ -910,26 +911,26 @@ protected:
                         kwargs = dict(); // If we didn't get one, send an empty one
                     }
                     call.args.push_back(kwargs);
-                    call.args_convert.push_back(false);
+                    call.args_policies.push_back(from_python_policies(false));
                     call.kwargs_ref = std::move(kwargs);
                 }
 
 // 5. Put everything in a vector.  Not technically step 5, we've been building it
 // in `call.args` all along.
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-                if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs) {
+                if (call.args.size() != func.nargs || call.args_policies.size() != func.nargs) {
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number "
                                   "of arguments!");
                 }
 #endif
 
-                std::vector<bool> second_pass_convert;
+                std::vector<from_python_policies> second_pass_args_policies;
                 if (overloaded) {
                     // We're in the first no-convert pass, so swap out the conversion flags for a
                     // set of all-false flags.  If the call fails, we'll swap the flags back in for
                     // the conversion-allowed call below.
-                    second_pass_convert.resize(func.nargs, false);
-                    call.args_convert.swap(second_pass_convert);
+                    second_pass_args_policies.resize(func.nargs, from_python_policies(false));
+                    call.args_policies.swap(second_pass_args_policies);
                 }
 
                 // 6. Call the function.
@@ -949,10 +950,10 @@ protected:
                     // permits conversion (i.e. it hasn't been explicitly specified `.noconvert()`)
                     // then add this call to the list of second pass overloads to try.
                     for (size_t i = func.is_method ? 1 : 0; i < pos_args; i++) {
-                        if (second_pass_convert[i]) {
+                        if (second_pass_args_policies[i].convert) {
                             // Found one: swap the converting flags back in and store the call for
                             // the second pass.
-                            call.args_convert.swap(second_pass_convert);
+                            call.args_policies.swap(second_pass_args_policies);
                             second_pass.push_back(std::move(call));
                             break;
                         }

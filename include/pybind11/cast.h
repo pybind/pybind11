@@ -1442,7 +1442,7 @@ struct function_call {
     std::vector<handle> args;
 
     /// The `convert` value the arguments should be loaded with
-    std::vector<bool> args_convert;
+    std::vector<from_python_policies> args_policies;
 
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).
@@ -1503,11 +1503,11 @@ private:
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
 #ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
+        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_policies[Is]))) {
             return false;
         }
 #else
-        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...}) {
+        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_policies[Is])...}) {
             if (!r) {
                 return false;
             }
