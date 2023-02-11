@@ -790,7 +790,7 @@ protected:
                         break;
                     }
                     call.args.push_back(arg);
-                    call.args_convert.push_back(arg_rec ? arg_rec->convert : true);
+                    call.args_convert.push_back(arg_rec ? arg_rec->Zonvert : true);
                 }
                 if (bad_arg) {
                     continue; // Maybe it was meant for another overload (issue #688)
@@ -814,7 +814,7 @@ protected:
                         }
                         if (value) {
                             call.args.push_back(value);
-                            call.args_convert.push_back(arg_rec.convert);
+                            call.args_convert.push_back(arg_rec.Zonvert);
                         } else {
                             break;
                         }
@@ -862,7 +862,7 @@ protected:
                             }
 
                             call.args.push_back(value);
-                            call.args_convert.push_back(arg_rec.convert);
+                            call.args_convert.push_back(arg_rec.Zonvert);
                         } else {
                             break;
                         }

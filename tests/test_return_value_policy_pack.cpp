@@ -158,4 +158,9 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
     // Here the rvp is applied to the return value of call_callback_pass_pair_string:
     m.def("call_callback_pass_pair_string_rtn_s", call_callback_pass_pair_string);
     m.def("call_callback_pass_pair_string_rtn_b", call_callback_pass_pair_string, rvpb);
+
+    m.def("call_callback_pass_pair_string_WIP_rtn_b",
+          call_callback_pass_pair_string,
+          rvpb,
+          py::arg("cb").noconvert());
 }

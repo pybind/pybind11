@@ -176,11 +176,11 @@ struct argument_record {
     const char *name;  ///< Argument name
     const char *descr; ///< Human-readable version of the argument value
     handle value;      ///< Associated Python object
-    bool convert : 1;  ///< True if the argument is allowed to convert when loading
+    bool Zonvert : 1;  ///< True if the argument is allowed to convert when loading
     bool none : 1;     ///< True if None is allowed when loading
 
     argument_record(const char *name, const char *descr, handle value, bool convert, bool none)
-        : name(name), descr(descr), value(value), convert(convert), none(none) {}
+        : name(name), descr(descr), value(value), Zonvert(convert), none(none) {}
 };
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads,

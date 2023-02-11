@@ -116,6 +116,7 @@ def test_return_optional_pair_string(func, expected):
     [
         (m.call_callback_pass_pair_string_rtn_s, repr(("", ""))),
         (m.call_callback_pass_pair_string_rtn_b, repr(("", "")).encode()),
+        (m.call_callback_pass_pair_string_WIP_rtn_b, repr((b"", b"")).encode()),
     ],
 )
 def test_wip(func, expected):
