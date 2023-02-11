@@ -23,10 +23,10 @@ struct type_caster<std::function<Return(Args...)>> {
     using function_type = Return (*)(Args...);
 
 public:
-    bool load(handle src, bool convert) {
+    bool load(handle src, from_python_policies fpp) {
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) {
+            if (!fpp.convert) {
                 return false;
             }
             return true;
@@ -123,7 +123,7 @@ public:
             }
         };
 
-        value = func_wrapper(func_handle(std::move(func)), convert);
+        value = func_wrapper(func_handle(std::move(func)), fpp.convert);
         return true;
     }
 

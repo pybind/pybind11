@@ -597,6 +597,37 @@ struct return_value_policy_pack {
     }
 };
 
+struct from_python_policies {
+    using vec_rvpp_t = std::vector<return_value_policy_pack>;
+    vec_rvpp_t vec_rvpp;
+    bool convert = true;
+
+    from_python_policies() = default;
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    from_python_policies(bool convert) : convert(convert) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    from_python_policies(const std::vector<bool>::reference &convert) : convert(convert) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    from_python_policies(std::initializer_list<return_value_policy_pack> vec_rvpp)
+        : vec_rvpp(vec_rvpp) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator bool() const { return convert; }
+
+    from_python_policies(const vec_rvpp_t &vec_rvpp, bool convert)
+        : vec_rvpp(vec_rvpp), convert(convert) {}
+
+    from_python_policies get(std::size_t i) const {
+        if (vec_rvpp.empty()) {
+            return convert;
+        }
+        return from_python_policies{vec_rvpp.at(i)};
+    }
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline static constexpr int log2(size_t n, int k = 0) {
