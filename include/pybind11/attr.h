@@ -176,12 +176,13 @@ struct argument_record {
     const char *name;  ///< Argument name
     const char *descr; ///< Human-readable version of the argument value
     handle value;      ///< Associated Python object
-    // from_python_policies policies;
-    bool Zonvert : 1;  ///< True if the argument is allowed to convert when loading
-    bool Mone : 1;     ///< True if None is allowed when loading
+    from_python_policies policies;
 
-    argument_record(const char *name, const char *descr, handle value, bool convert, bool none, std::string)
-        : name(name), descr(descr), value(value), Zonvert(convert), Mone(none) {}
+    argument_record(const char *name,
+                    const char *descr,
+                    handle value,
+                    const from_python_policies &policies)
+        : name(name), descr(descr), value(value), policies(policies) {}
 };
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads,
@@ -461,7 +462,8 @@ inline void check_kw_only_arg(const arg &a, function_record *r) {
 
 inline void append_self_arg_if_needed(function_record *r) {
     if (r->is_method && r->args.empty()) {
-        r->args.emplace_back("self", nullptr, handle(), /*convert=*/true, /*none=*/false, "ZOMBIE");
+        r->args.emplace_back(
+            "self", nullptr, handle(), from_python_policies(/*convert=*/true, /*none=*/false));
     }
 }
 
@@ -470,7 +472,8 @@ template <>
 struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
         append_self_arg_if_needed(r);
-        r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none, "ZOMBIE");
+        r->args.emplace_back(
+            a.name, nullptr, handle(), from_python_policies(!a.flag_noconvert, a.flag_none));
 
         check_kw_only_arg(a, r);
     }
@@ -481,8 +484,10 @@ template <>
 struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     static void init(const arg_v &a, function_record *r) {
         if (r->is_method && r->args.empty()) {
-            r->args.emplace_back(
-                "self", /*descr=*/nullptr, /*parent=*/handle(), /*convert=*/true, /*none=*/false, "ZOMBIE");
+            r->args.emplace_back("self",
+                                 /*descr=*/nullptr,
+                                 /*parent=*/handle(),
+                                 from_python_policies(/*convert=*/true, /*none=*/false));
         }
 
         if (!a.value) {
@@ -511,7 +516,10 @@ struct process_attribute<arg_v> : process_attribute_default<arg_v> {
                           "more information.");
 #endif
         }
-        r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none, "ZOMBIE");
+        r->args.emplace_back(a.name,
+                             a.descr,
+                             a.value.inc_ref(),
+                             from_python_policies(!a.flag_noconvert, a.flag_none));
 
         check_kw_only_arg(a, r);
     }

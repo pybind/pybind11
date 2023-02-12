@@ -600,13 +600,13 @@ struct return_value_policy_pack {
 struct from_python_policies {
     using vec_rvpp_t = std::vector<return_value_policy_pack>;
     vec_rvpp_t vec_rvpp;
-    bool convert : 1;  ///< True if the argument is allowed to convert when loading
-    bool none : 1;     ///< True if None is allowed when loading
+    bool convert : 1; ///< True if the argument is allowed to convert when loading
+    bool none : 1;    ///< True if None is allowed when loading
 
     from_python_policies() : convert(false), none(false) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    from_python_policies(bool convert, bool none=false) : convert(convert), none(none) {}
+    from_python_policies(bool convert, bool none = false) : convert(convert), none(none) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     from_python_policies(std::initializer_list<return_value_policy_pack> vec_rvpp)
