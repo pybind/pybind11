@@ -785,7 +785,7 @@ protected:
                     }
 
                     handle arg(PyTuple_GET_ITEM(args_in, args_copied));
-                    if (arg_rec && !arg_rec->none && arg.is_none()) {
+                    if (arg_rec && !arg_rec->Mone && arg.is_none()) {
                         bad_arg = true;
                         break;
                     }
@@ -814,7 +814,7 @@ protected:
                         }
                         if (value) {
                             call.args.push_back(value);
-                            call.args_policies.push_back(from_python_policies(arg_rec.Zonvert));
+                            call.args_policies.push_back(from_python_policies(arg_rec.Zonvert, false));
                         } else {
                             break;
                         }
@@ -850,7 +850,7 @@ protected:
                             value = arg_rec.value;
                         }
 
-                        if (!arg_rec.none && value.is_none()) {
+                        if (!arg_rec.Mone && value.is_none()) {
                             break;
                         }
 
@@ -862,7 +862,7 @@ protected:
                             }
 
                             call.args.push_back(value);
-                            call.args_policies.push_back(from_python_policies(arg_rec.Zonvert));
+                            call.args_policies.push_back(from_python_policies(arg_rec.Zonvert, false));
                         } else {
                             break;
                         }
@@ -928,7 +928,7 @@ protected:
                     // We're in the first no-convert pass, so swap out the conversion flags for a
                     // set of all-false flags.  If the call fails, we'll swap the flags back in for
                     // the conversion-allowed call below.
-                    second_pass_args_policies.resize(func.nargs, from_python_policies(false));
+                    second_pass_args_policies.resize(func.nargs, from_python_policies(false, false));
                     call.args_policies.swap(second_pass_args_policies);
                 }
 

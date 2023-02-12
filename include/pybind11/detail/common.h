@@ -600,26 +600,27 @@ struct return_value_policy_pack {
 struct from_python_policies {
     using vec_rvpp_t = std::vector<return_value_policy_pack>;
     vec_rvpp_t vec_rvpp;
-    bool convert = true;
+    bool convert : 1;  ///< True if the argument is allowed to convert when loading
+    bool none : 1;     ///< True if None is allowed when loading
 
-    from_python_policies() = default;
+    from_python_policies() : convert(false), none(false) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    from_python_policies(bool convert) : convert(convert) {}
+    from_python_policies(bool convert, bool none=false) : convert(convert), none(none) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     from_python_policies(std::initializer_list<return_value_policy_pack> vec_rvpp)
-        : vec_rvpp(vec_rvpp) {}
+        : vec_rvpp(vec_rvpp), convert(false), none(false) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator bool() const { return convert; }
 
-    from_python_policies(const vec_rvpp_t &vec_rvpp, bool convert)
-        : vec_rvpp(vec_rvpp), convert(convert) {}
+    from_python_policies(const vec_rvpp_t &vec_rvpp, bool convert, bool none)
+        : vec_rvpp(vec_rvpp), convert(convert), none(none) {}
 
     from_python_policies get(std::size_t i) const {
         if (vec_rvpp.empty()) {
-            return convert;
+            return from_python_policies(convert, none);
         }
         return from_python_policies{vec_rvpp.at(i)};
     }
