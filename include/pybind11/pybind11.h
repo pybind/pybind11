@@ -769,7 +769,7 @@ protected:
 
                     call.init_self = PyTuple_GET_ITEM(args_in, 0);
                     call.args.emplace_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
-                    call.args_policies.push_back(from_python_policies(false));
+                    call.args_policies.emplace_back(false);
                     ++args_copied;
                 }
 
@@ -790,8 +790,7 @@ protected:
                         break;
                     }
                     call.args.push_back(arg);
-                    call.args_policies.push_back(
-                        from_python_policies(arg_rec ? arg_rec->Zonvert : true));
+                    call.args_policies.emplace_back(arg_rec ? arg_rec->Zonvert : true);
                 }
                 if (bad_arg) {
                     continue; // Maybe it was meant for another overload (issue #688)
@@ -901,7 +900,7 @@ protected:
                     } else {
                         call.args[func.nargs_pos] = extra_args;
                     }
-                    call.args_policies.push_back(from_python_policies(false));
+                    call.args_policies.emplace_back(false);
                     call.args_ref = std::move(extra_args);
                 }
 
@@ -911,7 +910,7 @@ protected:
                         kwargs = dict(); // If we didn't get one, send an empty one
                     }
                     call.args.push_back(kwargs);
-                    call.args_policies.push_back(from_python_policies(false));
+                    call.args_policies.emplace_back(false);
                     call.kwargs_ref = std::move(kwargs);
                 }
 
