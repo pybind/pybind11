@@ -536,7 +536,7 @@ def test_print(capture):
     assert str(excinfo.value) == "Unable to convert call argument " + (
         "'1' of type 'UnregisteredType' to Python object"
         if detailed_error_messages_enabled
-        else "to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
+        else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
 
 

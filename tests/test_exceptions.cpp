@@ -339,4 +339,9 @@ TEST_SUBMODULE(exceptions, m) {
         }
         return py::str("UNEXPECTED");
     });
+
+    m.def("test_fn_cast_int", [](const py::function &fn) {
+        // function returns None instead of int, should give a useful error message
+        fn().cast<int>();
+    });
 }
