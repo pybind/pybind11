@@ -1318,7 +1318,7 @@ tuple make_tuple(Args &&...args_) {
 struct arg {
     /// Constructs an argument with the name of the argument; if null or omitted, this is a
     /// positional argument.
-    constexpr explicit arg(const char *name = nullptr)
+    /*constexpr*/ explicit arg(const char *name = nullptr)
         : name(name), flag_noconvert(false), flag_none(true) {}
     /// Assign a value to this argument
     template <typename T>
@@ -1333,11 +1333,17 @@ struct arg {
         flag_none = flag;
         return *this;
     }
+    arg &policies(const from_python_policies &policies) {
+        m_policies = policies;
+        return *this;
+    }
 
     const char *name;        ///< If non-null, this is a named kwargs argument
     bool flag_noconvert : 1; ///< If set, do not allow conversion (requires a supporting type
                              ///< caster!)
     bool flag_none : 1;      ///< If set (the default), allow None to be passed to this argument
+
+    from_python_policies m_policies;
 };
 
 /// \ingroup annotations
@@ -1418,7 +1424,7 @@ inline namespace literals {
 /** \rst
     String literal version of `arg`
  \endrst */
-constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
+// constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 } // namespace literals
 
 PYBIND11_NAMESPACE_BEGIN(detail)

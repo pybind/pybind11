@@ -162,5 +162,5 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
     m.def("call_callback_pass_pair_string_WIP_rtn_b",
           call_callback_pass_pair_string,
           rvpb,
-          py::arg("cb").noconvert());
+          py::arg("cb").policies(py::return_value_policy_pack(rvpb)));
 }

@@ -102,15 +102,15 @@ public:
         // to emulate 'move initialization capture' in C++11
         struct func_wrapper {
             func_handle hfunc;
-            bool load_convert = true;
-            func_wrapper(func_handle &&hf, bool load_convert) noexcept
-                : hfunc(std::move(hf)), load_convert(load_convert) {}
+            return_value_policy_pack rvpp;
+            func_wrapper(func_handle &&hf, const return_value_policy_pack &rvpp) noexcept
+                : hfunc(std::move(hf)), rvpp(rvpp) {}
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 // casts the returned object as a rvalue to the return type
                 // return_value_policy::automatic_reference is the default return_value_policy for
                 // `f.operator()`. Specifying it here explicitly for clarity.
-                if (load_convert) {
+                if (rvpp.policy != return_value_policy::_return_as_bytes) {
                     return hfunc.f
                         .template operator()<return_value_policy::automatic_reference>(
                             std::forward<Args>(args)...)
@@ -123,7 +123,7 @@ public:
             }
         };
 
-        value = func_wrapper(func_handle(std::move(func)), fpp.convert);
+        value = func_wrapper(func_handle(std::move(func)), fpp.rvpp);
         return true;
     }
 

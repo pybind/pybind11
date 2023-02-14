@@ -790,7 +790,10 @@ protected:
                         break;
                     }
                     call.args.push_back(arg);
-                    call.args_policies.emplace_back(arg_rec ? arg_rec->policies.convert : true);
+                    call.args_policies.emplace_back(
+                        arg_rec ?
+                            from_python_policies(arg_rec->policies.rvpp, arg_rec->policies.convert, false) :
+                            from_python_policies(true, false));
                 }
                 if (bad_arg) {
                     continue; // Maybe it was meant for another overload (issue #688)
@@ -929,7 +932,7 @@ protected:
                     // set of all-false flags.  If the call fails, we'll swap the flags back in for
                     // the conversion-allowed call below.
                     second_pass_args_policies.resize(func.nargs,
-                                                     from_python_policies(false, false));
+                                                     from_python_policies(false, false)); // m_policies
                     call.args_policies.swap(second_pass_args_policies);
                 }
 

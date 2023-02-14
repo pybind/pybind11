@@ -473,7 +473,7 @@ struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
         append_self_arg_if_needed(r);
         r->args.emplace_back(
-            a.name, nullptr, handle(), from_python_policies(!a.flag_noconvert, a.flag_none));
+            a.name, nullptr, handle(), from_python_policies(a.m_policies.rvpp, !a.flag_noconvert, a.flag_none));
 
         check_kw_only_arg(a, r);
     }
@@ -519,7 +519,7 @@ struct process_attribute<arg_v> : process_attribute_default<arg_v> {
         r->args.emplace_back(a.name,
                              a.descr,
                              a.value.inc_ref(),
-                             from_python_policies(!a.flag_noconvert, a.flag_none));
+                             from_python_policies(a.m_policies.rvpp, !a.flag_noconvert, a.flag_none));
 
         check_kw_only_arg(a, r);
     }

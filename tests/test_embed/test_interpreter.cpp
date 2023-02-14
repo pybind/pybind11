@@ -89,7 +89,7 @@ TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
     auto module_ = py::module_::import("test_interpreter");
     REQUIRE(py::hasattr(module_, "DerivedWidget"));
 
-    auto locals = py::dict("hello"_a = "Hello, World!", "x"_a = 5, **module_.attr("__dict__"));
+    auto locals = py::dict(py::arg("hello") = "Hello, World!", py::arg("x") = 5, **module_.attr("__dict__"));
     py::exec(R"(
         widget = DerivedWidget("{} - {}".format(hello, x))
         message = widget.the_message
@@ -139,7 +139,7 @@ TEST_CASE("Import error handling") {
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: initialization failed"));
 
-    auto locals = py::dict("is_keyerror"_a = false, "message"_a = "not set");
+    auto locals = py::dict(py::arg("is_keyerror") = false, py::arg("message") = "not set");
     py::exec(R"(
         try:
             import throw_error_already_set
@@ -376,7 +376,7 @@ TEST_CASE("Threads") {
     REQUIRE_FALSE(has_pybind11_internals_static());
 
     constexpr auto num_threads = 10;
-    auto locals = py::dict("count"_a = 0);
+    auto locals = py::dict(py::arg("count") = 0);
 
     {
         py::gil_scoped_release gil_release{};
