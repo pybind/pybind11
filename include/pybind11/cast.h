@@ -1364,7 +1364,11 @@ struct arg : detail::arg_literal {
 /// \ingroup annotations
 /// Annotation for arguments with values
 struct arg_v : arg {
+#if !defined(_MSC_VER)
+    // error C2248: 'pybind11::arg_v::arg_v':
+    // cannot access private member declared in class 'pybind11::arg_v'
 private:
+#endif
     friend struct arg_literal;
     template <typename T>
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
