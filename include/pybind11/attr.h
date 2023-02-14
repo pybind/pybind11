@@ -478,6 +478,8 @@ struct process_attribute<arg> : process_attribute_default<arg> {
         check_kw_only_arg(a, r);
     }
 };
+template <>
+struct process_attribute<detail::arg_literal> : process_attribute<arg> {};
 
 /// Process a keyword argument attribute (*with* a default value)
 template <>
@@ -681,7 +683,7 @@ using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extr
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,
-          size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
+          size_t named = constexpr_sum(std::is_base_of<arg_literal, Extra>::value...),
           size_t self = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(nargs, has_args, has_kwargs);

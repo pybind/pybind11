@@ -1313,35 +1313,50 @@ tuple make_tuple(Args &&...args_) {
     return result;
 }
 
+struct arg;
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
 /// \ingroup annotations
 /// Annotation for arguments
-struct arg {
+struct arg_literal {
     /// Constructs an argument with the name of the argument; if null or omitted, this is a
     /// positional argument.
-    /*constexpr*/ explicit arg(const char *name = nullptr)
+    constexpr explicit arg_literal(const char *name = nullptr)
         : name(name), flag_noconvert(false), flag_none(true) {}
+
     /// Assign a value to this argument
     template <typename T>
     arg_v operator=(T &&value) const;
+
     /// Indicate that the type should not be converted in the type caster
-    arg &noconvert(bool flag = true) {
-        flag_noconvert = flag;
-        return *this;
-    }
+    arg_literal &noconvert(bool flag = true);
+
     /// Indicates that the argument should/shouldn't allow None (e.g. for nullable pointer args)
-    arg &none(bool flag = true) {
-        flag_none = flag;
-        return *this;
-    }
-    arg &policies(const from_python_policies &policies) {
-        m_policies = policies;
-        return *this;
-    }
+    arg_literal &none(bool flag = true);
 
     const char *name;        ///< If non-null, this is a named kwargs argument
     bool flag_noconvert : 1; ///< If set, do not allow conversion (requires a supporting type
                              ///< caster!)
     bool flag_none : 1;      ///< If set (the default), allow None to be passed to this argument
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
+struct arg : detail::arg_literal {
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    arg(const detail::arg_literal &arg_l) : detail::arg_literal{arg_l} {}
+
+    explicit arg(const char *name = nullptr) : detail::arg_literal{name} {}
+
+    /// Assign a value to this argument
+    template <typename T>
+    arg_v operator=(T &&value) const;
+
+    arg &policies(const from_python_policies &policies) {
+        m_policies = policies;
+        return *this;
+    }
 
     from_python_policies m_policies;
 };
@@ -1350,6 +1365,7 @@ struct arg {
 /// Annotation for arguments with values
 struct arg_v : arg {
 private:
+    friend struct arg_literal;
     template <typename T>
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
         : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
@@ -1411,6 +1427,25 @@ struct kw_only {};
 /// an unnamed '/' argument (in Python 3.8)
 struct pos_only {};
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T>
+arg_v arg_literal::operator=(T &&value) const {
+    return {*this, std::forward<T>(value)};
+}
+
+inline arg_literal &arg_literal::noconvert(bool flag) {
+    flag_noconvert = flag;
+    return *this;
+}
+
+inline arg_literal &arg_literal::none(bool flag) {
+    flag_none = flag;
+    return *this;
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
 template <typename T>
 arg_v arg::operator=(T &&value) const {
     return {*this, std::forward<T>(value)};
@@ -1424,7 +1459,7 @@ inline namespace literals {
 /** \rst
     String literal version of `arg`
  \endrst */
-// constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
+constexpr detail::arg_literal operator"" _a(const char *name, size_t) { return detail::arg_literal(name); }
 } // namespace literals
 
 PYBIND11_NAMESPACE_BEGIN(detail)
