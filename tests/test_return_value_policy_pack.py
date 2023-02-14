@@ -126,3 +126,20 @@ def test_wip(func, expected):
         return repr(p)
 
     assert func(cb) == expected
+
+
+@pytest.mark.parametrize(
+    "func, inner_arg, expected",
+    [
+        (m.nested_callbacks_rtn_s, 23, "-23"),
+        (m.nested_callbacks_rtn_b, 45, b"-45"),
+    ],
+)
+def test_nested_callbacks_rtn_string(func, inner_arg, expected):
+    def cb(inner_cb):
+        inner_val = inner_cb(inner_arg)
+        assert inner_val == expected
+        return inner_val
+
+    val = func(cb)
+    assert val == expected

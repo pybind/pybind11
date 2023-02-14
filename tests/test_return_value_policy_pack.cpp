@@ -59,6 +59,13 @@ std::string call_callback_pass_pair_string(const std::function<std::string(PairS
     return cb(p);
 }
 
+std::string rtn_string(int num) { return std::to_string(-num); }
+
+std::string
+nested_callbacks_rtn_string(std::function<std::string(std::function<std::string(int)>)> cb) {
+    return cb(rtn_string);
+}
+
 } // namespace
 
 TEST_SUBMODULE(return_value_policy_pack, m) {
@@ -163,4 +170,10 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
           call_callback_pass_pair_string,
           rvpb,
           py::arg("cb").policies(py::return_value_policy_pack(rvpb)));
+
+    m.def("nested_callbacks_rtn_s", nested_callbacks_rtn_string);
+    m.def("nested_callbacks_rtn_b",
+          nested_callbacks_rtn_string,
+          py::arg("cb").policies(py::return_value_policy_pack(rvpb)),
+          rvpb);
 }
