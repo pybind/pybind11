@@ -1459,7 +1459,9 @@ inline namespace literals {
 /** \rst
     String literal version of `arg`
  \endrst */
-constexpr detail::arg_literal operator"" _a(const char *name, size_t) { return detail::arg_literal(name); }
+constexpr detail::arg_literal operator"" _a(const char *name, size_t) {
+    return detail::arg_literal(name);
+}
 } // namespace literals
 
 PYBIND11_NAMESPACE_BEGIN(detail)
