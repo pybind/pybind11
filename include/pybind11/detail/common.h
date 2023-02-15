@@ -602,7 +602,8 @@ struct from_python_policies {
     bool convert : 1; ///< True if the argument is allowed to convert when loading
     bool none : 1;    ///< True if None is allowed when loading
 
-    from_python_policies() : convert(true), none(true) {}
+    from_python_policies()
+        : rvpp(return_value_policy::automatic_reference), convert(true), none(true) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     from_python_policies(bool convert, bool none = true) : convert(convert), none(none) {}

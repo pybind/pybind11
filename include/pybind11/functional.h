@@ -108,17 +108,7 @@ public:
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 // casts the returned object as a rvalue to the return type
-                // return_value_policy::automatic_reference is the default return_value_policy for
-                // `f.operator()`. Specifying it here explicitly for clarity.
-                if (rvpp.policy != return_value_policy::_return_as_bytes) {
-                    return hfunc.f
-                        .template operator()<return_value_policy::automatic_reference>(
-                            std::forward<Args>(args)...)
-                        .template cast<Return>();
-                }
-                return hfunc.f
-                    .template operator()<return_value_policy::_return_as_bytes>(
-                        std::forward<Args>(args)...)
+                return hfunc.f.call_with_policies(rvpp, std::forward<Args>(args)...)
                     .template cast<Return>();
             }
         };
