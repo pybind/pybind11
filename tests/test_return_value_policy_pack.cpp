@@ -188,14 +188,19 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
         py::return_value_policy_pack({rvpb, rvpc}));
 #endif
 
-    // Here the rvp is applied to the return value of call_callback_pass_pair_string:
-    m.def("call_callback_pass_pair_string_rtn_s", call_callback_pass_pair_string);
-    m.def("call_callback_pass_pair_string_rtn_b", call_callback_pass_pair_string, rvpb);
-
-    m.def("call_callback_pass_pair_string_WIP_rtn_b",
+    m.def("call_callback_pass_pair_default", call_callback_pass_pair_string, py::arg("cb"));
+    m.def("call_callback_pass_pair_s",
           call_callback_pass_pair_string,
-          rvpb,
+          py::arg("cb").policies(py::return_value_policy_pack(rvpc)));
+    m.def("call_callback_pass_pair_b",
+          call_callback_pass_pair_string,
           py::arg("cb").policies(py::return_value_policy_pack(rvpb)));
+    m.def("call_callback_pass_pair_sb",
+          call_callback_pass_pair_string,
+          py::arg("cb").policies(py::return_value_policy_pack({{rvpc, rvpb}})));
+    m.def("call_callback_pass_pair_bs",
+          call_callback_pass_pair_string,
+          py::arg("cb").policies(py::return_value_policy_pack({{rvpb, rvpc}})));
 
     m.def("nested_callbacks_rtn_s", nested_callbacks_rtn_string);
     m.def("nested_callbacks_rtn_b",

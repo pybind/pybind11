@@ -132,12 +132,14 @@ def test_return_variant_pair_string(fname, expected):
 @pytest.mark.parametrize(
     "func, expected",
     [
-        (m.call_callback_pass_pair_string_rtn_s, repr(("", ""))),
-        (m.call_callback_pass_pair_string_rtn_b, repr(("", "")).encode()),
-        (m.call_callback_pass_pair_string_WIP_rtn_b, repr((b"", b"")).encode()),
+        (m.call_callback_pass_pair_default, repr(("", ""))),
+        (m.call_callback_pass_pair_s, repr(("", ""))),
+        (m.call_callback_pass_pair_b, repr((b"", b""))),
+        (m.call_callback_pass_pair_sb, repr(("", b""))),
+        (m.call_callback_pass_pair_bs, repr((b"", ""))),
     ],
 )
-def test_wip(func, expected):
+def test_call_callback_pass_pair_string(func, expected):
     def cb(p):
         assert isinstance(p, tuple)
         assert len(p) == 2
