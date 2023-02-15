@@ -1313,17 +1313,11 @@ tuple make_tuple(Args &&...args_) {
     return result;
 }
 
-template <size_t... Is>
-return_value_policy_pack rvpp_get(const return_value_policy_pack &rvpp, detail::index_sequence<Is...>) {
-    return rvpp.get(Is...);
-}
-
-template <typename... Args>
-tuple make_tuple_rvpp(const return_value_policy_pack &rvpp, Args &&...args_) {
+template <std::size_t... Is, typename... Args>
+tuple make_tuple_rvpp_impl(const return_value_policy_pack &rvpp, detail::index_sequence<Is...>, Args &&...args_) {
     constexpr size_t size = sizeof...(Args);
-    using indices = detail::make_index_sequence<sizeof...(Args)>;
     std::array<object, size> args{{reinterpret_steal<object>(
-        detail::make_caster<Args>::cast(std::forward<Args>(args_), rvpp_get(rvpp, indices{}), nullptr))...}};
+        detail::make_caster<Args>::cast(std::forward<Args>(args_), rvpp.get(Is), nullptr))...}};
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -1340,6 +1334,12 @@ tuple make_tuple_rvpp(const return_value_policy_pack &rvpp, Args &&...args_) {
         PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
     }
     return result;
+}
+
+template <typename... Args>
+tuple make_tuple_rvpp(const return_value_policy_pack &rvpp, Args &&...args_) {
+    using indices = detail::make_index_sequence<sizeof...(Args)>;
+    return make_tuple_rvpp_impl(rvpp, indices{}, std::forward<Args>(args_)...);
 }
 
 struct arg;
@@ -1777,9 +1777,8 @@ public:
         // Tuples aren't (easily) resizable so a list is needed for collection,
         // but the actual function call strictly requires a tuple.
         auto args_list = list();
-        using expander = int[];
         using indices = detail::make_index_sequence<sizeof...(Ts)>;
-        (void) expander{0, (process(args_list, rvpp_get(rvpp, indices{}), std::forward<Ts>(values)), 0)...};
+        ctor_helper(args_list, rvpp,  indices{}, std::forward<Ts>(values)...);
 
         m_args = std::move(args_list);
     }
@@ -1800,6 +1799,12 @@ public:
     }
 
 private:
+    template <std::size_t... Is, typename... Ts>
+    void ctor_helper(list args_list, const return_value_policy_pack &rvpp, detail::index_sequence<Is...>, Ts &&...values) {
+        using expander = int[];
+        (void) expander{0, (process(args_list, rvpp.get(Is), std::forward<Ts>(values)), 0)...};
+    }
+
     template <typename T>
     void process(list &args_list, const return_value_policy_pack &rvpp, T &&x) {
         auto o = reinterpret_steal<object>(
@@ -1815,13 +1820,13 @@ private:
         args_list.append(std::move(o));
     }
 
-    void process(list &args_list, detail::args_proxy ap) {
+    void process(list &args_list, const return_value_policy_pack & /*rvpp*/, detail::args_proxy ap) {
         for (auto a : ap) {
             args_list.append(a);
         }
     }
 
-    void process(list & /*args_list*/, arg_v a) {
+    void process(list & /*args_list*/, const return_value_policy_pack & /*rvpp*/, arg_v a) {
         if (!a.name) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
@@ -1846,7 +1851,7 @@ private:
         m_kwargs[a.name] = std::move(a.value);
     }
 
-    void process(list & /*args_list*/, detail::kwargs_proxy kp) {
+    void process(list & /*args_list*/, const return_value_policy_pack & /*rvpp*/, detail::kwargs_proxy kp) {
         if (!kp) {
             return;
         }
@@ -1947,7 +1952,7 @@ object object_api<Derived>::operator()(Args &&...args) const {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }
 #endif
-    return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(derived().ptr());
+    return detail::collect_arguments_rvpp(policy, std::forward<Args>(args)...).call(derived().ptr());
 }
 
 template <typename Derived>
