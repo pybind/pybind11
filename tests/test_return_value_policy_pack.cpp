@@ -5,12 +5,18 @@
 
 #include <array>
 #include <map>
-#include <optional>
 #include <set>
 #include <string>
 #include <utility>
-#include <variant>
 #include <vector>
+
+#if defined(PYBIND11_HAS_OPTIONAL)
+#    include <optional>
+#endif
+
+#if defined(PYBIND11_HAS_VARIANT)
+#    include <variant>
+#endif
 
 namespace {
 
@@ -44,15 +50,23 @@ using ArrayPairString = std::array<PairString, 1>;
 
 ArrayPairString return_array_pair_string() { return ArrayPairString({return_pair_string()}); }
 
+#if defined(PYBIND11_HAS_OPTIONAL)
+
 using OptionalPairString = std::optional<PairString>;
 
 OptionalPairString return_optional_pair_string() {
     return OptionalPairString(return_pair_string());
 }
 
+#endif // PYBIND11_HAS_OPTIONAL
+
+#if defined(PYBIND11_HAS_VARIANT)
+
 using VariantPairString = std::variant<PairString>;
 
 VariantPairString return_variant_pair_string() { return VariantPairString(return_pair_string()); }
+
+#endif // PYBIND11_HAS_VARIANT
 
 std::string call_callback_pass_pair_string(const std::function<std::string(PairString)> &cb) {
     auto p = return_pair_string();
@@ -144,6 +158,11 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
         []() { return return_array_pair_string(); },
         py::return_value_policy_pack({rvpb, rvpc}));
 
+    m.attr("PYBIND11_HAS_OPTIONAL") =
+#if !defined(PYBIND11_HAS_OPTIONAL)
+        false;
+#else
+        true;
     m.def(
         "return_optional_sb",
         []() { return return_optional_pair_string(); },
@@ -152,7 +171,13 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
         "return_optional_bs",
         []() { return return_optional_pair_string(); },
         py::return_value_policy_pack({rvpb, rvpc}));
+#endif
 
+    m.attr("PYBIND11_HAS_VARIANT") =
+#if !defined(PYBIND11_HAS_VARIANT)
+        false;
+#else
+        true;
     m.def(
         "return_variant_sb",
         []() { return return_variant_pair_string(); },
@@ -161,6 +186,7 @@ TEST_SUBMODULE(return_value_policy_pack, m) {
         "return_variant_bs",
         []() { return return_variant_pair_string(); },
         py::return_value_policy_pack({rvpb, rvpc}));
+#endif
 
     // Here the rvp is applied to the return value of call_callback_pass_pair_string:
     m.def("call_callback_pass_pair_string_rtn_s", call_callback_pass_pair_string);

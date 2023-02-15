@@ -97,18 +97,36 @@ def test_return_list_pair_string(func, expected):
     assert all(isinstance(e, t) for e, t in zip(sum(vp, ()), expected))
 
 
-@pytest.mark.parametrize(
-    "func, expected",
-    [
-        (m.return_optional_sb, (str, bytes)),
-        (m.return_optional_bs, (bytes, str)),
-    ],
-)
-def test_return_optional_pair_string(func, expected):
+def _test_return_optional_variant_pair_string(fname, expected):
+    func = getattr(m, fname)
     p = func()
     assert isinstance(p, tuple)
     assert len(p) == 2
     assert all(isinstance(e, t) for e, t in zip(p, expected))
+
+
+@pytest.mark.skipif(not m.PYBIND11_HAS_OPTIONAL, reason="<optional> not available.")
+@pytest.mark.parametrize(
+    "fname, expected",
+    [
+        ("return_optional_sb", (str, bytes)),
+        ("return_optional_bs", (bytes, str)),
+    ],
+)
+def test_return_optional_pair_string(fname, expected):
+    _test_return_optional_variant_pair_string(fname, expected)
+
+
+@pytest.mark.skipif(not m.PYBIND11_HAS_VARIANT, reason="<variant> not available.")
+@pytest.mark.parametrize(
+    "fname, expected",
+    [
+        ("return_variant_sb", (str, bytes)),
+        ("return_variant_bs", (bytes, str)),
+    ],
+)
+def test_return_variant_pair_string(fname, expected):
+    _test_return_optional_variant_pair_string(fname, expected)
 
 
 @pytest.mark.parametrize(
