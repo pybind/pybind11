@@ -125,6 +125,9 @@ public:
     template <typename T>
     bool contains(T &&item) const;
 
+    template <typename... Args>
+    object call_with_policies(const return_value_policy_pack &rvpp, Args &&...args) const;
+
     /** \rst
         Assuming the Python object is a function or implements the ``__call__``
         protocol, ``operator()`` invokes the underlying function, passing an

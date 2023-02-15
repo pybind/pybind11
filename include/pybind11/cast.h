@@ -1953,21 +1953,27 @@ unpacking_collector_rvpp collect_arguments_rvpp(const return_value_policy_pack &
 }
 
 template <typename Derived>
-template <return_value_policy policy, typename... Args>
-object object_api<Derived>::operator()(Args &&...args) const {
+template <typename... Args>
+object object_api<Derived>::call_with_policies(const return_value_policy_pack &rvpp,
+                                               Args &&...args) const {
 #ifndef NDEBUG
     if (!PyGILState_Check()) {
-        pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
+        pybind11_fail("pybind11::object_api<>::call_with_policies() PyGILState_Check() failure.");
     }
 #endif
-    return detail::collect_arguments_rvpp(policy, std::forward<Args>(args)...)
-        .call(derived().ptr());
+    return detail::collect_arguments_rvpp(rvpp, std::forward<Args>(args)...).call(derived().ptr());
+}
+
+template <typename Derived>
+template <return_value_policy policy, typename... Args>
+object object_api<Derived>::operator()(Args &&...args) const {
+    return call_with_policies(policy, std::forward<Args>(args)...);
 }
 
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::call(Args &&...args) const {
-    return operator()<policy>(std::forward<Args>(args)...);
+    return call_with_policies(policy, std::forward<Args>(args)...);
 }
 
 PYBIND11_NAMESPACE_END(detail)
