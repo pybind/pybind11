@@ -1320,7 +1320,7 @@ tuple make_tuple_rvpp_impl(const return_value_policy_pack &rvpp,
     constexpr size_t size = sizeof...(Args);
     std::array<object, size> args{{reinterpret_steal<object>(
         detail::make_caster<Args>::cast(std::forward<Args>(args_), rvpp.get(Is), nullptr))...}};
-    for (size_t i = 0; i < args.size(); i++) {
+    for (size_t i = 0; i != args.size(); i++) {
         if (!args[i]) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg();
