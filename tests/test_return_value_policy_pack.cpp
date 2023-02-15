@@ -48,7 +48,7 @@ VectorPairString return_vector_pair_string() { return VectorPairString({return_p
 
 using ArrayPairString = std::array<PairString, 1>;
 
-ArrayPairString return_array_pair_string() { return ArrayPairString({return_pair_string()}); }
+ArrayPairString return_array_pair_string() { return ArrayPairString({{return_pair_string()}}); }
 
 #if defined(PYBIND11_HAS_OPTIONAL)
 
