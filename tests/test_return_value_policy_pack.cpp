@@ -75,8 +75,8 @@ std::string call_callback_pass_pair_string(const std::function<std::string(PairS
 
 std::string rtn_string(int num) { return std::to_string(-num); }
 
-std::string
-nested_callbacks_rtn_string(std::function<std::string(std::function<std::string(int)>)> cb) {
+std::string nested_callbacks_rtn_string(
+    const std::function<std::string(std::function<std::string(int)>)> &cb) {
     return cb(rtn_string);
 }
 
