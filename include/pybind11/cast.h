@@ -1290,12 +1290,16 @@ tuple make_tuple() {
     return tuple(0);
 }
 
-template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
-tuple make_tuple(Args &&...args_) {
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <std::size_t... Is, typename... Args>
+tuple make_tuple_rvpp_impl(const return_value_policy_pack &rvpp,
+                           detail::index_sequence<Is...>,
+                           Args &&...args_) {
     constexpr size_t size = sizeof...(Args);
     std::array<object, size> args{{reinterpret_steal<object>(
-        detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
-    for (size_t i = 0; i < args.size(); i++) {
+        detail::make_caster<Args>::cast(std::forward<Args>(args_), rvpp.get(Is), nullptr))...}};
+    for (size_t i = 0; i != args.size(); i++) {
         if (!args[i]) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg(std::to_string(i));
@@ -1313,35 +1317,17 @@ tuple make_tuple(Args &&...args_) {
     return result;
 }
 
-template <std::size_t... Is, typename... Args>
-tuple make_tuple_rvpp_impl(const return_value_policy_pack &rvpp,
-                           detail::index_sequence<Is...>,
-                           Args &&...args_) {
-    constexpr size_t size = sizeof...(Args);
-    std::array<object, size> args{{reinterpret_steal<object>(
-        detail::make_caster<Args>::cast(std::forward<Args>(args_), rvpp.get(Is), nullptr))...}};
-    for (size_t i = 0; i != args.size(); i++) {
-        if (!args[i]) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg();
-#else
-            std::array<std::string, size> argtypes{{type_id<Args>()...}};
-            throw cast_error_unable_to_convert_call_arg(std::to_string(i), argtypes[i]);
-#endif
-        }
-    }
-    tuple result(size);
-    int counter = 0;
-    for (auto &arg_value : args) {
-        PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
-    }
-    return result;
-}
+PYBIND11_NAMESPACE_END(detail)
 
 template <typename... Args>
 tuple make_tuple_rvpp(const return_value_policy_pack &rvpp, Args &&...args_) {
     using indices = detail::make_index_sequence<sizeof...(Args)>;
-    return make_tuple_rvpp_impl(rvpp, indices{}, std::forward<Args>(args_)...);
+    return detail::make_tuple_rvpp_impl(rvpp, indices{}, std::forward<Args>(args_)...);
+}
+
+template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
+tuple make_tuple(Args &&...args_) {
+    return make_tuple_rvpp(policy, std::forward<Args>(args_)...);
 }
 
 struct arg;
