@@ -45,7 +45,7 @@ struct arg;
 struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-struct arg_literal;
+struct arg_base;
 class args_proxy;
 bool isinstance_generic(handle obj, const std::type_info &tp);
 
@@ -1280,7 +1280,7 @@ public:
 
 /// Python argument categories (using PEP 448 terms)
 template <typename T>
-using is_keyword = std::is_base_of<detail::arg_literal, T>;
+using is_keyword = std::is_base_of<detail::arg_base, T>;
 template <typename T>
 using is_s_unpacking = std::is_same<args_proxy, T>; // * unpacking
 template <typename T>

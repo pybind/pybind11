@@ -1314,10 +1314,10 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// \ingroup annotations
 /// Annotation for arguments
-struct arg_literal {
+struct arg_base {
     /// Constructs an argument with the name of the argument; if null or omitted, this is a
     /// positional argument.
-    constexpr explicit arg_literal(const char *name = nullptr)
+    constexpr explicit arg_base(const char *name = nullptr)
         : name(name), flag_noconvert(false), flag_none(true) {}
 
     /// Assign a value to this argument
@@ -1325,10 +1325,10 @@ struct arg_literal {
     arg_v operator=(T &&value) const;
 
     /// Indicate that the type should not be converted in the type caster
-    arg_literal &noconvert(bool flag = true);
+    arg_base &noconvert(bool flag = true);
 
     /// Indicates that the argument should/shouldn't allow None (e.g. for nullable pointer args)
-    arg_literal &none(bool flag = true);
+    arg_base &none(bool flag = true);
 
     const char *name;        ///< If non-null, this is a named kwargs argument
     bool flag_noconvert : 1; ///< If set, do not allow conversion (requires a supporting type
@@ -1338,11 +1338,11 @@ struct arg_literal {
 
 PYBIND11_NAMESPACE_END(detail)
 
-struct arg : detail::arg_literal {
+struct arg : detail::arg_base {
     // NOLINTNEXTLINE(google-explicit-constructor)
-    arg(const detail::arg_literal &arg_l) : detail::arg_literal{arg_l} {}
+    arg(const detail::arg_base &arg_b) : detail::arg_base{arg_b} {}
 
-    explicit arg(const char *name = nullptr) : detail::arg_literal{name} {}
+    explicit arg(const char *name = nullptr) : detail::arg_base{name} {}
 
     /// Assign a value to this argument
     template <typename T>
@@ -1364,7 +1364,7 @@ struct arg_v : arg {
     // cannot access private member declared in class 'pybind11::arg_v'
 private:
 #endif
-    friend struct arg_literal;
+    friend struct arg_base;
     template <typename T>
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
         : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
@@ -1429,16 +1429,16 @@ struct pos_only {};
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T>
-arg_v arg_literal::operator=(T &&value) const {
+arg_v arg_base::operator=(T &&value) const {
     return {*this, std::forward<T>(value)};
 }
 
-inline arg_literal &arg_literal::noconvert(bool flag) {
+inline arg_base &arg_base::noconvert(bool flag) {
     flag_noconvert = flag;
     return *this;
 }
 
-inline arg_literal &arg_literal::none(bool flag) {
+inline arg_base &arg_base::none(bool flag) {
     flag_none = flag;
     return *this;
 }
@@ -1458,8 +1458,8 @@ inline namespace literals {
 /** \rst
     String literal version of `arg`
  \endrst */
-constexpr detail::arg_literal operator"" _a(const char *name, size_t) {
-    return detail::arg_literal(name);
+constexpr detail::arg_base operator"" _a(const char *name, size_t) {
+    return detail::arg_base(name);
 }
 } // namespace literals
 
