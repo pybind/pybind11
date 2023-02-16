@@ -96,9 +96,6 @@ jobs:
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.13
-      # TEMPORARILY pin version because 3.26.0-rc1 is failing under macOS:
-      with:
-        cmake-version: '3.25.2'
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -1101,9 +1098,6 @@ jobs:
 
       - name: Update CMake
         uses: jwlawson/actions-setup-cmake@v1.13
-        # TEMPORARILY pin version because 3.26.0-rc1 is failing under macOS:
-        with:
-          cmake-version: '3.25.2'
 
       - name: Run pip installs
         run: |
