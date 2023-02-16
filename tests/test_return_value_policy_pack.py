@@ -148,18 +148,102 @@ def test_call_callback_pass_pair_string(func, expected):
     assert func(cb) == expected
 
 
-@pytest.mark.parametrize(
-    "func, inner_arg, expected",
-    [
-        (m.nested_callbacks_rtn_s, 23, "-23"),
-        (m.nested_callbacks_rtn_b, 45, b"-45"),
-    ],
-)
-def test_nested_callbacks_rtn_string(func, inner_arg, expected):
-    def cb(inner_cb):
-        inner_val = inner_cb(inner_arg)
-        assert inner_val == expected
-        return inner_val
+def test_nested_callbacks_si_s():
+    def cb_1(i):
+        assert isinstance(i, int)
+        return "cb_1_" + str(i)
 
-    val = func(cb)
-    assert val == expected
+    def cb_2(cb):
+        r = cb(20)
+        assert isinstance(r, str)
+        return "cb_2_" + r
+
+    def cb_3(cb):
+        r = cb(cb_1)
+        assert isinstance(r, str)
+        return "cb_3_" + r
+
+    def cb_4(cb):
+        r = cb(cb_2)
+        assert isinstance(r, str)
+        return "cb_4_" + r
+
+    assert m.call_level_1_callback_si_s(cb_1) == "cb_1_1001"
+    assert m.call_level_2_callback_si_s(cb_2) == "cb_2_level_0_si_20"
+    assert m.call_level_3_callback_si_s(cb_3) == "cb_3_cb_1_1001"
+    assert m.call_level_4_callback_si_s(cb_4) == "cb_4_cb_2_level_0_si_20"
+
+
+def test_nested_callbacks_si_b():
+    def cb_1(i):
+        assert isinstance(i, int)
+        return b"\x80cb_1_" + (str(i)).encode()
+
+    def cb_2(cb):
+        r = cb(20)
+        assert isinstance(r, bytes)
+        return b"\x80cb_2_" + r
+
+    def cb_3(cb):
+        r = cb(cb_1)
+        assert isinstance(r, bytes)
+        return b"\x80cb_3_" + r
+
+    def cb_2s(cb):
+        r = cb(20)
+        assert isinstance(r, str)  # Passing bytes is unsupported (missing feature).
+        return b"\x80cb_2_" + r.encode()
+
+    def cb_4(cb):
+        r = cb(cb_2s)
+        assert isinstance(r, bytes)
+        return b"\x80cb_4_" + r
+
+    assert m.call_level_1_callback_si_b(cb_1) == b"\x80cb_1_1001"
+    assert m.call_level_2_callback_si_b(cb_2) == b"\x80cb_2_level_0_si_20"
+    assert m.call_level_3_callback_si_b(cb_3) == b"\x80cb_3_\x80cb_1_1001"
+    assert m.call_level_4_callback_si_b(cb_4) == b"\x80cb_4_\x80cb_2_level_0_si_20"
+
+
+def test_nested_callbacks_is_s():
+    def cb_1(s):
+        assert isinstance(s, str)
+        return 10000 + int(s)
+
+    def cb_2(cb):
+        return 20000 + cb("20")
+
+    def cb_3(cb):
+        return 30000 + cb(cb_1)
+
+    def cb_4(cb):
+        return 40000 + cb(cb_2)
+
+    assert m.call_level_1_callback_is_s(cb_1) == 10101
+    assert m.call_level_2_callback_is_s(cb_2) == 20120
+    assert m.call_level_3_callback_is_s(cb_3) == 40101
+    assert m.call_level_4_callback_is_s(cb_4) == 60120
+
+
+def test_nested_callbacks_is_b():
+    def cb_1(s):
+        assert isinstance(s, bytes)
+        return 10000 + int(s)
+
+    def cb_2(cb):
+        return 20000 + cb(b"20")
+
+    def cb_1s(s):
+        assert isinstance(s, str)  # Passing bytes is unsupported (missing feature).
+        return 10000 + int(s)
+
+    def cb_3(cb):
+        return 30000 + cb(cb_1s)
+
+    def cb_4(cb):
+        return 40000 + cb(cb_2)
+
+    assert m.call_level_1_callback_is_b(cb_1) == 10101
+    assert m.call_level_2_callback_is_b(cb_2) == 20120
+    assert m.call_level_3_callback_is_b(cb_3) == 40101
+    assert m.call_level_4_callback_is_b(cb_4) == 60120
