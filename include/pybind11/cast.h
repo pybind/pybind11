@@ -1588,33 +1588,6 @@ private:
     std::tuple<make_caster<Args>...> argcasters;
 };
 
-/// Helper class which collects only positional arguments for a Python function call.
-/// A fancier version below can collect any argument, but this one is optimal for simple calls.
-template <return_value_policy policy>
-class simple_collector {
-public:
-    template <typename... Ts>
-    explicit simple_collector(Ts &&...values)
-        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) {}
-
-    const tuple &args() const & { return m_args; }
-    dict kwargs() const { return {}; }
-
-    tuple args() && { return std::move(m_args); }
-
-    /// Call a Python function and pass the collected arguments
-    object call(PyObject *ptr) const {
-        PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
-        if (!result) {
-            throw error_already_set();
-        }
-        return reinterpret_steal<object>(result);
-    }
-
-private:
-    tuple m_args;
-};
-
 class simple_collector_rvpp {
 public:
     template <typename... Ts>
@@ -1637,6 +1610,16 @@ public:
 
 private:
     tuple m_args;
+};
+
+/// Helper class which collects only positional arguments for a Python function call.
+/// A fancier version below can collect any argument, but this one is optimal for simple calls.
+template <return_value_policy policy>
+class simple_collector : public simple_collector_rvpp {
+public:
+    template <typename... Ts>
+    explicit simple_collector(Ts &&...values)
+        : simple_collector_rvpp(policy, std::forward<Ts>(values)...) {}
 };
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
