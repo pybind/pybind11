@@ -1622,125 +1622,6 @@ public:
         : simple_collector_rvpp(policy, std::forward<Ts>(values)...) {}
 };
 
-/// Helper class which collects positional, keyword, * and ** arguments for a Python function call
-template <return_value_policy policy>
-class unpacking_collector {
-public:
-    template <typename... Ts>
-    explicit unpacking_collector(Ts &&...values) {
-        // Tuples aren't (easily) resizable so a list is needed for collection,
-        // but the actual function call strictly requires a tuple.
-        auto args_list = list();
-        using expander = int[];
-        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
-
-        m_args = std::move(args_list);
-    }
-
-    const tuple &args() const & { return m_args; }
-    const dict &kwargs() const & { return m_kwargs; }
-
-    tuple args() && { return std::move(m_args); }
-    dict kwargs() && { return std::move(m_kwargs); }
-
-    /// Call a Python function and pass the collected arguments
-    object call(PyObject *ptr) const {
-        PyObject *result = PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr());
-        if (!result) {
-            throw error_already_set();
-        }
-        return reinterpret_steal<object>(result);
-    }
-
-private:
-    template <typename T>
-    void process(list &args_list, T &&x) {
-        auto o = reinterpret_steal<object>(
-            detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
-        if (!o) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()));
-#else
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
-                                                        type_id<T>());
-#endif
-        }
-        args_list.append(std::move(o));
-    }
-
-    void process(list &args_list, detail::args_proxy ap) {
-        for (auto a : ap) {
-            args_list.append(a);
-        }
-    }
-
-    void process(list & /*args_list*/, arg_v a) {
-        if (!a.name) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            nameless_argument_error();
-#else
-            nameless_argument_error(a.type);
-#endif
-        }
-        if (m_kwargs.contains(a.name)) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            multiple_values_error();
-#else
-            multiple_values_error(a.name);
-#endif
-        }
-        if (!a.value) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg(a.name);
-#else
-            throw cast_error_unable_to_convert_call_arg(a.name, a.type);
-#endif
-        }
-        m_kwargs[a.name] = std::move(a.value);
-    }
-
-    void process(list & /*args_list*/, detail::kwargs_proxy kp) {
-        if (!kp) {
-            return;
-        }
-        for (auto k : reinterpret_borrow<dict>(kp)) {
-            if (m_kwargs.contains(k.first)) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-                multiple_values_error();
-#else
-                multiple_values_error(str(k.first));
-#endif
-            }
-            m_kwargs[k.first] = k.second;
-        }
-    }
-
-    [[noreturn]] static void nameless_argument_error() {
-        throw type_error(
-            "Got kwargs without a name; only named arguments "
-            "may be passed via py::arg() to a python function call. "
-            "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
-    }
-    [[noreturn]] static void nameless_argument_error(const std::string &type) {
-        throw type_error("Got kwargs without a name of type '" + type
-                         + "'; only named "
-                           "arguments may be passed via py::arg() to a python function call. ");
-    }
-    [[noreturn]] static void multiple_values_error() {
-        throw type_error(
-            "Got multiple values for keyword argument "
-            "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
-    }
-
-    [[noreturn]] static void multiple_values_error(const std::string &name) {
-        throw type_error("Got multiple values for keyword argument '" + name + "'");
-    }
-
-private:
-    tuple m_args;
-    dict m_kwargs;
-};
-
 class unpacking_collector_rvpp {
 public:
     template <typename... Ts>
@@ -1785,7 +1666,7 @@ private:
             detail::make_caster<T>::cast(std::forward<T>(x), rvpp, {}));
         if (!o) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg();
+            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()));
 #else
             throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
                                                         type_id<T>());
@@ -1870,6 +1751,15 @@ private:
     dict m_kwargs;
 };
 
+/// Helper class which collects positional, keyword, * and ** arguments for a Python function call
+template <return_value_policy policy>
+class unpacking_collector : public unpacking_collector_rvpp {
+public:
+    template <typename... Ts>
+    explicit unpacking_collector(Ts &&...values)
+        : unpacking_collector_rvpp(policy, std::forward<Ts>(values)...) {}
+};
+
 // [workaround(intel)] Separate function required here
 // We need to put this into a separate function because the Intel compiler
 // fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
@@ -1879,33 +1769,18 @@ constexpr bool args_are_all_positional() {
     return all_of<is_positional<Args>...>::value;
 }
 
-/// Collect only positional arguments for a Python function call
-template <return_value_policy policy,
-          typename... Args,
-          typename = enable_if_t<args_are_all_positional<Args...>()>>
-simple_collector<policy> collect_arguments(Args &&...args) {
-    return simple_collector<policy>(std::forward<Args>(args)...);
-}
-
 template <typename... Args, typename = enable_if_t<args_are_all_positional<Args...>()>>
 simple_collector_rvpp collect_arguments_rvpp(const return_value_policy_pack &rvpp,
                                              Args &&...args) {
     return simple_collector_rvpp(rvpp, std::forward<Args>(args)...);
 }
 
-/// Collect all arguments, including keywords and unpacking (only instantiated when needed)
+/// Collect only positional arguments for a Python function call
 template <return_value_policy policy,
           typename... Args,
-          typename = enable_if_t<!args_are_all_positional<Args...>()>>
-unpacking_collector<policy> collect_arguments(Args &&...args) {
-    // Following argument order rules for generalized unpacking according to PEP 448
-    static_assert(constexpr_last<is_positional, Args...>()
-                          < constexpr_first<is_keyword_or_ds, Args...>()
-                      && constexpr_last<is_s_unpacking, Args...>()
-                             < constexpr_first<is_ds_unpacking, Args...>(),
-                  "Invalid function call: positional args must precede keywords and ** unpacking; "
-                  "* unpacking must precede ** unpacking");
-    return unpacking_collector<policy>(std::forward<Args>(args)...);
+          typename = enable_if_t<args_are_all_positional<Args...>()>>
+simple_collector<policy> collect_arguments(Args &&...args) {
+    return simple_collector<policy>(std::forward<Args>(args)...);
 }
 
 template <typename... Args, typename = enable_if_t<!args_are_all_positional<Args...>()>>
@@ -1919,6 +1794,14 @@ unpacking_collector_rvpp collect_arguments_rvpp(const return_value_policy_pack &
                   "Invalid function call: positional args must precede keywords and ** unpacking; "
                   "* unpacking must precede ** unpacking");
     return unpacking_collector_rvpp(rvpp, std::forward<Args>(args)...);
+}
+
+/// Collect all arguments, including keywords and unpacking (only instantiated when needed)
+template <return_value_policy policy,
+          typename... Args,
+          typename = enable_if_t<!args_are_all_positional<Args...>()>>
+unpacking_collector<policy> collect_arguments(Args &&...args) {
+    return unpacking_collector<policy>(std::forward<Args>(args)...);
 }
 
 template <typename Derived>
