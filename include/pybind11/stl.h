@@ -86,14 +86,15 @@ public:
     }
 
     template <typename T>
-    static handle cast(T &&src, return_value_policy_pack rvpp, handle parent) {
+    static handle cast(T &&src, const return_value_policy_pack &rvpp, handle parent) {
+        return_value_policy_pack rvpp_local = rvpp;
         if (!std::is_lvalue_reference<T>::value) {
-            rvpp = rvpp.override_policy(return_value_policy_override<Key>::policy);
+            rvpp_local = rvpp.override_policy(return_value_policy_override<Key>::policy);
         }
         pybind11::set s;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                key_conv::cast(detail::forward_like<T>(value), rvpp, parent));
+                key_conv::cast(detail::forward_like<T>(value), rvpp_local, parent));
             if (!value_ || !s.add(std::move(value_))) {
                 return handle();
             }
@@ -192,15 +193,16 @@ private:
 
 public:
     template <typename T>
-    static handle cast(T &&src, return_value_policy_pack rvpp, handle parent) {
+    static handle cast(T &&src, const return_value_policy_pack &rvpp, handle parent) {
+        return_value_policy_pack rvpp_local = rvpp;
         if (!std::is_lvalue_reference<T>::value) {
-            rvpp = rvpp.override_policy(return_value_policy_override<Value>::policy);
+            rvpp_local = rvpp.override_policy(return_value_policy_override<Value>::policy);
         }
         list l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                value_conv::cast(detail::forward_like<T>(value), rvpp, parent));
+                value_conv::cast(detail::forward_like<T>(value), rvpp_local, parent));
             if (!value_) {
                 return handle();
             }
@@ -259,7 +261,7 @@ public:
     }
 
     template <typename T>
-    static handle cast(T &&src, return_value_policy_pack rvpp, handle parent) {
+    static handle cast(T &&src, const return_value_policy_pack &rvpp, handle parent) {
         list l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {
@@ -310,15 +312,16 @@ struct optional_caster {
     using value_conv = make_caster<Value>;
 
     template <typename T>
-    static handle cast(T &&src, return_value_policy_pack rvpp, handle parent) {
+    static handle cast(T &&src, const return_value_policy_pack &rvpp, handle parent) {
         if (!src) {
             return none().release();
         }
+        return_value_policy_pack rvpp_local = rvpp;
         if (!std::is_lvalue_reference<T>::value) {
-            rvpp = rvpp.override_policy(return_value_policy_override<Value>::policy);
+            rvpp_local = rvpp.override_policy(return_value_policy_override<Value>::policy);
         }
         // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-        return value_conv::cast(*std::forward<T>(src), rvpp, parent);
+        return value_conv::cast(*std::forward<T>(src), rvpp_local, parent);
     }
 
     bool load(handle src, bool convert) {
@@ -418,8 +421,8 @@ struct variant_caster<V<Ts...>> {
     }
 
     template <typename Variant>
-    static handle cast(Variant &&src, return_value_policy_pack rvpp, handle parent) {
-        return visit_helper<V>::call(variant_caster_visitor{std::move(rvpp), parent},
+    static handle cast(Variant &&src, const return_value_policy_pack &rvpp, handle parent) {
+        return visit_helper<V>::call(variant_caster_visitor{rvpp, parent},
                                      std::forward<Variant>(src));
     }
 

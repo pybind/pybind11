@@ -118,7 +118,7 @@ public:
     }
 
     template <typename Func>
-    static handle cast(Func &&f_, return_value_policy_pack rvpp, handle /* parent */) {
+    static handle cast(Func &&f_, const return_value_policy_pack &rvpp, handle /* parent */) {
         if (!f_) {
             return none().release();
         }

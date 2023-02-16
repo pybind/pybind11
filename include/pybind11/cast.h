@@ -124,7 +124,7 @@ public:                                                                         
                   int>                                                                            \
               = 0>                                                                                \
     static ::pybind11::handle cast(                                                               \
-        T_ *src, rvp_or_rvpp_type rvp_or_rvpp, ::pybind11::handle parent) {                       \
+        T_ *src, const rvp_or_rvpp_type &rvp_or_rvpp, ::pybind11::handle parent) {                \
         if (!src)                                                                                 \
             return ::pybind11::none().release();                                                  \
         if (rvp_or_rvpp == ::pybind11::return_value_policy::take_ownership) {                     \
