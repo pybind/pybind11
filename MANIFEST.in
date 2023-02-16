@@ -1,3 +1,4 @@
+prune tests
 prune ubench
 include README_smart_holder.rst
 recursive-include pybind11/include/pybind11 *.h

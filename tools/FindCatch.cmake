@@ -36,10 +36,14 @@ endfunction()
 function(_download_catch version destination_dir)
   message(STATUS "Downloading catch v${version}...")
   set(url https://github.com/philsquared/Catch/releases/download/v${version}/catch.hpp)
-  file(DOWNLOAD ${url} "${destination_dir}/catch.hpp" STATUS status)
+  file(
+    DOWNLOAD ${url} "${destination_dir}/catch.hpp"
+    STATUS status
+    LOG log)
   list(GET status 0 error)
   if(error)
-    message(FATAL_ERROR "Could not download ${url}")
+    string(REPLACE "\n" "\n  " log "  ${log}")
+    message(FATAL_ERROR "Could not download URL:\n" "  ${url}\n" "Log:\n" "${log}")
   endif()
   set(CATCH_INCLUDE_DIR
       "${destination_dir}"
