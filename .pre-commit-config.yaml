@@ -66,10 +66,10 @@ repos:
   - id: fix-smartquotes
 
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.238
+  rev: v0.0.247
   hooks:
   - id: ruff
-    args: ["--fix"]
+    args: ["--fix", "--show-fixes"]
 
 # Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks

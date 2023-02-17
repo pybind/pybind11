@@ -5,7 +5,7 @@ from pybind11_tests import const_name as m
 
 @pytest.mark.parametrize("func", [m.const_name_tests, m.underscore_tests])
 @pytest.mark.parametrize(
-    "selector, expected",
+    ("selector", "expected"),
     enumerate(
         (
             "",

@@ -1,3 +1,5 @@
+import builtins
+
 import pytest
 
 import env
@@ -86,12 +88,7 @@ def test_builtin_key_type():
 
     Previous versions of pybind11 would add a unicode key in python 2.
     """
-    if hasattr(__builtins__, "keys"):
-        keys = __builtins__.keys()
-    else:  # this is to make pypy happy since builtins is different there.
-        keys = __builtins__.__dict__.keys()
-
-    assert {type(k) for k in keys} == {str}
+    assert all(type(k) == str for k in dir(builtins))
 
 
 @pytest.mark.xfail("env.PYPY", reason="PyModule_GetName()")
