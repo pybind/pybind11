@@ -130,7 +130,6 @@ def test_nested():
 
 
 def test_overriding_eq_reset_hash():
-
     assert m.Comparable(15) is not m.Comparable(15)
     assert m.Comparable(15) == m.Comparable(15)
 
