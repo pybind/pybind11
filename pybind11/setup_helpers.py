@@ -175,7 +175,7 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
     def cxx_std(self, level: int) -> None:
         if self._cxx_level:
             warnings.warn(
-                "You cannot safely change the cxx_level after setting it!", stacklevel=1
+                "You cannot safely change the cxx_level after setting it!", stacklevel=2
             )
 
         # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
