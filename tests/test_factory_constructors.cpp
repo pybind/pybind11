@@ -378,7 +378,14 @@ TEST_SUBMODULE(factory_constructors, m) {
         }
         static void operator delete(void *p, size_t) {
             py::print("noisy delete");
+#if defined(__MINGW32__)
+            PYBIND11_WARNING_PUSH
+            PYBIND11_WARNING_DISABLE_GCC("-Wmismatched-new-delete")
+#endif
             ::operator delete(p);
+#if defined(__MINGW32__)
+            PYBIND11_WARNING_PUSH
+#endif
         }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
     };
