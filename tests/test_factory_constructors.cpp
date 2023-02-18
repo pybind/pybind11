@@ -384,7 +384,7 @@ TEST_SUBMODULE(factory_constructors, m) {
 #endif
             ::operator delete(p);
 #if defined(__MINGW32__)
-            PYBIND11_WARNING_PUSH
+            PYBIND11_WARNING_POP
 #endif
         }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
