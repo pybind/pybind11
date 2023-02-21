@@ -59,12 +59,14 @@ repos:
   hooks:
   - id: remove-tabs
 
+# Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
   rev: "0.5.0"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
 
+# Ruff, the Python auto-correcting linter written in Rust
 - repo: https://github.com/charliermarsh/ruff-pre-commit
   rev: v0.0.247
   hooks:
