@@ -1,5 +1,9 @@
 """Simple comparison of holder performances, relative to unique_ptr holder."""
 
+# ruff: noqa
+# This code has no unit tests.
+# ruff cleanup deferred until the next time this code is actually used.
+
 import collections
 import sys
 import time

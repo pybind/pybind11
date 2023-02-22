@@ -1,5 +1,9 @@
 """Extract mean ratios from holder_comparison.py output."""
 
+# ruff: noqa
+# This code has no unit tests.
+# ruff cleanup deferred until the next time this code is actually used.
+
 
 import sys
 from typing import List, Optional
