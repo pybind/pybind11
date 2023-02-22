@@ -37,32 +37,30 @@ class AsAnotherObject:
 
 
 @pytest.mark.parametrize(
-    ("ctor", "caller", "expected", "capsule_generated"),
+    ("ctor", "caller", "expected"),
     [
-        (Valid, m.get_from_valid_capsule, 1, True),
-        (AsAnotherObject, m.get_from_valid_capsule, 1, True),
+        (Valid, m.get_from_valid_capsule, 1),
+        (AsAnotherObject, m.get_from_valid_capsule, 1),
     ],
 )
-def test_valid_as_void_ptr_capsule_function(ctor, caller, expected, capsule_generated):
+def test_valid_as_void_ptr_capsule_function(ctor, caller, expected):
     obj = ctor()
     assert caller(obj) == expected
-    assert obj.capsule_generated == capsule_generated
+    assert obj.capsule_generated
 
 
 @pytest.mark.parametrize(
-    ("ctor", "caller", "expected", "capsule_generated"),
+    ("ctor", "caller"),
     [
-        (NoConversion, m.get_from_no_conversion_capsule, 2, False),
-        (NoCapsuleReturned, m.get_from_no_capsule_returned, 3, False),
+        (NoConversion, m.get_from_no_conversion_capsule),
+        (NoCapsuleReturned, m.get_from_no_capsule_returned),
     ],
 )
-def test_invalid_as_void_ptr_capsule_function(
-    ctor, caller, expected, capsule_generated
-):
+def test_invalid_as_void_ptr_capsule_function(ctor, caller):
     obj = ctor()
     with pytest.raises(TypeError):
         caller(obj)
-    assert obj.capsule_generated == capsule_generated
+    assert not obj.capsule_generated
 
 
 @pytest.mark.parametrize(
