@@ -94,8 +94,7 @@ def ignore_pytest_unraisable_warning(f):
     if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
         dec = pytest.mark.filterwarnings(f"ignore::pytest.{unraisable}")
         return dec(f)
-    else:
-        return f
+    return f
 
 
 # TODO: find out why this fails on PyPy, https://foss.heptapod.net/pypy/pypy/-/issues/3583
@@ -183,7 +182,7 @@ def test_custom(msg):
         m.throws5_1()
     assert msg(excinfo.value) == "MyException5 subclass"
 
-    with pytest.raises(m.MyException5) as excinfo:
+    with pytest.raises(m.MyException5) as excinfo:  # noqa: PT012
         try:
             m.throws5()
         except m.MyException5_1 as err:
@@ -212,7 +211,7 @@ def test_nested_throws(capture):
         m.try_catch(m.MyException5, throw_myex)
     assert str(excinfo.value) == "nested error"
 
-    def pycatch(exctype, f, *args):
+    def pycatch(exctype, f, *args):  # noqa: ARG001
         try:
             f(*args)
         except m.MyException as e:
@@ -303,12 +302,12 @@ class FlakyException(Exception):
 
 
 @pytest.mark.parametrize(
-    "exc_type, exc_value, expected_what",
-    (
+    ("exc_type", "exc_value", "expected_what"),
+    [
         (ValueError, "plain_str", "ValueError: plain_str"),
         (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
         (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
-    ),
+    ],
 )
 def test_error_already_set_what_with_happy_exceptions(
     exc_type, exc_value, expected_what
@@ -342,10 +341,7 @@ def test_flaky_exception_failure_point_str():
     )
     assert not py_err_set_after_what
     lines = what.splitlines()
-    if env.PYPY and len(lines) == 3:
-        n = 3  # Traceback is missing.
-    else:
-        n = 5
+    n = 3 if env.PYPY and len(lines) == 3 else 5
     assert (
         lines[:n]
         == [

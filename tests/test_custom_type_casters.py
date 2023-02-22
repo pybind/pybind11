@@ -100,7 +100,8 @@ def test_custom_caster_destruction():
     cstats = m.destruction_tester_cstats()
     # This one *doesn't* have take_ownership: the pointer should be used but not destroyed:
     z = m.custom_caster_no_destroy()
-    assert cstats.alive() == 1 and cstats.default_constructions == 1
+    assert cstats.alive() == 1
+    assert cstats.default_constructions == 1
     assert z
 
     # take_ownership applied: this constructs a new object, casts it, then destroys it:
