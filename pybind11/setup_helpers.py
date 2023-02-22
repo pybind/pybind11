@@ -271,7 +271,7 @@ def auto_cpp_level(compiler: Any) -> Union[str, int]:
     raise RuntimeError(msg)
 
 
-class build_ext(_build_ext):  # type: ignore[misc]
+class build_ext(_build_ext):  # type: ignore[misc] # noqa: N801
     """
     Customized build_ext that allows an auto-search for the highest supported
     C++ level for Pybind11Extension. This is only needed for the auto-search
