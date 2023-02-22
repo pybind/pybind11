@@ -202,7 +202,7 @@ DISOWN_CLS_I_J_V_LIST = [
 
 
 @pytest.mark.xfail("env.PYPY", strict=False)
-@pytest.mark.parametrize("cls, i, j, v", DISOWN_CLS_I_J_V_LIST)
+@pytest.mark.parametrize(("cls", "i", "j", "v"), DISOWN_CLS_I_J_V_LIST)
 def test_disown_base1_first(cls, i, j, v):
     obj = cls(i, j)
     assert obj.foo() == i
@@ -216,7 +216,7 @@ def test_disown_base1_first(cls, i, j, v):
 
 
 @pytest.mark.xfail("env.PYPY", strict=False)
-@pytest.mark.parametrize("cls, i, j, v", DISOWN_CLS_I_J_V_LIST)
+@pytest.mark.parametrize(("cls", "i", "j", "v"), DISOWN_CLS_I_J_V_LIST)
 def test_disown_base2_first(cls, i, j, v):
     obj = cls(i, j)
     assert obj.bar() == j
@@ -231,7 +231,7 @@ def test_disown_base2_first(cls, i, j, v):
 
 @pytest.mark.xfail("env.PYPY", strict=False)
 @pytest.mark.parametrize(
-    "cls, j, v",
+    ("cls", "j", "v"),
     [
         (MI6, 12, 1),
         (MI7, 13, 4),

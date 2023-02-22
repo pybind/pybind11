@@ -7,7 +7,7 @@ class PyDrvd0(m.Abase0):
     def __init__(self, val):
         super().__init__(val)
 
-    def Add(self, other_val):  # noqa:  N802
+    def Add(self, other_val):
         return self.Get() * 100 + other_val
 
 
@@ -15,7 +15,7 @@ class PyDrvd1(m.Abase1):
     def __init__(self, val):
         super().__init__(val)
 
-    def Add(self, other_val):  # noqa:  N802
+    def Add(self, other_val):
         return self.Get() * 200 + other_val
 
 

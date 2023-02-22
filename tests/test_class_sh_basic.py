@@ -16,7 +16,7 @@ def test_atyp_constructors():
 
 
 @pytest.mark.parametrize(
-    "rtrn_f, expected",
+    ("rtrn_f", "expected"),
     [
         (m.rtrn_valu, "rtrn_valu(_MvCtor)*_MvCtor"),
         (m.rtrn_rref, "rtrn_rref(_MvCtor)*_MvCtor"),
@@ -37,7 +37,7 @@ def test_cast(rtrn_f, expected):
 
 
 @pytest.mark.parametrize(
-    "pass_f, mtxt, expected",
+    ("pass_f", "mtxt", "expected"),
     [
         (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor)*_CpCtor"),
         (m.pass_cref, "Cref", "pass_cref:Cref(_MvCtor)*_MvCtor"),
@@ -55,7 +55,7 @@ def test_load_with_mtxt(pass_f, mtxt, expected):
 
 
 @pytest.mark.parametrize(
-    "pass_f, rtrn_f, expected",
+    ("pass_f", "rtrn_f", "expected"),
     [
         (m.pass_udmp, m.rtrn_udmp, "pass_udmp:rtrn_udmp"),
         (m.pass_udcp, m.rtrn_udcp, "pass_udcp:rtrn_udcp"),
@@ -66,7 +66,7 @@ def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
 
 
 @pytest.mark.parametrize(
-    "pass_f, rtrn_f, expected",
+    ("pass_f", "rtrn_f", "expected"),
     [
         (m.pass_uqmp, m.rtrn_uqmp, "pass_uqmp:rtrn_uqmp"),
         (m.pass_uqcp, m.rtrn_uqcp, "pass_uqcp:rtrn_uqcp"),
@@ -85,7 +85,7 @@ def test_pass_unique_ptr_disowns(pass_f, rtrn_f, expected):
 
 
 @pytest.mark.parametrize(
-    "pass_f, rtrn_f",
+    ("pass_f", "rtrn_f"),
     [
         (m.pass_uqmp, m.rtrn_uqmp),
         (m.pass_uqcp, m.rtrn_uqcp),
@@ -120,7 +120,7 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
 # This currently fails, because a unique_ptr is always loaded by value
 # due to pybind11/detail/smart_holder_type_casters.h:689
 # I think, we need to provide more cast operators.
-@pytest.mark.skip
+@pytest.mark.skip()
 def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
     orig = m.atyp("passenger")
     id_orig = id(orig)
@@ -133,7 +133,7 @@ def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
 
 
 @pytest.mark.parametrize(
-    "pass_f, rtrn_f, moved_out, moved_in",
+    ("pass_f", "rtrn_f", "moved_out", "moved_in"),
     [
         (m.uconsumer.pass_valu, m.uconsumer.rtrn_valu, True, True),
         (m.uconsumer.pass_rref, m.uconsumer.rtrn_valu, True, True),

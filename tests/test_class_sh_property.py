@@ -60,7 +60,7 @@ def test_shp(m_attr):
 
 
 @pytest.mark.parametrize(
-    "field_type, num_default, outer_type",
+    ("field_type", "num_default", "outer_type"),
     [
         (m.ClassicField, -88, m.ClassicOuter),
         (m.Field, -99, m.Outer),
@@ -113,7 +113,7 @@ def test_uqp(m_attr_readwrite, msg):
 # an attribute of the member. After the attribute was accessed, the Python object
 # is disowned back to the C++ member unique_ptr.
 # Productizing this POC is left for a future separate PR, as needed.
-class unique_ptr_field_proxy_poc:  # noqa: N801
+class unique_ptr_field_proxy_poc:
     def __init__(self, obj, field_name):
         object.__setattr__(self, "__obj", obj)
         object.__setattr__(self, "__field_name", field_name)

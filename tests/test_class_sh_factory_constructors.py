@@ -19,7 +19,7 @@ def test_atyp_factories():
 
 
 @pytest.mark.parametrize(
-    "init_args, expected",
+    ("init_args", "expected"),
     [
         ((3,), 300),
         ((5, 7), 570),
@@ -31,7 +31,7 @@ def test_with_alias_success(init_args, expected):
 
 
 @pytest.mark.parametrize(
-    "num_init_args, smart_ptr",
+    ("num_init_args", "smart_ptr"),
     [
         (4, "std::unique_ptr"),
         (5, "std::shared_ptr"),

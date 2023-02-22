@@ -18,7 +18,7 @@ def test_return_pointer():
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_value, "value(_MvCtor)*_MvCtor"),
         (m.return_pointer, "pointer"),

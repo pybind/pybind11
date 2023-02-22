@@ -20,7 +20,7 @@ def test_m_big5():
 
 
 @pytest.mark.parametrize(
-    "action_id, expected_history",
+    ("action_id", "expected_history"),
     [
         (0, "Seed_CpCtor"),
         (1, "Seed_MvCtor"),

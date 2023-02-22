@@ -20,7 +20,7 @@ class PyCppDerived(m.CppDerived):
 
 
 @pytest.mark.parametrize(
-    "ctor, expected",
+    ("ctor", "expected"),
     [
         (m.Base, 101),
         (PyBase, 323),
@@ -35,7 +35,7 @@ def test_base_get(ctor, expected):
 
 
 @pytest.mark.parametrize(
-    "ctor, expected",
+    ("ctor", "expected"),
     [
         (m.Base, 4101),
         (PyBase, 4323),
@@ -50,7 +50,7 @@ def test_get_from_cpp_plainc_ptr(ctor, expected):
 
 
 @pytest.mark.parametrize(
-    "ctor, expected",
+    ("ctor", "expected"),
     [
         (m.Base, 5101),
         (PyBase, 5323),
