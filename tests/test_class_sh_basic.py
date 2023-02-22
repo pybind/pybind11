@@ -121,7 +121,7 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
 # due to pybind11/detail/smart_holder_type_casters.h:689
 # I think, we need to provide more cast operators.
 @pytest.mark.skip()
-def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
+def test_unique_ptr_cref_roundtrip():
     orig = m.atyp("passenger")
     id_orig = id(orig)
     mtxt_orig = m.get_mtxt(orig)

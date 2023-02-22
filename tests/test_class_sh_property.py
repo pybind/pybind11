@@ -8,7 +8,7 @@ from pybind11_tests import class_sh_property as m
 
 
 @pytest.mark.xfail("env.PYPY", reason="gc after `del field` is apparently deferred")
-@pytest.mark.parametrize("m_attr", ("m_valu_readonly", "m_valu_readwrite"))
+@pytest.mark.parametrize("m_attr", ["m_valu_readonly", "m_valu_readwrite"])
 def test_valu_getter(msg, m_attr):
     # Reduced from PyCLIF test:
     # https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/testing/python/nested_fields_test.py#L56
@@ -39,7 +39,7 @@ def test_valu_setter():
     assert outer.m_valu_readwrite.num == 35
 
 
-@pytest.mark.parametrize("m_attr", ("m_shmp", "m_shcp"))
+@pytest.mark.parametrize("m_attr", ["m_shmp", "m_shcp"])
 def test_shp(m_attr):
     m_attr_readonly = m_attr + "_readonly"
     m_attr_readwrite = m_attr + "_readwrite"
@@ -66,8 +66,8 @@ def test_shp(m_attr):
         (m.Field, -99, m.Outer),
     ],
 )
-@pytest.mark.parametrize("m_attr", ("m_mptr", "m_cptr"))
-@pytest.mark.parametrize("r_kind", ("_readonly", "_readwrite"))
+@pytest.mark.parametrize("m_attr", ["m_mptr", "m_cptr"])
+@pytest.mark.parametrize("r_kind", ["_readonly", "_readwrite"])
 def test_ptr(field_type, num_default, outer_type, m_attr, r_kind):
     m_attr_r_kind = m_attr + r_kind
     outer = outer_type()
@@ -84,7 +84,7 @@ def test_ptr(field_type, num_default, outer_type, m_attr, r_kind):
     assert getattr(outer, m_attr_r_kind).num == 76
 
 
-@pytest.mark.parametrize("m_attr_readwrite", ("m_uqmp_readwrite", "m_uqcp_readwrite"))
+@pytest.mark.parametrize("m_attr_readwrite", ["m_uqmp_readwrite", "m_uqcp_readwrite"])
 def test_uqp(m_attr_readwrite, msg):
     outer = m.Outer()
     assert getattr(outer, m_attr_readwrite) is None
@@ -139,8 +139,8 @@ def _proxy_dereference(proxy, xxxattr, *args, **kwargs):
         setattr(obj, field_name, field)  # Disowns the temporary Python object (field).
 
 
-@pytest.mark.parametrize("m_attr", ("m_uqmp", "m_uqcp"))
-def test_unique_ptr_field_proxy_poc(m_attr, msg):
+@pytest.mark.parametrize("m_attr", ["m_uqmp", "m_uqcp"])
+def test_unique_ptr_field_proxy_poc(m_attr):
     m_attr_readwrite = m_attr + "_readwrite"
     outer = m.Outer()
     field_orig = m.Field()
