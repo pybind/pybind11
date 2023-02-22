@@ -341,7 +341,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:  # pylint: disable=unused-argument
+def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.

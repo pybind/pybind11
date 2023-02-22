@@ -186,9 +186,9 @@ def test_map_string_double():
     um["ua"] = 1.1
     um["ub"] = 2.6
 
-    assert sorted(list(um)) == ["ua", "ub"]
+    assert sorted(um) == ["ua", "ub"]
     assert list(um.keys()) == list(um)
-    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    assert sorted(um.items()) == [("ua", 1.1), ("ub", 2.6)]
     assert list(zip(um.keys(), um.values())) == list(um.items())
     assert "UnorderedMapStringDouble" in str(um)
 
@@ -304,11 +304,11 @@ def test_map_delitem():
     um["ua"] = 1.1
     um["ub"] = 2.6
 
-    assert sorted(list(um)) == ["ua", "ub"]
-    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    assert sorted(um) == ["ua", "ub"]
+    assert sorted(um.items()) == [("ua", 1.1), ("ub", 2.6)]
     del um["ua"]
-    assert sorted(list(um)) == ["ub"]
-    assert sorted(list(um.items())) == [("ub", 2.6)]
+    assert sorted(um) == ["ub"]
+    assert sorted(um.items()) == [("ub", 2.6)]
 
 
 def test_map_view_types():
