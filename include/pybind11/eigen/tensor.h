@@ -17,7 +17,9 @@ static_assert(__GNUC__ > 5, "Eigen Tensor support in pybind11 requires GCC > 5.0
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_MSVC(4554)
 PYBIND11_WARNING_DISABLE_MSVC(4127)
+#if defined(__MINGW32__)
 PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
+#endif
 
 #include <unsupported/Eigen/CXX11/Tensor>
 
