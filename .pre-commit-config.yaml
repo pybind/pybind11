@@ -39,19 +39,6 @@ repos:
   - id: requirements-txt-fixer
   - id: trailing-whitespace
 
-# Upgrade old Python syntax
-- repo: https://github.com/asottile/pyupgrade
-  rev: "v3.3.1"
-  hooks:
-  - id: pyupgrade
-    args: [--py36-plus]
-
-# Nicely sort includes
-- repo: https://github.com/PyCQA/isort
-  rev: "5.12.0"
-  hooks:
-  - id: isort
-
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
   rev: "23.1.0" # Keep in sync with blacken-docs
@@ -72,47 +59,28 @@ repos:
   hooks:
   - id: remove-tabs
 
+# Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
   rev: "0.5.0"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
 
-# Autoremoves unused imports
-- repo: https://github.com/hadialqattan/pycln
-  rev: "v2.1.3"
+# Ruff, the Python auto-correcting linter written in Rust
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.0.251
   hooks:
-  - id: pycln
-    stages: [manual]
+  - id: ruff
+    args: ["--fix", "--show-fixes"]
 
 # Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: "v1.10.0"
   hooks:
-  - id: python-check-blanket-noqa
-  - id: python-check-blanket-type-ignore
-  - id: python-no-log-warn
-  - id: python-use-type-annotations
   - id: rst-backticks
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
-# Automatically remove noqa that are not used
-- repo: https://github.com/asottile/yesqa
-  rev: "v1.4.0"
-  hooks:
-  - id: yesqa
-    additional_dependencies: &flake8_dependencies
-      - flake8-bugbear
-      - pep8-naming
-
-# Flake8 also supports pre-commit natively (same author)
-- repo: https://github.com/PyCQA/flake8
-  rev: "6.0.0"
-  hooks:
-  - id: flake8
-    exclude: ^(docs/.*|tools/.*)$
-    additional_dependencies: *flake8_dependencies
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint

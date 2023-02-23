@@ -22,7 +22,7 @@ def test_dtypes():
             )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def arr():
     return np.array([[1, 2, 3], [4, 5, 6]], "=u2")
 
@@ -67,7 +67,7 @@ def test_array_attributes():
 
 
 @pytest.mark.parametrize(
-    "args, ret", [([], 0), ([0], 0), ([1], 3), ([0, 1], 1), ([1, 2], 5)]
+    ("args", "ret"), [([], 0), ([0], 0), ([1], 3), ([0, 1], 1), ([1, 2], 5)]
 )
 def test_index_offset(arr, args, ret):
     assert m.index_at(arr, *args) == ret
@@ -93,7 +93,7 @@ def test_dim_check_fail(arr):
 
 
 @pytest.mark.parametrize(
-    "args, ret",
+    ("args", "ret"),
     [
         ([], [1, 2, 3, 4, 5, 6]),
         ([1], [4, 5, 6]),
@@ -211,12 +211,14 @@ def test_wrap():
             assert b[0, 0] == 1234
 
     a1 = np.array([1, 2], dtype=np.int16)
-    assert a1.flags.owndata and a1.base is None
+    assert a1.flags.owndata
+    assert a1.base is None
     a2 = m.wrap(a1)
     assert_references(a1, a2)
 
     a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order="F")
-    assert a1.flags.owndata and a1.base is None
+    assert a1.flags.owndata
+    assert a1.base is None
     a2 = m.wrap(a1)
     assert_references(a1, a2)
 
@@ -451,13 +453,15 @@ def test_array_resize():
     try:
         m.array_resize3(a, 3, True)
     except ValueError as e:
-        assert str(e).startswith("cannot resize an array")
+        assert str(e).startswith("cannot resize an array")  # noqa: PT017
     # transposed array doesn't own data
     b = a.transpose()
     try:
         m.array_resize3(b, 3, False)
     except ValueError as e:
-        assert str(e).startswith("cannot resize this array: it does not own its data")
+        assert str(e).startswith(  # noqa: PT017
+            "cannot resize this array: it does not own its data"
+        )
     # ... but reshape should be fine
     m.array_reshape2(b)
     assert b.shape == (8, 8)
