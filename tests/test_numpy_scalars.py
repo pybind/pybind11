@@ -6,23 +6,21 @@ from pybind11_tests import numpy_scalars as m
 
 np = pytest.importorskip("numpy")
 
-SCALAR_TYPES = dict(
-    [
-        (np.bool_, False),
-        (np.int8, -7),
-        (np.int16, -15),
-        (np.int32, -31),
-        (np.int64, -63),
-        (np.uint8, 9),
-        (np.uint16, 17),
-        (np.uint32, 33),
-        (np.uint64, 65),
-        (np.single, 1.125),
-        (np.double, 1.25),
-        (np.complex64, 1 - 0.125j),
-        (np.complex128, 1 - 0.25j),
-    ]
-)
+SCALAR_TYPES = {
+    np.bool_: False,
+        np.int8: -7,
+        np.int16: -15,
+        np.int32: -31,
+        np.int64: -63,
+        np.uint8: 9,
+        np.uint16: 17,
+        np.uint32: 33,
+        np.uint64: 65,
+        np.single: 1.125,
+        np.double: 1.25,
+        np.complex64: 1 - 0.125j,
+        np.complex128: 1 - 0.25j,
+}
 ALL_TYPES = [int, bool, float, bytes, str] + list(SCALAR_TYPES)
 
 
