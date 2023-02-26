@@ -193,10 +193,8 @@ public:
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
         if (!std::is_lvalue_reference<T>::value) {
-  //printf("\nLOOOK policy=%d %s:%d\n", int(policy), __FILE__, __LINE__); fflush(stdout);
             policy = return_value_policy_override<Value>::policy(policy);
         }
-  //printf("\nLOOOK policy=%d %s:%d\n", int(policy), __FILE__, __LINE__); fflush(stdout);
         list l(src.size());
         ssize_t index = 0;
         for (auto &&value : src) {

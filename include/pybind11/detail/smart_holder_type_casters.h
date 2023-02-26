@@ -466,8 +466,7 @@ struct smart_holder_type_caster_load {
         holder_type &hld = holder();
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
-            // long *BAD = nullptr; *BAD = 101;
-            //throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
+            throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
         auto *void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
         auto *type_raw_ptr = convert_type(void_raw_ptr);
@@ -717,7 +716,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
             return existing_inst;
         }
 
-  //printf("\nLOOOK have_existing_holder=%s %s:%d\n", existing_holder == nullptr ? "false" : "true", __FILE__, __LINE__); fflush(stdout);
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto *wrapper = reinterpret_cast<instance *>(inst.ptr());
         wrapper->owned = false;
@@ -776,7 +774,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 break;
 
             case return_value_policy::reference_internal:
-  //printf("\nLOOOK case return_value_policy::reference_internal %s:%d\n",  __FILE__, __LINE__); fflush(stdout);
                 valueptr = src;
                 wrapper->owned = false;
                 keep_alive_impl(inst, parent);
