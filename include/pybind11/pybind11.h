@@ -2544,6 +2544,37 @@ public:
     void operator()(const char *message) { PyErr_SetString(m_ptr, message); }
 };
 
+/**
+ * Wrapper to generate a new Python warning type.
+ *
+ * It is not (yet) possible to use PyObject as a py::base.
+ * Template type argument is reserved for future use.
+ */
+template <typename type>
+class warning : public object {
+public:
+    warning() = default;
+    warning(handle scope, const char *name, handle base = warnings::runtime) {
+        if (!detail::PyWarning_Check(base.ptr())) {
+            pybind11_fail("warning(): cannot create custom warning, base must be a subclass of "
+                          "PyExc_Warning!");
+        }
+        if (hasattr(scope, "__dict__") && scope.attr("__dict__").contains(name)) {
+            pybind11_fail("Error during initialization: multiple incompatible "
+                          "definitions with name \""
+                          + std::string(name) + "\"");
+        }
+        std::string full_name
+            = scope.attr("__name__").cast<std::string>() + std::string(".") + name;
+        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), nullptr);
+        scope.attr(name) = *this;
+    }
+
+    void operator()(const char *message, ssize_t stack_level = 2) {
+        raise_warning(message, *this, stack_level);
+    }
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 // Returns a reference to a function-local static exception object used in the simple
 // register_exception approach below.  (It would be simpler to have the static local variable
