@@ -1587,6 +1587,7 @@ struct property_cpp_function<
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
             [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<drp> {
+  //printf("\nLOOOK GOT std::shared_ptr<T> %s:%d\n", __FILE__, __LINE__); fflush(stdout);
                 D ptr = (*c_sp).*pm;
                 return std::shared_ptr<drp>(c_sp, ptr);
             },
@@ -1893,11 +1894,13 @@ public:
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readwrite() requires a class member (or base class member)");
+  //printf("\nLOOOK def_readwrite ENTR name=%s %s:%d\n", name, __FILE__, __LINE__); fflush(stdout);
         def_property(name,
                      property_cpp_function<type, D>::read(pm, *this),
                      property_cpp_function<type, D>::write(pm, *this),
                      return_value_policy::reference_internal,
                      extra...);
+  //printf("\nLOOOK def_readwrite DONE name=%s %s:%d\n", name, __FILE__, __LINE__); fflush(stdout);
         return *this;
     }
 
@@ -1983,6 +1986,7 @@ public:
                          const cpp_function &fget,
                          const cpp_function &fset,
                          const Extra &...extra) {
+  //printf("\nLOOOK def_property name=%s %s:%d\n", name, __FILE__, __LINE__); fflush(stdout);
         return def_property_static(name, fget, fset, is_method(*this), extra...);
     }
 
