@@ -735,6 +735,7 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 break;
 
             case return_value_policy::copy:
+            case return_value_policy::_clif_automatic:
                 if (copy_constructor) {
                     valueptr = copy_constructor(src);
                 } else {

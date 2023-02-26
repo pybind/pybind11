@@ -342,6 +342,7 @@ private:
             case return_value_policy::move:
                 return eigen_encapsulate<props>(new CType(std::move(*src)));
             case return_value_policy::copy:
+            case return_value_policy::_clif_automatic:
                 return eigen_array_cast<props>(*src);
             case return_value_policy::reference:
             case return_value_policy::automatic_reference:
