@@ -1,8 +1,6 @@
-import sys
 
 import pytest
 
-import env
 import pybind11_tests  # noqa: F401
 from pybind11_tests import warnings_ as m
 
@@ -13,9 +11,11 @@ from pybind11_tests import warnings_ as m
         (Warning, "Warning was raised!", 21, m.raise_and_return),
         (RuntimeWarning, "RuntimeWarning is raised!", None, m.raise_default),
         (UnicodeWarning, "UnicodeWarning is raised!", None, m.raise_from_cpython),
-    ]
+    ],
 )
-def test_warning_simple(expected_category, expected_message, expected_value, module_function):
+def test_warning_simple(
+    expected_category, expected_message, expected_value, module_function
+):
     with pytest.warns(Warning) as excinfo:
         value = module_function()
 
@@ -29,7 +29,10 @@ def test_warning_fail():
         m.raise_and_fail()
 
     assert issubclass(excinfo.type, RuntimeError)
-    assert str(excinfo.value) == "raise_warning(): cannot raise warning, category must be a subclass of PyExc_Warning!"
+    assert (
+        str(excinfo.value)
+        == "raise_warning(): cannot raise warning, category must be a subclass of PyExc_Warning!"
+    )
 
 
 def test_warning_register():
@@ -47,13 +50,33 @@ def test_warning_register():
 
 
 @pytest.mark.parametrize(
-    ("expected_category", "expected_base", "expected_message", "expected_value", "module_function"),
+    (
+        "expected_category",
+        "expected_base",
+        "expected_message",
+        "expected_value",
+        "module_function",
+    ),
     [
-        (m.CustomWarning, DeprecationWarning, "CustomWarning was raised!", 37, m.raise_custom),
-        (m.CustomWarning, DeprecationWarning, "This is raised from a wrapper.", 42, m.raise_with_wrapper),
-    ]
+        (
+            m.CustomWarning,
+            DeprecationWarning,
+            "CustomWarning was raised!",
+            37,
+            m.raise_custom,
+        ),
+        (
+            m.CustomWarning,
+            DeprecationWarning,
+            "This is raised from a wrapper.",
+            42,
+            m.raise_with_wrapper,
+        ),
+    ],
 )
-def test_warning_custom(expected_category, expected_base, expected_message, expected_value, module_function):
+def test_warning_custom(
+    expected_category, expected_base, expected_message, expected_value, module_function
+):
     with pytest.warns(expected_category) as excinfo:
         value = module_function()
 
@@ -84,4 +107,4 @@ def test_warning_categories(expected_category, module_function):
         module_function()
 
     assert issubclass(excinfo[0].category, expected_category)
-    assert str(excinfo[0].message) == "This is {}!".format(expected_category.__name__)
+    assert str(excinfo[0].message) == f"This is {expected_category.__name__}!"
