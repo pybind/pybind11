@@ -659,7 +659,7 @@ jobs:
     container: i386/debian:buster
 
     steps:
-    - uses: actions/checkout@v1  # Required to run inside docker
+    - uses: actions/checkout@v3  # Required to run inside docker
 
     - name: Install requirements
       run: |
