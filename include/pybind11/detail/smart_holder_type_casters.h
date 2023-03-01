@@ -39,8 +39,9 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 
 // Replace all occurrences of substrings in a string.
 inline void replace_all(std::string &str, const std::string &from, const std::string &to) {
-    if (str.empty())
+    if (str.empty()) {
         return;
+    }
     size_t pos = 0;
     while ((pos = str.find(from, pos)) != std::string::npos) {
         str.replace(pos, from.length(), to);
