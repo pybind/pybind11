@@ -37,13 +37,37 @@ struct is_smart_holder_type<smart_holder> : std::true_type {};
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
-// Replace all occurrences of a character in string.
-inline void replace_all(std::string &str, const std::string &from, char to) {
-    size_t pos = str.find(from);
-    while (pos != std::string::npos) {
-        str.replace(pos, from.length(), 1, to);
-        pos = str.find(from, pos);
+// Replace all occurrences of substrings in a string.
+inline void replace_all(std::string &str, const std::string &from, const std::string &to) {
+    if (str.empty()) {
+        return;
     }
+    size_t pos = 0;
+    while ((pos = str.find(from, pos)) != std::string::npos) {
+        str.replace(pos, from.length(), to);
+        pos += to.length();
+    }
+}
+
+inline void *try_as_void_ptr_capsule_get_pointer(handle src, const char *typeid_name) {
+    std::string type_name = typeid_name;
+    detail::clean_type_id(type_name);
+
+    // Convert `a::b::c` to `a_b_c`.
+    replace_all(type_name, "::", "_");
+    // Remove all `*` in the type name.
+    replace_all(type_name, "*", "");
+
+    std::string as_void_ptr_function_name("as_");
+    as_void_ptr_function_name += type_name;
+    if (hasattr(src, as_void_ptr_function_name.c_str())) {
+        auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
+        auto void_ptr_capsule = as_void_ptr_function();
+        if (isinstance<capsule>(void_ptr_capsule)) {
+            return reinterpret_borrow<capsule>(void_ptr_capsule).get_pointer();
+        }
+    }
+    return nullptr;
 }
 
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
@@ -120,22 +144,10 @@ public:
     }
 
     bool try_as_void_ptr_capsule(handle src) {
-        std::string type_name = cpptype->name();
-        detail::clean_type_id(type_name);
-
-        // Convert `a::b::c` to `a_b_c`
-        replace_all(type_name, "::", '_');
-
-        std::string as_void_ptr_function_name("as_");
-        as_void_ptr_function_name += type_name;
-        if (hasattr(src, as_void_ptr_function_name.c_str())) {
-            auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
-            auto void_ptr_capsule = as_void_ptr_function();
-            if (isinstance<capsule>(void_ptr_capsule)) {
-                unowned_void_ptr_from_void_ptr_capsule
-                    = reinterpret_borrow<capsule>(void_ptr_capsule).get_pointer();
-                return true;
-            }
+        unowned_void_ptr_from_void_ptr_capsule
+            = try_as_void_ptr_capsule_get_pointer(src, cpptype->name());
+        if (unowned_void_ptr_from_void_ptr_capsule != nullptr) {
+            return true;
         }
         return false;
     }
