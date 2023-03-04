@@ -903,6 +903,64 @@ are listed.
 
 .. _module_local:
 
+For more complex multiple-inheritance class architectures with virtual methods, it might be necessary to combine
+two different Trampoline class hierarchies. A templating trick can be used in this case to interleaf another
+trampoline class (-hierarchy):
+
+.. code-block:: cpp
+
+    class Animal {
+    public:
+        virtual ~Animal() { }
+        virtual std::string go(int n_times) = 0;
+    };
+    template <class AnimalBase = Animal>
+    class PyAnimal : public AnimalBase {
+    public:
+        using AnimalBase::AnimalBase; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, AnimalBase, go, n_times); }
+    };
+
+    class Dog : public Animal {
+    public:
+        std::string go(int n_times) override;
+    };
+    template <class DogBase = Dog>
+    class PyDog : public PyAnimal<DogBase> {
+    public:
+        using PyAnimal<DogBase>::PyAnimal; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERRIDE(std::string, DogBase, go, n_times); }
+    };
+
+    class Mutant {
+    public:
+        virtual ~Mutant() { }
+        virtual void transform();
+    };
+    template <class MutantBase = Mutant, class PyMutantBase = MutantBase>
+    class PyMutant : public PyMutantBase {
+    public:
+        using PyMutantBase::PyMutantBase; // Inherit constructors
+        void transform() override { PYBIND11_OVERRIDE_PURE(void, MutantBase, transform, ); }
+    };
+
+    class Chimera : public Dog, public Mutant {
+    public:
+        virtual ~Chimera() { }
+    };
+    template <class ChimeraBase = Chimera>
+    class PyChimera : public PyMutant<ChimeraBase, PyDog<ChimeraBase>> {
+    public:
+        using PyMutant<ChimeraBase, PyDog<ChimeraBase>>::PyMutant; // Inherit constructors
+    };
+
+The class ``Chimera`` inherits from both ``Dog`` and ``Mutant`` both of which feature virtual methods and
+trampoline classes for binding. However, the ``Mutant`` trampoline class uses a second template parameter
+``PyMutantBase`` so it can be injected into the single inheritance structure required by a trampoline class.
+In effect, this mechanism enforces that the actual class the trampolines are using is only inherited from once.
+Since the trampolines only need to add their respective trampoline function registrations, the order of the
+inheritance of the various trampoline classes does not matter.
+
 Module-local class bindings
 ===========================
 
