@@ -21,6 +21,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -2853,6 +2854,51 @@ function get_override(const T *this_ptr, const char *name) {
 #define PYBIND11_OVERRIDE_PURE(ret_type, cname, fn, ...)                                          \
     PYBIND11_OVERRIDE_PURE_NAME(                                                                  \
         PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+
+/** \rst
+    Macro to wrap :c:macro:`PYBIND11_OVERRIDE_PURE_NAME` and :c:macro:`PYBIND11_OVERRIDE_PURE`
+    depending on the base class and cname parameter provided.
+    See :ref:`_multiple_inheritance` for more information.
+
+    .. code-block:: cpp
+
+      template<class AnimalBase = Animal>
+      class PyAnimal : public AnimalBase {
+      public:
+          // Inherit the constructors
+          using AnimalBase::AnimalBase;
+
+          // Trampoline (need one for each virtual function)
+          std::string go(int n_times) override {
+              PYBIND11_OVERRIDE_TEMPLATE(
+                  Animal,      // The base class containing the purely virtual implementation
+                  std::string, // Return type (ret_type)
+                  Dog,         // Parent class (cname)
+                  "_go",       // Name of method in Python (name)
+                  go,          // Name of function in C++ (must match Python name) (fn)
+                  n_times      // Argument(s) (...)
+              );
+          }
+      };
+\endrst */
+#define PYBIND11_OVERRIDE_TEMPLATE_NAME(base, ret_type, cname, name, fn, ...)                     \
+    if (std::is_same<base, cname>::value) {                                                       \
+        PYBIND11_OVERRIDE_PURE_NAME(                                                              \
+            PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__);                \
+    } else {                                                                                      \
+        PYBIND11_OVERRIDE_NAME(                                                                   \
+            PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__);                \
+    }
+
+/** \rst
+    Macro to wrap :c:macro:`PYBIND11_OVERRIDE_NAME` and :c:macro:`PYBIND11_OVERRIDE`
+    depending on the base class and cname parameter provided.
+    Uses :c:macro:`PYBIND11_OVERRIDE_TEMPLATE_NAME` under the hood.
+    See :ref:`_multiple_inheritance` for more information.
+\endrst */
+#define PYBIND11_OVERRIDE_TEMPLATE(base, ret_type, cname, fn, ...)                                \
+    PYBIND11_OVERRIDE_TEMPLATE_NAME(                                                              \
+        PYBIND11_TYPE(base), PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 // Deprecated versions
 

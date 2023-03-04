@@ -867,6 +867,8 @@ which should look as follows:
 
 .. [#f5] https://docs.python.org/3/library/copy.html
 
+.. _multiple_inheritance:
+
 Multiple Inheritance
 ====================
 
@@ -960,6 +962,63 @@ trampoline classes for binding. However, the ``Mutant`` trampoline class uses a 
 In effect, this mechanism enforces that the actual class the trampolines are using is only inherited from once.
 Since the trampolines only need to add their respective trampoline function registrations, the order of the
 inheritance of the various trampoline classes does not matter.
+
+If the base classes contain pure virtual methods, another pattern can be applied to reduce the amount of
+trampoline code that needs writing. The cost is an additional ``std::same`` call for each pure-virtual
+method using the macro ``PYBIND11_OVERRIDE_TEMPLATE``.
+
+.. code-block:: cpp
+
+    class Animal {
+    public:
+        virtual ~Animal() { }
+        virtual std::string go(int n_times) = 0;
+    };
+    class Dog : public Animal {
+    public:
+        std::string go(int n_times) override;
+    };
+    template <class AnimalBase = Animal, class PureVirtualBase = Animal>
+    class PyAnimal : public AnimalBase {
+    public:
+        using AnimalBase::AnimalBase; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERRIDE_TEMPLATE(PureVirtualBase, std::string, AnimalBase, go, n_times); }
+    };
+    using PyDog = PyAnimal<Dog>
+
+    class Mutant {
+    public:
+        virtual ~Mutant() { }
+        virtual void transform() = 0;
+    };
+    class XMen : public Mutant{
+    public:
+        virtual ~Mutant() { }
+        void transform() override;
+    };
+    template <class MutantBase = Mutant, class PyMutantBase = MutantBase, class PureVirtualBase = Mutant>
+    class PyMutant : public PyMutantBase {
+    public:
+        using PyMutantBase::PyMutantBase; // Inherit constructors
+        void transform() override { PYBIND11_OVERRIDE_TEMPLATE(PureVirtualBase, void, MutantBase, transform, ); }
+    };
+    using PyXMen = PyMutant<XMen>
+
+    class Chimera : public Dog, public Mutant {
+    public:
+        virtual ~Chimera() { }
+    };
+    template <class ChimeraBase = Chimera, class PyChimeraBase = ChimeraBase>
+    class PyChimera : public PyMutant<ChimeraBase, PyAnimal<ChimeraBase, PyChimeraBase>> {
+    public:
+        using PyMutant<ChimeraBase, PyAnimal<ChimeraBase, PyChimeraBase>>::PyMutant; // Inherit constructors
+    };
+
+The first parameter of the :c:macro:`PYBIND11_OVERRIDE_TEMPLATE` is the base class containing
+the pure virtual method. Together with the cname parameter, an ``std::same`` call is used to
+invoke either :c:macro:`PYBIND11_OVERRIDE_PURE` or :c:macro:`PYBIND11_OVERRIDE`. A corresponding
+:c:macro:`PYBIND11_OVERRIDE_TEMPLATE_NAME` implementation is also available. The template parameter
+``PureVirtualBase`` can be used in case the pure virtual methods are not implemented in a child class.
 
 Module-local class bindings
 ===========================

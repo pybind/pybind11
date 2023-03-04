@@ -87,12 +87,12 @@ public:
     ChainBaseA(const ChainBaseA &) = default;
     ChainBaseA(ChainBaseA &&) = default;
     virtual ~ChainBaseA() = default;
-    virtual int resultA() { return 1; }
+    virtual int resultA() = 0;
 };
 class ChainChildA : public ChainBaseA {
 public:
     using ChainBaseA::ChainBaseA;
-    int resultA() override { return 2; }
+    int resultA() override { return 1; }
 };
 class ChainBaseB {
 public:
@@ -100,12 +100,12 @@ public:
     ChainBaseB(const ChainBaseB &) = default;
     ChainBaseB(ChainBaseB &&) = default;
     virtual ~ChainBaseB() = default;
-    virtual std::string resultB() { return "A"; }
+    virtual std::string resultB() = 0;
 };
 class ChainChildB : public ChainBaseB {
 public:
     using ChainBaseB::ChainBaseB;
-    std::string resultB() override { return "B"; }
+    std::string resultB() override { return "A"; }
 };
 class Joined : public ChainChildA, public ChainChildB {
 public:
@@ -114,22 +114,24 @@ public:
     Joined(Joined &&) = default;
 };
 
-template <class Base = ChainBaseA>
+template <class Base = ChainBaseA, typename PureVirtualBase = ChainBaseA>
 class TrampolineA : public Base {
 public:
     using Base::Base;
-    int resultA() override { PYBIND11_OVERLOAD(int, Base, resultA, ); }
+    int resultA() override { PYBIND11_OVERRIDE_TEMPLATE(PureVirtualBase, int, Base, resultA, ) }
 };
-template <class Base = ChainBaseB, class PyBase = Base>
+template <class Base = ChainBaseB, class PyBase = Base, typename PureVirtualBase = ChainBaseB>
 class TrampolineB : public PyBase {
 public:
     using PyBase::PyBase;
-    std::string resultB() override { PYBIND11_OVERLOAD(std::string, Base, resultB, ); }
+    std::string resultB() override {
+        PYBIND11_OVERRIDE_TEMPLATE(PureVirtualBase, std::string, Base, resultB, )
+    }
 };
-template <class Base = Joined>
-class TrampolineJoined : public TrampolineB<Base, TrampolineA<Base>> {
+template <class Base = Joined, class PyBase = Base>
+class TrampolineJoined : public TrampolineB<Base, TrampolineA<Base, PyBase>> {
 public:
-    using TrampolineB<Base, TrampolineA<Base>>::TrampolineB;
+    using TrampolineB<Base, TrampolineA<Base, PyBase>>::TrampolineB;
 };
 } // namespace TrampolineNesting
 
@@ -393,7 +395,6 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def_readwrite("f", &MVF::f);
 
     namespace TN = TrampolineNesting;
-
     py::class_<TN::ChainBaseA, TN::TrampolineA<>>(m, "ChainBaseA")
         .def(py::init<>())
         .def("resultA", &TN::ChainBaseA::resultA);
@@ -404,6 +405,12 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def("resultB", &TN::ChainBaseB::resultB);
     py::class_<TN::ChainChildB, TN::ChainBaseB, TN::TrampolineB<TN::ChainChildB>>(m, "ChainChildB")
         .def(py::init<>());
-    py::class_<TN::Joined, TN::ChainBaseA, TN::ChainBaseB, TN::TrampolineJoined<>>(m, "Joined")
+    py::class_<TN::Joined, TN::ChainChildA, TN::ChainChildB, TN::TrampolineJoined<>>(m, "Joined")
         .def(py::init<>());
 }
+
+// Needed for MSVC linker
+namespace TrampolineNesting {
+int ChainBaseA::resultA() { return 0; }
+std::string ChainBaseB::resultB() { return ""; }
+} // namespace TrampolineNesting
