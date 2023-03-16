@@ -2567,8 +2567,7 @@ public:
         std::string full_name
             = scope.attr("__name__").cast<std::string>() + std::string(".") + name;
         m_ptr = PyErr_NewException(
-            const_cast<char *>(full_name.c_str()), const_cast<PyObject *>(base), nullptr
-        );
+            const_cast<char *>(full_name.c_str()), const_cast<PyObject *>(base), nullptr);
         scope.attr(name) = *this;
     }
 
@@ -2578,8 +2577,9 @@ public:
 };
 
 // Raise Python warning based on the Python warning category.
-inline void
-raise_warning(const char *message, const PyObject *category = PyExc_RuntimeWarning, ssize_t stack_level = 2) {
+inline void raise_warning(const char *message,
+                          const PyObject *category = PyExc_RuntimeWarning,
+                          ssize_t stack_level = 2) {
     if (!pybind11::detail::PyWarning_Check(category)) {
         pybind11_fail("raise_warning(): cannot raise warning, category must be a subclass of "
                       "PyExc_Warning!");

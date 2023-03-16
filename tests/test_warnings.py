@@ -1,6 +1,6 @@
+import warnings
 
 import pytest
-import warnings
 
 import pybind11_tests  # noqa: F401
 from pybind11_tests import warnings_ as m
