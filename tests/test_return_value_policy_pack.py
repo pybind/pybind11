@@ -4,7 +4,7 @@ from pybind11_tests import return_value_policy_pack as m
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_tuple_str_str, (str, str)),
         (m.return_tuple_bytes_bytes, (bytes, bytes)),
@@ -20,7 +20,7 @@ def test_return_pair_string(func, expected):
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_nested_tuple_str, (str, str, str, str)),
         (m.return_nested_tuple_bytes, (bytes, bytes, bytes, bytes)),
@@ -36,7 +36,7 @@ def test_return_nested_pair_string(func, expected):
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_dict_str_str, (str, str)),
         (m.return_dict_bytes_bytes, (bytes, bytes)),
@@ -52,7 +52,7 @@ def test_return_map_string(func, expected):
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_map_sbbs, (str, bytes, bytes, str)),
         (m.return_map_bssb, (bytes, str, str, bytes)),
@@ -68,7 +68,7 @@ def test_return_dict_pair_string(func, expected):
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_set_sb, (str, bytes)),
         (m.return_set_bs, (bytes, str)),
@@ -82,7 +82,7 @@ def test_return_set_pair_string(func, expected):
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.return_vector_sb, (str, bytes)),
         (m.return_vector_bs, (bytes, str)),
@@ -107,7 +107,7 @@ def _test_return_optional_variant_pair_string(fname, expected):
 
 @pytest.mark.skipif(not m.PYBIND11_HAS_OPTIONAL, reason="<optional> not available.")
 @pytest.mark.parametrize(
-    "fname, expected",
+    ("fname", "expected"),
     [
         ("return_optional_sb", (str, bytes)),
         ("return_optional_bs", (bytes, str)),
@@ -119,7 +119,7 @@ def test_return_optional_pair_string(fname, expected):
 
 @pytest.mark.skipif(not m.PYBIND11_HAS_VARIANT, reason="<variant> not available.")
 @pytest.mark.parametrize(
-    "fname, expected",
+    ("fname", "expected"),
     [
         ("return_variant_sb", (str, bytes)),
         ("return_variant_bs", (bytes, str)),
@@ -130,7 +130,7 @@ def test_return_variant_pair_string(fname, expected):
 
 
 @pytest.mark.parametrize(
-    "func, expected",
+    ("func", "expected"),
     [
         (m.call_callback_pass_pair_default, repr(("", ""))),
         (m.call_callback_pass_pair_s, repr(("", ""))),
