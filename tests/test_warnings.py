@@ -1,5 +1,6 @@
 
 import pytest
+import warnings
 
 import pybind11_tests  # noqa: F401
 from pybind11_tests import warnings_ as m
@@ -38,8 +39,6 @@ def test_warning_fail():
 def test_warning_register():
     assert m.CustomWarning is not None
     assert issubclass(m.CustomWarning, DeprecationWarning)
-
-    import warnings
 
     with pytest.warns(m.CustomWarning) as excinfo:
         warnings.warn("This is warning from Python!", m.CustomWarning)
