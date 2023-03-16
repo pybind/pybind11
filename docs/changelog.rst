@@ -21,11 +21,47 @@ Changes:
   ``dec_ref()`` are now enabled by default again.
   `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
 
+* ``py::initialize_interpreter()`` using ``PyConfig_InitPythonConfig()``
+  instead of ``PyConfig_InitIsolatedConfig()``, to obtain complete
+  ``sys.path``.
+  `#4473 <https://github.com/pybind/pybind11/pull/4473>`_
+
+* Cast errors now always include Python type information, even if
+  ``PYBIND11_DETAILED_ERROR_MESSAGES`` is not defined. This increases binary
+  sizes slightly (~1.5%) but the error messages are much more informative.
+  `#4463 <https://github.com/pybind/pybind11/pull/4463>`_
+
+
 Build system improvements:
 
 * Update clang-tidy to 15 in CI.
   `#4387 <https://github.com/pybind/pybind11/pull/4387>`_
 
+* Moved the linting framework over to Ruff.
+  `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
+
+Version 2.10.4 (Mar 16, 2023)
+----------------------------
+
+Changes:
+
+* ``python3 -m pybind11`` gained a ``--version`` option (prints the version and
+  exits).
+  `#4526 <https://github.com/pybind/pybind11/pull/4526>`_
+
+Bug Fixes:
+
+* Fix a warning when pydebug is enabled on Python 3.11.
+  `#4461 <https://github.com/pybind/pybind11/pull/4461>`_
+
+* Ensure ``gil_scoped_release`` RAII is non-copyable.
+  `#4490 <https://github.com/pybind/pybind11/pull/4490>`_
+
+* Ensure the tests dir does not show up with new versions of setuptools.
+  `#4510 <https://github.com/pybind/pybind11/pull/4510>`_
+
+* Better stacklevel for a warning in setuptools helpers.
+  `#4516 <https://github.com/pybind/pybind11/pull/4516>`_
 
 Version 2.10.3 (Jan 3, 2023)
 ----------------------------
