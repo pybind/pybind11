@@ -40,7 +40,7 @@ Build system improvements:
 * Moved the linting framework over to Ruff.
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
 
-Version 2.10.4 (Feb 25, 2023)
+Version 2.10.4 (Mar 16, 2023)
 ----------------------------
 
 Changes:
