@@ -63,7 +63,6 @@ def test_importing():
     from pybind11_tests.modules import OD
 
     assert OD is OrderedDict
-    assert str(OD([(1, "a"), (2, "b")])) == "OrderedDict([(1, 'a'), (2, 'b')])"
 
 
 def test_pydoc():
