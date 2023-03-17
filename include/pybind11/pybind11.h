@@ -2571,7 +2571,7 @@ public:
         scope.attr(name) = *this;
     }
 
-    void operator()(const char *message, ssize_t stack_level = 2) {
+    void operator()(const char *message, int stack_level = 2) {
         raise_warning(message, *this, stack_level);
     }
 };
@@ -2579,7 +2579,7 @@ public:
 // Raise Python warning based on the Python warning category.
 inline void raise_warning(const char *message,
                           const PyObject *category = PyExc_RuntimeWarning,
-                          ssize_t stack_level = 2) {
+                          int stack_level = 2) {
     if (!pybind11::detail::PyWarning_Check(category)) {
         pybind11_fail("raise_warning(): cannot raise warning, category must be a subclass of "
                       "PyExc_Warning!");
@@ -2591,7 +2591,7 @@ inline void raise_warning(const char *message,
 }
 
 template <typename T>
-void raise_warning(const char *message, warning<T> category, ssize_t stack_level = 2) {
+void raise_warning(const char *message, warning<T> category, int stack_level = 2) {
     raise_warning(message, category.ptr(), stack_level);
 }
 
