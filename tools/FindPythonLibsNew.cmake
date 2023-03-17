@@ -68,6 +68,8 @@ endif()
 # Check to see if the `python` command is present and from a virtual
 # environment, conda, or GHA activation - if it is, try to use that.
 
+message("Python Executable found before: ${PYTHON_EXECUTABLE}")
+
 if(NOT DEFINED PYTHON_EXECUTABLE)
   if(DEFINED ENV{VIRTUAL_ENV})
     find_program(
@@ -79,6 +81,7 @@ if(NOT DEFINED PYTHON_EXECUTABLE)
       PYTHON_EXECUTABLE python
       PATHS "$ENV{CONDA_PREFIX}" "$ENV{CONDA_PREFIX}/bin"
       NO_DEFAULT_PATH)
+    message("Searched in Conda environment")
   elseif(DEFINED ENV{pythonLocation})
     find_program(
       PYTHON_EXECUTABLE python
