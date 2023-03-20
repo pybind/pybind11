@@ -153,6 +153,7 @@ set(PYBIND11_TEST_FILES
     test_stl
     test_stl_binders
     test_tagbased_polymorphic
+    test_template_alias_base
     test_thread
     test_union
     test_virtual_functions)
