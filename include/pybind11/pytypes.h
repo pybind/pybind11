@@ -754,8 +754,8 @@ inline void raise_from(error_already_set &err, PyObject *type, const char *messa
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 // Check if obj is a subclass of PyExc_Warning.
-inline bool PyWarning_Check(const PyObject *obj) {
-    int result = PyObject_IsSubclass(const_cast<PyObject *>(obj), PyExc_Warning);
+inline bool PyWarning_Check(PyObject *obj) {
+    int result = PyObject_IsSubclass(obj, PyExc_Warning);
     if (result == 1) {
         return true;
     }
@@ -772,37 +772,37 @@ PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_BEGIN(warnings)
 
 // Warning class
-static const PyObject *warning_base = PyExc_Warning;
+static PyObject *const warning_base = PyExc_Warning;
 
 // BytesWarning class
-static const PyObject *bytes = PyExc_BytesWarning;
+static PyObject *const bytes = PyExc_BytesWarning;
 
 // DeprecationWarning class
-static const PyObject *deprecation = PyExc_DeprecationWarning;
+static PyObject *const deprecation = PyExc_DeprecationWarning;
 
 // FutureWarning class
-static const PyObject *future = PyExc_FutureWarning;
+static PyObject *const future = PyExc_FutureWarning;
 
 // ImportWarning class
-static const PyObject *import = PyExc_ImportWarning;
+static PyObject *const import = PyExc_ImportWarning;
 
 // PendingDeprecationWarning class
-static const PyObject *pending_deprecation = PyExc_PendingDeprecationWarning;
+static PyObject *const pending_deprecation = PyExc_PendingDeprecationWarning;
 
 // ResourceWarning class
-static const PyObject *resource = PyExc_ResourceWarning;
+static PyObject *const resource = PyExc_ResourceWarning;
 
 // RuntimeWarning class
-static const PyObject *runtime = PyExc_RuntimeWarning;
+static PyObject *const runtime = PyExc_RuntimeWarning;
 
 // RuntimeWarning class
-static const PyObject *syntax = PyExc_SyntaxWarning;
+static PyObject *const syntax = PyExc_SyntaxWarning;
 
 // DeprecationWarning class
-static const PyObject *unicode = PyExc_UnicodeWarning;
+static PyObject *const unicode = PyExc_UnicodeWarning;
 
 // UserWarning class
-static const PyObject *user = PyExc_UserWarning;
+static PyObject *const user = PyExc_UserWarning;
 
 PYBIND11_NAMESPACE_END(warnings)
 

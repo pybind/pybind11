@@ -2554,8 +2554,8 @@ template <typename type>
 class warning : public object {
 public:
     warning() = default;
-    warning(handle scope, const char *name, const PyObject *base = PyExc_RuntimeWarning) {
-        if (!detail::PyWarning_Check(base)) {
+    warning(handle scope, const char *name, handle base = PyExc_RuntimeWarning) {
+        if (!detail::PyWarning_Check(base.ptr())) {
             pybind11_fail("warning(): cannot create custom warning, base must be a subclass of "
                           "PyExc_Warning!");
         }
@@ -2566,8 +2566,7 @@ public:
         }
         std::string full_name
             = scope.attr("__name__").cast<std::string>() + std::string(".") + name;
-        m_ptr = PyErr_NewException(
-            const_cast<char *>(full_name.c_str()), const_cast<PyObject *>(base), nullptr);
+        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), nullptr);
         scope.attr(name) = *this;
     }
 
@@ -2577,22 +2576,16 @@ public:
 };
 
 // Raise Python warning based on the Python warning category.
-inline void raise_warning(const char *message,
-                          const PyObject *category = PyExc_RuntimeWarning,
-                          int stack_level = 2) {
-    if (!pybind11::detail::PyWarning_Check(category)) {
+inline void
+raise_warning(const char *message, handle category = PyExc_RuntimeWarning, int stack_level = 2) {
+    if (!pybind11::detail::PyWarning_Check(category.ptr())) {
         pybind11_fail("raise_warning(): cannot raise warning, category must be a subclass of "
                       "PyExc_Warning!");
     }
 
-    if (PyErr_WarnEx(const_cast<PyObject *>(category), message, stack_level) == -1) {
+    if (PyErr_WarnEx(category.ptr(), message, stack_level) == -1) {
         throw error_already_set();
     }
-}
-
-template <typename T>
-void raise_warning(const char *message, warning<T> category, int stack_level = 2) {
-    raise_warning(message, category.ptr(), stack_level);
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)

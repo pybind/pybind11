@@ -12,10 +12,7 @@
 #include <utility>
 
 namespace warning_helpers {
-void warn_function(py::module &m,
-                   const char *name,
-                   const PyObject *category,
-                   const char *message) {
+void warn_function(py::module &m, const char *name, py::handle category, const char *message) {
     m.def(name, [category, message]() { py::raise_warning(message, category); });
 }
 } // namespace warning_helpers
