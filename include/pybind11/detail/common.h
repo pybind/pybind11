@@ -17,8 +17,69 @@
 // Additional convention: 0xD = dev
 #define PYBIND11_VERSION_HEX 0x020B00D1
 
-#define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
-#define PYBIND11_NAMESPACE_END(name) }
+// Define some generic pybind11 helper macros for warning management.
+//
+// Note that compiler-specific push/pop pairs are baked into the
+// PYBIND11_NAMESPACE_BEGIN/PYBIND11_NAMESPACE_END pair of macros. Therefore manual
+// PYBIND11_WARNING_PUSH/PYBIND11_WARNING_POP are usually only needed in `#include` sections.
+//
+// If you find you need to suppress a warning, please try to make the suppression as local as
+// possible using these macros. Please also be sure to push/pop with the pybind11 macros. Please
+// only use compiler specifics if you need to check specific versions, e.g. Apple Clang vs. vanilla
+// Clang.
+#if defined(_MSC_VER)
+#    define PYBIND11_COMPILER_MSVC
+#    define PYBIND11_PRAGMA(...) __pragma(__VA_ARGS__)
+#    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning(push))
+#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning(pop))
+#elif defined(__INTEL_COMPILER)
+#    define PYBIND11_COMPILER_INTEL
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
+#    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning push)
+#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning pop)
+#elif defined(__clang__)
+#    define PYBIND11_COMPILER_CLANG
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
+#    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(clang diagnostic push)
+#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(clang diagnostic push)
+#elif defined(__GNUC__)
+#    define PYBIND11_COMPILER_GCC
+#    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
+#    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(GCC diagnostic push)
+#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(GCC diagnostic pop)
+#endif
+
+#ifdef PYBIND11_COMPILER_MSVC
+#    define PYBIND11_WARNING_DISABLE_MSVC(name) PYBIND11_PRAGMA(warning(disable : name))
+#else
+#    define PYBIND11_WARNING_DISABLE_MSVC(name)
+#endif
+
+#ifdef PYBIND11_COMPILER_CLANG
+#    define PYBIND11_WARNING_DISABLE_CLANG(name) PYBIND11_PRAGMA(clang diagnostic ignored name)
+#else
+#    define PYBIND11_WARNING_DISABLE_CLANG(name)
+#endif
+
+#ifdef PYBIND11_COMPILER_GCC
+#    define PYBIND11_WARNING_DISABLE_GCC(name) PYBIND11_PRAGMA(GCC diagnostic ignored name)
+#else
+#    define PYBIND11_WARNING_DISABLE_GCC(name)
+#endif
+
+#ifdef PYBIND11_COMPILER_INTEL
+#    define PYBIND11_WARNING_DISABLE_INTEL(name) PYBIND11_PRAGMA(warning disable name)
+#else
+#    define PYBIND11_WARNING_DISABLE_INTEL(name)
+#endif
+
+#define PYBIND11_NAMESPACE_BEGIN(name)                                                            \
+    namespace name {                                                                              \
+    PYBIND11_WARNING_PUSH
+
+#define PYBIND11_NAMESPACE_END(name)                                                              \
+    PYBIND11_WARNING_POP                                                                          \
+    }
 
 // Robust support for some features and loading modules compiled against different pybind versions
 // requires forcing hidden visibility on pybind code, so we enforce this by setting the attribute
@@ -151,9 +212,9 @@
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
-#    pragma warning(push)
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(4505)
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#    pragma warning(disable : 4505)
 #    if defined(_DEBUG) && !defined(Py_DEBUG)
 // Workaround for a VS 2022 issue.
 // NOTE: This workaround knowingly violates the Python.h include order requirement:
@@ -236,7 +297,7 @@
 #        define _DEBUG
 #        undef PYBIND11_DEBUG_MARKER
 #    endif
-#    pragma warning(pop)
+PYBIND11_WARNING_POP
 #endif
 
 #include <cstddef>
@@ -260,6 +321,15 @@
 // Must be after including <version> or one of the other headers specified by the standard
 #if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
 #    define PYBIND11_HAS_U8STRING
+#endif
+
+// See description of PR #4246:
+#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF)                                \
+    && !(defined(PYPY_VERSION)                                                                    \
+         && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
+                                  process (see PR #4268) */                                       \
+    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
@@ -366,7 +436,7 @@
 
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
-    imports an extension module. The module name is given as the fist argument and it
+    imports an extension module. The module name is given as the first argument and it
     should not be in quotes. The second macro argument defines a variable of type
     `py::module_` which can be used to initialize the module.
 
@@ -1136,17 +1206,6 @@ constexpr
 #    define PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(...)
 #endif
 
-#if defined(_MSC_VER) // All versions (as of July 2021).
-
-// warning C4127: Conditional expression is constant
-constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
-
-#    define PYBIND11_SILENCE_MSVC_C4127(...) ::pybind11::detail::silence_msvc_c4127(__VA_ARGS__)
-
-#else
-#    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
-#endif
-
 #if defined(__clang__)                                                                            \
     && (defined(__apple_build_version__) /* AppleClang 13.0.0.13000029 was the only data point    \
                                             available. */                                         \
@@ -1166,8 +1225,9 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 #endif
 
 // Pybind offers detailed error messages by default for all builts that are debug (through the
-// negation of ndebug). This can also be manually enabled by users, for any builds, through
-// defining PYBIND11_DETAILED_ERROR_MESSAGES.
+// negation of NDEBUG). This can also be manually enabled by users, for any builds, through
+// defining PYBIND11_DETAILED_ERROR_MESSAGES. This information is primarily useful for those
+// who are writing (as opposed to merely using) libraries that use pybind11.
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
 #    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif

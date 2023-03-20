@@ -22,10 +22,8 @@
 
 #include <utility>
 
-#if defined(_MSC_VER)
-#    pragma warning(disable : 4324)
+PYBIND11_WARNING_DISABLE_MSVC(4324)
 //     warning C4324: structure was padded due to alignment specifier
-#endif
 
 // test_brace_initialization
 struct NoBraceInitialization {
@@ -57,6 +55,8 @@ void bind_empty0(py::module_ &m) {
 } // namespace test_class
 
 TEST_SUBMODULE(class_, m) {
+    m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
+
     // test_instance
     struct NoConstructor {
         NoConstructor() = default;

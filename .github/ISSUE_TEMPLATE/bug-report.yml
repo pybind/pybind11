@@ -21,10 +21,11 @@ body:
         - label: Consider asking first in the [Gitter chat room](https://gitter.im/pybind/Lobby) or in a [Discussion](https:/pybind/pybind11/discussions/new).
           required: false
 
-  - type: Input
+  - type: input
     id: version
     attributes:
       label: What version (or hash if on master) of pybind11 are you using?
+    validations:
       required: true
 
   - type: textarea
@@ -52,7 +53,7 @@ body:
         starting point for working out fixes.
       render: text
 
-  - type: Input
+  - type: input
     id: regression
     attributes:
       label: Is this a regression? Put the last known working version here if it is.

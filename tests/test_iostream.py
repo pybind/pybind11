@@ -224,9 +224,8 @@ def test_redirect(capfd):
     assert stream.getvalue() == ""
 
     stream = StringIO()
-    with redirect_stdout(stream):
-        with m.ostream_redirect():
-            m.raw_output(msg)
+    with redirect_stdout(stream), m.ostream_redirect():
+        m.raw_output(msg)
     stdout, stderr = capfd.readouterr()
     assert stdout == ""
     assert stream.getvalue() == msg
@@ -244,10 +243,9 @@ def test_redirect_err(capfd):
     msg2 = "StdErr"
 
     stream = StringIO()
-    with redirect_stderr(stream):
-        with m.ostream_redirect(stdout=False):
-            m.raw_output(msg)
-            m.raw_err(msg2)
+    with redirect_stderr(stream), m.ostream_redirect(stdout=False):
+        m.raw_output(msg)
+        m.raw_err(msg2)
     stdout, stderr = capfd.readouterr()
     assert stdout == msg
     assert stderr == ""
@@ -260,11 +258,9 @@ def test_redirect_both(capfd):
 
     stream = StringIO()
     stream2 = StringIO()
-    with redirect_stdout(stream):
-        with redirect_stderr(stream2):
-            with m.ostream_redirect():
-                m.raw_output(msg)
-                m.raw_err(msg2)
+    with redirect_stdout(stream), redirect_stderr(stream2), m.ostream_redirect():
+        m.raw_output(msg)
+        m.raw_err(msg2)
     stdout, stderr = capfd.readouterr()
     assert stdout == ""
     assert stderr == ""

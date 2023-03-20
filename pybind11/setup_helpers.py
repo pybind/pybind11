@@ -118,7 +118,6 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
         self.extra_link_args[:0] = flags
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-
         self._cxx_level = 0
         cxx_std = kwargs.pop("cxx_std", 0)
 
@@ -174,9 +173,10 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
 
     @cxx_std.setter
     def cxx_std(self, level: int) -> None:
-
         if self._cxx_level:
-            warnings.warn("You cannot safely change the cxx_level after setting it!")
+            warnings.warn(
+                "You cannot safely change the cxx_level after setting it!", stacklevel=2
+            )
 
         # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
         # force a valid flag here.
@@ -341,7 +341,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:  # pylint: disable=unused-argument
+def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.
@@ -439,7 +439,6 @@ class ParallelCompile:
             extra_postargs: Optional[List[str]] = None,
             depends: Optional[List[str]] = None,
         ) -> Any:
-
             # These lines are directly from distutils.ccompiler.CCompiler
             macros, objects, extra_postargs, pp_opts, build = compiler._setup_compile(  # type: ignore[attr-defined]
                 output_dir, macros, include_dirs, sources, depends, extra_postargs

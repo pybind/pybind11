@@ -15,6 +15,129 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Changes:
+
+* ``PyGILState_Check()``'s in ``pybind11::handle``'s ``inc_ref()`` &
+  ``dec_ref()`` are now enabled by default again.
+  `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
+
+* ``py::initialize_interpreter()`` using ``PyConfig_InitPythonConfig()``
+  instead of ``PyConfig_InitIsolatedConfig()``, to obtain complete
+  ``sys.path``.
+  `#4473 <https://github.com/pybind/pybind11/pull/4473>`_
+
+* Cast errors now always include Python type information, even if
+  ``PYBIND11_DETAILED_ERROR_MESSAGES`` is not defined. This increases binary
+  sizes slightly (~1.5%) but the error messages are much more informative.
+  `#4463 <https://github.com/pybind/pybind11/pull/4463>`_
+
+
+Build system improvements:
+
+* Update clang-tidy to 15 in CI.
+  `#4387 <https://github.com/pybind/pybind11/pull/4387>`_
+
+* Moved the linting framework over to Ruff.
+  `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
+
+Version 2.10.4 (Mar 16, 2023)
+----------------------------
+
+Changes:
+
+* ``python3 -m pybind11`` gained a ``--version`` option (prints the version and
+  exits).
+  `#4526 <https://github.com/pybind/pybind11/pull/4526>`_
+
+Bug Fixes:
+
+* Fix a warning when pydebug is enabled on Python 3.11.
+  `#4461 <https://github.com/pybind/pybind11/pull/4461>`_
+
+* Ensure ``gil_scoped_release`` RAII is non-copyable.
+  `#4490 <https://github.com/pybind/pybind11/pull/4490>`_
+
+* Ensure the tests dir does not show up with new versions of setuptools.
+  `#4510 <https://github.com/pybind/pybind11/pull/4510>`_
+
+* Better stacklevel for a warning in setuptools helpers.
+  `#4516 <https://github.com/pybind/pybind11/pull/4516>`_
+
+Version 2.10.3 (Jan 3, 2023)
+----------------------------
+
+Changes:
+
+* Temporarily made our GIL status assertions (added in 2.10.2) disabled by
+  default (re-enable manually by defining
+  ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``, will be enabled in 2.11).
+  `#4432 <https://github.com/pybind/pybind11/pull/4432>`_
+
+* Improved error messages when ``inc_ref``/``dec_ref`` are called with an
+  invalid GIL state.
+  `#4427 <https://github.com/pybind/pybind11/pull/4427>`_
+  `#4436 <https://github.com/pybind/pybind11/pull/4436>`_
+
+Bug Fixes:
+
+* Some minor touchups found by static analyzers.
+  `#4440 <https://github.com/pybind/pybind11/pull/4440>`_
+
+
+Version 2.10.2 (Dec 20, 2022)
+-----------------------------
+
+Changes:
+
+* ``scoped_interpreter`` constructor taking ``PyConfig``.
+  `#4330 <https://github.com/pybind/pybind11/pull/4330>`_
+
+* ``pybind11/eigen/tensor.h`` adds converters to and from ``Eigen::Tensor`` and
+  ``Eigen::TensorMap``.
+  `#4201 <https://github.com/pybind/pybind11/pull/4201>`_
+
+* ``PyGILState_Check()``'s  were integrated to ``pybind11::handle``
+  ``inc_ref()`` & ``dec_ref()``. The added GIL checks are guarded by
+  ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``, which is the default only if
+  ``NDEBUG`` is not defined. (Made non-default in 2.10.3, will be active in 2.11)
+  `#4246 <https://github.com/pybind/pybind11/pull/4246>`_
+
+* Add option for enable/disable enum members in docstring.
+  `#2768 <https://github.com/pybind/pybind11/pull/2768>`_
+
+* Fixed typing of ``KeysView``, ``ValuesView`` and ``ItemsView`` in ``bind_map``.
+  `#4353 <https://github.com/pybind/pybind11/pull/4353>`_
+
+Bug fixes:
+
+* Bug fix affecting only Python 3.6 under very specific, uncommon conditions:
+  move ``PyEval_InitThreads()`` call to the correct location.
+  `#4350 <https://github.com/pybind/pybind11/pull/4350>`_
+
+* Fix segfault bug when passing foreign native functions to functional.h.
+  `#4254 <https://github.com/pybind/pybind11/pull/4254>`_
+
+Build system improvements:
+
+* Support setting PYTHON_LIBRARIES manually for Windows ARM cross-compilation
+  (classic mode).
+  `#4406 <https://github.com/pybind/pybind11/pull/4406>`_
+
+* Extend IPO/LTO detection for ICX (a.k.a IntelLLVM) compiler.
+  `#4402 <https://github.com/pybind/pybind11/pull/4402>`_
+
+* Allow calling ``find_package(pybind11 CONFIG)`` multiple times from separate
+  directories in the same CMake project and properly link Python (new mode).
+  `#4401 <https://github.com/pybind/pybind11/pull/4401>`_
+
+* ``multiprocessing_set_spawn`` in pytest fixture for added safety.
+  `#4377 <https://github.com/pybind/pybind11/pull/4377>`_
+
+* Fixed a bug in two pybind11/tools cmake scripts causing "Unknown arguments specified" errors.
+  `#4327 <https://github.com/pybind/pybind11/pull/4327>`_
+
+
+
 Version 2.10.1 (Oct 31, 2022)
 -----------------------------
 
@@ -94,7 +217,6 @@ Bug fixes:
   ``finalize_interpreter()``, fixing potential freezes during interpreter
   finalization.
   `#4192 <https://github.com/pybind/pybind11/pull/4192>`_
-
 
 Performance and style:
 

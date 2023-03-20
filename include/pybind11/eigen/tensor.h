@@ -13,27 +13,24 @@
 static_assert(__GNUC__ > 5, "Eigen Tensor support in pybind11 requires GCC > 5.0");
 #endif
 
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4554) // Tensor.h warning
-#    pragma warning(disable : 4127) // Tensor.h warning
-#elif defined(__MINGW32__)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+// Disable warnings for Eigen
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(4554)
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+#if defined(__MINGW32__)
+PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
 #endif
 
 #include <unsupported/Eigen/CXX11/Tensor>
 
-#if defined(_MSC_VER)
-#    pragma warning(pop)
-#elif defined(__MINGW32__)
-#    pragma GCC diagnostic pop
-#endif
+PYBIND11_WARNING_POP
 
 static_assert(EIGEN_VERSION_AT_LEAST(3, 3, 0),
               "Eigen Tensor support in pybind11 requires Eigen >= 3.3.0");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -138,10 +135,8 @@ struct get_tensor_descriptor {
 //
 // We need to disable the type-limits warning for the inner loop when size = 0.
 
-#if defined(__GNUC__)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
 
 template <typename T, int size>
 std::vector<T> convert_dsizes_to_vector(const Eigen::DSizes<T, size> &arr) {
@@ -165,9 +160,7 @@ Eigen::DSizes<T, size> get_shape_for_array(const array &arr) {
     return result;
 }
 
-#if defined(__GNUC__)
-#    pragma GCC diagnostic pop
-#endif
+PYBIND11_WARNING_POP
 
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
@@ -185,7 +178,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 return false;
             }
 
-            if (!convert && !temp.dtype().is(dtype::of<typename Type::Scalar>())) {
+            if (!temp.dtype().is(dtype::of<typename Type::Scalar>())) {
                 return false;
             }
         }
@@ -288,7 +281,7 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
             case return_value_policy::take_ownership:
                 if (std::is_const<C>::value) {
                     // This cast is ugly, and might be UB in some cases, but we don't have an
-                    // alterantive here as we must free that memory
+                    // alternative here as we must free that memory
                     Helper::free(const_cast<Type *>(src));
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
@@ -389,7 +382,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
         constexpr bool is_aligned = (Options & Eigen::Aligned) != 0;
 
-        if (PYBIND11_SILENCE_MSVC_C4127(is_aligned) && !is_tensor_aligned(arr.data())) {
+        if (is_aligned && !is_tensor_aligned(arr.data())) {
             return false;
         }
 
@@ -399,7 +392,7 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
             return false;
         }
 
-        if (PYBIND11_SILENCE_MSVC_C4127(needs_writeable) && !arr.writeable()) {
+        if (needs_writeable && !arr.writeable()) {
             return false;
         }
 
