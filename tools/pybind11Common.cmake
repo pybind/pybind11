@@ -277,8 +277,8 @@ function(_pybind11_return_if_cxx_and_linker_flags_work result cxxflags linkerfla
 endfunction()
 
 function(_pybind11_generate_lto target prefer_thin_lto)
-  if(MINGW)
-    message(STATUS "${target} disabled (problems with undefined symbols for MinGW for now)")
+  if(MINGW AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    message(STATUS "${target} disabled (problems with undefined symbols for MinGW+GCC for now)")
     return()
   endif()
 
