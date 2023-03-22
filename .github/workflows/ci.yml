@@ -907,7 +907,7 @@ jobs:
           git
         pacboy: >-
           cc:p
-          pip:p
+          python-pip:p
           python-numpy:p
           cmake:p
           make:p
