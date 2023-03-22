@@ -898,25 +898,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: mingw32, env: i686 }
+        msystem: [MINGW32, MINGW64, UCRT64, CLANG64]
     steps:
     - uses: msys2/setup-msys2@v2
       with:
-        msystem: ${{matrix.sys}}
+        msystem: ${{matrix.msystem}}
         install: >-
           git
-          mingw-w64-${{matrix.env}}-gcc
-          mingw-w64-${{matrix.env}}-python-pip
-          mingw-w64-${{matrix.env}}-python-numpy
-          mingw-w64-${{matrix.env}}-python-scipy
-          mingw-w64-${{matrix.env}}-cmake
-          mingw-w64-${{matrix.env}}-make
-          mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-eigen3
-          mingw-w64-${{matrix.env}}-boost
-          mingw-w64-${{matrix.env}}-catch
+        pacboy: >-
+          cc:p
+          pip:p
+          python-numpy:p
+          cmake:p
+          make:p
+          python-pytest:p
+          eigen3:p
+          boost:p
+          catch:p
+    - name: Install scipy
+      if: ${{ matrix.msystem != CLANG64 }}
+      run: pacboy -S python-scipy:p
 
     - uses: actions/checkout@v3
 
@@ -932,10 +933,10 @@ jobs:
       run: cmake --build build --target pytest -j 2
 
     - name: C++11 tests
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build --target cpptest -j 2
 
     - name: Interface test C++11
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cmake_build
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -950,10 +951,10 @@ jobs:
       run: cmake --build build2 --target pytest -j 2
 
     - name: C++14 tests
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build2 --target cpptest -j 2
 
     - name: Interface test C++14
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cmake_build
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build2 --target test_cmake_build
 
     - name: Clean directory
       run: git clean -fdx
@@ -968,10 +969,10 @@ jobs:
       run: cmake --build build3 --target pytest -j 2
 
     - name: C++17 tests
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 2
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build3 --target cpptest -j 2
 
     - name: Interface test C++17
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build3 --target test_cmake_build
 
   windows_clang:
 
