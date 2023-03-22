@@ -38,7 +38,7 @@
 #    undef _CPPLIB_VER
 #endif
 #if __cplusplus >= 202002
-#    include <ciso646>  // __GLIBCXX__ or _LIBCPP_VERSION, etc.
+#    include <ciso646> // __GLIBCXX__ or _LIBCPP_VERSION, etc.
 #else
 #    include <version>
 #endif
@@ -138,7 +138,8 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 // libstdc++, this doesn't happen: equality and the type_index hash are based on the type name,
 // which works.  If not under a known-good stl, provide our own name-based hash and equality
 // functions that use the type name.
-#if defined(__GLIBCXX__) && !defined(_LIBCPP_VERSION) && !defined(_MSVC_STL_UPDATE) && !defined(_CPPLIB_VER)
+#if defined(__GLIBCXX__) && !defined(_LIBCPP_VERSION) && !defined(_MSVC_STL_UPDATE)               \
+    && !defined(_CPPLIB_VER)
 inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
 using type_hash = std::hash<std::type_index>;
 using type_equal_to = std::equal_to<std::type_index>;
