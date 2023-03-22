@@ -916,7 +916,7 @@ jobs:
           boost:p
           catch:p
     - name: Install scipy
-      if: ${{ matrix.msystem != CLANG64 }}
+      if: ${{ matrix.msystem != 'CLANG64' }}
       run: pacboy -S python-scipy:p
 
     - uses: actions/checkout@v3
