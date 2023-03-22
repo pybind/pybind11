@@ -890,7 +890,7 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
   mingw:
-    name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
+    name: "🐍 3 • windows-latest • ${{ matrix.msystem }}"
     runs-on: windows-latest
     defaults:
       run:
@@ -917,7 +917,7 @@ jobs:
           catch:p
     - name: Install scipy
       if: ${{ matrix.msystem != 'CLANG64' }}
-      run: pacboy -S python-scipy:p
+      run: pacboy -S python-scipy:p --noconfirm
 
     - uses: actions/checkout@v3
 
