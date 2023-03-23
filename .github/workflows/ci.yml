@@ -924,16 +924,16 @@ jobs:
     - name: Configure C++11
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
+      run: cmake -GNinja -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
 
     - name: Build C++11
-      run: cmake --build build -j 2
+      run: cmake --build build
 
     - name: Python tests C++11
-      run: cmake --build build --target pytest -j 2
+      run: cmake --build build --target pytest
 
     - name: C++11 tests
-      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build --target cpptest -j 2
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build --target cpptest
 
     - name: Interface test C++11
       run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build --target test_cmake_build
@@ -942,16 +942,16 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++14
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
+      run: cmake -GNinja -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
 
     - name: Build C++14
-      run: cmake --build build2 -j 2
+      run: cmake --build build2
 
     - name: Python tests C++14
-      run: cmake --build build2 --target pytest -j 2
+      run: cmake --build build2 --target pytest
 
     - name: C++14 tests
-      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build2 --target cpptest -j 2
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build2 --target cpptest
 
     - name: Interface test C++14
       run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build2 --target test_cmake_build
@@ -960,16 +960,16 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++17
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
+      run: cmake -GNinja -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
 
     - name: Build C++17
-      run: cmake --build build3 -j 2
+      run: cmake --build build3
 
     - name: Python tests C++17
-      run: cmake --build build3 --target pytest -j 2
+      run: cmake --build build3 --target pytest
 
     - name: C++17 tests
-      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build3 --target cpptest -j 2
+      run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build3 --target cpptest
 
     - name: Interface test C++17
       run: PYTHONHOME=${MINGW_PREFIX} PYTHONPATH=${MINGW_PREFIX} cmake --build build3 --target test_cmake_build
