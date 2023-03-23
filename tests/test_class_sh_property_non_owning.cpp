@@ -7,13 +7,19 @@
 namespace test_class_sh_property_non_owning {
 
 struct CoreField {
-    CoreField(int int_value = -99) : int_value{int_value} {}
+    explicit CoreField(int int_value = -99) : int_value{int_value} {}
     int int_value;
 };
 
 struct DataField {
-    DataField(const CoreField &core_fld = CoreField{}) : core_fld{core_fld} {}
-    CoreField core_fld;
+    DataField(int i_value, int i_shared, int i_unique)
+        : core_fld_value{i_value}, core_fld_shared_ptr{new CoreField{i_shared}},
+          core_fld_raw_ptr{core_fld_shared_ptr.get()}, core_fld_unique_ptr{
+                                                           new CoreField{i_unique}} {}
+    CoreField core_fld_value;
+    std::shared_ptr<CoreField> core_fld_shared_ptr;
+    CoreField *core_fld_raw_ptr;
+    std::unique_ptr<CoreField> core_fld_unique_ptr;
 };
 
 struct DataFieldsHolder {
@@ -23,7 +29,8 @@ private:
 public:
     DataFieldsHolder(std::size_t vec_size) {
         for (std::size_t i = 0; i < vec_size; i++) {
-            vec.push_back(DataField{CoreField{13 + static_cast<int>(i) * 11}});
+            int i11 = static_cast<int>(i) * 11;
+            vec.push_back(DataField(13 + i11, 14 + i11, 15 + i11));
         }
     }
 
@@ -44,13 +51,16 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(DataField)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(DataFieldsHolder)
 
 TEST_SUBMODULE(class_sh_property_non_owning, m) {
-    py::classh<CoreField>(m, "CoreField")
-        .def(py::init<>())
-        .def_readwrite("int_value", &CoreField::int_value);
+    py::classh<CoreField>(m, "CoreField").def_readwrite("int_value", &CoreField::int_value);
 
     py::classh<DataField>(m, "DataField")
-        .def(py::init<>())
-        .def_readwrite("core_fld", &DataField::core_fld);
+        .def_readonly("core_fld_value_ro", &DataField::core_fld_value)
+        .def_readwrite("core_fld_value_rw", &DataField::core_fld_value)
+        .def_readonly("core_fld_shared_ptr_ro", &DataField::core_fld_shared_ptr)
+        .def_readwrite("core_fld_shared_ptr_rw", &DataField::core_fld_shared_ptr)
+        .def_readonly("core_fld_raw_ptr_ro", &DataField::core_fld_raw_ptr)
+        .def_readwrite("core_fld_raw_ptr_rw", &DataField::core_fld_raw_ptr)
+        .def_readwrite("core_fld_unique_ptr_rw", &DataField::core_fld_unique_ptr);
 
     py::classh<DataFieldsHolder>(m, "DataFieldsHolder")
         .def(py::init<std::size_t>())
