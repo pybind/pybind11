@@ -1586,7 +1586,8 @@ struct property_cpp_function<
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
-            [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<drp> {
+            [pm](handle c_hdl) -> std::shared_ptr<drp> {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
                 D ptr = (*c_sp).*pm;
                 return std::shared_ptr<drp>(c_sp, ptr);
             },
@@ -1622,8 +1623,8 @@ struct property_cpp_function<
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function(
-            [pm](const std::shared_ptr<T> &c_sp)
-                -> std::shared_ptr<typename std::add_const<D>::type> {
+            [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
                 return std::shared_ptr<typename std::add_const<D>::type>(c_sp, &(c_sp.get()->*pm));
             },
             is_method(hdl));
@@ -1632,7 +1633,8 @@ struct property_cpp_function<
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
-            [pm](const std::shared_ptr<T> &c_sp) -> std::shared_ptr<D> {
+            [pm](handle c_hdl) -> std::shared_ptr<D> {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
                 return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
             },
             is_method(hdl));
@@ -1669,7 +1671,10 @@ struct property_cpp_function<
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return cpp_function(
-            [pm](const std::shared_ptr<T> &c_sp) -> D { return D{std::move(c_sp.get()->*pm)}; },
+            [pm](handle c_hdl) -> D {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
+                return D{std::move(c_sp.get()->*pm)};
+            },
             is_method(hdl));
     }
 
