@@ -18,6 +18,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <new>
 #include <string>
@@ -221,10 +222,12 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
+            std::cout << "in rec->impl" << std::endl;
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
             if (!args_converter.load_args(call)) {
+                std::cout << ".. returning PYBIND11_TRY_NEXT_OVERLOAD" << std::endl;
                 return PYBIND11_TRY_NEXT_OVERLOAD;
             }
 
@@ -247,10 +250,17 @@ protected:
             handle result
                 = cast_out::cast(std::move(args_converter).template call<Return, Guard>(cap->f),
                                  policy,
-                                 call.parent);
+                                 call.parent); // FIXME this seems to fail to detect identical
+                                               // return types with all compilers but GCC
+
+            std::cout << ".. after cast_out::cast - result=" << result.ptr() << " "
+                      << (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) << std::endl;
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
+
+            std::cout << ".. after postcall - result=" << result.ptr() << " "
+                      << (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) << std::endl;
 
             return result;
         };
@@ -705,6 +715,7 @@ protected:
         }
 
         try {
+            std::cout << "Starting two-pass matching..." << std::endl;
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
             // py::arg().noconvert()).  This lets us prefer calls without conversion, with
@@ -761,6 +772,7 @@ protected:
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
+                std::cout << "0. Inject new-style `self` argument" << std::endl;
                 if (func.is_new_style_constructor) {
                     // The `value` may have been preallocated by an old-style `__init__`
                     // if it was a preceding candidate for overload resolution.
@@ -775,6 +787,7 @@ protected:
                 }
 
                 // 1. Copy any position arguments given.
+                std::cout << "1. Copy any position arguments given." << std::endl;
                 bool bad_arg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
                     const argument_record *arg_rec
@@ -805,6 +818,8 @@ protected:
                 dict kwargs = reinterpret_borrow<dict>(kwargs_in);
 
                 // 1.5. Fill in any missing pos_only args from defaults if they exist
+                std::cout << "1.5. Fill in any missing pos_only args from defaults if they exist"
+                          << std::endl;
                 if (args_copied < func.nargs_pos_only) {
                     for (; args_copied < func.nargs_pos_only; ++args_copied) {
                         const auto &arg_rec = func.args[args_copied];
@@ -827,6 +842,9 @@ protected:
                 }
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
+                std::cout << "2. Check kwargs and, failing that, defaults that may help complete "
+                             "the list"
+                          << std::endl;
                 if (args_copied < num_args) {
                     bool copied_kwargs = false;
 
@@ -876,11 +894,16 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
+                std::cout << "3. Check everything was consumed (unless we have a kwargs arg)"
+                          << std::endl;
                 if (kwargs && !kwargs.empty() && !func.has_kwargs) {
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
                 }
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
+                std::cout
+                    << "4a. If we have a py::args argument, create a new tuple with leftovers"
+                    << std::endl;
                 if (func.has_args) {
                     tuple extra_args;
                     if (args_to_copy == 0) {
@@ -906,6 +929,8 @@ protected:
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
+                std::cout << "4b. If we have a py::kwargs, pass on any remaining kwargs"
+                          << std::endl;
                 if (func.has_kwargs) {
                     if (!kwargs.ptr()) {
                         kwargs = dict(); // If we didn't get one, send an empty one
@@ -917,7 +942,10 @@ protected:
 
 // 5. Put everything in a vector.  Not technically step 5, we've been building it
 // in `call.args` all along.
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#if 1
+                std::cout << "5. Put everything in a vector.  Not technically step 5, we've been "
+                             "building it in `call.args` all along."
+                          << std::endl;
                 if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs) {
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number "
                                   "of arguments!");
@@ -934,18 +962,24 @@ protected:
                 }
 
                 // 6. Call the function.
+                std::cout << "6. Call the function." << std::endl;
                 try {
                     loader_life_support guard{};
-                    result = func.impl(call);
+                    result = func.impl(
+                        call); // FIXME looks like this fails to match identical return types
                 } catch (reference_cast_error &) {
+                    std::cout << ".. catch (reference_cast_error &)" << std::endl;
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
 
                 if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
+                    std::cout << ".. result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD -> break"
+                              << std::endl;
                     break;
                 }
 
                 if (overloaded) {
+                    std::cout << ".. overloaded" << std::endl;
                     // The (overloaded) call failed; if the call has at least one argument that
                     // permits conversion (i.e. it hasn't been explicitly specified `.noconvert()`)
                     // then add this call to the list of second pass overloads to try.
@@ -964,6 +998,9 @@ protected:
             if (overloaded && !second_pass.empty() && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
                 // The no-conversion pass finished without success, try again with conversion
                 // allowed
+                std::cout << "The no-conversion pass finished without success, try again with "
+                             "conversion allowed"
+                          << std::endl;
                 for (auto &call : second_pass) {
                     try {
                         loader_life_support guard{};
