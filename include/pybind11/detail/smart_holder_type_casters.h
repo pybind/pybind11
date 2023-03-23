@@ -605,6 +605,11 @@ struct smart_holder_type_caster_load {
         return result;
     }
 
+    // This function will succeed even if the `responsible_parent` does not own the
+    // wrapped C++ object directly.
+    // It is the responsibility of the caller to ensure that the `responsible_parent`
+    // has a `keep_alive` relationship with the owner of the wrapped C++ object, or
+    // that the wrapped C++ object lives for the duration of the process.
     static std::shared_ptr<T> shared_ptr_from_python(handle responsible_parent) {
         smart_holder_type_caster_load<T> loader;
         loader.load(responsible_parent, false);
