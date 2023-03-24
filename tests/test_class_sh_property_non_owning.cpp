@@ -27,10 +27,10 @@ private:
     std::vector<DataField> vec;
 
 public:
-    DataFieldsHolder(std::size_t vec_size) {
+    explicit DataFieldsHolder(std::size_t vec_size) {
         for (std::size_t i = 0; i < vec_size; i++) {
             int i11 = static_cast<int>(i) * 11;
-            vec.push_back(DataField(13 + i11, 14 + i11, 15 + i11));
+            vec.emplace_back(DataField(13 + i11, 14 + i11, 15 + i11));
         }
     }
 
