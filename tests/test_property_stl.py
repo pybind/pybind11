@@ -1,4 +1,4 @@
-from pybind11_tests import class_sh_property_stl as m
+from pybind11_tests import property_stl as m
 
 
 def test_cpy_after_ref():

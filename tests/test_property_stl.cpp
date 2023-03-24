@@ -1,4 +1,3 @@
-#include <pybind11/smart_holder.h>
 #include <pybind11/stl.h>
 
 #include "pybind11_tests.h"
@@ -6,7 +5,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace test_class_sh_property_stl {
+namespace test_property_stl {
 
 struct Field {
     explicit Field(int wrapped_int) : wrapped_int{wrapped_int} {}
@@ -28,24 +27,19 @@ struct VectorFieldHolder {
     }
 };
 
-} // namespace test_class_sh_property_stl
+} // namespace test_property_stl
 
-using namespace test_class_sh_property_stl;
+TEST_SUBMODULE(property_stl, m) {
+    using namespace test_property_stl;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Field)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(FieldHolder)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(VectorFieldHolder)
+    py::class_<Field>(m, "Field").def_readwrite("wrapped_int", &Field::wrapped_int);
 
-TEST_SUBMODULE(class_sh_property_stl, m) {
-    py::classh<Field>(m, "Field").def_readwrite("wrapped_int", &Field::wrapped_int);
+    py::class_<FieldHolder>(m, "FieldHolder").def_readwrite("fld", &FieldHolder::fld);
 
-    py::classh<FieldHolder>(m, "FieldHolder").def_readwrite("fld", &FieldHolder::fld);
-
-    py::classh<VectorFieldHolder>(m, "VectorFieldHolder")
+    py::class_<VectorFieldHolder>(m, "VectorFieldHolder")
         .def(py::init<>())
         .def("reset_at", &VectorFieldHolder::reset_at)
         .def_readwrite("vec_fld_hld_ref", &VectorFieldHolder::vec_fld_hld)
-        .def_readwrite("vec_fld_hld_cpy",
-                       &VectorFieldHolder::vec_fld_hld,
-                       py::return_value_policy::_clif_automatic);
+        .def_readwrite(
+            "vec_fld_hld_cpy", &VectorFieldHolder::vec_fld_hld, py::return_value_policy::copy);
 }

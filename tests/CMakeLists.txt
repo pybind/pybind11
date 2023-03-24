@@ -147,6 +147,7 @@ set(PYBIND11_TEST_FILES
     test_opaque_types
     test_operator_overloading
     test_pickling
+    test_property_stl
     test_pytypes
     test_sequences_and_iterators
     test_smart_ptr
