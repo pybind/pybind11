@@ -408,6 +408,18 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     }
 };
 
+struct shared_ptr_parent_life_support {
+    PyObject *parent;
+    explicit shared_ptr_parent_life_support(PyObject *parent) : parent{parent} {
+        Py_INCREF(parent);
+    }
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void operator()(void *) {
+        gil_scoped_acquire gil;
+        Py_DECREF(parent);
+    }
+};
+
 struct shared_ptr_trampoline_self_life_support {
     PyObject *self;
     explicit shared_ptr_trampoline_self_life_support(instance *inst)
@@ -462,12 +474,23 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
-    std::shared_ptr<T> loaded_as_shared_ptr() const {
+    std::shared_ptr<T> make_shared_ptr_with_responsible_parent(handle parent) const {
+        return std::shared_ptr<T>(loaded_as_raw_ptr_unowned(),
+                                  shared_ptr_parent_life_support(parent.ptr()));
+    }
+
+    std::shared_ptr<T> loaded_as_shared_ptr(handle responsible_parent = nullptr) const {
         if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
+            if (responsible_parent) {
+                return make_shared_ptr_with_responsible_parent(responsible_parent);
+            }
             throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
                              " std::shared_ptr.");
         }
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr) {
+            if (responsible_parent) {
+                return make_shared_ptr_with_responsible_parent(responsible_parent);
+            }
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::shared_ptr.");
         }
@@ -478,6 +501,9 @@ struct smart_holder_type_caster_load {
         holder_type &hld = holder();
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
+            if (responsible_parent) {
+                return make_shared_ptr_with_responsible_parent(responsible_parent);
+            }
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
         auto *void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
@@ -577,6 +603,17 @@ struct smart_holder_type_caster_load {
         // Critical section end.
 
         return result;
+    }
+
+    // This function will succeed even if the `responsible_parent` does not own the
+    // wrapped C++ object directly.
+    // It is the responsibility of the caller to ensure that the `responsible_parent`
+    // has a `keep_alive` relationship with the owner of the wrapped C++ object, or
+    // that the wrapped C++ object lives for the duration of the process.
+    static std::shared_ptr<T> shared_ptr_from_python(handle responsible_parent) {
+        smart_holder_type_caster_load<T> loader;
+        loader.load(responsible_parent, false);
+        return loader.loaded_as_shared_ptr(responsible_parent);
     }
 
 private:
