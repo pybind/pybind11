@@ -34,7 +34,12 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 4
+#    if PY_VERSION_HEX >= 0x030C0000
+// Version bump for Python 3.12+, before first 3.12 beta release.
+#        define PYBIND11_INTERNALS_VERSION 5
+#    else
+#        define PYBIND11_INTERNALS_VERSION 4
+#    endif
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
