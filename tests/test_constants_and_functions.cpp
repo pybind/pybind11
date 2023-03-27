@@ -150,5 +150,5 @@ TEST_SUBMODULE(constants_and_functions, m) {
     });
 
     // test noexcept(true) lambda
-    m.def("l1", [](void) noexcept(true) { return 0; });
+    m.def("l1", []() noexcept(true) { return 0; });
 }
