@@ -148,4 +148,14 @@ TEST_SUBMODULE(constants_and_functions, m) {
             py::arg_v("y", 42, "<the answer>"),
             py::arg_v("z", default_value));
     });
+
+    // test noexcept(true) lambda
+    m.def("l1", [](void) noexcept(true) {
+        try {
+        } catch (py::error_already_set &eas) {
+            eas.discard_as_unraisable(__func__);
+        } catch (const std::exception &e) {
+        }
+        return 0;
+    });
 }
