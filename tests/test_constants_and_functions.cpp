@@ -150,12 +150,5 @@ TEST_SUBMODULE(constants_and_functions, m) {
     });
 
     // test noexcept(true) lambda
-    m.def("l1", [](void) noexcept(true) {
-        try {
-        } catch (py::error_already_set &eas) {
-            eas.discard_as_unraisable(__func__);
-        } catch (const std::exception &e) {
-        }
-        return 0;
-    });
+    m.def("l1", [](void) noexcept(true) { return 0; });
 }
