@@ -42,6 +42,10 @@
 #    endif
 #endif
 
+// This requirement is mainly to reduce the support burden (see PR #4570).
+static_assert(PY_VERSION_HEX < 0x030C0000 || PYBIND11_INTERNALS_VERSION >= 5,
+              "pybind11 ABI version 5 is the minimum for Python 3.12+");
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ExceptionTranslator = void (*)(std::exception_ptr);
@@ -428,8 +432,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 inline object get_python_state_dict() {
     object state_dict;
-#if PY_VERSION_HEX < 0x03080000                                                                   \
-    || (PYBIND11_INTERNALS_VERSION <= 4 && PY_VERSION_HEX < 0x030C0000) || defined(PYPY_VERSION)
+#if PYBIND11_INTERNALS_VERSION <= 4 || PY_VERSION_HEX < 0x03080000
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
 #    if PY_VERSION_HEX < 0x03090000
