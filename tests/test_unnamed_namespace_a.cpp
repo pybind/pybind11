@@ -10,6 +10,7 @@ TEST_SUBMODULE(unnamed_namespace_a, m) {
     } else {
         m.attr("unnamed_namespace_a_any_struct") = py::none();
     }
+    m.attr("PYBIND11_INTERNALS_VERSION") = PYBIND11_INTERNALS_VERSION;
     m.attr("defined_WIN32_or__WIN32") =
 #if defined(WIN32) || defined(_WIN32)
         true;
@@ -24,6 +25,12 @@ TEST_SUBMODULE(unnamed_namespace_a, m) {
 #endif
     m.attr("defined__LIBCPP_VERSION") =
 #if defined(_LIBCPP_VERSION)
+        true;
+#else
+        false;
+#endif
+    m.attr("defined___GLIBCXX__") =
+#if defined(__GLIBCXX__)
         true;
 #else
         false;
