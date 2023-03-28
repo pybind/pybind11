@@ -143,7 +143,7 @@ constexpr descr<N, Ts...> concat(const descr<N, Ts...> &descr) {
     return descr;
 }
 
-#if defined(PYBIND11_CPP17)
+#ifdef __cpp_fold_expressions
 template <size_t N1, size_t N2, typename... Ts1, typename... Ts2>
 constexpr descr<N1 + N2 + 2, Ts1..., Ts2...> operator,(const descr<N1, Ts1...> &a,
                                                        const descr<N2, Ts2...> &b) {
