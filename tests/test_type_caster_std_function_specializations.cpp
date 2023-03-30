@@ -22,7 +22,12 @@ struct func_wrapper<SpecialReturn, Args...> : func_wrapper_base {
     using func_wrapper_base::func_wrapper_base;
     SpecialReturn operator()(Args... args) const {
         gil_scoped_acquire acq;
-        SpecialReturn result = hfunc.f(std::forward<Args>(args)...).template cast<SpecialReturn>();
+        SpecialReturn result;
+        try {
+            result = hfunc.f(std::forward<Args>(args)...).template cast<SpecialReturn>();
+        } catch (error_already_set &e) {
+            result.value += 1;
+        }
         result.value += 100;
         return result;
     }
