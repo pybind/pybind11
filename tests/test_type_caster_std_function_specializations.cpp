@@ -26,7 +26,7 @@ struct func_wrapper<SpecialReturn, Args...> : func_wrapper_base {
         try {
             result = hfunc.f(std::forward<Args>(args)...).template cast<SpecialReturn>();
         } catch (error_already_set &) {
-          result.value += 1;
+            result.value += 1;
         }
         result.value += 100;
         return result;
