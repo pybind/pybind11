@@ -1041,7 +1041,10 @@ make_caster<T> load_type(const handle &handle) {
 PYBIND11_NAMESPACE_END(detail)
 
 // pytype -> C++ type
-template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
+template <
+    typename T,
+    detail::enable_if_t<!detail::is_pyobject<T>::value && !std::is_same<T, PyObject *>::value, int>
+    = 0>
 T cast(const handle &handle) {
     using namespace detail;
     static_assert(!cast_is_temporary_value_reference<T>::value,
@@ -1053,6 +1056,12 @@ T cast(const handle &handle) {
 template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
 T cast(const handle &handle) {
     return T(reinterpret_borrow<object>(handle));
+}
+
+template <typename T,
+          detail::enable_if_t<std::is_same<detail::remove_cvref_t<T>, PyObject *>::value, int> = 0>
+T cast(const handle &handle) {
+    return handle.ptr();
 }
 
 // C++ type -> py::object
