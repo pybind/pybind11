@@ -22,7 +22,7 @@ public:
         return nullptr; // Unreachable.
     }
 
-    static handle cast(PyObject *src, return_value_policy policy, handle parent) {
+    static handle cast(PyObject *src, return_value_policy policy, handle /*parent*/) {
         if (src == nullptr) {
             throw error_already_set();
         }
@@ -31,10 +31,6 @@ public:
         }
         if (policy == return_value_policy::take_ownership) {
             return src;
-        }
-        if (policy == return_value_policy::reference_internal) {
-            // NEEDS TEST
-            keep_alive_impl(src, parent);
         }
         Py_INCREF(src);
         return src;
