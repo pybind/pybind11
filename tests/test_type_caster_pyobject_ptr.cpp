@@ -23,11 +23,9 @@ public:
 
     static handle cast(PyObject *src, return_value_policy policy, handle parent) {
         if (src == nullptr) {
-            // NEEDS TEST
             throw error_already_set();
         }
         if (PyErr_Occurred()) {
-            // NEEDS TEST
             raise_from(PyExc_SystemError, "src != nullptr but PyErr_Occurred()");
         }
         if (policy == return_value_policy::take_ownership) {
@@ -84,6 +82,14 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
           [](const std::function<PyObject *(int mode)> &cb, int mode) { return cb(mode); });
     m.def("call_callback_with_PyObject_ptr_arg",
           [](const std::function<bool(PyObject *)> &cb, py::handle obj) { return cb(obj.ptr()); });
+
+    m.def("cast_nullptr", [](bool set_error) {
+        if (set_error) {
+            PyErr_SetString(PyExc_RuntimeError, "As in functioning error handling.");
+        }
+        PyObject *ptr = nullptr;
+        py::cast(ptr);
+    });
 
 #ifdef PYBIND11_NO_COMPILE_SECTION // Change to ifndef for manual testing.
     {

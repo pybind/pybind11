@@ -49,3 +49,16 @@ def test_call_callback_with_PyObject_ptr_arg():
 
     assert m.call_callback_with_PyObject_ptr_arg(cb, ())
     assert not m.call_callback_with_PyObject_ptr_arg(cb, {})
+
+
+@pytest.mark.parametrize("set_error", [True, False])
+def test_cast_nullptr(set_error):
+    expected = {
+        True: r"As in functioning error handling\.",
+        False: (
+            r"Internal error: pybind11::error_already_set called "
+            r"while Python error indicator not set\."
+        ),
+    }[set_error]
+    with pytest.raises(RuntimeError, match=expected):
+        m.cast_nullptr(set_error)
