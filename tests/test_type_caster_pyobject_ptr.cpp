@@ -3,12 +3,24 @@
 #include "pybind11_tests.h"
 
 namespace pybind11 {
+
+template <typename T, typename U>
+static constexpr bool is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>::value;
+
 namespace detail {
 
 template <>
 class type_caster<PyObject> {
 public:
     static constexpr auto name = const_name("PyObject *");
+
+    // This overload is purely to guard against accidents.
+    template <typename T, detail::enable_if_t<!is_same_ignoring_cvref<T, PyObject *>, int> = 0>
+    static handle cast(T &&, return_value_policy, handle /*parent*/) {
+        static_assert(is_same_ignoring_cvref<T, PyObject *>,
+                      "Invalid C++ type T for to-Python conversion (type_caster<PyObject>).");
+        return nullptr; // Unreachable.
+    }
 
     static handle cast(PyObject *src, return_value_policy policy, handle parent) {
         if (src == nullptr) {
@@ -73,4 +85,11 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
           [](const std::function<PyObject *(int mode)> &cb, int mode) { return cb(mode); });
     m.def("call_callback_with_PyObject_ptr_arg",
           [](const std::function<bool(PyObject *)> &cb, py::handle obj) { return cb(obj.ptr()); });
+
+#ifdef PYBIND11_NO_COMPILE_SECTION // Change to ifndef for manual testing.
+    {
+        PyObject *ptr = nullptr;
+        (void) py::cast(*ptr);
+    }
+#endif
 }
