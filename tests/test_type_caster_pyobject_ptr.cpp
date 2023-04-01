@@ -1,58 +1,7 @@
 #include <pybind11/functional.h>
+#include <pybind11/type_caster_pyobject_ptr.h>
 
 #include "pybind11_tests.h"
-
-namespace pybind11 {
-namespace detail {
-
-template <typename T, typename U>
-using is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>;
-
-template <>
-class type_caster<PyObject> {
-public:
-    static constexpr auto name = const_name("PyObject *");
-
-    // This overload is purely to guard against accidents.
-    template <typename T,
-              detail::enable_if_t<!is_same_ignoring_cvref<T, PyObject *>::value, int> = 0>
-    static handle cast(T &&, return_value_policy, handle /*parent*/) {
-        static_assert(is_same_ignoring_cvref<T, PyObject *>::value,
-                      "Invalid C++ type T for to-Python conversion (type_caster<PyObject>).");
-        return nullptr; // Unreachable.
-    }
-
-    static handle cast(PyObject *src, return_value_policy policy, handle /*parent*/) {
-        if (src == nullptr) {
-            throw error_already_set();
-        }
-        if (PyErr_Occurred()) {
-            raise_from(PyExc_SystemError, "src != nullptr but PyErr_Occurred()");
-            throw error_already_set();
-        }
-        if (policy == return_value_policy::take_ownership) {
-            return src;
-        }
-        Py_INCREF(src);
-        return src;
-    }
-
-    bool load(handle src, bool) {
-        value = reinterpret_borrow<object>(src);
-        return true;
-    }
-
-    template <typename T>
-    using cast_op_type = PyObject *;
-
-    explicit operator PyObject *() { return value.ptr(); }
-
-private:
-    object value;
-};
-
-} // namespace detail
-} // namespace pybind11
 
 TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
     m.def("cast_from_pyobject_ptr", []() {
