@@ -62,7 +62,7 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         "return_PyObject_ptr",
         []() { return PyLong_FromLongLong(2314L); },
         py::return_value_policy::take_ownership);
-    m.def("pass_PyObject_ptr", [](const PyObject *obj) { return bool(PyTuple_CheckExact(obj)); });
+    m.def("pass_PyObject_ptr", [](PyObject *obj) { return bool(PyTuple_CheckExact(obj)); });
 
     m.def("call_callback_with_object_return",
           [](const std::function<py::object(int mode)> &cb, int mode) { return cb(mode); });
