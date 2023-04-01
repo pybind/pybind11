@@ -6,7 +6,7 @@ namespace pybind11 {
 namespace detail {
 
 template <typename T, typename U>
-static constexpr bool is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>::value;
+using is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>;
 
 template <>
 class type_caster<PyObject> {
@@ -14,9 +14,10 @@ public:
     static constexpr auto name = const_name("PyObject *");
 
     // This overload is purely to guard against accidents.
-    template <typename T, detail::enable_if_t<!is_same_ignoring_cvref<T, PyObject *>, int> = 0>
+    template <typename T,
+              detail::enable_if_t<!is_same_ignoring_cvref<T, PyObject *>::value, int> = 0>
     static handle cast(T &&, return_value_policy, handle /*parent*/) {
-        static_assert(is_same_ignoring_cvref<T, PyObject *>,
+        static_assert(is_same_ignoring_cvref<T, PyObject *>::value,
                       "Invalid C++ type T for to-Python conversion (type_caster<PyObject>).");
         return nullptr; // Unreachable.
     }
