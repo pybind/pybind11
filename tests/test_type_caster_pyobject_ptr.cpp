@@ -3,11 +3,10 @@
 #include "pybind11_tests.h"
 
 namespace pybind11 {
+namespace detail {
 
 template <typename T, typename U>
 static constexpr bool is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>::value;
-
-namespace detail {
 
 template <>
 class type_caster<PyObject> {
