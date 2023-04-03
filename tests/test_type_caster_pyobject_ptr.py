@@ -21,26 +21,29 @@ def test_pass_pyobject_ptr():
     assert not m.pass_pyobject_ptr({})
 
 
+class ValueHolder:
+    def __init__(self, value):
+        self.value = value
+
+
 @pytest.mark.parametrize(
     "call_callback",
     [
         m.call_callback_with_object_return,
-        m.call_callback_with_handle_return,
         m.call_callback_with_pyobject_ptr_return,
     ],
 )
 def test_call_callback_with_object_return(call_callback):
-    def cb(mode):
-        if mode == 0:
-            return 10
-        if mode == 1:
-            return "One"
-        raise NotImplementedError(f"Unknown mode: {mode}")
+    def cb(value):
+        if value < 0:
+            raise ValueError("Raised from cb")
+        # Return a temporary user-defined object, to maximize sensitivity of this test.
+        return ValueHolder(1000 - value)
 
-    assert call_callback(cb, 0) == 10
-    assert call_callback(cb, 1) == "One"
-    with pytest.raises(NotImplementedError, match="Unknown mode: 2"):
-        call_callback(cb, 2)
+    assert call_callback(cb, 287).value == 713
+
+    with pytest.raises(ValueError, match="^Raised from cb$"):
+        call_callback(cb, -1)
 
 
 def test_call_callback_with_pyobject_ptr_arg():

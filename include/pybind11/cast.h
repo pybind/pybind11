@@ -1062,7 +1062,7 @@ T cast(const handle &handle) {
 template <typename T,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value, int> = 0>
 T cast(const handle &handle) {
-    return handle.ptr();
+    return handle.inc_ref().ptr();
 }
 
 // C++ type -> py::object

@@ -21,14 +21,16 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
     m.def("pass_pyobject_ptr", [](PyObject *obj) { return bool(PyTuple_CheckExact(obj)); });
 
     m.def("call_callback_with_object_return",
-          [](const std::function<py::object(int mode)> &cb, int mode) { return cb(mode); });
-    m.def("call_callback_with_handle_return",
-          [](const std::function<py::handle(int mode)> &cb, int mode) { return cb(mode); });
-    //
-    m.def("call_callback_with_pyobject_ptr_return",
-          [](const std::function<PyObject *(int mode)> &cb, int mode) { return cb(mode); });
-    m.def("call_callback_with_pyobject_ptr_arg",
-          [](const std::function<bool(PyObject *)> &cb, py::handle obj) { return cb(obj.ptr()); });
+          [](const std::function<py::object(int)> &cb, int value) { return cb(value); });
+    m.def(
+        "call_callback_with_pyobject_ptr_return",
+        [](const std::function<PyObject *(int)> &cb, int value) { return cb(value); },
+        py::return_value_policy::take_ownership);
+    m.def(
+        "call_callback_with_pyobject_ptr_arg",
+        [](const std::function<bool(PyObject *)> &cb, py::handle obj) { return cb(obj.ptr()); },
+        py::arg("cb"), // This triggers return_value_policy::automatic_reference
+        py::arg("obj"));
 
     m.def("cast_to_pyobject_ptr_nullptr", [](bool set_error) {
         if (set_error) {
