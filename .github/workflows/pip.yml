@@ -98,13 +98,13 @@ jobs:
     - uses: actions/download-artifact@v3
 
     - name: Publish standard package
-      uses: pypa/gh-action-pypi-publish@v1.8.3
+      uses: pypa/gh-action-pypi-publish@v1.8.4
       with:
         password: ${{ secrets.pypi_password }}
         packages-dir: standard/
 
     - name: Publish global package
-      uses: pypa/gh-action-pypi-publish@v1.8.3
+      uses: pypa/gh-action-pypi-publish@v1.8.4
       with:
         password: ${{ secrets.pypi_password_global }}
         packages-dir: global/
