@@ -3,13 +3,18 @@ import pytest
 from pybind11_tests import type_caster_pyobject_ptr as m
 
 
+# For use as a temporary user-defined object, to maximize sensitivity of the tests below.
+class ValueHolder:
+    def __init__(self, value):
+        self.value = value
+
+
 def test_cast_from_pyobject_ptr():
     assert m.cast_from_pyobject_ptr() == 6758
 
 
 def test_cast_to_pyobject_ptr():
-    assert m.cast_to_pyobject_ptr(())
-    assert not m.cast_to_pyobject_ptr({})
+    assert m.cast_to_pyobject_ptr(ValueHolder(24)) == 76
 
 
 def test_return_pyobject_ptr():
@@ -17,13 +22,7 @@ def test_return_pyobject_ptr():
 
 
 def test_pass_pyobject_ptr():
-    assert m.pass_pyobject_ptr(())
-    assert not m.pass_pyobject_ptr({})
-
-
-class ValueHolder:
-    def __init__(self, value):
-        self.value = value
+    assert m.pass_pyobject_ptr(ValueHolder(82)) == 118
 
 
 @pytest.mark.parametrize(
@@ -37,7 +36,6 @@ def test_call_callback_with_object_return(call_callback):
     def cb(value):
         if value < 0:
             raise ValueError("Raised from cb")
-        # Return a temporary user-defined object, to maximize sensitivity of this test.
         return ValueHolder(1000 - value)
 
     assert call_callback(cb, 287).value == 713
@@ -48,10 +46,9 @@ def test_call_callback_with_object_return(call_callback):
 
 def test_call_callback_with_pyobject_ptr_arg():
     def cb(obj):
-        return isinstance(obj, tuple)
+        return 300 - obj.value
 
-    assert m.call_callback_with_pyobject_ptr_arg(cb, ())
-    assert not m.call_callback_with_pyobject_ptr_arg(cb, {})
+    assert m.call_callback_with_pyobject_ptr_arg(cb, ValueHolder(39)) == 261
 
 
 @pytest.mark.parametrize("set_error", [True, False])

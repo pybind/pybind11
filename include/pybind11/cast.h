@@ -1059,6 +1059,10 @@ T cast(const handle &handle) {
     return T(reinterpret_borrow<object>(handle));
 }
 
+// Note that `cast<PyObject *>(obj)` increments the reference count of `obj`.
+// This is necessary for the case that `obj` is a temporary.
+// It is the responsibility of the caller to ensure that the reference count
+// is decremented.
 template <typename T,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value, int> = 0>
 T cast(const handle &handle) {

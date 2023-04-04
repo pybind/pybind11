@@ -6,19 +6,25 @@
 TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
     m.def("cast_from_pyobject_ptr", []() {
         PyObject *ptr = PyLong_FromLongLong(6758L);
-        py::object retval = py::cast(ptr, py::return_value_policy::take_ownership);
-        return retval;
+        return py::cast(ptr, py::return_value_policy::take_ownership);
     });
     m.def("cast_to_pyobject_ptr", [](py::handle obj) {
+        auto rc1 = obj.ref_count();
         auto *ptr = py::cast<PyObject *>(obj);
-        return bool(PyTuple_CheckExact(ptr));
+        auto rc2 = obj.ref_count();
+        if (rc2 != rc1 + 1) {
+            return -1;
+        }
+        return 100 - py::reinterpret_steal<py::object>(ptr).attr("value").cast<int>();
     });
 
     m.def(
         "return_pyobject_ptr",
         []() { return PyLong_FromLongLong(2314L); },
         py::return_value_policy::take_ownership);
-    m.def("pass_pyobject_ptr", [](PyObject *obj) { return bool(PyTuple_CheckExact(obj)); });
+    m.def("pass_pyobject_ptr", [](PyObject *ptr) {
+        return 200 - py::reinterpret_borrow<py::object>(ptr).attr("value").cast<int>();
+    });
 
     m.def("call_callback_with_object_return",
           [](const std::function<py::object(int)> &cb, int value) { return cb(value); });
@@ -28,7 +34,7 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         py::return_value_policy::take_ownership);
     m.def(
         "call_callback_with_pyobject_ptr_arg",
-        [](const std::function<bool(PyObject *)> &cb, py::handle obj) { return cb(obj.ptr()); },
+        [](const std::function<int(PyObject *)> &cb, py::handle obj) { return cb(obj.ptr()); },
         py::arg("cb"), // This triggers return_value_policy::automatic_reference
         py::arg("obj"));
 
