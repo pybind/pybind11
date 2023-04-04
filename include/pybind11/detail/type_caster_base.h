@@ -258,9 +258,9 @@ struct value_and_holder {
 
     // Main constructor for a found value/holder:
     value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index)
-        : inst{i}, index{index}, type{type}, vh{inst->simple_layout
-                                                    ? inst->simple_value_holder
-                                                    : &inst->nonsimple.values_and_holders[vpos]} {}
+        : inst{i}, index{index}, type{type},
+          vh{inst->simple_layout ? inst->simple_value_holder
+                                 : &inst->nonsimple.values_and_holders[vpos]} {}
 
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
     value_and_holder() = default;
