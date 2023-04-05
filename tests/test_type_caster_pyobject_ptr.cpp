@@ -90,8 +90,8 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         std::size_t i = 0;
         for (; i < vec_obj.size(); i++) {
             py::handle h(vec_obj[i]);
-            if (static_cast<std::size_t>(h.ref_count()) < i) {
-                break;
+            if (static_cast<std::size_t>(h.ref_count()) < 2) {
+                break; // Something is badly wrong.
             }
             h.dec_ref();
         }
