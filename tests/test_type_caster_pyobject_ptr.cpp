@@ -1,7 +1,24 @@
 #include <pybind11/functional.h>
+#include <pybind11/stl.h>
 #include <pybind11/type_caster_pyobject_ptr.h>
 
 #include "pybind11_tests.h"
+
+#include <cstddef>
+#include <vector>
+
+namespace {
+
+std::vector<PyObject *> make_vector_pyobject_ptr(const py::object &ValueHolder) {
+    std::vector<PyObject *> vec_obj;
+    for (int i = 1; i < 3; i++) {
+        vec_obj.push_back(ValueHolder(i * 93).release().ptr());
+    }
+    // This vector now owns the refcounts.
+    return vec_obj;
+}
+
+} // namespace
 
 TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
     m.def("cast_from_pyobject_ptr", []() {
@@ -49,6 +66,36 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
     m.def("cast_to_pyobject_ptr_non_nullptr_with_error_set", []() {
         PyErr_SetString(PyExc_RuntimeError, "Reflective of unhealthy error handling.");
         py::cast(Py_None);
+    });
+
+    m.def("pass_list_pyobject_ptr", [](const std::vector<PyObject *> &vec_obj) {
+        int acc = 0;
+        for (const auto &ptr : vec_obj) {
+            acc = acc * 1000 + py::reinterpret_borrow<py::object>(ptr).attr("value").cast<int>();
+        }
+        return acc;
+    });
+
+    m.def("return_list_pyobject_ptr_take_ownership",
+          make_vector_pyobject_ptr,
+          // Ownership is transferred one-by-one when the vector is converted to a Python list.
+          py::return_value_policy::take_ownership);
+
+    m.def("return_list_pyobject_ptr_reference",
+          make_vector_pyobject_ptr,
+          // Ownership is not transferred.
+          py::return_value_policy::reference);
+
+    m.def("dec_ref_each_pyobject_ptr", [](const std::vector<PyObject *> &vec_obj) {
+        std::size_t i = 0;
+        for (; i < vec_obj.size(); i++) {
+            py::handle h(vec_obj[i]);
+            if (static_cast<std::size_t>(h.ref_count()) < i) {
+                break;
+            }
+            h.dec_ref();
+        }
+        return i;
     });
 
 #ifdef PYBIND11_NO_COMPILE_SECTION // Change to ifndef for manual testing.

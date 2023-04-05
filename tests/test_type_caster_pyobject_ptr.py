@@ -69,3 +69,23 @@ def test_cast_to_python_non_nullptr_with_error_set():
         m.cast_to_pyobject_ptr_non_nullptr_with_error_set()
     assert str(excinfo.value) == "src != nullptr but PyErr_Occurred()"
     assert str(excinfo.value.__cause__) == "Reflective of unhealthy error handling."
+
+
+def test_pass_list_pyobject_ptr():
+    acc = m.pass_list_pyobject_ptr([ValueHolder(842), ValueHolder(452)])
+    assert acc == 842452
+
+
+def test_return_list_pyobject_ptr_take_ownership():
+    vec_obj = m.return_list_pyobject_ptr_take_ownership(ValueHolder)
+    assert [e.value for e in vec_obj] == [93, 186]
+
+
+def test_return_list_pyobject_ptr_reference():
+    vec_obj = m.return_list_pyobject_ptr_reference(ValueHolder)
+    assert [e.value for e in vec_obj] == [93, 186]
+    # Commenting out the next `assert` will leak the Python references.
+    # An easy way to see evidence of the leaks:
+    # Insert `while True:` as the first line of this function and monitor the
+    # process RES (Resident Memory Size) with the Unix top command.
+    assert m.dec_ref_each_pyobject_ptr(vec_obj) == 2
