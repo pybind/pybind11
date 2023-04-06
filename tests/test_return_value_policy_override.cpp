@@ -19,7 +19,7 @@ struct data_fields_holder {
 
     explicit data_fields_holder(std::size_t vec_size) {
         for (std::size_t i = 0; i < vec_size; i++) {
-            vec.emplace_back(data_field{13 + static_cast<int>(i) * 11});
+            vec.emplace_back(13 + static_cast<int>(i) * 11);
         }
     }
 
