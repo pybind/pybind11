@@ -19,16 +19,15 @@ struct data_fields_holder {
 
     explicit data_fields_holder(std::size_t vec_size) {
         for (std::size_t i = 0; i < vec_size; i++) {
-            vec.push_back(data_field{13 + static_cast<int>(i) * 11});
+            vec.emplace_back(data_field{13 + static_cast<int>(i) * 11});
         }
     }
 
     data_field *vec_at(std::size_t index) {
         if (index >= vec.size()) {
             return nullptr;
-        } else {
-            return &vec[index];
         }
+        return &vec[index];
     }
 
     const data_field *vec_at_const_ptr(std::size_t index) { return vec_at(index); }
@@ -275,13 +274,13 @@ TEST_SUBMODULE(return_value_policy_override, m) {
     py::classh<data_fields_holder>(m, "data_fields_holder")
         .def(py::init<std::size_t>())
         .def("vec_at",
-             [](py::object self_py, std::size_t index) {
-                 auto self = py::cast<data_fields_holder *>(self_py);
+             [](const py::object &self_py, std::size_t index) {
+                 auto *self = py::cast<data_fields_holder *>(self_py);
                  return py::cast(
                      self->vec_at(index), py::return_value_policy::_clif_automatic, self_py);
              })
-        .def("vec_at_const_ptr", [](py::object self_py, std::size_t index) {
-            auto self = py::cast<data_fields_holder *>(self_py);
+        .def("vec_at_const_ptr", [](const py::object &self_py, std::size_t index) {
+            auto *self = py::cast<data_fields_holder *>(self_py);
             return py::cast(
                 self->vec_at_const_ptr(index), py::return_value_policy::_clif_automatic, self_py);
         });
