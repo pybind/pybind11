@@ -21,6 +21,8 @@ def test_persistent_holder():
     h = m.data_fields_holder(2)
     assert h.vec_at(0).value == 13
     assert h.vec_at(1).value == 24
+    assert h.vec_at_const_ptr(0).value == 13
+    assert h.vec_at_const_ptr(1).value == 24
 
 
 def test_temporary_holder():
