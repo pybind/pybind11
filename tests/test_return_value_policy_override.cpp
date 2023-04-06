@@ -10,6 +10,8 @@ struct some_type {};
 
 struct data_field {
     int value = -99;
+
+    explicit data_field(int v) : value(v) {}
 };
 
 struct data_fields_holder {
