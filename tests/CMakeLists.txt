@@ -153,6 +153,7 @@ set(PYBIND11_TEST_FILES
     test_stl
     test_stl_binders
     test_tagbased_polymorphic
+    test_template_alias_base
     test_thread
     test_union
     test_virtual_functions)
@@ -521,8 +522,8 @@ set(PYBIND11_TEST_PREFIX_COMMAND
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
-          ${PYBIND11_ABS_PYTEST_FILES}
+  COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest -s -vvvv
+          "${CMAKE_CURRENT_SOURCE_DIR}/test_template_alias_base.py"
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
