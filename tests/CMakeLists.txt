@@ -155,7 +155,8 @@ set(PYBIND11_TEST_FILES
     test_tagbased_polymorphic
     test_thread
     test_union
-    test_virtual_functions)
+    test_virtual_functions
+    test_mi_debug)
 
 # Invoking cmake with something like:
 #     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
