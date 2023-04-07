@@ -752,6 +752,60 @@ inline void raise_from(error_already_set &err, PyObject *type, const char *messa
     raise_from(type, message);
 }
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+// Check if obj is a subclass of PyExc_Warning.
+inline bool PyWarning_Check(PyObject *obj) {
+    int result = PyObject_IsSubclass(obj, PyExc_Warning);
+    if (result == 1) {
+        return true;
+    }
+    if (result == -1) {
+        PyErr_Clear();
+        pybind11_fail("PyWarning_Check(): internal error of Python C API while "
+                      "checking a subclass of the object!");
+    }
+    return false;
+}
+PYBIND11_NAMESPACE_END(detail)
+
+/// Namespace for Python warning categories
+PYBIND11_NAMESPACE_BEGIN(warnings)
+
+// Warning class
+static PyObject *const warning_base = PyExc_Warning;
+
+// BytesWarning class
+static PyObject *const bytes = PyExc_BytesWarning;
+
+// DeprecationWarning class
+static PyObject *const deprecation = PyExc_DeprecationWarning;
+
+// FutureWarning class
+static PyObject *const future = PyExc_FutureWarning;
+
+// ImportWarning class
+static PyObject *const import = PyExc_ImportWarning;
+
+// PendingDeprecationWarning class
+static PyObject *const pending_deprecation = PyExc_PendingDeprecationWarning;
+
+// ResourceWarning class
+static PyObject *const resource = PyExc_ResourceWarning;
+
+// RuntimeWarning class
+static PyObject *const runtime = PyExc_RuntimeWarning;
+
+// RuntimeWarning class
+static PyObject *const syntax = PyExc_SyntaxWarning;
+
+// DeprecationWarning class
+static PyObject *const unicode = PyExc_UnicodeWarning;
+
+// UserWarning class
+static PyObject *const user = PyExc_UserWarning;
+
+PYBIND11_NAMESPACE_END(warnings)
+
 /** \defgroup python_builtins const_name
     Unless stated otherwise, the following C++ functions behave the same
     as their Python counterparts.
