@@ -50,7 +50,7 @@ inline void replace_all(std::string &str, const std::string &from, const std::st
 }
 
 inline bool is_instance_method(PyObject *obj, PyObject *name) {
-    PyTypeObject *type_obj = (PyTypeObject *) obj;
+    auto *type_obj = (PyTypeObject *) obj;
     if (!PyType_Check(obj)) {
         type_obj = Py_TYPE(obj);
     }
@@ -66,11 +66,16 @@ inline bool is_instance_method(PyObject *obj, PyObject *name) {
 extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
 
 inline bool type_is_pybind11_class_(PyObject *obj) {
-    PyTypeObject *type_obj = (PyTypeObject *) obj;
+    auto *type_obj = (PyTypeObject *) obj;
     if (!PyType_Check(obj)) {
         type_obj = Py_TYPE(obj);
     }
     if (type_obj->tp_new == pybind11_object_new) {
+        return true;
+    }
+    // EXPERIMENT: Does this help PyPy? (Other platforms do not need this.)
+    auto &internals = get_internals();
+    if (internals.registered_types_py.find(type_obj) != internals.registered_types_py.end()) {
         return true;
     }
     return false;
