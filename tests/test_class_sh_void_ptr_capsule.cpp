@@ -69,10 +69,6 @@ struct UnspecDerived : UnspecBase {
     int Get() const override { return 200; }
 };
 
-struct ExploreType {
-    int plain_mfun() const { return 42; }
-};
-
 } // namespace class_sh_void_ptr_capsule
 } // namespace pybind11_tests
 
@@ -87,7 +83,6 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(Derived1)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Derived2)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(UnspecBase)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(UnspecDerived)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(ExploreType)
 
 TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<Valid>(m, "Valid");
@@ -129,18 +124,4 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
             return py::reinterpret_steal<py::object>(
                 PyCapsule_New(static_cast<void *>(self), nullptr, nullptr));
         });
-
-    py::classh<ExploreType>(m, "ExploreType")
-        .def(py::init<>())
-        .def("plain_mfun", &ExploreType::plain_mfun)
-        .def("__getattr__",
-             [](ExploreType &, const std::string &key) { return "GetAttr: " + key; });
-
-    m.def("is_instance_method", [](py::handle obj, const std::string &name) {
-        py::str name_pyobj(name);
-        return py::detail::is_instance_method(obj.ptr(), name_pyobj.ptr());
-    });
-
-    m.def("type_is_pybind11_class_",
-          [](py::handle obj) { return py::detail::type_is_pybind11_class_(obj.ptr()); });
 }

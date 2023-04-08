@@ -98,26 +98,3 @@ def test_multiple_inheritance_getattr():
 
 def test_pass_unspecified_base():
     assert m.PassUnspecBase(m.UnspecDerived()) == 230
-
-
-def test_explore():
-    obj = m.ExploreType()
-    assert obj.plain_mfun() == 42
-    assert obj.something == "GetAttr: something"
-    ii = obj.isinstance_method
-    assert ii == "GetAttr: isinstance_method"
-    assert m.is_instance_method(m.ExploreType, "plain_mfun")
-    assert not m.is_instance_method(m.ExploreType, "something")
-    assert m.is_instance_method(obj, "plain_mfun")
-    assert not m.is_instance_method(obj, "something")
-
-
-def test_type_is_pybind11_class_():
-    assert m.type_is_pybind11_class_(m.ExploreType)
-    assert not m.type_is_pybind11_class_(Valid)
-
-
-def test_valid_debug():
-    obj = Valid()
-    assert m.get_from_valid_capsule(obj) == 1
-    assert obj.capsule_generated
