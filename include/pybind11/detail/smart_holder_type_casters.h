@@ -60,7 +60,7 @@ inline void *try_as_void_ptr_capsule_get_pointer(handle src, const char *typeid_
 
     std::string as_void_ptr_function_name("as_");
     as_void_ptr_function_name += type_name;
-    if (hasattr(src, as_void_ptr_function_name.c_str())) {
+    if (hasattr(src, as_void_ptr_function_name.c_str()) && !hasattr(src, "__getattr__")) {
         auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
         auto void_ptr_capsule = as_void_ptr_function();
         if (isinstance<capsule>(void_ptr_capsule)) {
@@ -304,11 +304,8 @@ public:
             loaded_v_h = value_and_holder();
             return true;
         }
-        if (convert && cpptype) {
-            const auto &bases = all_type_info(srctype);
-            if (bases.empty() && try_as_void_ptr_capsule(src)) {
-                return true;
-            }
+        if (convert && cpptype && try_as_void_ptr_capsule(src)) {
+            return true;
         }
         return false;
     }

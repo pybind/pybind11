@@ -94,3 +94,7 @@ def test_multiple_inheritance_getattr():
     assert d2.foo() == 0
     assert d2.bar() == 2
     assert d2.prop2 == "Base GetAttr: prop2"
+
+
+def test_pass_unspecified_base():
+    assert m.PassUnspecBase(m.UnspecDerived()) == 230
