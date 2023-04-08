@@ -49,6 +49,43 @@ inline void replace_all(std::string &str, const std::string &from, const std::st
     }
 }
 
+inline bool is_instance_method(PyObject *obj, PyObject *name) {
+    PyTypeObject *type_obj = (PyTypeObject *) obj;
+    if (!PyType_Check(obj)) {
+        type_obj = Py_TYPE(obj);
+    }
+    PyObject *descr = _PyType_Lookup(type_obj, name);
+    if (descr) {
+        if (PyInstanceMethod_Check(descr)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
+
+inline bool type_is_pybind11_class_(PyObject *obj) {
+    PyTypeObject *type_obj = (PyTypeObject *) obj;
+    if (!PyType_Check(obj)) {
+        type_obj = Py_TYPE(obj);
+    }
+    if (type_obj->tp_new == pybind11_object_new) {
+        return true;
+    }
+    return false;
+}
+
+inline bool enable_try_as_void_ptr_capsule_get_pointer(PyObject *obj, PyObject *name) {
+    if (PyType_Check(obj)) {
+        return false;
+    }
+    if (type_is_pybind11_class_(obj)) {
+        return is_instance_method(obj, name);
+    }
+    return hasattr(obj, name);
+}
+
 inline void *try_as_void_ptr_capsule_get_pointer(handle src, const char *typeid_name) {
     std::string type_name = typeid_name;
     detail::clean_type_id(type_name);
@@ -60,7 +97,9 @@ inline void *try_as_void_ptr_capsule_get_pointer(handle src, const char *typeid_
 
     std::string as_void_ptr_function_name("as_");
     as_void_ptr_function_name += type_name;
-    if (hasattr(src, as_void_ptr_function_name.c_str()) && !hasattr(src, "__getattr__")) {
+    str as_void_ptr_function_name_pyobj(as_void_ptr_function_name);
+    if (enable_try_as_void_ptr_capsule_get_pointer(src.ptr(),
+                                                   as_void_ptr_function_name_pyobj.ptr())) {
         auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
         auto void_ptr_capsule = as_void_ptr_function();
         if (isinstance<capsule>(void_ptr_capsule)) {
