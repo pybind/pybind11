@@ -36,6 +36,7 @@ struct is_smart_holder_type<smart_holder> : std::true_type {};
 // SMART_HOLDER_WIP: Needs refactoring of existing pybind11 code.
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
+extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
 
 // Replace all occurrences of substrings in a string.
 inline void replace_all(std::string &str, const std::string &from, const std::string &to) {
@@ -49,64 +50,52 @@ inline void replace_all(std::string &str, const std::string &from, const std::st
     }
 }
 
-inline bool is_instance_method(PyObject *obj, PyObject *name) {
-    auto *type_obj = (PyTypeObject *) obj;
-    if (!PyType_Check(obj)) {
-        type_obj = Py_TYPE(obj);
-    }
-    PyObject *descr = _PyType_Lookup(type_obj, name);
-    if (descr) {
-        if (PyInstanceMethod_Check(descr)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
-
-inline bool type_is_pybind11_class_(PyObject *obj) {
-    auto *type_obj = (PyTypeObject *) obj;
-    if (!PyType_Check(obj)) {
-        type_obj = Py_TYPE(obj);
-    }
-    if (type_obj->tp_new == pybind11_object_new) {
-        return true;
-    }
-    // EXPERIMENT: Does this help PyPy? (Other platforms do not need this.)
+inline bool type_is_pybind11_class_(PyTypeObject *type_obj) {
+#if defined(PYPY_VERSION)
     auto &internals = get_internals();
-    if (internals.registered_types_py.find(type_obj) != internals.registered_types_py.end()) {
-        return true;
-    }
-    return false;
+    return bool(internals.registered_types_py.find(type_obj)
+                != internals.registered_types_py.end());
+#else
+    return bool(type_obj->tp_new == pybind11_object_new);
+#endif
 }
 
-inline bool enable_try_as_void_ptr_capsule_get_pointer(PyObject *obj, PyObject *name) {
+inline bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name) {
+    PyObject *descr = _PyType_Lookup(type_obj, attr_name);
+    return bool((descr != nullptr) && PyInstanceMethod_Check(descr));
+}
+
+inline object try_get_as_capsule_method(PyObject *obj, PyObject *attr_name) {
     if (PyType_Check(obj)) {
-        return false;
+        return object();
     }
-    if (type_is_pybind11_class_(obj)) {
-        return is_instance_method(obj, name);
+    PyTypeObject *type_obj = Py_TYPE(obj);
+    bool known_callable = false;
+    if (type_is_pybind11_class_(type_obj)) {
+        if (!is_instance_method_of_type(type_obj, attr_name)) {
+            return object();
+        }
+        known_callable = true;
     }
-    return hasattr(obj, name);
+    PyObject *method = PyObject_GetAttr(obj, attr_name);
+    if (method == nullptr) {
+        PyErr_Clear();
+        return object();
+    }
+    if (!known_callable && PyCallable_Check(method) == 0) {
+        Py_DECREF(method);
+        return object();
+    }
+    return reinterpret_steal<object>(method);
 }
 
 inline void *try_as_void_ptr_capsule_get_pointer(handle src, const char *typeid_name) {
-    std::string type_name = typeid_name;
-    detail::clean_type_id(type_name);
-
-    // Convert `a::b::c` to `a_b_c`.
-    replace_all(type_name, "::", "_");
-    // Remove all `*` in the type name.
-    replace_all(type_name, "*", "");
-
-    std::string as_void_ptr_function_name("as_");
-    as_void_ptr_function_name += type_name;
-    str as_void_ptr_function_name_pyobj(as_void_ptr_function_name);
-    if (enable_try_as_void_ptr_capsule_get_pointer(src.ptr(),
-                                                   as_void_ptr_function_name_pyobj.ptr())) {
-        auto as_void_ptr_function = function(src.attr(as_void_ptr_function_name.c_str()));
-        auto void_ptr_capsule = as_void_ptr_function();
+    std::string suffix = clean_type_id(typeid_name);
+    replace_all(suffix, "::", "_"); // Convert `a::b::c` to `a_b_c`.
+    replace_all(suffix, "*", "");
+    object as_capsule_method = try_get_as_capsule_method(src.ptr(), str("as_" + suffix).ptr());
+    if (as_capsule_method) {
+        object void_ptr_capsule = as_capsule_method();
         if (isinstance<capsule>(void_ptr_capsule)) {
             return reinterpret_borrow<capsule>(void_ptr_capsule).get_pointer();
         }
