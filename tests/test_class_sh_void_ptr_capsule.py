@@ -84,7 +84,7 @@ def test_type_with_getattr():
     assert obj.something == "GetAttr: something"
 
 
-def NOtest_multiple_inheritance_getattr():
+def test_multiple_inheritance_getattr():
     d1 = m.Derived1()
     assert d1.foo() == 0
     assert d1.bar() == 1
