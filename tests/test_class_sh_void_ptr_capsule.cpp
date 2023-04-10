@@ -58,20 +58,33 @@ struct Derived2 : Base12 {
     int bar() const { return 2; }
 };
 
+struct UnspecBase {
+    virtual ~UnspecBase() = default;
+    virtual int Get() const { return 100; }
+};
+
+int PassUnspecBase(const UnspecBase &sb) { return sb.Get() + 30; }
+
+struct UnspecDerived : UnspecBase {
+    int Get() const override { return 200; }
+};
+
 } // namespace class_sh_void_ptr_capsule
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Valid)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::TypeWithGetattr)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Base2)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Base12)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Derived1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_void_ptr_capsule::Derived2)
+using namespace pybind11_tests::class_sh_void_ptr_capsule;
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Valid)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(TypeWithGetattr)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Base1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Base2)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Base12)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Derived1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Derived2)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(UnspecBase)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(UnspecDerived)
 
 TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
-    using namespace pybind11_tests::class_sh_void_ptr_capsule;
-
     py::classh<Valid>(m, "Valid");
 
     m.def("get_from_valid_capsule", &get_from_valid_capsule);
@@ -102,4 +115,13 @@ TEST_SUBMODULE(class_sh_void_ptr_capsule, m) {
     py::classh<Derived1, Base12>(m, "Derived1").def(py::init<>()).def("bar", &Derived1::bar);
 
     py::classh<Derived2, Base12>(m, "Derived2").def(py::init<>()).def("bar", &Derived2::bar);
+
+    py::classh<UnspecBase>(m, "UnspecBase");
+    m.def("PassUnspecBase", PassUnspecBase);
+    py::classh<UnspecDerived>(m, "UnspecDerived") // UnspecBase NOT specified as base here.
+        .def(py::init<>())
+        .def("as_pybind11_tests_class_sh_void_ptr_capsule_UnspecBase", [](UnspecDerived *self) {
+            return py::reinterpret_steal<py::object>(
+                PyCapsule_New(static_cast<void *>(self), nullptr, nullptr));
+        });
 }
