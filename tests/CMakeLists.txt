@@ -116,6 +116,7 @@ endif()
 # Any test that has an extension is exclusively that and handled as such.
 set(PYBIND11_TEST_FILES
     test_async
+    test_blank_page
     test_buffers
     test_builtin_casters
     test_call_policies
