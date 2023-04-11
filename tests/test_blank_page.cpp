@@ -20,6 +20,22 @@ struct Options : OptionsBase {};
 } // namespace blank_page
 } // namespace pybind11_tests
 
+namespace explore {
+
+template <typename F>
+struct drop_return_value {
+    F f;
+
+    explicit drop_return_value(F &&f) : f(std::move(f)) {}
+
+    template <typename... Args>
+    void operator()(Args &&...args) const {
+        (void) f(std::forward<Args>(args)...);
+    }
+};
+
+} // namespace explore
+
 TEST_SUBMODULE(blank_page, m) {
     using namespace pybind11_tests::blank_page;
 
