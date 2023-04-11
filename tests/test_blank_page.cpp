@@ -23,7 +23,9 @@ struct Options : OptionsBase {};
 TEST_SUBMODULE(blank_page, m) {
     using namespace pybind11_tests::blank_page;
 
+    py::class_<OptionsBase>(m, "OptionsBase");
+
     py::class_<Options>(m, "Options")
         .def(py::init<>())
-        .def_property("simple_value", &OptionsBase::simple_value, &OptionsBase::SetSimpleValue);
+        .def_property("simple_value", &Options::simple_value, &Options::SetSimpleValue);
 }
