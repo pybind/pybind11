@@ -533,7 +533,10 @@ enum class return_value_policy : uint8_t {
         collected while Python is still using the child. More advanced
         variations of this scheme are also possible using combinations of
         return_value_policy::reference and the keep_alive call policy */
-    reference_internal
+    reference_internal,
+
+    /** For use by setters. */
+    return_none
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
