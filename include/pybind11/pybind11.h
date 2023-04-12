@@ -82,8 +82,8 @@ PYBIND11_NAMESPACE_END(detail)
 class cpp_function : public function {
 public:
     cpp_function() = default;
-    // NOLINTNEXTLINE(google-explicit-constructor)
     template <typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t, const Extra &...) {}
 
     /// Construct a cpp_function from a vanilla function pointer
