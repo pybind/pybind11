@@ -83,7 +83,8 @@ class cpp_function : public function {
 public:
     cpp_function() = default;
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(std::nullptr_t) {}
+    template <typename... Extra>
+    cpp_function(std::nullptr_t, const Extra &...) {}
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
@@ -245,7 +246,7 @@ protected:
 
             /* Perform the function call */
             handle result;
-            if (call.func.policy == return_value_policy::return_none) {
+            if (call.func.is_setter) {
                 (void) std::move(args_converter).template call<Return, Guard>(cap->f);
                 result = none();
             } else {
@@ -1735,7 +1736,8 @@ public:
     template <typename Getter, typename Setter, typename... Extra>
     class_ &
     def_property(const char *name, const Getter &fget, const Setter &fset, const Extra &...extra) {
-        return def_property(name, fget, cpp_function(method_adaptor<type>(fset)), extra...);
+        return def_property(
+            name, fget, cpp_function(method_adaptor<type>(fset), is_setter()), extra...);
     }
     template <typename Getter, typename... Extra>
     class_ &def_property(const char *name,

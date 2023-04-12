@@ -27,8 +27,5 @@ TEST_SUBMODULE(blank_page, m) {
 
     py::class_<Options>(m, "Options")
         .def(py::init<>())
-        .def_property("simple_value",
-                      &Options::simple_value,
-                      &Options::SetSimpleValue,
-                      py::return_value_policy::return_none);
+        .def_property("simple_value", &Options::simple_value, &Options::SetSimpleValue);
 }

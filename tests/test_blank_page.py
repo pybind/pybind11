@@ -6,3 +6,5 @@ def test_property():
     setter_return = options.simple_value = 100
     assert isinstance(setter_return, int)
     assert setter_return == 100
+    sv = options.simple_value
+    assert sv == 100
