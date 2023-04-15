@@ -50,3 +50,7 @@ def test_function_record_leaks():
         m.register_large_capture_with_invalid_arguments(m)
     with pytest.raises(RuntimeError):
         m.register_with_raising_repr(m, RaisingRepr())
+
+
+def test_noexcept_lambda():
+    assert m.l1() == 0
