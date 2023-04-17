@@ -70,6 +70,19 @@ NestMap *times_hundred(int n) {
     return m;
 }
 
+/*
+ * Recursive data structures as test for issue #4623
+ */
+struct RecursiveVector : std::vector<RecursiveVector> {
+    using Parent = std::vector<RecursiveVector>;
+    using Parent::Parent;
+};
+
+struct RecursiveMap : std::map<int, RecursiveMap> {
+    using Parent = std::map<int, RecursiveMap>;
+    using Parent::Parent;
+};
+
 TEST_SUBMODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
@@ -149,4 +162,7 @@ TEST_SUBMODULE(stl_binders, m) {
     m.def("get_vectorstruct", [] {
         return std::vector<VStruct>{{false, 5, 3.0, true}, {true, 30, -1e4, false}};
     });
+
+    py::bind_vector<RecursiveVector>(m, "RecursiveVector");
+    py::bind_map<RecursiveMap>(m, "RecursiveMap");
 }

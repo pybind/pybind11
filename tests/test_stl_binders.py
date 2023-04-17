@@ -335,3 +335,21 @@ def test_map_view_types():
     assert type(unordered_map_string_double.items()) is items_type
     assert type(map_string_double_const.items()) is items_type
     assert type(unordered_map_string_double_const.items()) is items_type
+
+
+def test_recursive_containers():
+    recursive_vector = m.RecursiveVector()
+    recursive_vector.append(m.RecursiveVector())
+    recursive_vector[0].append(m.RecursiveVector())
+    recursive_vector[0][0].append(m.RecursiveVector())
+    recursive_vector[0][0].append(m.RecursiveVector())
+    # Can't use len() since test_stl_binders.cpp does not include stl.h,
+    # so the necessary conversion is missing
+    assert recursive_vector[0][0].count(m.RecursiveVector()) == 2
+
+    recursive_map = m.RecursiveMap()
+    recursive_map[1] = m.RecursiveMap()
+    recursive_map[1][1] = m.RecursiveMap()
+    recursive_map[1][1][1] = m.RecursiveMap()
+    recursive_map[1][1][2] = m.RecursiveMap()
+    assert list(recursive_map[1][1].keys()) == [1, 2]
