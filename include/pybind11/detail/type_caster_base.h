@@ -832,15 +832,13 @@ struct is_move_constructible : std::is_move_constructible<T> {};
 
 // True if Container has a dependent type mapped_type that is equivalent
 // to Container itself
-template<typename Container, typename MappedType = Container>
-struct map_self_referential
-{
+template <typename Container, typename MappedType = Container>
+struct map_self_referential {
     constexpr static bool value = false;
 };
 
-template<typename Container>
-struct map_self_referential<Container, typename Container::mapped_type>
-{
+template <typename Container>
+struct map_self_referential<Container, typename Container::mapped_type> {
     constexpr static bool value = true;
 };
 
@@ -871,14 +869,15 @@ struct is_copy_constructible<std::pair<T1, T2>>
 template <typename T, typename SFINAE = void>
 struct is_copy_assignable : std::is_copy_assignable<T> {};
 template <typename Container>
-struct is_copy_assignable<Container,
-                          enable_if_t<all_of<std::is_copy_assignable<Container>,
-                                             std::is_same<typename Container::value_type &,
-                                                          typename Container::reference>,
-                                            // Avoid infinite recursion (list types)
-                                            negation<std::is_same<Container, typename Container::value_type>>,
-                                            // Avoid infinite recursion (map types)
-                                            negation<map_self_referential<Container>>>::value>>
+struct is_copy_assignable<
+    Container,
+    enable_if_t<
+        all_of<std::is_copy_assignable<Container>,
+               std::is_same<typename Container::value_type &, typename Container::reference>,
+               // Avoid infinite recursion (list types)
+               negation<std::is_same<Container, typename Container::value_type>>,
+               // Avoid infinite recursion (map types)
+               negation<map_self_referential<Container>>>::value>>
     : is_copy_assignable<typename Container::value_type> {};
 template <typename T1, typename T2>
 struct is_copy_assignable<std::pair<T1, T2>>
