@@ -83,6 +83,32 @@ struct RecursiveMap : std::map<int, RecursiveMap> {
     using Parent::Parent;
 };
 
+/*
+ * Pybind11 does not catch more complicated recursion schemes, such as mutual
+ * recursion.
+ * In that case, an alternative is to add a custom overload.
+ */
+struct MutuallyRecursiveMap;
+struct MutuallyRecursiveVector;
+
+struct MutuallyRecursiveMap : std::map<int, MutuallyRecursiveVector> {};
+struct MutuallyRecursiveVector : std::vector<MutuallyRecursiveMap> {};
+
+namespace pybind11 {
+namespace detail {
+template <>
+struct is_comparable<MutuallyRecursiveVector, void> : std::true_type {};
+template <>
+struct is_copy_assignable<MutuallyRecursiveVector, void> : std::true_type {};
+template <>
+struct is_copy_assignable<MutuallyRecursiveMap, void> : std::true_type {};
+template <>
+struct is_copy_constructible<MutuallyRecursiveVector, void> : std::true_type {};
+template <>
+struct is_copy_constructible<MutuallyRecursiveMap, void> : std::true_type {};
+} // namespace detail
+} // namespace pybind11
+
 TEST_SUBMODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
@@ -165,4 +191,6 @@ TEST_SUBMODULE(stl_binders, m) {
 
     py::bind_vector<RecursiveVector>(m, "RecursiveVector");
     py::bind_map<RecursiveMap>(m, "RecursiveMap");
+    py::bind_map<MutuallyRecursiveMap>(m, "MutuallyRecursiveMap");
+    py::bind_vector<MutuallyRecursiveVector>(m, "MutuallyRecursiveVector");
 }
