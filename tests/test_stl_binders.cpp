@@ -168,6 +168,12 @@ TEST_SUBMODULE(stl_binders, m) {
             m, "VectorUndeclStruct", py::buffer_protocol());
     });
 
+    // Bind recursive container types
+    py::bind_vector<RecursiveVector>(m, "RecursiveVector");
+    py::bind_map<RecursiveMap>(m, "RecursiveMap");
+    py::bind_map<MutuallyRecursiveMap>(m, "MutuallyRecursiveMap");
+    py::bind_vector<MutuallyRecursiveVector>(m, "MutuallyRecursiveVector");
+
     // The rest depends on numpy:
     try {
         py::module_::import("numpy");
@@ -188,9 +194,4 @@ TEST_SUBMODULE(stl_binders, m) {
     m.def("get_vectorstruct", [] {
         return std::vector<VStruct>{{false, 5, 3.0, true}, {true, 30, -1e4, false}};
     });
-
-    py::bind_vector<RecursiveVector>(m, "RecursiveVector");
-    py::bind_map<RecursiveMap>(m, "RecursiveMap");
-    py::bind_map<MutuallyRecursiveMap>(m, "MutuallyRecursiveMap");
-    py::bind_vector<MutuallyRecursiveVector>(m, "MutuallyRecursiveVector");
 }
