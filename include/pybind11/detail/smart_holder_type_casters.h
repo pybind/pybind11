@@ -720,7 +720,7 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 
     static handle cast(T &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::_clif_automatic) {
-            if (std::is_move_constructible<T>::value) {
+            if (is_move_constructible<T>::value) {
                 policy = return_value_policy::move;
             } else {
                 policy = return_value_policy::automatic;

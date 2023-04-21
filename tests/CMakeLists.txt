@@ -178,6 +178,7 @@ set(PYBIND11_TEST_FILES
     test_type_caster_odr_guard_1
     test_type_caster_odr_guard_2
     test_union
+    test_vector_unique_ptr_member
     test_virtual_functions)
 
 # Invoking cmake with something like:
