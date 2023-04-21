@@ -164,7 +164,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
         ${{ matrix.args }}
 
     - name: Build (unstable ABI)
@@ -497,6 +496,24 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+    - name: Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      shell: bash
+      run: >
+        cmake -S . -B build_partial
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+    - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      run: cmake --build build_partial -j 2
+
+    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      run: cmake --build build_partial --target pytest
 
   # Testing on ICC using the oneAPI apt repo
   icc:
@@ -889,6 +906,21 @@ jobs:
     - name: Interface test C++20
       run: cmake --build build --target test_cmake_build
 
+    - name: Configure C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      run: >
+        cmake -S . -B build_partial
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=20
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+    - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      run: cmake --build build_partial -j 2
+
+    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      run: cmake --build build_partial --target pytest
+
   mingw:
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
@@ -1104,6 +1136,24 @@ jobs:
 
       - name: Interface test
         run: cmake --build . --target test_cmake_build -j 2
+
+      - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: >
+          cmake -S . -B build_partial
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+      - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: cmake --build build_partial -j 2
+
+      - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: cmake --build build_partial --target pytest -j 2
 
       - name: Clean directory
         run: git clean -fdx
