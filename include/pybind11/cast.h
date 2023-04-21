@@ -1002,7 +1002,7 @@ struct move_always<
     enable_if_t<
         all_of<move_is_plain_type<T>,
                negation<is_copy_constructible<T>>,
-               std::is_move_constructible<T>,
+               is_move_constructible<T>,
                std::is_same<decltype(std::declval<make_caster<T>>().operator T &()), T &>>::value>>
     : std::true_type {};
 template <typename T, typename SFINAE = void>
@@ -1013,7 +1013,7 @@ struct move_if_unreferenced<
     enable_if_t<
         all_of<move_is_plain_type<T>,
                negation<move_always<T>>,
-               std::is_move_constructible<T>,
+               is_move_constructible<T>,
                std::is_same<decltype(std::declval<make_caster<T>>().operator T &()), T &>>::value>>
     : std::true_type {};
 template <typename T>
