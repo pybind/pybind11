@@ -97,15 +97,9 @@ struct MutuallyRecursiveVector : std::vector<MutuallyRecursiveMap> {};
 namespace pybind11 {
 namespace detail {
 template <>
-struct is_comparable<MutuallyRecursiveVector, void> : std::true_type {};
+struct is_container_with_self_referential_mapped_type<MutuallyRecursiveVector> : std::true_type {};
 template <>
-struct is_copy_assignable<MutuallyRecursiveVector, void> : std::true_type {};
-template <>
-struct is_copy_assignable<MutuallyRecursiveMap, void> : std::true_type {};
-template <>
-struct is_copy_constructible<MutuallyRecursiveVector, void> : std::true_type {};
-template <>
-struct is_copy_constructible<MutuallyRecursiveMap, void> : std::true_type {};
+struct is_container_with_self_referential_mapped_type<MutuallyRecursiveMap> : std::true_type {};
 } // namespace detail
 } // namespace pybind11
 

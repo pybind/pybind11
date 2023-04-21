@@ -832,15 +832,30 @@ struct is_move_constructible : std::is_move_constructible<T> {};
 
 // True if Container has a dependent type mapped_type that is equivalent
 // to Container itself
+// Actual implementation in the SFINAE specializations below
 template <typename Container, typename MappedType = Container>
-struct map_self_referential {
-    constexpr static bool value = false;
-};
+struct sfinae_is_container_with_self_referential_mapped_type : std::false_type {};
+
+// Tie-breaking between the mapped_type and the value_type specializations is trivial:
+// The specializations are only valid if both conditions are fulfilled:
+// 1) The mapped_type (respectively value_type) exists
+// 2) And it is equivalent to Container
+// So, in each case, only one specialization will activate.
+template <typename Container>
+struct sfinae_is_container_with_self_referential_mapped_type<Container,
+                                                             typename Container::mapped_type>
+    : std::true_type {};
 
 template <typename Container>
-struct map_self_referential<Container, typename Container::mapped_type> {
-    constexpr static bool value = true;
-};
+struct sfinae_is_container_with_self_referential_mapped_type<Container,
+                                                             typename Container::value_type>
+    : std::true_type {};
+
+// Use a helper struct in order to give this a nicer public API without helper template parameter.
+// This makes this struct nicer to specialize by users.
+template <typename Container>
+struct is_container_with_self_referential_mapped_type
+    : sfinae_is_container_with_self_referential_mapped_type<Container> {};
 
 // Specialization for types that appear to be copy constructible but also look like stl containers
 // (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
@@ -851,10 +866,8 @@ struct is_copy_constructible<
     enable_if_t<
         all_of<std::is_copy_constructible<Container>,
                std::is_same<typename Container::value_type &, typename Container::reference>,
-               // Avoid infinite recursion (list types)
-               negation<std::is_same<Container, typename Container::value_type>>,
-               // Avoid infinite recursion (map types)
-               negation<map_self_referential<Container>>>::value>>
+               // Avoid infinite recursion
+               negation<is_container_with_self_referential_mapped_type<Container>>>::value>>
     : is_copy_constructible<typename Container::value_type> {};
 
 // Likewise for std::pair
@@ -874,10 +887,8 @@ struct is_copy_assignable<
     enable_if_t<
         all_of<std::is_copy_assignable<Container>,
                std::is_same<typename Container::value_type &, typename Container::reference>,
-               // Avoid infinite recursion (list types)
-               negation<std::is_same<Container, typename Container::value_type>>,
-               // Avoid infinite recursion (map types)
-               negation<map_self_referential<Container>>>::value>>
+               // Avoid infinite recursion
+               negation<is_container_with_self_referential_mapped_type<Container>>>::value>>
     : is_copy_assignable<typename Container::value_type> {};
 template <typename T1, typename T2>
 struct is_copy_assignable<std::pair<T1, T2>>
