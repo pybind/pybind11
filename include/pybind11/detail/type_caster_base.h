@@ -832,30 +832,38 @@ struct is_move_constructible : std::is_move_constructible<T> {};
 
 // True if Container has a dependent type mapped_type that is equivalent
 // to Container itself
-// Actual implementation in the SFINAE specializations below
+// Actual implementation in the SFINAE specialization below
 template <typename Container, typename MappedType = Container>
-struct sfinae_is_container_with_self_referential_mapped_type : std::false_type {};
+struct is_container_with_recursive_mapped_type : std::false_type {};
 
-// Tie-breaking between the mapped_type and the value_type specializations is trivial:
-// The specializations are only valid if both conditions are fulfilled:
-// 1) The mapped_type (respectively value_type) exists
+// This specialization is only valid if both conditions are fulfilled:
+// 1) The mapped_type exists
 // 2) And it is equivalent to Container
-// So, in each case, only one specialization will activate.
 template <typename Container>
-struct sfinae_is_container_with_self_referential_mapped_type<Container,
-                                                             typename Container::mapped_type>
+struct is_container_with_recursive_mapped_type<Container, typename Container::mapped_type>
     : std::true_type {};
 
+// True if Container has a dependent type value_type that is equivalent
+// to Container itself
+// Actual implementation in the SFINAE specialization below
+template <typename Container, typename MappedType = Container>
+struct is_container_with_recursive_value_type : std::false_type {};
+
+// This specialization is only valid if both conditions are fulfilled:
+// 1) The value_type exists
+// 2) And it is equivalent to Container
 template <typename Container>
-struct sfinae_is_container_with_self_referential_mapped_type<Container,
-                                                             typename Container::value_type>
+struct is_container_with_recursive_value_type<Container, typename Container::value_type>
     : std::true_type {};
 
-// Use a helper struct in order to give this a nicer public API without helper template parameter.
-// This makes this struct nicer to specialize by users.
-template <typename Container>
-struct is_container_with_self_referential_mapped_type
-    : sfinae_is_container_with_self_referential_mapped_type<Container> {};
+// True constant if the type contains itself recursively.
+// By default, this will check the mapped_type and value_type dependent types.
+// In more complex recursion patterns, users can specialize this struct.
+// The second template parameter SFINAE=void is for use of std::enable_if in specializations.
+// An example is found in tests/test_stl_binders.cpp.
+template <typename Container, typename SFINAE = void>
+struct is_recursive_container : any_of<is_container_with_recursive_value_type<Container>,
+                                       is_container_with_recursive_mapped_type<Container>> {};
 
 // Specialization for types that appear to be copy constructible but also look like stl containers
 // (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
@@ -867,7 +875,7 @@ struct is_copy_constructible<
         all_of<std::is_copy_constructible<Container>,
                std::is_same<typename Container::value_type &, typename Container::reference>,
                // Avoid infinite recursion
-               negation<is_container_with_self_referential_mapped_type<Container>>>::value>>
+               negation<is_recursive_container<Container>>>::value>>
     : is_copy_constructible<typename Container::value_type> {};
 
 // Likewise for std::pair
@@ -888,7 +896,7 @@ struct is_copy_assignable<
         all_of<std::is_copy_assignable<Container>,
                std::is_same<typename Container::value_type &, typename Container::reference>,
                // Avoid infinite recursion
-               negation<is_container_with_self_referential_mapped_type<Container>>>::value>>
+               negation<is_recursive_container<Container>>>::value>>
     : is_copy_assignable<typename Container::value_type> {};
 template <typename T1, typename T2>
 struct is_copy_assignable<std::pair<T1, T2>>

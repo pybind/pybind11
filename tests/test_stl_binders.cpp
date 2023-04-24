@@ -90,20 +90,18 @@ struct RecursiveMap : std::map<int, RecursiveMap> {
  * pybind11::detail::is_container_with_self_referential_mapped_type, thus
  * manually telling pybind11 about the recursion.
  */
-struct MutuallyRecursiveContainerPairA;
-struct MutuallyRecursiveContainerPairB;
+struct MutuallyRecursiveContainerPairMV;
+struct MutuallyRecursiveContainerPairVM;
 
-struct MutuallyRecursiveContainerPairA : std::map<int, MutuallyRecursiveContainerPairB> {};
-struct MutuallyRecursiveContainerPairB : std::vector<MutuallyRecursiveContainerPairA> {};
+struct MutuallyRecursiveContainerPairMV : std::map<int, MutuallyRecursiveContainerPairVM> {};
+struct MutuallyRecursiveContainerPairVM : std::vector<MutuallyRecursiveContainerPairMV> {};
 
 namespace pybind11 {
 namespace detail {
-template <>
-struct is_container_with_self_referential_mapped_type<MutuallyRecursiveContainerPairB>
-    : std::true_type {};
-template <>
-struct is_container_with_self_referential_mapped_type<MutuallyRecursiveContainerPairA>
-    : std::true_type {};
+template <typename SFINAE>
+struct is_recursive_container<MutuallyRecursiveContainerPairMV, SFINAE> : std::true_type {};
+template <typename SFINAE>
+struct is_recursive_container<MutuallyRecursiveContainerPairVM, SFINAE> : std::true_type {};
 } // namespace detail
 } // namespace pybind11
 
@@ -169,8 +167,8 @@ TEST_SUBMODULE(stl_binders, m) {
     // Bind recursive container types
     py::bind_vector<RecursiveVector>(m, "RecursiveVector");
     py::bind_map<RecursiveMap>(m, "RecursiveMap");
-    py::bind_map<MutuallyRecursiveContainerPairA>(m, "MutuallyRecursiveContainerPairA");
-    py::bind_vector<MutuallyRecursiveContainerPairB>(m, "MutuallyRecursiveContainerPairB");
+    py::bind_map<MutuallyRecursiveContainerPairMV>(m, "MutuallyRecursiveContainerPairMV");
+    py::bind_vector<MutuallyRecursiveContainerPairVM>(m, "MutuallyRecursiveContainerPairVM");
 
     // The rest depends on numpy:
     try {
