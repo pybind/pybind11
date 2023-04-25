@@ -827,6 +827,9 @@ using movable_cast_op_type
 template <typename T, typename SFINAE = void>
 struct is_copy_constructible : std::is_copy_constructible<T> {};
 
+template <typename T, typename SFINAE = void>
+struct is_move_constructible : std::is_move_constructible<T> {};
+
 // Specialization for types that appear to be copy constructible but also look like stl containers
 // (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
 // so, copy constructability depends on whether the value_type is copy constructible.
@@ -994,7 +997,7 @@ protected:
         return [](const void *arg) -> void * { return new T(*reinterpret_cast<const T *>(arg)); };
     }
 
-    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
+    template <typename T, typename = enable_if_t<is_move_constructible<T>::value>>
     static auto make_move_constructor(const T *)
         -> decltype(new T(std::declval<T &&>()), Constructor{}) {
         return [](const void *arg) -> void * {
