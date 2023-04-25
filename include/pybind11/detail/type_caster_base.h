@@ -860,6 +860,27 @@ struct is_recursive_container : any_of<is_container_with_recursive_value_type<Co
 template <typename T, typename SFINAE = void>
 struct is_move_constructible : std::is_move_constructible<T> {};
 
+// Specialization for types that appear to be move constructible but also look like stl containers
+// (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
+// so, move constructability depends on whether the value_type is move constructible.
+template <typename Container>
+struct is_move_constructible<
+    Container,
+    enable_if_t<
+        all_of<std::is_move_constructible<Container>,
+               std::is_same<typename Container::value_type &, typename Container::reference>,
+               // Avoid infinite recursion
+               negation<is_recursive_container<Container>>>::value>>
+    : is_move_constructible<typename Container::value_type> {};
+
+// Likewise for std::pair
+// (after C++17 it is mandatory that the move constructor not exist when the two types aren't
+// themselves move constructible, but this can not be relied upon when T1 or T2 are themselves
+// containers).
+template <typename T1, typename T2>
+struct is_move_constructible<std::pair<T1, T2>>
+    : all_of<is_move_constructible<T1>, is_move_constructible<T2>> {};
+
 // std::is_copy_constructible isn't quite enough: it lets std::vector<T> (and similar) through when
 // T is non-copyable, but code containing such a copy constructor fails to actually compile.
 template <typename T, typename SFINAE = void>
