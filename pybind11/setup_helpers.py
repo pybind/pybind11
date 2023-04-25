@@ -144,7 +144,6 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
         self.cxx_std = cxx_std
 
         cflags = []
-        ldflags = []
         if WIN:
             cflags += ["/EHsc", "/bigobj"]
         else:
@@ -154,11 +153,7 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
             c_cpp_flags = shlex.split(env_cflags) + shlex.split(env_cppflags)
             if not any(opt.startswith("-g") for opt in c_cpp_flags):
                 cflags += ["-g0"]
-            if MACOS:
-                cflags += ["-stdlib=libc++"]
-                ldflags += ["-stdlib=libc++"]
         self._add_cflags(cflags)
-        self._add_ldflags(ldflags)
 
     @property
     def cxx_std(self) -> int:
@@ -271,21 +266,41 @@ def auto_cpp_level(compiler: Any) -> Union[str, int]:
     raise RuntimeError(msg)
 
 
+@lru_cache()
+def has_stdlib_libc(compiler: Any) -> bool:
+    """
+    Return whether the flag "-stdlib=libc++" is supported by the compiler.
+    On macOS, this flag is required for clang but is invalid for GCC.
+    """
+    return has_flag(compiler, "-stdlib=libc++")
+
+
 class build_ext(_build_ext):  # type: ignore[misc] # noqa: N801
     """
     Customized build_ext that allows an auto-search for the highest supported
-    C++ level for Pybind11Extension. This is only needed for the auto-search
-    for now, and is completely optional otherwise.
+    C++ level on all systems for Pybind11Extensions, and also auto-determine
+    whether "-stdlib=libc++" should be used on macOS. This is only needed for
+    these two auto-detections for now, and is completely optional otherwise.
     """
 
     def build_extensions(self) -> None:
         """
-        Build extensions, injecting C++ std for Pybind11Extension if needed.
+        Build extensions, injecting C++ std (and stdlib=libc++ on macOS) for
+        Pybind11Extension if needed.
         """
 
         for ext in self.extensions:
             if hasattr(ext, "_cxx_level") and ext._cxx_level == 0:
                 ext.cxx_std = auto_cpp_level(self.compiler)
+
+            if (
+                MACOS
+                and hasattr(ext, "_add_cflags")
+                and hasattr(ext, "_add_ldflags")
+                and has_stdlib_libc(self.compiler)
+            ):
+                ext._add_cflags(["-stdlib=libc++"])
+                ext._add_ldflags(["-stdlib=libc++"])
 
         super().build_extensions()
 
