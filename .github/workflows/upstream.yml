@@ -95,7 +95,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
     - name: Build (unstable ABI)
       run: cmake --build build17max -j 2
