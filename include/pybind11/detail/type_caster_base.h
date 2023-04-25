@@ -822,14 +822,6 @@ using movable_cast_op_type
                                   typename std::add_rvalue_reference<intrinsic_t<T>>::type,
                                   typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
 
-// std::is_copy_constructible isn't quite enough: it lets std::vector<T> (and similar) through when
-// T is non-copyable, but code containing such a copy constructor fails to actually compile.
-template <typename T, typename SFINAE = void>
-struct is_copy_constructible : std::is_copy_constructible<T> {};
-
-template <typename T, typename SFINAE = void>
-struct is_move_constructible : std::is_move_constructible<T> {};
-
 // True if Container has a dependent type mapped_type that is equivalent
 // to Container itself
 // Actual implementation in the SFINAE specialization below
@@ -864,6 +856,14 @@ struct is_container_with_recursive_value_type<Container, typename Container::val
 template <typename Container, typename SFINAE = void>
 struct is_recursive_container : any_of<is_container_with_recursive_value_type<Container>,
                                        is_container_with_recursive_mapped_type<Container>> {};
+
+template <typename T, typename SFINAE = void>
+struct is_move_constructible : std::is_move_constructible<T> {};
+
+// std::is_copy_constructible isn't quite enough: it lets std::vector<T> (and similar) through when
+// T is non-copyable, but code containing such a copy constructor fails to actually compile.
+template <typename T, typename SFINAE = void>
+struct is_copy_constructible : std::is_copy_constructible<T> {};
 
 // Specialization for types that appear to be copy constructible but also look like stl containers
 // (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
