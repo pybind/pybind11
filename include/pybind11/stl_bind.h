@@ -68,12 +68,13 @@ struct is_comparable<T,
     static constexpr const bool value = is_comparable<typename T::value_type>::value;
 };
 
+/* Skip the recursion if the type itself is recursive */
 template <typename T>
 struct is_comparable<T,
                      enable_if_t<container_traits<T>::is_vector &&
                                  // Special case: The vector type is recursive
-                                 std::is_same<T, typename T::value_type>::value>> {
-    static constexpr const bool value = true;
+                                 is_recursive_container<T>::value>> {
+    static constexpr const bool value = container_traits<T>::is_comparable;
 };
 
 /* For pairs, recursively check the two data types */

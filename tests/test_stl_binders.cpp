@@ -86,9 +86,8 @@ struct RecursiveMap : std::map<int, RecursiveMap> {
 /*
  * Pybind11 does not catch more complicated recursion schemes, such as mutual
  * recursion.
- * In that case, an alternative is to add a custom specialization to
- * pybind11::detail::is_container_with_self_referential_mapped_type, thus
- * manually telling pybind11 about the recursion.
+ * In that case custom is_recursive_container specializations need to be added,
+ * thus manually telling pybind11 about the recursion.
  */
 struct MutuallyRecursiveContainerPairMV;
 struct MutuallyRecursiveContainerPairVM;
