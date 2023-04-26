@@ -203,7 +203,7 @@ def test_return_none(capture):
     with capture:
         p.returnNullChildKeepAliveParent()
         assert ConstructorStats.detail_reg_inst() == n_inst + 1
-    assert not capture
+    assert capture == ""
     with capture:
         del p
         assert ConstructorStats.detail_reg_inst() == n_inst
