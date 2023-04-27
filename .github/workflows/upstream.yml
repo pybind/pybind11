@@ -33,7 +33,7 @@ jobs:
       run: sudo apt-get install libboost-dev
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Run pip installs
       run: |
@@ -95,7 +95,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
     - name: Build (unstable ABI)
       run: cmake --build build17max -j 2
