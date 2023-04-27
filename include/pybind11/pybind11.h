@@ -248,7 +248,7 @@ protected:
             handle result;
             if (call.func.is_setter) {
                 (void) std::move(args_converter).template call<Return, Guard>(cap->f);
-                result = none();
+                result = none().release();
             } else {
                 result = cast_out::cast(
                     std::move(args_converter).template call<Return, Guard>(cap->f),
