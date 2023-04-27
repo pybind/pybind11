@@ -1060,7 +1060,11 @@ T cast(const handle &handle) {
 }
 
 // Note that `cast<PyObject *>(obj)` increments the reference count of `obj`.
-// This is necessary for the case that `obj` is a temporary.
+// This is necessary for the case that `obj` is a temporary, and could
+// not possibly be different, given
+// 1. the established convention that the passed `handle` is borrowed, and
+// 2. we don't want to force all generic code using `cast<T>()` to special-case
+//    handling of `T` = `PyObject *` (to increment the reference count there).
 // It is the responsibility of the caller to ensure that the reference count
 // is decremented.
 template <typename T,
