@@ -155,6 +155,9 @@ set(PYBIND11_TEST_FILES
     test_tagbased_polymorphic
     test_thread
     test_union
+    test_unnamed_namespace_a
+    test_unnamed_namespace_b
+    test_vector_unique_ptr_member
     test_virtual_functions)
 
 # Invoking cmake with something like:
