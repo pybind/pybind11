@@ -13,7 +13,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
 class type_caster<PyObject> {
 public:
-    static constexpr auto name = const_name("PyObject *");
+    static constexpr auto name = const_name("object"); // See discussion under PR #4601.
 
     // This overload is purely to guard against accidents.
     template <typename T,
