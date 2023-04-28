@@ -45,8 +45,6 @@ using namespace pybind11_tests::vector_unique_ptr_member;
 
 py::object py_cast_VectorOwner_ptr(VectorOwner *ptr) { return py::cast(ptr); }
 
-// PYBIND11_SMART_HOLDER_TYPE_CASTERS(VectorOwner)
-
 TEST_SUBMODULE(vector_unique_ptr_member, m) {
     py::class_<VectorOwner>(m, "VectorOwner")
         .def_static("Create", &VectorOwner::Create)
