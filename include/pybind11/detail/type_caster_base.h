@@ -921,7 +921,11 @@ struct is_copy_assignable<
     : is_copy_assignable<typename Container::value_type> {};
 template <typename T1, typename T2>
 struct is_copy_assignable<std::pair<T1, T2>>
-    : all_of<is_copy_assignable<T1>, is_copy_assignable<T2>> {};
+    /*
+     * Need to remove the const qualifier from T1 here since the value_type in
+     * STL map types is std::pair<const Key, T>, and const types are never assignable
+     */
+    : all_of<is_copy_assignable<typename std::remove_const<T1>::type>, is_copy_assignable<T2>> {};
 
 PYBIND11_NAMESPACE_END(detail)
 
