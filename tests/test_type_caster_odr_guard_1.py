@@ -39,12 +39,14 @@ def test_type_caster_odr_violation_detected_counter():
     if num_violations == 0:
         if m.if_defined__NO_INLINE__:
             pytest.skip(
-                "type_caster_odr_violation_detected_count() == 0: %s, %s, __NO_INLINE__"
-                % (pybind11_tests.compiler_info, pybind11_tests.cpp_std)
+                f"type_caster_odr_violation_detected_count() == 0:"
+                f" {pybind11_tests.compiler_info}, {pybind11_tests.cpp_std},"
+                " __NO_INLINE__"
             )
         if m.CUDACC is not None:
             pytest.skip(
-                "type_caster_odr_violation_detected_count() == 0: %s, %s, CUDACC = %s"
-                % (pybind11_tests.compiler_info, pybind11_tests.cpp_std, m.CUDACC)
+                f"type_caster_odr_violation_detected_count() == 0:"
+                f" {pybind11_tests.compiler_info}, {pybind11_tests.cpp_std},"
+                " CUDACC = {m.CUDACC}"
             )
     assert num_violations == 1
