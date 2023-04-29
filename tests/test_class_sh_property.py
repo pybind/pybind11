@@ -92,7 +92,7 @@ def test_uqp(m_attr_readwrite, msg):
     field_orig.num = 39
     setattr(outer, m_attr_readwrite, field_orig)
     with pytest.raises(ValueError) as excinfo:
-        field_orig.num
+        _ = field_orig.num
     assert (
         msg(excinfo.value)
         == "Missing value for wrapped C++ type: Python instance was disowned."
@@ -103,7 +103,7 @@ def test_uqp(m_attr_readwrite, msg):
     field_retr1.num = 93
     setattr(outer, m_attr_readwrite, field_retr1)
     with pytest.raises(ValueError):
-        field_retr1.num
+        _ = field_retr1.num
     field_retr2 = getattr(outer, m_attr_readwrite)
     assert field_retr2.num == 93
 
@@ -150,7 +150,7 @@ def test_unique_ptr_field_proxy_poc(m_attr):
     assert field_proxy.num == 45
     assert field_proxy.num == 45
     with pytest.raises(AttributeError):
-        field_proxy.xyz
+        _ = field_proxy.xyz
     assert field_proxy.num == 45
     field_proxy.num = 82
     assert field_proxy.num == 82

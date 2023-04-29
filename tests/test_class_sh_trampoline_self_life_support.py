@@ -14,7 +14,7 @@ def test_m_big5():
     assert o1 is not obj
     assert o1.history == "Seed"
     with pytest.raises(ValueError) as excinfo:
-        obj.history
+        _ = obj.history
     assert "Python instance was disowned" in str(excinfo.value)
     assert o2 is None
 

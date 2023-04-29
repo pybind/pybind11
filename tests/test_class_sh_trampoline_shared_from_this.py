@@ -29,7 +29,7 @@ def test_release_and_shared_from_this_leak():
     obj = PySft("")
     while True:
         m.pass_shared_ptr(obj)
-        assert obj.history == ""
+        assert not obj.history
         assert m.use_count(obj) == 1
         break  # Comment out for manual leak checking (use `top` command).
 
@@ -82,11 +82,11 @@ def test_release_and_stash_leak():
     while True:
         stash1 = m.SftSharedPtrStash(1)
         stash1.Add(obj)
-        assert obj.history == ""
+        assert not obj.history
         assert m.use_count(obj) == 2
         assert stash1.use_count(0) == 1
         stash1.Add(obj)
-        assert obj.history == ""
+        assert not obj.history
         assert m.use_count(obj) == 3
         assert stash1.use_count(0) == 2
         assert stash1.use_count(1) == 2
@@ -117,10 +117,10 @@ def test_release_and_stash_via_shared_from_this_leak():
             stash1.AddSharedFromThis(obj)
         assert str(exc_info.value) == "bad_weak_ptr"
         stash1.Add(obj)
-        assert obj.history == ""
+        assert not obj.history
         assert stash1.use_count(0) == 1
         stash1.AddSharedFromThis(obj)
-        assert obj.history == ""
+        assert not obj.history
         assert stash1.use_count(0) == 2
         assert stash1.use_count(1) == 2
         break  # Comment out for manual leak checking (use `top` command).
@@ -186,7 +186,7 @@ def test_multiple_registered_instances_for_same_pointee_leak():
         stash1.Add(m.Sft(obj0))
         assert stash1.use_count(0) == 1
         assert stash1.use_count(1) == 1
-        assert obj0.history == ""
+        assert not obj0.history
         break  # Comment out for manual leak checking (use `top` command).
 
 
