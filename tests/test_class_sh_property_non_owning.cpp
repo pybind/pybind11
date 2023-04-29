@@ -14,8 +14,8 @@ struct CoreField {
 struct DataField {
     DataField(int i_value, int i_shared, int i_unique)
         : core_fld_value{i_value}, core_fld_shared_ptr{new CoreField{i_shared}},
-          core_fld_raw_ptr{core_fld_shared_ptr.get()}, core_fld_unique_ptr{
-                                                           new CoreField{i_unique}} {}
+          core_fld_raw_ptr{core_fld_shared_ptr.get()},
+          core_fld_unique_ptr{new CoreField{i_unique}} {}
     CoreField core_fld_value;
     std::shared_ptr<CoreField> core_fld_shared_ptr;
     CoreField *core_fld_raw_ptr;
