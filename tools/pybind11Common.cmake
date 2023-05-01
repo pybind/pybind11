@@ -5,8 +5,8 @@ Adds the following targets::
     pybind11::pybind11 - link to headers and pybind11
     pybind11::module - Adds module links
     pybind11::embed - Adds embed links
-    pybind11::lto - Link time optimizations (manual selection)
-    pybind11::thin_lto - Link time optimizations (manual selection)
+    pybind11::lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
+    pybind11::thin_lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
     pybind11::python_link_helper - Adds link to Python libraries
     pybind11::windows_extras - MSVC bigobj and mp for building multithreaded
     pybind11::opt_size - avoid optimizations that increase code size
@@ -20,7 +20,7 @@ Adds the following functions::
 
 # CMake 3.10 has an include_guard command, but we can't use that yet
 # include_guard(global) (pre-CMake 3.10)
-if(TARGET pybind11::lto)
+if(TARGET pybind11::pybind11)
   return()
 endif()
 
@@ -372,11 +372,13 @@ function(_pybind11_generate_lto target prefer_thin_lto)
   endif()
 endfunction()
 
-add_library(pybind11::lto IMPORTED INTERFACE ${optional_global})
-_pybind11_generate_lto(pybind11::lto FALSE)
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  add_library(pybind11::lto IMPORTED INTERFACE ${optional_global})
+  _pybind11_generate_lto(pybind11::lto FALSE)
 
-add_library(pybind11::thin_lto IMPORTED INTERFACE ${optional_global})
-_pybind11_generate_lto(pybind11::thin_lto TRUE)
+  add_library(pybind11::thin_lto IMPORTED INTERFACE ${optional_global})
+  _pybind11_generate_lto(pybind11::thin_lto TRUE)
+endif()
 
 # ---------------------- pybind11_strip -----------------------------
 
