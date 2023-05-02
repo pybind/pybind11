@@ -25,7 +25,7 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         PyObject *ptr = PyLong_FromLongLong(6758L);
         return py::cast(ptr, py::return_value_policy::take_ownership);
     });
-    m.def("cast_to_pyobject_ptr", [](py::handle obj) {
+    m.def("cast_handle_to_pyobject_ptr", [](py::handle obj) {
         auto rc1 = obj.ref_count();
         auto *ptr = py::cast<PyObject *>(obj);
         auto rc2 = obj.ref_count();
@@ -33,6 +33,27 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
             return -1;
         }
         return 100 - py::reinterpret_steal<py::object>(ptr).attr("value").cast<int>();
+    });
+    m.def("cast_object_to_pyobject_ptr", [](py::object obj) {
+        py::handle hdl = obj;
+        auto rc1 = hdl.ref_count();
+        auto *ptr = py::cast<PyObject *>(std::move(obj));
+        auto rc2 = hdl.ref_count();
+        if (rc2 != rc1) {
+            return -1;
+        }
+        return 300 - py::reinterpret_steal<py::object>(ptr).attr("value").cast<int>();
+    });
+    m.def("cast_list_to_pyobject_ptr", [](py::list lst) {
+        // This is to cover types implicitly convertible to object.
+        py::handle hdl = lst;
+        auto rc1 = hdl.ref_count();
+        auto *ptr = py::cast<PyObject *>(std::move(lst));
+        auto rc2 = hdl.ref_count();
+        if (rc2 != rc1) {
+            return -1;
+        }
+        return 400 - static_cast<int>(py::len(py::reinterpret_steal<py::list>(ptr)));
     });
 
     m.def(

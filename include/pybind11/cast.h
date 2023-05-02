@@ -1068,9 +1068,23 @@ T cast(const handle &handle) {
 // It is the responsibility of the caller to ensure that the reference count
 // is decremented.
 template <typename T,
-          detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value, int> = 0>
-T cast(const handle &handle) {
+          typename Handle,
+          detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
+                                  && detail::is_same_ignoring_cvref<Handle, handle>::value,
+                              int>
+          = 0>
+T cast(Handle &&handle) {
     return handle.inc_ref().ptr();
+}
+// To optimize way an inc_ref/dec_ref cycle:
+template <typename T,
+          typename Object,
+          detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
+                                  && detail::is_same_ignoring_cvref<Object, object>::value,
+                              int>
+          = 0>
+T cast(Object &&obj) {
+    return obj.release().ptr();
 }
 
 // C++ type -> py::object
