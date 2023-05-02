@@ -61,21 +61,11 @@ struct is_comparable<
 /* For a vector/map data structure, recursively check the value type
    (which is std::pair for maps) */
 template <typename T>
-struct is_comparable<T,
-                     enable_if_t<container_traits<T>::is_vector &&
-                                 // Avoid this instantiation if the type is recursive
-                                 negation<is_recursive_container<T>>::value>> {
-    static constexpr const bool value = is_comparable<typename T::value_type>::value;
-};
+struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>>
+    : is_comparable<typename recursive_container_traits<T>::type_to_check_recursively> {};
 
-/* Skip the recursion if the type itself is recursive */
-template <typename T>
-struct is_comparable<T,
-                     enable_if_t<container_traits<T>::is_vector &&
-                                 // Special case: The vector type is recursive
-                                 is_recursive_container<T>::value>> {
-    static constexpr const bool value = container_traits<T>::is_comparable;
-};
+template <>
+struct is_comparable<recursive_bottom> : std::true_type {};
 
 /* For pairs, recursively check the two data types */
 template <typename T>

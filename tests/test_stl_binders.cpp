@@ -10,6 +10,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 
+#include "pybind11/detail/type_caster_base.h"
 #include "pybind11_tests.h"
 
 #include <deque>
@@ -86,7 +87,7 @@ struct RecursiveMap : std::map<int, RecursiveMap> {
 /*
  * Pybind11 does not catch more complicated recursion schemes, such as mutual
  * recursion.
- * In that case custom is_recursive_container specializations need to be added,
+ * In that case custom recursive_container_traits specializations need to be added,
  * thus manually telling pybind11 about the recursion.
  */
 struct MutuallyRecursiveContainerPairMV;
@@ -98,9 +99,13 @@ struct MutuallyRecursiveContainerPairVM : std::vector<MutuallyRecursiveContainer
 namespace pybind11 {
 namespace detail {
 template <typename SFINAE>
-struct is_recursive_container<MutuallyRecursiveContainerPairMV, SFINAE> : std::true_type {};
+struct recursive_container_traits<MutuallyRecursiveContainerPairMV, SFINAE> {
+    using type_to_check_recursively = recursive_bottom;
+};
 template <typename SFINAE>
-struct is_recursive_container<MutuallyRecursiveContainerPairVM, SFINAE> : std::true_type {};
+struct recursive_container_traits<MutuallyRecursiveContainerPairVM, SFINAE> {
+    using type_to_check_recursively = recursive_bottom;
+};
 } // namespace detail
 } // namespace pybind11
 
