@@ -100,7 +100,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.1.1"
+  rev: "v1.2.0"
   hooks:
   - id: mypy
     args: []
@@ -143,7 +143,7 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v16.0.0"
+  rev: "v16.0.2"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
