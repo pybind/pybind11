@@ -10,7 +10,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 
-#include "pybind11/detail/type_caster_base.h"
 #include "pybind11_tests.h"
 
 #include <deque>
