@@ -822,19 +822,6 @@ using movable_cast_op_type
                                   typename std::add_rvalue_reference<intrinsic_t<T>>::type,
                                   typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
 
-template <bool Condition, typename Then, typename Else>
-struct if_then_else {};
-
-template <typename Then, typename Else>
-struct if_then_else<true, Then, Else> {
-    using type = Then;
-};
-
-template <typename Then, typename Else>
-struct if_then_else<false, Then, Else> {
-    using type = Else;
-};
-
 // Does the container have a mapped type and is it recursive?
 // Implemented by specializations below.
 template <typename Container, typename SFINAE = void>
@@ -945,7 +932,7 @@ struct impl_recursive_container_traits<
      *    should be removed.
      *
      */
-    using type_to_check_recursively = typename if_then_else<
+    using type_to_check_recursively = typename std::conditional<
         is_recursive,
         typename impl_type_to_check_recursively<
             typename Container::value_type,

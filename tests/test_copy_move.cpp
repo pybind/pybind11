@@ -298,7 +298,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
 /*
  * Rest of the file:
- * static_assert based tests for pybind11 adaptations of of
+ * static_assert based tests for pybind11 adaptations of
  * std::is_move_constructible, std::is_copy_constructible and
  * std::is_copy_assignable (no adaptation of std::is_move_assignable).
  * Difference between pybind11 and std traits: pybind11 traits will also check
