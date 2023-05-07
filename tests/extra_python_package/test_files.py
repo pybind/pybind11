@@ -45,6 +45,7 @@ main_headers = {
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
     "include/pybind11/trampoline_self_life_support.h",
+    "include/pybind11/type_caster_pyobject_ptr.h",
 }
 
 detail_headers = {

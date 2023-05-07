@@ -177,6 +177,7 @@ set(PYBIND11_TEST_FILES
     test_thread
     test_type_caster_odr_guard_1
     test_type_caster_odr_guard_2
+    test_type_caster_pyobject_ptr
     test_union
     test_unnamed_namespace_a
     test_unnamed_namespace_b
