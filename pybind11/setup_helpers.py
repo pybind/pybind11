@@ -144,7 +144,6 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
         self.cxx_std = cxx_std
 
         cflags = []
-        ldflags = []
         if WIN:
             cflags += ["/EHsc", "/bigobj"]
         else:
@@ -154,11 +153,7 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
             c_cpp_flags = shlex.split(env_cflags) + shlex.split(env_cppflags)
             if not any(opt.startswith("-g") for opt in c_cpp_flags):
                 cflags += ["-g0"]
-            if MACOS:
-                cflags += ["-stdlib=libc++"]
-                ldflags += ["-stdlib=libc++"]
         self._add_cflags(cflags)
-        self._add_ldflags(ldflags)
 
     @property
     def cxx_std(self) -> int:

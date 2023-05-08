@@ -1041,7 +1041,11 @@ make_caster<T> load_type(const handle &handle) {
 PYBIND11_NAMESPACE_END(detail)
 
 // pytype -> C++ type
-template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
+template <typename T,
+          detail::enable_if_t<!detail::is_pyobject<T>::value
+                                  && !detail::is_same_ignoring_cvref<T, PyObject *>::value,
+                              int>
+          = 0>
 T cast(const handle &handle) {
     using namespace detail;
     static_assert(!cast_is_temporary_value_reference<T>::value,
@@ -1053,6 +1057,34 @@ T cast(const handle &handle) {
 template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
 T cast(const handle &handle) {
     return T(reinterpret_borrow<object>(handle));
+}
+
+// Note that `cast<PyObject *>(obj)` increments the reference count of `obj`.
+// This is necessary for the case that `obj` is a temporary, and could
+// not possibly be different, given
+// 1. the established convention that the passed `handle` is borrowed, and
+// 2. we don't want to force all generic code using `cast<T>()` to special-case
+//    handling of `T` = `PyObject *` (to increment the reference count there).
+// It is the responsibility of the caller to ensure that the reference count
+// is decremented.
+template <typename T,
+          typename Handle,
+          detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
+                                  && detail::is_same_ignoring_cvref<Handle, handle>::value,
+                              int>
+          = 0>
+T cast(Handle &&handle) {
+    return handle.inc_ref().ptr();
+}
+// To optimize way an inc_ref/dec_ref cycle:
+template <typename T,
+          typename Object,
+          detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
+                                  && detail::is_same_ignoring_cvref<Object, object>::value,
+                              int>
+          = 0>
+T cast(Object &&obj) {
+    return obj.release().ptr();
 }
 
 // C++ type -> py::object
