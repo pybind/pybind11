@@ -177,6 +177,20 @@ struct RValueRefParam {
     std::size_t func4(std::string &&s) const & { return s.size(); }
 };
 
+// Test Python init from C++ constructor
+struct InitPyFromCpp1 {
+    InitPyFromCpp1() { py::cast(this).attr("bar") = 10.; };
+};
+struct InitPyFromCpp2 {
+    InitPyFromCpp2() { py::cast(this).attr("bar") = 10.; };
+};
+struct InitPyFromCppDynamic1 {
+    InitPyFromCppDynamic1() { py::cast(this).attr("bar") = 10.; };
+};
+struct InitPyFromCppDynamic2 {
+    InitPyFromCppDynamic2() { py::cast(this).attr("bar") = 10.; };
+};
+
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
@@ -456,4 +470,12 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def("func2", &RValueRefParam::func2)
         .def("func3", &RValueRefParam::func3)
         .def("func4", &RValueRefParam::func4);
+
+    // Test Python init from C++ constructor
+    py::class_<InitPyFromCpp1>(m, "InitPyFromCpp1").def(py::init<>());
+    py::class_<InitPyFromCpp2>(m, "InitPyFromCpp2").def(py::init<>(), py::preallocate());
+    py::class_<InitPyFromCppDynamic1>(m, "InitPyFromCppDynamic1", py::dynamic_attr())
+        .def(py::init<>());
+    py::class_<InitPyFromCppDynamic2>(m, "InitPyFromCppDynamic2", py::dynamic_attr())
+        .def(py::init<>(), py::preallocate());
 }

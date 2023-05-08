@@ -971,6 +971,18 @@ using is_lambda = satisfies_none_of<remove_reference_t<T>,
                                     std::is_pointer,
                                     std::is_member_pointer>;
 
+/// Check if T is part of a template parameter pack
+template <typename T, typename... List>
+struct contains : std::true_type {};
+
+template <typename T, typename Head, typename... Rest>
+struct contains<T, Head, Rest...>
+    : std::conditional<std::is_same<T, Head>::value, std::true_type, contains<T, Rest...>>::type {
+};
+
+template <typename T>
+struct contains<T> : std::false_type {};
+
 // [workaround(intel)] Internal error on fold expression
 /// Apply a function over each element of a parameter pack
 #if defined(__cpp_fold_expressions) && !defined(__INTEL_COMPILER)

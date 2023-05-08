@@ -64,24 +64,53 @@ constexpr bool is_alias(void *) {
     return false;
 }
 
-// Constructs and returns a new object; if the given arguments don't map to a constructor, we fall
+// Constructs a new object inplace; if the given arguments don't map to a constructor, we fall
 // back to brace aggregate initiailization so that for aggregate initialization can be used with
 // py::init, e.g.  `py::init<int, int>` to initialize a `struct T { int a; int b; }`.  For
 // non-aggregate types, we need to use an ordinary T(...) constructor (invoking as `T{...}` usually
 // works, but will not do the expected thing when `T` has an `initializer_list<T>` constructor).
-template <typename Class,
-          typename... Args,
-          detail::enable_if_t<std::is_constructible<Class, Args...>::value, int> = 0>
-inline Class *construct_or_initialize(Args &&...args) {
-    return new Class(std::forward<Args>(args)...);
+template <
+    typename Class,
+    bool Preallocate,
+    typename... Args,
+    detail::enable_if_t<std::is_constructible<Class, Args...>::value && !Preallocate, int> = 0>
+inline void construct_or_initialize(value_and_holder &v_h, Args &&...args) {
+    v_h.value_ptr() = new Class(std::forward<Args>(args)...);
 }
-template <typename Class,
-          typename... Args,
-          detail::enable_if_t<!std::is_constructible<Class, Args...>::value, int> = 0>
-inline Class *construct_or_initialize(Args &&...args) {
-    return new Class{std::forward<Args>(args)...};
+template <
+    typename Class,
+    bool Preallocate,
+    typename... Args,
+    detail::enable_if_t<!std::is_constructible<Class, Args...>::value && !Preallocate, int> = 0>
+inline void construct_or_initialize(value_and_holder &v_h, Args &&...args) {
+    v_h.value_ptr() = new Class{std::forward<Args>(args)...};
 }
+// The preallocated variants are performing memory allocation and registration before actually
+// calling the constructor to allow casting the C++ pointer to its Python counterpart.
+template <
+    typename Class,
+    bool Preallocate,
+    typename... Args,
+    detail::enable_if_t<std::is_constructible<Class, Args...>::value && Preallocate, int> = 0>
+inline void construct_or_initialize(value_and_holder &v_h, Args &&...args) {
+    v_h.value_ptr() = ::operator new(sizeof(Class));
+    register_instance(v_h.inst, v_h.value_ptr(), v_h.type);
+    v_h.set_instance_registered();
 
+    new (v_h.value_ptr<Class>()) Class(std::forward<Args>(args)...);
+}
+template <
+    typename Class,
+    bool Preallocate,
+    typename... Args,
+    detail::enable_if_t<!std::is_constructible<Class, Args...>::value && Preallocate, int> = 0>
+inline void construct_or_initialize(value_and_holder &v_h, Args &&...args) {
+    v_h.value_ptr() = ::operator new(sizeof(Class));
+    register_instance(v_h.inst, v_h.value_ptr(), v_h.type);
+    v_h.set_instance_registered();
+
+    new (v_h.value_ptr<Class>()) Class{std::forward<Args>(args)...};
+}
 // Attempts to constructs an alias using a `Alias(Cpp &&)` constructor.  This allows types with
 // an alias to provide only a single Cpp factory function as long as the Alias can be
 // constructed from an rvalue reference of the base Cpp type.  This means that Alias classes
@@ -203,7 +232,8 @@ struct constructor {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
-                v_h.value_ptr() = construct_or_initialize<Cpp<Class>>(std::forward<Args>(args)...);
+                construct_or_initialize<Cpp<Class>, contains<preallocate, Extra...>::value>(
+                    v_h, std::forward<Args>(args)...);
             },
             is_new_style_constructor(),
             extra...);
@@ -219,11 +249,11 @@ struct constructor {
             "__init__",
             [](value_and_holder &v_h, Args... args) {
                 if (Py_TYPE(v_h.inst) == v_h.type->type) {
-                    v_h.value_ptr()
-                        = construct_or_initialize<Cpp<Class>>(std::forward<Args>(args)...);
+                    construct_or_initialize<Cpp<Class>, contains<preallocate, Extra...>::value>(
+                        v_h, std::forward<Args>(args)...);
                 } else {
-                    v_h.value_ptr()
-                        = construct_or_initialize<Alias<Class>>(std::forward<Args>(args)...);
+                    construct_or_initialize<Alias<Class>, contains<preallocate, Extra...>::value>(
+                        v_h, std::forward<Args>(args)...);
                 }
             },
             is_new_style_constructor(),
@@ -239,8 +269,8 @@ struct constructor {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
-                v_h.value_ptr()
-                    = construct_or_initialize<Alias<Class>>(std::forward<Args>(args)...);
+                construct_or_initialize<Alias<Class>, contains<preallocate, Extra...>::value>(
+                    v_h, std::forward<Args>(args)...);
             },
             is_new_style_constructor(),
             extra...);
@@ -259,8 +289,8 @@ struct alias_constructor {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
-                v_h.value_ptr()
-                    = construct_or_initialize<Alias<Class>>(std::forward<Args>(args)...);
+                construct_or_initialize<Alias<Class>, contains<preallocate, Extra...>::value>(
+                    v_h, std::forward<Args>(args)...);
             },
             is_new_style_constructor(),
             extra...);

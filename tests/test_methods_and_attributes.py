@@ -522,3 +522,51 @@ def test_rvalue_ref_param():
     assert r.func2("1234") == 4
     assert r.func3("12345") == 5
     assert r.func4("123456") == 6
+
+
+@pytest.mark.xfail("env.PYPY")
+def test_init_py_from_cpp():
+    # test dynamically added attr from C++ to Python counterpart
+
+    # 1. on class not supporting dynamic attributes
+    with pytest.raises(AttributeError):
+        m.InitPyFromCpp1()
+
+    with pytest.raises(AttributeError):
+        m.InitPyFromCpp2()
+
+    # 2. on derived class of base not supporting dynamic attributes
+    class Derived1(m.InitPyFromCpp1):
+        ...
+
+    with pytest.raises(AttributeError):
+        Derived1()
+
+    class Derived2(m.InitPyFromCpp2):
+        ...
+
+    assert Derived2().bar == 10.0
+
+    # 3. on class supporting dynamic attributes
+    # constructor will set the `bar` attribute to a temporary Python object
+    a = m.InitPyFromCppDynamic1()
+    with pytest.raises(AttributeError):
+        a.bar
+
+    # works fine
+    assert m.InitPyFromCppDynamic2().bar == 10.0
+
+    # 4. on derived class of base supporting dynamic attributes
+    class DynamicDerived1(m.InitPyFromCppDynamic1):
+        ...
+
+    # still the same issue
+    d = DynamicDerived1()
+    with pytest.raises(AttributeError):
+        d.bar
+
+    # works fine
+    class DynamicDerived2(m.InitPyFromCppDynamic2):
+        ...
+
+    assert DynamicDerived2().bar == 10.0
