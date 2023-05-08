@@ -177,6 +177,38 @@ struct RValueRefParam {
     std::size_t func4(std::string &&s) const & { return s.size(); }
 };
 
+namespace pybind11_tests {
+namespace exercise_is_setter {
+
+struct FieldBase {
+    int int_value() const { return int_value_; }
+
+    FieldBase &SetIntValue(int int_value) {
+        int_value_ = int_value;
+        return *this;
+    }
+
+private:
+    int int_value_ = -99;
+};
+
+struct Field : FieldBase {};
+
+void add_bindings(py::module &m) {
+    py::module sm = m.def_submodule("exercise_is_setter");
+    // NOTE: FieldBase is not wrapped, therefore ...
+    py::class_<Field>(sm, "Field")
+        .def(py::init<>())
+        .def_property(
+            "int_value",
+            &Field::int_value,
+            &Field::SetIntValue // ... the `FieldBase &` return value here cannot be converted.
+        );
+}
+
+} // namespace exercise_is_setter
+} // namespace pybind11_tests
+
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
@@ -456,4 +488,6 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def("func2", &RValueRefParam::func2)
         .def("func3", &RValueRefParam::func3)
         .def("func4", &RValueRefParam::func4);
+
+    pybind11_tests::exercise_is_setter::add_bindings(m);
 }
