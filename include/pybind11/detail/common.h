@@ -661,6 +661,10 @@ template <class T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 #endif
 
+/// Example usage: is_same_ignoring_cvref<T, PyObject *>::value
+template <typename T, typename U>
+using is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>;
+
 /// Index sequences
 #if defined(PYBIND11_CPP14)
 using std::index_sequence;
