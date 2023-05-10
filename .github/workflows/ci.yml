@@ -9,6 +9,9 @@ on:
       - stable
       - v*
 
+permissions:
+  contents: read
+
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
