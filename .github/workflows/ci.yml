@@ -9,8 +9,7 @@ on:
       - stable
       - v*
 
-permissions:
-  contents: read
+permissions: read-all
 
 concurrency:
   group: test-${{ github.ref }}
