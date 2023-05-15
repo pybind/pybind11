@@ -1,0 +1,11 @@
+# Warning: this is currently used for pyodide, and is not a general out-of-tree
+# builder for the tests (yet). Specifically, wheels can't be built from SDists.
+
+[build-system]
+requires = ["scikit-build-core[pyproject]"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pybind11_tests"
+version = "0.0.1"
+dependencies = ["pytest", "pytest-timeout", "numpy", "scipy"]
