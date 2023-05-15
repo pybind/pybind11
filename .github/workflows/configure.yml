@@ -9,6 +9,9 @@ on:
       - stable
       - v*
 
+permissions:
+  contents: read
+
 env:
   # For cmake:
   VERBOSE: 1
