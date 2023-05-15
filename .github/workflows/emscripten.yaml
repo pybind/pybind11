@@ -1,0 +1,58 @@
+name: WASM
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+    - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-wasm-emscripten:
+    name: Pyodide wheel
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install pyodide-build
+      run: pip install pyodide-build==0.23.4
+
+    - name: Compute emsdk version
+      id: compute-emsdk-version
+      run: |
+        # Prepare xbuild environment (side-effect)
+        pyodide config list
+        # Save EMSDK version
+        EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version)
+        echo "emsdk-version=$EMSCRIPTEN_VERSION" >> $GITHUB_OUTPUT
+
+    - uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: ${{ steps.compute-emsdk-version.outputs.emsdk-version }}
+        actions-cache-folder: emsdk-cache
+
+    - name: Build
+      run: PYODIDE_BUILD_EXPORTS=whole_archive CFLAGS=-fexceptions LDFLAGS=-fexceptions pyodide build
+      working-directory: tests
+
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Set up Pyodide virtual environment
+      run: |
+        pyodide venv .venv-pyodide
+        .venv-pyodide/bin/pip install $(echo -n tests/dist/*.whl)
+
+    - name: Test
+      run: .venv-pyodide/bin/pytest -o timeout=0 tests/test_*.py
