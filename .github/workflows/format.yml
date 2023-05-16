@@ -13,6 +13,9 @@ on:
     - smart_holder
     - "v*"
 
+permissions:
+  contents: read
+
 env:
   FORCE_COLOR: 3
   # For cmake:

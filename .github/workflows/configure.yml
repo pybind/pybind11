@@ -10,6 +10,9 @@ on:
       - smart_holder
       - v*
 
+permissions:
+  contents: read
+
 env:
   # For cmake:
   VERBOSE: 1
