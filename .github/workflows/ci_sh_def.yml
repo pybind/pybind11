@@ -22,6 +22,8 @@ on:
       - smart_holder
       - v*
 
+permissions: read-all
+
 concurrency:
   group: test-sh-def-${{ github.ref }}
   cancel-in-progress: true
