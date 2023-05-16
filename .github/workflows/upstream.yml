@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: upstream-${{ github.ref }}
   cancel-in-progress: true

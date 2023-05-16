@@ -12,6 +12,9 @@ on:
     types:
     - published
 
+permissions:
+  contents: read
+
 env:
   PIP_ONLY_BINARY: numpy
 
