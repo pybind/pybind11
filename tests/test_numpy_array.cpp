@@ -527,7 +527,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("pass_array_pyobject_ptr_return_sum_str_values",
            [](const py::array_t<PyObject *> &objs) {
                std::string sum_str_values;
-               for (auto &obj : objs) {
+               for (const auto &obj : objs) {
                    sum_str_values += py::str(obj.attr("value"));
                }
                return sum_str_values;
