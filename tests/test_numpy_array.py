@@ -595,3 +595,61 @@ def test_round_trip_float():
     arr = np.zeros((), np.float64)
     arr[()] = 37.2
     assert m.round_trip_float(arr) == 37.2
+
+
+# For use as a temporary user-defined object, to maximize sensitivity of the tests below.
+class PyValueHolder:
+    def __init__(self, value):
+        self.value = value
+
+
+def WrapWithPyValueHolder(*values):
+    return [PyValueHolder(v) for v in values]
+
+
+def UnwrapPyValueHolder(vhs):
+    return [vh.value for vh in vhs]
+
+
+def test_pass_array_pyobject_ptr_return_sum_str_values_ndarray():
+    # Intentionally all temporaries, do not change.
+    assert (
+        m.pass_array_pyobject_ptr_return_sum_str_values(
+            np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object)
+        )
+        == "-3four5.0"
+    )
+
+
+def test_pass_array_pyobject_ptr_return_sum_str_values_list():
+    # Intentionally all temporaries, do not change.
+    assert (
+        m.pass_array_pyobject_ptr_return_sum_str_values(
+            WrapWithPyValueHolder(2, "three", -4.0)
+        )
+        == "2three-4.0"
+    )
+
+
+def test_pass_array_pyobject_ptr_return_as_list():
+    # Intentionally all temporaries, do not change.
+    assert UnwrapPyValueHolder(
+        m.pass_array_pyobject_ptr_return_as_list(
+            np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object)
+        )
+    ) == [-1, "two", 3.0]
+
+
+@pytest.mark.parametrize(
+    ("return_array_pyobject_ptr", "unwrap"),
+    [
+        (m.return_array_pyobject_ptr_cpp_loop, list),
+        (m.return_array_pyobject_ptr_from_list, UnwrapPyValueHolder),
+    ],
+)
+def test_return_array_pyobject_ptr_cpp_loop(return_array_pyobject_ptr, unwrap):
+    # Intentionally all temporaries, do not change.
+    arr_from_list = return_array_pyobject_ptr(WrapWithPyValueHolder(6, "seven", -8.0))
+    assert isinstance(arr_from_list, np.ndarray)
+    assert arr_from_list.dtype == np.dtype("O")
+    assert unwrap(arr_from_list) == [6, "seven", -8.0]

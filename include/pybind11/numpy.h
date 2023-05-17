@@ -586,6 +586,16 @@ public:
         return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
 
+    /// Return dtype for the given typenum (one of the NPY_TYPES).
+    /// https://numpy.org/devdocs/reference/c-api/array.html#c.PyArray_DescrFromType
+    static dtype from_typenum(int typenum) {
+        auto *ptr = detail::npy_api::get().PyArray_DescrFromType_(typenum);
+        if (!ptr) {
+            throw error_already_set();
+        }
+        return reinterpret_steal<dtype>(ptr);
+    }
+
     /// Size of the data type in bytes.
     ssize_t itemsize() const { return detail::array_descriptor_proxy(m_ptr)->elsize; }
 
@@ -1283,12 +1293,16 @@ private:
 public:
     static constexpr int value = values[detail::is_fmt_numeric<T>::index];
 
-    static pybind11::dtype dtype() {
-        if (auto *ptr = npy_api::get().PyArray_DescrFromType_(value)) {
-            return reinterpret_steal<pybind11::dtype>(ptr);
-        }
-        pybind11_fail("Unsupported buffer format!");
-    }
+    static pybind11::dtype dtype() { return pybind11::dtype::from_typenum(value); }
+};
+
+template <typename T>
+struct npy_format_descriptor<T, enable_if_t<is_same_ignoring_cvref<T, PyObject *>::value>> {
+    static constexpr auto name = const_name("object");
+
+    static constexpr int value = npy_api::NPY_OBJECT_;
+
+    static pybind11::dtype dtype() { return pybind11::dtype::from_typenum(value); }
 };
 
 #define PYBIND11_DECL_CHAR_FMT                                                                    \
