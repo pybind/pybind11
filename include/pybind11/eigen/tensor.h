@@ -164,16 +164,13 @@ PYBIND11_WARNING_POP
 
 template <typename Type>
 struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
+    static_assert(!std::is_pointer<typename Type::Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using Helper = eigen_tensor_helper<Type>;
     static constexpr auto temp_name = get_tensor_descriptor<Type, false>::value;
     PYBIND11_TYPE_CASTER(Type, temp_name);
 
     bool load(handle src, bool convert) {
-        // dtype=object is not supported. See #1152 & #2259 for related experiments.
-        if (is_same_ignoring_cvref<typename Type::Scalar, PyObject *>::value) {
-            return false;
-        }
-
         if (!convert) {
             if (!isinstance<array>(src)) {
                 return false;
@@ -364,15 +361,12 @@ struct get_storage_pointer_type<MapType, void_t<typename MapType::PointerArgType
 template <typename Type, int Options>
 struct type_caster<Eigen::TensorMap<Type, Options>,
                    typename eigen_tensor_helper<remove_cv_t<Type>>::ValidType> {
+    static_assert(!std::is_pointer<typename Type::Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using MapType = Eigen::TensorMap<Type, Options>;
     using Helper = eigen_tensor_helper<remove_cv_t<Type>>;
 
     bool load(handle src, bool /*convert*/) {
-        // dtype=object is not supported. See #1152 & #2259 for related experiments.
-        if (is_same_ignoring_cvref<typename Type::Scalar, PyObject *>::value) {
-            return false;
-        }
-
         // Note that we have a lot more checks here as we want to make sure to avoid copies
         if (!isinstance<array>(src)) {
             return false;

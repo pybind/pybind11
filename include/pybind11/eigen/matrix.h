@@ -287,14 +287,11 @@ handle eigen_encapsulate(Type *src) {
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
     using Scalar = typename Type::Scalar;
+    static_assert(!std::is_pointer<Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using props = EigenProps<Type>;
 
     bool load(handle src, bool convert) {
-        // dtype=object is not supported. See #1152 & #2259 for related experiments.
-        if (is_same_ignoring_cvref<Scalar, PyObject *>::value) {
-            return false;
-        }
-
         // If we're in no-convert mode, only load if given an array of the correct type
         if (!convert && !isinstance<array_t<Scalar>>(src)) {
             return false;
@@ -410,6 +407,9 @@ private:
 // Base class for casting reference/map/block/etc. objects back to python.
 template <typename MapType>
 struct eigen_map_caster {
+    static_assert(!std::is_pointer<typename MapType::Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+
 private:
     using props = EigenProps<MapType>;
 
@@ -462,6 +462,8 @@ private:
     using Type = Eigen::Ref<PlainObjectType, 0, StrideType>;
     using props = EigenProps<Type>;
     using Scalar = typename props::Scalar;
+    static_assert(!std::is_pointer<Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using MapType = Eigen::Map<PlainObjectType, 0, StrideType>;
     using Array
         = array_t<Scalar,
@@ -485,11 +487,6 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        // dtype=object is not supported. See #1152 & #2259 for related experiments.
-        if (is_same_ignoring_cvref<Scalar, PyObject *>::value) {
-            return false;
-        }
-
         // First check whether what we have is already an array of the right type.  If not, we
         // can't avoid a copy (because the copy is also going to do type conversion).
         bool need_copy = !isinstance<Array>(src);
@@ -614,6 +611,9 @@ private:
 // regular Eigen::Matrix, then casting that.
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_other<Type>::value>> {
+    static_assert(!std::is_pointer<typename Type::Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+
 protected:
     using Matrix
         = Eigen::Matrix<typename Type::Scalar, Type::RowsAtCompileTime, Type::ColsAtCompileTime>;
@@ -642,16 +642,13 @@ public:
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     using Scalar = typename Type::Scalar;
+    static_assert(!std::is_pointer<Scalar>::value,
+                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using StorageIndex = remove_reference_t<decltype(*std::declval<Type>().outerIndexPtr())>;
     using Index = typename Type::Index;
     static constexpr bool rowMajor = Type::IsRowMajor;
 
     bool load(handle src, bool) {
-        // dtype=object is not supported. See #1152 & #2259 for related experiments.
-        if (is_same_ignoring_cvref<Scalar, PyObject *>::value) {
-            return false;
-        }
-
         if (!src) {
             return false;
         }

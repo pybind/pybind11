@@ -805,20 +805,3 @@ def test_custom_operator_new():
     o = m.CustomOperatorNew()
     np.testing.assert_allclose(o.a, 0.0)
     np.testing.assert_allclose(o.b.diagonal(), 1.0)
-
-
-@pytest.mark.parametrize(
-    "pass_eigen_type_dtype_object",
-    [
-        m.pass_eigen_matrix_dtype_object,
-        m.pass_eigen_ref_matrix_dtype_object,
-        m.pass_eigen_sparse_matrix_dtype_object,
-    ],
-)
-def test_pass_array_with_dtype_object(pass_eigen_type_dtype_object):
-    # Only the dtype matters (not shape etc.): dtype=object is (should be) the
-    # first check in the type_caster load() implementations.
-    obj = np.array([], dtype=object)
-    with pytest.raises(TypeError) as excinfo:
-        pass_eigen_type_dtype_object(obj)
-    assert "incompatible function arguments" in str(excinfo.value)

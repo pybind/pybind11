@@ -1034,6 +1034,11 @@ struct format_descriptor<
     static std::string format() { return std::string(1, c); }
 };
 
+// Common message for `static_assert()`s, which are useful to easily preempt much less obvious
+// errors in code that does not support `format_descriptor<PyObject *>`.
+#define PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED                                          \
+    "Pointer types (in particular `PyObject *`) are not supported."
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 // Returns the index of the given type in the type char array below, and in the list in numpy.h
 // The order here is: bool; 8 ints ((signed,unsigned)x(8,16,32,64)bits); float,double,long double;
