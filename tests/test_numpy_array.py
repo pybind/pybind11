@@ -597,7 +597,20 @@ def test_round_trip_float():
     assert m.round_trip_float(arr) == 37.2
 
 
-# For use as a temporary user-defined object, to maximize sensitivity of the tests below.
+# HINT: An easy and robust way (although only manual unfortunately) to check for
+#       ref-count leaks in the test_.*pyobject_ptr.* functions below is to
+#           * temporarily insert `while True:` (one-by-one),
+#           * run this test, and
+#           * run the Linux `top` command in another shell to visually monitor
+#             `RES` for a minute or two.
+#       If there is a leak, it is usually evident in seconds because the `RES`
+#       value increases without bounds. (Don't forget to Ctrl-C the test!)
+
+
+# For use as a temporary user-defined object, to maximize sensitivity of the tests below:
+#     * Ref-count leaks will be immediately evident.
+#     * Sanitizers are much more likely to detect heap-use-after-free due to
+#       other ref-count bugs.
 class PyValueHolder:
     def __init__(self, value):
         self.value = value
