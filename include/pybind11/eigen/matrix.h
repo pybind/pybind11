@@ -290,6 +290,11 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
     using props = EigenProps<Type>;
 
     bool load(handle src, bool convert) {
+        // dtype=object is not supported. See #1152 & #2259 for related experiments.
+        if (is_same_ignoring_cvref<Scalar, PyObject *>::value) {
+            return false;
+        }
+
         // If we're in no-convert mode, only load if given an array of the correct type
         if (!convert && !isinstance<array_t<Scalar>>(src)) {
             return false;
@@ -480,6 +485,11 @@ private:
 
 public:
     bool load(handle src, bool convert) {
+        // dtype=object is not supported. See #1152 & #2259 for related experiments.
+        if (is_same_ignoring_cvref<Scalar, PyObject *>::value) {
+            return false;
+        }
+
         // First check whether what we have is already an array of the right type.  If not, we
         // can't avoid a copy (because the copy is also going to do type conversion).
         bool need_copy = !isinstance<Array>(src);
@@ -637,6 +647,11 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     static constexpr bool rowMajor = Type::IsRowMajor;
 
     bool load(handle src, bool) {
+        // dtype=object is not supported. See #1152 & #2259 for related experiments.
+        if (is_same_ignoring_cvref<Scalar, PyObject *>::value) {
+            return false;
+        }
+
         if (!src) {
             return false;
         }

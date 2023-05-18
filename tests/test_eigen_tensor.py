@@ -286,3 +286,20 @@ def test_doc_string(m, doc):
         f"round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], {order_flag}])"
         " -> numpy.ndarray[numpy.float64[?, ?, ?]]"
     )
+
+
+@pytest.mark.parametrize("m", submodules)
+@pytest.mark.parametrize(
+    "func_name",
+    [
+        "pass_eigen_tensor_dtype_object",
+        "pass_eigen_tensor_map_dtype_object",
+    ],
+)
+def test_pass_array_with_dtype_object(m, func_name):
+    # Only the dtype matters (not shape etc.): dtype=object is (should be) the
+    # first check in the type_caster load() implementations.
+    obj = np.array([], dtype=object)
+    with pytest.raises(TypeError) as excinfo:
+        getattr(m, func_name)(obj)
+    assert "incompatible function arguments" in str(excinfo.value)

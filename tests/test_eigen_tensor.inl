@@ -320,6 +320,10 @@ void init_tensor_module(pybind11::module &m) {
         "round_trip_rank_0_view",
         [](Eigen::TensorMap<Eigen::Tensor<double, 0, Options>> &tensor) { return tensor; },
         py::return_value_policy::reference);
+
+    m.def("pass_eigen_tensor_dtype_object", [](const Eigen::Tensor<PyObject *, 0, Options> &) {});
+    m.def("pass_eigen_tensor_map_dtype_object",
+          [](Eigen::TensorMap<Eigen::Tensor<PyObject *, 0, Options>> &) {});
 }
 
 void test_module(py::module_ &m) {

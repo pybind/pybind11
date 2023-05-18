@@ -169,6 +169,11 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
     PYBIND11_TYPE_CASTER(Type, temp_name);
 
     bool load(handle src, bool convert) {
+        // dtype=object is not supported. See #1152 & #2259 for related experiments.
+        if (is_same_ignoring_cvref<typename Type::Scalar, PyObject *>::value) {
+            return false;
+        }
+
         if (!convert) {
             if (!isinstance<array>(src)) {
                 return false;
@@ -363,6 +368,11 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
     using Helper = eigen_tensor_helper<remove_cv_t<Type>>;
 
     bool load(handle src, bool /*convert*/) {
+        // dtype=object is not supported. See #1152 & #2259 for related experiments.
+        if (is_same_ignoring_cvref<typename Type::Scalar, PyObject *>::value) {
+            return false;
+        }
+
         // Note that we have a lot more checks here as we want to make sure to avoid copies
         if (!isinstance<array>(src)) {
             return false;

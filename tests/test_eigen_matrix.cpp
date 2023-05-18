@@ -425,4 +425,10 @@ TEST_SUBMODULE(eigen_matrix, m) {
         py::module_::import("numpy").attr("ones")(10);
         return v[0](5);
     });
+
+    m.def("pass_eigen_matrix_dtype_object",
+          [](const Eigen::Matrix<PyObject *, Eigen::Dynamic, Eigen::Dynamic> &) {});
+    m.def("pass_eigen_ref_matrix_dtype_object",
+          [](const Eigen::Ref<Eigen::Matrix<PyObject *, Eigen::Dynamic, Eigen::Dynamic>> &) {});
+    m.def("pass_eigen_sparse_matrix_dtype_object", [](const Eigen::SparseMatrix<PyObject *> &) {});
 }
