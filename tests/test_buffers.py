@@ -51,10 +51,10 @@ def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
         # py::format_descriptor<> vs np.array:
         na = np.array([], dtype=np_array_dtype)
         bi = m.get_buffer_info(na)
-        if fmt == "q":
-            assert bi.format in ["q", "l"]
-        elif fmt == "Q":
-            assert bi.format in ["Q", "L"]
+        if fmt in ("i", "q"):
+            assert bi.format in [fmt, "l"]
+        elif fmt in ("I", "Q"):
+            assert bi.format in [fmt, "L"]
         else:
             assert bi.format == fmt
 
