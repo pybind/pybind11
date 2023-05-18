@@ -11,6 +11,32 @@ from pybind11_tests import buffers as m
 np = pytest.importorskip("numpy")
 
 
+@pytest.mark.parametrize(
+    ("cpp_name", "expected_codes"),
+    [
+        ("PyObject *", ["O"]),
+        ("bool", ["?"]),
+        ("std::int8_t", ["b"]),
+        ("std::uint8_t", ["B"]),
+        ("std::int16_t", ["h"]),
+        ("std::uint16_t", ["H"]),
+        ("std::int32_t", ["i"]),
+        ("std::uint32_t", ["I"]),
+        ("std::int64_t", ["q"]),
+        ("std::uint64_t", ["Q"]),
+        ("float", ["f"]),
+        ("double", ["d"]),
+        ("long double", ["g", "d"]),
+        ("std::complex<float>", ["Zf"]),
+        ("std::complex<double>", ["Zd"]),
+        ("std::complex<long double>", ["Zg", "Zd"]),
+        ("", ["UNKNOWN"]),
+    ],
+)
+def test_format_descriptor_format(cpp_name, expected_codes):
+    assert m.format_descriptor_format(cpp_name) in expected_codes
+
+
 def test_from_python():
     with pytest.raises(RuntimeError) as excinfo:
         m.Matrix(np.array([1, 2, 3]))  # trying to assign a 1D array

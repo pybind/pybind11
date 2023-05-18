@@ -7,12 +7,40 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
 TEST_SUBMODULE(buffers, m) {
+
+#define PYBIND11_LOCAL_DEF(...)                                                                   \
+    if (cpp_name == #__VA_ARGS__)                                                                 \
+        return py::format_descriptor<__VA_ARGS__>::format();
+
+    m.def("format_descriptor_format", [](const std::string &cpp_name) {
+        PYBIND11_LOCAL_DEF(PyObject *)
+        PYBIND11_LOCAL_DEF(bool)
+        PYBIND11_LOCAL_DEF(std::int8_t)
+        PYBIND11_LOCAL_DEF(std::uint8_t)
+        PYBIND11_LOCAL_DEF(std::int16_t)
+        PYBIND11_LOCAL_DEF(std::uint16_t)
+        PYBIND11_LOCAL_DEF(std::int32_t)
+        PYBIND11_LOCAL_DEF(std::uint32_t)
+        PYBIND11_LOCAL_DEF(std::int64_t)
+        PYBIND11_LOCAL_DEF(std::uint64_t)
+        PYBIND11_LOCAL_DEF(float)
+        PYBIND11_LOCAL_DEF(double)
+        PYBIND11_LOCAL_DEF(long double)
+        PYBIND11_LOCAL_DEF(std::complex<float>)
+        PYBIND11_LOCAL_DEF(std::complex<double>)
+        PYBIND11_LOCAL_DEF(std::complex<long double>)
+        return std::string("UNKNOWN");
+    });
+
+#undef PYBIND11_LOCAL_DEF
+
     // test_from_python / test_to_python:
     class Matrix {
     public:
