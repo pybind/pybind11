@@ -16,7 +16,7 @@
 TEST_SUBMODULE(buffers, m) {
     m.def("format_descriptor_format", [](const std::string &cpp_name) {
         // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
-        static auto table = new std::map<std::string, std::string>;
+        static auto *table = new std::map<std::string, std::string>;
         if (table->empty()) {
 #define PYBIND11_ASSIGN_HELPER(...)                                                               \
     (*table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();
