@@ -10,6 +10,14 @@ from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
 
+if env.WIN:
+    # Windows does not have these (see e.g. #1908). But who knows, maybe later?
+    np_float128_or_none = getattr(np, "float128", None)
+    np_complex256_or_none = getattr(np, "complex256", None)
+else:
+    np_float128_or_none = np.float128
+    np_complex256_or_none = np.complex256
+
 
 @pytest.mark.parametrize(
     ("cpp_name", "expected_fmts", "np_array_dtype"),
@@ -26,10 +34,10 @@ np = pytest.importorskip("numpy")
         ("std::uint64_t", ["Q"], np.uint64),
         ("float", ["f"], np.float32),
         ("double", ["d"], np.float64),
-        ("long double", ["g", "d"], np.float128),
+        ("long double", ["g", "d"], np_float128_or_none),
         ("std::complex<float>", ["Zf"], np.complex64),
         ("std::complex<double>", ["Zd"], np.complex128),
-        ("std::complex<long double>", ["Zg", "Zd"], np.complex256),
+        ("std::complex<long double>", ["Zg", "Zd"], np_complex256_or_none),
     ],
 )
 def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
@@ -39,15 +47,16 @@ def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
     # Everything below just documents long-standing inconsistencies.
     # See also: https://github.com/pybind/pybind11/issues/1908
 
-    # py::format_descriptor<> vs np.array:
-    na = np.array([], dtype=np_array_dtype)
-    bi = m.get_buffer_info(na)
-    if fmt == "q":
-        assert bi.format in ["q", "l"]
-    elif fmt == "Q":
-        assert bi.format in ["Q", "L"]
-    else:
-        assert bi.format == fmt
+    if np_array_dtype is not None:
+        # py::format_descriptor<> vs np.array:
+        na = np.array([], dtype=np_array_dtype)
+        bi = m.get_buffer_info(na)
+        if fmt == "q":
+            assert bi.format in ["q", "l"]
+        elif fmt == "Q":
+            assert bi.format in ["Q", "L"]
+        else:
+            assert bi.format == fmt
 
     # py::format_descriptor<> vs np.format_parser():
     fmtp = fmt[1:] if fmt.startswith("Z") else fmt
