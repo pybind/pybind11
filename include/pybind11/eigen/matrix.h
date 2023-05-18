@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../numpy.h"
+#include "common.h"
 
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
    See also:
@@ -288,7 +289,7 @@ template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
     using Scalar = typename Type::Scalar;
     static_assert(!std::is_pointer<Scalar>::value,
-                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using props = EigenProps<Type>;
 
     bool load(handle src, bool convert) {
@@ -408,7 +409,7 @@ private:
 template <typename MapType>
 struct eigen_map_caster {
     static_assert(!std::is_pointer<typename MapType::Scalar>::value,
-                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
 
 private:
     using props = EigenProps<MapType>;
@@ -463,7 +464,7 @@ private:
     using props = EigenProps<Type>;
     using Scalar = typename props::Scalar;
     static_assert(!std::is_pointer<Scalar>::value,
-                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using MapType = Eigen::Map<PlainObjectType, 0, StrideType>;
     using Array
         = array_t<Scalar,
@@ -612,7 +613,7 @@ private:
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_other<Type>::value>> {
     static_assert(!std::is_pointer<typename Type::Scalar>::value,
-                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
 
 protected:
     using Matrix
@@ -643,7 +644,7 @@ template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     using Scalar = typename Type::Scalar;
     static_assert(!std::is_pointer<Scalar>::value,
-                  PYBIND11_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using StorageIndex = remove_reference_t<decltype(*std::declval<Type>().outerIndexPtr())>;
     using Index = typename Type::Index;
     static constexpr bool rowMajor = Type::IsRowMajor;
