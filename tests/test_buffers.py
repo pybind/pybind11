@@ -12,29 +12,50 @@ np = pytest.importorskip("numpy")
 
 
 @pytest.mark.parametrize(
-    ("cpp_name", "expected_codes"),
+    ("cpp_name", "expected_fmts", "np_array_dtype"),
     [
-        ("PyObject *", ["O"]),
-        ("bool", ["?"]),
-        ("std::int8_t", ["b"]),
-        ("std::uint8_t", ["B"]),
-        ("std::int16_t", ["h"]),
-        ("std::uint16_t", ["H"]),
-        ("std::int32_t", ["i"]),
-        ("std::uint32_t", ["I"]),
-        ("std::int64_t", ["q"]),
-        ("std::uint64_t", ["Q"]),
-        ("float", ["f"]),
-        ("double", ["d"]),
-        ("long double", ["g", "d"]),
-        ("std::complex<float>", ["Zf"]),
-        ("std::complex<double>", ["Zd"]),
-        ("std::complex<long double>", ["Zg", "Zd"]),
-        ("", ["UNKNOWN"]),
+        ("PyObject *", ["O"], object),
+        ("bool", ["?"], np.bool_),
+        ("std::int8_t", ["b"], np.int8),
+        ("std::uint8_t", ["B"], np.uint8),
+        ("std::int16_t", ["h"], np.int16),
+        ("std::uint16_t", ["H"], np.uint16),
+        ("std::int32_t", ["i"], np.int32),
+        ("std::uint32_t", ["I"], np.uint32),
+        ("std::int64_t", ["q"], np.int64),
+        ("std::uint64_t", ["Q"], np.uint64),
+        ("float", ["f"], np.float32),
+        ("double", ["d"], np.float64),
+        ("long double", ["g", "d"], np.float128),
+        ("std::complex<float>", ["Zf"], np.complex64),
+        ("std::complex<double>", ["Zd"], np.complex128),
+        ("std::complex<long double>", ["Zg", "Zd"], np.complex256),
     ],
 )
-def test_format_descriptor_format(cpp_name, expected_codes):
-    assert m.format_descriptor_format(cpp_name) in expected_codes
+def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
+    fmt = m.format_descriptor_format(cpp_name)
+    assert fmt in expected_fmts
+
+    # Everything below just documents long-standing inconsistencies.
+    # See also: https://github.com/pybind/pybind11/issues/1908
+
+    # py::format_descriptor<> vs np.array:
+    na = np.array([], dtype=np_array_dtype)
+    bi = m.get_buffer_info(na)
+    if fmt == "q":
+        assert bi.format in ["q", "l"]
+    elif fmt == "Q":
+        assert bi.format in ["Q", "L"]
+    else:
+        assert bi.format == fmt
+
+    # py::format_descriptor<> vs np.format_parser():
+    fmtp = fmt[1:] if fmt.startswith("Z") else fmt
+    fp = np.format_parser(fmtp, [], [])
+    assert fp.dtype is not None
+
+    # DO NOT try to compare fp.dtype and na.dtype, unless you have a lot of
+    # spare time to make sense of it and possibly chime in under #1908.
 
 
 def test_from_python():

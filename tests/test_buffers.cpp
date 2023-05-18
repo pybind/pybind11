@@ -14,32 +14,32 @@
 #include "pybind11_tests.h"
 
 TEST_SUBMODULE(buffers, m) {
-
-#define PYBIND11_LOCAL_DEF(...)                                                                   \
-    if (cpp_name == #__VA_ARGS__)                                                                 \
-        return py::format_descriptor<__VA_ARGS__>::format();
-
     m.def("format_descriptor_format", [](const std::string &cpp_name) {
-        PYBIND11_LOCAL_DEF(PyObject *)
-        PYBIND11_LOCAL_DEF(bool)
-        PYBIND11_LOCAL_DEF(std::int8_t)
-        PYBIND11_LOCAL_DEF(std::uint8_t)
-        PYBIND11_LOCAL_DEF(std::int16_t)
-        PYBIND11_LOCAL_DEF(std::uint16_t)
-        PYBIND11_LOCAL_DEF(std::int32_t)
-        PYBIND11_LOCAL_DEF(std::uint32_t)
-        PYBIND11_LOCAL_DEF(std::int64_t)
-        PYBIND11_LOCAL_DEF(std::uint64_t)
-        PYBIND11_LOCAL_DEF(float)
-        PYBIND11_LOCAL_DEF(double)
-        PYBIND11_LOCAL_DEF(long double)
-        PYBIND11_LOCAL_DEF(std::complex<float>)
-        PYBIND11_LOCAL_DEF(std::complex<double>)
-        PYBIND11_LOCAL_DEF(std::complex<long double>)
-        return std::string("UNKNOWN");
+        // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+        static auto table = new std::map<std::string, std::string>;
+        if (table->empty()) {
+#define PYBIND11_ASSIGN_HELPER(...)                                                               \
+    (*table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();
+            PYBIND11_ASSIGN_HELPER(PyObject *)
+            PYBIND11_ASSIGN_HELPER(bool)
+            PYBIND11_ASSIGN_HELPER(std::int8_t)
+            PYBIND11_ASSIGN_HELPER(std::uint8_t)
+            PYBIND11_ASSIGN_HELPER(std::int16_t)
+            PYBIND11_ASSIGN_HELPER(std::uint16_t)
+            PYBIND11_ASSIGN_HELPER(std::int32_t)
+            PYBIND11_ASSIGN_HELPER(std::uint32_t)
+            PYBIND11_ASSIGN_HELPER(std::int64_t)
+            PYBIND11_ASSIGN_HELPER(std::uint64_t)
+            PYBIND11_ASSIGN_HELPER(float)
+            PYBIND11_ASSIGN_HELPER(double)
+            PYBIND11_ASSIGN_HELPER(long double)
+            PYBIND11_ASSIGN_HELPER(std::complex<float>)
+            PYBIND11_ASSIGN_HELPER(std::complex<double>)
+            PYBIND11_ASSIGN_HELPER(std::complex<long double>)
+#undef PYBIND11_ASSIGN_HELPER
+        }
+        return (*table)[cpp_name];
     });
-
-#undef PYBIND11_LOCAL_DEF
 
     // test_from_python / test_to_python:
     class Matrix {
