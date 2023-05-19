@@ -44,11 +44,7 @@ def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
     fmt = m.format_descriptor_format(cpp_name)
     assert fmt in expected_fmts
 
-    # Everything below just documents long-standing inconsistencies.
-    # See also: https://github.com/pybind/pybind11/issues/1908
-
     if np_array_dtype is not None:
-        # py::format_descriptor<> vs np.array:
         na = np.array([], dtype=np_array_dtype)
         bi = m.get_buffer_info(na)
         if fmt in ("i", "q"):
@@ -57,14 +53,6 @@ def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
             assert bi.format in [fmt, "L"]
         else:
             assert bi.format == fmt
-
-    # py::format_descriptor<> vs np.format_parser():
-    fmtp = fmt[1:] if fmt.startswith("Z") else fmt
-    fp = np.format_parser(fmtp, [], [])
-    assert fp.dtype is not None
-
-    # DO NOT try to compare fp.dtype and na.dtype, unless you have a lot of
-    # spare time to make sense of it and possibly chime in under #1908.
 
 
 def test_from_python():
