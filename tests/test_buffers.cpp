@@ -14,32 +14,39 @@
 #include "pybind11_tests.h"
 
 TEST_SUBMODULE(buffers, m) {
-    m.def("format_descriptor_format", [](const std::string &cpp_name) {
-        // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
-        static auto *table = new std::map<std::string, std::string>;
-        if (table->empty()) {
+    m.attr("std_is_same_double_long_double") = std::is_same<double, long double>::value;
+
+    m.def("format_descriptor_format_compare",
+          [](const std::string &cpp_name, const py::buffer &buffer) {
+              // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+              static auto *format_table = new std::map<std::string, std::string>;
+              static auto *compare_table
+                  = new std::map<std::string, bool (*)(const py::buffer_info &)>;
+              if (format_table->empty()) {
 #define PYBIND11_ASSIGN_HELPER(...)                                                               \
-    (*table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();
-            PYBIND11_ASSIGN_HELPER(PyObject *)
-            PYBIND11_ASSIGN_HELPER(bool)
-            PYBIND11_ASSIGN_HELPER(std::int8_t)
-            PYBIND11_ASSIGN_HELPER(std::uint8_t)
-            PYBIND11_ASSIGN_HELPER(std::int16_t)
-            PYBIND11_ASSIGN_HELPER(std::uint16_t)
-            PYBIND11_ASSIGN_HELPER(std::int32_t)
-            PYBIND11_ASSIGN_HELPER(std::uint32_t)
-            PYBIND11_ASSIGN_HELPER(std::int64_t)
-            PYBIND11_ASSIGN_HELPER(std::uint64_t)
-            PYBIND11_ASSIGN_HELPER(float)
-            PYBIND11_ASSIGN_HELPER(double)
-            PYBIND11_ASSIGN_HELPER(long double)
-            PYBIND11_ASSIGN_HELPER(std::complex<float>)
-            PYBIND11_ASSIGN_HELPER(std::complex<double>)
-            PYBIND11_ASSIGN_HELPER(std::complex<long double>)
+    (*format_table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();                 \
+    (*compare_table)[#__VA_ARGS__] = py::detail::compare_buffer_info<__VA_ARGS__>::compare;
+                  PYBIND11_ASSIGN_HELPER(PyObject *)
+                  PYBIND11_ASSIGN_HELPER(bool)
+                  PYBIND11_ASSIGN_HELPER(std::int8_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint8_t)
+                  PYBIND11_ASSIGN_HELPER(std::int16_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint16_t)
+                  PYBIND11_ASSIGN_HELPER(std::int32_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint32_t)
+                  PYBIND11_ASSIGN_HELPER(std::int64_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint64_t)
+                  PYBIND11_ASSIGN_HELPER(float)
+                  PYBIND11_ASSIGN_HELPER(double)
+                  PYBIND11_ASSIGN_HELPER(long double)
+                  PYBIND11_ASSIGN_HELPER(std::complex<float>)
+                  PYBIND11_ASSIGN_HELPER(std::complex<double>)
+                  PYBIND11_ASSIGN_HELPER(std::complex<long double>)
 #undef PYBIND11_ASSIGN_HELPER
-        }
-        return (*table)[cpp_name];
-    });
+              }
+              return std::pair<std::string, bool>((*format_table)[cpp_name],
+                                                  (*compare_table)[cpp_name](buffer.request()));
+          });
 
     // test_from_python / test_to_python:
     class Matrix {
