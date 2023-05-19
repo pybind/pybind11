@@ -10,12 +10,13 @@ from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
 
-if m.std_is_same_double_long_double:  # Windows.
-    np_float128 = None
-    np_complex256 = None
-else:
-    np_float128 = np.float128
-    np_complex256 = np.complex256
+
+def np_dtype_long_double_or_none(name):
+    # Intentionally not using getattr(np, name, None), to be strict.
+    if m.std_is_same_double_long_double:  # Windows.
+        return None
+    return getattr(np, name)
+
 
 CPP_NAME_FORMAT_NP_DTYPE_TABLE = [
     item
@@ -32,10 +33,10 @@ CPP_NAME_FORMAT_NP_DTYPE_TABLE = [
         ("std::uint64_t", "Q", np.uint64),
         ("float", "f", np.float32),
         ("double", "d", np.float64),
-        ("long double", "g", np_float128),
+        ("long double", "g", np_dtype_long_double_or_none("float128")),
         ("std::complex<float>", "Zf", np.complex64),
         ("std::complex<double>", "Zd", np.complex128),
-        ("std::complex<long double>", "Zg", np_complex256),
+        ("std::complex<long double>", "Zg", np_dtype_long_double_or_none("complex256")),
     ]
     if item[-1] is not None
 ]
