@@ -14,7 +14,7 @@
 #include "pybind11_tests.h"
 
 TEST_SUBMODULE(buffers, m) {
-    m.attr("std_is_same_double_long_double") = std::is_same<double, long double>::value;
+    m.attr("long_double_and_double_have_same_size") = (sizeof(long double) == sizeof(double));
 
     m.def("format_descriptor_format_buffer_info_compare",
           [](const std::string &cpp_name, const py::buffer &buffer) {

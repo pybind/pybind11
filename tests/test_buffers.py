@@ -10,7 +10,7 @@ from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
 
-if m.std_is_same_double_long_double:  # Windows.
+if m.long_double_and_double_have_same_size:  # Windows.
     np_float128 = None
     np_complex256 = None
 else:
