@@ -49,7 +49,7 @@ CPP_NAME_NP_DTYPE_TABLE = [
 
 
 @pytest.mark.parametrize(("cpp_name", "np_dtype"), CPP_NAME_NP_DTYPE_TABLE)
-def test_format_descriptor_format_buffer_info_compare(cpp_name, np_dtype):
+def test_format_descriptor_format_buffer_info_equiv(cpp_name, np_dtype):
     if np_dtype is None:
         pytest.skip(
             f"cpp_name=`{cpp_name}`: `long double` and `double` have same size."
@@ -58,7 +58,7 @@ def test_format_descriptor_format_buffer_info_compare(cpp_name, np_dtype):
         pytest.skip(f"np.{np_dtype} does not exist.")
     np_array = np.array([], dtype=np_dtype)
     for other_cpp_name, expected_format in CPP_NAME_FORMAT_TABLE:
-        format, np_array_is_matching = m.format_descriptor_format_buffer_info_compare(
+        format, np_array_is_matching = m.format_descriptor_format_buffer_info_equiv(
             other_cpp_name, np_array
         )
         assert format == expected_format

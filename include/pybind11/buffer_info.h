@@ -153,8 +153,14 @@ struct buffer_info {
     Py_buffer *view() const { return m_view; }
     Py_buffer *&view() { return m_view; }
 
+    /* True if the buffer item type is equivalent to `T`. */
+    // To define "equivalent" by example:
+    // `buffer_info::item_type_is_equivalent_to<int>(b)` and
+    // `buffer_info::item_type_is_equivalent_to<long>(b)` may both be true
+    // on some platforms, but `int` and `unsigned` will never be equivalent.
+    // For the ground truth, please inspect `detail::compare_buffer_info<>`.
     template <typename T>
-    static bool compare(const buffer_info &b) {
+    static bool item_type_is_equivalent_to(const buffer_info &b) {
         return detail::compare_buffer_info<T>::compare(b);
     }
 

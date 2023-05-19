@@ -16,16 +16,16 @@
 TEST_SUBMODULE(buffers, m) {
     m.attr("long_double_and_double_have_same_size") = (sizeof(long double) == sizeof(double));
 
-    m.def("format_descriptor_format_buffer_info_compare",
+    m.def("format_descriptor_format_buffer_info_equiv",
           [](const std::string &cpp_name, const py::buffer &buffer) {
               // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
               static auto *format_table = new std::map<std::string, std::string>;
-              static auto *compare_table
+              static auto *equiv_table
                   = new std::map<std::string, bool (*)(const py::buffer_info &)>;
               if (format_table->empty()) {
 #define PYBIND11_ASSIGN_HELPER(...)                                                               \
     (*format_table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();                 \
-    (*compare_table)[#__VA_ARGS__] = py::buffer_info::compare<__VA_ARGS__>;
+    (*equiv_table)[#__VA_ARGS__] = py::buffer_info::item_type_is_equivalent_to<__VA_ARGS__>;
                   PYBIND11_ASSIGN_HELPER(PyObject *)
                   PYBIND11_ASSIGN_HELPER(bool)
                   PYBIND11_ASSIGN_HELPER(std::int8_t)
@@ -45,7 +45,7 @@ TEST_SUBMODULE(buffers, m) {
 #undef PYBIND11_ASSIGN_HELPER
               }
               return std::pair<std::string, bool>((*format_table)[cpp_name],
-                                                  (*compare_table)[cpp_name](buffer.request()));
+                                                  (*equiv_table)[cpp_name](buffer.request()));
           });
 
     // test_from_python / test_to_python:
