@@ -181,6 +181,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T, typename SFINAE>
 struct compare_buffer_info {
     static bool compare(const buffer_info &b) {
+        // NOLINTNEXTLINE(bugprone-sizeof-expression) Needed for `PyObject *`
         return b.format == format_descriptor<T>::format() && b.itemsize == (ssize_t) sizeof(T);
     }
 };
