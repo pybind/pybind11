@@ -15,16 +15,17 @@ Version 2.11.0 (May 23, 2023)
 
 New features:
 
-* `pybind11::detail::is_move_constructible` can now be specialized for cases in
-   which `std::is_move_constructible` does not work as needed. This is very
-   similar to the long-established `pybind11::detail::is_copy_constructible`.
+* ``pybind11::detail::is_move_constructible`` can now be specialized for cases
+   in which ``std::is_move_constructible`` does not work as needed. This is
+   very similar to the long-established
+   ``pybind11::detail::is_copy_constructible``.
   `#4631 <https://github.com/pybind/pybind11/pull/4631>`_
 
 * Introduce recursive_container_traits.
   `#4623 <https://github.com/pybind/pybind11/pull/4623>`_
 
 * pybind11/type_caster_pyobject_ptr.h was added to support automatic wrapping
-  of APIs that make use of `PyObject *`. This header needs to included
+  of APIs that make use of ``PyObject *``. This header needs to included
   explicitly (i.e. it is not included implicitly with pybind/pybind11.h).
   `#4601 <https://github.com/pybind/pybind11/pull/4601>`_
 
@@ -60,10 +61,10 @@ Changes:
   for Python versions up to and including 3.11 is still version 4.).
   `#4570 <https://github.com/pybind/pybind11/pull/4570>`_
 
-* With `PYBIND11_INTERNALS_VERSION 5` (default for Python 3.12+), MSVC builds
-  use `std::hash<std::type_index>` and `std::equal_to<std::type_index>` instead
-  of string-based type comparisons. This resolves issues when binding types
-  defined in the unnamed namespace.
+* With ``PYBIND11_INTERNALS_VERSION 5`` (default for Python 3.12+), MSVC builds
+  use ``std::hash<std::type_index>`` and ``std::equal_to<std::type_index>``
+  instead of string-based type comparisons. This resolves issues when binding
+  types defined in the unnamed namespace.
   `#4319 <https://github.com/pybind/pybind11/pull/4319>`_
 
 Build system improvements:
@@ -75,7 +76,7 @@ Build system improvements:
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
 
 * Skip lto checks and target generation when
-  `CMAKE_INTERPROCEDURAL_OPTIMIZATION` is defined.
+  ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
   `#4643 <https://github.com/pybind/pybind11/pull/4643>`_
 
 * No longer inject -stdlib=libc++, not needed for modern Pythons (macOS 10.9+).
