@@ -47,12 +47,12 @@ def test_format_descriptor_format(cpp_name, expected_fmts, np_array_dtype):
     if np_array_dtype is not None:
         na = np.array([], dtype=np_array_dtype)
         bi = m.get_buffer_info(na)
-        if fmt in ("i", "q"):
-            assert bi.format in [fmt, "l"]
-        elif fmt in ("I", "Q"):
-            assert bi.format in [fmt, "L"]
-        else:
-            assert bi.format == fmt
+        bif = bi.format
+        if bif == "l":
+            bif = "i" if bi.itemsize == 4 else "q"
+        elif bif == "L":
+            bif = "I" if bi.itemsize == 4 else "Q"
+        assert bif == fmt
 
 
 def test_from_python():
