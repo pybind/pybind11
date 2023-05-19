@@ -48,10 +48,10 @@ CPP_NAME_NP_DTYPE_TABLE = [
 
 
 @pytest.mark.parametrize(("cpp_name", "np_dtype"), CPP_NAME_NP_DTYPE_TABLE)
-def test_format_descriptor_format_compare(cpp_name, np_dtype):
+def test_format_descriptor_format_buffer_info_compare(cpp_name, np_dtype):
     np_array = np.array([], dtype=np_dtype)
     for other_cpp_name, expected_format in CPP_NAME_FORMAT_TABLE:
-        format, np_array_is_matching = m.format_descriptor_format_compare(
+        format, np_array_is_matching = m.format_descriptor_format_buffer_info_compare(
             other_cpp_name, np_array
         )
         assert format == expected_format

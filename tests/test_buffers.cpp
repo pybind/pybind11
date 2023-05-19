@@ -16,7 +16,7 @@
 TEST_SUBMODULE(buffers, m) {
     m.attr("std_is_same_double_long_double") = std::is_same<double, long double>::value;
 
-    m.def("format_descriptor_format_compare",
+    m.def("format_descriptor_format_buffer_info_compare",
           [](const std::string &cpp_name, const py::buffer &buffer) {
               // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
               static auto *format_table = new std::map<std::string, std::string>;
@@ -25,7 +25,7 @@ TEST_SUBMODULE(buffers, m) {
               if (format_table->empty()) {
 #define PYBIND11_ASSIGN_HELPER(...)                                                               \
     (*format_table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();                 \
-    (*compare_table)[#__VA_ARGS__] = py::detail::compare_buffer_info<__VA_ARGS__>::compare;
+    (*compare_table)[#__VA_ARGS__] = py::buffer_info::compare<__VA_ARGS__>;
                   PYBIND11_ASSIGN_HELPER(PyObject *)
                   PYBIND11_ASSIGN_HELPER(bool)
                   PYBIND11_ASSIGN_HELPER(std::int8_t)

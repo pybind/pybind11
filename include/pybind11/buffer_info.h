@@ -37,6 +37,9 @@ inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t
     return strides;
 }
 
+template <typename T, typename SFINAE = void>
+struct compare_buffer_info;
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Information record describing a Python buffer object
@@ -150,6 +153,11 @@ struct buffer_info {
     Py_buffer *view() const { return m_view; }
     Py_buffer *&view() { return m_view; }
 
+    template <typename T>
+    static bool compare(const buffer_info &b) {
+        return detail::compare_buffer_info<T>::compare(b);
+    }
+
 private:
     struct private_ctr_tag {};
 
@@ -170,7 +178,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename T, typename SFINAE = void>
+template <typename T, typename SFINAE>
 struct compare_buffer_info {
     static bool compare(const buffer_info &b) {
         return b.format == format_descriptor<T>::format() && b.itemsize == (ssize_t) sizeof(T);
