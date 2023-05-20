@@ -10,7 +10,7 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-Version 2.11.0 (May 23, 2023)
+Version 2.11.0 (June 2, 2023)
 -----------------------------
 
 New features:
