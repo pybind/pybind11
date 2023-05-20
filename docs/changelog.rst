@@ -49,7 +49,8 @@ Changes:
   no longer converted to Python (only to be discarded).
   `#4621 <https://github.com/pybind/pybind11/pull/4621>`_
 
-* Allow lambda specified to function definition to be noexcept(true) in C++17.
+* Allow lambda specified to function definition to be ``noexcept(true)``
+  in C++17.
   `#4593 <https://github.com/pybind/pybind11/pull/4593>`_
 
 * Get rid of recursive template instantiations for concatenating type
