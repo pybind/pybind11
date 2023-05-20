@@ -21,11 +21,11 @@ TEST_SUBMODULE(buffers, m) {
               // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
               static auto *format_table = new std::map<std::string, std::string>;
               static auto *equiv_table
-                  = new std::map<std::string, bool (*)(const py::buffer_info &)>;
+                  = new std::map<std::string, bool (py::buffer_info::*)() const>;
               if (format_table->empty()) {
 #define PYBIND11_ASSIGN_HELPER(...)                                                               \
     (*format_table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();                 \
-    (*equiv_table)[#__VA_ARGS__] = py::buffer_info::item_type_is_equivalent_to<__VA_ARGS__>;
+    (*equiv_table)[#__VA_ARGS__] = &py::buffer_info::item_type_is_equivalent_to<__VA_ARGS__>;
                   PYBIND11_ASSIGN_HELPER(PyObject *)
                   PYBIND11_ASSIGN_HELPER(bool)
                   PYBIND11_ASSIGN_HELPER(std::int8_t)
@@ -44,8 +44,8 @@ TEST_SUBMODULE(buffers, m) {
                   PYBIND11_ASSIGN_HELPER(std::complex<long double>)
 #undef PYBIND11_ASSIGN_HELPER
               }
-              return std::pair<std::string, bool>((*format_table)[cpp_name],
-                                                  (*equiv_table)[cpp_name](buffer.request()));
+              return std::pair<std::string, bool>(
+                  (*format_table)[cpp_name], (buffer.request().*((*equiv_table)[cpp_name]))());
           });
 
     // test_from_python / test_to_python:

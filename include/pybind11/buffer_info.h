@@ -160,8 +160,8 @@ struct buffer_info {
     // on some platforms, but `int` and `unsigned` will never be equivalent.
     // For the ground truth, please inspect `detail::compare_buffer_info<>`.
     template <typename T>
-    static bool item_type_is_equivalent_to(const buffer_info &b) {
-        return detail::compare_buffer_info<T>::compare(b);
+    bool item_type_is_equivalent_to() const {
+        return detail::compare_buffer_info<T>::compare(*this);
     }
 
 private:
