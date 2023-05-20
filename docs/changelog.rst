@@ -21,12 +21,13 @@ New features:
    ``pybind11::detail::is_copy_constructible``.
   `#4631 <https://github.com/pybind/pybind11/pull/4631>`_
 
-* Introduce recursive_container_traits.
+* Introduce ``recursive_container_traits``.
   `#4623 <https://github.com/pybind/pybind11/pull/4623>`_
 
-* pybind11/type_caster_pyobject_ptr.h was added to support automatic wrapping
-  of APIs that make use of ``PyObject *``. This header needs to included
-  explicitly (i.e. it is not included implicitly with pybind/pybind11.h).
+* ``pybind11/type_caster_pyobject_ptr.h`` was added to support automatic
+  wrapping of APIs that make use of ``PyObject *``. This header needs to
+  included explicitly (i.e. it is not included implicitly
+  with ``pybind/pybind11.h``).
   `#4601 <https://github.com/pybind/pybind11/pull/4601>`_
 
 Changes:
@@ -80,7 +81,8 @@ Build system improvements:
   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
   `#4643 <https://github.com/pybind/pybind11/pull/4643>`_
 
-* No longer inject -stdlib=libc++, not needed for modern Pythons (macOS 10.9+).
+* No longer inject ``-stdlib=libc++``, not needed for modern Pythons
+  (macOS 10.9+).
   `#4639 <https://github.com/pybind/pybind11/pull/4639>`_
 
 
