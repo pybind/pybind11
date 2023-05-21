@@ -472,12 +472,15 @@ inline const char *obj_class_name(PyObject *obj) {
 std::string error_string();
 
 struct error_fetch_and_normalize {
-    // Immediate normalization is long-established behavior (starting with
-    // https://github.com/pybind/pybind11/commit/135ba8deafb8bf64a15b24d1513899eb600e2011
-    // from Sep 2016) and safest. Normalization could be deferred, but this could mask
-    // errors elsewhere, the performance gain is very minor in typical situations
-    // (usually the dominant bottleneck is EH unwinding), and the implementation here
-    // would be more complex.
+    // This comment only applies to Python <= 3.11:
+    //     Immediate normalization is long-established behavior (starting with
+    //     https://github.com/pybind/pybind11/commit/135ba8deafb8bf64a15b24d1513899eb600e2011
+    //     from Sep 2016) and safest. Normalization could be deferred, but this could mask
+    //     errors elsewhere, the performance gain is very minor in typical situations
+    //     (usually the dominant bottleneck is EH unwinding), and the implementation here
+    //     would be more complex.
+    // Starting with Python 3.12, PyErr_Fetch() normalizes exceptions immediately.
+    // Any errors during normalization are tracked under __notes__.
     explicit error_fetch_and_normalize(const char *called) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (!m_type) {
@@ -492,6 +495,7 @@ struct error_fetch_and_normalize {
                             "of the original active exception type.");
         }
         m_lazy_error_string = exc_type_name_orig;
+#if PY_VERSION_HEX < 0x030C0000
         // PyErr_NormalizeException() may change the exception type if there are cascading
         // failures. This can potentially be extremely confusing.
         PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
@@ -506,12 +510,12 @@ struct error_fetch_and_normalize {
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
-#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x07030a00
+#    if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x07030a00
         // This behavior runs the risk of masking errors in the error handling, but avoids a
         // conflict with PyPy, which relies on the normalization here to change OSError to
         // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075).
         m_lazy_error_string = exc_type_name_norm;
-#else
+#    else
         if (exc_type_name_norm != m_lazy_error_string) {
             std::string msg = std::string(called)
                               + ": MISMATCH of original and normalized "
@@ -522,6 +526,12 @@ struct error_fetch_and_normalize {
             msg += exc_type_name_norm;
             msg += ": " + format_value_and_trace();
             pybind11_fail(msg);
+        }
+#    endif
+#else // Python 3.12+
+      // The presence of __notes__ could be due to exception normalization errors.
+        if (PyObject_HasAttrString(m_value.ptr(), "__notes__")) {
+            m_lazy_error_string += "[WITH __notes__]";
         }
 #endif
     }
@@ -558,6 +568,40 @@ struct error_fetch_and_normalize {
                     }
                 }
             }
+#if PY_VERSION_HEX >= 0x030B0000
+            auto notes
+                = reinterpret_steal<object>(PyObject_GetAttrString(m_value.ptr(), "__notes__"));
+            if (!notes) {
+                PyErr_Clear(); // No notes is good news.
+            } else {
+                auto len_notes = PyList_Size(notes.ptr());
+                if (PyErr_Occurred()) {
+                    result += "\nFAILURE obtaining len(__notes__): " + detail::error_string();
+                } else {
+                    result += "\n__notes__ (len=" + std::to_string(len_notes) + "):";
+                    for (ssize_t i = 0; i < len_notes; i++) {
+                        PyObject *note = PyList_GET_ITEM(notes.ptr(), i);
+                        auto note_bytes = reinterpret_steal<object>(
+                            PyUnicode_AsEncodedString(note, "utf-8", "backslashreplace"));
+                        if (!note_bytes) {
+                            result += "\nFAILURE obtaining __notes__[" + std::to_string(i)
+                                      + "]: " + detail::error_string();
+                        } else {
+                            char *buffer = nullptr;
+                            Py_ssize_t length = 0;
+                            if (PyBytes_AsStringAndSize(note_bytes.ptr(), &buffer, &length)
+                                == -1) {
+                                result += "\nFAILURE formatting __notes__[" + std::to_string(i)
+                                          + "]: " + detail::error_string();
+                            } else {
+                                result += '\n';
+                                result += std::string(buffer, static_cast<std::size_t>(length));
+                            }
+                        }
+                    }
+                }
+            }
+#endif
         } else {
             result = "<MESSAGE UNAVAILABLE>";
         }
