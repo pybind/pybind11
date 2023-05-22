@@ -495,7 +495,14 @@ struct error_fetch_and_normalize {
                             "of the original active exception type.");
         }
         m_lazy_error_string = exc_type_name_orig;
-#if PY_VERSION_HEX < 0x030C0000
+#if PY_VERSION_HEX >= 0x030C0000
+        // The presence of __notes__ is likely due to exception normalization
+        // errors, although that is not necessarily true, therefore insert a
+        // hint only:
+        if (PyObject_HasAttrString(m_value.ptr(), "__notes__")) {
+            m_lazy_error_string += "[WITH __notes__]";
+        }
+#else
         // PyErr_NormalizeException() may change the exception type if there are cascading
         // failures. This can potentially be extremely confusing.
         PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
@@ -528,11 +535,6 @@ struct error_fetch_and_normalize {
             pybind11_fail(msg);
         }
 #    endif
-#else // Python 3.12+
-      // The presence of __notes__ could be due to exception normalization errors.
-        if (PyObject_HasAttrString(m_value.ptr(), "__notes__")) {
-            m_lazy_error_string += "[WITH __notes__]";
-        }
 #endif
     }
 
@@ -575,7 +577,7 @@ struct error_fetch_and_normalize {
                 PyErr_Clear(); // No notes is good news.
             } else {
                 auto len_notes = PyList_Size(notes.ptr());
-                if (PyErr_Occurred()) {
+                if (len_notes < 0) {
                     result += "\nFAILURE obtaining len(__notes__): " + detail::error_string();
                 } else {
                     result += "\n__notes__ (len=" + std::to_string(len_notes) + "):";
