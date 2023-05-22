@@ -50,10 +50,8 @@ def test_valarray(doc):
     assert m.load_valarray(lst)
     assert m.load_valarray(tuple(lst))
 
-    assert doc(m.cast_valarray) == "cast_valarray() -> Annotated[List[int], 3]"
-    assert (
-        doc(m.load_valarray) == "load_valarray(arg0: Annotated[List[int], 3]) -> bool"
-    )
+    assert doc(m.cast_valarray) == "cast_valarray() -> List[int]"
+    assert doc(m.load_valarray) == "load_valarray(arg0: List[int]) -> bool"
 
 
 def test_map(doc):
