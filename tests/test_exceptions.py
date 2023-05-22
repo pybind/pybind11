@@ -331,7 +331,9 @@ def _test_flaky_exception_failure_point_init_before_py_3_12():
     # Checking the first two lines of the traceback as formatted in error_string():
     assert "test_exceptions.py(" in lines[3]
     assert lines[3].endswith("): __init__")
-    assert lines[4].endswith("): test_flaky_exception_failure_point_init")
+    assert lines[4].endswith(
+        "): _test_flaky_exception_failure_point_init_before_py_3_12"
+    )
 
 
 def _test_flaky_exception_failure_point_init_py_3_12():
