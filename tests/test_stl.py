@@ -39,8 +39,8 @@ def test_array(doc):
     assert m.load_array(lst)
     assert m.load_array(tuple(lst))
 
-    assert doc(m.cast_array) == "cast_array() -> List[int[2]]"
-    assert doc(m.load_array) == "load_array(arg0: List[int[2]]) -> bool"
+    assert doc(m.cast_array) == "cast_array() -> Annotated[List, 2]"
+    assert doc(m.load_array) == "load_array(arg0: Annotated[List, 2]) -> bool"
 
 
 def test_valarray(doc):
