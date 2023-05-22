@@ -276,7 +276,8 @@ public:
                          const_name<Resizable>(const_name(""), const_name("Annotated["))
                              + const_name("List[") + value_conv::name + const_name("]")
                              + const_name<Resizable>(const_name(""),
-                                                     const_name(", ") + const_name<Size>() + const_name("]")));
+                                                     const_name(", ") + const_name<Size>()
+                                                         + const_name("]")));
 };
 
 template <typename Type, size_t Size>
