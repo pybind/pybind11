@@ -471,6 +471,14 @@ inline const char *obj_class_name(PyObject *obj) {
 
 std::string error_string();
 
+// The code in this struct is very unusual, to minimize the chances of
+// masking bugs (elsewhere) by errors during the error handling (here).
+// This is meant to be a lifeline for troubleshooting long-running processes
+// that crash under conditions that are virtually impossible to reproduce.
+// Low-level implementation alternatives are preferred to higher-level ones
+// that might raise cascading exceptions. Last-ditch-kind-of attempts are made
+// to report as much of the original error as possible, even if there are
+// secondary issues obtaining some of the details.
 struct error_fetch_and_normalize {
     // This comment only applies to Python <= 3.11:
     //     Immediate normalization is long-established behavior (starting with
