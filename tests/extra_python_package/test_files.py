@@ -111,6 +111,7 @@ sdist_files = {
     "MANIFEST.in",
     "README.rst",
     "PKG-INFO",
+    "SECURITY.md",
 }
 
 local_sdist_files = {
