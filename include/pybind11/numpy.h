@@ -564,6 +564,8 @@ public:
         m_ptr = from_args(args).release().ptr();
     }
 
+    /// Return dtype for the given typenum (one of the NPY_TYPES).
+    /// https://numpy.org/devdocs/reference/c-api/array.html#c.PyArray_DescrFromType
     explicit dtype(int typenum)
         : object(detail::npy_api::get().PyArray_DescrFromType_(typenum), stolen_t{}) {
         if (m_ptr == nullptr) {
@@ -1283,12 +1285,16 @@ private:
 public:
     static constexpr int value = values[detail::is_fmt_numeric<T>::index];
 
-    static pybind11::dtype dtype() {
-        if (auto *ptr = npy_api::get().PyArray_DescrFromType_(value)) {
-            return reinterpret_steal<pybind11::dtype>(ptr);
-        }
-        pybind11_fail("Unsupported buffer format!");
-    }
+    static pybind11::dtype dtype() { return pybind11::dtype(/*typenum*/ value); }
+};
+
+template <typename T>
+struct npy_format_descriptor<T, enable_if_t<is_same_ignoring_cvref<T, PyObject *>::value>> {
+    static constexpr auto name = const_name("object");
+
+    static constexpr int value = npy_api::NPY_OBJECT_;
+
+    static pybind11::dtype dtype() { return pybind11::dtype(/*typenum*/ value); }
 };
 
 #define PYBIND11_DECL_CHAR_FMT                                                                    \
