@@ -10,10 +10,25 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-IN DEVELOPMENT
---------------
+Version 2.11.0 (June 2, 2023)
+-----------------------------
 
-Changes will be summarized here periodically.
+New features:
+
+* ``pybind11::detail::is_move_constructible`` can now be specialized for cases
+   in which ``std::is_move_constructible`` does not work as needed. This is
+   very similar to the long-established
+   ``pybind11::detail::is_copy_constructible``.
+  `#4631 <https://github.com/pybind/pybind11/pull/4631>`_
+
+* Introduce ``recursive_container_traits``.
+  `#4623 <https://github.com/pybind/pybind11/pull/4623>`_
+
+* ``pybind11/type_caster_pyobject_ptr.h`` was added to support automatic
+  wrapping of APIs that make use of ``PyObject *``. This header needs to
+  included explicitly (i.e. it is not included implicitly
+  with ``pybind/pybind11.h``).
+  `#4601 <https://github.com/pybind/pybind11/pull/4601>`_
 
 Changes:
 
@@ -31,6 +46,28 @@ Changes:
   sizes slightly (~1.5%) but the error messages are much more informative.
   `#4463 <https://github.com/pybind/pybind11/pull/4463>`_
 
+* Setter return values (which are inaccessible for all practical purposes) are
+  no longer converted to Python (only to be discarded).
+  `#4621 <https://github.com/pybind/pybind11/pull/4621>`_
+
+* Allow lambda specified to function definition to be ``noexcept(true)``
+  in C++17.
+  `#4593 <https://github.com/pybind/pybind11/pull/4593>`_
+
+* Get rid of recursive template instantiations for concatenating type
+  signatures on C++17 and higher.
+  `#4587 <https://github.com/pybind/pybind11/pull/4587>`_
+
+* Compatibility with Python 3.12 (alpha). Note that the minimum pybind11
+  ABI version for Python 3.12 is version 5. (The default ABI version
+  for Python versions up to and including 3.11 is still version 4.).
+  `#4570 <https://github.com/pybind/pybind11/pull/4570>`_
+
+* With ``PYBIND11_INTERNALS_VERSION 5`` (default for Python 3.12+), MSVC builds
+  use ``std::hash<std::type_index>`` and ``std::equal_to<std::type_index>``
+  instead of string-based type comparisons. This resolves issues when binding
+  types defined in the unnamed namespace.
+  `#4319 <https://github.com/pybind/pybind11/pull/4319>`_
 
 Build system improvements:
 
@@ -40,8 +77,17 @@ Build system improvements:
 * Moved the linting framework over to Ruff.
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
 
+* Skip lto checks and target generation when
+  ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
+  `#4643 <https://github.com/pybind/pybind11/pull/4643>`_
+
+* No longer inject ``-stdlib=libc++``, not needed for modern Pythons
+  (macOS 10.9+).
+  `#4639 <https://github.com/pybind/pybind11/pull/4639>`_
+
+
 Version 2.10.4 (Mar 16, 2023)
-----------------------------
+-----------------------------
 
 Changes:
 
