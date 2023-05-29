@@ -548,4 +548,7 @@ TEST_SUBMODULE(stl, m) {
         []() { return new std::vector<bool>(4513); },
         // Without explicitly specifying `take_ownership`, this function leaks.
         py::return_value_policy::take_ownership);
+
+    m.def("pass_std_vector_int", [](const std::vector<int> &vec_int) { return vec_int.size(); });
+    m.def("pass_std_set_int", [](const std::set<int> &set_int) { return set_int.size(); });
 }

@@ -379,3 +379,32 @@ def test_return_vector_bool_raw_ptr():
     v = m.return_vector_bool_raw_ptr()
     assert isinstance(v, list)
     assert len(v) == 4513
+
+
+def test_pass_std_vector_int():
+    fn = m.pass_std_vector_int
+    assert fn([1, 2]) == 2
+    assert fn((1, 2)) == 2
+    with pytest.raises(TypeError):
+        fn(set())
+    with pytest.raises(TypeError):
+        fn({})
+    with pytest.raises(TypeError):
+        fn({}.keys())
+    with pytest.raises(TypeError):
+        fn(i for i in range(3))
+
+
+def test_pass_std_set_int():
+    fn = m.pass_std_set_int
+    assert fn({1, 2}) == 2
+    with pytest.raises(TypeError):
+        fn([1, 2])
+    with pytest.raises(TypeError):
+        fn((1, 2))
+    with pytest.raises(TypeError):
+        fn({})
+    with pytest.raises(TypeError):
+        fn({}.keys())
+    with pytest.raises(TypeError):
+        fn(i for i in range(3))
