@@ -166,20 +166,24 @@ struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<sequence>(src) || isinstance<bytes>(src) || isinstance<str>(src)) {
+        if (isinstance<bytes>(src) || isinstance<str>(src)) {
             return false;
         }
-        auto s = reinterpret_borrow<sequence>(src);
-        value.clear();
-        reserve_maybe(s, &value);
-        for (auto it : s) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
-                return false;
-            }
-            value.push_back(cast_op<Value &&>(std::move(conv)));
+        if (isinstance<sequence>(src)) {
+            return convert_elements(src, convert);
         }
-        return true;
+        if (!convert) {
+            return false;
+        }
+        if (PyGen_Check(src.ptr())) {
+            // Designed to be behavior-equivalent to passing tuple(src) from Python:
+            // The conversion to a tuple will first exhaust the generator object, to ensure that
+            // the generator is not left in an unpredictable (to the caller) partially-consumed
+            // state.
+            assert(isinstance<iterable>(src));
+            return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
+        }
+        return false;
     }
 
 private:
@@ -188,6 +192,20 @@ private:
         value.reserve(s.size());
     }
     void reserve_maybe(const sequence &, void *) {}
+
+    bool convert_elements(handle seq, bool convert) {
+        auto s = reinterpret_borrow<sequence>(seq);
+        value.clear();
+        reserve_maybe(s, &value);
+        for (auto it : seq) {
+            value_conv conv;
+            if (!conv.load(it, convert)) {
+                return false;
+            }
+            value.push_back(cast_op<Value &&>(std::move(conv)));
+        }
+        return true;
+    }
 
 public:
     template <typename T>
