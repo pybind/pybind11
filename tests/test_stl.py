@@ -385,14 +385,13 @@ def test_pass_std_vector_int():
     fn = m.pass_std_vector_int
     assert fn([1, 2]) == 2
     assert fn((1, 2)) == 2
+    assert fn(i for i in range(3)) == 3
     with pytest.raises(TypeError):
         fn(set())
     with pytest.raises(TypeError):
         fn({})
     with pytest.raises(TypeError):
         fn({}.keys())
-    with pytest.raises(TypeError):
-        fn(i for i in range(3))
 
 
 def test_pass_std_set_int():
@@ -408,3 +407,13 @@ def test_pass_std_set_int():
         fn({}.keys())
     with pytest.raises(TypeError):
         fn(i for i in range(3))
+
+
+def test_list_caster_fully_consumes_generator_object():
+    def gen_mix():
+        yield from [1, 2.0, 3]
+
+    gen_obj = gen_mix()
+    with pytest.raises(TypeError):
+        m.pass_std_vector_int(gen_obj)
+    assert not tuple(gen_obj)
