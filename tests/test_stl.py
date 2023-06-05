@@ -385,13 +385,19 @@ def test_pass_std_vector_int():
     fn = m.pass_std_vector_int
     assert fn([1, 2]) == 2
     assert fn((1, 2)) == 2
+    assert fn({1, 2}) == 2
+    assert fn({"x": 1, "y": 2}.values()) == 2
+    assert fn({1: None, 2: None}.keys()) == 2
     assert fn(i for i in range(3)) == 3
-    with pytest.raises(TypeError):
-        fn(set())
+    assert fn(map(lambda i: i, range(4))) == 4  # noqa: C417
     with pytest.raises(TypeError):
         fn({})
-    with pytest.raises(TypeError):
-        fn({}.keys())
+
+
+def test_pass_std_vector_pair_int():
+    fn = m.pass_std_vector_pair_int
+    assert fn({1: 2, 3: 4}.items()) == 2
+    assert fn(zip([1, 2], [3, 4])) == 2
 
 
 def test_pass_std_set_int():
