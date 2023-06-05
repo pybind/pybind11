@@ -97,27 +97,42 @@ struct set_caster {
 
 private:
     template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
-    void reserve_maybe(const anyset &s, Type *) {
+    void reserve_maybe(const sequence &s, Type *) {
         value.reserve(s.size());
     }
-    void reserve_maybe(const anyset &, void *) {}
+    void reserve_maybe(const sequence &, void *) {}
 
-public:
-    bool load(handle src, bool convert) {
-        if (!isinstance<anyset>(src)) {
-            return false;
-        }
-        auto s = reinterpret_borrow<anyset>(src);
+    bool convert_elements(handle seq, bool convert) {
+        auto s = reinterpret_borrow<sequence>(seq);
         value.clear();
         reserve_maybe(s, &value);
-        for (auto entry : s) {
+        for (auto it : seq) {
             key_conv conv;
-            if (!conv.load(entry, convert)) {
+            if (!conv.load(it, convert)) {
                 return false;
             }
             value.insert(cast_op<Key &&>(std::move(conv)));
         }
         return true;
+    }
+
+public:
+    bool load(handle src, bool convert) {
+        if (!PyObjectTypeIsConvertibleToStdSet(src.ptr())) {
+            return false;
+        }
+        if (isinstance<sequence>(src)) {
+            return convert_elements(src, convert);
+        }
+        if (!convert) {
+            return false;
+        }
+        // Designed to be behavior-equivalent to passing tuple(src) from Python:
+        // The conversion to a tuple will first exhaust the iterator object, to ensure that
+        // the iterator is not left in an unpredictable (to the caller) partially-consumed
+        // state.
+        assert(isinstance<iterable>(src));
+        return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
     }
 
     template <typename T>
