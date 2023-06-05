@@ -54,7 +54,10 @@ inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
 }
 
 inline bool PyObjectTypeIsConvertibleToStdVector(PyObject *obj) {
-    return PySequence_Check(obj) || PyGen_Check(obj) || PyAnySet_Check(obj)
+    if (PySequence_Check(obj)) {
+        return !PyUnicode_Check(obj) && !PyBytes_Check(obj);
+    }
+    return PyGen_Check(obj) || PyAnySet_Check(obj)
            || PyObjectIsInstanceWithOneOfTpNames(
                obj, {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
@@ -233,7 +236,7 @@ struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (isinstance<bytes>(src) || isinstance<str>(src)) {
+        if (!PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
             return false;
         }
         if (isinstance<sequence>(src)) {
@@ -242,15 +245,12 @@ struct list_caster {
         if (!convert) {
             return false;
         }
-        if (PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
-            // Designed to be behavior-equivalent to passing tuple(src) from Python:
-            // The conversion to a tuple will first exhaust the generator object, to ensure that
-            // the generator is not left in an unpredictable (to the caller) partially-consumed
-            // state.
-            assert(isinstance<iterable>(src));
-            return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
-        }
-        return false;
+        // Designed to be behavior-equivalent to passing tuple(src) from Python:
+        // The conversion to a tuple will first exhaust the generator object, to ensure that
+        // the generator is not left in an unpredictable (to the caller) partially-consumed
+        // state.
+        assert(isinstance<iterable>(src));
+        return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
     }
 
 private:
