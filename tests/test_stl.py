@@ -422,3 +422,34 @@ def test_list_caster_fully_consumes_generator_object():
     with pytest.raises(TypeError):
         m.pass_std_vector_int(gen_obj)
     assert not tuple(gen_obj)
+
+
+class FakePyMappingMissingItems:
+    def __getitem__(self, _):
+        raise RuntimeError("Not expected to be called.")
+
+
+class FakePyMappingWithItems(FakePyMappingMissingItems):
+    def items(self):
+        return ((1, 2), (3, 4))
+
+
+class FakePyMappingBadItems(FakePyMappingMissingItems):
+    def items(self):
+        return ((1, 2), (3, "x"))
+
+
+def test_pass_std_map_int():
+    fn = m.pass_std_map_int
+    assert fn({1: 2, 3: 4}) == 2
+    assert fn(FakePyMappingWithItems()) == 2
+    with pytest.raises(TypeError):
+        fn(FakePyMappingMissingItems())
+    with pytest.raises(TypeError):
+        fn(FakePyMappingBadItems())
+    with pytest.raises(TypeError):
+        fn([])
+
+
+# TODO(rwgk): test_set_caster_fully_consumes_iterator_object
+# TODO(rwgk): test_map_caster_fully_consumes_iterator_object

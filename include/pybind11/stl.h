@@ -166,12 +166,7 @@ private:
     }
     void reserve_maybe(const dict &, void *) {}
 
-public:
-    bool load(handle src, bool convert) {
-        if (!isinstance<dict>(src)) {
-            return false;
-        }
-        auto d = reinterpret_borrow<dict>(src);
+    bool convert_elements(const dict &d, bool convert) {
         value.clear();
         reserve_maybe(d, &value);
         for (auto it : d) {
@@ -183,6 +178,27 @@ public:
             value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
         }
         return true;
+    }
+
+public:
+    bool load(handle src, bool convert) {
+        if (!PyObjectTypeIsConvertibleToStdMap(src.ptr())) {
+            return false;
+        }
+        if (isinstance<dict>(src)) {
+            return convert_elements(reinterpret_borrow<dict>(src), convert);
+        }
+        if (!convert) {
+            return false;
+        }
+        // Designed to be behavior-equivalent to passing dict(src.items()) from Python:
+        // The conversion to a dict will first exhaust the iterator object, to ensure that
+        // the iterator is not left in an unpredictable (to the caller) partially-consumed
+        // state.
+        auto items = src.attr("items")();
+        assert(isinstance<iterable>(items));
+        return convert_elements(dict(reinterpret_borrow<iterable>(items)), convert);
+        return false;
     }
 
     template <typename T>
