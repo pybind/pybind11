@@ -403,14 +403,13 @@ def test_pass_std_vector_pair_int():
 def test_pass_std_set_int():
     fn = m.pass_std_set_int
     assert fn({1, 2}) == 2
+    assert fn({1: None, 2: None}.keys()) == 2
     with pytest.raises(TypeError):
         fn([1, 2])
     with pytest.raises(TypeError):
         fn((1, 2))
     with pytest.raises(TypeError):
         fn({})
-    with pytest.raises(TypeError):
-        fn({}.keys())
     with pytest.raises(TypeError):
         fn(i for i in range(3))
 
