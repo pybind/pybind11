@@ -46,28 +46,30 @@ inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
         return false;
     }
     const char *obj_tp_name = Py_TYPE(obj)->tp_name;
-    for (auto tp_name : tp_names) {
-        if (strcmp(obj_tp_name, tp_name) == 0)
+    for (const auto *tp_name : tp_names) {
+        if (strcmp(obj_tp_name, tp_name) == 0) {
             return true;
+        }
     }
     return false;
 }
 
 inline bool PyObjectTypeIsConvertibleToStdVector(PyObject *obj) {
-    if (PySequence_Check(obj)) {
+    if (PySequence_Check(obj) != 0) {
         return !PyUnicode_Check(obj) && !PyBytes_Check(obj);
     }
-    return PyGen_Check(obj) || PyAnySet_Check(obj)
+    return (PyGen_Check(obj) != 0) || (PyAnySet_Check(obj) != 0)
            || PyObjectIsInstanceWithOneOfTpNames(
                obj, {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
 inline bool PyObjectTypeIsConvertibleToStdSet(PyObject *obj) {
-    return PyAnySet_Check(obj) || PyObjectIsInstanceWithOneOfTpNames(obj, {"dict_keys"});
+    return (PyAnySet_Check(obj) != 0) || PyObjectIsInstanceWithOneOfTpNames(obj, {"dict_keys"});
 }
 
 inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
-    return PyDict_Check(obj) || (PyMapping_Check(obj) && PyObject_HasAttrString(obj, "items"));
+    return (PyDict_Check(obj) != 0)
+           || ((PyMapping_Check(obj) != 0) && (PyObject_HasAttrString(obj, "items") != 0));
 }
 
 //
