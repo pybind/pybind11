@@ -550,5 +550,8 @@ TEST_SUBMODULE(stl, m) {
         py::return_value_policy::take_ownership);
 
     m.def("pass_std_vector_int", [](const std::vector<int> &vec_int) { return vec_int.size(); });
+    m.def("pass_std_vector_pair_int", [](const std::vector<std::pair<int, int>> &vec_pair_int) {
+        return vec_pair_int.size();
+    });
     m.def("pass_std_set_int", [](const std::set<int> &set_int) { return set_int.size(); });
 }

@@ -35,6 +35,42 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+//
+// Begin: Code developed under https://github.com/google/clif/blob/main/clif/python/runtime.cc
+//        (currently unpublished)
+//
+
+inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
+                                               std::initializer_list<const char *> tp_names) {
+    if (PyType_Check(obj)) {
+        return false;
+    }
+    const char *obj_tp_name = Py_TYPE(obj)->tp_name;
+    for (auto tp_name : tp_names) {
+        if (strcmp(obj_tp_name, tp_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+inline bool PyObjectTypeIsConvertibleToStdVector(PyObject *obj) {
+    return PySequence_Check(obj) || PyGen_Check(obj) || PyAnySet_Check(obj)
+           || PyObjectIsInstanceWithOneOfTpNames(
+               obj, {"dict_keys", "dict_values", "dict_items", "map", "zip"});
+}
+
+inline bool PyObjectTypeIsConvertibleToStdSet(PyObject *obj) {
+    return PyAnySet_Check(obj) || PyObjectIsInstanceWithOneOfTpNames(obj, {"dict_keys"});
+}
+
+inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
+    return PyDict_Check(obj) || (PyMapping_Check(obj) && PyObject_HasAttrString(obj, "items"));
+}
+
+//
+// End: Code developed under https://github.com/google/clif/blob/main/clif/python/runtime.cc
+//
+
 /// Extracts an const lvalue reference or rvalue reference for U based on the type of T (e.g. for
 /// forwarding a container element).  Typically used indirect via forwarded_type(), below.
 template <typename T, typename U>
@@ -175,7 +211,7 @@ struct list_caster {
         if (!convert) {
             return false;
         }
-        if (PyGen_Check(src.ptr())) {
+        if (PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
             // Designed to be behavior-equivalent to passing tuple(src) from Python:
             // The conversion to a tuple will first exhaust the generator object, to ensure that
             // the generator is not left in an unpredictable (to the caller) partially-consumed
