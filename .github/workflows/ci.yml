@@ -203,7 +203,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
-      uses: deadsnakes/action@v3.0.0
+      uses: deadsnakes/action@v3.0.1
       with:
         python-version: ${{ matrix.python-version }}
         debug: ${{ matrix.python-debug }}
@@ -400,6 +400,7 @@ jobs:
 
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
+    if: ${{ false }}  # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4690
     runs-on: ubuntu-latest
     name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
     container: centos:7
