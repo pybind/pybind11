@@ -381,15 +381,17 @@ def test_return_vector_bool_raw_ptr():
     assert len(v) == 4513
 
 
-def test_pass_std_vector_int():
-    fn = m.pass_std_vector_int
+@pytest.mark.parametrize("fn", [m.pass_std_vector_int, m.pass_std_array_int_2])
+def test_pass_std_vector_int(fn):
     assert fn([1, 2]) == 2
     assert fn((1, 2)) == 2
     assert fn({1, 2}) == 2
     assert fn({"x": 1, "y": 2}.values()) == 2
     assert fn({1: None, 2: None}.keys()) == 2
-    assert fn(i for i in range(3)) == 3
-    assert fn(map(lambda i: i, range(4))) == 4  # noqa: C417
+    assert fn(i for i in range(2)) == 2
+    assert fn(map(lambda i: i, range(2))) == 2  # noqa: C417
+    with pytest.raises(TypeError):
+        fn({1: 2, 3: 4})
     with pytest.raises(TypeError):
         fn({})
 

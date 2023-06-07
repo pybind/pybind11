@@ -553,6 +553,8 @@ TEST_SUBMODULE(stl, m) {
     m.def("pass_std_vector_pair_int", [](const std::vector<std::pair<int, int>> &vec_pair_int) {
         return vec_pair_int.size();
     });
+    m.def("pass_std_array_int_2",
+          [](const std::array<int, 2> &arr_int) { return arr_int.size(); });
     m.def("pass_std_set_int", [](const std::set<int> &set_int) { return set_int.size(); });
     m.def("pass_std_map_int", [](const std::map<int, int> &map_int) { return map_int.size(); });
 }

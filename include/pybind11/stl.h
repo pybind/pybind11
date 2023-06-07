@@ -324,12 +324,8 @@ private:
         return size == Size;
     }
 
-public:
-    bool load(handle src, bool convert) {
-        if (!isinstance<sequence>(src)) {
-            return false;
-        }
-        auto l = reinterpret_borrow<sequence>(src);
+    bool convert_elements(handle seq, bool convert) {
+        auto l = reinterpret_borrow<sequence>(seq);
         if (!require_size(l.size())) {
             return false;
         }
@@ -342,6 +338,25 @@ public:
             value[ctr++] = cast_op<Value &&>(std::move(conv));
         }
         return true;
+    }
+
+public:
+    bool load(handle src, bool convert) {
+        if (!PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
+            return false;
+        }
+        if (isinstance<sequence>(src)) {
+            return convert_elements(src, convert);
+        }
+        if (!convert) {
+            return false;
+        }
+        // Designed to be behavior-equivalent to passing tuple(src) from Python:
+        // The conversion to a tuple will first exhaust the generator object, to ensure that
+        // the generator is not left in an unpredictable (to the caller) partially-consumed
+        // state.
+        assert(isinstance<iterable>(src));
+        return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
     }
 
     template <typename T>
