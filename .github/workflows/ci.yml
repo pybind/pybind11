@@ -400,6 +400,7 @@ jobs:
 
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
+    if: ${{ false }}  # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4690
     runs-on: ubuntu-latest
     name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
     container: centos:7

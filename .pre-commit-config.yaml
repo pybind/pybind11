@@ -68,7 +68,7 @@ repos:
 
 # Ruff, the Python auto-correcting linter written in Rust
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.263
+  rev: v0.0.270
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -100,7 +100,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.2.0"
+  rev: "v1.3.0"
   hooks:
   - id: mypy
     args: []
@@ -128,7 +128,7 @@ repos:
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.9.0.2"
+  rev: "v0.9.0.5"
   hooks:
   - id: shellcheck
 
@@ -143,7 +143,7 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v16.0.2"
+  rev: "v16.0.4"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
