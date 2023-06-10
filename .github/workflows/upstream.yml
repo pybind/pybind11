@@ -110,4 +110,6 @@ jobs:
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools
