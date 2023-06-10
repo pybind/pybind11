@@ -181,7 +181,9 @@ jobs:
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools
       if: "!(matrix.runs-on == 'windows-2022')"
 
 
@@ -243,8 +245,6 @@ jobs:
         python -m pip install -r tests/requirements.txt
 
     - name: Configure
-      env:
-        SETUPTOOLS_USE_DISTUTILS: stdlib
       run: >
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=Debug
