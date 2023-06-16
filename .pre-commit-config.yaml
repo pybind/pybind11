@@ -22,6 +22,48 @@ ci:
 exclude: ^tools/JoinPaths.cmake$
 
 repos:
+
+# Clang format the codebase automatically
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: "v16.0.4"
+  hooks:
+  - id: clang-format
+    types_or: [c++, c, cuda]
+
+# Black, the code formatter, natively supports pre-commit
+- repo: https://github.com/psf/black
+  rev: "23.3.0" # Keep in sync with blacken-docs
+  hooks:
+  - id: black
+
+# Ruff, the Python auto-correcting linter written in Rust
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.0.270
+  hooks:
+  - id: ruff
+    args: ["--fix", "--show-fixes"]
+
+# Check static types with mypy
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: "v1.3.0"
+  hooks:
+  - id: mypy
+    args: []
+    exclude: ^(tests|docs)/
+    additional_dependencies:
+    - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
+    - nox
+    - rich
+
+# CMake formatting
+- repo: https://github.com/cheshirekow/cmake-format-precommit
+  rev: "v0.6.13"
+  hooks:
+  - id: cmake-format
+    additional_dependencies: [pyyaml]
+    types: [file]
+    files: (\.cmake|CMakeLists.txt)(.in)?$
+
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: "v4.4.0"
@@ -38,12 +80,6 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
-
-# Black, the code formatter, natively supports pre-commit
-- repo: https://github.com/psf/black
-  rev: "23.3.0" # Keep in sync with blacken-docs
-  hooks:
-  - id: black
 
 # Also code format the docs
 - repo: https://github.com/asottile/blacken-docs
@@ -66,13 +102,6 @@ repos:
   - id: fix-ligatures
   - id: fix-smartquotes
 
-# Ruff, the Python auto-correcting linter written in Rust
-- repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.270
-  hooks:
-  - id: ruff
-    args: ["--fix", "--show-fixes"]
-
 # Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: "v1.10.0"
@@ -80,32 +109,6 @@ repos:
   - id: rst-backticks
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
-
-
-# PyLint has native support - not always usable, but works for us
-- repo: https://github.com/PyCQA/pylint
-  rev: "v3.0.0a6"
-  hooks:
-  - id: pylint
-    files: ^pybind11
-
-# CMake formatting
-- repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: "v0.6.13"
-  hooks:
-  - id: cmake-format
-    additional_dependencies: [pyyaml]
-    types: [file]
-    files: (\.cmake|CMakeLists.txt)(.in)?$
-
-# Check static types with mypy
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.3.0"
-  hooks:
-  - id: mypy
-    args: []
-    exclude: ^(tests|docs)/
-    additional_dependencies: [nox, rich]
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
@@ -141,9 +144,9 @@ repos:
     entry: PyBind|Numpy|Cmake|CCache|PyTest
     exclude: ^\.pre-commit-config.yaml$
 
-# Clang format the codebase automatically
-- repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v16.0.4"
+# PyLint has native support - not always usable, but works for us
+- repo: https://github.com/PyCQA/pylint
+  rev: "v3.0.0a6"
   hooks:
-  - id: clang-format
-    types_or: [c++, c, cuda]
+  - id: pylint
+    files: ^pybind11
