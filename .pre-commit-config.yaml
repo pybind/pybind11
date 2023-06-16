@@ -105,7 +105,10 @@ repos:
   - id: mypy
     args: []
     exclude: ^(tests|docs)/
-    additional_dependencies: [nox, rich]
+    additional_dependencies:
+    - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
+    - nox
+    - rich
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
