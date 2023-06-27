@@ -1925,28 +1925,13 @@ public:
         }
     }
 
+    /// Capsule name is nullptr.
     capsule(const void *value, void (*destructor)(void *)) {
-        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
-            // guard if destructor called while err indicator is set
-            error_scope error_guard;
-            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr && PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            const char *name = get_name_in_error_scope(o);
-            void *ptr = PyCapsule_GetPointer(o, name);
-            if (ptr == nullptr) {
-                throw error_already_set();
-            }
+        initialize_with_void_ptr_destructor(value, nullptr, destructor);
+    }
 
-            if (destructor != nullptr) {
-                destructor(ptr);
-            }
-        });
-
-        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
-            throw error_already_set();
-        }
+    capsule(const void *value, const char *name, void (*destructor)(void *)) {
+        initialize_with_void_ptr_destructor(value, name, destructor);
     }
 
     explicit capsule(void (*destructor)()) {
@@ -2013,6 +1998,32 @@ private:
         }
 
         return name;
+    }
+
+    void initialize_with_void_ptr_destructor(const void *value,
+                                             const char *name,
+                                             void (*destructor)(void *)) {
+        m_ptr = PyCapsule_New(const_cast<void *>(value), name, [](PyObject *o) {
+            // guard if destructor called while err indicator is set
+            error_scope error_guard;
+            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            if (destructor == nullptr && PyErr_Occurred()) {
+                throw error_already_set();
+            }
+            const char *name = get_name_in_error_scope(o);
+            void *ptr = PyCapsule_GetPointer(o, name);
+            if (ptr == nullptr) {
+                throw error_already_set();
+            }
+
+            if (destructor != nullptr) {
+                destructor(ptr);
+            }
+        });
+
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
+            throw error_already_set();
+        }
     }
 };
 
