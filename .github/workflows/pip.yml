@@ -16,6 +16,7 @@ permissions:
   contents: read
 
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: numpy
 
 jobs:

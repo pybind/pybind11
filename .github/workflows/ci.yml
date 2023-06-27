@@ -16,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
@@ -35,6 +36,7 @@ jobs:
         - '3.9'
         - '3.10'
         - '3.11'
+        - '3.12'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -73,6 +75,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
@@ -180,7 +183,9 @@ jobs:
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools
       if: "!(matrix.runs-on == 'windows-2022')"
 
 
@@ -242,8 +247,6 @@ jobs:
         python -m pip install -r tests/requirements.txt
 
     - name: Configure
-      env:
-        SETUPTOOLS_USE_DISTUTILS: stdlib
       run: >
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=Debug
