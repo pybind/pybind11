@@ -37,6 +37,7 @@ jobs:
         - '3.9'
         - '3.10'
         - '3.11'
+        - '3.12'
         - 'pypy-3.7'
         - 'pypy-3.8'
         - 'pypy-3.9'
@@ -75,6 +76,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
@@ -457,16 +459,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { gcc: 7, std: 11, container_suffix: "" }
-          - { gcc: 7, std: 17, container_suffix: "" }
-          - { gcc: 8, std: 14, container_suffix: "" }
-          - { gcc: 8, std: 17, container_suffix: "" }
-          - { gcc: 10, std: 17, container_suffix: "-bullseye" }
-          - { gcc: 11, std: 20, container_suffix: "" }
-          - { gcc: 12, std: 20, container_suffix: "" }
+          - { gcc: 7, std: 11 }
+          - { gcc: 7, std: 17 }
+          - { gcc: 8, std: 14 }
+          - { gcc: 8, std: 17 }
+          - { gcc: 10, std: 17 }
+          - { gcc: 11, std: 20 }
+          - { gcc: 12, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
-    container: "gcc:${{ matrix.gcc }}${{ matrix.container_suffix }}"
+    container: "gcc:${{ matrix.gcc }}"
 
     steps:
     - uses: actions/checkout@v3

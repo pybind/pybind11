@@ -54,6 +54,7 @@ repos:
     - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
     - nox
     - rich
+    - types-setuptools
 
 # CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit

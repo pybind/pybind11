@@ -2,6 +2,7 @@
 requires = ["setuptools>=42", "cmake>=3.18", "ninja"]
 build-backend = "setuptools.build_meta"
 
+
 [tool.check-manifest]
 ignore = [
     "tests/**",
@@ -15,6 +16,7 @@ ignore = [
     "noxfile.py",
 ]
 
+
 [tool.mypy]
 files = ["pybind11"]
 python_version = "3.6"
@@ -24,7 +26,7 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["ghapi.*", "setuptools.*"]
+module = ["ghapi.*"]
 ignore_missing_imports = true
 
 
@@ -55,10 +57,11 @@ messages_control.disable = [
   "unused-argument",  # covered by Ruff ARG
 ]
 
+
 [tool.ruff]
 select = [
   "E", "F", "W", # flake8
-  "B",  "B904",  # flake8-bugbear
+  "B",           # flake8-bugbear
   "I",           # isort
   "N",           # pep8-naming
   "ARG",         # flake8-unused-arguments
@@ -77,14 +80,13 @@ select = [
   "YTT",         # flake8-2020
 ]
 ignore = [
-  "PLR",   # Design related pylint
-  "E501",  # Line too long (Black is enough)
-  "PT011", # Too broad with raises in pytest
-  "PT004", # Fixture that doesn't return needs underscore (no, it is fine)
-  "SIM118",# iter(x) is not always the same as iter(x.keys())
+  "PLR",    # Design related pylint
+  "E501",   # Line too long (Black is enough)
+  "PT011",  # Too broad with raises in pytest
+  "PT004",  # Fixture that doesn't return needs underscore (no, it is fine)
+  "SIM118", # iter(x) is not always the same as iter(x.keys())
 ]
 target-version = "py37"
-typing-modules = ["scikit_build_core._compat.typing"]
 src = ["src"]
 unfixable = ["T20"]
 exclude = []
