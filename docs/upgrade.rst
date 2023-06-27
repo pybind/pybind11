@@ -8,6 +8,18 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-2.11:
+
+v2.11
+=====
+
+* The minimum version of CMake is now 3.5. A future version will likely move
+  to requiring something like 3.15. Using 3.15+ and using FindPython or setting
+  ``PYBIND11_FINDPYTHON`` is highly recommended; CMake is removing the
+  long-deprecated support for ``FindPythonInterp``. Pybind11 will switch to
+  FindPython if ``FindPythonInterp`` is not available.
+
+
 .. _upgrade-guide-2.9:
 
 v2.9
