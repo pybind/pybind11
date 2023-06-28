@@ -1099,19 +1099,17 @@ public:
     }
 
     // const-reference to element at a given index without bounds checking
-    template<typename... Ix>
-    const T& operator()(Ix... index) const
-    {
-      return *(static_cast<const T*>(array::data())
-	       + byte_offset(ssize_t(index)...) / itemsize());
+    template <typename... Ix>
+    const T &operator()(Ix... index) const {
+        return *(static_cast<const T *>(array::data())
+                 + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // mutable reference to element at a given index without bounds checking
-    template<typename... Ix>
-    T& operator()(Ix... index)
-    {
-      return *(static_cast<T*>(array::mutable_data())
-	       + byte_offset(ssize_t(index)...) / itemsize());
+    template <typename... Ix>
+    T &operator()(Ix... index) {
+        return *(static_cast<T *>(array::mutable_data())
+                 + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // Mutable reference to element at a given index
