@@ -1107,7 +1107,7 @@ public:
     // const-reference to element at a given index without bounds checking
     template <typename... Ix>
     const T &operator()(Ix... index) const {
-#if defined(NDEBUG)
+#if !defined(NDEBUG)
         check_access_precondition(index...);
 #endif
         return const_reference(index...);
@@ -1116,7 +1116,7 @@ public:
     // mutable reference to element at a given index without bounds checking
     template <typename... Ix>
     T &operator()(Ix... index) {
-#if defined(NDEBUG)
+#if !defined(NDEBUG)
         check_access_precondition(index...);
 #endif
         return mutable_reference(index...);
