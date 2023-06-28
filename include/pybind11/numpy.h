@@ -1093,14 +1093,18 @@ public:
     // Reference to element at a given index
     template <typename... Ix>
     const T &at(Ix... index) const {
-        check_access_precondition(index...);
+        if ((ssize_t) sizeof...(index) != ndim()) {
+            fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
         return const_reference(index...);
     }
 
     // Mutable reference to element at a given index
     template <typename... Ix>
     T &mutable_at(Ix... index) {
-        check_access_precondition(index...);
+        if ((ssize_t) sizeof...(index) != ndim()) {
+            fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
         return mutable_reference(index...);
     }
 
@@ -1108,7 +1112,9 @@ public:
     template <typename... Ix>
     const T &operator()(Ix... index) const {
 #if !defined(NDEBUG)
-        check_access_precondition(index...);
+        if ((ssize_t) sizeof...(index) != ndim()) {
+            fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
 #endif
         return const_reference(index...);
     }
@@ -1117,7 +1123,9 @@ public:
     template <typename... Ix>
     T &operator()(Ix... index) {
 #if !defined(NDEBUG)
-        check_access_precondition(index...);
+        if ((ssize_t) sizeof...(index) != ndim()) {
+            fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
 #endif
         return mutable_reference(index...);
     }
@@ -1190,13 +1198,6 @@ private:
     T &mutable_reference(Ix... index) {
         return *(static_cast<T *>(array::mutable_data())
                  + byte_offset(ssize_t(index)...) / itemsize());
-    }
-
-    template <typename... Ix>
-    void check_access_precondition(Ix... index) const {
-        if ((ssize_t) sizeof...(index) != ndim()) {
-            fail_dim_check(sizeof...(index), "index dimension mismatch");
-        }
     }
 };
 
