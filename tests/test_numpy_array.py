@@ -109,27 +109,40 @@ def test_data(arr, args, ret):
     assert all(m.data(arr, *args)[(1 if byteorder == "little" else 0) :: 2] == 0)
 
 
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.at_t,
+        m.mutate_at_t,
+        m.const_subscript_via_call_operator_t,
+        m.subscript_via_call_operator_t,
+    ][: 2 if m.defined_NDEBUG else 99],
+)
 @pytest.mark.parametrize("dim", [0, 1, 3])
-def test_at_fail(arr, dim):
-    for func in m.at_t, m.mutate_at_t:
-        with pytest.raises(IndexError) as excinfo:
-            func(arr, *([0] * dim))
-        assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
+def test_elem_reference(arr, func, dim):
+    with pytest.raises(IndexError) as excinfo:
+        func(arr, *([0] * dim))
+    assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
 
 
-def test_at(arr):
-    assert m.at_t(arr, 0, 2) == 3
-    assert m.at_t(arr, 1, 0) == 4
+# @pytest.mark.parametrize("dim", [0, 1, 3])
+# def test_at_fail(arr, dim):
+#     for func in m.at_t, m.mutate_at_t:
+#         with pytest.raises(IndexError) as excinfo:
+#             func(arr, *([0] * dim))
+#         assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
 
-    assert all(m.mutate_at_t(arr, 0, 2).ravel() == [1, 2, 4, 4, 5, 6])
-    assert all(m.mutate_at_t(arr, 1, 0).ravel() == [1, 2, 4, 5, 5, 6])
+
+@pytest.mark.parametrize("func", [m.at_t, m.const_subscript_via_call_operator_t])
+def test_const_elem_reference(arr, func):
+    assert func(arr, 0, 2) == 3
+    assert func(arr, 1, 0) == 4
 
 
-def test_subscript_via_call_operator(arr):
-    assert m.const_subscript_via_call_operator_t(arr, 0, 2) == 3
-    assert m.const_subscript_via_call_operator_t(arr, 1, 0) == 4
-    assert all(m.subscript_via_call_operator_t(arr, 0, 2).ravel() == [1, 2, 4, 4, 5, 6])
-    assert all(m.subscript_via_call_operator_t(arr, 1, 0).ravel() == [1, 2, 4, 5, 5, 6])
+@pytest.mark.parametrize("func", [m.mutate_at_t, m.subscript_via_call_operator_t])
+def test_mutable_elem_reference(arr, func):
+    assert all(func(arr, 0, 2).ravel() == [1, 2, 4, 4, 5, 6])
+    assert all(func(arr, 1, 0).ravel() == [1, 2, 4, 5, 5, 6])
 
 
 def test_mutate_readonly(arr):

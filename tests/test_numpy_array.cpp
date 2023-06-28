@@ -206,6 +206,13 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("nbytes", [](const arr &a) { return a.nbytes(); });
     sm.def("owndata", [](const arr &a) { return a.owndata(); });
 
+    sm.attr("defined_NDEBUG") =
+#ifdef NDEBUG
+        true;
+#else
+        false;
+#endif
+
     // test_index_offset
     def_index_fn(index_at, const arr &);
     def_index_fn(index_at_t, const arr_t &);
