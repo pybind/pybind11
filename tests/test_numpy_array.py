@@ -125,6 +125,13 @@ def test_at(arr):
     assert all(m.mutate_at_t(arr, 1, 0).ravel() == [1, 2, 4, 5, 5, 6])
 
 
+def test_subscript_via_call_operator(arr):
+    assert m.const_subscript_via_call_operator_t(arr, 0, 2) == 3
+    assert m.const_subscript_via_call_operator_t(arr, 1, 0) == 4
+    assert all(m.subscript_via_call_operator_t(arr, 0, 2).ravel() == [1, 2, 4, 4, 5, 6])
+    assert all(m.subscript_via_call_operator_t(arr, 1, 0).ravel() == [1, 2, 4, 5, 5, 6])
+
+
 def test_mutate_readonly(arr):
     arr.flags.writeable = False
     for func, args in (

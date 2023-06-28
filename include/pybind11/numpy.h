@@ -1093,35 +1093,33 @@ public:
     // Reference to element at a given index
     template <typename... Ix>
     const T &at(Ix... index) const {
-        if ((ssize_t) sizeof...(index) != ndim()) {
-            fail_dim_check(sizeof...(index), "index dimension mismatch");
-        }
-        return *(static_cast<const T *>(array::data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
+        check_access_precondition(index...);
+        return const_reference(index...);
     }
 
     // Mutable reference to element at a given index
     template <typename... Ix>
     T &mutable_at(Ix... index) {
-        if ((ssize_t) sizeof...(index) != ndim()) {
-            fail_dim_check(sizeof...(index), "index dimension mismatch");
-        }
-        return *(static_cast<T *>(array::mutable_data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
+        check_access_precondition(index...);
+        return mutable_reference(index...);
     }
 
     // const-reference to element at a given index without bounds checking
     template <typename... Ix>
     const T &operator()(Ix... index) const {
-        return *(static_cast<const T *>(array::data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
+#if defined(NDEBUG)
+        check_access_precondition(index...);
+#endif
+        return const_reference(index...);
     }
 
     // mutable reference to element at a given index without bounds checking
     template <typename... Ix>
     T &operator()(Ix... index) {
-        return *(static_cast<T *>(array::mutable_data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
+#if defined(NDEBUG)
+        check_access_precondition(index...);
+#endif
+        return mutable_reference(index...);
     }
 
     /**
@@ -1179,6 +1177,26 @@ protected:
                                                        detail::npy_api::NPY_ARRAY_ENSUREARRAY_
                                                            | ExtraFlags,
                                                        nullptr);
+    }
+
+private:
+    template <typename... Ix>
+    const T &const_reference(Ix... index) const {
+        return *(static_cast<const T *>(array::data())
+                 + byte_offset(ssize_t(index)...) / itemsize());
+    }
+
+    template <typename... Ix>
+    T &mutable_reference(Ix... index) {
+        return *(static_cast<T *>(array::mutable_data())
+                 + byte_offset(ssize_t(index)...) / itemsize());
+    }
+
+    template <typename... Ix>
+    void check_access_precondition(Ix... index) const {
+        if ((ssize_t) sizeof...(index) != ndim()) {
+            fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
     }
 };
 
