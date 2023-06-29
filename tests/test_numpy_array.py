@@ -125,14 +125,6 @@ def test_elem_reference(arr, func, dim):
     assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
 
 
-# @pytest.mark.parametrize("dim", [0, 1, 3])
-# def test_at_fail(arr, dim):
-#     for func in m.at_t, m.mutate_at_t:
-#         with pytest.raises(IndexError) as excinfo:
-#             func(arr, *([0] * dim))
-#         assert str(excinfo.value) == f"index dimension mismatch: {dim} (ndim = 2)"
-
-
 @pytest.mark.parametrize("func", [m.at_t, m.const_subscript_via_call_operator_t])
 def test_const_elem_reference(arr, func):
     assert func(arr, 0, 2) == 3
@@ -171,8 +163,9 @@ def test_mutate_data(arr):
     assert all(m.mutate_data_t(arr, 1, 2).ravel() == [6, 19, 27, 68, 84, 197])
 
 
-def test_bounds_check(arr):
-    for func in (
+@pytest.mark.parametrize(
+    "func",
+    [
         m.index_at,
         m.index_at_t,
         m.data,
@@ -181,13 +174,17 @@ def test_bounds_check(arr):
         m.mutate_data_t,
         m.at_t,
         m.mutate_at_t,
-    ):
-        with pytest.raises(IndexError) as excinfo:
-            func(arr, 2, 0)
-        assert str(excinfo.value) == "index 2 is out of bounds for axis 0 with size 2"
-        with pytest.raises(IndexError) as excinfo:
-            func(arr, 0, 4)
-        assert str(excinfo.value) == "index 4 is out of bounds for axis 1 with size 3"
+        m.const_subscript_via_call_operator_t,
+        m.subscript_via_call_operator_t,
+    ][: 8 if m.defined_NDEBUG else 99],
+)
+def test_bounds_check(arr, func):
+    with pytest.raises(IndexError) as excinfo:
+        func(arr, 2, 0)
+    assert str(excinfo.value) == "index 2 is out of bounds for axis 0 with size 2"
+    with pytest.raises(IndexError) as excinfo:
+        func(arr, 0, 4)
+    assert str(excinfo.value) == "index 4 is out of bounds for axis 1 with size 3"
 
 
 def test_make_c_f_array():

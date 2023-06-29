@@ -1093,33 +1093,39 @@ public:
     // Reference to element at a given index
     template <typename... Ix>
     const T &at(Ix... index) const {
-        check_dim_precondition(sizeof...(index));
-        return const_reference(index...);
+        check_rank_precondition(sizeof...(index));
+        return *(static_cast<const T *>(array::data())
+                 + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // Mutable reference to element at a given index
     template <typename... Ix>
     T &mutable_at(Ix... index) {
-        check_dim_precondition(sizeof...(index));
-        return mutable_reference(index...);
+        check_rank_precondition(sizeof...(index));
+        return *(static_cast<T *>(array::mutable_data())
+                 + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // const-reference to element at a given index without bounds checking
     template <typename... Ix>
     const T &operator()(Ix... index) const {
 #if !defined(NDEBUG)
-        check_dim_precondition(sizeof...(index));
+        check_rank_precondition(sizeof...(index));
+        check_dimensions(index...);
 #endif
-        return const_reference(index...);
+        return *(static_cast<const T *>(array::data())
+                 + detail::byte_offset_unsafe(strides(), ssize_t(index)...) / itemsize());
     }
 
     // mutable reference to element at a given index without bounds checking
     template <typename... Ix>
     T &operator()(Ix... index) {
 #if !defined(NDEBUG)
-        check_dim_precondition(sizeof...(index));
+        check_rank_precondition(sizeof...(index));
+        check_dimensions(index...);
 #endif
-        return mutable_reference(index...);
+        return *(static_cast<T *>(array::mutable_data())
+                 + detail::byte_offset_unsafe(strides(), ssize_t(index)...) / itemsize());
     }
 
     /**
@@ -1180,19 +1186,7 @@ protected:
     }
 
 private:
-    template <typename... Ix>
-    const T &const_reference(Ix... index) const {
-        return *(static_cast<const T *>(array::data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
-    }
-
-    template <typename... Ix>
-    T &mutable_reference(Ix... index) {
-        return *(static_cast<T *>(array::mutable_data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
-    }
-
-    void check_dim_precondition(ssize_t dim) const {
+    void check_rank_precondition(ssize_t dim) const {
         if (dim != ndim()) {
             fail_dim_check(dim, "index dimension mismatch");
         }
