@@ -337,8 +337,8 @@ jobs:
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
-    name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
-    container: nvidia/cuda:11.7.0-devel-ubuntu22.04
+    name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
+    container: nvidia/cuda:12.2.0-devel-ubuntu22.04
 
     steps:
     - uses: actions/checkout@v3
