@@ -26,6 +26,9 @@ struct is_method {
     explicit is_method(const handle &c) : class_(c) {}
 };
 
+/// Annotation for setters
+struct is_setter {};
+
 /// Annotation for operators
 struct is_operator {};
 
@@ -188,8 +191,8 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), is_method(false), has_args(false), has_kwargs(false),
-          prepend(false) {}
+          is_operator(false), is_method(false), is_setter(false), has_args(false),
+          has_kwargs(false), prepend(false) {}
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -229,6 +232,9 @@ struct function_record {
 
     /// True if this is a method
     bool is_method : 1;
+
+    /// True if this is a setter
+    bool is_setter : 1;
 
     /// True if the function has a '*args' argument
     bool has_args : 1;
@@ -424,6 +430,12 @@ struct process_attribute<is_method> : process_attribute_default<is_method> {
         r->is_method = true;
         r->scope = s.class_;
     }
+};
+
+/// Process an attribute which indicates that this function is a setter
+template <>
+struct process_attribute<is_setter> : process_attribute_default<is_setter> {
+    static void init(const is_setter &, function_record *r) { r->is_setter = true; }
 };
 
 /// Process an attribute which indicates the parent scope of a method

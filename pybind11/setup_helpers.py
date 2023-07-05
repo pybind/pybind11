@@ -66,8 +66,8 @@ try:
     from setuptools import Extension as _Extension
     from setuptools.command.build_ext import build_ext as _build_ext
 except ImportError:
-    from distutils.command.build_ext import build_ext as _build_ext
-    from distutils.extension import Extension as _Extension
+    from distutils.command.build_ext import build_ext as _build_ext  # type: ignore[assignment]
+    from distutils.extension import Extension as _Extension  # type: ignore[assignment]
 
 import distutils.ccompiler
 import distutils.errors
@@ -84,7 +84,7 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 # directory into your path if it sits beside your setup.py.
 
 
-class Pybind11Extension(_Extension):  # type: ignore[misc]
+class Pybind11Extension(_Extension):
     """
     Build a C++11+ Extension module with pybind11. This automatically adds the
     recommended flags when you init the extension and assumes C++ sources - you
@@ -118,7 +118,6 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
         self.extra_link_args[:0] = flags
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-
         self._cxx_level = 0
         cxx_std = kwargs.pop("cxx_std", 0)
 
@@ -145,7 +144,6 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
         self.cxx_std = cxx_std
 
         cflags = []
-        ldflags = []
         if WIN:
             cflags += ["/EHsc", "/bigobj"]
         else:
@@ -155,11 +153,7 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
             c_cpp_flags = shlex.split(env_cflags) + shlex.split(env_cppflags)
             if not any(opt.startswith("-g") for opt in c_cpp_flags):
                 cflags += ["-g0"]
-            if MACOS:
-                cflags += ["-stdlib=libc++"]
-                ldflags += ["-stdlib=libc++"]
         self._add_cflags(cflags)
-        self._add_ldflags(ldflags)
 
     @property
     def cxx_std(self) -> int:
@@ -174,9 +168,10 @@ class Pybind11Extension(_Extension):  # type: ignore[misc]
 
     @cxx_std.setter
     def cxx_std(self, level: int) -> None:
-
         if self._cxx_level:
-            warnings.warn("You cannot safely change the cxx_level after setting it!")
+            warnings.warn(
+                "You cannot safely change the cxx_level after setting it!", stacklevel=2
+            )
 
         # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
         # force a valid flag here.
@@ -271,7 +266,7 @@ def auto_cpp_level(compiler: Any) -> Union[str, int]:
     raise RuntimeError(msg)
 
 
-class build_ext(_build_ext):  # type: ignore[misc] # noqa: N801
+class build_ext(_build_ext):  # noqa: N801
     """
     Customized build_ext that allows an auto-search for the highest supported
     C++ level for Pybind11Extension. This is only needed for the auto-search
@@ -341,7 +336,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:  # pylint: disable=unused-argument
+def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.
@@ -439,7 +434,6 @@ class ParallelCompile:
             extra_postargs: Optional[List[str]] = None,
             depends: Optional[List[str]] = None,
         ) -> Any:
-
             # These lines are directly from distutils.ccompiler.CCompiler
             macros, objects, extra_postargs, pp_opts, build = compiler._setup_compile(  # type: ignore[attr-defined]
                 output_dir, macros, include_dirs, sources, depends, extra_postargs

@@ -183,9 +183,9 @@ def test_static_properties():
 
     # Only static attributes can be deleted
     del m.TestPropertiesOverride.def_readonly_static
+    assert hasattr(m.TestPropertiesOverride, "def_readonly_static")
     assert (
-        hasattr(m.TestPropertiesOverride, "def_readonly_static")
-        and m.TestPropertiesOverride.def_readonly_static
+        m.TestPropertiesOverride.def_readonly_static
         is m.TestProperties.def_readonly_static
     )
     assert "def_readonly_static" not in m.TestPropertiesOverride.__dict__
@@ -256,10 +256,7 @@ def test_no_mixed_overloads():
 
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
 def test_property_return_value_policies(access):
-    if not access.startswith("static"):
-        obj = m.TestPropRVP()
-    else:
-        obj = m.TestPropRVP
+    obj = m.TestPropRVP() if not access.startswith("static") else m.TestPropRVP
 
     ref = getattr(obj, access + "_ref")
     assert ref.value == 1
@@ -525,3 +522,12 @@ def test_rvalue_ref_param():
     assert r.func2("1234") == 4
     assert r.func3("12345") == 5
     assert r.func4("123456") == 6
+
+
+def test_is_setter():
+    fld = m.exercise_is_setter.Field()
+    assert fld.int_value == -99
+    setter_return = fld.int_value = 100
+    assert isinstance(setter_return, int)
+    assert setter_return == 100
+    assert fld.int_value == 100

@@ -25,7 +25,7 @@ def test_function_signatures(doc):
     )
 
 
-def test_named_arguments(msg):
+def test_named_arguments():
     assert m.kw_func0(5, 10) == "x=5, y=10"
 
     assert m.kw_func1(5, 10) == "x=5, y=10"
@@ -43,8 +43,7 @@ def test_named_arguments(msg):
         # noinspection PyArgumentList
         m.kw_func2(x=5, y=10, z=12)
     assert excinfo.match(
-        r"(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$))"
-        + "{3}$"
+        r"(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$)){3}$"
     )
 
     assert m.kw_func4() == "{13 17}"
@@ -59,7 +58,7 @@ def test_arg_and_kwargs():
     assert m.args_function(*args) == args
 
     args = "a1", "a2"
-    kwargs = dict(arg3="a3", arg4=4)
+    kwargs = {"arg3": "a3", "arg4": 4}
     assert m.args_kwargs_function(*args, **kwargs) == (args, kwargs)
 
 
@@ -177,7 +176,7 @@ def test_mixed_args_and_kwargs(msg):
 
     assert (
         m.args_kwonly_kwargs_defaults.__doc__
-        == "args_kwonly_kwargs_defaults(i: int = 1, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
+        == "args_kwonly_kwargs_defaults(i: int = 1, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"
     )
     assert m.args_kwonly_kwargs_defaults() == (1, 3.14159, (), 42, {})
     assert m.args_kwonly_kwargs_defaults(2) == (2, 3.14159, (), 42, {})
@@ -233,15 +232,15 @@ def test_keyword_only_args(msg):
     x.method(i=1, j=2)
     assert (
         m.first_arg_kw_only.__init__.__doc__
-        == "__init__(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 0) -> None\n"  # noqa: E501 line too long
+        == "__init__(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 0) -> None\n"
     )
     assert (
         m.first_arg_kw_only.method.__doc__
-        == "method(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 1, j: int = 2) -> None\n"  # noqa: E501 line too long
+        == "method(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 1, j: int = 2) -> None\n"
     )
 
 
-def test_positional_only_args(msg):
+def test_positional_only_args():
     assert m.pos_only_all(1, 2) == (1, 2)
     assert m.pos_only_all(2, 1) == (2, 1)
 
@@ -283,7 +282,7 @@ def test_positional_only_args(msg):
     # Mix it with args and kwargs:
     assert (
         m.args_kwonly_full_monty.__doc__
-        == "args_kwonly_full_monty(arg0: int = 1, arg1: int = 2, /, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
+        == "args_kwonly_full_monty(arg0: int = 1, arg1: int = 2, /, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"
     )
     assert m.args_kwonly_full_monty() == (1, 2, 3.14159, (), 42, {})
     assert m.args_kwonly_full_monty(8) == (8, 2, 3.14159, (), 42, {})
@@ -326,18 +325,18 @@ def test_positional_only_args(msg):
     # https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
     assert (
         m.first_arg_kw_only.pos_only.__doc__
-        == "pos_only(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, /, i: int, j: int) -> None\n"  # noqa: E501 line too long
+        == "pos_only(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, /, i: int, j: int) -> None\n"
     )
 
 
 def test_signatures():
-    assert "kw_only_all(*, i: int, j: int) -> tuple\n" == m.kw_only_all.__doc__
-    assert "kw_only_mixed(i: int, *, j: int) -> tuple\n" == m.kw_only_mixed.__doc__
-    assert "pos_only_all(i: int, j: int, /) -> tuple\n" == m.pos_only_all.__doc__
-    assert "pos_only_mix(i: int, /, j: int) -> tuple\n" == m.pos_only_mix.__doc__
+    assert m.kw_only_all.__doc__ == "kw_only_all(*, i: int, j: int) -> tuple\n"
+    assert m.kw_only_mixed.__doc__ == "kw_only_mixed(i: int, *, j: int) -> tuple\n"
+    assert m.pos_only_all.__doc__ == "pos_only_all(i: int, j: int, /) -> tuple\n"
+    assert m.pos_only_mix.__doc__ == "pos_only_mix(i: int, /, j: int) -> tuple\n"
     assert (
-        "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n"
-        == m.pos_kw_only_mix.__doc__
+        m.pos_kw_only_mix.__doc__
+        == "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n"
     )
 
 

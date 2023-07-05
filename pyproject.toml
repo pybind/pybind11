@@ -2,6 +2,7 @@
 requires = ["setuptools>=42", "cmake>=3.18", "ninja"]
 build-backend = "setuptools.build_meta"
 
+
 [tool.check-manifest]
 ignore = [
     "tests/**",
@@ -15,11 +16,6 @@ ignore = [
     "noxfile.py",
 ]
 
-[tool.isort]
-# Needs the compiled .so modules and env.py from tests
-known_first_party = "env,pybind11_cross_module_tests,pybind11_tests,"
-# For black compatibility
-profile = "black"
 
 [tool.mypy]
 files = ["pybind11"]
@@ -30,7 +26,7 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["ghapi.*", "setuptools.*"]
+module = ["ghapi.*"]
 ignore_missing_imports = true
 
 
@@ -58,4 +54,45 @@ messages_control.disable = [
   "invalid-name",
   "protected-access",
   "missing-module-docstring",
+  "unused-argument",  # covered by Ruff ARG
 ]
+
+
+[tool.ruff]
+select = [
+  "E", "F", "W", # flake8
+  "B",           # flake8-bugbear
+  "I",           # isort
+  "N",           # pep8-naming
+  "ARG",         # flake8-unused-arguments
+  "C4",          # flake8-comprehensions
+  "EM",          # flake8-errmsg
+  "ICN",         # flake8-import-conventions
+  "ISC",         # flake8-implicit-str-concat
+  "PGH",         # pygrep-hooks
+  "PIE",         # flake8-pie
+  "PL",          # pylint
+  "PT",          # flake8-pytest-style
+  "RET",         # flake8-return
+  "RUF100",      # Ruff-specific
+  "SIM",         # flake8-simplify
+  "UP",          # pyupgrade
+  "YTT",         # flake8-2020
+]
+ignore = [
+  "PLR",    # Design related pylint
+  "E501",   # Line too long (Black is enough)
+  "PT011",  # Too broad with raises in pytest
+  "PT004",  # Fixture that doesn't return needs underscore (no, it is fine)
+  "SIM118", # iter(x) is not always the same as iter(x.keys())
+]
+target-version = "py37"
+src = ["src"]
+unfixable = ["T20"]
+exclude = []
+line-length = 120
+isort.known-first-party = ["env", "pybind11_cross_module_tests", "pybind11_tests"]
+
+[tool.ruff.per-file-ignores]
+"tests/**" = ["EM", "N"]
+"tests/test_call_policies.py" = ["PLC1901"]

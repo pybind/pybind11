@@ -96,7 +96,7 @@ def test_init_factory_signature(msg):
         3. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.pointer_tag) -> None
 
         4. __init__(self: m.factory_constructors.TestFactory1, arg0: handle, arg1: int, arg2: handle) -> None
-    """  # noqa: E501 line too long
+    """
     )
 
 

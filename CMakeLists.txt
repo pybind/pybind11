@@ -126,6 +126,7 @@ set(PYBIND11_HEADERS
     include/pybind11/complex.h
     include/pybind11/options.h
     include/pybind11/eigen.h
+    include/pybind11/eigen/common.h
     include/pybind11/eigen/matrix.h
     include/pybind11/eigen/tensor.h
     include/pybind11/embed.h
@@ -139,7 +140,8 @@ set(PYBIND11_HEADERS
     include/pybind11/pytypes.h
     include/pybind11/stl.h
     include/pybind11/stl_bind.h
-    include/pybind11/stl/filesystem.h)
+    include/pybind11/stl/filesystem.h
+    include/pybind11/type_caster_pyobject_ptr.h)
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)

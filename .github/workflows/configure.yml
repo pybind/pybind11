@@ -9,7 +9,11 @@ on:
       - stable
       - v*
 
+permissions:
+  contents: read
+
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   # For cmake:
   VERBOSE: 1
 
@@ -55,7 +59,7 @@ jobs:
     # An action for adding a specific version of CMake:
     #   https://github.com/jwlawson/actions-setup-cmake
     - name: Setup CMake ${{ matrix.cmake }}
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
       with:
         cmake-version: ${{ matrix.cmake }}
 
