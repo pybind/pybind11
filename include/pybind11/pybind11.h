@@ -462,6 +462,7 @@ protected:
             pybind11_fail("Internal error while parsing type signature (2)");
         }
 
+        signature.erase(std::remove(signature.begin(), signature.end(), '\n'), signature.end());
         rec->signature = guarded_strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
