@@ -52,7 +52,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline std::string replaceNewlinesAndSquash(const char* text) {
+inline std::string replaceNewlinesAndSquash(const char *text) {
     std::string result;
 
     // Replace newlines with spaces and squash consecutive spaces
@@ -70,11 +70,13 @@ inline std::string replaceNewlinesAndSquash(const char* text) {
 
     // Strip leading and trailing spaces
     result.erase(result.begin(), std::find_if(result.begin(), result.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }));
-    result.erase(std::find_if(result.rbegin(), result.rend(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }).base(), result.end());
+                     return !std::isspace(ch);
+                 }));
+    result.erase(std::find_if(result.rbegin(),
+                              result.rend(),
+                              [](unsigned char ch) { return !std::isspace(ch); })
+                     .base(),
+                 result.end());
 
     return result;
 }
