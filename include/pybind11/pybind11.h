@@ -52,6 +52,33 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+inline std::string replaceNewlinesAndSquash(const char* text) {
+    std::string result;
+
+    // Replace newlines with spaces and squash consecutive spaces
+    while (*text) {
+        if (*text == '\n') {
+            result += ' ';
+            while (*(text + 1) == ' ') {
+                ++text;
+            }
+        } else {
+            result += *text;
+        }
+        ++text;
+    }
+
+    // Strip leading and trailing spaces
+    result.erase(result.begin(), std::find_if(result.begin(), result.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+    result.erase(std::find_if(result.rbegin(), result.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), result.end());
+
+    return result;
+}
+
 // Apply all the extensions translators from a list
 // Return true if one of the translators completed without raising an exception
 // itself. Return of false indicates that if there are other translators
@@ -424,7 +451,7 @@ protected:
                 // Write default value if available.
                 if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
                     signature += " = ";
-                    signature += rec->args[arg_index].descr;
+                    signature += detail::replaceNewlinesAndSquash(rec->args[arg_index].descr);
                 }
                 // Separator for positional-only arguments (placed after the
                 // argument, rather than before like *
@@ -462,7 +489,6 @@ protected:
             pybind11_fail("Internal error while parsing type signature (2)");
         }
 
-        signature.erase(std::remove(signature.begin(), signature.end(), '\n'), signature.end());
         rec->signature = guarded_strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
