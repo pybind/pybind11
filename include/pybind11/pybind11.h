@@ -68,15 +68,23 @@ inline std::string replaceNewlinesAndSquash(const char *text) {
         ++text;
     }
 
-    // Strip leading and trailing spaces
-    result.erase(result.begin(), std::find_if(result.begin(), result.end(), [](unsigned char ch) {
-                     return !std::isspace(ch);
-                 }));
-    result.erase(std::find_if(result.rbegin(),
-                              result.rend(),
-                              [](unsigned char ch) { return !std::isspace(ch); })
-                     .base(),
-                 result.end());
+    // Strip leading spaces
+    size_t firstNonSpace = result.find_first_not_of(" \t\n\r\f\v");
+
+    if (firstNonSpace != std::string::npos) {
+        result.erase(0, firstNonSpace);
+    } else {
+        result.clear();
+    }
+
+    // Strip trailing spaces
+    size_t lastNonSpace = result.find_last_not_of(" \t\n\r\f\v");
+
+    if (lastNonSpace != std::string::npos) {
+        result.erase(lastNonSpace + 1);
+    } else {
+        result.clear();
+    }
 
     return result;
 }
