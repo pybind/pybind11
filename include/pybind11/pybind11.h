@@ -56,7 +56,7 @@ inline std::string replaceNewlinesAndSquash(const char *text) {
     std::string result;
 
     // Replace newlines with spaces and squash consecutive spaces
-    while (*text) {
+    while (*text != '\0') {
         if (*text == '\n') {
             result += ' ';
             while (*(text + 1) == ' ') {
