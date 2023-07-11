@@ -15,9 +15,11 @@ v2.11
 
 * The minimum version of CMake is now 3.5. A future version will likely move to
   requiring something like CMake 3.15. Note that CMake 3.27 is removing the
-  long-deprecated support for `FindPythonInterp` completely. To prepare for that
-  future, CMake 3.15+ using `FindPython` or setting `PYBIND11_FINDPYTHON` is
-  highly recommended.
+  long-deprecated support for ``FindPythonInterp`` if you set 3.27 as the
+  minimium or maximum supported version. To prepare for that future, CMake 3.15+
+  using ``FindPython`` or setting ``PYBIND11_FINDPYTHON`` is highly recommended,
+  otherwise pybind11 will automatically switch to using ``FindPython`` if
+  ``FindPythonInterp`` is not available.
 
 
 .. _upgrade-guide-2.9:
