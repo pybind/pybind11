@@ -159,7 +159,7 @@ Python's ``setuptools`` to build the module, while `cmake_example`_ uses CMake
 
 Building the above C++ code will produce a binary module file that can be
 imported to Python. Assuming that the compiled module is located in the
-current directory (in newer version of python, rename the `example.cpython-xxx-linux-gun.so` to `example.so`) , the following interactive Python session shows how to
+current directory (in newer version of python, rename the ``example.cpython-xxx-linux-gun.so`` to ``example.so``) , the following interactive Python session shows how to
 load and execute the example:
 
 .. code-block:: pycon
