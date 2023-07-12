@@ -284,7 +284,8 @@ There are three possible solutions:
    COMPONENTS Interpreter Development)`` on modern CMake (3.12+, 3.15+ better,
    3.18.2+ best). Pybind11 in these cases uses the new CMake FindPython instead
    of the old, deprecated search tools, and these modules are much better at
-   finding the correct Python.
+   finding the correct Python. If FindPythonLibs/Interp are not available
+   (CMake 3.27+), then this will be ignored and FindPython will be used.
 3. Set ``PYBIND11_NOPYTHON`` to ``TRUE``. Pybind11 will not search for Python.
    However, you will have to use the target-based system, and do more setup
    yourself, because it does not know about or include things that depend on
