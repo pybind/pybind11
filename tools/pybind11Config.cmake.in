@@ -63,7 +63,9 @@ Modes
 
 There are two modes provided; classic, which is built on the old Python
 discovery packages in CMake, or the new FindPython mode, which uses FindPython
-from 3.12+ forward (3.15+ _highly_ recommended).
+from 3.12+ forward (3.15+ _highly_ recommended). If you set the minimum or
+maximum version of CMake to 3.27+, then FindPython is the default (since
+FindPythonInterp/FindPythonLibs has been removed via policy `CMP0148`).
 
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^
