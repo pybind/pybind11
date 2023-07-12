@@ -260,6 +260,15 @@ TEST_SUBMODULE(pytypes, m) {
         });
     });
 
+    m.def("return_capsule_with_destructor_3", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule((void *) 1233, "oname", [](void *ptr) {
+            py::print("destructing capsule: {}"_s.format((size_t) ptr));
+        });
+        py::print("original name: {}"_s.format(cap.name()));
+        return cap;
+    });
+
     m.def("return_renamed_capsule_with_destructor_2", []() {
         py::print("creating capsule");
         auto cap = py::capsule((void *) 1234, [](void *ptr) {

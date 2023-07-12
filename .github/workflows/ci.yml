@@ -16,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
@@ -35,9 +36,10 @@ jobs:
         - '3.9'
         - '3.10'
         - '3.11'
-        - 'pypy-3.7'
+        - '3.12'
         - 'pypy-3.8'
         - 'pypy-3.9'
+        - 'pypy-3.10'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -73,6 +75,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
@@ -334,8 +337,8 @@ jobs:
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
-    name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
-    container: nvidia/cuda:11.7.0-devel-ubuntu22.04
+    name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
+    container: nvidia/cuda:12.2.0-devel-ubuntu22.04
 
     steps:
     - uses: actions/checkout@v3
