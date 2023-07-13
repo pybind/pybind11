@@ -30,11 +30,13 @@ New features:
   with ``pybind/pybind11.h``).
   `#4601 <https://github.com/pybind/pybind11/pull/4601>`_
 
-* 1. ``format_descriptor<>`` & ``npy_format_descriptor<>`` ``PyObject *``
-     specializations were added. The latter enables ``py::array_t<PyObject *>``
-     to/from-python conversions.
-  2. ``buffer_info`` gained an ``item_type_is_equivalent_to<T>()``
-     member function.
+* ``format_descriptor<>`` & ``npy_format_descriptor<>`` ``PyObject *``
+  specializations were added. The latter enables ``py::array_t<PyObject *>``
+  to/from-python conversions.
+  `#4674 <https://github.com/pybind/pybind11/pull/4674>`_
+
+* ``buffer_info`` gained an ``item_type_is_equivalent_to<T>()`` member
+  function.
   `#4674 <https://github.com/pybind/pybind11/pull/4674>`_
 
 * The ``capsule`` API gained a user-friendly constructor
@@ -92,15 +94,15 @@ Changes:
 
 Build system improvements:
 
+* CMake 3.27 support was added, CMake 3.4 support was dropped.
+  FindPython will be used if ``FindPythonInterp`` is not present.
+  `#4719 <https://github.com/pybind/pybind11/pull/4719>`_
+
 * Update clang-tidy to 15 in CI.
   `#4387 <https://github.com/pybind/pybind11/pull/4387>`_
 
 * Moved the linting framework over to Ruff.
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
-
-* CMake 3.27 support was added, CMake 3.4 support was dropped.
-  FindPython will be used if ``FindPythonInterp`` is not present.
-  `#4719 <https://github.com/pybind/pybind11/pull/4719>`_
 
 * Skip ``lto`` checks and target generation when
   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
