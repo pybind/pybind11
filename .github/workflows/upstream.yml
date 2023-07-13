@@ -1,4 +1,3 @@
-
 name: Upstream
 
 on:
@@ -13,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: ":all:"
   # For cmake:
   VERBOSE: 1
@@ -65,8 +65,8 @@ jobs:
     - name: Python tests C++11
       run: cmake --build build11 --target pytest -j 2
 
-    # - name: C++11 tests
-    #   run: cmake --build build11  --target cpptest -j 2
+    - name: C++11 tests
+      run: cmake --build build11  --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build build11 --target test_cmake_build
@@ -80,14 +80,14 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
 
-    - name: Build
+    - name: Build C++17
       run: cmake --build build17 -j 2
 
-    - name: Python tests
+    - name: Python tests C++17
       run: cmake --build build17 --target pytest
 
-    # - name: C++ tests
-    #   run: cmake --build build17 --target cpptest
+    - name: C++17 tests
+      run: cmake --build build17 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
     - name: Configure (unstable ABI)
@@ -105,10 +105,12 @@ jobs:
     - name: Python tests (unstable ABI)
       run: cmake --build build17max --target pytest
 
-    - name: Interface test
+    - name: Interface test (unstable ABI)
       run: cmake --build build17max --target test_cmake_build
 
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools

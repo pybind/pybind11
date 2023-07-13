@@ -85,7 +85,7 @@ TEST_SUBMODULE(class_, m) {
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
 
     py::class_<NoConstructorNew>(m, "NoConstructorNew")
-        .def(py::init([](const NoConstructorNew &self) { return self; })) // Need a NOOP __init__
+        .def(py::init([]() { return nullptr; })) // Need a NOOP __init__
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
 

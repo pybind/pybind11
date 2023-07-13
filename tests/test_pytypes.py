@@ -320,6 +320,19 @@ def test_capsule(capture):
     )
 
     with capture:
+        a = m.return_capsule_with_destructor_3()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        destructing capsule: 1233
+        original name: oname
+    """
+    )
+
+    with capture:
         a = m.return_renamed_capsule_with_destructor_2()
         del a
         pytest.gc_collect()
@@ -475,7 +488,7 @@ def test_pybind11_str_raw_str():
     assert cvt({}) == "{}"
     assert cvt({3: 4}) == "{3: 4}"
     assert cvt(set()) == "set()"
-    assert cvt({3, 3}) == "{3}"
+    assert cvt({3}) == "{3}"
 
     valid_orig = "Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")

@@ -595,3 +595,74 @@ def test_round_trip_float():
     arr = np.zeros((), np.float64)
     arr[()] = 37.2
     assert m.round_trip_float(arr) == 37.2
+
+
+# HINT: An easy and robust way (although only manual unfortunately) to check for
+#       ref-count leaks in the test_.*pyobject_ptr.* functions below is to
+#           * temporarily insert `while True:` (one-by-one),
+#           * run this test, and
+#           * run the Linux `top` command in another shell to visually monitor
+#             `RES` for a minute or two.
+#       If there is a leak, it is usually evident in seconds because the `RES`
+#       value increases without bounds. (Don't forget to Ctrl-C the test!)
+
+
+# For use as a temporary user-defined object, to maximize sensitivity of the tests below:
+#     * Ref-count leaks will be immediately evident.
+#     * Sanitizers are much more likely to detect heap-use-after-free due to
+#       other ref-count bugs.
+class PyValueHolder:
+    def __init__(self, value):
+        self.value = value
+
+
+def WrapWithPyValueHolder(*values):
+    return [PyValueHolder(v) for v in values]
+
+
+def UnwrapPyValueHolder(vhs):
+    return [vh.value for vh in vhs]
+
+
+def test_pass_array_pyobject_ptr_return_sum_str_values_ndarray():
+    # Intentionally all temporaries, do not change.
+    assert (
+        m.pass_array_pyobject_ptr_return_sum_str_values(
+            np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object)
+        )
+        == "-3four5.0"
+    )
+
+
+def test_pass_array_pyobject_ptr_return_sum_str_values_list():
+    # Intentionally all temporaries, do not change.
+    assert (
+        m.pass_array_pyobject_ptr_return_sum_str_values(
+            WrapWithPyValueHolder(2, "three", -4.0)
+        )
+        == "2three-4.0"
+    )
+
+
+def test_pass_array_pyobject_ptr_return_as_list():
+    # Intentionally all temporaries, do not change.
+    assert UnwrapPyValueHolder(
+        m.pass_array_pyobject_ptr_return_as_list(
+            np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object)
+        )
+    ) == [-1, "two", 3.0]
+
+
+@pytest.mark.parametrize(
+    ("return_array_pyobject_ptr", "unwrap"),
+    [
+        (m.return_array_pyobject_ptr_cpp_loop, list),
+        (m.return_array_pyobject_ptr_from_list, UnwrapPyValueHolder),
+    ],
+)
+def test_return_array_pyobject_ptr_cpp_loop(return_array_pyobject_ptr, unwrap):
+    # Intentionally all temporaries, do not change.
+    arr_from_list = return_array_pyobject_ptr(WrapWithPyValueHolder(6, "seven", -8.0))
+    assert isinstance(arr_from_list, np.ndarray)
+    assert arr_from_list.dtype == np.dtype("O")
+    assert unwrap(arr_from_list) == [6, "seven", -8.0]
