@@ -10,7 +10,7 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-Version 2.11.0 (June 2, 2023)
+Version 2.11.0 (July 14, 2023)
 -----------------------------
 
 New features:
@@ -30,6 +30,17 @@ New features:
   with ``pybind/pybind11.h``).
   `#4601 <https://github.com/pybind/pybind11/pull/4601>`_
 
+* 1. ``format_descriptor<>`` & ``npy_format_descriptor<>`` ``PyObject *``
+     specializations were added. The latter enables ``py::array_t<PyObject *>``
+     to/from-python conversions.
+  2. ``buffer_info`` gained an ``item_type_is_equivalent_to<T>()``
+     member function.
+  `#4674 <https://github.com/pybind/pybind11/pull/4674>`_
+
+* The ``capsule`` API gained a user-friendly constructor
+  (``py::capsule(ptr, "name", dtor)``).
+  `#4720 <https://github.com/pybind/pybind11/pull/4720>`_
+
 Changes:
 
 * ``PyGILState_Check()``'s in ``pybind11::handle``'s ``inc_ref()`` &
@@ -45,6 +56,12 @@ Changes:
   ``PYBIND11_DETAILED_ERROR_MESSAGES`` is not defined. This increases binary
   sizes slightly (~1.5%) but the error messages are much more informative.
   `#4463 <https://github.com/pybind/pybind11/pull/4463>`_
+
+* The docstring generation for the ``std::array``-list caster was fixed.
+  Previously, signatures included the size of the list in a non-standard,
+  non-spec compliant way. The new format conforms to PEP 593.
+  **Tooling for processing the docstrings may need to be updated accordingly.**.
+  `#4679 <https://github.com/pybind/pybind11/pull/4679>`_
 
 * Setter return values (which are inaccessible for all practical purposes) are
   no longer converted to Python (only to be discarded).
@@ -69,6 +86,10 @@ Changes:
   types defined in the unnamed namespace.
   `#4319 <https://github.com/pybind/pybind11/pull/4319>`_
 
+* Python exception ``__notes__`` (introduced with Python 3.11) are now added to
+  the ``error_already_set::what()`` output.
+  `#4678 <https://github.com/pybind/pybind11/pull/4678>`_
+
 Build system improvements:
 
 * Update clang-tidy to 15 in CI.
@@ -77,6 +98,10 @@ Build system improvements:
 * Moved the linting framework over to Ruff.
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
 
+* CMake 3.27 support was added, CMake 3.4 support was dropped.
+  FindPython will be used if FindPythonInterp is not present.
+  `#4719 <https://github.com/pybind/pybind11/pull/4719>`_
+
 * Skip lto checks and target generation when
   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
   `#4643 <https://github.com/pybind/pybind11/pull/4643>`_
@@ -84,6 +109,12 @@ Build system improvements:
 * No longer inject ``-stdlib=libc++``, not needed for modern Pythons
   (macOS 10.9+).
   `#4639 <https://github.com/pybind/pybind11/pull/4639>`_
+
+* PyPy 3.10 support was added, PyPy 3.7 support was dropped.
+  `#4728 <https://github.com/pybind/pybind11/pull/4728>`_
+
+* Testing with Python 3.12 beta releases was added.
+  `#4713 <https://github.com/pybind/pybind11/pull/4713>`_
 
 
 Version 2.10.4 (Mar 16, 2023)
