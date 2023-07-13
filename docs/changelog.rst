@@ -15,10 +15,10 @@ Version 2.11.0 (July 14, 2023)
 
 New features:
 
-* ``pybind11::detail::is_move_constructible`` can now be specialized for cases
-   in which ``std::is_move_constructible`` does not work as needed. This is
-   very similar to the long-established
-   ``pybind11::detail::is_copy_constructible``.
+* The newly added ``pybind11::detail::is_move_constructible`` trait can be
+  specialized for cases in which ``std::is_move_constructible`` does not work
+  as needed. This is very similar to the long-established
+  ``pybind11::detail::is_copy_constructible``.
   `#4631 <https://github.com/pybind/pybind11/pull/4631>`_
 
 * Introduce ``recursive_container_traits``.
@@ -60,7 +60,7 @@ Changes:
 * The docstring generation for the ``std::array``-list caster was fixed.
   Previously, signatures included the size of the list in a non-standard,
   non-spec compliant way. The new format conforms to PEP 593.
-  **Tooling for processing the docstrings may need to be updated accordingly.**.
+  **Tooling for processing the docstrings may need to be updated accordingly.**
   `#4679 <https://github.com/pybind/pybind11/pull/4679>`_
 
 * Setter return values (which are inaccessible for all practical purposes) are
@@ -75,7 +75,7 @@ Changes:
   signatures on C++17 and higher.
   `#4587 <https://github.com/pybind/pybind11/pull/4587>`_
 
-* Compatibility with Python 3.12 (alpha). Note that the minimum pybind11
+* Compatibility with Python 3.12 (beta). Note that the minimum pybind11
   ABI version for Python 3.12 is version 5. (The default ABI version
   for Python versions up to and including 3.11 is still version 4.).
   `#4570 <https://github.com/pybind/pybind11/pull/4570>`_
@@ -99,10 +99,10 @@ Build system improvements:
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
 
 * CMake 3.27 support was added, CMake 3.4 support was dropped.
-  FindPython will be used if FindPythonInterp is not present.
+  FindPython will be used if ``FindPythonInterp`` is not present.
   `#4719 <https://github.com/pybind/pybind11/pull/4719>`_
 
-* Skip lto checks and target generation when
+* Skip ``lto`` checks and target generation when
   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
   `#4643 <https://github.com/pybind/pybind11/pull/4643>`_
 
