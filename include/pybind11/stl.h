@@ -13,6 +13,7 @@
 #include "detail/common.h"
 
 #include <deque>
+#include <initializer_list>
 #include <list>
 #include <map>
 #include <ostream>
@@ -36,8 +37,8 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 //
-// Begin: Code developed under https://github.com/google/clif/blob/main/clif/python/runtime.cc
-//        (currently unpublished)
+// Begin: Equivalent of
+//        https://github.com/google/clif/blob/337b2a106c0552ad85d40cfc3797465756840ea0/clif/python/runtime.cc#L388-L424
 //
 
 inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
@@ -73,7 +74,7 @@ inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
 }
 
 //
-// End: Code developed under https://github.com/google/clif/blob/main/clif/python/runtime.cc
+// End: Equivalent of clif/python/runtime.cc
 //
 
 /// Extracts an const lvalue reference or rvalue reference for U based on the type of T (e.g. for
