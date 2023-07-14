@@ -381,39 +381,26 @@ def test_return_vector_bool_raw_ptr():
     assert len(v) == 4513
 
 
-@pytest.mark.parametrize("fn", [m.pass_std_vector_int, m.pass_std_array_int_2])
-def test_pass_std_vector_int(fn):
-    assert fn([1, 2]) == 2
-    assert fn((1, 2)) == 2
-    assert fn({1, 2}) == 2
-    assert fn({"x": 1, "y": 2}.values()) == 2
-    assert fn({1: None, 2: None}.keys()) == 2
-    assert fn(i for i in range(2)) == 2
-    assert fn(map(lambda i: i, range(2))) == 2  # noqa: C417
+@pytest.mark.parametrize(
+    ("fn", "offset"), [(m.pass_std_vector_int, 0), (m.pass_std_array_int_2, 1)]
+)
+def test_pass_std_vector_int(fn, offset):
+    assert fn([7, 13]) == 140 + offset
+    assert fn({6, 2}) == 116 + offset
+    assert fn({"x": 8, "y": 11}.values()) == 138 + offset
+    assert fn({3: None, 9: None}.keys()) == 124 + offset
+    assert fn(i for i in [4, 17]) == 142 + offset
+    assert fn(map(lambda i: i * 3, [8, 7])) == 190 + offset  # noqa: C417
     with pytest.raises(TypeError):
-        fn({1: 2, 3: 4})
+        fn({"x": 0, "y": 1})
     with pytest.raises(TypeError):
         fn({})
 
 
 def test_pass_std_vector_pair_int():
     fn = m.pass_std_vector_pair_int
-    assert fn({1: 2, 3: 4}.items()) == 2
-    assert fn(zip([1, 2], [3, 4])) == 2
-
-
-def test_pass_std_set_int():
-    fn = m.pass_std_set_int
-    assert fn({1, 2}) == 2
-    assert fn({1: None, 2: None}.keys()) == 2
-    with pytest.raises(TypeError):
-        fn([1, 2])
-    with pytest.raises(TypeError):
-        fn((1, 2))
-    with pytest.raises(TypeError):
-        fn({})
-    with pytest.raises(TypeError):
-        fn(i for i in range(3))
+    assert fn({1: 2, 3: 4}.items()) == 406
+    assert fn(zip([5, 17], [13, 9])) == 2222
 
 
 def test_list_caster_fully_consumes_generator_object():
@@ -426,6 +413,32 @@ def test_list_caster_fully_consumes_generator_object():
     assert not tuple(gen_obj)
 
 
+def test_pass_std_set_int():
+    fn = m.pass_std_set_int
+    assert fn({3, 15}) == 254
+    assert fn({5: None, 12: None}.keys()) == 251
+    with pytest.raises(TypeError):
+        fn([])
+    with pytest.raises(TypeError):
+        fn({})
+    with pytest.raises(TypeError):
+        fn({}.values())
+    with pytest.raises(TypeError):
+        fn(i for i in [])
+
+
+def test_set_caster_dict_keys_failure():
+    dict_keys = {1: None, 2.0: None, 3: None}.keys()
+    # The asserts does not really exercise anything in pybind11, but if one of
+    # them fails in some future version of Python, the set_caster load
+    # implementation may need to be revisited.
+    assert tuple(dict_keys) == (1, 2.0, 3)
+    assert tuple(dict_keys) == (1, 2.0, 3)
+    with pytest.raises(TypeError):
+        m.pass_std_set_int(dict_keys)
+    assert tuple(dict_keys) == (1, 2.0, 3)
+
+
 class FakePyMappingMissingItems:
     def __getitem__(self, _):
         raise RuntimeError("Not expected to be called.")
@@ -433,7 +446,7 @@ class FakePyMappingMissingItems:
 
 class FakePyMappingWithItems(FakePyMappingMissingItems):
     def items(self):
-        return ((1, 2), (3, 4))
+        return ((1, 3), (2, 4))
 
 
 class FakePyMappingBadItems(FakePyMappingMissingItems):
@@ -441,10 +454,19 @@ class FakePyMappingBadItems(FakePyMappingMissingItems):
         return ((1, 2), (3, "x"))
 
 
+class FakePyMappingGenObj(FakePyMappingMissingItems):
+    def __init__(self, gen_obj):
+        super().__init__()
+        self.gen_obj = gen_obj
+
+    def items(self):
+        yield from self.gen_obj
+
+
 def test_pass_std_map_int():
     fn = m.pass_std_map_int
-    assert fn({1: 2, 3: 4}) == 2
-    assert fn(FakePyMappingWithItems()) == 2
+    assert fn({1: 2, 3: 4}) == 4506
+    assert fn(FakePyMappingWithItems()) == 3507
     with pytest.raises(TypeError):
         fn(FakePyMappingMissingItems())
     with pytest.raises(TypeError):
@@ -453,5 +475,18 @@ def test_pass_std_map_int():
         fn([])
 
 
-# TODO(rwgk): test_set_caster_fully_consumes_iterator_object
-# TODO(rwgk): test_map_caster_fully_consumes_iterator_object
+@pytest.mark.parametrize(
+    ("items", "expected_exception"),
+    [
+        (((1, 2), (3, "x"), (4, 5)), TypeError),
+        (((1, 2), (3, 4, 5), (6, 7)), ValueError),
+    ],
+)
+def test_map_caster_fully_consumes_generator_object(items, expected_exception):
+    def gen_mix():
+        yield from items
+
+    gen_obj = gen_mix()
+    with pytest.raises(expected_exception):
+        m.pass_std_map_int(FakePyMappingGenObj(gen_obj))
+    assert not tuple(gen_obj)
