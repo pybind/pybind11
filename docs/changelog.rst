@@ -10,6 +10,12 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
+IN DEVELOPMENT
+--------------
+
+Changes will be summarized here periodically.
+
+
 Version 2.11.0 (July 14, 2023)
 -----------------------------
 
