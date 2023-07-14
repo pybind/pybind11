@@ -103,16 +103,13 @@ struct set_caster {
 
 private:
     template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
-    void reserve_maybe(const sequence &s, Type *) {
+    void reserve_maybe(const anyset &s, Type *) {
         value.reserve(s.size());
     }
-    void reserve_maybe(const sequence &, void *) {}
+    void reserve_maybe(const anyset &, void *) {}
 
-    bool convert_elements(handle seq, bool convert) {
-        auto s = reinterpret_borrow<sequence>(seq);
-        value.clear();
-        reserve_maybe(s, &value);
-        for (auto it : seq) {
+    bool convert_iterable(iterable itbl, bool convert) {
+        for (auto it : itbl) {
             key_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -122,23 +119,27 @@ private:
         return true;
     }
 
+    bool convert_anyset(anyset s, bool convert) {
+        value.clear();
+        reserve_maybe(s, &value);
+        return convert_iterable(s, convert);
+    }
+
 public:
     bool load(handle src, bool convert) {
         if (!PyObjectTypeIsConvertibleToStdSet(src.ptr())) {
             return false;
         }
-        if (isinstance<sequence>(src)) {
-            return convert_elements(src, convert);
+        if (isinstance<anyset>(src)) {
+            value.clear();
+            return convert_anyset(reinterpret_borrow<anyset>(src), convert);
         }
         if (!convert) {
             return false;
         }
-        // Designed to be behavior-equivalent to passing tuple(src) from Python:
-        // The conversion to a tuple will first exhaust the iterator object, to ensure that
-        // the iterator is not left in an unpredictable (to the caller) partially-consumed
-        // state.
         assert(isinstance<iterable>(src));
-        return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
+        value.clear();
+        return convert_iterable(reinterpret_borrow<iterable>(src), convert);
     }
 
     template <typename T>
@@ -204,7 +205,6 @@ public:
         auto items = src.attr("items")();
         assert(isinstance<iterable>(items));
         return convert_elements(dict(reinterpret_borrow<iterable>(items)), convert);
-        return false;
     }
 
     template <typename T>
