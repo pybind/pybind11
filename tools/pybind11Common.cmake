@@ -163,11 +163,19 @@ endif()
 
 # --------------------- Python specifics -------------------------
 
+# CMake 3.27 removes the classic FindPythonInterp if CMP0148 is NEW
+if(CMAKE_VERSION VERSION_LESS "3.27")
+  set(_pybind11_missing_old_python "OLD")
+else()
+  cmake_policy(GET CMP0148 _pybind11_missing_old_python)
+endif()
+
 # Check to see which Python mode we are in, new, old, or no python
 if(PYBIND11_NOPYTHON)
   set(_pybind11_nopython ON)
 elseif(
-  PYBIND11_FINDPYTHON
+  _pybind11_missing_old_python STREQUAL "NEW"
+  OR PYBIND11_FINDPYTHON
   OR Python_FOUND
   OR Python2_FOUND
   OR Python3_FOUND)
