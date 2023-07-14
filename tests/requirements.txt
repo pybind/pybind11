@@ -6,4 +6,4 @@ numpy==1.22.2; platform_python_implementation!="PyPy" and python_version>="3.10"
 pytest==7.0.0
 pytest-timeout
 scipy==1.5.4; platform_python_implementation!="PyPy" and python_version<"3.10"
-scipy==1.8.0; platform_python_implementation!="PyPy" and python_version=="3.10"
+scipy==1.10.0; platform_python_implementation!="PyPy" and python_version=="3.10"
