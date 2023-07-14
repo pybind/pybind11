@@ -4,7 +4,7 @@ asyncio = pytest.importorskip("asyncio")
 m = pytest.importorskip("pybind11_tests.async_module")
 
 
-@pytest.fixture
+@pytest.fixture()
 def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
@@ -16,7 +16,7 @@ async def get_await_result(x):
 
 
 def test_await(event_loop):
-    assert 5 == event_loop.run_until_complete(get_await_result(m.SupportsAsync()))
+    assert event_loop.run_until_complete(get_await_result(m.SupportsAsync())) == 5
 
 
 def test_await_missing(event_loop):

@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 10
-#define PYBIND11_VERSION_PATCH 4
+#define PYBIND11_VERSION_MINOR 11
+#define PYBIND11_VERSION_PATCH 0
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020A0400
+#define PYBIND11_VERSION_HEX 0x020B0000
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -329,8 +329,7 @@ PYBIND11_WARNING_POP
          && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
                                   process (see PR #4268) */                                       \
     && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
-// The following define will be enabled by default in the 2.11 release
-// define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
@@ -662,6 +661,10 @@ template <class T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 #endif
 
+/// Example usage: is_same_ignoring_cvref<T, PyObject *>::value
+template <typename T, typename U>
+using is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>;
+
 /// Index sequences
 #if defined(PYBIND11_CPP14)
 using std::index_sequence;
@@ -755,7 +758,16 @@ template <typename C, typename R, typename... A>
 struct remove_class<R (C::*)(A...) const> {
     using type = R(A...);
 };
-
+#ifdef __cpp_noexcept_function_type
+template <typename C, typename R, typename... A>
+struct remove_class<R (C::*)(A...) noexcept> {
+    using type = R(A...);
+};
+template <typename C, typename R, typename... A>
+struct remove_class<R (C::*)(A...) const noexcept> {
+    using type = R(A...);
+};
+#endif
 /// Helper template to strip away type modifiers
 template <typename T>
 struct intrinsic_type {
@@ -1013,6 +1025,15 @@ PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used in
 template <typename T, typename SFINAE = void>
 struct format_descriptor {};
 
+template <typename T>
+struct format_descriptor<
+    T,
+    detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value>> {
+    static constexpr const char c = 'O';
+    static constexpr const char value[2] = {c, '\0'};
+    static std::string format() { return std::string(1, c); }
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 // Returns the index of the given type in the type char array below, and in the list in numpy.h
 // The order here is: bool; 8 ints ((signed,unsigned)x(8,16,32,64)bits); float,double,long double;
@@ -1226,8 +1247,9 @@ constexpr
 #endif
 
 // Pybind offers detailed error messages by default for all builts that are debug (through the
-// negation of ndebug). This can also be manually enabled by users, for any builds, through
-// defining PYBIND11_DETAILED_ERROR_MESSAGES.
+// negation of NDEBUG). This can also be manually enabled by users, for any builds, through
+// defining PYBIND11_DETAILED_ERROR_MESSAGES. This information is primarily useful for those
+// who are writing (as opposed to merely using) libraries that use pybind11.
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
 #    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif

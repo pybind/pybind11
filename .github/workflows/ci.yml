@@ -9,11 +9,14 @@ on:
       - stable
       - v*
 
+permissions: read-all
+
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
@@ -33,9 +36,10 @@ jobs:
         - '3.9'
         - '3.10'
         - '3.11'
-        - 'pypy-3.7'
+        - '3.12'
         - 'pypy-3.8'
         - 'pypy-3.9'
+        - 'pypy-3.10'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -71,6 +75,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
@@ -82,7 +87,7 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -164,7 +169,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
         ${{ matrix.args }}
 
     - name: Build (unstable ABI)
@@ -179,7 +183,9 @@ jobs:
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools
       if: "!(matrix.runs-on == 'windows-2022')"
 
 
@@ -202,13 +208,13 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
-      uses: deadsnakes/action@v3.0.0
+      uses: deadsnakes/action@v3.0.1
       with:
         python-version: ${{ matrix.python-version }}
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -241,8 +247,6 @@ jobs:
         python -m pip install -r tests/requirements.txt
 
     - name: Configure
-      env:
-        SETUPTOOLS_USE_DISTUTILS: stdlib
       run: >
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=Debug
@@ -333,8 +337,8 @@ jobs:
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
-    name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
-    container: nvidia/cuda:11.7.0-devel-ubuntu22.04
+    name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
+    container: nvidia/cuda:12.2.0-devel-ubuntu22.04
 
     steps:
     - uses: actions/checkout@v3
@@ -399,6 +403,7 @@ jobs:
 
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
+    if: ${{ false }}  # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4690
     runs-on: ubuntu-latest
     name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
     container: centos:7
@@ -474,7 +479,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Configure
       shell: bash
@@ -497,6 +502,24 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+    - name: Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      shell: bash
+      run: >
+        cmake -S . -B build_partial
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+    - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      run: cmake --build build_partial -j 2
+
+    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      run: cmake --build build_partial --target pytest
 
   # Testing on ICC using the oneAPI apt repo
   icc:
@@ -763,7 +786,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.12.1
@@ -816,7 +839,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.12.1
@@ -867,7 +890,7 @@ jobs:
         python3 -m pip install -r tests/requirements.txt
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Configure C++20
       run: >
@@ -888,6 +911,21 @@ jobs:
 
     - name: Interface test C++20
       run: cmake --build build --target test_cmake_build
+
+    - name: Configure C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      run: >
+        cmake -S . -B build_partial
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=20
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+    - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      run: cmake --build build_partial -j 2
+
+    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      run: cmake --build build_partial --target pytest
 
   mingw:
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
@@ -1000,7 +1038,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v1.13
+        uses: jwlawson/actions-setup-cmake@v1.14
 
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v3
@@ -1070,7 +1108,7 @@ jobs:
         run: clang++ --version
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v1.13
+        uses: jwlawson/actions-setup-cmake@v1.14
 
       - name: Run pip installs
         run: |
@@ -1104,6 +1142,24 @@ jobs:
 
       - name: Interface test
         run: cmake --build . --target test_cmake_build -j 2
+
+      - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: >
+          cmake -S . -B build_partial
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+      - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: cmake --build build_partial -j 2
+
+      - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: cmake --build build_partial --target pytest -j 2
 
       - name: Clean directory
         run: git clean -fdx

@@ -3,10 +3,15 @@ on:
   pull_request_target:
     types: [closed]
 
+permissions: {}
+
 jobs:
   label:
     name: Labeler
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
 
     - uses: actions/labeler@main

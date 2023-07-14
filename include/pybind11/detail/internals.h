@@ -34,8 +34,17 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 4
+#    if PY_VERSION_HEX >= 0x030C0000
+// Version bump for Python 3.12+, before first 3.12 beta release.
+#        define PYBIND11_INTERNALS_VERSION 5
+#    else
+#        define PYBIND11_INTERNALS_VERSION 4
+#    endif
 #endif
+
+// This requirement is mainly to reduce the support burden (see PR #4570).
+static_assert(PY_VERSION_HEX < 0x030C0000 || PYBIND11_INTERNALS_VERSION >= 5,
+              "pybind11 ABI version 5 is the minimum for Python 3.12+");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -114,7 +123,8 @@ inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
 // libstdc++, this doesn't happen: equality and the type_index hash are based on the type name,
 // which works.  If not under a known-good stl, provide our own name-based hash and equality
 // functions that use the type name.
-#if defined(__GLIBCXX__)
+#if (PYBIND11_INTERNALS_VERSION <= 4 && defined(__GLIBCXX__))                                     \
+    || (PYBIND11_INTERNALS_VERSION >= 5 && !defined(_LIBCPP_VERSION))
 inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) { return lhs == rhs; }
 using type_hash = std::hash<std::type_index>;
 using type_equal_to = std::equal_to<std::type_index>;
@@ -421,6 +431,38 @@ inline void translate_local_exception(std::exception_ptr p) {
 }
 #endif
 
+inline object get_python_state_dict() {
+    object state_dict;
+#if PYBIND11_INTERNALS_VERSION <= 4 || PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
+#else
+#    if PY_VERSION_HEX < 0x03090000
+    PyInterpreterState *istate = _PyInterpreterState_Get();
+#    else
+    PyInterpreterState *istate = PyInterpreterState_Get();
+#    endif
+    if (istate) {
+        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+    }
+#endif
+    if (!state_dict) {
+        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
+    }
+    return state_dict;
+}
+
+inline object get_internals_obj_from_state_dict(handle state_dict) {
+    return reinterpret_borrow<object>(dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID));
+}
+
+inline internals **get_internals_pp_from_capsule(handle obj) {
+    void *raw_ptr = PyCapsule_GetPointer(obj.ptr(), /*name=*/nullptr);
+    if (raw_ptr == nullptr) {
+        raise_from(PyExc_SystemError, "pybind11::detail::get_internals_pp_from_capsule() FAILED");
+    }
+    return static_cast<internals **>(raw_ptr);
+}
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
@@ -445,12 +487,12 @@ PYBIND11_NOINLINE internals &get_internals() {
 #endif
     error_scope err_scope;
 
-    PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
-    auto builtins = handle(PyEval_GetBuiltins());
-    if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_pp = static_cast<internals **>(capsule(builtins[id]));
-
-        // We loaded builtins through python's builtins, which means that our `error_already_set`
+    dict state_dict = get_python_state_dict();
+    if (object internals_obj = get_internals_obj_from_state_dict(state_dict)) {
+        internals_pp = get_internals_pp_from_capsule(internals_obj);
+    }
+    if (internals_pp && *internals_pp) {
+        // We loaded the internals through `state_dict`, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
         // initial exception translator, below, so add another for our local exception classes.
         //
@@ -469,12 +511,14 @@ PYBIND11_NOINLINE internals &get_internals() {
 #if defined(WITH_THREAD)
 
         PyThreadState *tstate = PyThreadState_Get();
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
             pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
         }
         PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
 
 #    if PYBIND11_INTERNALS_VERSION > 4
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
             pybind11_fail("get_internals: could not successfully initialize the "
                           "loader_life_support TSS key!");
@@ -482,7 +526,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 #    endif
         internals_ptr->istate = tstate->interp;
 #endif
-        builtins[id] = capsule(internals_pp);
+        state_dict[PYBIND11_INTERNALS_ID] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
@@ -514,6 +558,7 @@ struct local_internals {
     struct shared_loader_life_support_data {
         PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
         shared_loader_life_support_data() {
+            // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
             if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
                 pybind11_fail("local_internals: could not successfully initialize the "
                               "loader_life_support TLS key!");

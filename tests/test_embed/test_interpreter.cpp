@@ -184,7 +184,7 @@ TEST_CASE("Custom PyConfig") {
     py::initialize_interpreter();
 }
 
-TEST_CASE("Custom PyConfig with argv") {
+TEST_CASE("scoped_interpreter with PyConfig_InitIsolatedConfig and argv") {
     py::finalize_interpreter();
     {
         PyConfig config;
@@ -196,6 +196,26 @@ TEST_CASE("Custom PyConfig with argv") {
         auto py_widget = module.attr("DerivedWidget")("The question");
         const auto &cpp_widget = py_widget.cast<const Widget &>();
         REQUIRE(cpp_widget.argv0() == "a.out");
+    }
+    py::initialize_interpreter();
+}
+
+TEST_CASE("scoped_interpreter with PyConfig_InitPythonConfig and argv") {
+    py::finalize_interpreter();
+    {
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+
+        // `initialize_interpreter() overrides the default value for config.parse_argv (`1`) by
+        // changing it to `0`. This test exercises `scoped_interpreter` with the default config.
+        char *argv[] = {strdup("a.out"), strdup("arg1")};
+        py::scoped_interpreter argv_scope(&config, 2, argv);
+        std::free(argv[0]);
+        std::free(argv[1]);
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0() == "arg1");
     }
     py::initialize_interpreter();
 }
@@ -235,10 +255,10 @@ TEST_CASE("Add program dir to path using PyConfig") {
 }
 #endif
 
-bool has_pybind11_internals_builtin() {
-    auto builtins = py::handle(PyEval_GetBuiltins());
-    return builtins.contains(PYBIND11_INTERNALS_ID);
-};
+bool has_state_dict_internals_obj() {
+    return bool(
+        py::detail::get_internals_obj_from_state_dict(py::detail::get_python_state_dict()));
+}
 
 bool has_pybind11_internals_static() {
     auto **&ipp = py::detail::get_internals_pp();
@@ -248,7 +268,7 @@ bool has_pybind11_internals_static() {
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
-    REQUIRE(has_pybind11_internals_builtin());
+    REQUIRE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
     REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>()
             == 123);
@@ -265,10 +285,10 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(Py_IsInitialized() == 1);
 
     // Internals are deleted after a restart.
-    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_state_dict_internals_obj());
     REQUIRE_FALSE(has_pybind11_internals_static());
     pybind11::detail::get_internals();
-    REQUIRE(has_pybind11_internals_builtin());
+    REQUIRE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
     REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
@@ -283,13 +303,13 @@ TEST_CASE("Restart the interpreter") {
               py::detail::get_internals();
               *static_cast<bool *>(ran) = true;
           });
-    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_state_dict_internals_obj());
     REQUIRE_FALSE(has_pybind11_internals_static());
     REQUIRE_FALSE(ran);
     py::finalize_interpreter();
     REQUIRE(ran);
     py::initialize_interpreter();
-    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_state_dict_internals_obj());
     REQUIRE_FALSE(has_pybind11_internals_static());
 
     // C++ modules can be reloaded.
@@ -311,7 +331,7 @@ TEST_CASE("Subinterpreter") {
 
         REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
     }
-    REQUIRE(has_pybind11_internals_builtin());
+    REQUIRE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
 
     /// Create and switch to a subinterpreter.
@@ -321,7 +341,7 @@ TEST_CASE("Subinterpreter") {
     // Subinterpreters get their own copy of builtins. detail::get_internals() still
     // works by returning from the static variable, i.e. all interpreters share a single
     // global pybind11::internals;
-    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
 
     // Modules tags should be gone.

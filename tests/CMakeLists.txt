@@ -5,19 +5,16 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.5)
 
-# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.21)
+if(${CMAKE_VERSION} VERSION_LESS 3.26)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.21)
+  cmake_policy(VERSION 3.26)
 endif()
-
-# Only needed for CMake < 3.5 support
-include(CMakeParseArguments)
 
 # Filter out items; print an optional message if any items filtered. This ignores extensions.
 #
@@ -154,7 +151,11 @@ set(PYBIND11_TEST_FILES
     test_stl_binders
     test_tagbased_polymorphic
     test_thread
+    test_type_caster_pyobject_ptr
     test_union
+    test_unnamed_namespace_a
+    test_unnamed_namespace_b
+    test_vector_unique_ptr_member
     test_virtual_functions)
 
 # Invoking cmake with something like:

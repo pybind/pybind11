@@ -58,6 +58,16 @@ interactive Python session demonstrating this example is shown below:
     Static member functions can be bound in the same way using
     :func:`class_::def_static`.
 
+.. note::
+
+    Binding C++ types in unnamed namespaces (also known as anonymous namespaces)
+    works reliably on many platforms, but not all. The `XFAIL_CONDITION` in
+    tests/test_unnamed_namespace_a.py encodes the currently known conditions.
+    For background see `#4319 <https://github.com/pybind/pybind11/pull/4319>`_.
+    If portability is a concern, it is therefore not recommended to bind C++
+    types in unnamed namespaces. It will be safest to manually pick unique
+    namespace names.
+
 Keyword and default arguments
 =============================
 It is possible to specify keyword and default arguments using the syntax
@@ -539,3 +549,7 @@ The ``name`` property returns the name of the enum value as a unicode string.
            ...
 
     By default, these are omitted to conserve space.
+
+.. warning::
+
+    Contrary to Python customs, enum values from the wrappers should not be compared using ``is``, but with ``==`` (see `#1177 <https://github.com/pybind/pybind11/issues/1177>`_ for background).

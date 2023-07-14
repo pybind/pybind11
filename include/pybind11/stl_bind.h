@@ -61,9 +61,11 @@ struct is_comparable<
 /* For a vector/map data structure, recursively check the value type
    (which is std::pair for maps) */
 template <typename T>
-struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>> {
-    static constexpr const bool value = is_comparable<typename T::value_type>::value;
-};
+struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>>
+    : is_comparable<typename recursive_container_traits<T>::type_to_check_recursively> {};
+
+template <>
+struct is_comparable<recursive_bottom> : std::true_type {};
 
 /* For pairs, recursively check the two data types */
 template <typename T>
@@ -355,13 +357,17 @@ void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) 
     using DiffType = typename Vector::difference_type;
     using ItType = typename Vector::iterator;
     cl.def("__getitem__", [](const Vector &v, DiffType i) -> T {
-        if (i < 0 && (i += v.size()) < 0) {
+        if (i < 0) {
+            i += v.size();
+            if (i < 0) {
+                throw index_error();
+            }
+        }
+        auto i_st = static_cast<SizeType>(i);
+        if (i_st >= v.size()) {
             throw index_error();
         }
-        if ((SizeType) i >= v.size()) {
-            throw index_error();
-        }
-        return v[(SizeType) i];
+        return v[i_st];
     });
 
     cl.def(

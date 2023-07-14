@@ -22,6 +22,49 @@ ci:
 exclude: ^tools/JoinPaths.cmake$
 
 repos:
+
+# Clang format the codebase automatically
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: "v16.0.6"
+  hooks:
+  - id: clang-format
+    types_or: [c++, c, cuda]
+
+# Black, the code formatter, natively supports pre-commit
+- repo: https://github.com/psf/black
+  rev: "23.3.0" # Keep in sync with blacken-docs
+  hooks:
+  - id: black
+
+# Ruff, the Python auto-correcting linter written in Rust
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.0.276
+  hooks:
+  - id: ruff
+    args: ["--fix", "--show-fixes"]
+
+# Check static types with mypy
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: "v1.4.1"
+  hooks:
+  - id: mypy
+    args: []
+    exclude: ^(tests|docs)/
+    additional_dependencies:
+    - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
+    - nox
+    - rich
+    - types-setuptools
+
+# CMake formatting
+- repo: https://github.com/cheshirekow/cmake-format-precommit
+  rev: "v0.6.13"
+  hooks:
+  - id: cmake-format
+    additional_dependencies: [pyyaml]
+    types: [file]
+    files: (\.cmake|CMakeLists.txt)(.in)?$
+
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: "v4.4.0"
@@ -39,105 +82,34 @@ repos:
   - id: requirements-txt-fixer
   - id: trailing-whitespace
 
-# Upgrade old Python syntax
-- repo: https://github.com/asottile/pyupgrade
-  rev: "v3.3.1"
-  hooks:
-  - id: pyupgrade
-    args: [--py36-plus]
-
-# Nicely sort includes
-- repo: https://github.com/PyCQA/isort
-  rev: "5.12.0"
-  hooks:
-  - id: isort
-
-# Black, the code formatter, natively supports pre-commit
-- repo: https://github.com/psf/black
-  rev: "23.1.0" # Keep in sync with blacken-docs
-  hooks:
-  - id: black
-
 # Also code format the docs
 - repo: https://github.com/asottile/blacken-docs
-  rev: "1.13.0"
+  rev: "1.14.0"
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==23.1.0 # keep in sync with black hook
+    - black==23.3.0 # keep in sync with black hook
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.4.2"
+  rev: "v1.5.1"
   hooks:
   - id: remove-tabs
 
+# Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
   rev: "0.5.0"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
 
-# Autoremoves unused imports
-- repo: https://github.com/hadialqattan/pycln
-  rev: "v2.1.3"
-  hooks:
-  - id: pycln
-    stages: [manual]
-
 # Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: "v1.10.0"
   hooks:
-  - id: python-check-blanket-noqa
-  - id: python-check-blanket-type-ignore
-  - id: python-no-log-warn
-  - id: python-use-type-annotations
   - id: rst-backticks
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
-
-# Automatically remove noqa that are not used
-- repo: https://github.com/asottile/yesqa
-  rev: "v1.4.0"
-  hooks:
-  - id: yesqa
-    additional_dependencies: &flake8_dependencies
-      - flake8-bugbear
-      - pep8-naming
-
-# Flake8 also supports pre-commit natively (same author)
-- repo: https://github.com/PyCQA/flake8
-  rev: "6.0.0"
-  hooks:
-  - id: flake8
-    exclude: ^(docs/.*|tools/.*)$
-    additional_dependencies: *flake8_dependencies
-
-# PyLint has native support - not always usable, but works for us
-- repo: https://github.com/PyCQA/pylint
-  rev: "v2.16.1"
-  hooks:
-  - id: pylint
-    files: ^pybind11
-
-# CMake formatting
-- repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: "v0.6.13"
-  hooks:
-  - id: cmake-format
-    additional_dependencies: [pyyaml]
-    types: [file]
-    files: (\.cmake|CMakeLists.txt)(.in)?$
-
-# Check static types with mypy
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v0.991"
-  hooks:
-  - id: mypy
-    args: []
-    exclude: ^(tests|docs)/
-    additional_dependencies: [nox, rich]
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
@@ -152,15 +124,15 @@ repos:
 # Use tools/codespell_ignore_lines_from_errors.py
 # to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.2.2"
+  rev: "v2.2.5"
   hooks:
   - id: codespell
     exclude: ".supp$"
-    args: ["-x", ".codespell-ignore-lines"]
+    args: ["-x.codespell-ignore-lines", "-Lccompiler"]
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.9.0.2"
+  rev: "v0.9.0.5"
   hooks:
   - id: shellcheck
 
@@ -173,9 +145,9 @@ repos:
     entry: PyBind|Numpy|Cmake|CCache|PyTest
     exclude: ^\.pre-commit-config.yaml$
 
-# Clang format the codebase automatically
-- repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v15.0.7"
+# PyLint has native support - not always usable, but works for us
+- repo: https://github.com/PyCQA/pylint
+  rev: "v3.0.0a6"
   hooks:
-  - id: clang-format
-    types_or: [c++, c, cuda]
+  - id: pylint
+    files: ^pybind11

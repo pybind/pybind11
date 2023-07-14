@@ -15,7 +15,7 @@ def test_obj_class_name():
     assert m.obj_class_name([]) == "list"
 
 
-def test_handle_from_move_only_type_with_operator_PyObject():  # noqa: N802
+def test_handle_from_move_only_type_with_operator_PyObject():
     assert m.handle_from_move_only_type_with_operator_PyObject_ncnst()
     assert m.handle_from_move_only_type_with_operator_PyObject_const()
 
@@ -33,7 +33,7 @@ def test_iterator(doc):
 
 
 @pytest.mark.parametrize(
-    "pytype, from_iter_func",
+    ("pytype", "from_iter_func"),
     [
         (frozenset, m.get_frozenset_from_iterable),
         (list, m.get_list_from_iterable),
@@ -87,7 +87,7 @@ def test_list(capture, doc):
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
 
 
-def test_none(capture, doc):
+def test_none(doc):
     assert doc(m.get_none) == "get_none() -> None"
     assert doc(m.print_none) == "print_none(arg0: None) -> None"
 
@@ -182,10 +182,10 @@ class CustomContains:
 
 
 @pytest.mark.parametrize(
-    "arg,func",
+    ("arg", "func"),
     [
         (set(), m.anyset_contains),
-        (dict(), m.dict_contains),
+        ({}, m.dict_contains),
         (CustomContains(), m.obj_contains),
     ],
 )
@@ -273,7 +273,7 @@ def test_bytes(doc):
     assert doc(m.bytes_from_str) == "bytes_from_str() -> bytes"
 
 
-def test_bytearray(doc):
+def test_bytearray():
     assert m.bytearray_from_char_ssize_t().decode() == "$%"
     assert m.bytearray_from_char_size_t().decode() == "@$!"
     assert m.bytearray_from_string().decode() == "foo"
@@ -316,6 +316,19 @@ def test_capsule(capture):
         == """
         creating capsule
         destructing capsule: 1234
+    """
+    )
+
+    with capture:
+        a = m.return_capsule_with_destructor_3()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        destructing capsule: 1233
+        original name: oname
     """
     )
 
@@ -385,7 +398,7 @@ def test_accessors():
     assert d["implicit_list"] == [1, 2, 3]
     assert all(x in TestObject.__dict__ for x in d["implicit_dict"])
 
-    assert m.tuple_accessor(tuple()) == (0, 1, 2)
+    assert m.tuple_accessor(()) == (0, 1, 2)
 
     d = m.accessor_assignment()
     assert d["get"] == 0
@@ -475,7 +488,7 @@ def test_pybind11_str_raw_str():
     assert cvt({}) == "{}"
     assert cvt({3: 4}) == "{3: 4}"
     assert cvt(set()) == "set()"
-    assert cvt({3, 3}) == "{3}"
+    assert cvt({3}) == "{3}"
 
     valid_orig = "Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
@@ -536,7 +549,7 @@ def test_print(capture):
     assert str(excinfo.value) == "Unable to convert call argument " + (
         "'1' of type 'UnregisteredType' to Python object"
         if detailed_error_messages_enabled
-        else "to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
+        else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
 
 
@@ -593,7 +606,7 @@ def test_issue2361():
 
 
 @pytest.mark.parametrize(
-    "method, args, fmt, expected_view",
+    ("method", "args", "fmt", "expected_view"),
     [
         (m.test_memoryview_object, (b"red",), "B", b"red"),
         (m.test_memoryview_buffer_info, (b"green",), "B", b"green"),
@@ -651,7 +664,7 @@ def test_memoryview_from_memory():
 
 
 def test_builtin_functions():
-    assert m.get_len([i for i in range(42)]) == 42
+    assert m.get_len(list(range(42))) == 42
     with pytest.raises(TypeError) as exc_info:
         m.get_len(i for i in range(42))
     assert str(exc_info.value) in [
@@ -695,7 +708,7 @@ def test_pass_bytes_or_unicode_to_string_types():
 
 
 @pytest.mark.parametrize(
-    "create_weakref, create_weakref_with_callback",
+    ("create_weakref", "create_weakref_with_callback"),
     [
         (m.weakref_from_handle, m.weakref_from_handle_and_function),
         (m.weakref_from_object, m.weakref_from_object_and_function),
@@ -710,7 +723,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
     callback_called = False
 
-    def callback(wr):
+    def callback(_):
         nonlocal callback_called
         callback_called = True
 
@@ -730,7 +743,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
 
 @pytest.mark.parametrize(
-    "create_weakref, has_callback",
+    ("create_weakref", "has_callback"),
     [
         (m.weakref_from_handle, False),
         (m.weakref_from_object, False),
@@ -748,10 +761,7 @@ def test_weakref_err(create_weakref, has_callback):
     ob = C()
     # Should raise TypeError on CPython
     with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
-        if has_callback:
-            _ = create_weakref(ob, callback)
-        else:
-            _ = create_weakref(ob)
+        _ = create_weakref(ob, callback) if has_callback else create_weakref(ob)
 
 
 def test_cpp_iterators():
@@ -814,33 +824,36 @@ def test_populate_obj_str_attrs():
 
 
 @pytest.mark.parametrize(
-    "a,b", [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))]
+    ("a", "b"),
+    [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))],
 )
 def test_inplace_append(a, b):
     expected = a + b
     assert m.inplace_append(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))])
+@pytest.mark.parametrize(
+    ("a", "b"), [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))]
+)
 def test_inplace_subtract(a, b):
     expected = a - b
     assert m.inplace_subtract(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), ([1], 3)])
+@pytest.mark.parametrize(("a", "b"), [(3, 2), (3.0, 2.0), ([1], 3)])
 def test_inplace_multiply(a, b):
     expected = a * b
     assert m.inplace_multiply(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(6, 3), (6.0, 3.0)])
+@pytest.mark.parametrize(("a", "b"), [(6, 3), (6.0, 3.0)])
 def test_inplace_divide(a, b):
     expected = a / b
     assert m.inplace_divide(a, b) == expected
 
 
 @pytest.mark.parametrize(
-    "a,b",
+    ("a", "b"),
     [
         (False, True),
         (
@@ -857,7 +870,7 @@ def test_inplace_or(a, b):
 
 
 @pytest.mark.parametrize(
-    "a,b",
+    ("a", "b"),
     [
         (True, False),
         (
@@ -873,13 +886,13 @@ def test_inplace_and(a, b):
     assert m.inplace_and(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(8, 1), (-3, 2)])
+@pytest.mark.parametrize(("a", "b"), [(8, 1), (-3, 2)])
 def test_inplace_lshift(a, b):
     expected = a << b
     assert m.inplace_lshift(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(8, 1), (-2, 2)])
+@pytest.mark.parametrize(("a", "b"), [(8, 1), (-2, 2)])
 def test_inplace_rshift(a, b):
     expected = a >> b
     assert m.inplace_rshift(a, b) == expected

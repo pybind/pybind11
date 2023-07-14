@@ -37,6 +37,9 @@ inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t
     return strides;
 }
 
+template <typename T, typename SFINAE = void>
+struct compare_buffer_info;
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Information record describing a Python buffer object
@@ -150,6 +153,17 @@ struct buffer_info {
     Py_buffer *view() const { return m_view; }
     Py_buffer *&view() { return m_view; }
 
+    /* True if the buffer item type is equivalent to `T`. */
+    // To define "equivalent" by example:
+    // `buffer_info::item_type_is_equivalent_to<int>(b)` and
+    // `buffer_info::item_type_is_equivalent_to<long>(b)` may both be true
+    // on some platforms, but `int` and `unsigned` will never be equivalent.
+    // For the ground truth, please inspect `detail::compare_buffer_info<>`.
+    template <typename T>
+    bool item_type_is_equivalent_to() const {
+        return detail::compare_buffer_info<T>::compare(*this);
+    }
+
 private:
     struct private_ctr_tag {};
 
@@ -170,9 +184,10 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename T, typename SFINAE = void>
+template <typename T, typename SFINAE>
 struct compare_buffer_info {
     static bool compare(const buffer_info &b) {
+        // NOLINTNEXTLINE(bugprone-sizeof-expression) Needed for `PyObject *`
         return b.format == format_descriptor<T>::format() && b.itemsize == (ssize_t) sizeof(T);
     }
 };
