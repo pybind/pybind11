@@ -39,7 +39,34 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 //
 // Begin: Equivalent of
 //        https://github.com/google/clif/blob/337b2a106c0552ad85d40cfc3797465756840ea0/clif/python/runtime.cc#L388-L424
-//
+/*
+The three `PyObjectTypeIsConvertibleTo*()` functions below are
+the result of converging the behaviors of pybind11 and PyCLIF
+(http://github.com/google/clif).
+
+Originally PyCLIF was extremely far on the permissive side of the spectrum,
+while pybind11 was very far on the strict side. Originally PyCLIF accepted any
+Python iterable as input for a C++ `vector`/`set`/`map` argument, as long as
+the elements were convertible. The obvious (in hindsight) problem was that
+any empty Python iterable could be passed to any of these C++ types, e.g. `{}`
+was accpeted for C++ `vector`/`set` arguments, or `[]` for C++ `map` arguments.
+
+The functions below strike a practical permissive-vs-strict compromise,
+informed by tens of thousands of use cases in the wild. A main objective is
+to prevent accidents and improve readability:
+
+- Python literals must match the C++ types.
+
+- For C++ `set`: The potentially reducing conversion from a Python sequence
+  (e.g. Python `list` or `tuple`) to a C++ `set` must be explicit, by going
+  through a Python `set`.
+
+- However, a Python `set` can still be passed to a C++ `vector`. The rationale
+  is that this conversion is not reducing. Implicit conversions of this kind
+  are also fairly commonly used, therefore enforcing explicit conversions
+  would have an unfavorable cost : benefit ratio; more sloppily speaking,
+  such an enforcement would be more annyoing than helpful.
+*/
 
 inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
                                                std::initializer_list<const char *> tp_names) {
