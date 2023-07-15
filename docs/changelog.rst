@@ -10,15 +10,21 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-Version 2.11.0 (June 2, 2023)
+IN DEVELOPMENT
+--------------
+
+Changes will be summarized here periodically.
+
+
+Version 2.11.0 (July 14, 2023)
 -----------------------------
 
 New features:
 
-* ``pybind11::detail::is_move_constructible`` can now be specialized for cases
-   in which ``std::is_move_constructible`` does not work as needed. This is
-   very similar to the long-established
-   ``pybind11::detail::is_copy_constructible``.
+* The newly added ``pybind11::detail::is_move_constructible`` trait can be
+  specialized for cases in which ``std::is_move_constructible`` does not work
+  as needed. This is very similar to the long-established
+  ``pybind11::detail::is_copy_constructible``.
   `#4631 <https://github.com/pybind/pybind11/pull/4631>`_
 
 * Introduce ``recursive_container_traits``.
@@ -29,6 +35,19 @@ New features:
   included explicitly (i.e. it is not included implicitly
   with ``pybind/pybind11.h``).
   `#4601 <https://github.com/pybind/pybind11/pull/4601>`_
+
+* ``format_descriptor<>`` & ``npy_format_descriptor<>`` ``PyObject *``
+  specializations were added. The latter enables ``py::array_t<PyObject *>``
+  to/from-python conversions.
+  `#4674 <https://github.com/pybind/pybind11/pull/4674>`_
+
+* ``buffer_info`` gained an ``item_type_is_equivalent_to<T>()`` member
+  function.
+  `#4674 <https://github.com/pybind/pybind11/pull/4674>`_
+
+* The ``capsule`` API gained a user-friendly constructor
+  (``py::capsule(ptr, "name", dtor)``).
+  `#4720 <https://github.com/pybind/pybind11/pull/4720>`_
 
 Changes:
 
@@ -46,6 +65,12 @@ Changes:
   sizes slightly (~1.5%) but the error messages are much more informative.
   `#4463 <https://github.com/pybind/pybind11/pull/4463>`_
 
+* The docstring generation for the ``std::array``-list caster was fixed.
+  Previously, signatures included the size of the list in a non-standard,
+  non-spec compliant way. The new format conforms to PEP 593.
+  **Tooling for processing the docstrings may need to be updated accordingly.**
+  `#4679 <https://github.com/pybind/pybind11/pull/4679>`_
+
 * Setter return values (which are inaccessible for all practical purposes) are
   no longer converted to Python (only to be discarded).
   `#4621 <https://github.com/pybind/pybind11/pull/4621>`_
@@ -58,7 +83,7 @@ Changes:
   signatures on C++17 and higher.
   `#4587 <https://github.com/pybind/pybind11/pull/4587>`_
 
-* Compatibility with Python 3.12 (alpha). Note that the minimum pybind11
+* Compatibility with Python 3.12 (beta). Note that the minimum pybind11
   ABI version for Python 3.12 is version 5. (The default ABI version
   for Python versions up to and including 3.11 is still version 4.).
   `#4570 <https://github.com/pybind/pybind11/pull/4570>`_
@@ -69,7 +94,15 @@ Changes:
   types defined in the unnamed namespace.
   `#4319 <https://github.com/pybind/pybind11/pull/4319>`_
 
+* Python exception ``__notes__`` (introduced with Python 3.11) are now added to
+  the ``error_already_set::what()`` output.
+  `#4678 <https://github.com/pybind/pybind11/pull/4678>`_
+
 Build system improvements:
+
+* CMake 3.27 support was added, CMake 3.4 support was dropped.
+  FindPython will be used if ``FindPythonInterp`` is not present.
+  `#4719 <https://github.com/pybind/pybind11/pull/4719>`_
 
 * Update clang-tidy to 15 in CI.
   `#4387 <https://github.com/pybind/pybind11/pull/4387>`_
@@ -77,13 +110,19 @@ Build system improvements:
 * Moved the linting framework over to Ruff.
   `#4483 <https://github.com/pybind/pybind11/pull/4483>`_
 
-* Skip lto checks and target generation when
+* Skip ``lto`` checks and target generation when
   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is defined.
   `#4643 <https://github.com/pybind/pybind11/pull/4643>`_
 
 * No longer inject ``-stdlib=libc++``, not needed for modern Pythons
   (macOS 10.9+).
   `#4639 <https://github.com/pybind/pybind11/pull/4639>`_
+
+* PyPy 3.10 support was added, PyPy 3.7 support was dropped.
+  `#4728 <https://github.com/pybind/pybind11/pull/4728>`_
+
+* Testing with Python 3.12 beta releases was added.
+  `#4713 <https://github.com/pybind/pybind11/pull/4713>`_
 
 
 Version 2.10.4 (Mar 16, 2023)
