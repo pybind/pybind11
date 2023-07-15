@@ -324,10 +324,7 @@ PYBIND11_WARNING_POP
 #endif
 
 // See description of PR #4246:
-#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF)                                \
-    && !(defined(PYPY_VERSION)                                                                    \
-         && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
-                                  process (see PR #4268) */                                       \
+#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(PYPY_VERSION)      \
     && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
