@@ -108,7 +108,7 @@ private:
     }
     void reserve_maybe(const anyset &, void *) {}
 
-    bool convert_iterable(iterable itbl, bool convert) {
+    bool convert_iterable(const iterable &itbl, bool convert) {
         for (auto it : itbl) {
             key_conv conv;
             if (!conv.load(it, convert)) {
