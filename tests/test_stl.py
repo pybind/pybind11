@@ -404,10 +404,10 @@ def test_pass_std_vector_pair_int():
 
 
 def test_list_caster_fully_consumes_generator_object():
-    def gen_mix():
+    def gen_invalid():
         yield from [1, 2.0, 3]
 
-    gen_obj = gen_mix()
+    gen_obj = gen_invalid()
     with pytest.raises(TypeError):
         m.pass_std_vector_int(gen_obj)
     assert not tuple(gen_obj)
@@ -483,10 +483,10 @@ def test_pass_std_map_int():
     ],
 )
 def test_map_caster_fully_consumes_generator_object(items, expected_exception):
-    def gen_mix():
+    def gen_invalid():
         yield from items
 
-    gen_obj = gen_mix()
+    gen_obj = gen_invalid()
     with pytest.raises(expected_exception):
         m.pass_std_map_int(FakePyMappingGenObj(gen_obj))
     assert not tuple(gen_obj)
