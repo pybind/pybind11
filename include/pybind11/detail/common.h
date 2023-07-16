@@ -323,6 +323,12 @@ PYBIND11_WARNING_POP
 #    define PYBIND11_HAS_U8STRING
 #endif
 
+// See description of PR #4246:
+#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(PYPY_VERSION)      \
+    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+#endif
+
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
 //             (probably surprising and never documented, but this was the
