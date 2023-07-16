@@ -304,7 +304,8 @@ private:
             "%s is being called while the GIL is either not held or invalid. Please see "
             "https://pybind11.readthedocs.io/en/stable/advanced/"
             "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n"
-            "If you are absolutely sure there is no bug, you can #define PYBIND11_NO_GIL_CHECKS to disable this check.",
+            "If you are absolutely sure there is no bug, you can #define PYBIND11_NO_GIL_CHECKS "
+            "to disable this check.",
             function_name.c_str());
         fflush(stderr);
         if (Py_TYPE(m_ptr)->tp_name != nullptr) {
