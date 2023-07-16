@@ -325,8 +325,7 @@ PYBIND11_WARNING_POP
 
 // See description of PR #4246:
 #if !defined(PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(NDEBUG)                       \
-    && !defined(PYPY_VERSION)                       \
-    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+    && !defined(PYPY_VERSION) && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
