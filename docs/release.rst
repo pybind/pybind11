@@ -47,6 +47,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Update tags (optional; if you skip this, the GitHub release makes a
     non-annotated tag for you)
     - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``.
+    - To ensure the new tag is consistent with the version number in the sources, run this command:
+          - ``git diff "$(grep ^__version__ pybind11/_version.py | cut -d'"' -f2 | sed 's/^/v/')"``
+          - There should be no diff.
     - ``git push --tags``.
 - Update stable
     - ``git checkout stable``
@@ -62,7 +65,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
       click "Draft a new release" on the far right, fill in the tag name
       (if you didn't tag above, it will be made here), fill in a release name
       like "Version X.Y.Z", and copy-and-paste the markdown-formatted (!) changelog
-      into the description (usually ``cat docs/changelog.rst | pandoc -f rst -t gfm``).
+      into the description. You can use ``cat docs/changelog.rst | pandoc -f rst -t gfm``,
+      then manually remove line breaks and strip links to PRs and issues,
+      e.g. to a bare ``#1234``, without the surrounding ``<...>_`` hyperlink markup.
       Check "pre-release" if this is a beta/RC.
     - CLI method: with ``gh`` installed, run ``gh release create vX.Y.Z -t "Version X.Y.Z"``
       If this is a pre-release, add ``-p``.
