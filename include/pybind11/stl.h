@@ -38,7 +38,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 //
 // Begin: Equivalent of
-//        https://github.com/google/clif/blob/337b2a106c0552ad85d40cfc3797465756840ea0/clif/python/runtime.cc#L388-L424
+//        https://github.com/google/clif/blob/ae4eee1de07cdf115c0c9bf9fec9ff28efce6f6c/clif/python/runtime.cc#L388-L438
 /*
 The three `PyObjectTypeIsConvertibleTo*()` functions below are
 the result of converging the behaviors of pybind11 and PyCLIF
