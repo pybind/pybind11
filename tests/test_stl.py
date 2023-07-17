@@ -454,6 +454,17 @@ class FakePyMappingBadItems(FakePyMappingMissingItems):
         return ((1, 2), (3, "x"))
 
 
+class FakePyMappingItemsNotCallable(FakePyMappingMissingItems):
+    @property
+    def items(self):
+        return ((1, 2), (3, 4))
+
+
+class FakePyMappingItemsWithArg(FakePyMappingMissingItems):
+    def items(self, _):
+        return ((1, 2), (3, 4))
+
+
 class FakePyMappingGenObj(FakePyMappingMissingItems):
     def __init__(self, gen_obj):
         super().__init__()
@@ -466,13 +477,17 @@ class FakePyMappingGenObj(FakePyMappingMissingItems):
 def test_pass_std_map_int():
     fn = m.pass_std_map_int
     assert fn({1: 2, 3: 4}) == 4506
+    with pytest.raises(TypeError):
+        fn([])
     assert fn(FakePyMappingWithItems()) == 3507
     with pytest.raises(TypeError):
         fn(FakePyMappingMissingItems())
     with pytest.raises(TypeError):
         fn(FakePyMappingBadItems())
     with pytest.raises(TypeError):
-        fn([])
+        fn(FakePyMappingItemsNotCallable())
+    with pytest.raises(TypeError):
+        fn(FakePyMappingItemsWithArg())
 
 
 @pytest.mark.parametrize(

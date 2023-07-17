@@ -96,8 +96,20 @@ inline bool PyObjectTypeIsConvertibleToStdSet(PyObject *obj) {
 }
 
 inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
-    return (PyDict_Check(obj) != 0)
-           || ((PyMapping_Check(obj) != 0) && (PyObject_HasAttrString(obj, "items") != 0));
+    if (PyDict_Check(obj)) {
+        return true;
+    }
+    if (!PyMapping_Check(obj)) {
+        return false;
+    }
+    PyObject *items = PyObject_GetAttrString(obj, "items");
+    if (items == nullptr) {
+        PyErr_Clear();
+        return false;
+    }
+    bool is_convertible = (PyCallable_Check(items) != 0);
+    Py_DECREF(items);
+    return is_convertible;
 }
 
 //
