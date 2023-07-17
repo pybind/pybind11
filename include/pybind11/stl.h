@@ -75,7 +75,7 @@ inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
     }
     const char *obj_tp_name = Py_TYPE(obj)->tp_name;
     for (const auto *tp_name : tp_names) {
-        if (strcmp(obj_tp_name, tp_name) == 0) {
+        if (std::strcmp(obj_tp_name, tp_name) == 0) {
             return true;
         }
     }
