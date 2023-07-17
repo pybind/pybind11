@@ -99,6 +99,9 @@ inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
     if (PyDict_Check(obj)) {
         return true;
     }
+    // Implicit requirement in the conditions below:
+    // A type with `.__getitem__()` & `.items()` methods must implement these
+    // to be compatible with https://docs.python.org/3/c-api/mapping.html
     if (PyMapping_Check(obj) == 0) {
         return false;
     }
@@ -237,11 +240,10 @@ public:
         if (!convert) {
             return false;
         }
-        // Designed to be behavior-equivalent to passing dict(src.items()) from Python:
-        // The conversion to a dict will first exhaust the iterator object, to ensure that
-        // the iterator is not left in an unpredictable (to the caller) partially-consumed
-        // state.
-        auto items = src.attr("items")();
+        auto items = reinterpret_steal<object>(PyMapping_Items(src.ptr()));
+        if (!items) {
+            throw error_already_set();
+        }
         assert(isinstance<iterable>(items));
         return convert_elements(dict(reinterpret_borrow<iterable>(items)), convert);
     }
