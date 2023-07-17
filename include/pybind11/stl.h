@@ -99,7 +99,7 @@ inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
     if (PyDict_Check(obj)) {
         return true;
     }
-    if (!PyMapping_Check(obj)) {
+    if (PyMapping_Check(obj) == 0) {
         return false;
     }
     PyObject *items = PyObject_GetAttrString(obj, "items");
