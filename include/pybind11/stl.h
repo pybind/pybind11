@@ -65,7 +65,7 @@ to prevent accidents and improve readability:
   is that this conversion is not reducing. Implicit conversions of this kind
   are also fairly commonly used, therefore enforcing explicit conversions
   would have an unfavorable cost : benefit ratio; more sloppily speaking,
-  such an enforcement would be more annyoing than helpful.
+  such an enforcement would be more annoying than helpful.
 */
 
 inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
