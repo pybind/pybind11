@@ -16,6 +16,21 @@ IN DEVELOPMENT
 Changes will be summarized here periodically.
 
 
+Version 2.11.1 (July 17, 2023)
+-----------------------------
+
+Changes:
+
+* ``PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF`` is now provided as an option
+  for disabling the default-on ``PyGILState_Check()``'s in
+  ``pybind11::handle``'s ``inc_ref()`` & ``dec_ref()``.
+  `#4753 <https://github.com/pybind/pybind11/pull/4753>`_
+
+* ``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF`` was disabled for PyPy in general
+  (not just PyPy Windows).
+  `#4751 <https://github.com/pybind/pybind11/pull/4751>`_
+
+
 Version 2.11.0 (July 14, 2023)
 -----------------------------
 
