@@ -303,7 +303,12 @@ private:
             stderr,
             "%s is being called while the GIL is either not held or invalid. Please see "
             "https://pybind11.readthedocs.io/en/stable/advanced/"
-            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n",
+            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n"
+            "If you are convinced there is no bug in your code, you can #define "
+            "PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF"
+            "to disable this check. In that case you have to ensure this #define is consistently "
+            "used for all translation units linked into a given pybind11 extension, otherwise "
+            "there will be ODR violations.",
             function_name.c_str());
         fflush(stderr);
         if (Py_TYPE(m_ptr)->tp_name != nullptr) {
