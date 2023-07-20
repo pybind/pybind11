@@ -47,9 +47,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Update tags (optional; if you skip this, the GitHub release makes a
     non-annotated tag for you)
     - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``.
-    - To ensure the new tag is consistent with the version number in the sources, run this command:
-          - ``git diff "$(grep ^__version__ pybind11/_version.py | cut -d'"' -f2 | sed 's/^/v/')"``
-          - There should be no diff.
+    - To visually double-check that the new tag is consistent with the version
+      number in the sources, run this command:
+          - ``grep ^__version__ pybind11/_version.py``
     - ``git push --tags``.
 - Update stable
     - ``git checkout stable``
