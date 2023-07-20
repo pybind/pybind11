@@ -265,7 +265,7 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            cast_in args_converter{};
+            cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
             if (!args_converter.load_args(call)) {
