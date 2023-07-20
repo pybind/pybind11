@@ -45,11 +45,11 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
     - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
     - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
 - Update tags (optional; if you skip this, the GitHub release makes a
-    non-annotated tag for you)
-    - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``.
+  non-annotated tag for you)
+    - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``
     - ``grep ^__version__ pybind11/_version.py``
           - Last-minute consistency check: same as tag?
-    - ``git push --tags``.
+    - ``git push --tags``
 - Update stable
     - ``git checkout stable``
     - ``git merge -X theirs vX.Y.Z``
