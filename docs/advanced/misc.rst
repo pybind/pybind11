@@ -410,12 +410,12 @@ type.
 .. code-block:: cpp
 
     PYBIND11_MODULE(example, m) {
-        m.def("pass_list_of_str", [](py::List<py::str> arg) {
+        m.def("pass_list_of_str", [](py::typing::List<py::str> arg) {
             // arg can be used just like py::list
         ));
     }
 
-The resulting docstring will be ``pass_list_of_str(arg0: List[str]) -> None``.
+The resulting docstring will be ``pass_list_of_str(arg0: list[str]) -> None``.
 
 The following special types are available in ``pybind11/typing.h``:
 

@@ -823,10 +823,10 @@ TEST_SUBMODULE(pytypes, m) {
         return a;
     });
 
-    m.def("annotate_tuple_float_str", [](const py::Tuple<py::float_, py::str> &) {});
-    m.def("annotate_tuple_empty", [](const py::Tuple<> &) {});
-    m.def("annotate_dict_str_int", [](const py::Dict<py::str, int> &) {});
-    m.def("annotate_list_int", [](const py::List<int> &) {});
-    m.def("annotate_set_str", [](const py::Set<std::string> &) {});
-    m.def("annotate_fn", [](const py::Callable<int(py::List<py::str>, py::str)> &) {});
+    m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
+    m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
+    m.def("annotate_dict_str_int", [](const py::typing::Dict<py::str, int> &) {});
+    m.def("annotate_list_int", [](const py::typing::List<int> &) {});
+    m.def("annotate_set_str", [](const py::typing::Set<std::string> &) {});
+    m.def("annotate_fn", [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 }

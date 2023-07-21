@@ -15,10 +15,11 @@
 #include "pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(typing)
 
 /*
     The following types can be used to direct pybind11-generated docstrings
-    to have have more explicit types (e.g., `List[str]` instead of `list`).
+    to have have more explicit types (e.g., `list[str]` instead of `list`).
     Just use these in place of existing types.
 
     There is no additional enforcement of types at runtime.
@@ -52,38 +53,40 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
+PYBIND11_NAMESPACE_END(typing)
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename... Types>
-struct handle_type_name<Tuple<Types...>> {
+struct handle_type_name<typing::Tuple<Types...>> {
     static constexpr auto name
-        = const_name("Tuple[") + concat(make_caster<Types>::name...) + const_name("]");
+        = const_name("tuple[") + concat(make_caster<Types>::name...) + const_name("]");
 };
 
 template <>
-struct handle_type_name<Tuple<>> {
+struct handle_type_name<typing::Tuple<>> {
     // PEP 484 specifies this syntax for an empty tuple
-    static constexpr auto name = const_name("Tuple[()]");
+    static constexpr auto name = const_name("tuple[()]");
 };
 
 template <typename K, typename V>
-struct handle_type_name<Dict<K, V>> {
-    static constexpr auto name = const_name("Dict[") + make_caster<K>::name + const_name(", ")
+struct handle_type_name<typing::Dict<K, V>> {
+    static constexpr auto name = const_name("dict[") + make_caster<K>::name + const_name(", ")
                                  + make_caster<V>::name + const_name("]");
 };
 
 template <typename T>
-struct handle_type_name<List<T>> {
-    static constexpr auto name = const_name("List[") + make_caster<T>::name + const_name("]");
+struct handle_type_name<typing::List<T>> {
+    static constexpr auto name = const_name("list[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
-struct handle_type_name<Set<T>> {
-    static constexpr auto name = const_name("Set[") + make_caster<T>::name + const_name("]");
+struct handle_type_name<typing::Set<T>> {
+    static constexpr auto name = const_name("set[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename Return, typename... Args>
-struct handle_type_name<Callable<Return(Args...)>> {
+struct handle_type_name<typing::Callable<Return(Args...)>> {
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
     static constexpr auto name = const_name("Callable[[") + concat(make_caster<Args>::name...)
                                  + const_name("], ") + make_caster<retval_type>::name
