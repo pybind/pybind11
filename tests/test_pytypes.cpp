@@ -828,5 +828,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_dict_str_int", [](const py::typing::Dict<py::str, int> &) {});
     m.def("annotate_list_int", [](const py::typing::List<int> &) {});
     m.def("annotate_set_str", [](const py::typing::Set<std::string> &) {});
-    m.def("annotate_fn", [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
+    m.def("annotate_fn",
+          [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 }
