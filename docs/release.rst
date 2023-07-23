@@ -39,7 +39,8 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
     - Ensure that all the information in ``setup.cfg`` is up-to-date, like
       supported Python versions.
 
-    - Add release date in ``docs/changelog.rst`` and integrate the output of ``nox -s make_changelog``.
+    - Add release date in ``docs/changelog.rst`` and integrate the output of
+      ``nox -s make_changelog``.
 
           - Note that the ``make_changelog`` command inspects
             `needs changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_.
@@ -50,13 +51,15 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
     - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
       fails due to a known flake issue, either ignore or restart CI.)
 
-- Add a release branch if this is a new MINOR version, or update the existing release branch if it is a patch version
+- Add a release branch if this is a new MINOR version, or update the existing
+  release branch if it is a patch version
 
     - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
 
     - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
 
-- Update tags (optional; if you skip this, the GitHub release makes a non-annotated tag for you)
+- Update tags (optional; if you skip this, the GitHub release makes a
+  non-annotated tag for you)
 
     - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``
 
@@ -78,7 +81,10 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
     - ``git push``
 
-- Make a GitHub release (this shows up in the UI, sends new release notifications to users watching releases, and also uploads PyPI packages). (Note: if you do not use an existing tag, this creates a new lightweight tag for you, so you could skip the above step.)
+- Make a GitHub release (this shows up in the UI, sends new release
+  notifications to users watching releases, and also uploads PyPI packages).
+  (Note: if you do not use an existing tag, this creates a new lightweight tag
+  for you, so you could skip the above step.)
 
     - GUI method: Under `releases <https://github.com/pybind/pybind11/releases>`_
       click "Draft a new release" on the far right, fill in the tag name
@@ -123,7 +129,11 @@ merge it if there are no issues.
 Manual packaging
 ^^^^^^^^^^^^^^^^
 
-If you need to manually upload releases, you can download the releases from the job artifacts and upload them with twine. You can also make the files locally (not recommended in general, as your local directory is more likely to be "dirty" and SDists love picking up random unrelated/hidden files); this is the procedure:
+If you need to manually upload releases, you can download the releases from
+the job artifacts and upload them with twine. You can also make the files
+locally (not recommended in general, as your local directory is more likely
+to be "dirty" and SDists love picking up random unrelated/hidden files);
+this is the procedure:
 
 .. code-block:: bash
 
