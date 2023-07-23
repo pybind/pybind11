@@ -41,11 +41,13 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
   - Add release date in ``docs/changelog.rst`` and integrate the output of
     ``nox -s make_changelog``.
-        - Note that the ``make_changelog`` command inspects
-          `needs changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_.
 
-        - Manually clear the ``needs changelog`` labels using the GitHub web
-          interface (very easy: start by clicking the link above).
+    - Note that the ``make_changelog`` command inspects
+      `needs changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_.
+
+    - Manually clear the ``needs changelog`` labels using the GitHub web
+      interface (very easy: start by clicking the link above).
+
   - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
     fails due to a known flake issue, either ignore or restart CI.)
 
@@ -62,7 +64,8 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``
 
   - ``grep ^__version__ pybind11/_version.py``
-        - Last-minute consistency check: same as tag?
+
+    - Last-minute consistency check: same as tag?
 
   - ``git push --tags``
 
