@@ -45,16 +45,13 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
           - Manually clear the ``needs changelog`` labels using the GitHub web
             interface (very easy: start by clicking the link above).
-
     - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
       fails due to a known flake issue, either ignore or restart CI.)
-
 - Add a release branch if this is a new MINOR version, or update the existing
   release branch if it is a patch version
     - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
 
     - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
-
 - Update tags (optional; if you skip this, the GitHub release makes a
   non-annotated tag for you)
     - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``
@@ -63,7 +60,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
           - Last-minute consistency check: same as tag?
 
     - ``git push --tags``
-
 - Update stable
     - ``git checkout stable``
 
@@ -74,7 +70,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
     - Carefully review and reconcile any diffs. There should be none.
 
     - ``git push``
-
 - Make a GitHub release (this shows up in the UI, sends new release
   notifications to users watching releases, and also uploads PyPI packages).
   (Note: if you do not use an existing tag, this creates a new lightweight tag
@@ -90,7 +85,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
     - CLI method: with ``gh`` installed, run ``gh release create vX.Y.Z -t "Version X.Y.Z"``
       If this is a pre-release, add ``-p``.
-
 - Get back to work
     - Make sure you are on master, not somewhere else: ``git checkout master``
 
