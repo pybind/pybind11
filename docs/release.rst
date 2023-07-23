@@ -26,7 +26,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 ``pipx install nox`` or ``brew install nox`` (Unix).
 
 - Update the version number
-
     - Update ``PYBIND11_VERSION_MAJOR`` etc. in
       ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
 
@@ -41,7 +40,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
     - Add release date in ``docs/changelog.rst`` and integrate the output of
       ``nox -s make_changelog``.
-
           - Note that the ``make_changelog`` command inspects
             `needs changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_.
 
@@ -53,24 +51,20 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
 - Add a release branch if this is a new MINOR version, or update the existing
   release branch if it is a patch version
-
     - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
 
     - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
 
 - Update tags (optional; if you skip this, the GitHub release makes a
   non-annotated tag for you)
-
     - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``
 
     - ``grep ^__version__ pybind11/_version.py``
-
           - Last-minute consistency check: same as tag?
 
     - ``git push --tags``
 
 - Update stable
-
     - ``git checkout stable``
 
     - ``git merge -X theirs vX.Y.Z``
@@ -85,7 +79,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   notifications to users watching releases, and also uploads PyPI packages).
   (Note: if you do not use an existing tag, this creates a new lightweight tag
   for you, so you could skip the above step.)
-
     - GUI method: Under `releases <https://github.com/pybind/pybind11/releases>`_
       click "Draft a new release" on the far right, fill in the tag name
       (if you didn't tag above, it will be made here), fill in a release name
@@ -99,7 +92,6 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
       If this is a pre-release, add ``-p``.
 
 - Get back to work
-
     - Make sure you are on master, not somewhere else: ``git checkout master``
 
     - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
