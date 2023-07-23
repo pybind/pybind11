@@ -15,8 +15,8 @@ For example:
 
 For beta, ``PYBIND11_VERSION_PATCH`` should be ``Z.b1``. RC's can be ``Z.rc1``.
 Always include the dot (even though PEP 440 allows it to be dropped). For a
-final release, this must be a simple integer. There is also a HEX version of
-the version just below.
+final release, this must be a simple integer. There is also
+``PYBIND11_VERSION_HEX`` just below that needs to be updated.
 
 
 To release a new version of pybind11:
@@ -30,9 +30,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   - Update ``PYBIND11_VERSION_MAJOR`` etc. in
     ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
 
-  - Update the version HEX just below, as well.
+  - Update ``PYBIND11_VERSION_HEX`` just below as well.
 
-  - Update ``pybind11/_version.py`` (match above)
+  - Update ``pybind11/_version.py`` (match above).
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
@@ -105,11 +105,11 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
     ``0.dev1`` and increment MINOR).
 
-  - Update ``pybind11/_version.py`` to match
+  - Update ``pybind11/_version.py`` to match.
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
-  - If the release was a new MINOR version, add a new `IN DEVELOPMENT`
+  - If the release was a new MINOR version, add a new ``IN DEVELOPMENT``
     section in ``docs/changelog.rst``.
 
   - ``git add``, ``git commit``, ``git push``
