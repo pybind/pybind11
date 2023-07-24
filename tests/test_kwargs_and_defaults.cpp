@@ -53,17 +53,6 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def(
         "kw_lb_func0", [](const CustomRepr &) {}, py::arg("custom") = defaultCustomRepr);
 
-<<<<<<< HEAD
-    Eigen::Matrix<double, 3, 3> defaultMatrix = Eigen::Matrix3d::Identity();
-    m.def(
-        "kw_lb_func1", [](const Eigen::Matrix3d &) {}, py::arg("mat") = defaultMatrix);
-
-    Eigen::VectorXd defaultVector = Eigen::VectorXd::Ones(32);
-    m.def(
-        "kw_lb_func2", [](const Eigen::VectorXd &) {}, py::arg("vec") = defaultVector);
-
-=======
->>>>>>> fea352cb (Separate Eigen tests)
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
         PYBIND11_WARNING_PUSH
