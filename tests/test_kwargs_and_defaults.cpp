@@ -8,6 +8,7 @@
 */
 
 #include <pybind11/stl.h>
+#include <pybind11/eigen/matrix.h>
 
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
@@ -41,6 +42,29 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     m.def("kw_func_udl", kw_func, "x"_a, "y"_a = 300);
     m.def("kw_func_udl_z", kw_func, "x"_a, "y"_a = 0);
+
+    // test line breaks in default argument representation
+    struct CustomRepr {
+        std::string __repr__() { return "line\nbreak"; }
+    };
+
+    py::class_<CustomRepr>(m, "CustomRepr")
+        .def("__repr__", &CustomRepr::__repr__);
+
+    CustomRepr defaultCustomRepr{};
+    m.def(
+        "kw_lb_func0", [](const CustomRepr&) {},
+        py::arg("custom") = defaultCustomRepr);
+
+    Eigen::Matrix<double, 3, 3> defaultMatrix = Eigen::Matrix3d::Identity();
+    m.def(
+        "kw_lb_func1", [](const Eigen::Matrix3d&) {},
+        py::arg("mat") = defaultMatrix);
+
+    Eigen::VectorXd defaultVector = Eigen::VectorXd::Ones(32);
+    m.def(
+        "kw_lb_func2", [](const Eigen::VectorXd&) {},
+        py::arg("vec") = defaultVector);
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
