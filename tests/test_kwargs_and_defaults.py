@@ -27,12 +27,9 @@ def test_function_signatures(doc):
         doc(m.kw_lb_func0)
         == "kw_lb_func0(custom: m.kwargs_and_defaults.CustomRepr = line break) -> None"
     )
-    assert (
-        '\n' not in str(doc(m.kw_lb_func1))
-    )
-    assert (
-        '\n' not in str(doc(m.kw_lb_func2))
-    )
+    assert "\n" not in str(doc(m.kw_lb_func1))
+    assert "\n" not in str(doc(m.kw_lb_func2))
+
 
 def test_named_arguments():
     assert m.kw_func0(5, 10) == "x=5, y=10"
