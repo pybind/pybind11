@@ -330,6 +330,16 @@ TEST_SUBMODULE(eigen_matrix, m) {
     m.def("dense_c", [mat]() -> DenseMatrixC { return DenseMatrixC(mat); });
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
+    // test_defaults
+    Eigen::Matrix<double, 3, 3> defaultMatrix = Eigen::Matrix3d::Identity();
+    m.def(
+        "defaults_mat", [](const Eigen::Matrix3d&) {},
+        py::arg("mat") = defaultMatrix);
+
+    Eigen::VectorXd defaultVector = Eigen::VectorXd::Ones(32);
+    m.def(
+        "defaults_vec", [](const Eigen::VectorXd&) {},
+        py::arg("vec") = defaultVector);
     // test_sparse, test_sparse_signature
     m.def("sparse_r", [mat]() -> SparseMatrixR {
         // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
