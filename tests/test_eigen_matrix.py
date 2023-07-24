@@ -717,12 +717,8 @@ def test_dense_signature(doc):
 
 
 def test_defaults(doc):
-    assert (
-        '\n' not in str(doc(m.defaults_mat))
-    )
-    assert (
-        '\n' not in str(doc(m.defaults_vec))
-    )
+    assert "\n" not in str(doc(m.defaults_mat))
+    assert "\n" not in str(doc(m.defaults_vec))
 
 
 def test_named_arguments():
