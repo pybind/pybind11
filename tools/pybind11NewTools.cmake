@@ -107,18 +107,23 @@ if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFI
   if(_PYTHON_MODULE_EXT_SUFFIX STREQUAL "")
     message(
       FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
-                  "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}")
+                  "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}"
+    )
   endif()
 
   # This needs to be available for the pybind11_extension function
   if(NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
     list(GET _PYTHON_MODULE_EXT_SUFFIX 0 _PYTHON_MODULE_DEBUG_POSTFIX)
-    set(PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_DEBUG_POSTFIX}" CACHE INTERNAL "")
+    set(PYTHON_MODULE_DEBUG_POSTFIX
+        "${_PYTHON_MODULE_DEBUG_POSTFIX}"
+        CACHE INTERNAL "")
   endif()
 
   if(NOT DEFINED PYTHON_MODULE_EXTENSION)
     list(GET _PYTHON_MODULE_EXT_SUFFIX 1 _PYTHON_MODULE_EXTENSION)
-    set(PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXTENSION}" CACHE INTERNAL "")
+    set(PYTHON_MODULE_EXTENSION
+        "${_PYTHON_MODULE_EXTENSION}"
+        CACHE INTERNAL "")
   endif()
 endif()
 
@@ -257,5 +262,9 @@ endfunction()
 
 function(pybind11_extension name)
   # The extension is precomputed
-  set_target_properties(${name} PROPERTIES PREFIX "" DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
+  set_target_properties(
+    ${name}
+    PROPERTIES PREFIX ""
+               DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
+               SUFFIX "${PYTHON_MODULE_EXTENSION}")
 endfunction()
