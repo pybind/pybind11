@@ -1613,7 +1613,7 @@ inline namespace literals {
     String literal version of `str`
  \endrst */
 inline str
-#if defined(__GNUC__) && __GNUC__ < 5
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
 operator"" _s // gcc 4.8.5 insists on having a space (hard error).
 #else
 operator""_s // clang 17 generates a deprecation warning if there is a space.

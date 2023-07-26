@@ -1378,7 +1378,7 @@ inline namespace literals {
     String literal version of `arg`
  \endrst */
 constexpr arg
-#if defined(__GNUC__) && __GNUC__ < 5
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
 operator"" _a // gcc 4.8.5 insists on having a space (hard error).
 #else
 operator""_a // clang 17 generates a deprecation warning if there is a space.
