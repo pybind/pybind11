@@ -14,26 +14,25 @@ class PPCCInit(PC, m.CppDrvd):
         m.CppDrvd.__init__(self, value + 1)
 
 
-def test_PC():
-    d = PC(11)
-    assert d.get_base_value() == 11
-    d.reset_base_value(13)
-    assert d.get_base_value() == 13
-
-
+# Moving this test after test_PC() changes the behavior!
 def test_PPCCInit():
     d = PPCCInit(11)
     assert d.get_drvd_value() == 36
     d.reset_drvd_value(55)
     assert d.get_drvd_value() == 55
 
-    # CppBase is initialized and used when CppBase methods are called, but
-    # CppDrvd is used when CppDrvd methods are called.
-    assert d.get_base_value() == 11
+    assert d.get_base_value() == 12
     assert d.get_base_value_from_drvd() == 12
     d.reset_base_value(20)
     assert d.get_base_value() == 20
-    assert d.get_base_value_from_drvd() == 12
+    assert d.get_base_value_from_drvd() == 20
     d.reset_base_value_from_drvd(30)
-    assert d.get_base_value() == 20
+    assert d.get_base_value() == 30
     assert d.get_base_value_from_drvd() == 30
+
+
+def test_PC():
+    d = PC(11)
+    assert d.get_base_value() == 11
+    d.reset_base_value(13)
+    assert d.get_base_value() == 13
