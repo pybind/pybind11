@@ -184,6 +184,7 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
 extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
 
     // use the default metaclass call to create/initialize the object
+printf("\nLOOOK %s:%d\n", __FILE__, __LINE__); fflush(stdout);
     PyObject *self = PyType_Type.tp_call(type, args, kwargs);
     if (self == nullptr) {
         return nullptr;
@@ -366,7 +367,10 @@ inline PyObject *make_new_instance(PyTypeObject *type) {
 /// Instance creation function for all pybind11 types. It only allocates space for the
 /// C++ object, but doesn't call the constructor -- an `__init__` function must do that.
 extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
-    return make_new_instance(type);
+printf("\nLOOOK [pybind11_object_new (called via tp_new) %s:%d\n", __FILE__, __LINE__); fflush(stdout);
+    PyObject *retval = make_new_instance(type);
+printf("\nLOOOK ]pybind11_object_new (called via tp_new) %s:%d\n", __FILE__, __LINE__); fflush(stdout);
+    return retval;
 }
 
 /// An `__init__` function constructs the C++ object. Users should provide at least one

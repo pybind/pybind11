@@ -1142,8 +1142,10 @@ protected:
             return nullptr;
         }
         if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
+printf("\nLOOOK %s BEFORE self_value_and_holder.type->init_instance %s:%d\n", self_value_and_holder.type->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
             auto *pi = reinterpret_cast<instance *>(parent.ptr());
             self_value_and_holder.type->init_instance(pi, nullptr);
+printf("\nLOOOK %s  AFTER self_value_and_holder.type->init_instance %s:%d\n", self_value_and_holder.type->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
         }
         return result.ptr();
     }
