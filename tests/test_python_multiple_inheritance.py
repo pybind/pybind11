@@ -15,7 +15,7 @@ class PPCCInit(PC, m.CppDrvd):
 
 
 # Moving this test after test_PC() changes the behavior!
-def NOtest_PPCCInit():
+def test_PPCCInit():
     d = PPCCInit(11)
     assert d.get_drvd_value() == 36
     d.reset_drvd_value(55)
@@ -31,13 +31,8 @@ def NOtest_PPCCInit():
     assert d.get_base_value_from_drvd() == 30
 
 
-def NOtest_PC():
+def test_PC():
     d = PC(11)
     assert d.get_base_value() == 11
     d.reset_base_value(13)
     assert d.get_base_value() == 13
-
-
-def testOrderDependenceDemo():
-    PC(0)
-    PPCCInit(0)
