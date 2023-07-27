@@ -104,16 +104,14 @@ all_type_info_get_cache(PyTypeObject *type);
 
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
-printf("\nLOOOK all_type_info_populate[ %s:%d\n", __FILE__, __LINE__); fflush(stdout);
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
     }
-printf("\nLOOOK:REG:POP tp_name=%s check.size()=%lu %s:%d\n", t->tp_name, (unsigned long) check.size(), __FILE__, __LINE__); fflush(stdout);
 
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
-        PyTypeObject *type = check[i];
+        auto *type = check[i];
         // Ignore Python2 old-style class super type:
         if (!PyType_Check((PyObject *) type)) {
             continue;
@@ -121,25 +119,23 @@ printf("\nLOOOK:REG:POP tp_name=%s check.size()=%lu %s:%d\n", t->tp_name, (unsig
 
         // Check `type` in the current set of registered python types:
         auto it = type_dict.find(type);
-printf("\nLOOOK type_dict.find(type) tp_name=%s found=%s %s:%d\n", type->tp_name, (it != type_dict.end() ? "yes" : "no"), __FILE__, __LINE__); fflush(stdout);
         if (it != type_dict.end()) {
             // We found a cache entry for it, so it's either pybind-registered or has pre-computed
             // pybind bases, but we have to make sure we haven't already seen the type(s) before:
             // we want to follow Python/virtual C++ rules that there should only be one instance of
             // a common base.
-            for (type_info *tinfo : it->second) {
+            for (auto *tinfo : it->second) {
                 // NB: Could use a second set here, rather than doing a linear search, but since
                 // having a large number of immediate pybind11-registered types seems fairly
                 // unlikely, that probably isn't worthwhile.
                 bool found = false;
-                for (type_info *known : bases) {
+                for (auto *known : bases) {
                     if (known == tinfo) {
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-printf("\nLOOOK:REG:ADD bases.push_back(tinfo) %s %s:%d\n", tinfo->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
                     bases.push_back(tinfo);
                 }
             }
@@ -158,7 +154,6 @@ printf("\nLOOOK:REG:ADD bases.push_back(tinfo) %s %s:%d\n", tinfo->cpptype->name
             }
         }
     }
-printf("\nLOOOK all_type_info_populate] %s:%d\n", __FILE__, __LINE__); fflush(stdout);
 }
 
 /**
@@ -265,14 +260,7 @@ struct value_and_holder {
     value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index)
         : inst{i}, index{index}, type{type},
           vh{inst->simple_layout ? inst->simple_value_holder
-                                 : &inst->nonsimple.values_and_holders[vpos]} {
-if (type && type->cpptype) {
-const char *nm = type->cpptype->name();
-if (strcmp(nm, "N32test_python_multiple_inheritance7CppBaseE") == 0 || strcmp(nm, "N32test_python_multiple_inheritance7CppDrvdE") == 0) {
-printf("\nLOOOK %s value_and_holder ctor %s:%d\n", nm, __FILE__, __LINE__); fflush(stdout);
-}
-}
-    }
+                                 : &inst->nonsimple.values_and_holders[vpos]} {}
 
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
     value_and_holder() = default;
@@ -298,18 +286,11 @@ printf("\nLOOOK %s value_and_holder ctor %s:%d\n", nm, __FILE__, __LINE__); fflu
     }
     // NOLINTNEXTLINE(readability-make-member-function-const)
     void set_holder_constructed(bool v = true) {
-//printf("\nLOOOK set_holder_constructed inst=%lu %s %s:%d\n", reinterpret_cast<unsigned long>(inst), type->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
-if (strcmp("N32test_python_multiple_inheritance7CppBaseE", type->cpptype->name()) == 0) {
-  //long *BAD = nullptr; *BAD = 101;
-}
         if (inst->simple_layout) {
-//printf("\nLOOOK %s set_holder_constructed simple_layout %s:%d\n", type->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
             inst->simple_holder_constructed = v;
         } else if (v) {
-//printf("\nLOOOK %s set_holder_constructed v %s:%d\n", type->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
             inst->nonsimple.status[index] |= instance::status_holder_constructed;
         } else {
-//printf("\nLOOOK %s set_holder_constructed not v %s:%d\n", type->cpptype->name(), __FILE__, __LINE__); fflush(stdout);
             inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_holder_constructed;
         }
     }
