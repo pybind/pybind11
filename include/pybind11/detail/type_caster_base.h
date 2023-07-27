@@ -156,6 +156,19 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
     }
 }
 
+inline void dump_registered_types_py() {
+    printf("\ndump_registered_types_py():\n{\n");
+    auto const &type_dict = get_internals().registered_types_py;
+    for (const auto &item : type_dict) {
+        printf("  %s:\n", item.first->tp_name);
+        for (const auto &base : item.second) {
+            printf("    %s\n", base->type->tp_name);
+        }
+    }
+    printf("}\n");
+    fflush(stdout);
+}
+
 /**
  * Extracts vector of type_info pointers of pybind-registered roots of the given Python type.  Will
  * be just 1 pybind type for the Python type of a pybind-registered class, or for any Python-side
@@ -171,6 +184,7 @@ inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type)
     if (ins.second) {
         // New cache entry: populate it
         all_type_info_populate(type, ins.first->second);
+        dump_registered_types_py();
     }
 
     return ins.first->second;
