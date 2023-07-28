@@ -104,9 +104,9 @@ all_type_info_get_cache(PyTypeObject *type);
 
 inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &bases,
                                                       type_info *addl_base) {
-    for (std::vector<type_info *>::const_iterator it = bases.begin(); it != bases.end(); it++) {
+    for (auto it = bases.begin(); it != bases.end(); it++) {
         type_info *existing_base = *it;
-        if (PyType_IsSubtype(addl_base->type, existing_base->type)) {
+        if (PyType_IsSubtype(addl_base->type, existing_base->type) != 0) {
             bases.insert(it, addl_base);
             return;
         }
