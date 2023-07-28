@@ -102,8 +102,21 @@ public:
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type);
 
+inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &bases,
+                                                      type_info *addl_base) {
+    for (std::vector<type_info *>::const_iterator it = bases.begin(); it != bases.end(); it++) {
+        type_info *existing_base = *it;
+        if (PyType_IsSubtype(addl_base->type, existing_base->type)) {
+            bases.insert(it, addl_base);
+            return;
+        }
+    }
+    bases.push_back(addl_base);
+}
+
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+    assert(bases.empty());
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
@@ -136,7 +149,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                     }
                 }
                 if (!found) {
-                    bases.push_back(tinfo);
+                    all_type_info_add_base_most_derived_first(bases, tinfo);
                 }
             }
         } else if (type->tp_bases) {
