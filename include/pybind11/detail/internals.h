@@ -324,16 +324,45 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-// forward decl
-inline void translate_exception(std::exception_ptr);
+const std::forward_list<ExceptionTranslator> &get_exception_translators();
+const std::forward_list<ExceptionTranslator> &get_local_exception_translators();
+
+// Apply all the extensions translators from a list
+// Return true if one of the translators completed without raising an exception
+// itself. Return of false indicates that if there are other translators
+// available, they should be tried.
+inline bool apply_exception_translators(const std::forward_list<ExceptionTranslator> &translators,
+                                        std::exception_ptr last_exception) {
+    for (const auto &translator : translators) {
+        try {
+            translator(last_exception);
+            return true;
+        } catch (...) {
+            last_exception = std::current_exception();
+        }
+    }
+    return false;
+}
+
+inline bool
+apply_exception_translators(const std::forward_list<ExceptionTranslator> &translators) {
+    return apply_exception_translators(translators, std::current_exception());
+}
 
 template <class T,
           enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     std::exception_ptr nested = exc.nested_ptr();
     if (nested != nullptr && nested != p) {
-        translate_exception(nested);
-        return true;
+        const auto &local_translators = get_local_exception_translators();
+        if (apply_exception_translators(local_translators, nested)) {
+            return true;
+        }
+
+        const auto &translators = get_exception_translators();
+        if (apply_exception_translators(translators, nested)) {
+            return true;
+        }
     }
     return false;
 }
@@ -535,6 +564,10 @@ PYBIND11_NOINLINE internals &get_internals() {
     return **internals_pp;
 }
 
+inline const std::forward_list<ExceptionTranslator> &get_exception_translators() {
+    return get_internals().registered_exception_translators;
+}
+
 // the internals struct (above) is shared between all the modules. local_internals are only
 // for a single module. Any changes made to internals may require an update to
 // PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
@@ -589,6 +622,10 @@ inline local_internals &get_local_internals() {
     // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
     static auto *locals = new local_internals();
     return *locals;
+}
+
+inline const std::forward_list<ExceptionTranslator> &get_local_exception_translators() {
+    return get_local_internals().registered_exception_translators;
 }
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its

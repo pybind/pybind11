@@ -297,11 +297,35 @@ TEST_SUBMODULE(exceptions, m) {
         }
     });
 
-    m.def("throw_nested_exception", []() {
+    m.def("throw_stl_nested_exception", []() {
         try {
-            throw std::runtime_error("Inner Exception");
+            throw std::runtime_error("Inner STL Exception");
         } catch (const std::runtime_error &) {
-            std::throw_with_nested(std::runtime_error("Outer Exception"));
+            std::throw_with_nested(std::runtime_error("Outer STL Exception"));
+        }
+    });
+
+    m.def("throw_stl_nested_exception_with_custom_exception", []() {
+        try {
+            throw std::runtime_error("Inner STL Exception");
+        } catch (const std::runtime_error &) {
+            std::throw_with_nested(MyException5("Outer Custom Exception"));
+        }
+    });
+
+    m.def("throw_custom_nested_exception_with_stl_exception", []() {
+        try {
+            throw MyException5("Inner Custom Exception");
+        } catch (const MyException5 &) {
+            std::throw_with_nested(std::runtime_error("Outer STL Exception"));
+        }
+    });
+
+    m.def("throw_custom_nested_exception_with_custom_exception", []() {
+        try {
+            throw MyException5("Inner Custom Exception");
+        } catch (const MyException5 &) {
+            std::throw_with_nested(MyException5("Outer Custom Exception"));
         }
     });
 

@@ -240,11 +240,32 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
-def test_throw_nested_exception():
+def test_throw_stl_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
-        m.throw_nested_exception()
-    assert str(excinfo.value) == "Outer Exception"
-    assert str(excinfo.value.__cause__) == "Inner Exception"
+        m.throw_stl_nested_exception()
+    assert str(excinfo.value) == "Outer STL Exception"
+    assert str(excinfo.value.__cause__) == "Inner STL Exception"
+
+
+def test_throw_stl_nested_exception_with_custom_exception():
+    with pytest.raises(m.MyException5) as excinfo:
+        m.throw_stl_nested_exception_with_custom_exception()
+    assert str(excinfo.value) == "Outer Custom Exception"
+    assert str(excinfo.value.__cause__) == "Inner STL Exception"
+
+
+def test_throw_custom_nested_exception_with_stl_exception():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.throw_custom_nested_exception_with_stl_exception()
+    assert str(excinfo.value) == "Outer STL Exception"
+    assert str(excinfo.value.__cause__) == "Inner Custom Exception"
+
+
+def test_throw_custom_nested_exception_with_custom_exception():
+    with pytest.raises(m.MyException5) as excinfo:
+        m.throw_custom_nested_exception_with_custom_exception()
+    assert str(excinfo.value) == "Outer Custom Exception"
+    assert str(excinfo.value.__cause__) == "Inner Custom Exception"
 
 
 # This can often happen if you wrap a pybind11 class in a Python wrapper
