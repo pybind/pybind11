@@ -14,7 +14,13 @@ class PPCCInit(PC, m.CppDrvd):
         m.CppDrvd.__init__(self, value + 1)
 
 
-# Moving this test after test_PC() changes the behavior!
+def test_PC():
+    d = PC(11)
+    assert d.get_base_value() == 11
+    d.reset_base_value(13)
+    assert d.get_base_value() == 13
+
+
 def test_PPCCInit():
     d = PPCCInit(11)
     assert d.get_drvd_value() == 36
@@ -29,10 +35,3 @@ def test_PPCCInit():
     d.reset_base_value_from_drvd(30)
     assert d.get_base_value() == 30
     assert d.get_base_value_from_drvd() == 30
-
-
-def test_PC():
-    d = PC(11)
-    assert d.get_base_value() == 11
-    d.reset_base_value(13)
-    assert d.get_base_value() == 13
