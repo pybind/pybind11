@@ -726,28 +726,13 @@ public:
             // if we can find an exact match (or, for a simple C++ type, an inherited match); if
             // so, we can safely reinterpret_cast to the relevant pointer.
             if (bases.size() > 1) {
-                type_info *best_base = nullptr;
-                if (no_cpp_mi) {
-                    for (auto *base : bases) {
-                        if (PyType_IsSubtype(base->type, typeinfo->type)) {
-                            if (best_base == nullptr
-                                || PyType_IsSubtype(base->type, best_base->type)) {
-                                best_base = base;
-                            }
-                        }
+                for (auto *base : bases) {
+                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type)
+                                  : base->type == typeinfo->type) {
+                        this_.load_value(
+                            reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                        return true;
                     }
-                } else {
-                    for (auto *base : bases) {
-                        if (base->type == typeinfo->type) {
-                            best_base = base;
-                            break;
-                        }
-                    }
-                }
-                if (best_base != nullptr) {
-                    this_.load_value(
-                        reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(best_base));
-                    return true;
                 }
             }
 
