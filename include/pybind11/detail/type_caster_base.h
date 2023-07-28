@@ -102,6 +102,7 @@ public:
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type);
 
+// Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
 inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &bases,
                                                       type_info *addl_base) {
     for (auto it = bases.begin(); it != bases.end(); it++) {

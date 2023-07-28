@@ -8,10 +8,8 @@ class PC(m.CppBase):
     pass
 
 
-class PPCCInit(PC, m.CppDrvd):
-    def __init__(self, value):
-        PC.__init__(self, value)
-        m.CppDrvd.__init__(self, value + 1)
+class PPCC(PC, m.CppDrvd):
+    pass
 
 
 def test_PC():
@@ -21,14 +19,14 @@ def test_PC():
     assert d.get_base_value() == 13
 
 
-def test_PPCCInit():
-    d = PPCCInit(11)
-    assert d.get_drvd_value() == 36
+def test_PPCC():
+    d = PPCC(11)
+    assert d.get_drvd_value() == 33
     d.reset_drvd_value(55)
     assert d.get_drvd_value() == 55
 
-    assert d.get_base_value() == 12
-    assert d.get_base_value_from_drvd() == 12
+    assert d.get_base_value() == 11
+    assert d.get_base_value_from_drvd() == 11
     d.reset_base_value(20)
     assert d.get_base_value() == 20
     assert d.get_base_value_from_drvd() == 20
