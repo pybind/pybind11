@@ -340,7 +340,7 @@ TEST_SUBMODULE(eigen_matrix, m) {
         Eigen::VectorXd defaultVector = Eigen::VectorXd::Ones(32);
         m.def(
             "defaults_vec", [](const Eigen::VectorXd &) {}, py::arg("vec") = defaultMatrix);
-    } catch (const py::error_already_set &ex) {
+    } catch (const py::error_already_set&) {
     }
     // test_sparse, test_sparse_signature
     m.def("sparse_r", [mat]() -> SparseMatrixR {
