@@ -266,7 +266,7 @@ public:
     \endrst */
     const handle &dec_ref() const & {
         // If python is already dead, leak the wrapped python objects
-        if (Py_IsInitialized()) {
+        if (Py_IsInitialized() != 0) {
 #ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
             if (m_ptr != nullptr && !PyGILState_Check()) {
                 throw_gilstate_error("pybind11::handle::dec_ref()");
