@@ -349,12 +349,16 @@ public:
         const type_vec *types = nullptr;
         value_and_holder curr;
         friend struct values_and_holders;
-        iterator(instance *inst, const type_vec *tinfo)
-            : inst{inst}, types{tinfo},
-              curr(inst /* instance */,
-                   types->empty() ? nullptr : (*types)[0] /* type info */,
-                   0, /* vpos: (non-simple types only): the first vptr comes first */
-                   0 /* index */) {}
+        iterator(instance *inst, const type_vec *tinfo) : inst{inst}, types{tinfo} {
+            if (inst != nullptr) {
+                assert(!types->empty());
+                curr = value_and_holder(
+                    inst /* instance */,
+                    (*types)[0] /* type info */,
+                    0, /* vpos: (non-simple types only): the first vptr comes first */
+                    0 /* index */);
+            }
+        }
         // Past-the-end iterator:
         explicit iterator(size_t end) : curr(end) {}
 
