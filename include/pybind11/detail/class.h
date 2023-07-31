@@ -180,17 +180,6 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
     return PyType_Type.tp_getattro(obj, name);
 }
 
-// Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
-inline bool is_redundant_value_and_holder(const std::vector<type_info *> &bases,
-                                          std::size_t ix_base) {
-    for (std::size_t i = 0; i < ix_base; i++) {
-        if (PyType_IsSubtype(bases[i]->type, bases[ix_base]->type) != 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /// metaclass `__call__` function that is used to create all pybind11 objects.
 extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
 
@@ -201,19 +190,15 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     }
 
     // Ensure that the base __init__ function(s) were called
-    const auto &bases = all_type_info((PyTypeObject *) type);
-    values_and_holders vhs(reinterpret_cast<detail::instance *>(self));
-    assert(bases.size() == vhs.size());
-    std::size_t ix_base = 0;
+    values_and_holders vhs(self);
     for (const auto &vh : vhs) {
-        if (!vh.holder_constructed() && !is_redundant_value_and_holder(bases, ix_base)) {
+        if (!vh.holder_constructed() && !vhs.is_redundant_value_and_holder(vh)) {
             PyErr_Format(PyExc_TypeError,
                          "%.200s.__init__() must be called when overriding __init__",
                          get_fully_qualified_tp_name(vh.type->type).c_str());
             Py_DECREF(self);
             return nullptr;
         }
-        ix_base++;
     }
 
     return self;

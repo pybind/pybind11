@@ -336,6 +336,13 @@ public:
     explicit values_and_holders(instance *inst)
         : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
 
+    explicit values_and_holders(PyObject *obj)
+        : inst{nullptr}, tinfo(all_type_info(Py_TYPE(obj))) {
+        if (!tinfo.empty()) {
+            inst = reinterpret_cast<instance *>(obj);
+        }
+    }
+
     struct iterator {
     private:
         instance *inst = nullptr;
@@ -378,6 +385,16 @@ public:
     }
 
     size_t size() { return tinfo.size(); }
+
+    // Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
+    bool is_redundant_value_and_holder(const value_and_holder &vh) {
+        for (size_t i = 0; i < vh.index; i++) {
+            if (PyType_IsSubtype(tinfo[i]->type, tinfo[vh.index]->type) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 /**
