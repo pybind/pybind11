@@ -12,6 +12,10 @@ class PPCC(PC, m.CppDrvd):
     pass
 
 
+class PPCC2(PC, m.CppDrv2):
+    pass
+
+
 def test_PC():
     d = PC(11)
     assert d.get_base_value() == 11
@@ -33,3 +37,10 @@ def test_PPCC():
     d.reset_base_value_from_drvd(30)
     assert d.get_base_value() == 30
     assert d.get_base_value_from_drvd() == 30
+
+
+def test_PPCC2():
+    d = PPCC2(13)
+    assert d.get_drv2_value() == 65
+    assert d.get_drvd_value() == 39
+    assert d.get_base_value() == 13
