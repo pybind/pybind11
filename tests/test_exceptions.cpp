@@ -110,7 +110,10 @@ TEST_SUBMODULE(exceptions, m) {
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
 
     // make a new custom exception and use it as a translation target
-    static py::exception<MyException> ex(m, "MyException");
+    // This is a static object, so we must leak the Python reference:
+    // it is undefined when the destructor will run, possibly only after
+    // the Python interpreter is finalized already.
+    static py::handle ex = py::exception<MyException>(m, "MyException").release();
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) {
@@ -118,7 +121,7 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyException &e) {
             // Set MyException as the active python error
-            ex(e.what());
+            PyErr_SetString(ex.ptr(), e.what());
         }
     });
 
