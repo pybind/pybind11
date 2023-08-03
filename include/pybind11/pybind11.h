@@ -2525,6 +2525,10 @@ inline void register_local_exception_translator(ExceptionTranslator &&translator
         std::forward<ExceptionTranslator>(translator));
 }
 
+inline void set_error(const handle exc, const char *message) {
+    PyErr_SetString(exc.ptr(), message);
+}
+
 /**
  * Wrapper to generate a new Python exception type.
  *
@@ -2549,7 +2553,7 @@ public:
     }
 
     // Sets the current python exception to this exception object with the given message
-    void operator()(const char *message) { PyErr_SetString(m_ptr, message); }
+    void operator()(const char *message) const { set_error(*this, message); }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)

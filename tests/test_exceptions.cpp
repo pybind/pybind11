@@ -109,11 +109,8 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception",
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
 
-    // make a new custom exception and use it as a translation target
-    // This is a static object, so we must leak the Python reference:
-    // it is undefined when the destructor will run, possibly only after
-    // the Python interpreter is finalized already.
-    static py::handle ex = py::exception<MyException>(m, "MyException").release();
+    // Please keep in sync with docs/advanced/exceptions.rst
+    static const auto *const ex = new py::exception<MyException>(m, "MyException");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) {
@@ -121,7 +118,7 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyException &e) {
             // Set MyException as the active python error
-            PyErr_SetString(ex.ptr(), e.what());
+            (*ex)(e.what());
         }
     });
 
@@ -135,7 +132,7 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyException2 &e) {
             // Translate this exception to a standard RuntimeError
-            PyErr_SetString(PyExc_RuntimeError, e.what());
+            py::set_error(PyExc_RuntimeError, e.what());
         }
     });
 
@@ -165,7 +162,7 @@ TEST_SUBMODULE(exceptions, m) {
                 std::rethrow_exception(p);
             }
         } catch (const MyException6 &e) {
-            PyErr_SetString(PyExc_RuntimeError, e.what());
+            py::set_error(PyExc_RuntimeError, e.what());
         }
     });
 
@@ -225,7 +222,7 @@ TEST_SUBMODULE(exceptions, m) {
 
     m.def("throw_already_set", [](bool err) {
         if (err) {
-            PyErr_SetString(PyExc_ValueError, "foo");
+            py::set_error(PyExc_ValueError, "foo");
         }
         try {
             throw py::error_already_set();
@@ -241,7 +238,7 @@ TEST_SUBMODULE(exceptions, m) {
         }
         PyErr_Clear();
         if (err) {
-            PyErr_SetString(PyExc_ValueError, "foo");
+            py::set_error(PyExc_ValueError, "foo");
         }
         throw py::error_already_set();
     });
@@ -250,7 +247,7 @@ TEST_SUBMODULE(exceptions, m) {
         bool retval = false;
         try {
             PythonCallInDestructor set_dict_in_destructor(d);
-            PyErr_SetString(PyExc_ValueError, "foo");
+            py::set_error(PyExc_ValueError, "foo");
             throw py::error_already_set();
         } catch (const py::error_already_set &) {
             retval = true;
@@ -285,14 +282,14 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throw_should_be_translated_to_key_error", []() { throw shared_exception(); });
 
     m.def("raise_from", []() {
-        PyErr_SetString(PyExc_ValueError, "inner");
+        py::set_error(PyExc_ValueError, "inner");
         py::raise_from(PyExc_ValueError, "outer");
         throw py::error_already_set();
     });
 
     m.def("raise_from_already_set", []() {
         try {
-            PyErr_SetString(PyExc_ValueError, "inner");
+            py::set_error(PyExc_ValueError, "inner");
             throw py::error_already_set();
         } catch (py::error_already_set &e) {
             py::raise_from(e, PyExc_ValueError, "outer");
@@ -324,7 +321,7 @@ TEST_SUBMODULE(exceptions, m) {
     });
 
     m.def("test_error_already_set_double_restore", [](bool dry_run) {
-        PyErr_SetString(PyExc_ValueError, "Random error.");
+        py::set_error(PyExc_ValueError, "Random error.");
         py::error_already_set e;
         e.restore();
         PyErr_Clear();

@@ -142,14 +142,17 @@ standard python RuntimeError:
 
 .. code-block:: cpp
 
-    static py::exception<MyCustomException> exc(m, "MyCustomError");
+    // This is a static object, so we must leak the Python reference:
+    // It is undefined when the destructor will run, possibly only after the
+    // Python interpreter is finalized already.
+    static const auto *const exc = new py::exception<MyCustomException>(m, "MyCustomError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyCustomException &e) {
-            exc(e.what());
+            (*exc)(e.what());
         } catch (const OtherException &e) {
-            PyErr_SetString(PyExc_RuntimeError, e.what());
+            py::set_error(PyExc_RuntimeError, e.what());
         }
     });
 
