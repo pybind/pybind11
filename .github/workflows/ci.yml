@@ -465,6 +465,7 @@ jobs:
           - { gcc: 10, std: 17 }
           - { gcc: 11, std: 20 }
           - { gcc: 12, std: 20 }
+          - { gcc: 13, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
     container: "gcc:${{ matrix.gcc }}"
