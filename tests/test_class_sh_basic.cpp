@@ -164,7 +164,7 @@ TEST_SUBMODULE(class_sh_basic, m) {
     // Make sure unique_ptr type caster accept automatic_reference return value policy.
     m.def(
         "rtrn_uq_automatic_reference",
-        []() { return std::make_unique<atyp>("rtrn_uq_automatic_reference"); },
+        []() { return std::unique_ptr<atyp>(new atyp("rtrn_uq_automatic_reference")); },
         pybind11::return_value_policy::automatic_reference);
 }
 
