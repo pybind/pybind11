@@ -1,9 +1,12 @@
+#include <pybind11/functional.h>
 #include <pybind11/smart_holder.h>
 
 #include "pybind11_tests.h"
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace pybind11_tests {
@@ -79,6 +82,11 @@ struct SharedPtrStash {
     std::vector<std::shared_ptr<const atyp>> stash;
     void Add(const std::shared_ptr<const atyp> &obj) { stash.push_back(obj); }
 };
+
+std::string pass_uq_cb(const std::function<std::string(std::unique_ptr<atyp>)> &cb) {
+    std::unique_ptr<atyp> ptr = std::make_unique<atyp>("pass_uq_cb");
+    return cb(std::move(ptr));
+}
 
 } // namespace class_sh_basic
 } // namespace pybind11_tests
@@ -160,6 +168,12 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("args_shared_ptr_const", [](std::shared_ptr<atyp const> p) { return p; });
     m.def("args_unique_ptr", [](std::unique_ptr<atyp> p) { return p; });
     m.def("args_unique_ptr_const", [](std::unique_ptr<atyp const> p) { return p; });
+
+    // Make sure unique_ptr type caster accept automatic_reference return value policy.
+    m.def("pass_uq_cb",
+          &pass_uq_cb,
+          pybind11::arg("cb").policies(pybind11::return_value_policy_pack(
+              pybind11::return_value_policy::automatic_reference)));
 }
 
 } // namespace class_sh_basic
