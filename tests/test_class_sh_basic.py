@@ -181,3 +181,7 @@ def test_function_signatures(doc):
         doc(m.args_unique_ptr_const)
         == "args_unique_ptr_const(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
     )
+
+
+def test_unique_ptr_return_value_policy_automatic_reference():
+    assert m.get_mtxt(m.rtrn_uq_automatic_reference()) == "rtrn_uq_automatic_reference"

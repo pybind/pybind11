@@ -160,6 +160,12 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("args_shared_ptr_const", [](std::shared_ptr<atyp const> p) { return p; });
     m.def("args_unique_ptr", [](std::unique_ptr<atyp> p) { return p; });
     m.def("args_unique_ptr_const", [](std::unique_ptr<atyp const> p) { return p; });
+
+    // Make sure unique_ptr type caster accept automatic_reference return value policy.
+    m.def(
+        "rtrn_uq_automatic_reference",
+        []() { return std::unique_ptr<atyp>(new atyp("rtrn_uq_automatic_reference")); },
+        pybind11::return_value_policy::automatic_reference);
 }
 
 } // namespace class_sh_basic
