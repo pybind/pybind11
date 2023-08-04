@@ -2,7 +2,7 @@
     pybind11/typing.h: Convenience wrapper classes for basic Python types
     with more explicit annotations.
 
-    Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
+    Copyright (c) 2023 Dustin Spicuzza <dustin@virtualroadside.com>
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
