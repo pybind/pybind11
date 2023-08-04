@@ -26,14 +26,6 @@ private:
     int drvd_value;
 };
 
-struct CppDrv2 : CppDrvd {
-    explicit CppDrv2(int value) : CppDrvd(value), drv2_value(value * 5) {}
-    int get_drv2_value() const { return drv2_value; }
-
-private:
-    int drv2_value;
-};
-
 } // namespace test_python_multiple_inheritance
 
 TEST_SUBMODULE(python_multiple_inheritance, m) {
@@ -50,12 +42,4 @@ TEST_SUBMODULE(python_multiple_inheritance, m) {
         .def("reset_drvd_value", &CppDrvd::reset_drvd_value)
         .def("get_base_value_from_drvd", &CppDrvd::get_base_value_from_drvd)
         .def("reset_base_value_from_drvd", &CppDrvd::reset_base_value_from_drvd);
-
-#if 1 // This works.
-    py::class_<CppDrv2, CppDrvd>(m, "CppDrv2")
-#else // Apparent undefined behavior.
-    py::class_<CppDrv2, CppDrvd, CppBase>(m, "CppDrv2")
-#endif
-        .def(py::init<int>())
-        .def("get_drv2_value", &CppDrv2::get_drv2_value);
 }
