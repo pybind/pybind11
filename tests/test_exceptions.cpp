@@ -136,13 +136,16 @@ TEST_SUBMODULE(exceptions, m) {
                 std::rethrow_exception(p);
             }
         } catch (const MyExceptionUseDeprecatedOperatorCall &e) {
+#if defined(__INTEL_COMPILER) // It is too troublesome to add --diag-disable=10441
+            py::set_error(exd, e.what());
+#else
             PYBIND11_WARNING_PUSH
             PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-declarations")
             PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated-declarations")
-            PYBIND11_WARNING_DISABLE_INTEL(10441)
             PYBIND11_WARNING_DISABLE_MSVC(4996)
             (*exd)(e.what());
             PYBIND11_WARNING_POP
+#endif
         }
     });
 
