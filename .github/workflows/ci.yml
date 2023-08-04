@@ -303,6 +303,9 @@ jobs:
           - clang: 15
             std: 20
             container_suffix: "-bullseye"
+          - clang: 16
+            std: 20
+            container_suffix: "-bullseye"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
@@ -466,6 +469,7 @@ jobs:
           - { gcc: 10, std: 17 }
           - { gcc: 11, std: 20 }
           - { gcc: 12, std: 20 }
+          - { gcc: 13, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
     container: "gcc:${{ matrix.gcc }}"
