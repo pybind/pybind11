@@ -137,8 +137,10 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyExceptionUseDeprecatedOperatorCall &e) {
             PYBIND11_WARNING_PUSH
-            PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated-declarations")
             PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-declarations")
+            PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated-declarations")
+            PYBIND11_WARNING_DISABLE_INTEL(10441)
+            PYBIND11_WARNING_DISABLE_MSVC(4996)
             (*exd)(e.what());
             PYBIND11_WARNING_POP
         }
