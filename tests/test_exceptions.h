@@ -9,5 +9,5 @@ class PYBIND11_EXPORT_EXCEPTION shared_exception : public pybind11::builtin_exce
 public:
     using builtin_exception::builtin_exception;
     explicit shared_exception() : shared_exception("") {}
-    void set_error() const override { PyErr_SetString(PyExc_RuntimeError, what()); }
+    void set_error() const override { py::set_error(PyExc_RuntimeError, what()); }
 };

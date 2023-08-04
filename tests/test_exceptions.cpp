@@ -25,6 +25,10 @@ private:
     std::string message = "";
 };
 
+class MyExceptionUseDeprecatedOperatorCall : public MyException {
+    using MyException::MyException;
+};
+
 // A type that should be translated to a standard Python exception
 class MyException2 : public std::exception {
 public:
@@ -109,8 +113,8 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception",
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
 
-    // Please keep in sync with docs/advanced/exceptions.rst
-    static const auto *const ex = new py::exception<MyException>(m, "MyException");
+    // PLEASE KEEP IN SYNC with docs/advanced/exceptions.rst
+    static py::handle ex = py::exception<MyException>(m, "MyException").release();
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) {
@@ -118,7 +122,25 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyException &e) {
             // Set MyException as the active python error
-            (*ex)(e.what());
+            py::set_error(ex, e.what());
+        }
+    });
+
+    // Same as above, but using the deprecated `py::exception<>::operator()`
+    // We want to be sure it still works, until it's removed.
+    static const auto *const exd = new py::exception<MyExceptionUseDeprecatedOperatorCall>(
+        m, "MyExceptionUseDeprecatedOperatorCall");
+    py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) {
+                std::rethrow_exception(p);
+            }
+        } catch (const MyExceptionUseDeprecatedOperatorCall &e) {
+            PYBIND11_WARNING_PUSH
+            PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated-declarations")
+            PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-declarations")
+            (*exd)(e.what());
+            PYBIND11_WARNING_POP
         }
     });
 
@@ -166,7 +188,12 @@ TEST_SUBMODULE(exceptions, m) {
         }
     });
 
-    m.def("throws1", []() { throw MyException("this error should go to a custom type"); });
+    m.def("throws1",
+          []() { throw MyException("this error should go to py::exception<MyException>"); });
+    m.def("throws1d", []() {
+        throw MyExceptionUseDeprecatedOperatorCall(
+            "this error should go to py::exception<MyExceptionUseDeprecatedOperatorCall>");
+    });
     m.def("throws2",
           []() { throw MyException2("this error should go to a standard Python exception"); });
     m.def("throws3", []() { throw MyException3("this error cannot be translated"); });
@@ -306,7 +333,7 @@ TEST_SUBMODULE(exceptions, m) {
     });
 
     m.def("error_already_set_what", [](const py::object &exc_type, const py::object &exc_value) {
-        PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
+        py::set_error(exc_type, exc_value);
         std::string what = py::error_already_set().what();
         bool py_err_set_after_what = (PyErr_Occurred() != nullptr);
         PyErr_Clear();

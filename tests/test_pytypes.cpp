@@ -25,7 +25,7 @@ PyObject *conv(PyObject *o) {
             ret = PyFloat_FromDouble(v);
         }
     } else {
-        PyErr_SetString(PyExc_TypeError, "Unexpected type");
+        py::set_error(PyExc_TypeError, "Unexpected type");
     }
     return ret;
 }
