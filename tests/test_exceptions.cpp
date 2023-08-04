@@ -137,7 +137,7 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyExceptionUseDeprecatedOperatorCall &e) {
 #if defined(__INTEL_COMPILER) // It is too troublesome to add --diag-disable=10441
-            py::set_error(exd, e.what());
+            py::set_error(*exd, e.what());
 #else
             PYBIND11_WARNING_PUSH
             PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-declarations")
