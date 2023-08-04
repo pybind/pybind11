@@ -136,7 +136,9 @@ TEST_SUBMODULE(exceptions, m) {
                 std::rethrow_exception(p);
             }
         } catch (const MyExceptionUseDeprecatedOperatorCall &e) {
-#if defined(__INTEL_COMPILER) // It is too troublesome to add --diag-disable=10441
+#if defined(__INTEL_COMPILER) || defined(__NVCOMPILER)
+            // It is not worth the trouble dealing with warning suppressions for these compilers.
+            // Falling back to the recommended approach to keep the test code simple.
             py::set_error(*exd, e.what());
 #else
             PYBIND11_WARNING_PUSH
