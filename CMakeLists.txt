@@ -141,7 +141,8 @@ set(PYBIND11_HEADERS
     include/pybind11/stl.h
     include/pybind11/stl_bind.h
     include/pybind11/stl/filesystem.h
-    include/pybind11/type_caster_pyobject_ptr.h)
+    include/pybind11/type_caster_pyobject_ptr.h
+    include/pybind11/typing.h)
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)

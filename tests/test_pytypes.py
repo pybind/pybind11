@@ -896,3 +896,38 @@ def test_inplace_lshift(a, b):
 def test_inplace_rshift(a, b):
     expected = a >> b
     assert m.inplace_rshift(a, b) == expected
+
+
+def test_tuple_nonempty_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_float_str)
+        == "annotate_tuple_float_str(arg0: tuple[float, str]) -> None"
+    )
+
+
+def test_tuple_empty_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_empty) == "annotate_tuple_empty(arg0: tuple[()]) -> None"
+    )
+
+
+def test_dict_annotations(doc):
+    assert (
+        doc(m.annotate_dict_str_int)
+        == "annotate_dict_str_int(arg0: dict[str, int]) -> None"
+    )
+
+
+def test_list_annotations(doc):
+    assert doc(m.annotate_list_int) == "annotate_list_int(arg0: list[int]) -> None"
+
+
+def test_set_annotations(doc):
+    assert doc(m.annotate_set_str) == "annotate_set_str(arg0: set[str]) -> None"
+
+
+def test_fn_annotations(doc):
+    assert (
+        doc(m.annotate_fn)
+        == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
+    )
