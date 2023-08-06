@@ -195,7 +195,7 @@ endif()
 
 # --------------------- pybind11_find_import -------------------------------
 
-if(NOT _pybind11_nopython)
+if(NOT _pybind11_nopython AND NOT CMAKE_CROSSCOMPILING)
   # Check to see if modules are importable. Use REQUIRED to force an error if
   # one of the modules is not found. <package_name>_FOUND will be set if the
   # package was found (underscores replace dashes if present). QUIET will hide
