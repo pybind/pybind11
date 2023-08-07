@@ -52,41 +52,35 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline std::string replaceNewlinesAndSquash(const char *text) {
-    std::string result;
+constexpr const char *whitespaces = " \t\n\r\f\v";
 
-    // Replace newlines with spaces and squash consecutive spaces
+inline std::string replace_newlines_and_squash(const char *text) {
+    std::string result;
+    bool previous_is_whitespace = false;
+
+    // Replace characters in whitespaces array with spaces and squash consecutive spaces
     while (*text != '\0') {
-        if (*text == '\n') {
-            result += ' ';
-            while (*(text + 1) == ' ') {
-                ++text;
+        if (strchr(whitespaces, *text)) {
+            if (!previous_is_whitespace) {
+                result += ' ';
+                previous_is_whitespace = true;
             }
         } else {
             result += *text;
+            previous_is_whitespace = false;
         }
         ++text;
     }
 
-    // Strip leading spaces
-    size_t firstNonSpace = result.find_first_not_of(" \t\n\r\f\v");
+    // Strip leading and trailing whitespaces
+    const size_t str_begin = result.find_first_not_of(whitespaces);
+    if (str_begin == std::string::npos)
+        return "";
 
-    if (firstNonSpace != std::string::npos) {
-        result.erase(0, firstNonSpace);
-    } else {
-        result.clear();
-    }
+    const size_t str_end = result.find_last_not_of(whitespaces);
+    const size_t str_range = str_end - str_begin + 1;
 
-    // Strip trailing spaces
-    size_t lastNonSpace = result.find_last_not_of(" \t\n\r\f\v");
-
-    if (lastNonSpace != std::string::npos) {
-        result.erase(lastNonSpace + 1);
-    } else {
-        result.clear();
-    }
-
-    return result;
+    return result.substr(str_begin, str_range);
 }
 
 // Apply all the extensions translators from a list
@@ -461,7 +455,7 @@ protected:
                 // Write default value if available.
                 if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
                     signature += " = ";
-                    signature += detail::replaceNewlinesAndSquash(rec->args[arg_index].descr);
+                    signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
                 }
                 // Separator for positional-only arguments (placed after the
                 // argument, rather than before like *
