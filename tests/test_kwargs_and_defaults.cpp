@@ -46,7 +46,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     struct CustomRepr {
         std::string repr_string;
 
-        CustomRepr(const std::string &repr) : repr_string(repr) {}
+        explicit CustomRepr(const std::string &repr) : repr_string(repr) {}
 
         std::string __repr__() const { return repr_string; }
     };
@@ -58,25 +58,27 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def(
         "kw_lb_func0",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("  Hello World!  "));
+        py::arg("custom") = CustomRepr("  array([[A, B], [C, D]])  "));
     m.def(
         "kw_lb_func1",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("  Hello\nWorld!  "));
+        py::arg("custom") = CustomRepr("  array([[A, B],\n[C, D]])  "));
     m.def(
         "kw_lb_func2",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("\n   Hello World!"));
+        py::arg("custom") = CustomRepr("\n   array([[A, B], [C, D]])"));
     m.def(
         "kw_lb_func3",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("Hello World!   \n"));
+        py::arg("custom") = CustomRepr("array([[A, B], [C, D]])   \n"));
     m.def(
         "kw_lb_func4",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("Hello\n\nWorld!"));
+        py::arg("custom") = CustomRepr("array([[A, B],\n\n[C, D]])"));
     m.def(
-        "kw_lb_func5", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("Hello  World!"));
+        "kw_lb_func5",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("array([[A, B],  [C, D]])"));
     m.def(
         "kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \t "));
 
