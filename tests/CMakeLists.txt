@@ -16,6 +16,9 @@ else()
   cmake_policy(VERSION 3.26)
 endif()
 
+# Include Python headers from FindPython
+include_directories(${Python_INCLUDE_DIRS})
+
 # Filter out items; print an optional message if any items filtered. This ignores extensions.
 #
 # Usage:

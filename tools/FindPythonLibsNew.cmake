@@ -95,10 +95,10 @@ if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "3.6")
 endif()
 
-find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
-             ${_pythonlibs_quiet})
+find_package(Python ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
+             ${_pythonlibs_quiet} COMPONENTS Interpreter Development REQUIRED)
 
-if(NOT PYTHONINTERP_FOUND)
+if(NOT Python_Interpreter_FOUND)
   set(PYTHONLIBS_FOUND FALSE)
   set(PythonLibsNew_FOUND FALSE)
   return()
@@ -112,7 +112,7 @@ endif()
 # VERSION. VERSION will typically be like "2.7" on unix, and "27" on windows.
 execute_process(
   COMMAND
-    "${PYTHON_EXECUTABLE}" "-c" "
+    "${Python_EXECUTABLE}" "-c" "
 import sys;import struct;
 import sysconfig as s
 USE_SYSCONFIG = sys.version_info >= (3, 10)
