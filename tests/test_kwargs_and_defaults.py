@@ -25,9 +25,32 @@ def test_function_signatures(doc):
     )
     assert (
         doc(m.kw_lb_func0)
-        == "kw_lb_func0(custom: m.kwargs_and_defaults.CustomRepr = line break) -> None"
+        == "kw_lb_func0(custom: m.kwargs_and_defaults.CustomRepr = Hello World!) -> None"
     )
-
+    assert (
+        doc(m.kw_lb_func1)
+        == "kw_lb_func1(custom: m.kwargs_and_defaults.CustomRepr = Hello World!) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func2)
+        == "kw_lb_func2(custom: m.kwargs_and_defaults.CustomRepr = Hello World!) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func3)
+        == "kw_lb_func3(custom: m.kwargs_and_defaults.CustomRepr = Hello World!) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func4)
+        == "kw_lb_func4(custom: m.kwargs_and_defaults.CustomRepr = Hello World!) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func5)
+        == "kw_lb_func5(custom: m.kwargs_and_defaults.CustomRepr = Hello World!) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func6)
+        == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
+    )
 
 def test_named_arguments():
     assert m.kw_func0(5, 10) == "x=5, y=10"
