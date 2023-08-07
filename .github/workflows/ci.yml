@@ -302,6 +302,9 @@ jobs:
           - clang: 15
             std: 20
             container_suffix: "-bullseye"
+          - clang: 16
+            std: 20
+            container_suffix: "-bullseye"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
@@ -401,54 +404,55 @@ jobs:
 #      run: cmake --build build --target test_cmake_build
 
 
-  # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
-  centos-nvhpc7:
-    if: ${{ false }}  # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4690
-    runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
-    container: centos:7
+  # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
+  ubuntu-nvhpc7:
+    runs-on: ubuntu-20.04
+    name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
 
+    env:
+      # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
+      DEBIAN_FRONTEND: 'noninteractive'
     steps:
     - uses: actions/checkout@v3
 
-    - name: Add Python 3 and a few requirements
-      run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3 yum-utils
+    - name: Add NVHPC Repo
+      run: |
+        echo 'deb [trusted=yes] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | \
+          sudo tee /etc/apt/sources.list.d/nvhpc.list
 
-    - name: Install NVidia HPC SDK
-      run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.9
+    - name: Install 🐍 3 & NVHPC
+      run: |
+        sudo apt-get update -y && \
+        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy && \
+        sudo apt-get install -y --no-install-recommends nvhpc-23-5 && \
+        sudo rm -rf /var/lib/apt/lists/*
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade pytest
 
-    # On CentOS 7, we have to filter a few tests (compiler internal error)
-    # and allow deeper template recursion (not needed on CentOS 8 with a newer
-    # standard library). On some systems, you many need further workarounds:
+    # On some systems, you many need further workarounds:
     # https://github.com/pybind/pybind11/pull/2475
     - name: Configure
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.9
-        cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
-                            -DCMAKE_CXX_STANDARD=11 \
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.5
+        cmake -S . -B build -DDOWNLOAD_CATCH=ON \
+                            -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
                             -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
-    # Building before installing Pip should produce a warning but not an error
     - name: Build
-      run: cmake3 --build build -j 2 --verbose
-
-    - name: Install CMake with pip
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install pytest
+      run: cmake --build build -j 2 --verbose
 
     - name: Python tests
-      run: cmake3 --build build --target pytest
+      run: cmake --build build --target pytest
 
     - name: C++ tests
-      run: cmake3 --build build --target cpptest
+      run: cmake --build build --target cpptest
 
     - name: Interface test
-      run: cmake3 --build build --target test_cmake_build
+      run: cmake --build build --target test_cmake_build
 
 
   # Testing on GCC using the GCC docker images (only recent images supported)
@@ -465,6 +469,7 @@ jobs:
           - { gcc: 10, std: 17 }
           - { gcc: 11, std: 20 }
           - { gcc: 12, std: 20 }
+          - { gcc: 13, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
     container: "gcc:${{ matrix.gcc }}"
