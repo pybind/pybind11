@@ -74,8 +74,9 @@ inline std::string replace_newlines_and_squash(const char *text) {
 
     // Strip leading and trailing whitespaces
     const size_t str_begin = result.find_first_not_of(whitespaces);
-    if (str_begin == std::string::npos)
+    if (str_begin == std::string::npos) {
         return "";
+    }
 
     const size_t str_end = result.find_last_not_of(whitespaces);
     const size_t str_range = str_end - str_begin + 1;
