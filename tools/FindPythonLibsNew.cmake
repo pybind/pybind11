@@ -95,8 +95,10 @@ if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "3.6")
 endif()
 
-find_package(Python ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
-             ${_pythonlibs_quiet} COMPONENTS Interpreter Development REQUIRED)
+find_package(
+  Python ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required} ${_pythonlibs_quiet}
+  COMPONENTS Interpreter Development
+  REQUIRED)
 
 if(NOT Python_Interpreter_FOUND)
   set(PYTHONLIBS_FOUND FALSE)
