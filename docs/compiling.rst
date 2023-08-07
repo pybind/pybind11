@@ -143,7 +143,7 @@ Your ``pyproject.toml`` file will likely look something like this:
 .. code-block:: toml
 
     [build-system]
-    requires = ["setuptools>=42", "wheel", "pybind11~=2.6.1"]
+    requires = ["setuptools>=42", "pybind11>=2.6.1"]
     build-backend = "setuptools.build_meta"
 
 .. note::
