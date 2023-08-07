@@ -51,24 +51,34 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         std::string __repr__() const { return repr_string; }
     };
 
-    py::class_<CustomRepr>(m, "CustomRepr").def(py::init<const std::string &>())
+    py::class_<CustomRepr>(m, "CustomRepr")
+        .def(py::init<const std::string &>())
         .def("__repr__", &CustomRepr::__repr__);
 
     m.def(
-        "kw_lb_func0", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("  Hello World!  "));
+        "kw_lb_func0",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("  Hello World!  "));
     m.def(
-        "kw_lb_func1", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("  Hello\nWorld!  "));
+        "kw_lb_func1",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("  Hello\nWorld!  "));
     m.def(
-        "kw_lb_func2", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("\n   Hello World!"));
+        "kw_lb_func2",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("\n   Hello World!"));
     m.def(
-        "kw_lb_func3", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("Hello World!   \n"));
+        "kw_lb_func3",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("Hello World!   \n"));
     m.def(
-        "kw_lb_func4", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("Hello\n\nWorld!"));
+        "kw_lb_func4",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("Hello\n\nWorld!"));
     m.def(
         "kw_lb_func5", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr("Hello  World!"));
     m.def(
         "kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \t "));
-
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {

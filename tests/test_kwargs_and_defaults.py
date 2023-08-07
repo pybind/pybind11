@@ -52,6 +52,7 @@ def test_function_signatures(doc):
         == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
     )
 
+
 def test_named_arguments():
     assert m.kw_func0(5, 10) == "x=5, y=10"
 
