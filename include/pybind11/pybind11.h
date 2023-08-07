@@ -52,9 +52,8 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-constexpr const char *whitespaces = " \t\n\r\f\v";
-
 inline std::string replace_newlines_and_squash(const char *text) {
+    const char *whitespaces = " \t\n\r\f\v";
     std::string result;
     bool previous_is_whitespace = false;
 
