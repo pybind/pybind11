@@ -352,7 +352,7 @@ inline bool raise_err(PyObject *exc_type, const char *msg) {
         raise_from(exc_type, msg);
         return true;
     }
-    PyErr_SetString(exc_type, msg);
+    set_error(exc_type, msg);
     return false;
 }
 

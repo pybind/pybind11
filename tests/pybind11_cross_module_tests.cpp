@@ -31,11 +31,11 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     // test_exceptions.py
     py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException");
     m.def("raise_runtime_error", []() {
-        PyErr_SetString(PyExc_RuntimeError, "My runtime error");
+        py::set_error(PyExc_RuntimeError, "My runtime error");
         throw py::error_already_set();
     });
     m.def("raise_value_error", []() {
-        PyErr_SetString(PyExc_ValueError, "My value error");
+        py::set_error(PyExc_ValueError, "My value error");
         throw py::error_already_set();
     });
     m.def("throw_pybind_value_error", []() { throw py::value_error("pybind11 value error"); });
@@ -49,7 +49,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
                 std::rethrow_exception(p);
             }
         } catch (const shared_exception &e) {
-            PyErr_SetString(PyExc_KeyError, e.what());
+            py::set_error(PyExc_KeyError, e.what());
         }
     });
 
@@ -60,7 +60,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
                 std::rethrow_exception(p);
             }
         } catch (const LocalException &e) {
-            PyErr_SetString(PyExc_KeyError, e.what());
+            py::set_error(PyExc_KeyError, e.what());
         }
     });
 

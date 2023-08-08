@@ -78,14 +78,14 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
 
     m.def("cast_to_pyobject_ptr_nullptr", [](bool set_error) {
         if (set_error) {
-            PyErr_SetString(PyExc_RuntimeError, "Reflective of healthy error handling.");
+            py::set_error(PyExc_RuntimeError, "Reflective of healthy error handling.");
         }
         PyObject *ptr = nullptr;
         py::cast(ptr);
     });
 
     m.def("cast_to_pyobject_ptr_non_nullptr_with_error_set", []() {
-        PyErr_SetString(PyExc_RuntimeError, "Reflective of unhealthy error handling.");
+        py::set_error(PyExc_RuntimeError, "Reflective of unhealthy error handling.");
         py::cast(Py_None);
     });
 
