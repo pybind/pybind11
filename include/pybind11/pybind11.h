@@ -54,12 +54,20 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline std::string replace_newlines_and_squash(const char *text) {
     const char *whitespaces = " \t\n\r\f\v";
-    std::string result;
+    std::string result(text);
     bool previous_is_whitespace = false;
+
+    // Do not modify string representations
+    char first_char = result[0];
+    char last_char = result[result.size() - 1];
+    if (first_char == last_char && first_char == '\'') {
+        return result;
+    }
+    result.clear();
 
     // Replace characters in whitespaces array with spaces and squash consecutive spaces
     while (*text != '\0') {
-        if (strchr(whitespaces, *text)) {
+        if (std::strchr(whitespaces, *text)) {
             if (!previous_is_whitespace) {
                 result += ' ';
                 previous_is_whitespace = true;
