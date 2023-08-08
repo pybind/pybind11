@@ -66,25 +66,25 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def(
         "kw_lb_func2",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("\n   array([[A, B], [C, D]])"));
+        py::arg("custom") = CustomRepr("\v\n   array([[A, B], [C, D]])"));
     m.def(
         "kw_lb_func3",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("array([[A, B], [C, D]])   \n"));
+        py::arg("custom") = CustomRepr("array([[A, B], [C, D]])   \f\n"));
     m.def(
         "kw_lb_func4",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("array([[A, B],\n\n[C, D]])"));
+        py::arg("custom") = CustomRepr("array([[A, B],\n\f\n[C, D]])"));
     m.def(
         "kw_lb_func5",
         [](const CustomRepr &) {},
-        py::arg("custom") = CustomRepr("array([[A, B],  [C, D]])"));
+        py::arg("custom") = CustomRepr("array([[A, B],\r  [C, D]])"));
     m.def(
-        "kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \t "));
+        "kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \v\t "));
     m.def(
         "kw_lb_func7",
         [](const std::string &) {},
-        py::arg("str_arg") = "First line.\nSecond line.");
+        py::arg("str_arg") = "First line.\n  Second line.");
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {

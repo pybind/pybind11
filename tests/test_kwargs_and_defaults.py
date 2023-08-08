@@ -53,7 +53,7 @@ def test_function_signatures(doc):
     )
     assert (
         doc(m.kw_lb_func7)
-        == "kw_lb_func7(str_arg: str = 'First line.\\nSecond line.') -> None"
+        == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
     )
 
 
