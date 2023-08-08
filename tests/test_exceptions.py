@@ -139,7 +139,15 @@ def test_custom(msg):
     # Can we catch a MyException?
     with pytest.raises(m.MyException) as excinfo:
         m.throws1()
-    assert msg(excinfo.value) == "this error should go to a custom type"
+    assert msg(excinfo.value) == "this error should go to py::exception<MyException>"
+
+    # Can we catch a MyExceptionUseDeprecatedOperatorCall?
+    with pytest.raises(m.MyExceptionUseDeprecatedOperatorCall) as excinfo:
+        m.throws1d()
+    assert (
+        msg(excinfo.value)
+        == "this error should go to py::exception<MyExceptionUseDeprecatedOperatorCall>"
+    )
 
     # Can we translate to standard Python exceptions?
     with pytest.raises(RuntimeError) as excinfo:
