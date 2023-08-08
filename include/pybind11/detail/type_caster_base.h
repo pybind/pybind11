@@ -786,7 +786,7 @@ public:
         std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
         detail::clean_type_id(tname);
         std::string msg = "Unregistered type : " + tname;
-        PyErr_SetString(PyExc_TypeError, msg.c_str());
+        set_error(PyExc_TypeError, msg.c_str());
         return {nullptr, nullptr};
     }
 

@@ -694,9 +694,8 @@ protected:
         if (overloads->is_constructor) {
             if (!parent
                 || !PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
-                PyErr_SetString(
-                    PyExc_TypeError,
-                    "__init__(self, ...) called with invalid or missing `self` argument");
+                set_error(PyExc_TypeError,
+                          "__init__(self, ...) called with invalid or missing `self` argument");
                 return nullptr;
             }
 
@@ -1007,7 +1006,7 @@ protected:
 
                A translator may choose to do one of the following:
 
-                - catch the exception and call PyErr_SetString or PyErr_SetObject
+                - catch the exception and call py::set_error()
                   to set a standard (or custom) Python exception, or
                 - do nothing and let the exception fall through to the next translator, or
                 - delegate translation to the next translator by throwing a new type of exception.
@@ -1023,8 +1022,7 @@ protected:
                 return nullptr;
             }
 
-            PyErr_SetString(PyExc_SystemError,
-                            "Exception escaped from default exception translator!");
+            set_error(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
 
@@ -1125,7 +1123,7 @@ protected:
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            set_error(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
         if (!result) {
@@ -1138,7 +1136,7 @@ protected:
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            set_error(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
         if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
@@ -2528,7 +2526,7 @@ inline void register_local_exception_translator(ExceptionTranslator &&translator
 /**
  * Wrapper to generate a new Python exception type.
  *
- * This should only be used with PyErr_SetString for now.
+ * This should only be used with py::set_error() for now.
  * It is not (yet) possible to use as a py::base.
  * Template type argument is reserved for future use.
  */
@@ -2549,7 +2547,9 @@ public:
     }
 
     // Sets the current python exception to this exception object with the given message
-    void operator()(const char *message) { PyErr_SetString(m_ptr, message); }
+    PYBIND11_DEPRECATED("Please use py::set_error() instead "
+                        "(https://github.com/pybind/pybind11/pull/4772)")
+    void operator()(const char *message) const { set_error(*this, message); }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2581,7 +2581,7 @@ register_exception_impl(handle scope, const char *name, handle base, bool isLoca
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
-            detail::get_exception_object<CppException>()(e.what());
+            set_error(detail::get_exception_object<CppException>(), e.what());
         }
     });
     return ex;
