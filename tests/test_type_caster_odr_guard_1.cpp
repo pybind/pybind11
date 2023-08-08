@@ -90,4 +90,11 @@ TEST_SUBMODULE(type_caster_odr_guard_1, m) {
 #else
         py::none();
 #endif
+    m.attr("NVCOMPILER") =
+#if defined(__NVCOMPILER_MAJOR__)
+        PYBIND11_TOSTRING(__NVCOMPILER_MAJOR__) "." PYBIND11_TOSTRING(
+            __NVCOMPILER_MINOR__) "." PYBIND11_TOSTRING(__NVCOMPILER_PATCHLEVEL__);
+#else
+        py::none();
+#endif
 }
