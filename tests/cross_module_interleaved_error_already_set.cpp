@@ -16,12 +16,12 @@ namespace {
 namespace py = pybind11;
 
 void interleaved_error_already_set() {
-    PyErr_SetString(PyExc_RuntimeError, "1st error.");
+    py::set_error(PyExc_RuntimeError, "1st error.");
     try {
         throw py::error_already_set();
     } catch (const py::error_already_set &) {
         // The 2nd error could be conditional in a real application.
-        PyErr_SetString(PyExc_RuntimeError, "2nd error.");
+        py::set_error(PyExc_RuntimeError, "2nd error.");
     } // Here the 1st error is destroyed before the 2nd error is fetched.
     // The error_already_set dtor triggers a pybind11::detail::get_internals()
     // call via pybind11::gil_scoped_acquire.

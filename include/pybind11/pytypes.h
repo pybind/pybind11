@@ -334,6 +334,14 @@ public:
 #endif
 };
 
+inline void set_error(const handle &type, const char *message) {
+    PyErr_SetString(type.ptr(), message);
+}
+
+inline void set_error(const handle &type, const handle &value) {
+    PyErr_SetObject(type.ptr(), value.ptr());
+}
+
 /** \rst
     Holds a reference to a Python object (with reference counting)
 
