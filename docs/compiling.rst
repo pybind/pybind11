@@ -241,7 +241,7 @@ extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.5...3.26)
+    cmake_minimum_required(VERSION 3.5...3.27)
     project(example LANGUAGES CXX)
 
     add_subdirectory(pybind11)
@@ -498,7 +498,7 @@ You can use these targets to build complex applications. For example, the
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.5...3.26)
+    cmake_minimum_required(VERSION 3.5...3.27)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -556,7 +556,7 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.5...3.26)
+    cmake_minimum_required(VERSION 3.5...3.27)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
