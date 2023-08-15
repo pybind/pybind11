@@ -52,6 +52,45 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+inline std::string replace_newlines_and_squash(const char *text) {
+    const char *whitespaces = " \t\n\r\f\v";
+    std::string result(text);
+    bool previous_is_whitespace = false;
+
+    // Do not modify string representations
+    char first_char = result[0];
+    char last_char = result[result.size() - 1];
+    if (first_char == last_char && first_char == '\'') {
+        return result;
+    }
+    result.clear();
+
+    // Replace characters in whitespaces array with spaces and squash consecutive spaces
+    while (*text != '\0') {
+        if (std::strchr(whitespaces, *text)) {
+            if (!previous_is_whitespace) {
+                result += ' ';
+                previous_is_whitespace = true;
+            }
+        } else {
+            result += *text;
+            previous_is_whitespace = false;
+        }
+        ++text;
+    }
+
+    // Strip leading and trailing whitespaces
+    const size_t str_begin = result.find_first_not_of(whitespaces);
+    if (str_begin == std::string::npos) {
+        return "";
+    }
+
+    const size_t str_end = result.find_last_not_of(whitespaces);
+    const size_t str_range = str_end - str_begin + 1;
+
+    return result.substr(str_begin, str_range);
+}
+
 // Apply all the extensions translators from a list
 // Return true if one of the translators completed without raising an exception
 // itself. Return of false indicates that if there are other translators
@@ -424,7 +463,7 @@ protected:
                 // Write default value if available.
                 if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
                     signature += " = ";
-                    signature += rec->args[arg_index].descr;
+                    signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
                 }
                 // Separator for positional-only arguments (placed after the
                 // argument, rather than before like *
@@ -694,9 +733,8 @@ protected:
         if (overloads->is_constructor) {
             if (!parent
                 || !PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
-                PyErr_SetString(
-                    PyExc_TypeError,
-                    "__init__(self, ...) called with invalid or missing `self` argument");
+                set_error(PyExc_TypeError,
+                          "__init__(self, ...) called with invalid or missing `self` argument");
                 return nullptr;
             }
 
@@ -1007,7 +1045,7 @@ protected:
 
                A translator may choose to do one of the following:
 
-                - catch the exception and call PyErr_SetString or PyErr_SetObject
+                - catch the exception and call py::set_error()
                   to set a standard (or custom) Python exception, or
                 - do nothing and let the exception fall through to the next translator, or
                 - delegate translation to the next translator by throwing a new type of exception.
@@ -1023,8 +1061,7 @@ protected:
                 return nullptr;
             }
 
-            PyErr_SetString(PyExc_SystemError,
-                            "Exception escaped from default exception translator!");
+            set_error(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
 
@@ -1125,7 +1162,7 @@ protected:
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            set_error(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
         if (!result) {
@@ -1138,7 +1175,7 @@ protected:
                 raise_from(PyExc_TypeError, msg.c_str());
                 return nullptr;
             }
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            set_error(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
         if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
@@ -2528,7 +2565,7 @@ inline void register_local_exception_translator(ExceptionTranslator &&translator
 /**
  * Wrapper to generate a new Python exception type.
  *
- * This should only be used with PyErr_SetString for now.
+ * This should only be used with py::set_error() for now.
  * It is not (yet) possible to use as a py::base.
  * Template type argument is reserved for future use.
  */
@@ -2549,7 +2586,9 @@ public:
     }
 
     // Sets the current python exception to this exception object with the given message
-    void operator()(const char *message) { PyErr_SetString(m_ptr, message); }
+    PYBIND11_DEPRECATED("Please use py::set_error() instead "
+                        "(https://github.com/pybind/pybind11/pull/4772)")
+    void operator()(const char *message) const { set_error(*this, message); }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2581,7 +2620,7 @@ register_exception_impl(handle scope, const char *name, handle base, bool isLoca
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
-            detail::get_exception_object<CppException>()(e.what());
+            set_error(detail::get_exception_object<CppException>(), e.what());
         }
     });
     return ex;

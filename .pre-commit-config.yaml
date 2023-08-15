@@ -31,7 +31,7 @@ repos:
     types_or: [c++, c, cuda]
 
 # Black, the code formatter, natively supports pre-commit
-- repo: https://github.com/psf/black
+- repo: https://github.com/psf/black-pre-commit-mirror
   rev: "23.7.0" # Keep in sync with blacken-docs
   hooks:
   - id: black
