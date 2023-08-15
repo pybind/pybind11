@@ -4,6 +4,8 @@ version: 2
 
 build:
   os: ubuntu-22.04
+  apt_packages:
+    - librsvg2-bin
   tools:
     python: "3.11"
 
@@ -13,3 +15,6 @@ sphinx:
 python:
   install:
   - requirements: docs/requirements.txt
+
+formats:
+  - pdf
