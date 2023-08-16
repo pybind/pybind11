@@ -716,6 +716,11 @@ def test_dense_signature(doc):
     )
 
 
+def test_defaults(doc):
+    assert "\n" not in str(doc(m.defaults_mat))
+    assert "\n" not in str(doc(m.defaults_vec))
+
+
 def test_named_arguments():
     a = np.array([[1.0, 2], [3, 4], [5, 6]])
     b = np.ones((2, 1))

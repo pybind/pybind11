@@ -23,6 +23,38 @@ def test_function_signatures(doc):
         doc(m.KWClass.foo1)
         == "foo1(self: m.kwargs_and_defaults.KWClass, x: int, y: float) -> None"
     )
+    assert (
+        doc(m.kw_lb_func0)
+        == "kw_lb_func0(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func1)
+        == "kw_lb_func1(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func2)
+        == "kw_lb_func2(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func3)
+        == "kw_lb_func3(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func4)
+        == "kw_lb_func4(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func5)
+        == "kw_lb_func5(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func6)
+        == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func7)
+        == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
+    )
 
 
 def test_named_arguments():
