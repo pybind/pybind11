@@ -95,6 +95,22 @@ if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "3.6")
 endif()
 
+if(NOT CMAKE_VERSION VERSION_LESS "3.27")
+  cmake_policy(GET CMP0148 _pybind11_cmp0148)
+  if(NOT _pybind11_cmp0148)
+    message(
+      AUTHOR_WARNING
+        "Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs "
+        "modules are removed.  Run \"cmake --help-policy CMP0148\" for policy "
+        "details.  Use the cmake_policy command to set the policy and suppress "
+        "this warning, or preferably upgrade to using FindPython, either by "
+        "calling it explicitly before pybind11, or by setting "
+        "PYBIND11_FINDPYTHON ON before pybind11.")
+  endif()
+  cmake_policy(SET CMP0148 OLD)
+  unset(_pybind11_cmp0148)
+endif()
+
 find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
              ${_pythonlibs_quiet})
 

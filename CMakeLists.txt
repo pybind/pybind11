@@ -5,7 +5,17 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+# Propagate this policy (FindPythonInterp removal) so it can be detected later
+if(NOT CMAKE_VERSION VERSION_LESS "3.27")
+  cmake_policy(GET CMP0148 _pybind11_cmp0148)
+endif()
+
 cmake_minimum_required(VERSION 3.5)
+
+if(_pybind11_cmp0148)
+  cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
+  unset(_pybind11_cmp0148)
+endif()
 
 # The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
