@@ -99,7 +99,7 @@ if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFI
   execute_process(
     COMMAND
       "${${_Python}_EXECUTABLE}" "-c"
-      "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print((s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO')).replace('.', ';.', 1))"
+      "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
     OUTPUT_VARIABLE _PYTHON_MODULE_EXT_SUFFIX
     ERROR_VARIABLE _PYTHON_MODULE_EXT_SUFFIX_ERR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -113,14 +113,14 @@ if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFI
 
   # This needs to be available for the pybind11_extension function
   if(NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
-    list(GET _PYTHON_MODULE_EXT_SUFFIX 0 _PYTHON_MODULE_DEBUG_POSTFIX)
+    get_filename_component(_PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_EXT_SUFFIX}" NAME_WE)
     set(PYTHON_MODULE_DEBUG_POSTFIX
         "${_PYTHON_MODULE_DEBUG_POSTFIX}"
         CACHE INTERNAL "")
   endif()
 
   if(NOT DEFINED PYTHON_MODULE_EXTENSION)
-    list(GET _PYTHON_MODULE_EXT_SUFFIX 1 _PYTHON_MODULE_EXTENSION)
+    get_filename_component(_PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
     set(PYTHON_MODULE_EXTENSION
         "${_PYTHON_MODULE_EXTENSION}"
         CACHE INTERNAL "")
