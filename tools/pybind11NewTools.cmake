@@ -32,12 +32,22 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
-  find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development ${_pybind11_quiet})
+  # Development.Module support (required for manylinux) started in 3.18
+  if(CMAKE_VERSION VERSION_LESS 3.18)
+    set(_pybind11_dev_component Development)
+  else()
+    set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
+  endif()
+
+  find_package(Python 3.6 REQUIRED COMPONENTS Interpreter ${_pybind11_dev_component}
+                                              ${_pybind11_quiet})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
   if(NOT is_config)
-    set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
+    if(TARGET Python::Python)
+      set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
+    endif()
     set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
     if(TARGET Python::Module)
       set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
