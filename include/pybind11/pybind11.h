@@ -1168,7 +1168,7 @@ protected:
         if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
-	    msg += (it) ? it->signature : std::string("unavailable");
+            msg += (it) ? it->signature : std::string("unavailable");
             append_note_if_missing_header_is_suspected(msg);
             // Attach additional error info to the exception if supported
             if (PyErr_Occurred()) {
