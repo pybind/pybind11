@@ -83,7 +83,7 @@ def test_keyword_args_and_generalized_unpacking():
         "'expected_name' of type 'UnregisteredType' to Python object"
         if detailed_error_messages_enabled
         else "'expected_name' to Python object "
-        "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
+             "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
 
 
@@ -104,20 +104,20 @@ def test_cpp_function_roundtrip():
     """Test if passing a function pointer from C++ -> Python -> C++ yields the original pointer"""
 
     assert (
-        m.test_dummy_function(m.dummy_function) == "matches dummy_function: eval(1) = 2"
+            m.test_dummy_function(m.dummy_function) == "matches dummy_function: eval(1) = 2"
     )
     assert (
-        m.test_dummy_function(m.roundtrip(m.dummy_function))
-        == "matches dummy_function: eval(1) = 2"
+            m.test_dummy_function(m.roundtrip(m.dummy_function))
+            == "matches dummy_function: eval(1) = 2"
     )
     assert (
-        m.test_dummy_function(m.dummy_function_overloaded)
-        == "matches dummy_function: eval(1) = 2"
+            m.test_dummy_function(m.dummy_function_overloaded)
+            == "matches dummy_function: eval(1) = 2"
     )
     assert m.roundtrip(None, expect_none=True) is None
     assert (
-        m.test_dummy_function(lambda x: x + 2)
-        == "can't convert to function pointer: eval(1) = 3"
+            m.test_dummy_function(lambda x: x + 2)
+            == "can't convert to function pointer: eval(1) = 3"
     )
 
     with pytest.raises(TypeError) as excinfo:
@@ -216,3 +216,7 @@ def test_custom_func():
 def test_custom_func2():
     assert m.custom_function2(3) == 27
     assert m.roundtrip(m.custom_function2)(3) == 27
+
+
+def test_callback_docstring():
+    assert m.test_tuple_unpacking.__doc__.strip() == "test_tuple_unpacking(arg0: Callable) -> object"
