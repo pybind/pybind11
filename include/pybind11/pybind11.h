@@ -2014,7 +2014,7 @@ struct enum_base {
                 object type_name = type::handle_of(arg).attr("__name__");
                 return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
-            name("name"),
+            name("__str__"),
             is_method(m_base));
 
         if (options::show_enum_members_docstring()) {
