@@ -12,11 +12,6 @@ endif()
 
 cmake_minimum_required(VERSION 3.5)
 
-if(_pybind11_cmp0148)
-  cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
-  unset(_pybind11_cmp0148)
-endif()
-
 # The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
@@ -24,6 +19,11 @@ if(${CMAKE_VERSION} VERSION_LESS 3.26)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
   cmake_policy(VERSION 3.26)
+endif()
+
+if(_pybind11_cmp0148)
+  cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
+  unset(_pybind11_cmp0148)
 endif()
 
 # Avoid infinite recursion if tests include this as a subdirectory
