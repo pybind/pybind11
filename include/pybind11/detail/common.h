@@ -215,18 +215,6 @@
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_MSVC(4505)
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#    if defined(_DEBUG) && !defined(Py_DEBUG)
-// Workaround for a VS 2022 issue.
-// NOTE: This workaround knowingly violates the Python.h include order requirement:
-// https://docs.python.org/3/c-api/intro.html#include-files
-// See https://github.com/pybind/pybind11/pull/3497 for full context.
-#        include <yvals.h>
-#        if _MSVC_STL_VERSION >= 143
-#            include <crtdefs.h>
-#        endif
-#        define PYBIND11_DEBUG_MARKER
-#        undef _DEBUG
-#    endif
 #endif
 
 // https://en.cppreference.com/w/c/chrono/localtime
@@ -290,14 +278,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 
 #if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
-#endif
-
-#if defined(_MSC_VER)
-#    if defined(PYBIND11_DEBUG_MARKER)
-#        define _DEBUG
-#        undef PYBIND11_DEBUG_MARKER
-#    endif
-PYBIND11_WARNING_POP
 #endif
 
 #include <cstddef>
