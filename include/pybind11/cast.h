@@ -898,6 +898,10 @@ struct handle_type_name<float_> {
     static constexpr auto name = const_name("float");
 };
 template <>
+struct handle_type_name<function> {
+    static constexpr auto name = const_name("Callable");
+};
+template <>
 struct handle_type_name<none> {
     static constexpr auto name = const_name("None");
 };
