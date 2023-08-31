@@ -1022,7 +1022,6 @@ protected:
                         // would be if we'd encountered this failure in the first-pass loop.
                         if (!result) {
                             curr_overl = &call.func;
-                            assert(curr_overl != nullptr);
                         }
                         break;
                     }
@@ -1169,6 +1168,7 @@ protected:
         if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
+            assert(curr_overl != nullptr);
             msg += curr_overl->signature;
             append_note_if_missing_header_is_suspected(msg);
             // Attach additional error info to the exception if supported
