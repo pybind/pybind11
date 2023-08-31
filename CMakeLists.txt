@@ -278,7 +278,16 @@ if(PYBIND11_INSTALL)
 
   # pkg-config support
   if(NOT prefix_for_pc_file)
-    set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
+    if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
+      set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
+    else()
+      set(pc_datarootdir "${CMAKE_INSTALL_DATAROOTDIR}")
+      set(prefix_for_pc_file "\${pcfiledir}/..")
+      while(pc_datarootdir)
+        get_filename_component(pc_datarootdir "${pc_datarootdir}" DIRECTORY)
+        string(APPEND prefix_for_pc_file "/..")
+      endwhile()
+    endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
