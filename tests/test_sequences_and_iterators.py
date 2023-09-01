@@ -171,6 +171,10 @@ def test_sequence_length():
     assert m.sequence_length("hello") == 5
 
 
+def test_sequence_doc():
+    assert m.sequence_length.__doc__.strip() == "sequence_length(arg0: Sequence) -> int"
+
+
 def test_map_iterator():
     sm = m.StringMap({"hi": "bye", "black": "white"})
     assert sm["hi"] == "bye"
