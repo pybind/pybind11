@@ -148,7 +148,7 @@ def test_docs(doc):
     assert (
         doc(m.vectorized_func)
         == """
-        vectorized_func(arg0: numpy.ndarray[numpy.int32], arg1: numpy.ndarray[numpy.float32], arg2: numpy.ndarray[numpy.float64]) -> object
+        vectorized_func(arg0: numpy.ndarray[numpy.int32], arg1: numpy.ndarray[numpy.float32], arg2: numpy.ndarray[numpy.float64]) -> Any
     """
     )
 
@@ -218,7 +218,7 @@ def test_passthrough_arguments(doc):
                 "arg6: numpy.ndarray[numpy.float64]",
             ]
         )
-        + ") -> object"
+        + ") -> Any"
     )
 
     b = np.array([[10, 20, 30]], dtype="float64")
