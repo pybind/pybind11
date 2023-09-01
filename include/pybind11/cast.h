@@ -882,6 +882,10 @@ struct handle_type_name<bytes> {
     static constexpr auto name = const_name(PYBIND11_BYTES_NAME);
 };
 template <>
+struct handle_type_name<buffer> {
+    static constexpr auto name = const_name("Buffer");
+};
+template <>
 struct handle_type_name<int_> {
     static constexpr auto name = const_name("int");
 };
@@ -904,6 +908,10 @@ struct handle_type_name<function> {
 template <>
 struct handle_type_name<none> {
     static constexpr auto name = const_name("None");
+};
+template <>
+struct handle_type_name<sequence> {
+    static constexpr auto name = const_name("Sequence");
 };
 template <>
 struct handle_type_name<args> {
