@@ -100,7 +100,7 @@ public:
 
     private:
         ContainerWithMoveOnlyIterator *container;
-        MoveOnlyIterator(ContainerWithMoveOnlyIterator &c) : container(&c){};
+        explicit MoveOnlyIterator(ContainerWithMoveOnlyIterator &c) : container(&c){};
         friend class ContainerWithMoveOnlyIterator;
     };
 
@@ -109,7 +109,7 @@ public:
     static_assert(!std::is_copy_assignable<MoveOnlyIterator>::value, "");
     static_assert(!std::is_copy_constructible<MoveOnlyIterator>::value, "");
 
-    ContainerWithMoveOnlyIterator(int value) : value(value) {}
+    explicit ContainerWithMoveOnlyIterator(int value) : value(value) {}
     MoveOnlyIterator begin() { return MoveOnlyIterator(*this); };
     Sentinel end() { return Sentinel(); };
 
