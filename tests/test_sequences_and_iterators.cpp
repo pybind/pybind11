@@ -104,10 +104,10 @@ public:
         friend class ContainerWithMoveOnlyIterator;
     };
 
-    static_assert(std::is_move_assignable<MoveOnlyIterator>::value);
-    static_assert(std::is_move_constructible<MoveOnlyIterator>::value);
-    static_assert(!std::is_copy_assignable<MoveOnlyIterator>::value);
-    static_assert(!std::is_copy_constructible<MoveOnlyIterator>::value);
+    static_assert(std::is_move_assignable<MoveOnlyIterator>::value, "");
+    static_assert(std::is_move_constructible<MoveOnlyIterator>::value, "");
+    static_assert(!std::is_copy_assignable<MoveOnlyIterator>::value, "");
+    static_assert(!std::is_copy_constructible<MoveOnlyIterator>::value, "");
 
     ContainerWithMoveOnlyIterator(int value) : value(value) {}
     MoveOnlyIterator begin() { return MoveOnlyIterator(*this); };
