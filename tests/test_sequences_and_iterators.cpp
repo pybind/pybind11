@@ -78,6 +78,46 @@ private:
     int value_;
 };
 using NonCopyableIntPair = std::pair<NonCopyableInt, NonCopyableInt>;
+
+class ContainerWithMoveOnlyIterator {
+public:
+    struct Sentinel {};
+    class MoveOnlyIterator {
+    public:
+        MoveOnlyIterator(const MoveOnlyIterator &) = delete;
+        MoveOnlyIterator(MoveOnlyIterator &&) = default;
+        MoveOnlyIterator &operator=(const MoveOnlyIterator &) = delete;
+        MoveOnlyIterator &operator=(MoveOnlyIterator &&) = default;
+        int &operator*() { return container->value; };
+        int *operator->() { return &container->value; };
+        MoveOnlyIterator &operator++() {
+            container->value++;
+            return *this;
+        };
+
+        bool operator!=(const Sentinel &) const { return container->value < 10; }
+        bool operator==(const Sentinel &) const { return container->value >= 10; }
+
+    private:
+        ContainerWithMoveOnlyIterator *container;
+        MoveOnlyIterator(ContainerWithMoveOnlyIterator &c) : container(&c){};
+        friend class ContainerWithMoveOnlyIterator;
+    };
+
+    static_assert(std::is_move_assignable<MoveOnlyIterator>::value);
+    static_assert(std::is_move_constructible<MoveOnlyIterator>::value);
+    static_assert(!std::is_copy_assignable<MoveOnlyIterator>::value);
+    static_assert(!std::is_copy_constructible<MoveOnlyIterator>::value);
+
+    ContainerWithMoveOnlyIterator(int value) : value(value) {}
+    MoveOnlyIterator begin() { return MoveOnlyIterator(*this); };
+    Sentinel end() { return Sentinel(); };
+
+private:
+    int value;
+    friend class MoveOnlyIterator;
+};
+
 PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableInt>);
 PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>);
 
@@ -577,5 +617,14 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def(
             "__iter__",
             [](const CArrayHolder &v) { return py::make_iterator(v.values, v.values + 3); },
+            py::keep_alive<0, 1>());
+
+    py::class_<ContainerWithMoveOnlyIterator>(m, "ContainerWithMoveOnlyIterator")
+        .def(py::init<int>())
+        .def(
+            "__iter__",
+            [](ContainerWithMoveOnlyIterator &self) {
+                return py::make_iterator(self.begin(), self.end());
+            },
             py::keep_alive<0, 1>());
 }

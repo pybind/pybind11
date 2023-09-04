@@ -250,3 +250,9 @@ def test_carray_iterator():
     arr_h = m.CArrayHolder(*args_gt)
     args = list(arr_h)
     assert args_gt == args
+
+
+def test_move_only_iterator():
+    """#4834: Support move-only iterators"""
+    c = m.ContainerWithMoveOnlyIterator(0)
+    assert list(c) == list(range(10))
