@@ -40,7 +40,7 @@ def scalar_type(request):
 def expected_signature(tp):
     s = "str" if sys.version_info[0] >= 3 else "unicode"
     t = type_name(tp)
-    return "test_{t}(x: {t}) -> Tuple[{s}, {t}]\n".format(s=s, t=t)
+    return f"test_{t}(x: {t}) -> Tuple[{s}, {t}]\n"
 
 
 def test_numpy_scalars(scalar_type):
