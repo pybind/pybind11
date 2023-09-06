@@ -38,14 +38,14 @@ repos:
 
 # Ruff, the Python auto-correcting linter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.281
+  rev: v0.0.287
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.4.1"
+  rev: "v1.5.1"
   hooks:
   - id: mypy
     args: []
@@ -84,7 +84,7 @@ repos:
 
 # Also code format the docs
 - repo: https://github.com/asottile/blacken-docs
-  rev: "1.15.0"
+  rev: "1.16.0"
   hooks:
   - id: blacken-docs
     additional_dependencies:
@@ -92,7 +92,7 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.5.1"
+  rev: "v1.5.4"
   hooks:
   - id: remove-tabs
 
@@ -147,7 +147,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.0.0a6"
+  rev: "v3.0.0a7"
   hooks:
   - id: pylint
     files: ^pybind11
