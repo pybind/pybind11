@@ -209,7 +209,7 @@ def test_map_string_double_const():
 def test_noncopyable_containers():
     # std::vector
     vnc = m.get_vnc(5)
-    for i in range(0, 5):
+    for i in range(5):
         assert vnc[i].value == i + 1
 
     for i, j in enumerate(vnc, start=1):
@@ -217,7 +217,7 @@ def test_noncopyable_containers():
 
     # std::deque
     dnc = m.get_dnc(5)
-    for i in range(0, 5):
+    for i in range(5):
         assert dnc[i].value == i + 1
 
     i = 1
@@ -252,7 +252,7 @@ def test_noncopyable_containers():
     # nested std::map<std::vector>
     nvnc = m.get_nvnc(5)
     for i in range(1, 6):
-        for j in range(0, 5):
+        for j in range(5):
             assert nvnc[i][j].value == j + 1
 
     # Note: maps do not have .values()
