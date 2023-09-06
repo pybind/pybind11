@@ -639,7 +639,13 @@ jobs:
     container: "${{ matrix.container }}"
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Latest actions/checkout
+      uses: actions/checkout@v4
+      if: matrix.container != 'centos:7'
+
+    - name: Ancient actions/checkout required for centos:7
+      uses: actions/checkout@v1
+      if: matrix.container == 'centos:7'
 
     - name: Add Python 3 (RHEL 7)
       if: matrix.container == 'centos:7'
@@ -687,7 +693,7 @@ jobs:
     container: i386/debian:buster
 
     steps:
-    - uses: actions/checkout@v1  # Required to run inside docker
+    - uses: actions/checkout@v1  # v1 is required to run inside docker
 
     - name: Install requirements
       run: |
