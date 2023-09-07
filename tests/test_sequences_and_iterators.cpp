@@ -31,9 +31,9 @@ public:
 
     // Make the iterator non-copyable and movable
     NonZeroIterator(const NonZeroIterator &) = delete;
-    NonZeroIterator(NonZeroIterator &&) = default;
+    NonZeroIterator(NonZeroIterator &&) noexcept = default;
     NonZeroIterator &operator=(const NonZeroIterator &) = delete;
-    NonZeroIterator &operator=(NonZeroIterator &&) = default;
+    NonZeroIterator &operator=(NonZeroIterator &&) noexcept = default;
 
     const T &operator*() const { return *ptr_; }
     NonZeroIterator &operator++() {
