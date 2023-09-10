@@ -53,6 +53,45 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+inline std::string replace_newlines_and_squash(const char *text) {
+    const char *whitespaces = " \t\n\r\f\v";
+    std::string result(text);
+    bool previous_is_whitespace = false;
+
+    // Do not modify string representations
+    char first_char = result[0];
+    char last_char = result[result.size() - 1];
+    if (first_char == last_char && first_char == '\'') {
+        return result;
+    }
+    result.clear();
+
+    // Replace characters in whitespaces array with spaces and squash consecutive spaces
+    while (*text != '\0') {
+        if (std::strchr(whitespaces, *text)) {
+            if (!previous_is_whitespace) {
+                result += ' ';
+                previous_is_whitespace = true;
+            }
+        } else {
+            result += *text;
+            previous_is_whitespace = false;
+        }
+        ++text;
+    }
+
+    // Strip leading and trailing whitespaces
+    const size_t str_begin = result.find_first_not_of(whitespaces);
+    if (str_begin == std::string::npos) {
+        return "";
+    }
+
+    const size_t str_end = result.find_last_not_of(whitespaces);
+    const size_t str_range = str_end - str_begin + 1;
+
+    return result.substr(str_begin, str_range);
+}
+
 // Apply all the extensions translators from a list
 // Return true if one of the translators completed without raising an exception
 // itself. Return of false indicates that if there are other translators
@@ -425,7 +464,7 @@ protected:
                 // Write default value if available.
                 if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
                     signature += " = ";
-                    signature += rec->args[arg_index].descr;
+                    signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
                 }
                 // Separator for positional-only arguments (placed after the
                 // argument, rather than before like *
@@ -681,7 +720,7 @@ protected:
         /* Iterator over the list of potentially admissible overloads */
         const function_record *overloads = reinterpret_cast<function_record *>(
                                   PyCapsule_GetPointer(self, get_function_record_capsule_name())),
-                              *it = overloads;
+                              *current_overload = overloads;
         assert(overloads != nullptr);
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
@@ -719,9 +758,10 @@ protected:
             std::vector<function_call> second_pass;
 
             // However, if there are no overloads, we can just skip the no-convert pass entirely
-            const bool overloaded = it != nullptr && it->next != nullptr;
+            const bool overloaded
+                = current_overload != nullptr && current_overload->next != nullptr;
 
-            for (; it != nullptr; it = it->next) {
+            for (; current_overload != nullptr; current_overload = current_overload->next) {
 
                 /* For each overload:
                    1. Copy all positional arguments we were given, also checking to make sure that
@@ -742,7 +782,7 @@ protected:
                    a result other than PYBIND11_TRY_NEXT_OVERLOAD.
                  */
 
-                const function_record &func = *it;
+                const function_record &func = *current_overload;
                 size_t num_args = func.nargs; // Number of positional arguments that we need
                 if (func.has_args) {
                     --num_args; // (but don't count py::args
@@ -980,10 +1020,10 @@ protected:
                     }
 
                     if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
-                        // The error reporting logic below expects 'it' to be valid, as it would be
-                        // if we'd encountered this failure in the first-pass loop.
+                        // The error reporting logic below expects 'current_overload' to be valid,
+                        // as it would be if we'd encountered this failure in the first-pass loop.
                         if (!result) {
-                            it = &call.func;
+                            current_overload = &call.func;
                         }
                         break;
                     }
@@ -1130,7 +1170,8 @@ protected:
         if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
-            msg += it->signature;
+            assert(current_overload != nullptr);
+            msg += current_overload->signature;
             append_note_if_missing_header_is_suspected(msg);
             // Attach additional error info to the exception if supported
             if (PyErr_Occurred()) {
@@ -2235,7 +2276,7 @@ struct enum_base {
                 object type_name = type::handle_of(arg).attr("__name__");
                 return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
-            name("name"),
+            name("__str__"),
             is_method(m_base));
 
         if (options::show_enum_members_docstring()) {
@@ -2653,7 +2694,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
                 Policy);
     }
 
-    return cast(state{first, last, true});
+    return cast(state{std::forward<Iterator>(first), std::forward<Sentinel>(last), true});
 }
 
 PYBIND11_NAMESPACE_END(detail)
@@ -2670,7 +2711,9 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
                                       Iterator,
                                       Sentinel,
                                       ValueType,
-                                      Extra...>(first, last, std::forward<Extra>(extra)...);
+                                      Extra...>(std::forward<Iterator>(first),
+                                                std::forward<Sentinel>(last),
+                                                std::forward<Extra>(extra)...);
 }
 
 /// Makes a python iterator over the keys (`.first`) of a iterator over pairs from a
@@ -2686,7 +2729,9 @@ iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
                                       Iterator,
                                       Sentinel,
                                       KeyType,
-                                      Extra...>(first, last, std::forward<Extra>(extra)...);
+                                      Extra...>(std::forward<Iterator>(first),
+                                                std::forward<Sentinel>(last),
+                                                std::forward<Extra>(extra)...);
 }
 
 /// Makes a python iterator over the values (`.second`) of a iterator over pairs from a
@@ -2702,7 +2747,9 @@ iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
                                       Iterator,
                                       Sentinel,
                                       ValueType,
-                                      Extra...>(first, last, std::forward<Extra>(extra)...);
+                                      Extra...>(std::forward<Iterator>(first),
+                                                std::forward<Sentinel>(last),
+                                                std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
