@@ -221,5 +221,5 @@ def test_custom_func2():
 def test_callback_docstring():
     assert (
         m.test_tuple_unpacking.__doc__.strip()
-        == "test_tuple_unpacking(arg0: Callable) -> Any"
+        == "test_tuple_unpacking(arg0: Callable) -> object"
     )

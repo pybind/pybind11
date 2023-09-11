@@ -906,10 +906,6 @@ struct handle_type_name<function> {
     static constexpr auto name = const_name("Callable");
 };
 template <>
-struct handle_type_name<object> {
-    static constexpr auto name = const_name("Any");
-};
-template <>
 struct handle_type_name<handle> {
     static constexpr auto name = handle_type_name<object>::name;
 };
