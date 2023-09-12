@@ -25,7 +25,7 @@ jobs:
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Python 3.12
       uses: actions/setup-python@v4

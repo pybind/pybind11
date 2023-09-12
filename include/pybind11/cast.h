@@ -661,7 +661,7 @@ public:
     }
 
     static constexpr auto name
-        = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
+        = const_name("tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
 
     template <typename T>
     using cast_op_type = type;
@@ -882,6 +882,10 @@ struct handle_type_name<bytes> {
     static constexpr auto name = const_name(PYBIND11_BYTES_NAME);
 };
 template <>
+struct handle_type_name<buffer> {
+    static constexpr auto name = const_name("Buffer");
+};
+template <>
 struct handle_type_name<int_> {
     static constexpr auto name = const_name("int");
 };
@@ -902,8 +906,16 @@ struct handle_type_name<function> {
     static constexpr auto name = const_name("Callable");
 };
 template <>
+struct handle_type_name<handle> {
+    static constexpr auto name = handle_type_name<object>::name;
+};
+template <>
 struct handle_type_name<none> {
     static constexpr auto name = const_name("None");
+};
+template <>
+struct handle_type_name<sequence> {
+    static constexpr auto name = const_name("Sequence");
 };
 template <>
 struct handle_type_name<args> {
