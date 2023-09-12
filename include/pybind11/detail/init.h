@@ -38,6 +38,9 @@ PYBIND11_NAMESPACE_BEGIN(initimpl)
 
 inline void no_nullptr(void *ptr) {
     if (!ptr) {
+        if (PyErr_Occurred()) {
+            throw error_already_set();
+        }
         throw type_error("pybind11::init(): factory function returned nullptr");
     }
 }

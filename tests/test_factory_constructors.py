@@ -514,3 +514,10 @@ def test_invalid_self():
             str(excinfo.value)
             == "__init__(self, ...) called with invalid or missing `self` argument"
         )
+
+
+def test_factory_error_already_set():
+    obj = m.FactoryErrorAlreadySet(False)
+    assert isinstance(obj, m.FactoryErrorAlreadySet)
+    with pytest.raises(ValueError, match="factory sets error and returns nullptr"):
+        m.FactoryErrorAlreadySet(True)
