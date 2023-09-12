@@ -55,6 +55,10 @@ def test_function_signatures(doc):
         doc(m.kw_lb_func7)
         == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
     )
+    assert (
+        doc(m.kw_lb_func8)
+        == "kw_lb_func8(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
+    )
 
 
 def test_named_arguments():
