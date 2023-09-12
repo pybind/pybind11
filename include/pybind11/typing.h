@@ -45,6 +45,16 @@ class Set : public set {
     using set::set;
 };
 
+template <typename T>
+class Iterable : public iterable {
+    using iterable::iterable;
+};
+
+template <typename T>
+class Iterator : public iterator {
+    using iterator::iterator;
+};
+
 template <typename Signature>
 class Callable;
 
@@ -83,6 +93,16 @@ struct handle_type_name<typing::List<T>> {
 template <typename T>
 struct handle_type_name<typing::Set<T>> {
     static constexpr auto name = const_name("set[") + make_caster<T>::name + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::Iterable<T>> {
+    static constexpr auto name = const_name("Iterable[") + make_caster<T>::name + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::Iterator<T>> {
+    static constexpr auto name = const_name("Iterator[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename Return, typename... Args>
