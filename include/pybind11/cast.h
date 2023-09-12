@@ -661,7 +661,7 @@ public:
     }
 
     static constexpr auto name
-        = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
+        = const_name("tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
 
     template <typename T>
     using cast_op_type = type;
