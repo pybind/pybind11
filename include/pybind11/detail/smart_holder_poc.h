@@ -71,14 +71,23 @@ static constexpr bool type_has_shared_from_this(const std::enable_shared_from_th
 struct smart_holder;
 
 struct guarded_delete {
-    std::weak_ptr<void> released_ptr; // Trick to keep the smart_holder memory footprint small.
-    std::function<void(void *)> del_fun;
+    std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
+    std::function<void(void *)> del_fun; // Rare case.
+    void (*del_ptr)(void *);             // Common case.
+    bool use_del_fun;
     bool armed_flag;
     guarded_delete(std::function<void(void *)> &&del_fun, bool armed_flag)
-        : del_fun{std::move(del_fun)}, armed_flag{armed_flag} {}
+        : del_fun{std::move(del_fun)}, del_ptr{nullptr}, use_del_fun{true},
+          armed_flag{armed_flag} {}
+    guarded_delete(void (*del_ptr)(void *), bool armed_flag)
+        : del_ptr{del_ptr}, use_del_fun{false}, armed_flag{armed_flag} {}
     void operator()(void *raw_ptr) const {
         if (armed_flag) {
-            del_fun(raw_ptr);
+            if (use_del_fun) {
+                del_fun(raw_ptr);
+            } else {
+                del_ptr(raw_ptr);
+            }
         }
     }
 };
