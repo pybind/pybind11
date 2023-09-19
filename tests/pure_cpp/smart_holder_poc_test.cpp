@@ -259,6 +259,14 @@ TEST_CASE("from_unique_ptr_with_deleter+as_lvalue_ref", "[S]") {
     REQUIRE(hld.as_lvalue_ref<int>() == 19);
 }
 
+TEST_CASE("from_unique_ptr_with_std_function_deleter+as_lvalue_ref", "[S]") {
+    std::unique_ptr<int, std::function<void(int *)>> orig_owner(
+        new int(19), [](int *raw_ptr) { delete raw_ptr; });
+    auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
+    REQUIRE(orig_owner.get() == nullptr);
+    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+}
+
 TEST_CASE("from_unique_ptr_with_deleter+as_raw_ptr_release_ownership", "[E]") {
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
