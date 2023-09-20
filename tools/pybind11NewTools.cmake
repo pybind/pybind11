@@ -73,7 +73,8 @@ if(NOT DEFINED ${_Python}_EXECUTABLE)
 
 endif()
 
-if(PYBIND11_PYTHON_EXECUTABLE_LAST AND NOT ${_Python}_EXECUTABLE STREQUAL PYBIND11_PYTHON_EXECUTABLE_LAST)
+if(PYBIND11_PYTHON_EXECUTABLE_LAST AND NOT ${_Python}_EXECUTABLE STREQUAL
+                                       PYBIND11_PYTHON_EXECUTABLE_LAST)
   # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
   unset(PYTHON_IS_DEBUG CACHE)
   unset(PYTHON_MODULE_EXTENSION CACHE)
