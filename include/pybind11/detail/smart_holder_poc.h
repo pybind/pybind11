@@ -111,14 +111,14 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 template <typename T, typename D>
 struct custom_deleter {
     D deleter;
-    custom_deleter(D &&deleter) : deleter{std::move(deleter)} {}
+    explicit custom_deleter(D &&deleter) : deleter{std::move(deleter)} {}
     void operator()(void *raw_ptr) { deleter(static_cast<T *>(raw_ptr)); }
 };
 
 template <typename T, typename D>
 guarded_delete make_guarded_custom_deleter(D &&uqp_del, bool armed_flag) {
-    return guarded_delete(std::function<void(void *)>(custom_deleter<T, D>(std::move(uqp_del))),
-                          armed_flag);
+    return guarded_delete(
+        std::function<void(void *)>(custom_deleter<T, D>(std::forward<D>(uqp_del))), armed_flag);
 }
 
 template <typename T>
