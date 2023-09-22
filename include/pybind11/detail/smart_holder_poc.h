@@ -68,8 +68,6 @@ static constexpr bool type_has_shared_from_this(const std::enable_shared_from_th
     return true;
 }
 
-struct smart_holder;
-
 struct guarded_delete {
     std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
     std::function<void(void *)> del_fun; // Rare case.
@@ -111,9 +109,15 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 }
 
 template <typename T, typename D>
+struct custom_deleter {
+    D deleter;
+    custom_deleter(D &&deleter) : deleter{std::move(deleter)} {}
+    void operator()(void *raw_ptr) { deleter(static_cast<T *>(raw_ptr)); }
+};
+
+template <typename T, typename D>
 guarded_delete make_guarded_custom_deleter(D &&uqp_del, bool armed_flag) {
-    return guarded_delete(std::function<void(void *)>(
-                              [&uqp_del](void *raw_ptr) { uqp_del(static_cast<T *>(raw_ptr)); }),
+    return guarded_delete(std::function<void(void *)>(custom_deleter<T, D>(std::move(uqp_del))),
                           armed_flag);
 }
 
