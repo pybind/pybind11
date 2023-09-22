@@ -21,6 +21,15 @@ struct movable_int {
 template <typename T>
 struct functor_builtin_delete {
     void operator()(T *ptr) { delete ptr; }
+#if (defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ == 8)                                   \
+    || (defined(__clang_major__) && __clang_major__ == 3 && __clang_minor__ == 6)
+    // Workaround for these errors:
+    // gcc 4.8.5: too many initializers for 'helpers::functor_builtin_delete<int>'
+    // clang 3.6: excess elements in struct initializer
+    functor_builtin_delete() = default;
+    functor_builtin_delete(const functor_builtin_delete &) {}
+    functor_builtin_delete(functor_builtin_delete &&) {}
+#endif
 };
 
 template <typename T>
