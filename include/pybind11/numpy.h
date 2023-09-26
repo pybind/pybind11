@@ -120,17 +120,19 @@ inline numpy_internals &get_numpy_internals() {
     return *ptr;
 }
 
-module_ import_numpy_core_submodule(const char *submodule_name) {
+PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name) {
     try {
         return module_::import((std::string("numpy._core.") + submodule_name).c_str());
     } catch (error_already_set &ex) {
-        if (!ex.matches(PyExc_ImportError))
+        if (!ex.matches(PyExc_ImportError)) {
             throw;
+        }
         try {
             return module_::import((std::string("numpy.core.") + submodule_name).c_str());
         } catch (error_already_set &ex) {
-            if (!ex.matches(PyExc_ImportError))
+            if (!ex.matches(PyExc_ImportError)) {
                 throw;
+            }
             throw import_error(std::string("pybind11 couldn't import ") + submodule_name
                                + " from numpy.");
         }
