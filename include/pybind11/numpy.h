@@ -120,22 +120,19 @@ inline numpy_internals &get_numpy_internals() {
     return *ptr;
 }
 
-module_ import_numpy_core_submodule(const char * submodule_name) {
+module_ import_numpy_core_submodule(const char *submodule_name) {
     try {
-        return module_::import(
-            (std::string("numpy._core.") + submodule_name).c_str()
-        );
+        return module_::import((std::string("numpy._core.") + submodule_name).c_str());
     } catch (error_already_set &ex) {
-        if (!ex.matches(PyExc_ImportError)) throw;
+        if (!ex.matches(PyExc_ImportError))
+            throw;
         try {
-            return module_::import(
-                (std::string("numpy.core.") + submodule_name).c_str()
-            );
-        } catch(error_already_set &ex) {
-            if (!ex.matches(PyExc_ImportError)) throw;
-            throw import_error(
-                std::string("pybind11 couldn't import ") + submodule_name + " from numpy."
-            );
+            return module_::import((std::string("numpy.core.") + submodule_name).c_str());
+        } catch (error_already_set &ex) {
+            if (!ex.matches(PyExc_ImportError))
+                throw;
+            throw import_error(std::string("pybind11 couldn't import ") + submodule_name
+                               + " from numpy.");
         }
     }
 }
@@ -283,7 +280,7 @@ private:
     };
 
     static npy_api lookup() {
-        module_ m = import_numpy_core_submodule("multiarray");
+        module_ m = detail::import_numpy_core_submodule("multiarray");
         auto c = m.attr("_ARRAY_API");
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), nullptr);
         npy_api api;
@@ -646,11 +643,8 @@ public:
 
 private:
     static object _dtype_from_pep3118() {
-        module_ m = import_numpy_core_submodule("_internal");
-        static PyObject *obj = m.attr("_dtype_from_pep3118")
-                                   .cast<object>()
-                                   .release()
-                                   .ptr();
+        module_ m = detail::import_numpy_core_submodule("_internal");
+        static PyObject *obj = m.attr("_dtype_from_pep3118").cast<object>().release().ptr();
         return reinterpret_borrow<object>(obj);
     }
 
