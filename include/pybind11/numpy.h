@@ -120,22 +120,24 @@ inline numpy_internals &get_numpy_internals() {
     return *ptr;
 }
 
-PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name) {
-    try {
-        return module_::import((std::string("numpy._core.") + submodule_name).c_str());
-    } catch (error_already_set &ex) {
-        if (!ex.matches(PyExc_ImportError)) {
-            throw;
-        }
-        try {
-            return module_::import((std::string("numpy.core.") + submodule_name).c_str());
-        } catch (error_already_set &ex) {
-            if (!ex.matches(PyExc_ImportError)) {
-                throw;
-            }
-            throw import_error(std::string("pybind11 couldn't import ") + submodule_name
-                               + " from numpy.");
-        }
+PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char * submodule_name) {
+    module_ numpy = module_::import("numpy");
+    str version_string = numpy.attr("__version__");
+
+    module_ numpy_lib = module_::import("numpy.lib");
+    object numpy_version = numpy_lib.attr("NumpyVersion")(version_string);
+    int major_version = numpy_version.attr("major").cast<int>();
+
+    /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
+        became a private module. */
+    if (major_version >= 2) {
+        return py::module_::import(
+            (std::string("numpy._core.") + submodule_name).c_str()
+        );
+    } else {
+        return py::module_::import(
+            (std::string("numpy.core.") + submodule_name).c_str()
+        );
     }
 }
 
@@ -285,6 +287,9 @@ private:
         module_ m = detail::import_numpy_core_submodule("multiarray");
         auto c = m.attr("_ARRAY_API");
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), nullptr);
+        if (api_ptr == nullptr) {
+            raise_from(PyExc_SystemError, "FAILURE obtaining numpy _ARRAY_API pointer.");
+        }
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
