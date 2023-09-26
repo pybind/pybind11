@@ -120,7 +120,7 @@ inline numpy_internals &get_numpy_internals() {
     return *ptr;
 }
 
-PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char * submodule_name) {
+PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name) {
     module_ numpy = module_::import("numpy");
     str version_string = numpy.attr("__version__");
 
@@ -131,13 +131,9 @@ PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char * submodule_nam
     /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
         became a private module. */
     if (major_version >= 2) {
-        return py::module_::import(
-            (std::string("numpy._core.") + submodule_name).c_str()
-        );
+        return py::module_::import((std::string("numpy._core.") + submodule_name).c_str());
     } else {
-        return py::module_::import(
-            (std::string("numpy.core.") + submodule_name).c_str()
-        );
+        return py::module_::import((std::string("numpy.core.") + submodule_name).c_str());
     }
 }
 
