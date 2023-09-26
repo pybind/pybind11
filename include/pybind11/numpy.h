@@ -130,12 +130,7 @@ PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name
 
     /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
         became a private module. */
-    std::string numpy_core_path;
-    if (major_version >= 2) {
-        numpy_core_path = std::string("numpy._core");
-    } else {
-        numpy_core_path = std::string("numpy.core");
-    }
+    std::string numpy_core_path = major_version >= 2 ? "numpy._core" : "numpy.core";
     return module_::import((numpy_core_path + "." + submodule_name).c_str());
 }
 
@@ -287,6 +282,7 @@ private:
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), nullptr);
         if (api_ptr == nullptr) {
             raise_from(PyExc_SystemError, "FAILURE obtaining numpy _ARRAY_API pointer.");
+            throw error_already_set();
         }
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
