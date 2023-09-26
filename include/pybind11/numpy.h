@@ -131,9 +131,9 @@ PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name
     /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
         became a private module. */
     if (major_version >= 2) {
-        return py::module_::import((std::string("numpy._core.") + submodule_name).c_str());
+        return module_::import((std::string("numpy._core.") + submodule_name).c_str());
     } else {
-        return py::module_::import((std::string("numpy.core.") + submodule_name).c_str());
+        return module_::import((std::string("numpy.core.") + submodule_name).c_str());
     }
 }
 
