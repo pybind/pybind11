@@ -128,7 +128,7 @@ repos:
   hooks:
   - id: codespell
     exclude: ".supp$"
-    args: ["-x.codespell-ignore-lines", "-Lccompiler"]
+    args: ["-x.codespell-ignore-lines", "-Lccompiler", "-w"]
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
