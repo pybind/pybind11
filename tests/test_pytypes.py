@@ -926,6 +926,20 @@ def test_set_annotations(doc):
     assert doc(m.annotate_set_str) == "annotate_set_str(arg0: set[str]) -> None"
 
 
+def test_iterable_annotations(doc):
+    assert (
+        doc(m.annotate_iterable_str)
+        == "annotate_iterable_str(arg0: Iterable[str]) -> None"
+    )
+
+
+def test_iterator_annotations(doc):
+    assert (
+        doc(m.annotate_iterator_int)
+        == "annotate_iterator_int(arg0: Iterator[int]) -> None"
+    )
+
+
 def test_fn_annotations(doc):
     assert (
         doc(m.annotate_fn)

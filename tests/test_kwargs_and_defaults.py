@@ -8,7 +8,7 @@ def test_function_signatures(doc):
     assert doc(m.kw_func1) == "kw_func1(x: int, y: int) -> str"
     assert doc(m.kw_func2) == "kw_func2(x: int = 100, y: int = 200) -> str"
     assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
-    assert doc(m.kw_func4) == "kw_func4(myList: List[int] = [13, 17]) -> str"
+    assert doc(m.kw_func4) == "kw_func4(myList: list[int] = [13, 17]) -> str"
     assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int = 300) -> str"
     assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int = 0) -> str"
     assert doc(m.args_function) == "args_function(*args) -> tuple"
@@ -54,6 +54,10 @@ def test_function_signatures(doc):
     assert (
         doc(m.kw_lb_func7)
         == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
+    )
+    assert (
+        doc(m.kw_lb_func8)
+        == "kw_lb_func8(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
     )
 
 

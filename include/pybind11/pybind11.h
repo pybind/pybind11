@@ -58,11 +58,13 @@ inline std::string replace_newlines_and_squash(const char *text) {
     std::string result(text);
     bool previous_is_whitespace = false;
 
-    // Do not modify string representations
-    char first_char = result[0];
-    char last_char = result[result.size() - 1];
-    if (first_char == last_char && first_char == '\'') {
-        return result;
+    if (result.size() >= 2) {
+        // Do not modify string representations
+        char first_char = result[0];
+        char last_char = result[result.size() - 1];
+        if (first_char == last_char && first_char == '\'') {
+            return result;
+        }
     }
     result.clear();
 
@@ -1141,7 +1143,7 @@ protected:
                     }
                     msg += "kwargs: ";
                     bool first = true;
-                    for (auto kwarg : kwargs) {
+                    for (const auto &kwarg : kwargs) {
                         if (first) {
                             first = false;
                         } else {
