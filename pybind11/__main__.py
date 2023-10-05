@@ -2,12 +2,23 @@
 from __future__ import annotations
 
 import argparse
-import shlex
 import sys
 import sysconfig
 
 from ._version import __version__
 from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
+
+try:
+    from oslex import quote
+except ImportError:
+    import os
+
+    if os.name != "nt":
+        from shlex import quote
+    else:
+        # minimal attempt, handling only the most common case (spaces in path)
+        def quote(s: str) -> str:
+            return '"' + s + '"' if " " in s else s
 
 
 def print_includes() -> None:
@@ -23,7 +34,7 @@ def print_includes() -> None:
         if d and d not in unique_dirs:
             unique_dirs.append(d)
 
-    print(" ".join(shlex.quote("-I" + d) for d in unique_dirs))
+    print(" ".join(quote("-I" + d) for d in unique_dirs))
 
 
 def main() -> None:
