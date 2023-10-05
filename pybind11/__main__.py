@@ -1,6 +1,7 @@
 # pylint: disable=missing-function-docstring
 
 import argparse
+import shlex
 import sys
 import sysconfig
 
@@ -21,7 +22,7 @@ def print_includes() -> None:
         if d and d not in unique_dirs:
             unique_dirs.append(d)
 
-    print(" ".join("-I" + d for d in unique_dirs))
+    print(" ".join(shlex.quote("-I" + d) for d in unique_dirs))
 
 
 def main() -> None:
