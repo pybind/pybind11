@@ -65,7 +65,7 @@ constexpr bool is_alias(void *) {
 }
 
 // Constructs and returns a new object; if the given arguments don't map to a constructor, we fall
-// back to brace aggregate initiailization so that for aggregate initialization can be used with
+// back to brace aggregate initialization so that for aggregate initialization can be used with
 // py::init, e.g.  `py::init<int, int>` to initialize a `struct T { int a; int b; }`.  For
 // non-aggregate types, we need to use an ordinary T(...) constructor (invoking as `T{...}` usually
 // works, but will not do the expected thing when `T` has an `initializer_list<T>` constructor).
