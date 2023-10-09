@@ -137,6 +137,7 @@ private:
 
 class gil_scoped_release {
 public:
+    // PRECONDITION: The GIL must be held when this constructor is called.
     explicit gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
         // `get_internals()` must be called here unconditionally in order to initialize
         // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
@@ -201,6 +202,7 @@ class gil_scoped_release {
     PyThreadState *state;
 
 public:
+    // PRECONDITION: The GIL must be held when this constructor is called.
     gil_scoped_release() : state{PyEval_SaveThread()} {}
     gil_scoped_release(const gil_scoped_release &) = delete;
     gil_scoped_release &operator=(const gil_scoped_release &) = delete;

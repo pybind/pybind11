@@ -11,7 +11,7 @@
 
 #include "pybind11.h"
 #include "complex.h"
-#include "gil_save_static_initialization.h"
+#include "gil_safe_call_once.h"
 
 #include <algorithm>
 #include <array>
@@ -207,8 +207,8 @@ struct npy_api {
     };
 
     static npy_api &get() {
-        PYBIND11_CONSTINIT static gil_save_static_initialization<npy_api> imported_api;
-        return imported_api.get(lookup);
+        PYBIND11_CONSTINIT static gil_safe_call_once_and_store<npy_api> imported_api;
+        return imported_api.get_stored(lookup);
     }
 
     bool PyArray_Check_(PyObject *obj) const {
@@ -645,8 +645,8 @@ public:
 
 private:
     static object &_dtype_from_pep3118() {
-        PYBIND11_CONSTINIT static gil_save_static_initialization<object> imported_obj;
-        return imported_obj.get([]() {
+        PYBIND11_CONSTINIT static gil_safe_call_once_and_store<object> imported_obj;
+        return imported_obj.get_stored([]() {
             return detail::import_numpy_core_submodule("_internal").attr("_dtype_from_pep3118");
         });
     }
