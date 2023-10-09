@@ -87,7 +87,7 @@ public:
         = default;
 
 private:
-    alignas(T) char value_storage_[sizeof(T)];
+    alignas(T) char value_storage_[sizeof(T)] = {};
     bool initialized_ = false;
 };
 
