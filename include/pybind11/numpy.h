@@ -66,7 +66,7 @@ public:
             assert(PyGILState_Check());
             auto value = initialize();
             if (!initialized_) {
-                new (reinterpret_cast<T *>(value_storage_)) T(std::move(value));
+                ::new (value_storage_) T(std::move(value));
                 initialized_ = true;
             }
         }
