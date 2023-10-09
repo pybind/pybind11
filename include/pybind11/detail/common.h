@@ -118,6 +118,14 @@
 #    endif
 #endif
 
+#ifndef PYBIND11_CONSTINIT
+#    ifdef PYBIND11_CPP20
+#        define PYBIND11_CONSTINIT constinit
+#    else
+#        define PYBIND11_CONSTINIT
+#    endif
+#endif
+
 // Compiler version assertions
 #if defined(__INTEL_COMPILER)
 #    if __INTEL_COMPILER < 1800
