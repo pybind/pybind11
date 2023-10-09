@@ -21,7 +21,6 @@
 #include <functional>
 #include <numeric>
 #include <sstream>
-#include <stdalign.h>
 #include <string>
 #include <type_traits>
 #include <typeindex>
