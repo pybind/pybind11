@@ -71,6 +71,13 @@ public:
         PYBIND11_WARNING_POP
     }
 
+    constexpr LazyInitializeAtLeastOnceDestroyNever() = default;
+#if __cplusplus >= 202002L
+    constexpr
+#endif // C++20
+        ~LazyInitializeAtLeastOnceDestroyNever()
+        = default;
+
 private:
     alignas(T) char value_storage_[sizeof(T)];
     bool initialized_ = false;
