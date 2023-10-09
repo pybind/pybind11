@@ -73,7 +73,7 @@ public:
         PYBIND11_WARNING_PUSH
 #if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
         // Needed for gcc 4.8.5
-        PYBIND11_WARNING_DISABLE_CLANG("-Wstrict-aliasing")
+        PYBIND11_WARNING_DISABLE_GCC("-Wstrict-aliasing")
 #endif
         return *reinterpret_cast<T *>(value_storage_);
         PYBIND11_WARNING_POP
