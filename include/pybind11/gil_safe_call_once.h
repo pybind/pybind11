@@ -8,7 +8,6 @@
 #include <atomic>
 #include <cassert>
 #include <mutex>
-#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -37,7 +36,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
-    // PRECONDITION: The GIL must be held when `get_stored()` is called.
+    // PRECONDITION: The GIL must be held when `call_once_and_store_result()` is called.
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn) {
         if (!is_initialized_.load(std::memory_order_acquire)) {

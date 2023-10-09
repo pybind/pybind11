@@ -10,8 +10,10 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
 #include "complex.h"
 #include "gil_safe_call_once.h"
+#include "pytypes.h"
 
 #include <algorithm>
 #include <array>
