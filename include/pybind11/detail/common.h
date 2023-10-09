@@ -118,12 +118,12 @@
 #    endif
 #endif
 
-#ifndef PYBIND11_CONSTINIT
-#    ifdef PYBIND11_CPP20
-#        define PYBIND11_CONSTINIT constinit
-#    else
-#        define PYBIND11_CONSTINIT
-#    endif
+#if defined(PYBIND11_CPP20)
+#    define PYBIND11_CONSTINIT constinit
+#    define PYBIND11_DTOR_CONSTEXPR constexpr
+#else
+#    define PYBIND11_CONSTINIT
+#    define PYBIND11_DTOR_CONSTEXPR
 #endif
 
 // Compiler version assertions

@@ -142,6 +142,7 @@ set(PYBIND11_HEADERS
     include/pybind11/embed.h
     include/pybind11/eval.h
     include/pybind11/gil.h
+    include/pybind11/gil_save_static_initialization.h
     include/pybind11/iostream.h
     include/pybind11/functional.h
     include/pybind11/numpy.h

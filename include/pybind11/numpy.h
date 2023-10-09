@@ -11,10 +11,10 @@
 
 #include "pybind11.h"
 #include "complex.h"
+#include "gil_save_static_initialization.h"
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -42,46 +42,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 class array; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-
-// Main author of this class: jbms@
-template <typename T>
-class LazyInitializeAtLeastOnceDestroyNever {
-public:
-    // PRECONDITION: The GIL must be held when `Get()` is called.
-    // It is possible that multiple threads execute `Get()` with `initialized_`
-    // still being false, and thus proceed to execute `initialize()`. This can
-    // happen if `initialize()` releases and reacquires the GIL internally.
-    // We accept this, and expect the operation to be both idempotent and cheap.
-    template <typename Initialize>
-    T &Get(Initialize &&initialize) {
-        if (!initialized_) {
-            assert(PyGILState_Check());
-            auto value = initialize();
-            if (!initialized_) {
-                ::new (value_storage_) T(std::move(value));
-                initialized_ = true;
-            }
-        }
-        PYBIND11_WARNING_PUSH
-#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
-        // Needed for gcc 4.8.5
-        PYBIND11_WARNING_DISABLE_GCC("-Wstrict-aliasing")
-#endif
-        return *reinterpret_cast<T *>(value_storage_);
-        PYBIND11_WARNING_POP
-    }
-
-    constexpr LazyInitializeAtLeastOnceDestroyNever() = default;
-#if __cplusplus >= 202002L
-    constexpr
-#endif // C++20
-        ~LazyInitializeAtLeastOnceDestroyNever()
-        = default;
-
-private:
-    alignas(T) char value_storage_[sizeof(T)] = {};
-    bool initialized_ = false;
-};
 
 template <>
 struct handle_type_name<array> {
@@ -247,8 +207,8 @@ struct npy_api {
     };
 
     static npy_api &get() {
-        PYBIND11_CONSTINIT static LazyInitializeAtLeastOnceDestroyNever<npy_api> api_init;
-        return api_init.Get(lookup);
+        PYBIND11_CONSTINIT static gil_save_static_initialization<npy_api> imported_api;
+        return imported_api.get(lookup);
     }
 
     bool PyArray_Check_(PyObject *obj) const {
@@ -685,9 +645,8 @@ public:
 
 private:
     static object &_dtype_from_pep3118() {
-        PYBIND11_CONSTINIT static detail::LazyInitializeAtLeastOnceDestroyNever<object>
-            imported_obj;
-        return imported_obj.Get([]() {
+        PYBIND11_CONSTINIT static gil_save_static_initialization<object> imported_obj;
+        return imported_obj.get([]() {
             return detail::import_numpy_core_submodule("_internal").attr("_dtype_from_pep3118");
         });
     }
