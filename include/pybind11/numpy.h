@@ -43,14 +43,6 @@ class array; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#ifndef PYBIND11_CONSTINIT
-#    if __cplusplus >= 202002L
-#        define PYBIND11_CONSTINIT constinit
-#    else
-#        define PYBIND11_CONSTINIT
-#    endif
-#endif
-
 // Main author of this class: jbms@
 template <typename T>
 class LazyInitializeAtLeastOnceDestroyNever {
@@ -255,7 +247,7 @@ struct npy_api {
     };
 
     static npy_api &get() {
-        PYBIND11_CONSTINIT static LazyInitializeAtLeastOnceDestroyNever<npy_api> api_init;
+        static LazyInitializeAtLeastOnceDestroyNever<npy_api> api_init;
         return api_init.Get(lookup);
     }
 
@@ -693,8 +685,7 @@ public:
 
 private:
     static object &_dtype_from_pep3118() {
-        PYBIND11_CONSTINIT static detail::LazyInitializeAtLeastOnceDestroyNever<object>
-            imported_obj;
+        static detail::LazyInitializeAtLeastOnceDestroyNever<object> imported_obj;
         return imported_obj.Get([]() {
             return detail::import_numpy_core_submodule("_internal").attr("_dtype_from_pep3118");
         });
