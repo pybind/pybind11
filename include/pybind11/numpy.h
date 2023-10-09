@@ -14,12 +14,14 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <numeric>
 #include <sstream>
+#include <stdalign.h>
 #include <string>
 #include <type_traits>
 #include <typeindex>
@@ -41,6 +43,30 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 class array; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Main author of this class: jbms@
+template <typename T>
+class LazyInitializeAtLeastOnceDestroyNever {
+public:
+    template <typename Initialize>
+    T &Get(Initialize &&initialize) {
+        if (!initialized_) {
+            assert(PyGILState_Check());
+            // Multiple threads may run this concurrently, but that is fine.
+            auto value = initialize(); // May release and re-acquire the GIL.
+            if (!initialized_) {       // This runs with the GIL held,
+                new                    // therefore this is reached only once.
+                    (reinterpret_cast<T *>(value_storage_)) T(std::move(value));
+                initialized_ = true;
+            }
+        }
+        return *reinterpret_cast<T *>(value_storage_);
+    }
+
+private:
+    alignas(T) char value_storage_[sizeof(T)];
+    bool initialized_ = false;
+};
 
 template <>
 struct handle_type_name<array> {
@@ -206,8 +232,8 @@ struct npy_api {
     };
 
     static npy_api &get() {
-        static npy_api api = lookup();
-        return api;
+        static LazyInitializeAtLeastOnceDestroyNever<npy_api> api_init;
+        return api_init.Get(lookup);
     }
 
     bool PyArray_Check_(PyObject *obj) const {
@@ -643,10 +669,11 @@ public:
     char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
 
 private:
-    static object _dtype_from_pep3118() {
-        module_ m = detail::import_numpy_core_submodule("_internal");
-        static PyObject *obj = m.attr("_dtype_from_pep3118").cast<object>().release().ptr();
-        return reinterpret_borrow<object>(obj);
+    static object &_dtype_from_pep3118() {
+        static detail::LazyInitializeAtLeastOnceDestroyNever<object> imported_obj;
+        return imported_obj.Get([]() {
+            return detail::import_numpy_core_submodule("_internal").attr("_dtype_from_pep3118");
+        });
     }
 
     dtype strip_padding(ssize_t itemsize) {
