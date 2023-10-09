@@ -47,15 +47,18 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T>
 class LazyInitializeAtLeastOnceDestroyNever {
 public:
+    // PRECONDITION: The GIL must be held when `Get()` is called.
+    // It is possible that multiple threads execute `Get()` with `initialized_`
+    // still being false, and thus proceed to execute `initialize()`. This can
+    // happen if `initialize()` releases and reacquires the GIL internally.
+    // We accept this, and expect the operation to be both idempotent and cheap.
     template <typename Initialize>
     T &Get(Initialize &&initialize) {
         if (!initialized_) {
             assert(PyGILState_Check());
-            // Multiple threads may run this concurrently, but that is fine.
-            auto value = initialize(); // May release and re-acquire the GIL.
-            if (!initialized_) {       // This runs with the GIL held,
-                new                    // therefore this is reached only once.
-                    (reinterpret_cast<T *>(value_storage_)) T(std::move(value));
+            auto value = initialize();
+            if (!initialized_) {
+                new (reinterpret_cast<T *>(value_storage_)) T(std::move(value));
                 initialized_ = true;
             }
         }
