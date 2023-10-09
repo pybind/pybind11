@@ -21,6 +21,7 @@
 #include <functional>
 #include <numeric>
 #include <sstream>
+#include <stdalign.h>
 #include <string>
 #include <type_traits>
 #include <typeindex>
@@ -54,21 +55,16 @@ public:
             // Multiple threads may run this concurrently, but that is fine.
             auto value = initialize(); // May release and re-acquire the GIL.
             if (!initialized_) {       // This runs with the GIL held,
-                new (&value_)          // therefore this is reached only once.
-                    T(std::move(value));
+                new                    // therefore this is reached only once.
+                    (reinterpret_cast<T *>(value_storage_)) T(std::move(value));
                 initialized_ = true;
             }
         }
-        return value_;
+        return *reinterpret_cast<T *>(value_storage_);
     }
 
-    LazyInitializeAtLeastOnceDestroyNever() {}
-    ~LazyInitializeAtLeastOnceDestroyNever() {}
-
 private:
-    union {
-        T value_;
-    };
+    alignas(T) char value_storage_[sizeof(T)];
     bool initialized_ = false;
 };
 
