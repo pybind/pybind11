@@ -5,7 +5,6 @@
 #include "detail/common.h"
 #include "gil.h"
 
-#include <atomic>
 #include <cassert>
 #include <mutex>
 
@@ -49,21 +48,25 @@ public:
     // PRECONDITION: The GIL must be held when `call_once_and_store_result()` is called.
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn) {
-        if (!is_initialized_.load(std::memory_order_acquire)) {
-            gil_scoped_release gil_rel;
+        if (!is_initialized_) { // This read is guarded by the GIL.
+            // Multiple threads may enter here, because CPython API calls in the
+            // `fn()` call below may release and reacquire the GIL.
+            gil_scoped_release gil_rel; // Needed to establish lock ordering.
             std::call_once(once_flag_, [&] {
+                // Only one thread will ever enter here.
                 gil_scoped_acquire gil_acq;
                 ::new (storage_) T(fn());
-                is_initialized_.store(true, std::memory_order_release);
+                is_initialized_ = true; // This write is guarded by the GIL.
             });
         }
+        // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
     }
 
-    // This must only be called after `call_once_and_store()` was called.
+    // This must only be called after `call_once_and_store_result()` was called.
     // Not const for simplicity. (Could be made const if there is an unforeseen need.)
     T &get_stored() {
-        assert(is_initialized_.load(std::memory_order_relaxed));
+        assert(is_initialized_);
         PYBIND11_WARNING_PUSH
 #if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
         // Needed for gcc 4.8.5
@@ -77,9 +80,11 @@ public:
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
+    // `is_initialized_` below and `storage_` here can be replaced with `std::optional`
+    // when pybind11 drops C++11 support.
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_ = {};
-    std::atomic<bool> is_initialized_ = {};
+    bool is_initialized_ = false;
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
