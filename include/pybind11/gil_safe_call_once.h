@@ -51,7 +51,8 @@ public:
     }
 
     // This must only be called after `call_once_and_store()` was called.
-    T &get_stored() const {
+    // Not const for simplicity. (Could be made const if there is an unforeseen need.)
+    T &get_stored() {
         assert(is_initialized_.load(std::memory_order_relaxed));
         PYBIND11_WARNING_PUSH
 #if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
@@ -66,7 +67,7 @@ public:
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
-    alignas(T) mutable char storage_[sizeof(T)] = {};
+    alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_ = {};
     std::atomic<bool> is_initialized_ = {};
 };
