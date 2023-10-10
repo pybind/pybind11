@@ -11,6 +11,8 @@
 
 #include "detail/common.h"
 
+#include <cassert>
+
 #if defined(WITH_THREAD) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    include "detail/internals.h"
 #endif
