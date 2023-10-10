@@ -33,6 +33,16 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 // CPython API calls, and in particular, it can temporarily release the GIL.
 //
 // `T` can be any C++ type, it does not have to involve CPython API types.
+//
+// The behavior with regard to signals, e.g. `SIGINT` (`KeyboardInterrupt`),
+// is not ideal. If the main thread is the one to actually run the `Callable`,
+// then a `KeyboardInterrupt` will interrupt it if it is running normal Python
+// code. The situation is different if a non-main thread runs the
+// `Callable`, and then the main thread starts waiting for it to complete:
+// a `KeyboardInterrupt` will not interrupt the non-main thread, but it will
+// get processed only when it is the main thread's turn again and it is running
+// normal Python code. However, this will be unnoticeable for quick call-once
+// functions, which is usually the case.
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
