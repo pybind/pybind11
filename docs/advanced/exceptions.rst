@@ -141,7 +141,7 @@ standard python RuntimeError:
 
 .. code-block:: cpp
 
-    static py::gil_safe_call_once_and_store<py::object> exc_storage;
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_storage;
     exc_storage.call_once_and_store_result(
         [&]() { return py::exception<MyCustomException>(m, "MyCustomError"); });
     py::register_exception_translator([](std::exception_ptr p) {

@@ -116,7 +116,7 @@ TEST_SUBMODULE(exceptions, m) {
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
 
     // PLEASE KEEP IN SYNC with docs/advanced/exceptions.rst
-    static py::gil_safe_call_once_and_store<py::object> ex_storage;
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> ex_storage;
     ex_storage.call_once_and_store_result(
         [&]() { return py::exception<MyException>(m, "MyException"); });
     py::register_exception_translator([](std::exception_ptr p) {
