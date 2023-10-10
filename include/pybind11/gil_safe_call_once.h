@@ -29,10 +29,10 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 //       })
 //       .get_stored();
 //
-// The `call_once_and_store_result()` argument is meant to be a callable that
-// makes Python C API calls.
+// The parameter of `call_once_and_store_result()` must be callable. It can make
+// CPython API calls, and in particular, it can temporarily release the GIL.
 //
-// `T` can be any C++ type, it does not have to be a Python type.
+// `T` can be any C++ type, it does not have to involve CPython API types.
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
