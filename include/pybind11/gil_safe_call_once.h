@@ -58,6 +58,8 @@ public:
                 ::new (storage_) T(fn());
                 is_initialized_ = true; // This write is guarded by the GIL.
             });
+            // The C++ standard guarantees that all threads entering above will observe
+            // `is_initialized_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
