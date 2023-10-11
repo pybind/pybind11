@@ -49,24 +49,22 @@ public:
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn) {
         if (!is_initialized_) { // This read is guarded by the GIL.
-            // Multiple threads may enter here, because CPython API calls in the
-            // `fn()` call below may release and reacquire the GIL.
+            // Multiple threads may enter here, because the GIL is released in the next line and
+            // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
             std::call_once(once_flag_, [&] {
                 // Only one thread will ever enter here.
                 gil_scoped_acquire gil_acq;
-                ::new (storage_) T(fn());
-                is_initialized_ = true; // This write is guarded by the GIL.
+                ::new (storage_) T(fn()); // fn may release, but will reacquire, the GIL.
+                is_initialized_ = true;   // This write is guarded by the GIL.
             });
-            // The C++ standard guarantees that all threads entering above will observe
-            // `is_initialized_` as true here.
+            // All threads will observe `is_initialized_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
     }
 
     // This must only be called after `call_once_and_store_result()` was called.
-    // Not const for simplicity. (Could be made const if there is an unforeseen need.)
     T &get_stored() {
         assert(is_initialized_);
         PYBIND11_WARNING_PUSH
