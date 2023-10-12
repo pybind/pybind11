@@ -120,7 +120,7 @@ The valid options are:
 * `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
 * `-DBUILD_TESTING=ON`: Enable the tests
 * `-DDOWNLOAD_CATCH=ON`: Download catch to build the C++ tests
-* `-DOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
+* `-DDOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
 * `-DPYBIND11_INSTALL=ON/OFF`: Enable the install target (on by default for the
   master project)
 * `-DUSE_PYTHON_INSTALL_DIR=ON`: Try to install into the python dir
@@ -159,8 +159,9 @@ tests with these targets:
 * `test_cmake_build`: Install / subdirectory tests
 
 If you want to build just a subset of tests, use
-`-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp"`. If this is
-empty, all tests will be built.
+`-DPYBIND11_TEST_OVERRIDE="test_callbacks;test_pickling"`. If this is
+empty, all tests will be built. Tests are specified without an extension if they need both a .py and
+.cpp file.
 
 You may also pass flags to the `pytest` target by editing `tests/pytest.ini` or
 by using the `PYTEST_ADDOPTS` environment variable

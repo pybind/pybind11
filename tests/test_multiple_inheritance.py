@@ -386,3 +386,139 @@ def test_mi_ownership_constraint():
     # c = m.ContainerBase2a(m.Bae12a(10, 100))
     # assert c.get().foo() == 10
     # assert c.get().bar() == 100
+
+
+def test_pr3635_diamond_b():
+    o = m.MVB()
+    assert o.b == 1
+
+    assert o.get_b_b() == 1
+
+
+def test_pr3635_diamond_c():
+    o = m.MVC()
+    assert o.b == 1
+    assert o.c == 2
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+
+    assert o.get_c_c() == 2
+
+
+def test_pr3635_diamond_d0():
+    o = m.MVD0()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d0_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d0_c() == 2
+
+    assert o.get_d0_d0() == 3
+
+
+def test_pr3635_diamond_d1():
+    o = m.MVD1()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d1 == 4
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d1_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d1_c() == 2
+
+    assert o.get_d1_d1() == 4
+
+
+def test_pr3635_diamond_e():
+    o = m.MVE()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+    assert o.d1 == 4
+    assert o.e == 5
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d0_b() == 1
+    assert o.get_d1_b() == 1
+    assert o.get_e_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d0_c() == 2
+    assert o.get_d1_c() == 2
+    assert o.get_e_c() == 2
+
+    assert o.get_d0_d0() == 3
+    assert o.get_e_d0() == 3
+
+    assert o.get_d1_d1() == 4
+    assert o.get_e_d1() == 4
+
+    assert o.get_e_e() == 5
+
+
+def test_pr3635_diamond_f():
+    o = m.MVF()
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+    assert o.d1 == 4
+    assert o.e == 5
+    assert o.f == 6
+
+    assert o.get_b_b() == 1
+    assert o.get_c_b() == 1
+    assert o.get_d0_b() == 1
+    assert o.get_d1_b() == 1
+    assert o.get_e_b() == 1
+    assert o.get_f_b() == 1
+
+    assert o.get_c_c() == 2
+    assert o.get_d0_c() == 2
+    assert o.get_d1_c() == 2
+    assert o.get_e_c() == 2
+    assert o.get_f_c() == 2
+
+    assert o.get_d0_d0() == 3
+    assert o.get_e_d0() == 3
+    assert o.get_f_d0() == 3
+
+    assert o.get_d1_d1() == 4
+    assert o.get_e_d1() == 4
+    assert o.get_f_d1() == 4
+
+    assert o.get_e_e() == 5
+    assert o.get_f_e() == 5
+
+    assert o.get_f_f() == 6
+
+
+def test_python_inherit_from_mi():
+    """Tests extending a Python class from a single inheritor of a MI class"""
+
+    class PyMVF(m.MVF):
+        g = 7
+
+        def get_g_g(self):
+            return self.g
+
+    o = PyMVF()
+
+    assert o.b == 1
+    assert o.c == 2
+    assert o.d0 == 3
+    assert o.d1 == 4
+    assert o.e == 5
+    assert o.f == 6
+    assert o.g == 7
+
+    assert o.get_g_g() == 7

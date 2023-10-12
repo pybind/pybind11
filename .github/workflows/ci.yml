@@ -77,7 +77,7 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.11
+      uses: jwlawson/actions-setup-cmake@v1.12
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -215,7 +215,7 @@ jobs:
   #       debug: ${{ matrix.python-debug }}
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.11
+  #     uses: jwlawson/actions-setup-cmake@v1.12
 
   #   - name: Valgrind cache
   #     if: matrix.valgrind
@@ -474,7 +474,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.11
+      uses: jwlawson/actions-setup-cmake@v1.12
 
     - name: Configure
       shell: bash
@@ -562,37 +562,37 @@ jobs:
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
   #       cmake --build build-11 --target test_cmake_build
 
-  #   - name: Configure C++14
+  #   - name: Configure C++17
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake -S . -B build-14     \
+  #       cmake -S . -B build-17     \
   #       -DPYBIND11_WERROR=ON    \
   #       -DDOWNLOAD_CATCH=ON     \
   #       -DDOWNLOAD_EIGEN=OFF    \
-  #       -DCMAKE_CXX_STANDARD=14             \
+  #       -DCMAKE_CXX_STANDARD=17             \
   #       -DCMAKE_CXX_COMPILER=$(which icpc)  \
   #       -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
-  #   - name: Build C++14
+  #   - name: Build C++17
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake --build build-14 -j 2 -v
+  #       cmake --build build-17 -j 2 -v
 
-  #   - name: Python tests C++14
+  #   - name: Python tests C++17
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
   #       sudo service apport stop
-  #       cmake --build build-14 --target check
+  #       cmake --build build-17 --target check
 
-  #   - name: C++ tests C++14
+  #   - name: C++ tests C++17
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake --build build-14 --target cpptest
+  #       cmake --build build-17 --target cpptest
 
-  #   - name: Interface test C++14
+  #   - name: Interface test C++17
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake --build build-14 --target test_cmake_build
+  #       cmake --build build-17 --target test_cmake_build
 
 
   # # Testing on CentOS (manylinux uses a centos base, and this is an easy way
@@ -603,11 +603,11 @@ jobs:
   #     fail-fast: false
   #     matrix:
   #       centos:
-  #         - 7  # GCC 4.8
-  #         - 8
+  #         - centos7  # GCC 4.8
+  #         - stream8
 
   #   name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
-  #   container: "centos:${{ matrix.centos }}"
+  #   container: "quay.io/centos/centos:${{ matrix.centos }}"
 
   #   steps:
   #   - uses: actions/checkout@v2
@@ -622,27 +622,16 @@ jobs:
   #     run: |
   #       python3 -m pip install cmake -r tests/requirements.txt
 
-  #   - name: VAR_BUILD_TYPE 7
-  #     if: matrix.centos == 7
-  #     run: echo MinSizeRel > VAR_BUILD_TYPE
-
-  #   # Using Release to avoid segfault that appeared around 2021-06-04,
-  #   # apparently when the gcc version changed from 8.3 to 8.4.
-  #   - name: VAR_BUILD_TYPE 8
-  #     if: matrix.centos == 8
-  #     run: echo Release > VAR_BUILD_TYPE
-
-  #   # Temporally disabling EIGEN due to SSL issue in CentOS 7
-  #   - name: Configure
-  #     shell: bash
-  #     run: >
-  #       cmake -S . -B build
-  #       -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
-  #       -DPYBIND11_WERROR=ON
-  #       -DDOWNLOAD_CATCH=ON
-  #       -DDOWNLOAD_EIGEN=ON
-  #       -DCMAKE_CXX_STANDARD=11
-  #       -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+    # - name: Configure
+    #   shell: bash
+    #   run: >
+    #     cmake -S . -B build
+    #     -DCMAKE_BUILD_TYPE=MinSizeRel
+    #     -DPYBIND11_WERROR=ON
+    #     -DDOWNLOAD_CATCH=ON
+    #     -DDOWNLOAD_EIGEN=ON
+    #     -DCMAKE_CXX_STANDARD=11
+    #     -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
   #   - name: Build
   #     run: cmake --build build -j 2
@@ -765,7 +754,7 @@ jobs:
   #       architecture: x86
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.11
+  #     uses: jwlawson/actions-setup-cmake@v1.12
 
   #   - name: Prepare MSVC
   #     uses: ilammy/msvc-dev-cmd@v1.10.0
@@ -812,7 +801,7 @@ jobs:
   #       python-version: ${{ matrix.python }}
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.11
+  #     uses: jwlawson/actions-setup-cmake@v1.12
 
   #   - name: Prepare MSVC
   #     uses: ilammy/msvc-dev-cmd@v1.10.0
@@ -871,7 +860,7 @@ jobs:
   #       python-version: ${{ matrix.python }}
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.11
+  #     uses: jwlawson/actions-setup-cmake@v1.12
 
   #   - name: Prepare env
   #     run: |
@@ -938,10 +927,10 @@ jobs:
   #     run: cmake --build build --target pytest -j 2
 
   #   - name: C++11 tests
-  #     run: cmake --build build --target cpptest -j 2
+  #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
 
   #   - name: Interface test C++11
-  #     run: cmake --build build --target test_cmake_build
+  #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cmake_build
 
   #   - name: Clean directory
   #     run: git clean -fdx
@@ -956,10 +945,10 @@ jobs:
   #     run: cmake --build build2 --target pytest -j 2
 
   #   - name: C++14 tests
-  #     run: cmake --build build2 --target cpptest -j 2
+  #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
 
   #   - name: Interface test C++14
-  #     run: cmake --build build2 --target test_cmake_build
+  #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cmake_build
 
   #   - name: Clean directory
   #     run: git clean -fdx
@@ -974,7 +963,7 @@ jobs:
   #     run: cmake --build build3 --target pytest -j 2
 
   #   - name: C++17 tests
-  #     run: cmake --build build3 --target cpptest -j 2
+  #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 2
 
   #   - name: Interface test C++17
-  #     run: cmake --build build3 --target test_cmake_build
+  #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build

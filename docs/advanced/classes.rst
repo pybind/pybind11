@@ -9,7 +9,7 @@ that you are already familiar with the basics from :doc:`/classes`.
 Overriding virtual functions in Python
 ======================================
 
-Suppose that a C++ class or interface has a virtual function that we'd like to
+Suppose that a C++ class or interface has a virtual function that we'd like
 to override from within Python (we'll focus on the class ``Animal``; ``Dog`` is
 given as a specific example of how one would do this with traditional C++
 code).
@@ -1176,6 +1176,58 @@ error:
 .. note:: This attribute is currently ignored on PyPy
 
 .. versionadded:: 2.6
+
+Binding classes with template parameters
+========================================
+
+pybind11 can also wrap classes that have template parameters. Consider these classes:
+
+.. code-block:: cpp
+
+    struct Cat {};
+    struct Dog {};
+
+    template <typename PetType>
+    struct Cage {
+        Cage(PetType& pet);
+        PetType& get();
+    };
+
+C++ templates may only be instantiated at compile time, so pybind11 can only
+wrap instantiated templated classes. You cannot wrap a non-instantiated template:
+
+.. code-block:: cpp
+
+    // BROKEN (this will not compile)
+    py::class_<Cage>(m, "Cage");
+        .def("get", &Cage::get);
+
+You must explicitly specify each template/type combination that you want to
+wrap separately.
+
+.. code-block:: cpp
+
+    // ok
+    py::class_<Cage<Cat>>(m, "CatCage")
+        .def("get", &Cage<Cat>::get);
+
+    // ok
+    py::class_<Cage<Dog>>(m, "DogCage")
+        .def("get", &Cage<Dog>::get);
+
+If your class methods have template parameters you can wrap those as well,
+but once again each instantiation must be explicitly specified:
+
+.. code-block:: cpp
+
+    typename <typename T>
+    struct MyClass {
+        template <typename V>
+        T fn(V v);
+    };
+
+    py::class<MyClass<int>>(m, "MyClassT")
+        .def("fn", &MyClass<int>::fn<std::string>);
 
 Custom automatic downcasters
 ============================

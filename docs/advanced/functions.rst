@@ -120,7 +120,7 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 .. code-block:: cpp
 
     class_<MyClass>(m, "MyClass")
-        .def_property("data"
+        .def_property("data",
             py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
             py::cpp_function(&MyClass::setData)
         );
@@ -578,3 +578,38 @@ prefers earlier-defined overloads to later-defined ones.
 .. versionadded:: 2.6
 
     The ``py::prepend()`` tag.
+
+Binding functions with template parameters
+==========================================
+
+You can bind functions that have template parameters. Here's a function:
+
+.. code-block:: cpp
+
+    template <typename T>
+    void set(T t);
+
+C++ templates cannot be instantiated at runtime, so you cannot bind the
+non-instantiated function:
+
+.. code-block:: cpp
+
+    // BROKEN (this will not compile)
+    m.def("set", &set);
+
+You must bind each instantiated function template separately. You may bind
+each instantiation with the same name, which will be treated the same as
+an overloaded function:
+
+.. code-block:: cpp
+
+    m.def("set", &set<int>);
+    m.def("set", &set<std::string>);
+
+Sometimes it's more clear to bind them with separate names, which is also
+an option:
+
+.. code-block:: cpp
+
+    m.def("setInt", &set<int>);
+    m.def("setString", &set<std::string>);

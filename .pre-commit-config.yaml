@@ -33,7 +33,7 @@ repos:
     exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.29.1
+  rev: v2.31.0
   hooks:
   - id: pyupgrade
 
@@ -104,7 +104,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.930
+  rev: v0.931
   hooks:
   - id: mypy
     # Running per-file misbehaves a bit, so just run on all files, it's fast

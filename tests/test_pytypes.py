@@ -10,6 +10,10 @@ from pybind11_tests import debug_enabled
 from pybind11_tests import pytypes as m
 
 
+def test_bool(doc):
+    assert doc(m.get_bool) == "get_bool() -> bool"
+
+
 def test_int(doc):
     assert doc(m.get_int) == "get_int() -> int"
 
@@ -20,6 +24,10 @@ def test_iterator(doc):
 
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
+
+
+def test_float(doc):
+    assert doc(m.get_float) == "get_float() -> float"
 
 
 def test_list(capture, doc):

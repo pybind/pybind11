@@ -11,11 +11,11 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 9
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_PATCH 1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x02090000
+#define PYBIND11_VERSION_HEX 0x02090100
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -36,6 +36,9 @@
 #    define PYBIND11_CPP14
 #    if __cplusplus >= 201703L
 #      define PYBIND11_CPP17
+#      if __cplusplus >= 202002L
+#        define PYBIND11_CPP20
+#      endif
 #    endif
 #  endif
 #elif defined(_MSC_VER) && __cplusplus == 199711L
@@ -45,6 +48,9 @@
 #    define PYBIND11_CPP14
 #    if _MSVC_LANG > 201402L && _MSC_VER >= 1910
 #      define PYBIND11_CPP17
+#      if _MSVC_LANG >= 202002L
+#        define PYBIND11_CPP20
+#      endif
 #    endif
 #  endif
 #endif
@@ -711,6 +717,18 @@ template <bool B, typename T = void> using enable_if_t = typename std::enable_if
 template <bool B, typename T, typename F> using conditional_t = typename std::conditional<B, T, F>::type;
 template <typename T> using remove_cv_t = typename std::remove_cv<T>::type;
 template <typename T> using remove_reference_t = typename std::remove_reference<T>::type;
+#endif
+
+#if defined(PYBIND11_CPP20)
+using std::remove_cvref;
+using std::remove_cvref_t;
+#else
+template <class T>
+struct remove_cvref {
+    using type = remove_cv_t<remove_reference_t<T>>;
+};
+template <class T>
+using remove_cvref_t = typename remove_cvref<T>::type;
 #endif
 
 /// Index sequences

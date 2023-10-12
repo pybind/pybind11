@@ -23,7 +23,7 @@
 #include <string>
 #include <utility>
 
-#include <string.h>
+#include <cstring>
 
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #  define PYBIND11_STD_LAUNDER std::launder
@@ -331,8 +331,8 @@ protected:
                 a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
         }
 
-        rec->is_constructor
-            = (strcmp(rec->name, "__init__") == 0) || (strcmp(rec->name, "__setstate__") == 0);
+        rec->is_constructor = (std::strcmp(rec->name, "__init__") == 0)
+                              || (std::strcmp(rec->name, "__setstate__") == 0);
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
@@ -413,10 +413,10 @@ protected:
             pybind11_fail("Internal error while parsing type signature (2)");
 
 #if PY_MAJOR_VERSION < 3
-        if (strcmp(rec->name, "__next__") == 0) {
+        if (std::strcmp(rec->name, "__next__") == 0) {
             std::free(rec->name);
             rec->name = guarded_strdup("next");
-        } else if (strcmp(rec->name, "__bool__") == 0) {
+        } else if (std::strcmp(rec->name, "__bool__") == 0) {
             std::free(rec->name);
             rec->name = guarded_strdup("__nonzero__");
         }
@@ -992,6 +992,14 @@ protected:
             }
 
             append_note_if_missing_header_is_suspected(msg);
+#if PY_VERSION_HEX >= 0x03030000
+            // Attach additional error info to the exception if supported
+            if (PyErr_Occurred()) {
+                // #HelpAppreciated: unit test coverage for this branch.
+                raise_from(PyExc_TypeError, msg.c_str());
+                return nullptr;
+            }
+#endif
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
@@ -1000,6 +1008,13 @@ protected:
                               "Python type! The signature was\n\t";
             msg += it->signature;
             append_note_if_missing_header_is_suspected(msg);
+#if PY_VERSION_HEX >= 0x03030000
+            // Attach additional error info to the exception if supported
+            if (PyErr_Occurred()) {
+                raise_from(PyExc_TypeError, msg.c_str());
+                return nullptr;
+            }
+#endif
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
@@ -1207,8 +1222,12 @@ protected:
             tinfo->simple_ancestors = false;
         }
         else if (rec.bases.size() == 1) {
-            auto parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
-            tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
+            auto *parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
+            assert(parent_tinfo != nullptr);
+            bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
+            tinfo->simple_ancestors = parent_simple_ancestors;
+            // The parent can no longer be a simple type if it has MI and has a child
+            parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
         }
 
         if (rec.module_local) {
@@ -1301,8 +1320,8 @@ inline void call_operator_delete(void *p, size_t s, size_t a) {
 
 inline void add_class_method(object& cls, const char *name_, const cpp_function &cf) {
     cls.attr(cf.name()) = cf;
-    if (strcmp(name_, "__eq__") == 0 && !cls.attr("__dict__").contains("__hash__")) {
-      cls.attr("__hash__") = none();
+    if (std::strcmp(name_, "__eq__") == 0 && !cls.attr("__dict__").contains("__hash__")) {
+        cls.attr("__hash__") = none();
     }
 }
 

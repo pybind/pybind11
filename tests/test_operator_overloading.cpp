@@ -7,10 +7,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include "constructor_stats.h"
-#include <pybind11/operators.h>
+#include "pybind11_tests.h"
 #include <functional>
+#include <pybind11/operators.h>
+#include <pybind11/stl.h>
 
 class Vector2 {
 public:
@@ -71,6 +72,12 @@ int operator+(const C2 &, const C2 &) { return 22; }
 int operator+(const C2 &, const C1 &) { return 21; }
 int operator+(const C1 &, const C2 &) { return 12; }
 
+struct HashMe {
+    std::string member;
+};
+
+bool operator==(const HashMe &lhs, const HashMe &rhs) { return lhs.member == rhs.member; }
+
 // Note: Specializing explicit within `namespace std { ... }` is done due to a
 // bug in GCC<7. If you are supporting compilers later than this, consider
 // specializing `using template<> struct std::hash<...>` in the global
@@ -81,6 +88,14 @@ namespace std {
     struct hash<Vector2> {
         // Not a good hash function, but easy to test
         size_t operator()(const Vector2 &) { return 4; }
+    };
+
+    // HashMe has a hash function in C++ but no `__hash__` for Python.
+    template <>
+    struct hash<HashMe> {
+        std::size_t operator()(const HashMe &selector) const {
+            return std::hash<std::string>()(selector.member);
+        }
     };
 } // namespace std
 
@@ -228,8 +243,12 @@ TEST_SUBMODULE(operators, m) {
         .def("__hash__", &Hashable::hash)
         .def(py::init<int>())
         .def(py::self == py::self);
-}
 
+    // define __eq__ but not __hash__
+    py::class_<HashMe>(m, "HashMe").def(py::self == py::self);
+
+    m.def("get_unhashable_HashMe_set", []() { return std::unordered_set<HashMe>{{"one"}}; });
+}
 #if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
   #pragma GCC diagnostic pop
 #endif

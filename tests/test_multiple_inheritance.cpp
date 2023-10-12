@@ -251,4 +251,87 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def("c1", [](C1 *self) { return self; });
     py::class_<D, C0, C1>(m, "D")
         .def(py::init<>());
+
+    // test_pr3635_diamond_*
+    // - functions are get_{base}_{var}, return {var}
+    struct MVB {
+        MVB() = default;
+        MVB(const MVB &) = default;
+        virtual ~MVB() = default;
+
+        int b = 1;
+        int get_b_b() const { return b; }
+    };
+    struct MVC : virtual MVB {
+        int c = 2;
+        int get_c_b() const { return b; }
+        int get_c_c() const { return c; }
+    };
+    struct MVD0 : virtual MVC {
+        int d0 = 3;
+        int get_d0_b() const { return b; }
+        int get_d0_c() const { return c; }
+        int get_d0_d0() const { return d0; }
+    };
+    struct MVD1 : virtual MVC {
+        int d1 = 4;
+        int get_d1_b() const { return b; }
+        int get_d1_c() const { return c; }
+        int get_d1_d1() const { return d1; }
+    };
+    struct MVE : virtual MVD0, virtual MVD1 {
+        int e = 5;
+        int get_e_b() const { return b; }
+        int get_e_c() const { return c; }
+        int get_e_d0() const { return d0; }
+        int get_e_d1() const { return d1; }
+        int get_e_e() const { return e; }
+    };
+    struct MVF : virtual MVE {
+        int f = 6;
+        int get_f_b() const { return b; }
+        int get_f_c() const { return c; }
+        int get_f_d0() const { return d0; }
+        int get_f_d1() const { return d1; }
+        int get_f_e() const { return e; }
+        int get_f_f() const { return f; }
+    };
+    py::class_<MVB>(m, "MVB")
+        .def(py::init<>())
+        .def("get_b_b", &MVB::get_b_b)
+        .def_readwrite("b", &MVB::b);
+    py::class_<MVC, MVB>(m, "MVC")
+        .def(py::init<>())
+        .def("get_c_b", &MVC::get_c_b)
+        .def("get_c_c", &MVC::get_c_c)
+        .def_readwrite("c", &MVC::c);
+    py::class_<MVD0, MVC>(m, "MVD0")
+        .def(py::init<>())
+        .def("get_d0_b", &MVD0::get_d0_b)
+        .def("get_d0_c", &MVD0::get_d0_c)
+        .def("get_d0_d0", &MVD0::get_d0_d0)
+        .def_readwrite("d0", &MVD0::d0);
+    py::class_<MVD1, MVC>(m, "MVD1")
+        .def(py::init<>())
+        .def("get_d1_b", &MVD1::get_d1_b)
+        .def("get_d1_c", &MVD1::get_d1_c)
+        .def("get_d1_d1", &MVD1::get_d1_d1)
+        .def_readwrite("d1", &MVD1::d1);
+    py::class_<MVE, MVD0, MVD1>(m, "MVE")
+        .def(py::init<>())
+        .def("get_e_b", &MVE::get_e_b)
+        .def("get_e_c", &MVE::get_e_c)
+        .def("get_e_d0", &MVE::get_e_d0)
+        .def("get_e_d1", &MVE::get_e_d1)
+        .def("get_e_e", &MVE::get_e_e)
+        .def_readwrite("e", &MVE::e);
+    py::class_<MVF, MVE>(m, "MVF")
+        .def(py::init<>())
+        .def("get_f_b", &MVF::get_f_b)
+        .def("get_f_c", &MVF::get_f_c)
+        .def("get_f_d0", &MVF::get_f_d0)
+        .def("get_f_d1", &MVF::get_f_d1)
+        .def("get_f_e", &MVF::get_f_e)
+        .def("get_f_f", &MVF::get_f_f)
+        .def_readwrite("f", &MVF::f);
 }
