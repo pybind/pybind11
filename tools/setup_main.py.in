@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 # Setup script (in the sdist or in tools/setup_main.py in the repository)
 
@@ -20,7 +19,7 @@ setup(
         "pybind11.share.cmake.pybind11",
     ],
     package_data={
-        "pybind11": ["py.typed", "*.pyi"],
+        "pybind11": ["py.typed"],
         "pybind11.include.pybind11": ["*.h"],
         "pybind11.include.pybind11.detail": ["*.h"],
         "pybind11.include.pybind11.stl": ["*.h"],

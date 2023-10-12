@@ -18,17 +18,6 @@
 #include <datetime.h>
 #include <mutex>
 
-// Backport the PyDateTime_DELTA functions from Python3.3 if required
-#ifndef PyDateTime_DELTA_GET_DAYS
-#    define PyDateTime_DELTA_GET_DAYS(o) (((PyDateTime_Delta *) o)->days)
-#endif
-#ifndef PyDateTime_DELTA_GET_SECONDS
-#    define PyDateTime_DELTA_GET_SECONDS(o) (((PyDateTime_Delta *) o)->seconds)
-#endif
-#ifndef PyDateTime_DELTA_GET_MICROSECONDS
-#    define PyDateTime_DELTA_GET_MICROSECONDS(o) (((PyDateTime_Delta *) o)->microseconds)
-#endif
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 

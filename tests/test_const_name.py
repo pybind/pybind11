@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import pytest
 
-import env
 from pybind11_tests import const_name as m
 
 
@@ -25,7 +23,7 @@ from pybind11_tests import const_name as m
     ),
 )
 def test_const_name(func, selector, expected):
-    if isinstance(func, type(u"") if env.PY2 else str):
+    if isinstance(func, str):
         pytest.skip(func)
     text = func(selector)
     assert text == expected

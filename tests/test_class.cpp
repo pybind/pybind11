@@ -354,13 +354,7 @@ TEST_SUBMODULE(class_, m) {
         using ProtectedA::foo;
     };
 
-    py::class_<ProtectedA>(m, "ProtectedA")
-        .def(py::init<>())
-#if !defined(_MSC_VER) || _MSC_VER >= 1910
-        .def("foo", &PublicistA::foo);
-#else
-        .def("foo", static_cast<int (ProtectedA::*)() const>(&PublicistA::foo));
-#endif
+    py::class_<ProtectedA>(m, "ProtectedA").def(py::init<>()).def("foo", &PublicistA::foo);
 
     class ProtectedB {
     public:
@@ -391,11 +385,7 @@ TEST_SUBMODULE(class_, m) {
 
     py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
         .def(py::init<>())
-#if !defined(_MSC_VER) || _MSC_VER >= 1910
         .def("foo", &PublicistB::foo);
-#else
-        .def("foo", static_cast<int (ProtectedB::*)() const>(&PublicistB::foo));
-#endif
 
     // test_brace_initialization
     struct BraceInitialization {

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 m = pytest.importorskip("pybind11_tests.smart_ptr")
@@ -16,7 +15,7 @@ def test_smart_ptr(capture):
             m.print_object_2(o)
             m.print_object_3(o)
             m.print_object_4(o)
-        assert capture == "MyObject1[{i}]\n".format(i=i) * 4
+        assert capture == f"MyObject1[{i}]\n" * 4
 
     for i, o in enumerate(
         [m.make_myobject1_1(), m.make_myobject1_2(), m.MyObject1(6), 7], start=4
@@ -34,13 +33,11 @@ def test_smart_ptr(capture):
             m.print_myobject1_4(o)
 
         times = 4 if isinstance(o, int) else 8
-        assert capture == "MyObject1[{i}]\n".format(i=i) * times
+        assert capture == f"MyObject1[{i}]\n" * times
 
     cstats = ConstructorStats.get(m.MyObject1)
     assert cstats.alive() == 0
-    expected_values = ["MyObject1[{}]".format(i) for i in range(1, 7)] + [
-        "MyObject1[7]"
-    ] * 4
+    expected_values = [f"MyObject1[{i}]" for i in range(1, 7)] + ["MyObject1[7]"] * 4
     assert cstats.values() == expected_values
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
@@ -58,7 +55,7 @@ def test_smart_ptr(capture):
             m.print_myobject2_2(o)
             m.print_myobject2_3(o)
             m.print_myobject2_4(o)
-        assert capture == "MyObject2[{i}]\n".format(i=i) * 4
+        assert capture == f"MyObject2[{i}]\n" * 4
 
     cstats = ConstructorStats.get(m.MyObject2)
     assert cstats.alive() == 1
@@ -81,7 +78,7 @@ def test_smart_ptr(capture):
             m.print_myobject3_2(o)
             m.print_myobject3_3(o)
             m.print_myobject3_4(o)
-        assert capture == "MyObject3[{i}]\n".format(i=i) * 4
+        assert capture == f"MyObject3[{i}]\n" * 4
 
     cstats = ConstructorStats.get(m.MyObject3)
     assert cstats.alive() == 1

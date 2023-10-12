@@ -126,7 +126,6 @@ TEST_CASE("Override cache") {
 TEST_CASE("Import error handling") {
     REQUIRE_NOTHROW(py::module_::import("widget_module"));
     REQUIRE_THROWS_WITH(py::module_::import("throw_exception"), "ImportError: C++ Error");
-#if PY_VERSION_HEX >= 0x03030000
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: initialization failed"));
 
@@ -142,10 +141,6 @@ TEST_CASE("Import error handling") {
              locals);
     REQUIRE(locals["is_keyerror"].cast<bool>() == true);
     REQUIRE(locals["message"].cast<std::string>() == "'missing'");
-#else
-    REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
-                        Catch::Contains("ImportError: KeyError"));
-#endif
 }
 
 TEST_CASE("There can be only one interpreter") {
@@ -378,5 +373,23 @@ TEST_CASE("sys.argv gets initialized properly") {
         const auto &cpp_widget = py_widget.cast<const Widget &>();
         REQUIRE(cpp_widget.argv0() == "a.out");
     }
+    py::initialize_interpreter();
+}
+
+TEST_CASE("make_iterator can be called before then after finalizing an interpreter") {
+    // Reproduction of issue #2101 (https://github.com/pybind/pybind11/issues/2101)
+    py::finalize_interpreter();
+
+    std::vector<int> container;
+    {
+        pybind11::scoped_interpreter g;
+        auto iter = pybind11::make_iterator(container.begin(), container.end());
+    }
+
+    REQUIRE_NOTHROW([&]() {
+        pybind11::scoped_interpreter g;
+        auto iter = pybind11::make_iterator(container.begin(), container.end());
+    }());
+
     py::initialize_interpreter();
 }

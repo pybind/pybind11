@@ -524,7 +524,7 @@ include a declaration of the form:
 
     PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 
-Continuing to do so won’t cause an error or even a deprecation warning,
+Continuing to do so won't cause an error or even a deprecation warning,
 but it's completely redundant.
 
 

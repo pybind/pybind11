@@ -15,7 +15,7 @@
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.1.0
+  rev: "v4.3.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -29,73 +29,92 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
-  - id: fix-encoding-pragma
-    exclude: ^noxfile.py$
 
+# Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.31.0
+  rev: "v2.37.1"
   hooks:
   - id: pyupgrade
+    args: [--py36-plus]
 
+# Nicely sort includes
 - repo: https://github.com/PyCQA/isort
-  rev: 5.10.1
+  rev: "5.10.1"
   hooks:
   - id: isort
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 21.12b0 # Keep in sync with blacken-docs
+  rev: "22.6.0" # Keep in sync with blacken-docs
   hooks:
   - id: black
 
+# Also code format the docs
 - repo: https://github.com/asottile/blacken-docs
-  rev: v1.12.0
+  rev: "v1.12.1"
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==21.12b0 # keep in sync with black hook
+    - black==22.6.0 # keep in sync with black hook
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.1.10
+  rev: "v1.3.0"
   hooks:
   - id: remove-tabs
 
+- repo: https://github.com/sirosen/texthooks
+  rev: "0.3.1"
+  hooks:
+  - id: fix-ligatures
+  - id: fix-smartquotes
+
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: v1.1.0
+  rev: "v2.0.1"
   hooks:
   - id: pycln
+    stages: [manual]
 
+# Checking for common mistakes
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.9.0
+  rev: "v1.9.0"
   hooks:
   - id: python-check-blanket-noqa
   - id: python-check-blanket-type-ignore
   - id: python-no-log-warn
+  - id: python-use-type-annotations
   - id: rst-backticks
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
-# Flake8 also supports pre-commit natively (same author)
-- repo: https://github.com/PyCQA/flake8
-  rev: 4.0.1
+# Automatically remove noqa that are not used
+- repo: https://github.com/asottile/yesqa
+  rev: "v1.3.0"
   hooks:
-  - id: flake8
+  - id: yesqa
     additional_dependencies: &flake8_dependencies
       - flake8-bugbear
       - pep8-naming
-    exclude: ^(docs/.*|tools/.*)$
 
-- repo: https://github.com/asottile/yesqa
-  rev: v1.3.0
+# Flake8 also supports pre-commit natively (same author)
+- repo: https://github.com/PyCQA/flake8
+  rev: "4.0.1"
   hooks:
-  - id: yesqa
+  - id: flake8
+    exclude: ^(docs/.*|tools/.*)$
     additional_dependencies: *flake8_dependencies
+
+# PyLint has native support - not always usable, but works for us
+- repo: https://github.com/PyCQA/pylint
+  rev: "v2.14.4"
+  hooks:
+  - id: pylint
+    files: ^pybind11
 
 # CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: v0.6.13
+  rev: "v0.6.13"
   hooks:
   - id: cmake-format
     additional_dependencies: [pyyaml]
@@ -104,44 +123,48 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.931
+  rev: "v0.961"
   hooks:
   - id: mypy
-    # Running per-file misbehaves a bit, so just run on all files, it's fast
-    pass_filenames: false
-    additional_dependencies: [typed_ast]
+    args: []
+    exclude: ^(tests|docs)/
+    additional_dependencies: [nox, rich]
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
-  rev: "0.47"
+  rev: "0.48"
   hooks:
   - id: check-manifest
     # This is a slow hook, so only run this if --hook-stage manual is passed
     stages: [manual]
     additional_dependencies: [cmake, ninja]
 
+# Check for spelling
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.1.0
+  rev: "v2.1.0"
   hooks:
   - id: codespell
     exclude: ".supp$"
     args: ["-L", "nd,ot,thist"]
 
+# Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.8.0.3
+  rev: "v0.8.0.4"
   hooks:
   - id: shellcheck
 
-# The original pybind11 checks for a few C++ style items
+# Disallow some common capitalization mistakes
 - repo: local
   hooks:
   - id: disallow-caps
     name: Disallow improper capitalization
     language: pygrep
     entry: PyBind|Numpy|Cmake|CCache|PyTest
-    exclude: .pre-commit-config.yaml
+    exclude: ^\.pre-commit-config.yaml$
 
+# Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v13.0.0"
+  rev: "v14.0.6"
   hooks:
   - id: clang-format
+    types_or: [c++, c, cuda]

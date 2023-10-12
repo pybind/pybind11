@@ -20,6 +20,7 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 /// Erase all occurrences of a substring
 inline void erase_all(std::string &string, const std::string &search) {
     for (size_t pos = 0;;) {
@@ -46,14 +47,19 @@ PYBIND11_NOINLINE void clean_type_id(std::string &name) {
 #endif
     detail::erase_all(name, "pybind11::");
 }
+
+inline std::string clean_type_id(const char *typeid_name) {
+    std::string name(typeid_name);
+    detail::clean_type_id(name);
+    return name;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Return a string representation of a C++ type
 template <typename T>
 static std::string type_id() {
-    std::string name(typeid(T).name());
-    detail::clean_type_id(name);
-    return name;
+    return detail::clean_type_id(typeid(T).name());
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

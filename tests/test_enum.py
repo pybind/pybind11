@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import pytest
 
-import env
 from pybind11_tests import enums as m
 
 
@@ -241,10 +239,7 @@ def test_char_underlying_enum():  # Issue #1331/PR #1334:
     assert type(m.ScopedCharEnum.Positive.__int__()) is int
     assert int(m.ScopedChar16Enum.Zero) == 0
     assert hash(m.ScopedChar32Enum.Positive) == 1
-    if env.PY2:
-        assert m.ScopedCharEnum.Positive.__getstate__() == 1  # long
-    else:
-        assert type(m.ScopedCharEnum.Positive.__getstate__()) is int
+    assert type(m.ScopedCharEnum.Positive.__getstate__()) is int
     assert m.ScopedWCharEnum(1) == m.ScopedWCharEnum.Positive
     with pytest.raises(TypeError):
         # Even if the underlying type is char, only an int can be used to construct the enum:
@@ -255,10 +250,7 @@ def test_bool_underlying_enum():
     assert type(m.ScopedBoolEnum.TRUE.__int__()) is int
     assert int(m.ScopedBoolEnum.FALSE) == 0
     assert hash(m.ScopedBoolEnum.TRUE) == 1
-    if env.PY2:
-        assert m.ScopedBoolEnum.TRUE.__getstate__() == 1  # long
-    else:
-        assert type(m.ScopedBoolEnum.TRUE.__getstate__()) is int
+    assert type(m.ScopedBoolEnum.TRUE.__getstate__()) is int
     assert m.ScopedBoolEnum(1) == m.ScopedBoolEnum.TRUE
     # Enum could construct with a bool
     # (bool is a strict subclass of int, and False will be converted to 0)

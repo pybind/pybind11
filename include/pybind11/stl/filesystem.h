@@ -13,22 +13,28 @@
 #include <string>
 
 #ifdef __has_include
-#    if defined(PYBIND11_CPP17) && __has_include(<filesystem>) && \
-      PY_VERSION_HEX >= 0x03060000
-#        include <filesystem>
-#        define PYBIND11_HAS_FILESYSTEM 1
+#    if defined(PYBIND11_CPP17)
+#        if __has_include(<filesystem>) && \
+          PY_VERSION_HEX >= 0x03060000
+#            include <filesystem>
+#            define PYBIND11_HAS_FILESYSTEM 1
+#        elif __has_include(<experimental/filesystem>)
+#            include <experimental/filesystem>
+#            define PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM 1
+#        endif
 #    endif
 #endif
 
-#if !defined(PYBIND11_HAS_FILESYSTEM) && !defined(PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL)
+#if !defined(PYBIND11_HAS_FILESYSTEM) && !defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)           \
+    && !defined(PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL)
 #    error                                                                                        \
-        "#include <filesystem> is not available. (Use -DPYBIND11_HAS_FILESYSTEM_IS_OPTIONAL to ignore.)"
+        "Neither #include <filesystem> nor #include <experimental/filesystem is available. (Use -DPYBIND11_HAS_FILESYSTEM_IS_OPTIONAL to ignore.)"
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#if defined(PYBIND11_HAS_FILESYSTEM)
+#if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
 template <typename T>
 struct path_caster {
 
@@ -95,9 +101,16 @@ public:
     PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
 };
 
+#endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+
+#if defined(PYBIND11_HAS_FILESYSTEM)
 template <>
 struct type_caster<std::filesystem::path> : public path_caster<std::filesystem::path> {};
-#endif // PYBIND11_HAS_FILESYSTEM
+#elif defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+template <>
+struct type_caster<std::experimental::filesystem::path>
+    : public path_caster<std::experimental::filesystem::path> {};
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

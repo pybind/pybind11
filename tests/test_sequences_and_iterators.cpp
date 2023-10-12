@@ -452,7 +452,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
             [](IntPairs &self) { return py::make_value_iterator(self, py::call_guard<int>()); },
             py::keep_alive<0, 1>());
 
-    // test_iterater_referencing
+    // test_iterator_referencing
     py::class_<NonCopyableInt>(m, "NonCopyableInt")
         .def(py::init<int>())
         .def("set", &NonCopyableInt::set)

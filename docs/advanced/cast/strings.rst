@@ -1,14 +1,6 @@
 Strings, bytes and Unicode conversions
 ######################################
 
-.. note::
-
-    This section discusses string handling in terms of Python 3 strings. For
-    Python 2.7, replace all occurrences of ``str`` with ``unicode`` and
-    ``bytes`` with ``str``.  Python 2.7 users may find it best to use ``from
-    __future__ import unicode_literals`` to avoid unintentionally using ``str``
-    instead of ``unicode``.
-
 Passing Python strings to C++
 =============================
 
@@ -58,9 +50,9 @@ Passing bytes to C++
 --------------------
 
 A Python ``bytes`` object will be passed to C++ functions that accept
-``std::string`` or ``char*`` *without* conversion.  On Python 3, in order to
-make a function *only* accept ``bytes`` (and not ``str``), declare it as taking
-a ``py::bytes`` argument.
+``std::string`` or ``char*`` *without* conversion.  In order to make a function
+*only* accept ``bytes`` (and not ``str``), declare it as taking a ``py::bytes``
+argument.
 
 
 Returning C++ strings to Python
@@ -203,11 +195,6 @@ decoded to Python ``str``.
             return text;
         }
     );
-
-.. warning::
-
-    Wide character strings may not work as described on Python 2.7 or Python
-    3.3 compiled with ``--enable-unicode=ucs2``.
 
 Strings in multibyte encodings such as Shift-JIS must transcoded to a
 UTF-8/16/32 before being returned to Python.

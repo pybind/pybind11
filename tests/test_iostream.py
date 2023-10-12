@@ -1,43 +1,7 @@
-# -*- coding: utf-8 -*-
-import sys
-from contextlib import contextmanager
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 
 from pybind11_tests import iostream as m
-
-try:
-    # Python 3
-    from io import StringIO
-except ImportError:
-    # Python 2
-    try:
-        from cStringIO import StringIO
-    except ImportError:
-        from StringIO import StringIO
-
-try:
-    # Python 3.4
-    from contextlib import redirect_stdout
-except ImportError:
-
-    @contextmanager
-    def redirect_stdout(target):
-        original = sys.stdout
-        sys.stdout = target
-        yield
-        sys.stdout = original
-
-
-try:
-    # Python 3.5
-    from contextlib import redirect_stderr
-except ImportError:
-
-    @contextmanager
-    def redirect_stderr(target):
-        original = sys.stderr
-        sys.stderr = target
-        yield
-        sys.stderr = original
 
 
 def test_captured(capsys):

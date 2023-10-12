@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import division, print_function
-
 import os
 import sys
 
@@ -16,7 +13,7 @@ lib = sys.argv[1]
 save = sys.argv[2]
 
 if not os.path.exists(lib):
-    sys.exit("Error: requested file ({}) does not exist".format(lib))
+    sys.exit(f"Error: requested file ({lib}) does not exist")
 
 libsize = os.path.getsize(lib)
 
@@ -31,7 +28,7 @@ if os.path.exists(save):
         if change == 0:
             print(" (no change)")
         else:
-            print(" (change of {:+} bytes = {:+.2%})".format(change, change / oldsize))
+            print(f" (change of {change:+} bytes = {change / oldsize:+.2%})")
 else:
     print()
 

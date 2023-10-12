@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+import pytest
+
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import modules as m
 from pybind11_tests.modules import subsubmodule as ms
@@ -90,3 +92,30 @@ def test_builtin_key_type():
         keys = __builtins__.__dict__.keys()
 
     assert {type(k) for k in keys} == {str}
+
+
+@pytest.mark.xfail("env.PYPY", reason="PyModule_GetName()")
+def test_def_submodule_failures():
+    sm = m.def_submodule(m, b"ScratchSubModuleName")  # Using bytes to show it works.
+    assert sm.__name__ == m.__name__ + "." + "ScratchSubModuleName"
+    malformed_utf8 = b"\x80"
+    if env.PYPY:
+        # It is not worth the effort finding a trigger for a failure when running with PyPy.
+        pytest.skip("Sufficiently exercised on platforms other than PyPy.")
+    else:
+        # Meant to trigger PyModule_GetName() failure:
+        sm_name_orig = sm.__name__
+        sm.__name__ = malformed_utf8
+        try:
+            with pytest.raises(Exception):
+                # Seen with Python 3.9: SystemError: nameless module
+                # But we do not want to exercise the internals of PyModule_GetName(), which could
+                # change in future versions of Python, but a bad __name__ is very likely to cause
+                # some kind of failure indefinitely.
+                m.def_submodule(sm, b"SubSubModuleName")
+        finally:
+            # Clean up to ensure nothing gets upset by a module with an invalid __name__.
+            sm.__name__ = sm_name_orig  # Purely precautionary.
+    # Meant to trigger PyImport_AddModule() failure:
+    with pytest.raises(UnicodeDecodeError):
+        m.def_submodule(sm, malformed_utf8)

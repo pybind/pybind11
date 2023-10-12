@@ -31,8 +31,8 @@ py::bytes return_bytes() {
 std::string print_bytes(const py::bytes &bytes) {
     std::string ret = "bytes[";
     const auto value = static_cast<std::string>(bytes);
-    for (size_t i = 0; i < value.length(); ++i) {
-        ret += std::to_string(static_cast<int>(value[i])) + " ";
+    for (char c : value) {
+        ret += std::to_string(static_cast<int>(c)) + ' ';
     }
     ret.back() = ']';
     return ret;
@@ -137,18 +137,15 @@ TEST_SUBMODULE(constants_and_functions, m) {
     m.def("f4", f4);
 
     // test_function_record_leaks
-    struct LargeCapture {
+    m.def("register_large_capture_with_invalid_arguments", [](py::module_ m) {
         // This should always be enough to trigger the alternative branch
         // where `sizeof(capture) > sizeof(rec->data)`
-        uint64_t zeros[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    };
-    m.def("register_large_capture_with_invalid_arguments", [](py::module_ m) {
-        LargeCapture capture; // VS 2015's MSVC is acting up if we create the array here
+        uint64_t capture[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+#if defined(__GNUC__) && __GNUC__ == 4 // CentOS7
+        py::detail::silence_unused_warnings(capture);
+#endif
         m.def(
-            "should_raise",
-            [capture](int) { return capture.zeros[9] + 33; },
-            py::kw_only(),
-            py::arg());
+            "should_raise", [capture](int) { return capture[9] + 33; }, py::kw_only(), py::arg());
     });
     m.def("register_with_raising_repr", [](py::module_ m, const py::object &default_value) {
         m.def(

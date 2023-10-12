@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pybind11_tests import docstring_options as m
 
 

@@ -372,7 +372,7 @@ like so:
 Keyword-only arguments
 ======================
 
-Python 3 introduced keyword-only arguments by specifying an unnamed ``*``
+Python implements keyword-only arguments by specifying an unnamed ``*``
 argument in a function definition:
 
 .. code-block:: python
@@ -395,19 +395,18 @@ argument annotations when registering the function:
     m.def("f", [](int a, int b) { /* ... */ },
           py::arg("a"), py::kw_only(), py::arg("b"));
 
-Note that you currently cannot combine this with a ``py::args`` argument.  This
-feature does *not* require Python 3 to work.
-
 .. versionadded:: 2.6
 
-As of pybind11 2.9, a ``py::args`` argument implies that any following arguments
-are keyword-only, as if ``py::kw_only()`` had been specified in the same
-relative location of the argument list as the ``py::args`` argument.  The
-``py::kw_only()`` may be included to be explicit about this, but is not
-required.  (Prior to 2.9 ``py::args`` may only occur at the end of the argument
-list, or immediately before a ``py::kwargs`` argument at the end).
+A ``py::args`` argument implies that any following arguments are keyword-only,
+as if ``py::kw_only()`` had been specified in the same relative location of the
+argument list as the ``py::args`` argument.  The ``py::kw_only()`` may be
+included to be explicit about this, but is not required.
 
-.. versionadded:: 2.9
+.. versionchanged:: 2.9
+   This can now be combined with ``py::args``. Before, ``py::args`` could only
+   occur at the end of the argument list, or immediately before a ``py::kwargs``
+   argument at the end.
+
 
 Positional-only arguments
 =========================

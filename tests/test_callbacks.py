@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import time
 from threading import Thread
 
@@ -18,7 +17,7 @@ def test_callbacks():
         return "func2", a, b, c, d
 
     def func3(a):
-        return "func3({})".format(a)
+        return f"func3({a})"
 
     assert m.test_callback1(func1) == "func1"
     assert m.test_callback2(func2) == ("func2", "Hello", "x", True, 5)
@@ -189,14 +188,8 @@ def test_callback_num_times():
         if not rep:
             print()
         print(
-            "callback_num_times: {:d} million / {:.3f} seconds = {:.3f} million / second".format(
-                num_millions, td, rate
-            )
+            f"callback_num_times: {num_millions:d} million / {td:.3f} seconds = {rate:.3f} million / second"
         )
     if len(rates) > 1:
         print("Min    Mean   Max")
-        print(
-            "{:6.3f} {:6.3f} {:6.3f}".format(
-                min(rates), sum(rates) / len(rates), max(rates)
-            )
-        )
+        print(f"{min(rates):6.3f} {sum(rates) / len(rates):6.3f} {max(rates):6.3f}")

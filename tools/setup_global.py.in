@@ -1,17 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 # Setup script for pybind11-global (in the sdist or in tools/setup_global.py in the repository)
 # This package is targeted for easy use from CMake.
 
-import contextlib
 import glob
 import os
 import re
-import shutil
-import subprocess
-import sys
-import tempfile
 
 # Setuptools has to be before distutils
 from setuptools import setup
