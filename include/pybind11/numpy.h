@@ -87,10 +87,12 @@ struct numpy_internals {
 
     numpy_type_info *get_type_info(const std::type_info& tinfo, bool throw_if_missing = true) {
         auto it = registered_dtypes.find(std::type_index(tinfo));
-        if (it != registered_dtypes.end())
+        if (it != registered_dtypes.end()) {
             return &(it->second);
-        if (throw_if_missing)
+        }
+        if (throw_if_missing) {
             pybind11_fail(std::string("NumPy type info missing for ") + tinfo.name());
+        }
         return nullptr;
     }
 
@@ -105,8 +107,9 @@ PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr) {
 
 inline numpy_internals& get_numpy_internals() {
     static numpy_internals* ptr = nullptr;
-    if (!ptr)
+    if (!ptr) {
         load_numpy_internals(ptr);
+    }
     return *ptr;
 }
 
@@ -235,8 +238,9 @@ private:
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
-        if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7)
+        if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7) {
             pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
+        }
         DECL_NPY_API(PyArray_Type);
         DECL_NPY_API(PyVoidArrType_Type);
         DECL_NPY_API(PyArrayDescr_Type);
@@ -321,7 +325,8 @@ template <typename T, size_t N> struct array_info<T[N]> : array_info<std::array<
 template <typename T> using remove_all_extents_t = typename array_info<T>::type;
 
 template <typename T> using is_pod_struct = all_of<
-    std::is_standard_layout<T>,     // since we're accessing directly in memory we need a standard layout type
+    std::is_standard_layout<T>,     // since we're accessing directly in memory
+                                    // we need a standard layout type
 #if defined(__GLIBCXX__) && (__GLIBCXX__ < 20150422 || __GLIBCXX__ == 20150426 || __GLIBCXX__ == 20150623 || __GLIBCXX__ == 20150626 || __GLIBCXX__ == 20160803)
     // libstdc++ < 5 (including versions 4.8.5, 4.9.3 and 4.9.4 which were released after 5)
     // don't implement is_trivially_copyable, so approximate it
@@ -491,8 +496,9 @@ public:
     /// This is essentially the same as calling numpy.dtype(args) in Python.
     static dtype from_args(object args) {
         PyObject *ptr = nullptr;
-        if ((detail::npy_api::get().PyArray_DescrConverter_(args.ptr(), &ptr) == 0) || !ptr)
+        if ((detail::npy_api::get().PyArray_DescrConverter_(args.ptr(), &ptr) == 0) || !ptr) {
             throw error_already_set();
+        }
         return reinterpret_steal<dtype>(ptr);
     }
 
@@ -536,8 +542,9 @@ private:
     dtype strip_padding(ssize_t itemsize) {
         // Recursively strip all void fields with empty names that are generated for
         // padding fields (as of NumPy v1.11).
-        if (!has_fields())
+        if (!has_fields()) {
             return *this;
+        }
 
         struct field_descr { PYBIND11_STR_TYPE name; object format; pybind11::int_ offset; };
         std::vector<field_descr> field_descriptors;
@@ -547,8 +554,9 @@ private:
             auto name = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();
             auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
-            if ((len(name) == 0u) && format.kind() == 'V')
+            if ((len(name) == 0u) && format.kind() == 'V') {
                 continue;
+            }
             field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(format.itemsize()), offset});
         }
 
@@ -586,22 +594,25 @@ public:
     array(const pybind11::dtype &dt, ShapeContainer shape, StridesContainer strides,
           const void *ptr = nullptr, handle base = handle()) {
 
-        if (strides->empty())
+        if (strides->empty()) {
             *strides = detail::c_strides(*shape, dt.itemsize());
+        }
 
         auto ndim = shape->size();
-        if (ndim != strides->size())
+        if (ndim != strides->size()) {
             pybind11_fail("NumPy: shape ndim doesn't match strides ndim");
+        }
         auto descr = dt;
 
         int flags = 0;
         if (base && ptr) {
-            if (isinstance<array>(base))
+            if (isinstance<array>(base)) {
                 /* Copy flags from base (except ownership bit) */
                 flags = reinterpret_borrow<array>(base).flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
-            else
+            } else {
                 /* Writable by default, easy to downgrade later on if needed */
                 flags = detail::npy_api::NPY_ARRAY_WRITEABLE_;
+            }
         }
 
         auto &api = detail::npy_api::get();
@@ -611,8 +622,9 @@ public:
             reinterpret_cast<Py_intptr_t*>(shape->data()),
             reinterpret_cast<Py_intptr_t*>(strides->data()),
             const_cast<void *>(ptr), flags, nullptr));
-        if (!tmp)
+        if (!tmp) {
             throw error_already_set();
+        }
         if (ptr) {
             if (base) {
                 api.PyArray_SetBaseObject_(tmp.ptr(), base.inc_ref().ptr());
@@ -681,8 +693,9 @@ public:
 
     /// Dimension along a given axis
     ssize_t shape(ssize_t dim) const {
-        if (dim >= ndim())
+        if (dim >= ndim()) {
             fail_dim_check(dim, "invalid axis");
+        }
         return shape()[dim];
     }
 
@@ -693,8 +706,9 @@ public:
 
     /// Stride along a given axis
     ssize_t strides(ssize_t dim) const {
-        if (dim >= ndim())
+        if (dim >= ndim()) {
             fail_dim_check(dim, "invalid axis");
+        }
         return strides()[dim];
     }
 
@@ -730,8 +744,9 @@ public:
     /// Byte offset from beginning of the array to a given index (full or partial).
     /// May throw if the index would lead to out of bounds access.
     template<typename... Ix> ssize_t offset_at(Ix... index) const {
-        if ((ssize_t) sizeof...(index) > ndim())
+        if ((ssize_t) sizeof...(index) > ndim()) {
             fail_dim_check(sizeof...(index), "too many indices for an array");
+        }
         return byte_offset(ssize_t(index)...);
     }
 
@@ -750,9 +765,11 @@ public:
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
     template <typename T, ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() & {
-        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims)
-            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
-                    "; expected " + std::to_string(Dims));
+        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims) {
+            throw std::domain_error("array has incorrect number of dimensions: "
+                                    + std::to_string(ndim()) + "; expected "
+                                    + std::to_string(Dims));
+        }
         return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides(), ndim());
     }
 
@@ -764,9 +781,11 @@ public:
      * invalid dimensions or dimension indices.
      */
     template <typename T, ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const & {
-        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims)
-            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
-                    "; expected " + std::to_string(Dims));
+        if (PYBIND11_SILENCE_MSVC_C4127(Dims >= 0) && ndim() != Dims) {
+            throw std::domain_error("array has incorrect number of dimensions: "
+                                    + std::to_string(ndim()) + "; expected "
+                                    + std::to_string(Dims));
+        }
         return detail::unchecked_reference<T, Dims>(data(), shape(), strides(), ndim());
     }
 
@@ -789,7 +808,9 @@ public:
         auto new_array = reinterpret_steal<object>(
             detail::npy_api::get().PyArray_Resize_(m_ptr, &d, int(refcheck), -1)
         );
-        if (!new_array) throw error_already_set();
+        if (!new_array) {
+            throw error_already_set();
+        }
         if (isinstance<array>(new_array)) { *this = std::move(new_array); }
     }
 
@@ -824,8 +845,9 @@ public:
     /// In case of an error, nullptr is returned and the Python error is cleared.
     static array ensure(handle h, int ExtraFlags = 0) {
         auto result = reinterpret_steal<array>(raw_array(h.ptr(), ExtraFlags));
-        if (!result)
+        if (!result) {
             PyErr_Clear();
+        }
         return result;
     }
 
@@ -843,8 +865,9 @@ protected:
     }
 
     void check_writeable() const {
-        if (!writeable())
+        if (!writeable()) {
             throw std::domain_error("array is not writeable");
+        }
     }
 
     template<typename... Ix> void check_dimensions(Ix... index) const {
@@ -890,13 +913,19 @@ public:
 
     PYBIND11_DEPRECATED("Use array_t<T>::ensure() instead")
     array_t(handle h, bool is_borrowed) : array(raw_array_t(h.ptr()), stolen_t{}) {
-        if (!m_ptr) PyErr_Clear();
-        if (!is_borrowed) Py_XDECREF(h.ptr());
+        if (!m_ptr) {
+            PyErr_Clear();
+        }
+        if (!is_borrowed) {
+            Py_XDECREF(h.ptr());
+        }
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     array_t(const object &o) : array(raw_array_t(o.ptr()), stolen_t{}) {
-        if (!m_ptr) throw error_already_set();
+        if (!m_ptr) {
+            throw error_already_set();
+        }
     }
 
     explicit array_t(const buffer_info& info, handle base = handle()) : array(info, base) { }
@@ -933,15 +962,17 @@ public:
 
     // Reference to element at a given index
     template<typename... Ix> const T& at(Ix... index) const {
-        if ((ssize_t) sizeof...(index) != ndim())
+        if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
         return *(static_cast<const T*>(array::data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // Mutable reference to element at a given index
     template<typename... Ix> T& mutable_at(Ix... index) {
-        if ((ssize_t) sizeof...(index) != ndim())
+        if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
+        }
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
 
@@ -970,8 +1001,9 @@ public:
     /// it).  In case of an error, nullptr is returned and the Python error is cleared.
     static array_t ensure(handle h) {
         auto result = reinterpret_steal<array_t>(raw_array_t(h.ptr()));
-        if (!result)
+        if (!result) {
             PyErr_Clear();
+        }
         return result;
     }
 
@@ -1032,8 +1064,9 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     using type = array_t<T, ExtraFlags>;
 
     bool load(handle src, bool convert) {
-        if (!convert && !type::check_(src))
+        if (!convert && !type::check_(src)) {
             return false;
+        }
         value = type::ensure(src);
         return static_cast<bool>(value);
     }
@@ -1098,8 +1131,9 @@ public:
     static constexpr int value = values[detail::is_fmt_numeric<T>::index];
 
     static pybind11::dtype dtype() {
-        if (auto ptr = npy_api::get().PyArray_DescrFromType_(value))
+        if (auto *ptr = npy_api::get().PyArray_DescrFromType_(value)) {
             return reinterpret_steal<pybind11::dtype>(ptr);
+        }
         pybind11_fail("Unsupported buffer format!");
     }
 };
@@ -1147,8 +1181,9 @@ PYBIND11_NOINLINE void register_structured_dtype(
     bool (*direct_converter)(PyObject *, void *&)) {
 
     auto& numpy_internals = get_numpy_internals();
-    if (numpy_internals.get_type_info(tinfo, false))
+    if (numpy_internals.get_type_info(tinfo, false)) {
         pybind11_fail("NumPy: dtype is already registered");
+    }
 
     // Use ordered fields because order matters as of NumPy 1.14:
     // https://docs.scipy.org/doc/numpy/release.html#multiple-field-indexing-assignment-of-structured-arrays
@@ -1158,14 +1193,15 @@ PYBIND11_NOINLINE void register_structured_dtype(
 
     list names, formats, offsets;
     for (auto& field : ordered_fields) {
-        if (!field.descr)
-            pybind11_fail(std::string("NumPy: unsupported field dtype: `") +
-                            field.name + "` @ " + tinfo.name());
+        if (!field.descr) {
+            pybind11_fail(std::string("NumPy: unsupported field dtype: `") + field.name + "` @ "
+                          + tinfo.name());
+        }
         names.append(PYBIND11_STR_TYPE(field.name));
         formats.append(field.descr);
         offsets.append(pybind11::int_(field.offset));
     }
-    auto dtype_ptr
+    auto *dtype_ptr
         = pybind11::dtype(std::move(names), std::move(formats), std::move(offsets), itemsize)
               .release()
               .ptr();
@@ -1186,21 +1222,24 @@ PYBIND11_NOINLINE void register_structured_dtype(
     // isn't guaranteed to work due to https://github.com/numpy/numpy/issues/9049
     oss << "^T{";
     for (auto& field : ordered_fields) {
-        if (field.offset > offset)
+        if (field.offset > offset) {
             oss << (field.offset - offset) << 'x';
+        }
         oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }
-    if (itemsize > offset)
+    if (itemsize > offset) {
         oss << (itemsize - offset) << 'x';
+    }
     oss << '}';
     auto format_str = oss.str();
 
     // Sanity check: verify that NumPy properly parses our buffer format string
     auto& api = npy_api::get();
     auto arr =  array(buffer_info(nullptr, itemsize, format_str, 1));
-    if (!api.PyArray_EquivTypes_(dtype_ptr, arr.dtype().ptr()))
+    if (!api.PyArray_EquivTypes_(dtype_ptr, arr.dtype().ptr())) {
         pybind11_fail("NumPy: invalid buffer descriptor!");
+    }
 
     auto tindex = std::type_index(tinfo);
     numpy_internals.registered_dtypes[tindex] = { dtype_ptr, format_str };
@@ -1234,8 +1273,9 @@ private:
 
     static bool direct_converter(PyObject *obj, void*& value) {
         auto& api = npy_api::get();
-        if (!PyObject_TypeCheck(obj, api.PyVoidArrType_Type_))
+        if (!PyObject_TypeCheck(obj, api.PyVoidArrType_Type_)) {
             return false;
+        }
         if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(obj))) {
             if (api.PyArray_EquivTypes_(dtype_ptr(), descr.ptr())) {
                 value = ((PyVoidScalarObject_Proxy *) obj)->obval;
@@ -1381,12 +1421,14 @@ public:
           m_common_iterator() {
 
         // Manual copy to avoid conversion warning if using std::copy
-        for (size_t i = 0; i < shape.size(); ++i)
+        for (size_t i = 0; i < shape.size(); ++i) {
             m_shape[i] = shape[i];
+        }
 
         container_type strides(shape.size());
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < N; ++i) {
             init_common_iterator(buffers[i], shape, m_common_iterator[i], strides);
+        }
     }
 
     multi_array_iterator& operator++() {
@@ -1419,10 +1461,11 @@ private:
         auto strides_iter = strides.rbegin();
 
         while (buffer_shape_iter != buffer.shape.rend()) {
-            if (*shape_iter == *buffer_shape_iter)
+            if (*shape_iter == *buffer_shape_iter) {
                 *strides_iter = *buffer_strides_iter;
-            else
+            } else {
                 *strides_iter = 0;
+            }
 
             ++buffer_shape_iter;
             ++buffer_strides_iter;
@@ -1435,8 +1478,9 @@ private:
     }
 
     void increment_common_iterator(size_t dim) {
-        for (auto &iter : m_common_iterator)
+        for (auto &iter : m_common_iterator) {
             iter.increment(dim);
+        }
     }
 
     container_type m_shape;
@@ -1469,26 +1513,30 @@ broadcast_trivial broadcast(const std::array<buffer_info, N> &buffers, ssize_t &
             auto &dim_size_out = *res_iter;
 
             // Each input dimension can either be 1 or `n`, but `n` values must match across buffers
-            if (dim_size_out == 1)
+            if (dim_size_out == 1) {
                 dim_size_out = dim_size_in;
-            else if (dim_size_in != 1 && dim_size_in != dim_size_out)
+            } else if (dim_size_in != 1 && dim_size_in != dim_size_out) {
                 pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
+            }
         }
     }
 
     bool trivial_broadcast_c = true;
     bool trivial_broadcast_f = true;
     for (size_t i = 0; i < N && (trivial_broadcast_c || trivial_broadcast_f); ++i) {
-        if (buffers[i].size == 1)
+        if (buffers[i].size == 1) {
             continue;
+        }
 
         // Require the same number of dimensions:
-        if (buffers[i].ndim != ndim)
+        if (buffers[i].ndim != ndim) {
             return broadcast_trivial::non_trivial;
+        }
 
         // Require all dimensions be full-size:
-        if (!std::equal(buffers[i].shape.cbegin(), buffers[i].shape.cend(), shape.cbegin()))
+        if (!std::equal(buffers[i].shape.cbegin(), buffers[i].shape.cend(), shape.cbegin())) {
             return broadcast_trivial::non_trivial;
+        }
 
         // Check for C contiguity (but only if previous inputs were also C contiguous)
         if (trivial_broadcast_c) {
@@ -1496,10 +1544,11 @@ broadcast_trivial broadcast(const std::array<buffer_info, N> &buffers, ssize_t &
             auto end = buffers[i].shape.crend();
             for (auto shape_iter = buffers[i].shape.crbegin(), stride_iter = buffers[i].strides.crbegin();
                     trivial_broadcast_c && shape_iter != end; ++shape_iter, ++stride_iter) {
-                if (expect_stride == *stride_iter)
+                if (expect_stride == *stride_iter) {
                     expect_stride *= *shape_iter;
-                else
+                } else {
                     trivial_broadcast_c = false;
+                }
             }
         }
 
@@ -1509,10 +1558,11 @@ broadcast_trivial broadcast(const std::array<buffer_info, N> &buffers, ssize_t &
             auto end = buffers[i].shape.cend();
             for (auto shape_iter = buffers[i].shape.cbegin(), stride_iter = buffers[i].strides.cbegin();
                     trivial_broadcast_f && shape_iter != end; ++shape_iter, ++stride_iter) {
-                if (expect_stride == *stride_iter)
+                if (expect_stride == *stride_iter) {
                     expect_stride *= *shape_iter;
-                else
+                } else {
                     trivial_broadcast_f = false;
+                }
             }
         }
     }
@@ -1545,8 +1595,9 @@ struct vectorize_returned_array {
     using Type = array_t<Return>;
 
     static Type create(broadcast_trivial trivial, const std::vector<ssize_t> &shape) {
-        if (trivial == broadcast_trivial::f_trivial)
+        if (trivial == broadcast_trivial::f_trivial) {
             return array_t<Return, array::f_style>(shape);
+        }
         return array_t<Return>(shape);
     }
 
@@ -1662,14 +1713,17 @@ private:
 
         auto result = returned_array::create(trivial, shape);
 
-        if (size == 0) return std::move(result);
+        if (size == 0) {
+            return std::move(result);
+        }
 
         /* Call the function */
-        auto mutable_data = returned_array::mutable_data(result);
-        if (trivial == broadcast_trivial::non_trivial)
+        auto *mutable_data = returned_array::mutable_data(result);
+        if (trivial == broadcast_trivial::non_trivial) {
             apply_broadcast(buffers, params, mutable_data, size, shape, i_seq, vi_seq, bi_seq);
-        else
+        } else {
             apply_trivial(buffers, params, mutable_data, size, i_seq, vi_seq, bi_seq);
+        }
 
         return std::move(result);
     }
@@ -1693,7 +1747,9 @@ private:
 
         for (size_t i = 0; i < size; ++i) {
             returned_array::call(out, i, f, *reinterpret_cast<param_n_t<Index> *>(params[Index])...);
-            for (auto &x : vecparams) x.first += x.second;
+            for (auto &x : vecparams) {
+                x.first += x.second;
+            }
         }
     }
 

@@ -74,8 +74,9 @@ PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>);
 
 template <typename PythonType>
 py::list test_random_access_iterator(PythonType x) {
-    if (x.size() < 5)
+    if (x.size() < 5) {
         throw py::value_error("Please provide at least 5 elements for testing.");
+    }
 
     auto checks = py::list();
     auto assert_equal = [&checks](py::handle a, py::handle b) {
@@ -125,8 +126,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def(py::init<int>())
         .def("__getitem__", [](const Sliceable &s, const py::slice &slice) {
             py::ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
-            if (!slice.compute(s.size, &start, &stop, &step, &slicelength))
+            if (!slice.compute(s.size, &start, &stop, &step, &slicelength)) {
                 throw py::error_already_set();
+            }
             int istart = static_cast<int>(start);
             int istop  = static_cast<int>(stop);
             int istep  = static_cast<int>(step);
@@ -150,16 +152,19 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     public:
         explicit Sequence(size_t size) : m_size(size) {
             print_created(this, "of size", m_size);
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[size];
             memset(m_data, 0, sizeof(float) * size);
         }
         explicit Sequence(const std::vector<float> &value) : m_size(value.size()) {
             print_created(this, "of size", m_size, "from std::vector");
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[m_size];
             memcpy(m_data, &value[0], sizeof(float) * m_size);
         }
         Sequence(const Sequence &s) : m_size(s.m_size) {
             print_copy_created(this);
+            // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
             m_data = new float[m_size];
             memcpy(m_data, s.m_data, sizeof(float)*m_size);
         }
@@ -195,10 +200,14 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         }
 
         bool operator==(const Sequence &s) const {
-            if (m_size != s.size()) return false;
-            for (size_t i = 0; i < m_size; ++i)
-                if (m_data[i] != s[i])
+            if (m_size != s.size()) {
+                return false;
+            }
+            for (size_t i = 0; i < m_size; ++i) {
+                if (m_data[i] != s[i]) {
                     return false;
+                }
+            }
             return true;
         }
         bool operator!=(const Sequence &s) const { return !operator==(s); }
@@ -207,16 +216,19 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         float &operator[](size_t index) { return m_data[index]; }
 
         bool contains(float v) const {
-            for (size_t i = 0; i < m_size; ++i)
-                if (v == m_data[i])
+            for (size_t i = 0; i < m_size; ++i) {
+                if (v == m_data[i]) {
                     return true;
+                }
+            }
             return false;
         }
 
         Sequence reversed() const {
             Sequence result(m_size);
-            for (size_t i = 0; i < m_size; ++i)
+            for (size_t i = 0; i < m_size; ++i) {
                 result[m_size - i - 1] = m_data[i];
+            }
             return result;
         }
 
@@ -235,14 +247,16 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         /// Bare bones interface
         .def("__getitem__",
              [](const Sequence &s, size_t i) {
-                 if (i >= s.size())
+                 if (i >= s.size()) {
                      throw py::index_error();
+                 }
                  return s[i];
              })
         .def("__setitem__",
              [](Sequence &s, size_t i, float v) {
-                 if (i >= s.size())
+                 if (i >= s.size()) {
                      throw py::index_error();
+                 }
                  s[i] = v;
              })
         .def("__len__", &Sequence::size)
@@ -257,8 +271,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def("__getitem__",
              [](const Sequence &s, const py::slice &slice) -> Sequence * {
                  size_t start = 0, stop = 0, step = 0, slicelength = 0;
-                 if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
+                 if (!slice.compute(s.size(), &start, &stop, &step, &slicelength)) {
                      throw py::error_already_set();
+                 }
                  auto *seq = new Sequence(slicelength);
                  for (size_t i = 0; i < slicelength; ++i) {
                      (*seq)[i] = s[start];
@@ -269,11 +284,13 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def("__setitem__",
              [](Sequence &s, const py::slice &slice, const Sequence &value) {
                  size_t start = 0, stop = 0, step = 0, slicelength = 0;
-                 if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
+                 if (!slice.compute(s.size(), &start, &stop, &step, &slicelength)) {
                      throw py::error_already_set();
-                 if (slicelength != value.size())
+                 }
+                 if (slicelength != value.size()) {
                      throw std::runtime_error(
                          "Left and right hand size of slice assignment have different sizes!");
+                 }
                  for (size_t i = 0; i < slicelength; ++i) {
                      s[start] = value[i];
                      start += step;

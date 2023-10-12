@@ -66,7 +66,11 @@ public:
         std::swap(value, m.value);
         return *this;
     }
-    MoveOrCopyInt(const MoveOrCopyInt &c) { print_copy_created(this, c.value); value = c.value; }
+    MoveOrCopyInt(const MoveOrCopyInt &c) {
+        print_copy_created(this, c.value);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = c.value;
+    }
     MoveOrCopyInt &operator=(const MoveOrCopyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~MoveOrCopyInt() { print_destroyed(this); }
 
@@ -76,7 +80,11 @@ class CopyOnlyInt {
 public:
     CopyOnlyInt() { print_default_created(this); }
     explicit CopyOnlyInt(int v) : value{v} { print_created(this, value); }
-    CopyOnlyInt(const CopyOnlyInt &c) { print_copy_created(this, c.value); value = c.value; }
+    CopyOnlyInt(const CopyOnlyInt &c) {
+        print_copy_created(this, c.value);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = c.value;
+    }
     CopyOnlyInt &operator=(const CopyOnlyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~CopyOnlyInt() { print_destroyed(this); }
 
@@ -104,7 +112,9 @@ public:
     bool load(handle src, bool) { value = CopyOnlyInt(src.cast<int>()); return true; }
     static handle cast(const CopyOnlyInt &m, return_value_policy r, handle p) { return pybind11::cast(m.value, r, p); }
     static handle cast(const CopyOnlyInt *src, return_value_policy policy, handle parent) {
-        if (!src) return none().release();
+        if (!src) {
+            return none().release();
+        }
         return cast(*src, policy, parent);
     }
     explicit operator CopyOnlyInt *() { return &value; }
@@ -203,8 +213,9 @@ TEST_SUBMODULE(copy_move_policies, m) {
     private:
         void *operator new(size_t bytes) {
             void *ptr = std::malloc(bytes);
-            if (ptr)
+            if (ptr) {
                 return ptr;
+            }
             throw std::bad_alloc{};
         }
     };

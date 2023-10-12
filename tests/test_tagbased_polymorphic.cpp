@@ -100,8 +100,12 @@ const std::type_info* Animal::type_of_kind(Kind kind)
         case Kind::LastCat: break;
     }
 
-    if (kind >= Kind::Dog && kind <= Kind::LastDog) return &typeid(Dog);
-    if (kind >= Kind::Cat && kind <= Kind::LastCat) return &typeid(Cat);
+    if (kind >= Kind::Dog && kind <= Kind::LastDog) {
+        return &typeid(Dog);
+    }
+    if (kind >= Kind::Cat && kind <= Kind::LastCat) {
+        return &typeid(Cat);
+    }
     return nullptr;
 }
 

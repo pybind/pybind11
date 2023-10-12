@@ -77,12 +77,14 @@ struct embedded_module {
     using init_t = void (*)();
 #endif
     embedded_module(const char *name, init_t init) {
-        if (Py_IsInitialized() != 0)
+        if (Py_IsInitialized() != 0) {
             pybind11_fail("Can't add new modules after the interpreter has been initialized");
+        }
 
         auto result = PyImport_AppendInittab(name, init);
-        if (result == -1)
+        if (result == -1) {
             pybind11_fail("Insufficient memory to add a new module");
+        }
     }
 };
 
@@ -135,8 +137,9 @@ inline void set_interpreter_argv(int argc, const char *const *argv, bool add_pro
 
     const char *const empty_argv[]{"\0"};
     const char *const *safe_argv = special_case ? empty_argv : argv;
-    if (special_case)
+    if (special_case) {
         argc = 1;
+    }
 
     auto argv_size = static_cast<size_t>(argc);
 #if PY_MAJOR_VERSION >= 3
@@ -154,7 +157,7 @@ inline void set_interpreter_argv(int argc, const char *const *argv, bool add_pro
         widened_argv[ii] = widened_argv_entries.back().get();
     }
 
-    auto pysys_argv = widened_argv.get();
+    auto *pysys_argv = widened_argv.get();
 #else
     // python 2.x
     std::vector<std::string> strings{safe_argv, safe_argv + argv_size};
@@ -192,8 +195,9 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    if (Py_IsInitialized() != 0)
+    if (Py_IsInitialized() != 0) {
         pybind11_fail("The interpreter is already running");
+    }
 
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 
@@ -244,8 +248,9 @@ inline void finalize_interpreter() {
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
     detail::internals **internals_ptr_ptr = detail::get_internals_pp();
     // It could also be stashed in builtins, so look there too:
-    if (builtins.contains(id) && isinstance<capsule>(builtins[id]))
+    if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_ptr_ptr = capsule(builtins[id]);
+    }
 
     Py_Finalize();
 
@@ -285,8 +290,9 @@ public:
     scoped_interpreter &operator=(scoped_interpreter &&) = delete;
 
     ~scoped_interpreter() {
-        if (is_valid)
+        if (is_valid) {
             finalize_interpreter();
+        }
     }
 
 private:

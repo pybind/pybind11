@@ -72,8 +72,10 @@ inspection/testing in python) by using the functions with `print_` replaced with
 
 class ConstructorStats {
 protected:
-    std::unordered_map<void*, int> _instances; // Need a map rather than set because members can shared address with parents
-    std::list<std::string> _values; // Used to track values (e.g. of value constructors)
+    std::unordered_map<void*, int> _instances; // Need a map rather than set because members can
+                                               // shared address with parents
+    std::list<std::string> _values; // Used to track values
+                                    // (e.g. of value constructors)
 public:
     int default_constructions = 0;
     int copy_constructions = 0;
@@ -101,10 +103,11 @@ public:
     }
 
     void destroyed(void *inst) {
-        if (--_instances[inst] < 0)
+        if (--_instances[inst] < 0) {
             throw std::runtime_error("cstats.destroyed() called with unknown "
                                      "instance; potential double-destruction "
                                      "or a missing cstats.created()");
+        }
     }
 
     static void gc() {
@@ -127,9 +130,11 @@ public:
     int alive() {
         gc();
         int total = 0;
-        for (const auto &p : _instances)
-            if (p.second > 0)
+        for (const auto &p : _instances) {
+            if (p.second > 0) {
                 total += p.second;
+            }
+        }
         return total;
     }
 
@@ -145,7 +150,9 @@ public:
     // Move out stored values
     py::list values() {
         py::list l;
-        for (const auto &v : _values) l.append(py::cast(v));
+        for (const auto &v : _values) {
+            l.append(py::cast(v));
+        }
         _values.clear();
         return l;
     }
@@ -181,7 +188,9 @@ public:
             }
         }
         catch (const std::out_of_range&) {}
-        if (!t1) throw std::runtime_error("Unknown class passed to ConstructorStats::get()");
+        if (!t1) {
+            throw std::runtime_error("Unknown class passed to ConstructorStats::get()");
+        }
         auto &cs1 = get(*t1);
         // If we have both a t1 and t2 match, one is probably the trampoline class; return whichever
         // has more constructions (typically one or the other will be 0)
@@ -189,7 +198,9 @@ public:
             auto &cs2 = get(*t2);
             int cs1_total = cs1.default_constructions + cs1.copy_constructions + cs1.move_constructions + (int) cs1._values.size();
             int cs2_total = cs2.default_constructions + cs2.copy_constructions + cs2.move_constructions + (int) cs2._values.size();
-            if (cs2_total > cs1_total) return cs2;
+            if (cs2_total > cs1_total) {
+                return cs2;
+            }
         }
         return cs1;
     }

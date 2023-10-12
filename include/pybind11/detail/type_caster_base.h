@@ -62,18 +62,17 @@ private:
 
 public:
     /// A new patient frame is created when a function is entered
-    loader_life_support() {
-        parent = get_stack_top();
-        set_stack_top(this);
-    }
+    loader_life_support() : parent{get_stack_top()} { set_stack_top(this); }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        if (get_stack_top() != this)
+        if (get_stack_top() != this) {
             pybind11_fail("loader_life_support: internal error");
+        }
         set_stack_top(parent);
-        for (auto* item : keep_alive)
+        for (auto *item : keep_alive) {
             Py_DECREF(item);
+        }
     }
 
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
@@ -90,8 +89,9 @@ public:
                              "of temporary values");
         }
 
-        if (frame->keep_alive.insert(h.ptr()).second)
+        if (frame->keep_alive.insert(h.ptr()).second) {
             Py_INCREF(h.ptr());
+        }
     }
 };
 
@@ -103,14 +103,17 @@ inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_t
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
     std::vector<PyTypeObject *> check;
-    for (handle parent : reinterpret_borrow<tuple>(t->tp_bases))
+    for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
+    }
 
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
-        auto type = check[i];
+        auto *type = check[i];
         // Ignore Python2 old-style class super type:
-        if (!PyType_Check((PyObject *) type)) continue;
+        if (!PyType_Check((PyObject *) type)) {
+            continue;
+        }
 
         // Check `type` in the current set of registered python types:
         auto it = type_dict.find(type);
@@ -127,7 +130,9 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                 for (auto *known : bases) {
                     if (known == tinfo) { found = true; break; }
                 }
-                if (!found) bases.push_back(tinfo);
+                if (!found) {
+                    bases.push_back(tinfo);
+                }
             }
         }
         else if (type->tp_bases) {
@@ -140,8 +145,9 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                 check.pop_back();
                 i--;
             }
-            for (handle parent : reinterpret_borrow<tuple>(type->tp_bases))
+            for (handle parent : reinterpret_borrow<tuple>(type->tp_bases)) {
                 check.push_back((PyTypeObject *) parent.ptr());
+            }
         }
     }
 }
@@ -158,9 +164,10 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
  */
 inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type) {
     auto ins = all_type_info_get_cache(type);
-    if (ins.second)
+    if (ins.second) {
         // New cache entry: populate it
         all_type_info_populate(type, ins.first->second);
+    }
 
     return ins.first->second;
 }
@@ -171,14 +178,17 @@ inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type)
  * `all_type_info` instead if you want to support multiple bases.
  */
 PYBIND11_NOINLINE detail::type_info* get_type_info(PyTypeObject *type, bool do_throw = true) {
-    auto &bases = all_type_info(type);
-    if (bases.empty())
+    const auto &bases = all_type_info(type);
+    if (bases.empty()) {
         return nullptr;
+    }
     if (bases.size() > 1) {
-        if (do_throw)
-            pybind11_fail("pybind11::detail::get_type_info: type has multiple pybind11-registered bases");
-        else
+        if (do_throw) {
+            pybind11_fail(
+            "pybind11::detail::get_type_info: type has multiple pybind11-registered bases");
+        } else {
             return nullptr;
+        }
     }
     return bases.front();
 }
@@ -186,26 +196,30 @@ PYBIND11_NOINLINE detail::type_info* get_type_info(PyTypeObject *type, bool do_t
 inline detail::type_info *get_local_type_info(const std::type_index &tp) {
     auto &locals = get_local_internals().registered_types_cpp;
     auto it = locals.find(tp);
-    if (it != locals.end())
+    if (it != locals.end()) {
         return it->second;
+    }
     return nullptr;
 }
 
 inline detail::type_info *get_global_type_info(const std::type_index &tp) {
     auto &types = get_internals().registered_types_cpp;
     auto it = types.find(tp);
-    if (it != types.end())
+    if (it != types.end()) {
         return it->second;
+    }
     return nullptr;
 }
 
 /// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
 PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_index &tp,
                                                           bool throw_if_missing = false) {
-    if (auto ltype = get_local_type_info(tp))
+    if (auto *ltype = get_local_type_info(tp)) {
         return ltype;
-    if (auto gtype = get_global_type_info(tp))
+    }
+    if (auto *gtype = get_global_type_info(tp)) {
         return gtype;
+    }
 
     if (throw_if_missing) {
         std::string tname = tp.name();
@@ -229,7 +243,7 @@ PYBIND11_NOINLINE handle find_registered_python_instance(
 
     auto it_instances = get_internals().registered_instances.equal_range(src);
     for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-        for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+        for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
             if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
                 instance* const inst = it_i->second;
 
@@ -321,12 +335,13 @@ struct value_and_holder {
     }
     // NOLINTNEXTLINE(readability-make-member-function-const)
     void set_holder_constructed(bool v = true) {
-        if (inst->simple_layout)
+        if (inst->simple_layout) {
             inst->simple_holder_constructed = v;
-        else if (v)
+        } else if (v) {
             inst->nonsimple.status[index] |= instance::status_holder_constructed;
-        else
+        } else {
             inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_holder_constructed;
+        }
     }
     bool instance_registered() const {
         return inst->simple_layout
@@ -335,12 +350,13 @@ struct value_and_holder {
     }
     // NOLINTNEXTLINE(readability-make-member-function-const)
     void set_instance_registered(bool v = true) {
-        if (inst->simple_layout)
+        if (inst->simple_layout) {
             inst->simple_instance_registered = v;
-        else if (v)
+        } else if (v) {
             inst->nonsimple.status[index] |= instance::status_instance_registered;
-        else
+        } else {
             inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_instance_registered;
+        }
     }
 };
 
@@ -375,8 +391,9 @@ public:
         bool operator==(const iterator &other) const { return curr.index == other.curr.index; }
         bool operator!=(const iterator &other) const { return curr.index != other.curr.index; }
         iterator &operator++() {
-            if (!inst->simple_layout)
+            if (!inst->simple_layout) {
                 curr.vh += 1 + (*types)[curr.index]->holder_size_in_ptrs;
+            }
             ++curr.index;
             curr.type = curr.index < types->size() ? (*types)[curr.index] : nullptr;
             return *this;
@@ -390,7 +407,9 @@ public:
 
     iterator find(const type_info *find_type) {
         auto it = begin(), endit = end();
-        while (it != endit && it->type != find_type) ++it;
+        while (it != endit && it->type != find_type) {
+            ++it;
+        }
         return it;
     }
 
@@ -409,16 +428,19 @@ public:
  */
 PYBIND11_NOINLINE value_and_holder instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/, bool throw_if_missing /*= true in common.h*/) {
     // Optimize common case:
-    if (!find_type || Py_TYPE(this) == find_type->type)
+    if (!find_type || Py_TYPE(this) == find_type->type) {
         return value_and_holder(this, find_type, 0, 0);
+    }
 
     detail::values_and_holders vhs(this);
     auto it = vhs.find(find_type);
-    if (it != vhs.end())
+    if (it != vhs.end()) {
         return *it;
+    }
 
-    if (!throw_if_missing)
+    if (!throw_if_missing) {
         return value_and_holder();
+    }
 
 #if defined(NDEBUG)
     pybind11_fail("pybind11::detail::instance::get_value_and_holder: "
@@ -432,12 +454,14 @@ PYBIND11_NOINLINE value_and_holder instance::get_value_and_holder(const type_inf
 }
 
 PYBIND11_NOINLINE void instance::allocate_layout() {
-    auto &tinfo = all_type_info(Py_TYPE(this));
+    const auto &tinfo = all_type_info(Py_TYPE(this));
 
     const size_t n_types = tinfo.size();
 
-    if (n_types == 0)
-        pybind11_fail("instance allocation failed: new instance has no pybind11-registered base types");
+    if (n_types == 0) {
+        pybind11_fail(
+            "instance allocation failed: new instance has no pybind11-registered base types");
+    }
 
     simple_layout =
         n_types == 1 && tinfo.front()->holder_size_in_ptrs <= instance_simple_holder_in_ptrs();
@@ -454,12 +478,13 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // values that tracks whether each associated holder has been initialized.  Each [block] is
         // padded, if necessary, to an integer multiple of sizeof(void *).
         size_t space = 0;
-        for (auto t : tinfo) {
+        for (auto *t : tinfo) {
             space += 1; // value pointer
             space += t->holder_size_in_ptrs; // holder instance
         }
         size_t flags_at = space;
-        space += size_in_ptrs(n_types); // status bytes (holder_constructed and instance_registered)
+        space += size_in_ptrs(n_types); // status bytes (holder_constructed and
+                                        // instance_registered)
 
         // Allocate space for flags, values, and holders, and initialize it to 0 (flags and values,
         // in particular, need to be 0).  Use Python's memory allocation functions: in Python 3.6
@@ -468,7 +493,9 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // just wrappers around malloc.
 #if PY_VERSION_HEX >= 0x03050000
         nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
-        if (!nonsimple.values_and_holders) throw std::bad_alloc();
+        if (!nonsimple.values_and_holders) {
+            throw std::bad_alloc();
+        }
 #else
         nonsimple.values_and_holders = (void **) PyMem_New(void *, space);
         if (!nonsimple.values_and_holders) throw std::bad_alloc();
@@ -481,14 +508,16 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 PYBIND11_NOINLINE void instance::deallocate_layout() {
-    if (!simple_layout)
+    if (!simple_layout) {
         PyMem_Free(nonsimple.values_and_holders);
+    }
 }
 
 PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
     handle type = detail::get_type_handle(tp, false);
-    if (!type)
+    if (!type) {
         return false;
+    }
     return isinstance(obj, type);
 }
 
@@ -505,14 +534,16 @@ PYBIND11_NOINLINE std::string error_string() {
         errorString += handle(scope.type).attr("__name__").cast<std::string>();
         errorString += ": ";
     }
-    if (scope.value)
+    if (scope.value) {
         errorString += (std::string) str(scope.value);
+    }
 
     PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
 
 #if PY_MAJOR_VERSION >= 3
-    if (scope.trace != nullptr)
+    if (scope.trace != nullptr) {
         PyException_SetTraceback(scope.value, scope.trace);
+    }
 #endif
 
 #if !defined(PYPY_VERSION)
@@ -520,8 +551,9 @@ PYBIND11_NOINLINE std::string error_string() {
         auto *trace = (PyTracebackObject *) scope.trace;
 
         /* Get the deepest trace possible */
-        while (trace->tb_next)
+        while (trace->tb_next) {
             trace = trace->tb_next;
+        }
 
         PyFrameObject *frame = trace->tb_frame;
         Py_XINCREF(frame);
@@ -559,8 +591,9 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
     auto range = instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
         for (const auto &vh : values_and_holders(it->second)) {
-            if (vh.type == type)
+            if (vh.type == type) {
                 return handle((PyObject *) it->second);
+            }
         }
     }
     return handle();
@@ -670,20 +703,23 @@ public:
                                          void *(*copy_constructor)(const void *),
                                          void *(*move_constructor)(const void *),
                                          holder_erased existing_holder = {}) {
-        if (!tinfo) // no type info: error will be set already
+        if (!tinfo) { // no type info: error will be set already
             return handle();
+        }
 
         void *src = const_cast<void *>(_src);
-        if (src == nullptr)
+        if (src == nullptr) {
             return none().release();
+        }
 
         const bool should_take_ownership = policy == return_value_policy::automatic || policy == return_value_policy::take_ownership;
 
-        if (handle registered_inst = find_registered_python_instance(src, tinfo, should_take_ownership, existing_holder))
+        if (handle registered_inst = find_registered_python_instance(src, tinfo, should_take_ownership, existing_holder)) {
             return registered_inst;
+        }
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
+        auto *wrapper = reinterpret_cast<instance *>(inst.ptr());
         wrapper->owned = false;
         void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 
@@ -701,9 +737,9 @@ public:
                 break;
 
             case return_value_policy::copy:
-                if (copy_constructor)
+                if (copy_constructor) {
                     valueptr = copy_constructor(src);
-                else {
+                } else {
 #if defined(NDEBUG)
                     throw cast_error("return_value_policy = copy, but type is "
                                      "non-copyable! (compile in debug mode for details)");
@@ -718,11 +754,11 @@ public:
                 break;
 
             case return_value_policy::move:
-                if (move_constructor)
+                if (move_constructor) {
                     valueptr = move_constructor(src);
-                else if (copy_constructor)
+                } else if (copy_constructor) {
                     valueptr = copy_constructor(src);
-                else {
+                } else {
 #if defined(NDEBUG)
                     throw cast_error("return_value_policy = move, but type is neither "
                                      "movable nor copyable! "
@@ -758,23 +794,26 @@ public:
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
-            auto *type = v_h.type ? v_h.type : typeinfo;
+            const auto *type = v_h.type ? v_h.type : typeinfo;
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
             } else {
                 #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
                         vptr = ::operator new(type->type_size,
                                               std::align_val_t(type->type_align));
-                    else
+                    } else {
+                        vptr = ::operator new(type->type_size);
+                    }
+                #else
+                    vptr = ::operator new(type->type_size);
                 #endif
-                vptr = ::operator new(type->type_size);
             }
         }
         value = vptr;
     }
     bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
+        for (const auto &cast : typeinfo->implicit_casts) {
             type_caster_generic sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
@@ -785,8 +824,9 @@ public:
     }
     bool try_direct_conversions(handle src) {
         for (auto &converter : *typeinfo->direct_conversions) {
-            if (converter(src.ptr(), value))
+            if (converter(src.ptr(), value)) {
                 return true;
+            }
         }
         return false;
     }
@@ -794,8 +834,9 @@ public:
 
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
         auto caster = type_caster_generic(ti);
-        if (caster.load(src, false))
+        if (caster.load(src, false)) {
             return caster.value;
+        }
         return nullptr;
     }
 
@@ -804,16 +845,18 @@ public:
     PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = type::handle_of(src);
-        if (!hasattr(pytype, local_key))
+        if (!hasattr(pytype, local_key)) {
             return false;
+        }
 
         type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
         // Only consider this foreign loader if actually foreign and is a loader of the correct cpp type
         if (foreign_typeinfo->module_local_load == &local_load
-            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype)))
+            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
             return false;
+        }
 
-        if (auto result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
+        if (auto *result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
             value = result;
             return true;
         }
@@ -825,8 +868,12 @@ public:
     // logic (without having to resort to virtual inheritance).
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
-        if (!src) return false;
-        if (!typeinfo) return try_load_foreign_module_local(src);
+        if (!src) {
+            return false;
+        }
+        if (!typeinfo) {
+            return try_load_foreign_module_local(src);
+        }
 
         auto &this_ = static_cast<ThisT &>(*this);
         this_.check_holder_compat();
@@ -862,20 +909,21 @@ public:
 
         // If nothing else succeeds, perform an implicit conversion
         if (convert) {
-            for (auto &converter : typeinfo->implicit_conversions) {
+            for (const auto &converter : typeinfo->implicit_conversions) {
                 auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
                 if (load_impl<ThisT>(temp, false)) {
                     loader_life_support::add_patient(temp);
                     return true;
                 }
             }
-            if (this_.try_direct_conversions(src))
+            if (this_.try_direct_conversions(src)) {
                 return true;
+            }
         }
 
         // Failed to match local typeinfo. Try again with global.
         if (typeinfo->module_local) {
-            if (auto gtype = get_global_type_info(*typeinfo->cpptype)) {
+            if (auto *gtype = get_global_type_info(*typeinfo->cpptype)) {
                 typeinfo = gtype;
                 return load(src, false);
             }
@@ -889,7 +937,9 @@ public:
         // Custom converters didn't take None, now we convert None to nullptr.
         if (src.is_none()) {
            // Defer accepting None to other overloads (if we aren't in convert mode):
-           if (!convert) return false;
+           if (!convert) {
+               return false;
+           }
            value = nullptr;
            return true;
         }
@@ -903,8 +953,9 @@ public:
     // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
     PYBIND11_NOINLINE static std::pair<const void *, const type_info *> src_and_type(
             const void *src, const std::type_info &cast_type, const std::type_info *rtti_type = nullptr) {
-        if (auto *tpi = get_type_info(cast_type))
+        if (auto *tpi = get_type_info(cast_type)) {
             return {src, const_cast<const type_info *>(tpi)};
+        }
 
         // Not found, set error:
         std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
@@ -1028,8 +1079,10 @@ public:
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
+        }
         return cast(&src, policy, parent);
     }
 
@@ -1041,7 +1094,7 @@ public:
     // polymorphic type (using RTTI by default, but can be overridden by specializing
     // polymorphic_type_hook). If the instance isn't derived, returns the base version.
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        auto &cast_type = typeid(itype);
+        const auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;
         const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
         if (instance_type && !same_type(cast_type, *instance_type)) {
@@ -1053,8 +1106,9 @@ public:
             // except via a user-provided specialization of polymorphic_type_hook,
             // and the user has promised that no this-pointer adjustment is
             // required in that case, so it's OK to use static_cast.
-            if (const auto *tpi = get_type_info(*instance_type))
+            if (const auto *tpi = get_type_info(*instance_type)) {
                 return {vsrc, tpi};
+            }
         }
         // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
         // don't do a cast
@@ -1083,7 +1137,12 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator itype*() { return (type *) value; }
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
+    operator itype&() {
+        if (!value) {
+            throw reference_cast_error();
+        }
+        return *((itype *) value);
+    }
 
 protected:
     using Constructor = void *(*)(const void *);

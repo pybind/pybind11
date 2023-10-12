@@ -39,7 +39,9 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("throw_local_simple_error", []() { throw LocalSimpleException("external mod"); });
     py::register_exception_translator([](std::exception_ptr p) {
       try {
-          if (p) std::rethrow_exception(p);
+          if (p) {
+              std::rethrow_exception(p);
+          }
       } catch (const shared_exception &e) {
           PyErr_SetString(PyExc_KeyError, e.what());
       }

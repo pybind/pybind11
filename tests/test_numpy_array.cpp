@@ -89,16 +89,18 @@ template<typename... Ix> arr data_t(const arr_t& a, Ix... index) {
 }
 
 template<typename... Ix> arr& mutate_data(arr& a, Ix... index) {
-    auto ptr = (uint8_t *) a.mutable_data(index...);
-    for (py::ssize_t i = 0; i < a.nbytes() - a.offset_at(index...); i++)
+    auto *ptr = (uint8_t *) a.mutable_data(index...);
+    for (py::ssize_t i = 0; i < a.nbytes() - a.offset_at(index...); i++) {
         ptr[i] = (uint8_t) (ptr[i] * 2);
+    }
     return a;
 }
 
 template<typename... Ix> arr_t& mutate_data_t(arr_t& a, Ix... index) {
     auto ptr = a.mutable_data(index...);
-    for (py::ssize_t i = 0; i < a.size() - a.index_at(index...); i++)
+    for (py::ssize_t i = 0; i < a.size() - a.index_at(index...); i++) {
         ptr[i]++;
+    }
     return a;
 }
 
@@ -116,7 +118,9 @@ template<typename... Ix> arr_t& mutate_at_t(arr_t& a, Ix... idx) { a.mutable_at(
     sm.def(#name, [](type a, int i, int j, int k) { return name(a, i, j, k); });
 
 template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
-    if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
+    if (r.ndim() != 2) {
+        throw std::domain_error("error: ndim != 2");
+    }
     py::list l;
     l.append(*r.data(0, 0));
     l.append(*r2.mutable_data(0, 0));
@@ -292,34 +296,43 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_array_unchecked_fixed_dims
     sm.def("proxy_add2", [](py::array_t<double> a, double v) {
         auto r = a.mutable_unchecked<2>();
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
-            for (py::ssize_t j = 0; j < r.shape(1); j++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++) {
+            for (py::ssize_t j = 0; j < r.shape(1); j++) {
                 r(i, j) += v;
+            }
+        }
     }, py::arg{}.noconvert(), py::arg());
 
     sm.def("proxy_init3", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked<3>();
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
-        for (py::ssize_t j = 0; j < r.shape(1); j++)
-        for (py::ssize_t k = 0; k < r.shape(2); k++)
-            r(i, j, k) = start++;
+        for (py::ssize_t i = 0; i < r.shape(0); i++) {
+            for (py::ssize_t j = 0; j < r.shape(1); j++) {
+                for (py::ssize_t k = 0; k < r.shape(2); k++) {
+                    r(i, j, k) = start++;
+                }
+            }
+        }
         return a;
     });
     sm.def("proxy_init3F", [](double start) {
         py::array_t<double, py::array::f_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked<3>();
-        for (py::ssize_t k = 0; k < r.shape(2); k++)
-        for (py::ssize_t j = 0; j < r.shape(1); j++)
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
-            r(i, j, k) = start++;
+        for (py::ssize_t k = 0; k < r.shape(2); k++) {
+            for (py::ssize_t j = 0; j < r.shape(1); j++) {
+                for (py::ssize_t i = 0; i < r.shape(0); i++) {
+                    r(i, j, k) = start++;
+                }
+            }
+        }
         return a;
     });
     sm.def("proxy_squared_L2_norm", [](const py::array_t<double> &a) {
         auto r = a.unchecked<1>();
         double sumsq = 0;
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++) {
             sumsq += r[i] * r(i); // Either notation works for a 1D array
+        }
         return sumsq;
     });
 
@@ -345,19 +358,28 @@ TEST_SUBMODULE(numpy_array, sm) {
     // Same as the above, but without a compile-time dimensions specification:
     sm.def("proxy_add2_dyn", [](py::array_t<double> a, double v) {
         auto r = a.mutable_unchecked();
-        if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
-            for (py::ssize_t j = 0; j < r.shape(1); j++)
+        if (r.ndim() != 2) {
+            throw std::domain_error("error: ndim != 2");
+        }
+        for (py::ssize_t i = 0; i < r.shape(0); i++) {
+            for (py::ssize_t j = 0; j < r.shape(1); j++) {
                 r(i, j) += v;
+            }
+        }
     }, py::arg{}.noconvert(), py::arg());
     sm.def("proxy_init3_dyn", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked();
-        if (r.ndim() != 3) throw std::domain_error("error: ndim != 3");
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
-        for (py::ssize_t j = 0; j < r.shape(1); j++)
-        for (py::ssize_t k = 0; k < r.shape(2); k++)
-            r(i, j, k) = start++;
+        if (r.ndim() != 3) {
+            throw std::domain_error("error: ndim != 3");
+        }
+        for (py::ssize_t i = 0; i < r.shape(0); i++) {
+            for (py::ssize_t j = 0; j < r.shape(1); j++) {
+                for (py::ssize_t k = 0; k < r.shape(2); k++) {
+                    r(i, j, k) = start++;
+                }
+            }
+        }
         return a;
     });
     sm.def("proxy_auxiliaries2_dyn", [](py::array_t<double> a) {
@@ -377,7 +399,8 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     // test_initializer_list
     // Issue (unnumbered; reported in #788): regression: initializer lists can be ambiguous
-    sm.def("array_initializer_list1", []() { return py::array_t<float>(1); }); // { 1 } also works, but clang warns about it
+    sm.def("array_initializer_list1", []() { return py::array_t<float>(1); });
+    // { 1 } also works for the above, but clang warns about it
     sm.def("array_initializer_list2", []() { return py::array_t<float>({ 1, 2 }); });
     sm.def("array_initializer_list3", []() { return py::array_t<float>({ 1, 2, 3 }); });
     sm.def("array_initializer_list4", []() { return py::array_t<float>({ 1, 2, 3, 4 }); });
@@ -386,8 +409,10 @@ TEST_SUBMODULE(numpy_array, sm) {
     // reshape array to 2D without changing size
     sm.def("array_reshape2", [](py::array_t<double> a) {
         const auto dim_sz = (py::ssize_t)std::sqrt(a.size());
-        if (dim_sz * dim_sz != a.size())
-            throw std::domain_error("array_reshape2: input array total size is not a squared integer");
+        if (dim_sz * dim_sz != a.size()) {
+            throw std::domain_error(
+                "array_reshape2: input array total size is not a squared integer");
+        }
         a.resize({dim_sz, dim_sz});
     });
 

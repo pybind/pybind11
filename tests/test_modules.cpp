@@ -49,7 +49,8 @@ TEST_SUBMODULE(modules, m) {
         .def(py::init<>())
         .def("get_a1", &B::get_a1, "Return the internal A 1", py::return_value_policy::reference_internal)
         .def("get_a2", &B::get_a2, "Return the internal A 2", py::return_value_policy::reference_internal)
-        .def_readwrite("a1", &B::a1)  // def_readonly uses an internal reference return policy by default
+        .def_readwrite("a1", &B::a1)  // def_readonly uses an internal
+                                      // reference return policy by default
         .def_readwrite("a2", &B::a2);
 
     // This is intentionally "py::module" to verify it still can be used in place of "py::module_"

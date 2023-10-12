@@ -19,9 +19,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
     auto ndim = shape.size();
     std::vector<ssize_t> strides(ndim, itemsize);
-    if (ndim > 0)
-        for (size_t i = ndim - 1; i > 0; --i)
+    if (ndim > 0) {
+        for (size_t i = ndim - 1; i > 0; --i) {
             strides[i - 1] = strides[i] * shape[i];
+        }
+    }
     return strides;
 }
 
@@ -29,8 +31,9 @@ inline std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t
 inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
     auto ndim = shape.size();
     std::vector<ssize_t> strides(ndim, itemsize);
-    for (size_t i = 1; i < ndim; ++i)
+    for (size_t i = 1; i < ndim; ++i) {
         strides[i] = strides[i - 1] * shape[i - 1];
+    }
     return strides;
 }
 
@@ -41,10 +44,12 @@ struct buffer_info {
     void *ptr = nullptr;          // Pointer to the underlying storage
     ssize_t itemsize = 0;         // Size of individual items in bytes
     ssize_t size = 0;             // Total number of entries
-    std::string format;           // For homogeneous buffers, this should be set to format_descriptor<T>::format()
+    std::string format; // For homogeneous buffers, this should be set to
+                        // format_descriptor<T>::format()
     ssize_t ndim = 0;             // Number of dimensions
     std::vector<ssize_t> shape;   // Shape of the tensor (1 entry per dimension)
-    std::vector<ssize_t> strides; // Number of bytes between adjacent entries (for each per dimension)
+    std::vector<ssize_t> strides; // Number of bytes between adjacent entries
+                                  // (for each per dimension)
     bool readonly = false;        // flag to indicate if the underlying storage may be written to
 
     buffer_info() = default;
@@ -53,10 +58,12 @@ struct buffer_info {
                 detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in, bool readonly=false)
     : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
       shape(std::move(shape_in)), strides(std::move(strides_in)), readonly(readonly) {
-        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size())
+        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size()) {
             pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
-        for (size_t i = 0; i < (size_t) ndim; ++i)
+        }
+        for (size_t i = 0; i < (size_t) ndim; ++i) {
             size *= shape[i];
+        }
     }
 
     template <typename T>
@@ -84,7 +91,9 @@ struct buffer_info {
             ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
             : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
             (view->readonly != 0)) {
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         this->m_view = view;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         this->ownview = ownview;
     }
 

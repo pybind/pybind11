@@ -154,11 +154,14 @@ template <typename Type_> struct EigenProps {
     // (preferring the latter if it will fit in either, i.e. for a fully dynamic matrix type).
     static EigenConformable<row_major> conformable(const array &a) {
         const auto dims = a.ndim();
-        if (dims < 1 || dims > 2)
+        if (dims < 1 || dims > 2) {
             return false;
+        }
+
         constexpr bool is_pyobject = is_pyobject_dtype<Scalar>::value;
         ssize_t scalar_size = (is_pyobject ? static_cast<ssize_t>(sizeof(PyObject*)) :
                                static_cast<ssize_t>(sizeof(Scalar)));
+
         if (dims == 2) { // Matrix type: require exact match (or dynamic)
 
             EigenIndex
@@ -166,9 +169,10 @@ template <typename Type_> struct EigenProps {
                 np_cols = a.shape(1),
                 np_rstride = a.strides(0) / scalar_size,
                 np_cstride = a.strides(1) / scalar_size;
-            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows) ||
-                (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols))
+            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows)
+                || (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols)) {
                 return false;
+            }
 
             return {np_rows, np_cols, np_rstride, np_cstride};
         }
@@ -179,8 +183,9 @@ template <typename Type_> struct EigenProps {
               stride = a.strides(0) / scalar_size;
 
         if (vector) { // Eigen type is a compile-time vector
-            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n)
+            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n) {
                 return false; // Vector size mismatch
+            }
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
         }
         if (fixed) {
@@ -190,10 +195,14 @@ template <typename Type_> struct EigenProps {
         if (fixed_cols) {
             // Since this isn't a vector, cols must be != 1.  We allow this only if it exactly
             // equals the number of elements (rows is Dynamic, and so 1 row is allowed).
-            if (cols != n) return false;
+            if (cols != n) {
+                return false;
+            }
             return {1, n, stride};
         } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
-            if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) return false;
+        if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) {
+            return false;
+        }
             return {n, 1, stride};
     }
 
@@ -228,11 +237,14 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
     bool is_pyobject = static_cast<pybind11::detail::npy_api::constants>(npy_format_descriptor<Scalar>::value) == npy_api::NPY_OBJECT_;
 
     if (!is_pyobject) {
-        if (props::vector)
+        if (props::vector) {
             a = array({ src.size() }, { elem_size * src.innerStride() }, src.data(), base);
-        else
-            a = array({ src.rows(), src.cols() }, { elem_size * src.rowStride(), elem_size * src.colStride() },
-                      src.data(), base);
+        } else {
+            a = array({src.rows(), src.cols()},
+                  {elem_size * src.rowStride(), elem_size * src.colStride()},
+                      src.data(),
+                  base);
+        }
     }
     else {
         if (base) {
@@ -257,8 +269,9 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
             for (ssize_t i = 0; i < src.size(); ++i) {
                 const Scalar src_val = is_row ? src(0, i) : src(i, 0);
                 auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src_val, policy, empty_base));
-                if (!value_)
+                if (!value_) {
                     return handle();
+                }
                 a.attr("itemset")(i, value_);
             }
         }
@@ -272,16 +285,18 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
             for (ssize_t i = 0; i < src.rows(); ++i) {
                 for (ssize_t j = 0; j < src.cols(); ++j) {
                     auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src(i, j), policy, empty_base));
-                    if (!value_)
+                    if (!value_) {
                         return handle();
+                    }
                     a.attr("itemset")(i, j, value_);
                 }
             }
         }
     }
 
-    if (!writeable)
+    if (!writeable) {
         array_proxy(a.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
+    }
 
     return a.release();
 }
@@ -316,45 +331,55 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
 
     bool load(handle src, bool convert) {
         // If we're in no-convert mode, only load if given an array of the correct type
-        if (!convert && !isinstance<array_t<Scalar>>(src))
+        if (!convert && !isinstance<array_t<Scalar>>(src)) {
             return false;
+        }
 
         // Coerce into an array, but don't do type conversion yet; the copy below handles it.
         auto buf = array::ensure(src);
 
-        if (!buf)
+        if (!buf) {
             return false;
+        }
 
         auto dims = buf.ndim();
-        if (dims < 1 || dims > 2)
+        if (dims < 1 || dims > 2) {
             return false;
+        }
 
         auto fits = props::conformable(buf);
-        if (!fits)
+        if (!fits) {
             return false;
+        }
         int result = 0;
+
         // Allocate the new type, then build a numpy reference into it
         value = Type(fits.rows, fits.cols);
         constexpr bool is_pyobject = is_pyobject_dtype<Scalar>::value;
 
         if (!is_pyobject) {
             auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
-            if (dims == 1) ref = ref.squeeze();
-            else if (ref.ndim() == 1) buf = buf.squeeze();
+            if (dims == 1) {
+                ref = ref.squeeze();
+            } else if (ref.ndim() == 1) {
+                buf = buf.squeeze();
+            }
             result =
                 detail::npy_api::get().PyArray_CopyInto_(ref.ptr(), buf.ptr());
         }
         else {
             if (dims == 1) {
-                if (Type::RowsAtCompileTime == Eigen::Dynamic)
+                if (Type::RowsAtCompileTime == Eigen::Dynamic) {
                     value.resize(buf.shape(0), 1);
-                else if (Type::ColsAtCompileTime == Eigen::Dynamic)
+                } else if (Type::ColsAtCompileTime == Eigen::Dynamic) {
                     value.resize(1, buf.shape(0));
+                }
 
                 for (ssize_t i = 0; i < buf.shape(0); ++i) {
                     make_caster <Scalar> conv_val;
-                    if (!conv_val.load(buf.attr("item")(i).cast<pybind11::object>(), convert))
+                    if (!conv_val.load(buf.attr("item")(i).cast<pybind11::object>(), convert)) {
                         return false;
+                    }
                     value(i) = cast_op<Scalar>(conv_val);
                 }
             } else {
@@ -365,8 +390,9 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
                     for (ssize_t j = 0; j < buf.shape(1); ++j) {
                         // p is the const void pointer to the item
                         make_caster<Scalar> conv_val;
-                        if (!conv_val.load(buf.attr("item")(i,j).cast<pybind11::object>(), convert))
+                        if (!conv_val.load(buf.attr("item")(i,j).cast<pybind11::object>(), convert)) {
                             return false;
+                        }
                         value(i,j) = cast_op<Scalar>(conv_val);
                     }
                 }
@@ -434,14 +460,18 @@ public:
     }
     // lvalue reference return; default (automatic) becomes copy
     static handle cast(Type &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
+        }
         return cast_impl(&src, policy, parent);
     }
     // const lvalue reference return; default (automatic) becomes copy
     static handle cast(const Type &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
+        }
         return cast(&src, policy, parent);
     }
     // non-const pointer return
@@ -577,11 +607,14 @@ public:
 
             if (aref && (!need_writeable || aref.writeable())) {
                 fits = props::conformable(aref);
-                if (!fits) return false; // Incompatible dimensions
-                if (!fits.template stride_compatible<props>())
+                if (!fits) {
+                    return false; // Incompatible dimensions
+                }
+                if (!fits.template stride_compatible<props>()) {
                     need_copy = true;
-                else
+                } else {
                     copy_or_ref = std::move(aref);
+                }
             }
             else {
                 need_copy = true;
@@ -597,7 +630,9 @@ public:
             }
 
             Array copy = Array::ensure(src);
-            if (!copy) return false;
+            if (!copy) {
+                return false;
+            }
             fits = props::conformable(copy);
             if (!fits || !fits.template stride_compatible<props>()) {
                 return false;
@@ -606,8 +641,7 @@ public:
             if (!is_pyobject) {
                 copy_or_ref = std::move(copy);
                 loader_life_support::add_patient(copy_or_ref);
-            }
-            else {
+            } else {
                 auto dims = copy.ndim();
                 if (dims == 1) {
                     if (Type::RowsAtCompileTime == Eigen::Dynamic || Type::ColsAtCompileTime == Eigen::Dynamic) {
@@ -616,8 +650,9 @@ public:
                     for (ssize_t i = 0; i < copy.shape(0); ++i) {
                         make_caster <Scalar> conv_val;
                         if (!conv_val.load(copy.attr("item")(i).template cast<pybind11::object>(),
-                                           convert))
+                                           convert)) {
                             return false;
+                        }
                         val(i) = cast_op<Scalar>(conv_val);
 
                     }
@@ -630,8 +665,9 @@ public:
                             // p is the const void pointer to the item
                             make_caster <Scalar> conv_val;
                             if (!conv_val.load(copy.attr("item")(i, j).template cast<pybind11::object>(),
-                                               convert))
+                                               convert)) {
                                 return false;
+                            }
                             val(i, j) = cast_op<Scalar>(conv_val);
                         }
                     }
@@ -726,8 +762,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     static constexpr bool rowMajor = Type::IsRowMajor;
 
     bool load(handle src, bool) {
-        if (!src)
+        if (!src) {
             return false;
+        }
 
         auto obj = reinterpret_borrow<object>(src);
         object sparse_module;
@@ -755,8 +792,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         auto shape = pybind11::tuple((pybind11::object) obj.attr("shape"));
         auto nnz = obj.attr("nnz").cast<Index>();
 
-        if (!values || !innerIndices || !outerIndices)
+        if (!values || !innerIndices || !outerIndices) {
             return false;
+        }
 
         value = EigenMapSparseMatrix<Scalar,
                                      Type::Flags & (Eigen::RowMajor | Eigen::ColMajor),

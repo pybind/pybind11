@@ -41,24 +41,28 @@ public:
 };
 
 template <class Container> Container *one_to_n(int n) {
-    auto v = new Container();
-    for (int i = 1; i <= n; i++)
+    auto *v = new Container();
+    for (int i = 1; i <= n; i++) {
         v->emplace_back(i);
+    }
     return v;
 }
 
 template <class Map> Map *times_ten(int n) {
-    auto m = new Map();
-    for (int i = 1; i <= n; i++)
-        m->emplace(int(i), E_nc(10*i));
+    auto *m = new Map();
+    for (int i = 1; i <= n; i++) {
+        m->emplace(int(i), E_nc(10 * i));
+    }
     return m;
 }
 
 template <class NestMap> NestMap *times_hundred(int n) {
-    auto m = new NestMap();
-    for (int i = 1; i <= n; i++)
-        for (int j = 1; j <= n; j++)
-            (*m)[i].emplace(int(j*10), E_nc(100*j));
+    auto *m = new NestMap();
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= n; j++) {
+            (*m)[i].emplace(int(j * 10), E_nc(100 * j));
+        }
+    }
     return m;
 }
 
@@ -95,14 +99,15 @@ TEST_SUBMODULE(stl_binders, m) {
     m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>);
     // Issue #1885: binding nested std::map<X, Container<E>> with E non-copyable
     py::bind_map<std::map<int, std::vector<E_nc>>>(m, "MapVecENC");
-    m.def("get_nvnc", [](int n)
-        {
-            auto m = new std::map<int, std::vector<E_nc>>();
-            for (int i = 1; i <= n; i++)
-                for (int j = 1; j <= n; j++)
-                    (*m)[i].emplace_back(j);
-            return m;
-        });
+    m.def("get_nvnc", [](int n) {
+        auto *m = new std::map<int, std::vector<E_nc>>();
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                (*m)[i].emplace_back(j);
+            }
+        }
+        return m;
+    });
     py::bind_map<std::map<int, std::map<int, E_nc>>>(m, "MapMapENC");
     m.def("get_nmnc", &times_hundred<std::map<int, std::map<int, E_nc>>>);
     py::bind_map<std::unordered_map<int, std::unordered_map<int, E_nc>>>(m, "UmapUmapENC");

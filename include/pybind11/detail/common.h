@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 9
-#define PYBIND11_VERSION_PATCH 1
+#define PYBIND11_VERSION_MINOR 10
+#define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x02090100
+#define PYBIND11_VERSION_HEX 0x020A00D1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -42,8 +42,9 @@
 #    endif
 #  endif
 #elif defined(_MSC_VER) && __cplusplus == 199711L
-// MSVC sets _MSVC_LANG rather than __cplusplus (supposedly until the standard is fully implemented)
-// Unless you use the /Zc:__cplusplus flag on Visual Studio 2017 15.7 Preview 3 or newer
+// MSVC sets _MSVC_LANG rather than __cplusplus (supposedly until the standard is fully
+// implemented). Unless you use the /Zc:__cplusplus flag on Visual Studio 2017 15.7 Preview 3
+// or newer.
 #  if _MSVC_LANG >= 201402L
 #    define PYBIND11_CPP14
 #    if _MSVC_LANG > 201402L && _MSC_VER >= 1910
@@ -153,9 +154,6 @@
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
-#  if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 4)
-#    define HAVE_ROUND 1
-#  endif
 #  pragma warning(push)
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
 #  pragma warning(disable: 4505)
@@ -826,8 +824,8 @@ template <typename T, typename... Ts>
 constexpr int last(int i, int result, T v, Ts... vs) { return last(i + 1, v ? i : result, vs...); }
 PYBIND11_NAMESPACE_END(constexpr_impl)
 
-/// Return the index of the first type in Ts which satisfies Predicate<T>.  Returns sizeof...(Ts) if
-/// none match.
+/// Return the index of the first type in Ts which satisfies Predicate<T>.
+/// Returns sizeof...(Ts) if none match.
 template <template<typename> class Predicate, typename... Ts>
 constexpr int constexpr_first() { return constexpr_impl::first(0, Predicate<Ts>::value...); }
 
@@ -946,7 +944,9 @@ PYBIND11_NAMESPACE_END(detail)
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
-#  pragma warning(disable: 4275) // warning C4275: An exported class was derived from a class that wasn't exported. Can be ignored when derived from a STL class.
+#  pragma warning(disable: 4275)
+//     warning C4275: An exported class was derived from a class that wasn't exported.
+//     Can be ignored when derived from a STL class.
 #endif
 /// C++ bindings of builtin Python exceptions
 class PYBIND11_EXPORT_EXCEPTION builtin_exception : public std::runtime_error {
@@ -974,7 +974,9 @@ PYBIND11_RUNTIME_EXCEPTION(type_error, PyExc_TypeError)
 PYBIND11_RUNTIME_EXCEPTION(buffer_error, PyExc_BufferError)
 PYBIND11_RUNTIME_EXCEPTION(import_error, PyExc_ImportError)
 PYBIND11_RUNTIME_EXCEPTION(attribute_error, PyExc_AttributeError)
-PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
+PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or
+                                                           /// handle::call fail due to a type
+                                                           /// casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
 [[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
@@ -1078,13 +1080,14 @@ public:
     template <typename It, typename = enable_if_t<is_input_iterator<It>::value>>
     any_container(It first, It last) : v(first, last) { }
 
-    // Implicit conversion constructor from any arbitrary container type with values convertible to T
+    // Implicit conversion constructor from any arbitrary container type
+    // with values convertible to T
     template <typename Container, typename = enable_if_t<std::is_convertible<decltype(*std::begin(std::declval<const Container &>())), T>::value>>
     // NOLINTNEXTLINE(google-explicit-constructor)
     any_container(const Container &c) : any_container(std::begin(c), std::end(c)) { }
 
-    // initializer_list's aren't deducible, so don't get matched by the above template; we need this
-    // to explicitly allow implicit conversion from one:
+    // initializer_list's aren't deducible, so don't get matched by the above template;
+    // we need this to explicitly allow implicit conversion from one:
     template <typename TIn, typename = enable_if_t<std::is_convertible<TIn, T>::value>>
     any_container(const std::initializer_list<TIn> &c) : any_container(c.begin(), c.end()) { }
 

@@ -68,7 +68,7 @@ public:
         PyObject* native = nullptr;
         if constexpr (std::is_same_v<typename T::value_type, char>) {
             if (PyUnicode_FSConverter(buf, &native) != 0) {
-                if (auto c_str = PyBytes_AsString(native)) {
+                if (auto *c_str = PyBytes_AsString(native)) {
                     // AsString returns a pointer to the internal buffer, which
                     // must not be free'd.
                     value = c_str;
@@ -76,7 +76,7 @@ public:
             }
         } else if constexpr (std::is_same_v<typename T::value_type, wchar_t>) {
             if (PyUnicode_FSDecoder(buf, &native) != 0) {
-                if (auto c_str = PyUnicode_AsWideCharString(native, nullptr)) {
+                if (auto *c_str = PyUnicode_AsWideCharString(native, nullptr)) {
                     // AsWideCharString returns a new string that must be free'd.
                     value = c_str;  // Copies the string.
                     PyMem_Free(c_str);

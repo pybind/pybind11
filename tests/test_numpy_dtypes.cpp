@@ -108,30 +108,35 @@ PYBIND11_PACKED(struct EnumStruct {
 
 std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
     os << "a='";
-    for (size_t i = 0; i < 3 && (v.a[i] != 0); i++)
+    for (size_t i = 0; i < 3 && (v.a[i] != 0); i++) {
         os << v.a[i];
+    }
     os << "',b='";
-    for (size_t i = 0; i < 3 && (v.b[i] != 0); i++)
+    for (size_t i = 0; i < 3 && (v.b[i] != 0); i++) {
         os << v.b[i];
+    }
     return os << "'";
 }
 
 std::ostream& operator<<(std::ostream& os, const ArrayStruct& v) {
     os << "a={";
     for (int i = 0; i < 3; i++) {
-        if (i > 0)
+        if (i > 0) {
             os << ',';
+        }
         os << '{';
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < 3; j++) {
             os << v.a[i][j] << ',';
+        }
         os << v.a[i][3] << '}';
     }
     os << "},b={" << v.b[0] << ',' << v.b[1];
     os << "},c={" << int(v.c[0]) << ',' << int(v.c[1]) << ',' << int(v.c[2]);
     os << "},d={";
     for (int i = 0; i < 4; i++) {
-        if (i > 0)
+        if (i > 0) {
             os << ',';
+        }
         os << '{' << v.d[i][0] << ',' << v.d[i][1] << '}';
     }
     return os << '}';
@@ -160,7 +165,7 @@ template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {
     auto arr = mkarray_via_buffer<S>(n);
     auto req = arr.request();
-    auto ptr = static_cast<S*>(req.ptr);
+    auto *ptr = static_cast<S *>(req.ptr);
     for (size_t i = 0; i < n; i++) {
         SET_TEST_VALS(ptr[i], i);
     }
@@ -170,7 +175,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
 template <typename S>
 py::list print_recarray(py::array_t<S, 0> arr) {
     const auto req = arr.request();
-    const auto ptr = static_cast<S*>(req.ptr);
+    auto *const ptr = static_cast<S *>(req.ptr);
     auto l = py::list();
     for (py::ssize_t i = 0; i < req.size; i++) {
         std::stringstream ss;
@@ -187,8 +192,8 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     std::vector<py::ssize_t> shape { 3, 2 };
     std::vector<py::ssize_t> strides { 8, 4 };
 
-    auto ptr = data.data();
-    auto vptr = (void *) ptr;
+    auto *ptr = data.data();
+    auto *vptr = (void *) ptr;
     auto dtype = py::dtype("int32");
 
     py::buffer_info buf_ndim1(vptr, 4, "i", 6);
@@ -198,7 +203,9 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
 
     auto fill = [](py::array arr) {
         auto req = arr.request();
-        for (int i = 0; i < 6; i++) ((int32_t *) req.ptr)[i] = i + 1;
+        for (int i = 0; i < 6; i++) {
+            ((int32_t *) req.ptr)[i] = i + 1;
+        }
         return arr;
     };
 
@@ -301,10 +308,12 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     PYBIND11_NUMPY_DTYPE_EX(StructWithUglyNames, __x__, "x", __y__, "y");
 
-    // If uncommented, this should produce a static_assert failure telling the user that the struct
+#ifdef PYBIND11_NEVER_DEFINED_EVER
+    // If enabled, this should produce a static_assert failure telling the user that the struct
     // is not a POD type
-//    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
-//    PYBIND11_NUMPY_DTYPE(NotPOD, v);
+    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
+    PYBIND11_NUMPY_DTYPE(NotPOD, v);
+#endif
 
     // Check that dtypes can be registered programmatically, both from
     // initializer lists of field descriptors and from other containers.
@@ -321,7 +330,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("create_rec_nested", [](size_t n) { // test_signature
         py::array_t<NestedStruct, 0> arr = mkarray_via_buffer<NestedStruct>(n);
         auto req = arr.request();
-        auto ptr = static_cast<NestedStruct*>(req.ptr);
+        auto *ptr = static_cast<NestedStruct *>(req.ptr);
         for (size_t i = 0; i < n; i++) {
             SET_TEST_VALS(ptr[i].a, i);
             SET_TEST_VALS(ptr[i].b, i + 1);
@@ -332,7 +341,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("create_rec_partial_nested", [](size_t n) {
         py::array_t<PartialNestedStruct, 0> arr = mkarray_via_buffer<PartialNestedStruct>(n);
         auto req = arr.request();
-        auto ptr = static_cast<PartialNestedStruct*>(req.ptr);
+        auto *ptr = static_cast<PartialNestedStruct *>(req.ptr);
         for (size_t i = 0; i < n; i++) {
             SET_TEST_VALS(ptr[i].a, i);
         }
@@ -373,32 +382,33 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     m.def("print_dtypes", []() {
         py::list l;
-        for (const py::handle &d : {
-            py::dtype::of<SimpleStruct>(),
-            py::dtype::of<PackedStruct>(),
-            py::dtype::of<NestedStruct>(),
-            py::dtype::of<PartialStruct>(),
-            py::dtype::of<PartialNestedStruct>(),
-            py::dtype::of<StringStruct>(),
-            py::dtype::of<ArrayStruct>(),
-            py::dtype::of<EnumStruct>(),
-            py::dtype::of<StructWithUglyNames>(),
-            py::dtype::of<ComplexStruct>()
-        })
+        for (const py::handle &d : {py::dtype::of<SimpleStruct>(),
+                                    py::dtype::of<PackedStruct>(),
+                                    py::dtype::of<NestedStruct>(),
+                                    py::dtype::of<PartialStruct>(),
+                                    py::dtype::of<PartialNestedStruct>(),
+                                    py::dtype::of<StringStruct>(),
+                                    py::dtype::of<ArrayStruct>(),
+                                    py::dtype::of<EnumStruct>(),
+                                    py::dtype::of<StructWithUglyNames>(),
+                                    py::dtype::of<ComplexStruct>()}) {
             l.append(py::str(d));
+        }
         return l;
     });
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_kind", [dtype_names]() {
         py::list list;
-        for (auto& dt_name : dtype_names)
+        for (const auto &dt_name : dtype_names) {
             list.append(py::dtype(dt_name).kind());
+        }
         return list;
     });
     m.def("test_dtype_char_", [dtype_names]() {
         py::list list;
-        for (auto& dt_name : dtype_names)
+        for (const auto &dt_name : dtype_names) {
             list.append(py::dtype(dt_name).char_());
+        }
         return list;
     });
     m.def("test_dtype_methods", []() {
@@ -422,9 +432,10 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         py::array_t<StringStruct, 0> arr = mkarray_via_buffer<StringStruct>(non_empty ? 4 : 0);
         if (non_empty) {
             auto req = arr.request();
-            auto ptr = static_cast<StringStruct*>(req.ptr);
-            for (py::ssize_t i = 0; i < req.size * req.itemsize; i++)
-                static_cast<char*>(req.ptr)[i] = 0;
+            auto *ptr = static_cast<StringStruct *>(req.ptr);
+            for (py::ssize_t i = 0; i < req.size * req.itemsize; i++) {
+                static_cast<char *>(req.ptr)[i] = 0;
+            }
             ptr[1].a[0] = 'a'; ptr[1].b[0] = 'a';
             ptr[2].a[0] = 'a'; ptr[2].b[0] = 'a';
             ptr[3].a[0] = 'a'; ptr[3].b[0] = 'a';
@@ -441,18 +452,24 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // test_array_array
     m.def("create_array_array", [](size_t n) {
         py::array_t<ArrayStruct, 0> arr = mkarray_via_buffer<ArrayStruct>(n);
-        auto ptr = (ArrayStruct *) arr.mutable_data();
+        auto *ptr = (ArrayStruct *) arr.mutable_data();
         for (size_t i = 0; i < n; i++) {
-            for (size_t j = 0; j < 3; j++)
-                for (size_t k = 0; k < 4; k++)
+            for (size_t j = 0; j < 3; j++) {
+                for (size_t k = 0; k < 4; k++) {
                     ptr[i].a[j][k] = char('A' + (i * 100 + j * 10 + k) % 26);
-            for (size_t j = 0; j < 2; j++)
+                }
+            }
+            for (size_t j = 0; j < 2; j++) {
                 ptr[i].b[j] = int32_t(i * 1000 + j);
-            for (size_t j = 0; j < 3; j++)
+            }
+            for (size_t j = 0; j < 3; j++) {
                 ptr[i].c[j] = uint8_t(i * 10 + j);
-            for (size_t j = 0; j < 4; j++)
-                for (size_t k = 0; k < 2; k++)
+            }
+            for (size_t j = 0; j < 4; j++) {
+                for (size_t k = 0; k < 2; k++) {
                     ptr[i].d[j][k] = float(i) * 100.0f + float(j) * 10.0f + float(k);
+                }
+            }
         }
         return arr;
     });
@@ -461,7 +478,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // test_enum_array
     m.def("create_enum_array", [](size_t n) {
         py::array_t<EnumStruct, 0> arr = mkarray_via_buffer<EnumStruct>(n);
-        auto ptr = (EnumStruct *) arr.mutable_data();
+        auto *ptr = (EnumStruct *) arr.mutable_data();
         for (size_t i = 0; i < n; i++) {
             ptr[i].e1 = static_cast<E1>(-1 + ((int) i % 2) * 2);
             ptr[i].e2 = static_cast<E2>(1 + (i % 2));
@@ -473,7 +490,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // test_complex_array
     m.def("create_complex_array", [](size_t n) {
         py::array_t<ComplexStruct, 0> arr = mkarray_via_buffer<ComplexStruct>(n);
-        auto ptr = (ComplexStruct *) arr.mutable_data();
+        auto *ptr = (ComplexStruct *) arr.mutable_data();
         for (size_t i = 0; i < n; i++) {
             ptr[i].cflt.real(float(i));
             ptr[i].cflt.imag(float(i) + 0.25f);

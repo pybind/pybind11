@@ -93,8 +93,11 @@ TEST_SUBMODULE(builtin_casters, m) {
 #if PY_MAJOR_VERSION >= 3
     // Under Python 2.7, invalid unicode UTF-32 characters don't appear to trigger UnicodeDecodeError
     m.def("bad_utf32_string", [=]() { return std::u32string({ a32, char32_t(0xd800), z32 }); });
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(wchar_t) == 2))
-        m.def("bad_wchar_string", [=]() { return std::wstring({ wchar_t(0x61), wchar_t(0xd800) }); });
+    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(wchar_t) == 2)) {
+        m.def("bad_wchar_string", [=]() {
+            return std::wstring({wchar_t(0x61), wchar_t(0xd800)});
+        });
+    }
 #endif
     m.def("u8_Z", []() -> char { return 'Z'; });
     m.def("u8_eacute", []() -> char { return '\xe9'; });
@@ -133,9 +136,21 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("string_view_print",   [](std::string_view s)    { py::print(s, s.size()); });
     m.def("string_view16_print", [](std::u16string_view s) { py::print(s, s.size()); });
     m.def("string_view32_print", [](std::u32string_view s) { py::print(s, s.size()); });
-    m.def("string_view_chars",   [](std::string_view s)    { py::list l; for (auto c : s) l.append((std::uint8_t) c); return l; });
-    m.def("string_view16_chars", [](std::u16string_view s) { py::list l; for (auto c : s) l.append((int) c); return l; });
-    m.def("string_view32_chars", [](std::u32string_view s) { py::list l; for (auto c : s) l.append((int) c); return l; });
+    m.def("string_view_chars",   [](std::string_view s)    { py::list l;
+        for (auto c : s) {
+            l.append((std::uint8_t) c);
+        }
+        return l; });
+    m.def("string_view16_chars", [](std::u16string_view s) { py::list l;
+        for (auto c : s) {
+            l.append((int) c);
+        }
+        return l; });
+    m.def("string_view32_chars", [](std::u32string_view s) { py::list l;
+        for (auto c : s) {
+            l.append((int) c);
+        }
+        return l; });
     m.def("string_view_return",   []() { return std::string_view((const char*)u8"utf8 secret \U0001f382"); });
     m.def("string_view16_return", []() { return std::u16string_view(u"utf16 secret \U0001f382"); });
     m.def("string_view32_return", []() { return std::u32string_view(U"utf32 secret \U0001f382"); });
@@ -262,7 +277,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("refwrap_list", [](bool copy) {
         static IncType x1(1), x2(2);
         py::list l;
-        for (auto &f : {std::ref(x1), std::ref(x2)}) {
+        for (const auto &f : {std::ref(x1), std::ref(x2)}) {
             l.append(py::cast(f, copy ? py::return_value_policy::copy
                                       : py::return_value_policy::reference));
         }

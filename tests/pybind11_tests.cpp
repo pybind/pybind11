@@ -86,6 +86,7 @@ PYBIND11_MODULE(pybind11_tests, m) {
         .def(py::init<int>())
         .def("__repr__", [](const IncType& u) { return "IncType({})"_s.format(u.value()); });
 
-    for (const auto &initializer : initializers())
+    for (const auto &initializer : initializers()) {
         initializer(m);
+    }
 }

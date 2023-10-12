@@ -103,17 +103,15 @@ public:
 class NonCopyable {
 public:
     NonCopyable(int a, int b) : value{new int(a*b)} { print_created(this, a, b); }
-    NonCopyable(NonCopyable &&o) noexcept {
-        value = std::move(o.value);
-        print_move_created(this);
-    }
+    NonCopyable(NonCopyable &&o) noexcept : value{std::move(o.value)} { print_move_created(this); }
     NonCopyable(const NonCopyable &) = delete;
     NonCopyable() = delete;
     void operator=(const NonCopyable &) = delete;
     void operator=(NonCopyable &&) = delete;
     std::string get_value() const {
-        if (value)
+        if (value) {
             return std::to_string(*value);
+        }
         return "(null)";
     }
     ~NonCopyable() { print_destroyed(this); }
@@ -127,11 +125,8 @@ private:
 class Movable {
 public:
     Movable(int a, int b) : value{a+b} { print_created(this, a, b); }
-    Movable(const Movable &m) { value = m.value; print_copy_created(this); }
-    Movable(Movable &&m) noexcept {
-        value = m.value;
-        print_move_created(this);
-    }
+    Movable(const Movable &m) : value{m.value} { print_copy_created(this); }
+    Movable(Movable &&m) noexcept : value{m.value} { print_move_created(this); }
     std::string get_value() const { return std::to_string(value); }
     ~Movable() { print_destroyed(this); }
 private:
@@ -375,9 +370,12 @@ TEST_SUBMODULE(virtual_functions, m) {
     public:
         using OverrideTest::OverrideTest;
         std::string str_value() override { PYBIND11_OVERRIDE(std::string, OverrideTest, str_value); }
-        // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
-        // to a python numeric value, since we only copy values in the numeric type caster:
-//      std::string &str_ref() override { PYBIND11_OVERRIDE(std::string &, OverrideTest, str_ref); }
+        // Not allowed (enabling the below should hit a static_assert failure): we can't get a
+        // reference to a python numeric value, since we only copy values in the numeric type
+        // caster:
+#ifdef PYBIND11_NEVER_DEFINED_EVER
+        std::string &str_ref() override { PYBIND11_OVERRIDE(std::string &, OverrideTest, str_ref); }
+#endif
         // But we can work around it like this:
     private:
         std::string _tmp;
@@ -394,7 +392,9 @@ TEST_SUBMODULE(virtual_functions, m) {
     py::class_<OverrideTest, PyOverrideTest>(m, "OverrideTest")
         .def(py::init<const std::string &>())
         .def("str_value", &OverrideTest::str_value)
-//      .def("str_ref", &OverrideTest::str_ref)
+#ifdef PYBIND11_NEVER_DEFINED_EVER
+        .def("str_ref", &OverrideTest::str_ref)
+#endif
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
 
@@ -497,11 +497,11 @@ public:
 // Inheritance approach 2: templated trampoline classes.
 //
 // Advantages:
-// - we have only 2 (template) class and 4 method declarations (one per virtual method, plus one for
-//   any override of a pure virtual method), versus 4 classes and 6 methods (MI) or 4 classes and 11
-//   methods (repeat).
-// - Compared to MI, we also don't have to change the non-trampoline inheritance to virtual, and can
-//   properly inherit constructors.
+// - we have only 2 (template) class and 4 method declarations (one per virtual method, plus one
+//   for any override of a pure virtual method), versus 4 classes and 6 methods (MI) or 4 classes
+//   and 11 methods (repeat).
+// - Compared to MI, we also don't have to change the non-trampoline inheritance to virtual, and
+//   can properly inherit constructors.
 //
 // Disadvantage:
 // - the compiler must still generate and compile 14 different methods (more, even, than the 11
@@ -523,8 +523,8 @@ public:
     int unlucky_number() override { PYBIND11_OVERRIDE(int, Base, unlucky_number, ); }
     double lucky_number() override { PYBIND11_OVERRIDE(double, Base, lucky_number, ); }
 };
-// Since C_Tpl and D_Tpl don't declare any new virtual methods, we don't actually need these (we can
-// use PyB_Tpl<C_Tpl> and PyB_Tpl<D_Tpl> for the trampoline classes instead):
+// Since C_Tpl and D_Tpl don't declare any new virtual methods, we don't actually need these
+// (we can use PyB_Tpl<C_Tpl> and PyB_Tpl<D_Tpl> for the trampoline classes instead):
 /*
 template <class Base = C_Tpl> class PyC_Tpl : public PyB_Tpl<Base> {
 public:

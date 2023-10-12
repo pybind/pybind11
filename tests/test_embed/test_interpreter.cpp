@@ -240,8 +240,8 @@ TEST_CASE("Subinterpreter") {
     REQUIRE(has_pybind11_internals_static());
 
     /// Create and switch to a subinterpreter.
-    auto main_tstate = PyThreadState_Get();
-    auto sub_tstate = Py_NewInterpreter();
+    auto *main_tstate = PyThreadState_Get();
+    auto *sub_tstate = Py_NewInterpreter();
 
     // Subinterpreters get their own copy of builtins. detail::get_internals() still
     // works by returning from the static variable, i.e. all interpreters share a single
@@ -307,7 +307,11 @@ TEST_CASE("Threads") {
 struct scope_exit {
     std::function<void()> f_;
     explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
-    ~scope_exit() { if (f_) f_(); }
+    ~scope_exit() {
+        if (f_) {
+            f_();
+        }
+    }
 };
 
 TEST_CASE("Reload module from file") {

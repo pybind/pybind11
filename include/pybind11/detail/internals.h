@@ -118,8 +118,9 @@ struct type_hash {
     size_t operator()(const std::type_index &t) const {
         size_t hash = 5381;
         const char *ptr = t.name();
-        while (auto c = static_cast<unsigned char>(*ptr++))
+        while (auto c = static_cast<unsigned char>(*ptr++)) {
             hash = (hash * 33) ^ c;
+        }
         return hash;
     }
 };
@@ -146,18 +147,22 @@ struct override_hash {
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
-    type_map<type_info *> registered_types_cpp; // std::type_index -> pybind11's type information
-    std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py; // PyTypeObject* -> base type_info(s)
+    // std::type_index -> pybind11's type information
+    type_map<type_info *> registered_types_cpp;
+    // PyTypeObject* -> base type_info(s)
+    std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py;
     std::unordered_multimap<const void *, instance*> registered_instances; // void * -> instance*
     std::unordered_set<std::pair<const PyObject *, std::string>, override_hash> inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
-    std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
+    std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across
+                                                         // extensions
 #if PYBIND11_INTERNALS_VERSION == 4
     std::vector<PyObject *> unused_loader_patient_stack_remove_at_v5;
 #endif
-    std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
+    std::forward_list<std::string> static_strings; // Stores the std::strings backing
+                                                   // detail::c_str()
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
@@ -303,7 +308,7 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
 template <class T,
           enable_if_t<!std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
-    if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
+    if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(exc))) {
         return handle_nested_exception(*nep, p);
     }
     return false;
@@ -340,7 +345,7 @@ inline void translate_exception(std::exception_ptr p) {
         return;
     } catch (const builtin_exception &e) {
         // Could not use template since it's an abstract class.
-        if (auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
+        if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
             handle_nested_exception(*nep, p);
         }
         e.set_error();
@@ -390,7 +395,9 @@ inline void translate_exception(std::exception_ptr p) {
 #if !defined(__GLIBCXX__)
 inline void translate_local_exception(std::exception_ptr p) {
     try {
-        if (p) std::rethrow_exception(p);
+        if (p) {
+            std::rethrow_exception(p);
+        }
     } catch (error_already_set &e)       { e.restore();   return;
     } catch (const builtin_exception &e) { e.set_error(); return;
     }
@@ -400,8 +407,9 @@ inline void translate_local_exception(std::exception_ptr p) {
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
-    if (internals_pp && *internals_pp)
+    if (internals_pp && *internals_pp) {
         return **internals_pp;
+    }
 
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
@@ -427,7 +435,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
-        if (!internals_pp) internals_pp = new internals*();
+        if (!internals_pp) {
+            internals_pp = new internals *();
+        }
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)

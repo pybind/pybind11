@@ -60,8 +60,10 @@ public:
     static constexpr auto name = caster_t::name;
     static handle cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
-        if (policy == return_value_policy::take_ownership || policy == return_value_policy::automatic)
+        if (policy == return_value_policy::take_ownership
+            || policy == return_value_policy::automatic) {
             policy = return_value_policy::automatic_reference;
+        }
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
@@ -112,8 +114,9 @@ public:
     bool load(handle src, bool convert) {
         py_type py_value;
 
-        if (!src)
+        if (!src) {
             return false;
+        }
 
 #if !defined(PYPY_VERSION)
         auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
@@ -124,10 +127,11 @@ public:
 #endif
 
         if (std::is_floating_point<T>::value) {
-            if (convert || PyFloat_Check(src.ptr()))
+            if (convert || PyFloat_Check(src.ptr())) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
-            else
+            } else {
                 return false;
+            }
         } else if (PyFloat_Check(src.ptr())
                    || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
             return false;
@@ -214,8 +218,9 @@ public:
 template<typename T> struct void_caster {
 public:
     bool load(handle src, bool) {
-        if (src && src.is_none())
+        if (src && src.is_none()) {
             return true;
+        }
         return false;
     }
     static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
@@ -246,7 +251,7 @@ public:
         }
 
         /* Check if this is a C++ type */
-        auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
+        const auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
         if (bases.size() == 1) { // Only allowing loading from a single-value type
             value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
             return true;
@@ -257,8 +262,9 @@ public:
     }
 
     static handle cast(const void *ptr, return_value_policy /* policy */, handle /* parent */) {
-        if (ptr)
+        if (ptr) {
             return capsule(ptr).release();
+        }
         return none().inc_ref();
     }
 
@@ -274,7 +280,9 @@ template <> class type_caster<std::nullptr_t> : public void_caster<std::nullptr_
 template <> class type_caster<bool> {
 public:
     bool load(handle src, bool convert) {
-        if (!src) return false;
+        if (!src) {
+            return false;
+        }
         if (src.ptr() == Py_True) {
             value = true;
             return true;
@@ -298,7 +306,7 @@ public:
             #else
             // Alternate approach for CPython: this does the same as the above, but optimized
             // using the CPython API so as to avoid an unneeded attribute lookup.
-            else if (auto tp_as_number = src.ptr()->ob_type->tp_as_number) {
+            else if (auto *tp_as_number = src.ptr()->ob_type->tp_as_number) {
                 if (PYBIND11_NB_BOOL(tp_as_number)) {
                     res = (*PYBIND11_NB_BOOL(tp_as_number))(src.ptr());
                 }
@@ -391,8 +399,9 @@ template <typename StringType, bool IsView = false> struct string_caster {
         value = StringType(buffer, length);
 
         // If we're loading a string_view we need to keep the encoded Python object alive:
-        if (IsView)
+        if (IsView) {
             loader_life_support::add_patient(utfNbytes);
+        }
 
         return true;
     }
@@ -401,7 +410,9 @@ template <typename StringType, bool IsView = false> struct string_caster {
         const char *buffer = reinterpret_cast<const char *>(src.data());
         auto nbytes = ssize_t(src.size() * sizeof(CharT));
         handle s = decode_utfN(buffer, nbytes);
-        if (!s) throw error_already_set();
+        if (!s) {
+            throw error_already_set();
+        }
         return s;
     }
 
@@ -463,10 +474,14 @@ template <typename CharT> struct type_caster<CharT, enable_if_t<is_std_char_type
     CharT one_char = 0;
 public:
     bool load(handle src, bool convert) {
-        if (!src) return false;
+        if (!src) {
+            return false;
+        }
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) return false;
+            if (!convert) {
+                return false;
+            }
             none = true;
             return true;
         }
@@ -474,14 +489,18 @@ public:
     }
 
     static handle cast(const CharT *src, return_value_policy policy, handle parent) {
-        if (src == nullptr) return pybind11::none().inc_ref();
+        if (src == nullptr) {
+            return pybind11::none().inc_ref();
+        }
         return StringCaster::cast(StringType(src), policy, parent);
     }
 
     static handle cast(CharT src, return_value_policy policy, handle parent) {
         if (std::is_same<char, CharT>::value) {
             handle s = PyUnicode_DecodeLatin1((const char *) &src, 1, nullptr);
-            if (!s) throw error_already_set();
+            if (!s) {
+                throw error_already_set();
+            }
             return s;
         }
         return StringCaster::cast(StringType(1, src), policy, parent);
@@ -491,13 +510,15 @@ public:
         return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
     }
     explicit operator CharT &() {
-        if (none)
+        if (none) {
             throw value_error("Cannot convert None to a character");
+        }
 
         auto &value = static_cast<StringType &>(str_caster);
         size_t str_len = value.size();
-        if (str_len == 0)
+        if (str_len == 0) {
             throw value_error("Cannot convert empty string to a character");
+        }
 
         // If we're in UTF-8 mode, we have two possible failures: one for a unicode character that
         // is too high, and one for multiple unicode characters (caught later), so we need to figure
@@ -531,12 +552,14 @@ public:
         // string was too long" error).
         else if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 16) && str_len == 2) {
             one_char = static_cast<CharT>(value[0]);
-            if (one_char >= 0xD800 && one_char < 0xE000)
+            if (one_char >= 0xD800 && one_char < 0xE000) {
                 throw value_error("Character code point not in range(0x10000)");
+            }
         }
 
-        if (str_len != 1)
+        if (str_len != 1) {
             throw value_error("Expected a character, but multi-character string found");
+        }
 
         one_char = value[0];
         return one_char;
@@ -554,11 +577,13 @@ template <template<typename...> class Tuple, typename... Ts> class tuple_caster 
 public:
 
     bool load(handle src, bool convert) {
-        if (!isinstance<sequence>(src))
+        if (!isinstance<sequence>(src)) {
             return false;
+        }
         const auto seq = reinterpret_borrow<sequence>(src);
-        if (seq.size() != size)
+        if (seq.size() != size) {
             return false;
+        }
         return load_impl(seq, convert, indices{});
     }
 
@@ -570,7 +595,9 @@ public:
     // copied from the PYBIND11_TYPE_CASTER macro
     template <typename T>
     static handle cast(T *src, return_value_policy policy, handle parent) {
-        if (!src) return none().release();
+        if (!src) {
+            return none().release();
+        }
         if (policy == return_value_policy::take_ownership) {
             auto h = cast(std::move(*src), policy, parent);
             delete src;
@@ -597,12 +624,15 @@ protected:
     template <size_t... Is>
     bool load_impl(const sequence &seq, bool convert, index_sequence<Is...>) {
 #ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(subcasters).load(seq[Is], convert)))
+        if ((... || !std::get<Is>(subcasters).load(seq[Is], convert))) {
             return false;
+        }
 #else
-        for (bool r : {std::get<Is>(subcasters).load(seq[Is], convert)...})
-            if (!r)
+        for (bool r : {std::get<Is>(subcasters).load(seq[Is], convert)...}) {
+            if (!r) {
                 return false;
+            }
+        }
 #endif
         return true;
     }
@@ -615,13 +645,16 @@ protected:
         std::array<object, size> entries{{
             reinterpret_steal<object>(make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...
         }};
-        for (const auto &entry: entries)
-            if (!entry)
+        for (const auto &entry : entries) {
+            if (!entry) {
                 return handle();
+            }
+        }
         tuple result(size);
         int counter = 0;
-        for (auto & entry: entries)
+        for (auto &entry : entries) {
             PyTuple_SET_ITEM(result.ptr(), counter++, entry.release().ptr());
+        }
         return result.release();
     }
 
@@ -694,8 +727,9 @@ public:
 protected:
     friend class type_caster_generic;
     void check_holder_compat() {
-        if (typeinfo->default_holder)
+        if (typeinfo->default_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
+        }
     }
 
     bool load_value(value_and_holder &&v_h, LoadType load_type) {
@@ -923,8 +957,9 @@ struct pyobject_caster {
             return true;
         }
 #endif
-        if (!isinstance<type>(src))
+        if (!isinstance<type>(src)) {
             return false;
+        }
         value = reinterpret_borrow<type>(src);
         return true;
     }
@@ -1035,12 +1070,14 @@ template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> =
 object cast(T &&value, return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
     using no_ref_T = typename std::remove_reference<T>::type;
-    if (policy == return_value_policy::automatic)
+    if (policy == return_value_policy::automatic) {
         policy = std::is_pointer<no_ref_T>::value ? return_value_policy::take_ownership :
                  std::is_lvalue_reference<T>::value ? return_value_policy::copy : return_value_policy::move;
-    else if (policy == return_value_policy::automatic_reference)
-        policy = std::is_pointer<no_ref_T>::value ? return_value_policy::reference :
-                 std::is_lvalue_reference<T>::value ? return_value_policy::copy : return_value_policy::move;
+    } else if (policy == return_value_policy::automatic_reference) {
+        policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::reference
+                 : std::is_lvalue_reference<T>::value ? return_value_policy::copy
+                                                      : return_value_policy::move;
+    }
     return reinterpret_steal<object>(detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
 }
 
@@ -1061,7 +1098,7 @@ detail::enable_if_t<
 
 template <typename T>
 detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
-    if (obj.ref_count() > 1)
+    if (obj.ref_count() > 1) {
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
             " (compile in debug mode for details)");
@@ -1069,6 +1106,7 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
         throw cast_error("Unable to move from Python " + (std::string) str(type::handle_of(obj)) +
                 " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
 #endif
+    }
 
     // Move into a temporary and return that, because the reference may be a local value of `conv`
     T ret = std::move(detail::cast_op<T>(detail::load_type<T>(obj)));
@@ -1084,8 +1122,9 @@ template <typename T> detail::enable_if_t<detail::move_always<T>::value, T> cast
     return move<T>(std::move(object));
 }
 template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value, T> cast(object &&object) {
-    if (object.ref_count() > 1)
+    if (object.ref_count() > 1) {
         return cast<T>(object);
+    }
     return move<T>(std::move(object));
 }
 template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
@@ -1103,7 +1142,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
 object object_or_cast(T &&o) { return pybind11::cast(std::forward<T>(o)); }
 
-struct override_unused {}; // Placeholder type for the unneeded (and dead code) static variable in the PYBIND11_OVERRIDE_OVERRIDE macro
+// Placeholder type for the unneeded (and dead code) static variable in the
+// PYBIND11_OVERRIDE_OVERRIDE macro
+struct override_unused {};
 template <typename ret_type> using override_caster_t = conditional_t<
     cast_is_temporary_value_reference<ret_type>::value, make_caster<ret_type>, override_unused>;
 
@@ -1163,8 +1204,9 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     }
     tuple result(size);
     int counter = 0;
-    for (auto &arg_value : args)
+    for (auto &arg_value : args) {
         PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
+    }
     return result;
 }
 
@@ -1338,12 +1380,15 @@ private:
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
 #ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])))
+        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
             return false;
+        }
 #else
-        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
-            if (!r)
+        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...}) {
+            if (!r) {
                 return false;
+            }
+        }
 #endif
         return true;
     }
@@ -1373,8 +1418,9 @@ public:
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
         PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
-        if (!result)
+        if (!result) {
             throw error_already_set();
+        }
         return reinterpret_steal<object>(result);
     }
 
@@ -1406,8 +1452,9 @@ public:
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
         PyObject *result = PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr());
-        if (!result)
+        if (!result) {
             throw error_already_set();
+        }
         return reinterpret_steal<object>(result);
     }
 
@@ -1427,18 +1474,19 @@ private:
     }
 
     void process(list &args_list, detail::args_proxy ap) {
-        for (auto a : ap)
+        for (auto a : ap) {
             args_list.append(a);
+        }
     }
 
     void process(list &/*args_list*/, arg_v a) {
-        if (!a.name)
+        if (!a.name) {
 #if defined(NDEBUG)
             nameless_argument_error();
 #else
             nameless_argument_error(a.type);
 #endif
-
+        }
         if (m_kwargs.contains(a.name)) {
 #if defined(NDEBUG)
             multiple_values_error();
@@ -1457,8 +1505,9 @@ private:
     }
 
     void process(list &/*args_list*/, detail::kwargs_proxy kp) {
-        if (!kp)
+        if (!kp) {
             return;
+        }
         for (auto k : reinterpret_borrow<dict>(kp)) {
             if (m_kwargs.contains(k.first)) {
 #if defined(NDEBUG)
@@ -1562,7 +1611,8 @@ handle type::handle_of() {
     }}
 
 /// Lets you pass a type containing a `,` through a macro parameter without needing a separate
-/// typedef, e.g.: `PYBIND11_OVERRIDE(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
+/// typedef, e.g.:
+/// `PYBIND11_OVERRIDE(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
 #define PYBIND11_TYPE(...) __VA_ARGS__
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

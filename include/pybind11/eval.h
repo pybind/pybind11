@@ -46,8 +46,9 @@ enum eval_mode {
 
 template <eval_mode mode = eval_expr>
 object eval(const str &expr, object global = globals(), object local = object()) {
-    if (!local)
+    if (!local) {
         local = global;
+    }
 
     detail::ensure_builtins_in_globals(global);
 
@@ -64,8 +65,9 @@ object eval(const str &expr, object global = globals(), object local = object())
     }
 
     PyObject *result = PyRun_String(buffer.c_str(), start, global.ptr(), local.ptr());
-    if (!result)
+    if (!result) {
         throw error_already_set();
+    }
     return reinterpret_steal<object>(result);
 }
 
@@ -102,8 +104,9 @@ object eval_file(str) {
 #else
 template <eval_mode mode = eval_statements>
 object eval_file(str fname, object global = globals(), object local = object()) {
-    if (!local)
+    if (!local) {
         local = global;
+    }
 
     detail::ensure_builtins_in_globals(global);
 
@@ -154,8 +157,9 @@ object eval_file(str fname, object global = globals(), object local = object()) 
                                     local.ptr(), closeFile);
 #endif
 
-    if (!result)
+    if (!result) {
         throw error_already_set();
+    }
     return reinterpret_steal<object>(result);
 }
 #endif

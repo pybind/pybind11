@@ -51,7 +51,8 @@ private:
 
     struct state {
         bool show_user_defined_docstrings = true;  //< Include user-supplied texts in docstrings.
-        bool show_function_signatures = true;      //< Include auto-generated function signatures in docstrings.
+        bool show_function_signatures = true;      //< Include auto-generated function signatures
+                                                   //  in docstrings.
     };
 
     static state &global_state() {

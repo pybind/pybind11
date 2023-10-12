@@ -47,8 +47,9 @@ TEST_SUBMODULE(local_bindings, m) {
         auto main = py::module_::import("pybind11_tests");
         if (py::hasattr(main, "class_")) {
             bind_local<LocalExternal, 7>(m, "LocalExternal", py::module_local());
+        } else {
+            throw std::runtime_error("test_class not enabled");
         }
-        else throw std::runtime_error("test_class not enabled");
     });
 
     // test_stl_bind_local

@@ -22,7 +22,8 @@
 #include <utility>
 
 #if defined(_MSC_VER)
-#  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
+#  pragma warning(disable: 4324)
+//     warning C4324: structure was padded due to alignment specifier
 #endif
 
 // test_brace_initialization
@@ -139,9 +140,13 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("return_class_1", []() -> BaseClass* { return new DerivedClass1(); });
     m.def("return_class_2", []() -> BaseClass* { return new DerivedClass2(); });
-    m.def("return_class_n", [](int n) -> BaseClass* {
-        if (n == 1) return new DerivedClass1();
-        if (n == 2) return new DerivedClass2();
+    m.def("return_class_n", [](int n) -> BaseClass * {
+        if (n == 1) {
+            return new DerivedClass1();
+        }
+        if (n == 2) {
+            return new DerivedClass2();
+        }
         return new BaseClass();
     });
     m.def("return_none", []() -> BaseClass* { return nullptr; });
@@ -167,8 +172,9 @@ TEST_SUBMODULE(class_, m) {
         // See https://github.com/pybind/pybind11/issues/2486
         // if (category == 2)
         //     return py::type::of<int>();
-        if (category == 1)
+        if (category == 1) {
             return py::type::of<DerivedClass1>();
+        }
         return py::type::of<Invalid>();
     });
 
@@ -250,7 +256,7 @@ TEST_SUBMODULE(class_, m) {
             return py::str().release().ptr();
         };
 
-        auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
+        auto *def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
         py::capsule def_capsule(def, [](void *ptr) { delete reinterpret_cast<PyMethodDef *>(ptr); });
         return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, def_capsule.ptr(), m.ptr()));
     }());
@@ -547,22 +553,24 @@ CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 #define CHECK_BROKEN(N) static_assert(std::is_same<typename Breaks##N::type, BreaksBase<-(N)>>::value, \
         "Breaks1 has wrong type!");
 
-//// Two holder classes:
-//typedef py::class_<BreaksBase<-1>, std::unique_ptr<BreaksBase<-1>>, std::unique_ptr<BreaksBase<-1>>> Breaks1;
-//CHECK_BROKEN(1);
-//// Two aliases:
-//typedef py::class_<BreaksBase<-2>, BreaksTramp<-2>, BreaksTramp<-2>> Breaks2;
-//CHECK_BROKEN(2);
-//// Holder + 2 aliases
-//typedef py::class_<BreaksBase<-3>, std::unique_ptr<BreaksBase<-3>>, BreaksTramp<-3>, BreaksTramp<-3>> Breaks3;
-//CHECK_BROKEN(3);
-//// Alias + 2 holders
-//typedef py::class_<BreaksBase<-4>, std::unique_ptr<BreaksBase<-4>>, BreaksTramp<-4>, std::shared_ptr<BreaksBase<-4>>> Breaks4;
-//CHECK_BROKEN(4);
-//// Invalid option (not a subclass or holder)
-//typedef py::class_<BreaksBase<-5>, BreaksTramp<-4>> Breaks5;
-//CHECK_BROKEN(5);
-//// Invalid option: multiple inheritance not supported:
-//template <> struct BreaksBase<-8> : BreaksBase<-6>, BreaksBase<-7> {};
-//typedef py::class_<BreaksBase<-8>, BreaksBase<-6>, BreaksBase<-7>> Breaks8;
-//CHECK_BROKEN(8);
+#ifdef PYBIND11_NEVER_DEFINED_EVER
+// Two holder classes:
+typedef py::class_<BreaksBase<-1>, std::unique_ptr<BreaksBase<-1>>, std::unique_ptr<BreaksBase<-1>>> Breaks1;
+CHECK_BROKEN(1);
+// Two aliases:
+typedef py::class_<BreaksBase<-2>, BreaksTramp<-2>, BreaksTramp<-2>> Breaks2;
+CHECK_BROKEN(2);
+// Holder + 2 aliases
+typedef py::class_<BreaksBase<-3>, std::unique_ptr<BreaksBase<-3>>, BreaksTramp<-3>, BreaksTramp<-3>> Breaks3;
+CHECK_BROKEN(3);
+// Alias + 2 holders
+typedef py::class_<BreaksBase<-4>, std::unique_ptr<BreaksBase<-4>>, BreaksTramp<-4>, std::shared_ptr<BreaksBase<-4>>> Breaks4;
+CHECK_BROKEN(4);
+// Invalid option (not a subclass or holder)
+typedef py::class_<BreaksBase<-5>, BreaksTramp<-4>> Breaks5;
+CHECK_BROKEN(5);
+// Invalid option: multiple inheritance not supported:
+template <> struct BreaksBase<-8> : BreaksBase<-6>, BreaksBase<-7> {};
+typedef py::class_<BreaksBase<-8>, BreaksBase<-6>, BreaksBase<-7>> Breaks8;
+CHECK_BROKEN(8);
+#endif
