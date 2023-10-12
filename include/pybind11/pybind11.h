@@ -2206,8 +2206,7 @@ private:
     /// Initialize a holder object simply (to be converted).
     static void
     init_holder_simple(detail::instance *inst, detail::value_and_holder &v_h, type *value) {
-        if (PYBIND11_SILENCE_MSVC_C4127(detail::always_construct_holder<holder_type>::value)
-            || inst->owned) {
+        if (detail::always_construct_holder<holder_type>::value|| inst->owned) {
             new (std::addressof(v_h.holder<holder_type>())) holder_type(value);
             v_h.set_holder_constructed();
         }
