@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../pytypes.h"
+
 #include <exception>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
@@ -136,7 +137,7 @@ template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
-    inline size_t operator()(const std::pair<const PyObject *, std::string>& v) const {
+    inline size_t operator()(const std::pair<const PyObject *, std::string> &v) const {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<std::string>()(v.second);
         return value;
@@ -151,8 +152,9 @@ struct internals {
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py;
-    std::unordered_multimap<const void *, instance*> registered_instances; // void * -> instance*
-    std::unordered_set<std::pair<const PyObject *, std::string>, override_hash> inactive_override_cache;
+    std::unordered_multimap<const void *, instance *> registered_instances; // void * -> instance*
+    std::unordered_set<std::pair<const PyObject *, std::string>, override_hash>
+        inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
@@ -198,8 +200,8 @@ struct type_info {
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, holder_erased);
     void (*dealloc)(value_and_holder &v_h);
-    std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
-    std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
+    std::vector<PyObject *(*) (PyObject *, PyTypeObject *)> implicit_conversions;
+    std::vector<std::pair<const std::type_info *, void *(*) (void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
@@ -221,67 +223,71 @@ struct type_info {
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
-#  define PYBIND11_BUILD_TYPE "_debug"
+#    define PYBIND11_BUILD_TYPE "_debug"
 #else
-#  define PYBIND11_BUILD_TYPE ""
+#    define PYBIND11_BUILD_TYPE ""
 #endif
 
 /// Let's assume that different compilers are ABI-incompatible.
 /// A user can manually set this string if they know their
 /// compiler is compatible.
 #ifndef PYBIND11_COMPILER_TYPE
-#  if defined(_MSC_VER)
-#    define PYBIND11_COMPILER_TYPE "_msvc"
-#  elif defined(__INTEL_COMPILER)
-#    define PYBIND11_COMPILER_TYPE "_icc"
-#  elif defined(__clang__)
-#    define PYBIND11_COMPILER_TYPE "_clang"
-#  elif defined(__PGI)
-#    define PYBIND11_COMPILER_TYPE "_pgi"
-#  elif defined(__MINGW32__)
-#    define PYBIND11_COMPILER_TYPE "_mingw"
-#  elif defined(__CYGWIN__)
-#    define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#  elif defined(__GNUC__)
-#    define PYBIND11_COMPILER_TYPE "_gcc"
-#  else
-#    define PYBIND11_COMPILER_TYPE "_unknown"
-#  endif
+#    if defined(_MSC_VER)
+#        define PYBIND11_COMPILER_TYPE "_msvc"
+#    elif defined(__INTEL_COMPILER)
+#        define PYBIND11_COMPILER_TYPE "_icc"
+#    elif defined(__clang__)
+#        define PYBIND11_COMPILER_TYPE "_clang"
+#    elif defined(__PGI)
+#        define PYBIND11_COMPILER_TYPE "_pgi"
+#    elif defined(__MINGW32__)
+#        define PYBIND11_COMPILER_TYPE "_mingw"
+#    elif defined(__CYGWIN__)
+#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
+#    elif defined(__GNUC__)
+#        define PYBIND11_COMPILER_TYPE "_gcc"
+#    else
+#        define PYBIND11_COMPILER_TYPE "_unknown"
+#    endif
 #endif
 
 /// Also standard libs
 #ifndef PYBIND11_STDLIB
-#  if defined(_LIBCPP_VERSION)
-#    define PYBIND11_STDLIB "_libcpp"
-#  elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#    define PYBIND11_STDLIB "_libstdcpp"
-#  else
-#    define PYBIND11_STDLIB ""
-#  endif
+#    if defined(_LIBCPP_VERSION)
+#        define PYBIND11_STDLIB "_libcpp"
+#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#        define PYBIND11_STDLIB "_libstdcpp"
+#    else
+#        define PYBIND11_STDLIB ""
+#    endif
 #endif
 
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
 #ifndef PYBIND11_BUILD_ABI
-#  if defined(__GXX_ABI_VERSION)
-#    define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#  else
-#    define PYBIND11_BUILD_ABI ""
-#  endif
+#    if defined(__GXX_ABI_VERSION)
+#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#    else
+#        define PYBIND11_BUILD_ABI ""
+#    endif
 #endif
 
 #ifndef PYBIND11_INTERNALS_KIND
-#  if defined(WITH_THREAD)
-#    define PYBIND11_INTERNALS_KIND ""
-#  else
-#    define PYBIND11_INTERNALS_KIND "_without_thread"
-#  endif
+#    if defined(WITH_THREAD)
+#        define PYBIND11_INTERNALS_KIND ""
+#    else
+#        define PYBIND11_INTERNALS_KIND "_without_thread"
+#    endif
 #endif
 
-#define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+#define PYBIND11_INTERNALS_ID                                                                     \
+    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
+        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
+            PYBIND11_BUILD_TYPE "__"
 
-#define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+#define PYBIND11_MODULE_LOCAL_ID                                                                  \
+    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
+        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
+            PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -398,8 +404,12 @@ inline void translate_local_exception(std::exception_ptr p) {
         if (p) {
             std::rethrow_exception(p);
         }
-    } catch (error_already_set &e)       { e.restore();   return;
-    } catch (const builtin_exception &e) { e.set_error(); return;
+    } catch (error_already_set &e) {
+        e.restore();
+        return;
+    } catch (const builtin_exception &e) {
+        e.set_error();
+        return;
     }
 }
 #endif
@@ -414,7 +424,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
-        gil_scoped_acquire_local() : state (PyGILState_Ensure()) {}
+        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
@@ -514,10 +524,9 @@ struct local_internals {
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-  static local_internals locals;
-  return locals;
+    static local_internals locals;
+    return locals;
 }
-
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only
@@ -550,7 +559,7 @@ PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
 /// Returns a typed reference to a shared data entry (by using `get_shared_data()`) if
 /// such entry exists. Otherwise, a new object of default-constructible type `T` is
 /// added to the shared data under the given name and a reference to it is returned.
-template<typename T>
+template <typename T>
 T &get_or_create_shared_data(const std::string &name) {
     auto &internals = detail::get_internals();
     auto it = internals.shared_data.find(name);

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "pybind11.h"
+
 #include <functional>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -19,7 +20,7 @@ template <typename Return, typename... Args>
 struct type_caster<std::function<Return(Args...)>> {
     using type = std::function<Return(Args...)>;
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
-    using function_type = Return (*) (Args...);
+    using function_type = Return (*)(Args...);
 
 public:
     bool load(handle src, bool convert) {
@@ -76,7 +77,9 @@ public:
             // This triggers a syntax error under very special conditions (very weird indeed).
             explicit
 #endif
-            func_handle(function &&f_) noexcept : f(std::move(f_)) {}
+                func_handle(function &&f_) noexcept
+                : f(std::move(f_)) {
+            }
             func_handle(const func_handle &f_) { operator=(f_); }
             func_handle &operator=(const func_handle &f_) {
                 gil_scoped_acquire acq;
@@ -118,8 +121,10 @@ public:
         return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Callable[[") + concat(make_caster<Args>::name...) + const_name("], ")
-                               + make_caster<retval_type>::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type,
+                         const_name("Callable[[") + concat(make_caster<Args>::name...)
+                             + const_name("], ") + make_caster<retval_type>::name
+                             + const_name("]"));
 };
 
 PYBIND11_NAMESPACE_END(detail)

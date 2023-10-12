@@ -20,11 +20,11 @@
 namespace exercise_trampoline {
 
 struct SimpleBase {
-    int num               = 0;
+    int num = 0;
     virtual ~SimpleBase() = default;
 
     // For compatibility with old clang versions:
-    SimpleBase()                   = default;
+    SimpleBase() = default;
     SimpleBase(const SimpleBase &) = default;
 };
 
@@ -50,7 +50,7 @@ void wrap(py::module m) {
                 }
                 auto cpp_state = std::unique_ptr<SimpleBase>(new SimpleBaseTrampoline);
                 cpp_state->num = t[0].cast<int>();
-                auto py_state  = t[1].cast<py::dict>();
+                auto py_state = t[1].cast<py::dict>();
                 return std::make_pair(std::move(cpp_state), py_state);
             }));
 

@@ -16,12 +16,13 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if PY_VERSION_HEX >= 0x03030000 && !defined(PYPY_VERSION)
-#  define PYBIND11_BUILTIN_QUALNAME
-#  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)
+#    define PYBIND11_BUILTIN_QUALNAME
+#    define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)
 #else
 // In pre-3.3 Python, we still set __qualname__ so that we can produce reliable function type
 // signatures; in 3.3+ this macro expands to nothing:
-#  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj) setattr((PyObject *) obj, "__qualname__", nameobj)
+#    define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)                                             \
+        setattr((PyObject *) obj, "__qualname__", nameobj)
 #endif
 
 inline std::string get_fully_qualified_tp_name(PyTypeObject *type) {
@@ -71,9 +72,9 @@ inline PyTypeObject *make_static_property_type() {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#ifdef PYBIND11_BUILTIN_QUALNAME
+#    ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#endif
+#    endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -107,8 +108,10 @@ inline PyTypeObject *make_static_property_type() {
             def __set__(self, obj, value):
                 cls = obj if isinstance(obj, type) else type(obj)
                 property.__set__(self, cls, value)
-        )", Py_file_input, d.ptr(), d.ptr()
-    );
+        )",
+                                    Py_file_input,
+                                    d.ptr(),
+                                    d.ptr());
     if (result == nullptr)
         throw error_already_set();
     Py_DECREF(result);
@@ -121,7 +124,7 @@ inline PyTypeObject *make_static_property_type() {
     By default, Python replaces the `static_property` itself, but for wrapped C++ types
     we need to call `static_property.__set__()` in order to propagate the new value to
     the underlying C++ data structure. */
-extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyObject* value) {
+extern "C" inline int pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
     // Use `_PyType_Lookup()` instead of `PyObject_GetAttr()` in order to get the raw
     // descriptor (`property`) instead of calling `tp_descr_get` (`property.__get__()`).
     PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
@@ -190,7 +193,8 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     // Ensure that the base __init__ function(s) were called
     for (const auto &vh : values_and_holders(instance)) {
         if (!vh.holder_constructed()) {
-            PyErr_Format(PyExc_TypeError, "%.200s.__init__() must be called when overriding __init__",
+            PyErr_Format(PyExc_TypeError,
+                         "%.200s.__init__() must be called when overriding __init__",
                          get_fully_qualified_tp_name(vh.type->type).c_str());
             Py_DECREF(self);
             return nullptr;
@@ -209,9 +213,8 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
     // 1) be found in internals.registered_types_py
     // 2) have exactly one associated `detail::type_info`
     auto found_type = internals.registered_types_py.find(type);
-    if (found_type != internals.registered_types_py.end() &&
-        found_type->second.size() == 1 &&
-        found_type->second[0]->type == type) {
+    if (found_type != internals.registered_types_py.end() && found_type->second.size() == 1
+        && found_type->second[0]->type == type) {
 
         auto *tinfo = found_type->second[0];
         auto tindex = std::type_index(*tinfo->cpptype);
@@ -226,7 +229,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
 
         // Actually just `std::erase_if`, but that's only available in C++20
         auto &cache = internals.inactive_override_cache;
-        for (auto it = cache.begin(), last = cache.end(); it != last; ) {
+        for (auto it = cache.begin(), last = cache.end(); it != last;) {
             if (it->first == (PyObject *) tinfo->type) {
                 it = cache.erase(it);
             } else {
@@ -243,7 +246,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
 /** This metaclass is assigned by default to all pybind11 types and is required in order
     for static properties to function correctly. Users may override this using `py::metaclass`.
     Return value: New reference. */
-inline PyTypeObject* make_default_metaclass() {
+inline PyTypeObject *make_default_metaclass() {
     constexpr auto *name = "pybind11_type";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
 
@@ -287,9 +290,12 @@ inline PyTypeObject* make_default_metaclass() {
 
 /// For multiple inheritance types we need to recursively register/deregister base pointers for any
 /// base classes with pointers that are difference from the instance value pointer so that we can
-/// correctly recognize an offset base class pointer. This calls a function with any offset base ptrs.
-inline void traverse_offset_bases(void *valueptr, const detail::type_info *tinfo, instance *self,
-        bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
+/// correctly recognize an offset base class pointer. This calls a function with any offset base
+/// ptrs.
+inline void traverse_offset_bases(void *valueptr,
+                                  const detail::type_info *tinfo,
+                                  instance *self,
+                                  bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
     for (handle h : reinterpret_borrow<tuple>(tinfo->type->tp_bases)) {
         if (auto *parent_tinfo = get_type_info((PyTypeObject *) h.ptr())) {
             for (auto &c : parent_tinfo->implicit_casts) {
@@ -337,13 +343,13 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
     return ret;
 }
 
-/// Instance creation function for all pybind11 types. It allocates the internal instance layout for
-/// holding C++ objects and holders.  Allocation is done lazily (the first time the instance is cast
-/// to a reference or pointer), and initialization is done by an `__init__` function.
+/// Instance creation function for all pybind11 types. It allocates the internal instance layout
+/// for holding C++ objects and holders.  Allocation is done lazily (the first time the instance is
+/// cast to a reference or pointer), and initialization is done by an `__init__` function.
 inline PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
-    // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
-    // object is a plain Python type (i.e. not derived from an extension type).  Fix it.
+    // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first
+    // inherited object is a plain Python type (i.e. not derived from an extension type).  Fix it.
     ssize_t instance_size = static_cast<ssize_t>(sizeof(instance));
     if (type->tp_basicsize < instance_size) {
         type->tp_basicsize = instance_size;
@@ -517,7 +523,8 @@ extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
 /// dynamic_attr: Support for `instance.__dict__ = dict()`.
 extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void *) {
     if (!PyDict_Check(new_dict)) {
-        PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
+        PyErr_Format(PyExc_TypeError,
+                     "__dict__ must be set to a dictionary, not a '%.200s'",
                      get_fully_qualified_tp_name(Py_TYPE(new_dict)).c_str());
         return -1;
     }
@@ -546,15 +553,14 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto *type = &heap_type->ht_type;
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
-    type->tp_dictoffset = type->tp_basicsize; // place dict at the end
-    type->tp_basicsize += (ssize_t)sizeof(PyObject *); // and allocate enough space for it
+    type->tp_dictoffset = type->tp_basicsize;           // place dict at the end
+    type->tp_basicsize += (ssize_t) sizeof(PyObject *); // and allocate enough space for it
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
 
     static PyGetSetDef getset[] = {
-        {const_cast<char*>("__dict__"), pybind11_get_dict, pybind11_set_dict, nullptr, nullptr},
-        {nullptr, nullptr, nullptr, nullptr, nullptr}
-    };
+        {const_cast<char *>("__dict__"), pybind11_get_dict, pybind11_set_dict, nullptr, nullptr},
+        {nullptr, nullptr, nullptr, nullptr, nullptr}};
     type->tp_getset = getset;
 }
 
@@ -623,7 +629,7 @@ inline void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
 
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
-inline PyObject* make_new_python_type(const type_record &rec) {
+inline PyObject *make_new_python_type(const type_record &rec) {
     auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
 
     auto qualname = name;
@@ -684,7 +690,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     auto *type = &heap_type->ht_type;
     type->tp_name = full_name;
     type->tp_doc = tp_doc;
-    type->tp_base = type_incref((PyTypeObject *)base);
+    type->tp_base = type_incref((PyTypeObject *) base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     if (!bases.empty()) {
         type->tp_bases = bases.release().ptr();
