@@ -141,15 +141,14 @@ standard python RuntimeError:
 
 .. code-block:: cpp
 
-    // This is a static object, so we must leak the Python reference:
-    // It is undefined when the destructor will run, possibly only after the
-    // Python interpreter is finalized already.
-    static py::handle exc = py::exception<MyCustomException>(m, "MyCustomError").release();
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_storage;
+    exc_storage.call_once_and_store_result(
+        [&]() { return py::exception<MyCustomException>(m, "MyCustomError"); });
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyCustomException &e) {
-            py::set_error(exc, e.what());
+            py::set_error(exc_storage.get_stored(), e.what());
         } catch (const OtherException &e) {
             py::set_error(PyExc_RuntimeError, e.what());
         }
