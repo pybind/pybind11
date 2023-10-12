@@ -162,12 +162,6 @@ extern "C" inline int pybind11_meta_setattro(PyObject *obj, PyObject *name, PyOb
  * to do a special case bypass for PyInstanceMethod_Types.
  */
 extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name) {
-    // Workaround! See:
-    // https://github.com/RobotLocomotion/drake/issues/14740
-    // https://github.com/pybind/pybind11/pull/2685
-    if (PyErr_Occurred()) {
-        PyErr_Clear();
-    }
     PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
     if (descr && PyInstanceMethod_Check(descr)) {
         Py_INCREF(descr);
