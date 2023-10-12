@@ -214,7 +214,7 @@ function(pybind11_add_module target_name)
 
   # Use case-insensitive comparison to match the result of $<CONFIG:cfgs>
   string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-  if(NOT MSVC AND NOT ${uppercase_CMAKE_BUILD_TYPE} MATCHES DEBUG|RELWITHDEBINFO)
+  if(NOT MSVC AND NOT "${uppercase_CMAKE_BUILD_TYPE}" MATCHES DEBUG|RELWITHDEBINFO)
     pybind11_strip(${target_name})
   endif()
 

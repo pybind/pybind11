@@ -559,4 +559,23 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
           []() { return py::make_iterator<py::return_value_policy::copy>(list); });
     m.def("make_iterator_2",
           []() { return py::make_iterator<py::return_value_policy::automatic>(list); });
+
+    // test_iterator on c arrays
+    // #4100: ensure lvalue required as increment operand
+    class CArrayHolder {
+    public:
+        CArrayHolder(double x, double y, double z) {
+            values[0] = x;
+            values[1] = y;
+            values[2] = z;
+        };
+        double values[3];
+    };
+
+    py::class_<CArrayHolder>(m, "CArrayHolder")
+        .def(py::init<double, double, double>())
+        .def(
+            "__iter__",
+            [](const CArrayHolder &v) { return py::make_iterator(v.values, v.values + 3); },
+            py::keep_alive<0, 1>());
 }

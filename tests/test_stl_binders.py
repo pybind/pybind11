@@ -186,9 +186,9 @@ def test_map_string_double():
     um["ua"] = 1.1
     um["ub"] = 2.6
 
-    assert sorted(list(um)) == ["ua", "ub"]
+    assert sorted(um) == ["ua", "ub"]
     assert list(um.keys()) == list(um)
-    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    assert sorted(um.items()) == [("ua", 1.1), ("ub", 2.6)]
     assert list(zip(um.keys(), um.values())) == list(um.items())
     assert "UnorderedMapStringDouble" in str(um)
 
@@ -304,8 +304,52 @@ def test_map_delitem():
     um["ua"] = 1.1
     um["ub"] = 2.6
 
-    assert sorted(list(um)) == ["ua", "ub"]
-    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    assert sorted(um) == ["ua", "ub"]
+    assert sorted(um.items()) == [("ua", 1.1), ("ub", 2.6)]
     del um["ua"]
-    assert sorted(list(um)) == ["ub"]
-    assert sorted(list(um.items())) == [("ub", 2.6)]
+    assert sorted(um) == ["ub"]
+    assert sorted(um.items()) == [("ub", 2.6)]
+
+
+def test_map_view_types():
+    map_string_double = m.MapStringDouble()
+    unordered_map_string_double = m.UnorderedMapStringDouble()
+    map_string_double_const = m.MapStringDoubleConst()
+    unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
+
+    assert map_string_double.keys().__class__.__name__ == "KeysView[str]"
+    assert map_string_double.values().__class__.__name__ == "ValuesView[float]"
+    assert map_string_double.items().__class__.__name__ == "ItemsView[str, float]"
+
+    keys_type = type(map_string_double.keys())
+    assert type(unordered_map_string_double.keys()) is keys_type
+    assert type(map_string_double_const.keys()) is keys_type
+    assert type(unordered_map_string_double_const.keys()) is keys_type
+
+    values_type = type(map_string_double.values())
+    assert type(unordered_map_string_double.values()) is values_type
+    assert type(map_string_double_const.values()) is values_type
+    assert type(unordered_map_string_double_const.values()) is values_type
+
+    items_type = type(map_string_double.items())
+    assert type(unordered_map_string_double.items()) is items_type
+    assert type(map_string_double_const.items()) is items_type
+    assert type(unordered_map_string_double_const.items()) is items_type
+
+
+def test_recursive_vector():
+    recursive_vector = m.RecursiveVector()
+    recursive_vector.append(m.RecursiveVector())
+    recursive_vector[0].append(m.RecursiveVector())
+    recursive_vector[0].append(m.RecursiveVector())
+    # Can't use len() since test_stl_binders.cpp does not include stl.h,
+    # so the necessary conversion is missing
+    assert recursive_vector[0].count(m.RecursiveVector()) == 2
+
+
+def test_recursive_map():
+    recursive_map = m.RecursiveMap()
+    recursive_map[100] = m.RecursiveMap()
+    recursive_map[100][101] = m.RecursiveMap()
+    recursive_map[100][102] = m.RecursiveMap()
+    assert list(recursive_map[100].keys()) == [101, 102]

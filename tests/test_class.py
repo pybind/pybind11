@@ -1,9 +1,15 @@
 import pytest
 import weakref
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
+
+
+def test_obj_class_name():
+    expected_name = "UserType" if env.PYPY else "pybind11_tests.UserType"
+    assert m.obj_class_name(UserType(1)) == expected_name
+    assert m.obj_class_name(UserType) == expected_name
 
 
 def test_repr():
@@ -24,7 +30,7 @@ def test_instance(msg):
     assert cstats.alive() == 0
 
 
-def test_instance_new(msg):
+def test_instance_new():
     instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
     cstats = ConstructorStats.get(m.NoConstructorNew)
     assert cstats.alive() == 1
@@ -177,7 +183,6 @@ def test_inheritance(msg):
 
 
 def test_inheritance_init(msg):
-
     # Single base
     class Python(m.Pet):
         def __init__(self):
@@ -214,7 +219,7 @@ def test_automatic_upcasting():
 
 
 def test_isinstance():
-    objects = [tuple(), dict(), m.Pet("Polly", "parrot")] + [m.Dog("Molly")] * 4
+    objects = [(), {}, m.Pet("Polly", "parrot")] + [m.Dog("Molly")] * 4
     expected = (True, True, True, True, True, False, False)
     assert m.check_instances(objects) == expected
 
@@ -314,6 +319,8 @@ def test_bind_protected_functions():
 
     b = m.ProtectedB()
     assert b.foo() == 42
+    assert m.read_foo(b.void_foo()) == 42
+    assert m.pointers_equal(b.get_self(), b)
 
     class C(m.ProtectedB):
         def __init__(self):
@@ -428,7 +435,7 @@ def test_exception_rvalue_abort():
 
 
 # https://github.com/pybind/pybind11/issues/1568
-def test_multiple_instances_with_same_pointer(capture):
+def test_multiple_instances_with_same_pointer():
     n = 100
     instances = [m.SamePointer() for _ in range(n)]
     for i in range(n):

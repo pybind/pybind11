@@ -22,10 +22,8 @@
 
 #include <utility>
 
-#if defined(_MSC_VER)
-#    pragma warning(disable : 4324)
+PYBIND11_WARNING_DISABLE_MSVC(4324)
 //     warning C4324: structure was padded due to alignment specifier
-#endif
 
 // test_brace_initialization
 struct NoBraceInitialization {
@@ -57,6 +55,8 @@ void bind_empty0(py::module_ &m) {
 } // namespace test_class
 
 TEST_SUBMODULE(class_, m) {
+    m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
+
     // test_instance
     struct NoConstructor {
         NoConstructor() = default;
@@ -85,7 +85,7 @@ TEST_SUBMODULE(class_, m) {
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
 
     py::class_<NoConstructorNew>(m, "NoConstructorNew")
-        .def(py::init([](const NoConstructorNew &self) { return self; })) // Need a NOOP __init__
+        .def(py::init([]() { return nullptr; })) // Need a NOOP __init__
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
 
@@ -384,6 +384,8 @@ TEST_SUBMODULE(class_, m) {
 
     protected:
         virtual int foo() const { return value; }
+        virtual void *void_foo() { return static_cast<void *>(&value); }
+        virtual void *get_self() { return static_cast<void *>(this); }
 
     private:
         int value = 42;
@@ -392,6 +394,8 @@ TEST_SUBMODULE(class_, m) {
     class TrampolineB : public ProtectedB {
     public:
         int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
+        void *void_foo() override { PYBIND11_OVERRIDE(void *, ProtectedB, void_foo, ); }
+        void *get_self() override { PYBIND11_OVERRIDE(void *, ProtectedB, get_self, ); }
     };
 
     class PublicistB : public ProtectedB {
@@ -401,11 +405,23 @@ TEST_SUBMODULE(class_, m) {
         // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
         ~PublicistB() override{}; // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
+        using ProtectedB::get_self;
+        using ProtectedB::void_foo;
     };
+
+    m.def("read_foo", [](const void *original) {
+        const int *ptr = reinterpret_cast<const int *>(original);
+        return *ptr;
+    });
+
+    m.def("pointers_equal",
+          [](const void *original, const void *comparison) { return original == comparison; });
 
     py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
         .def(py::init<>())
-        .def("foo", &PublicistB::foo);
+        .def("foo", &PublicistB::foo)
+        .def("void_foo", &PublicistB::void_foo)
+        .def("get_self", &PublicistB::get_self);
 
     // test_brace_initialization
     struct BraceInitialization {

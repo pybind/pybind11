@@ -43,6 +43,7 @@ main_headers = {
     "include/pybind11/pytypes.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/type_caster_pyobject_ptr.h",
 }
 
 detail_headers = {
@@ -56,6 +57,7 @@ detail_headers = {
 }
 
 eigen_headers = {
+    "include/pybind11/eigen/common.h",
     "include/pybind11/eigen/matrix.h",
     "include/pybind11/eigen/tensor.h",
 }
@@ -110,6 +112,7 @@ sdist_files = {
     "MANIFEST.in",
     "README.rst",
     "PKG-INFO",
+    "SECURITY.md",
 }
 
 local_sdist_files = {
@@ -135,7 +138,6 @@ def normalize_line_endings(value: bytes) -> bytes:
 
 
 def test_build_sdist(monkeypatch, tmpdir):
-
     monkeypatch.chdir(MAIN_DIR)
 
     subprocess.run(
@@ -186,7 +188,6 @@ def test_build_sdist(monkeypatch, tmpdir):
 
 
 def test_build_global_dist(monkeypatch, tmpdir):
-
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
     subprocess.run(

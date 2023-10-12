@@ -10,10 +10,13 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/type_caster_base.h"
+#include "cast.h"
 #include "operators.h"
 
 #include <algorithm>
 #include <sstream>
+#include <type_traits>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -58,9 +61,11 @@ struct is_comparable<
 /* For a vector/map data structure, recursively check the value type
    (which is std::pair for maps) */
 template <typename T>
-struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>> {
-    static constexpr const bool value = is_comparable<typename T::value_type>::value;
-};
+struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>>
+    : is_comparable<typename recursive_container_traits<T>::type_to_check_recursively> {};
+
+template <>
+struct is_comparable<recursive_bottom> : std::true_type {};
 
 /* For pairs, recursively check the two data types */
 template <typename T>
@@ -352,13 +357,17 @@ void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) 
     using DiffType = typename Vector::difference_type;
     using ItType = typename Vector::iterator;
     cl.def("__getitem__", [](const Vector &v, DiffType i) -> T {
-        if (i < 0 && (i += v.size()) < 0) {
+        if (i < 0) {
+            i += v.size();
+            if (i < 0) {
+                throw index_error();
+            }
+        }
+        auto i_st = static_cast<SizeType>(i);
+        if (i_st >= v.size()) {
             throw index_error();
         }
-        if ((SizeType) i >= v.size()) {
-            throw index_error();
-        }
-        return v[(SizeType) i];
+        return v[i_st];
     });
 
     cl.def(
@@ -636,18 +645,52 @@ auto map_if_insertion_operator(Class_ &cl, std::string const &name)
         "Return the canonical string representation of this map.");
 }
 
-template <typename Map>
+template <typename KeyType>
 struct keys_view {
-    Map &map;
+    virtual size_t len() = 0;
+    virtual iterator iter() = 0;
+    virtual bool contains(const KeyType &k) = 0;
+    virtual bool contains(const object &k) = 0;
+    virtual ~keys_view() = default;
 };
 
-template <typename Map>
+template <typename MappedType>
 struct values_view {
+    virtual size_t len() = 0;
+    virtual iterator iter() = 0;
+    virtual ~values_view() = default;
+};
+
+template <typename KeyType, typename MappedType>
+struct items_view {
+    virtual size_t len() = 0;
+    virtual iterator iter() = 0;
+    virtual ~items_view() = default;
+};
+
+template <typename Map, typename KeysView>
+struct KeysViewImpl : public KeysView {
+    explicit KeysViewImpl(Map &map) : map(map) {}
+    size_t len() override { return map.size(); }
+    iterator iter() override { return make_key_iterator(map.begin(), map.end()); }
+    bool contains(const typename Map::key_type &k) override { return map.find(k) != map.end(); }
+    bool contains(const object &) override { return false; }
     Map &map;
 };
 
-template <typename Map>
-struct items_view {
+template <typename Map, typename ValuesView>
+struct ValuesViewImpl : public ValuesView {
+    explicit ValuesViewImpl(Map &map) : map(map) {}
+    size_t len() override { return map.size(); }
+    iterator iter() override { return make_value_iterator(map.begin(), map.end()); }
+    Map &map;
+};
+
+template <typename Map, typename ItemsView>
+struct ItemsViewImpl : public ItemsView {
+    explicit ItemsViewImpl(Map &map) : map(map) {}
+    size_t len() override { return map.size(); }
+    iterator iter() override { return make_iterator(map.begin(), map.end()); }
     Map &map;
 };
 
@@ -657,9 +700,11 @@ template <typename Map, typename holder_type = std::unique_ptr<Map>, typename...
 class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&...args) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
-    using KeysView = detail::keys_view<Map>;
-    using ValuesView = detail::values_view<Map>;
-    using ItemsView = detail::items_view<Map>;
+    using StrippedKeyType = detail::remove_cvref_t<KeyType>;
+    using StrippedMappedType = detail::remove_cvref_t<MappedType>;
+    using KeysView = detail::keys_view<StrippedKeyType>;
+    using ValuesView = detail::values_view<StrippedMappedType>;
+    using ItemsView = detail::items_view<StrippedKeyType, StrippedMappedType>;
     using Class_ = class_<Map, holder_type>;
 
     // If either type is a non-module-local bound type then make the map binding non-local as well;
@@ -673,12 +718,57 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     }
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
-    class_<KeysView> keys_view(
-        scope, ("KeysView[" + name + "]").c_str(), pybind11::module_local(local));
-    class_<ValuesView> values_view(
-        scope, ("ValuesView[" + name + "]").c_str(), pybind11::module_local(local));
-    class_<ItemsView> items_view(
-        scope, ("ItemsView[" + name + "]").c_str(), pybind11::module_local(local));
+    static constexpr auto key_type_descr = detail::make_caster<KeyType>::name;
+    static constexpr auto mapped_type_descr = detail::make_caster<MappedType>::name;
+    std::string key_type_name(key_type_descr.text), mapped_type_name(mapped_type_descr.text);
+
+    // If key type isn't properly wrapped, fall back to C++ names
+    if (key_type_name == "%") {
+        key_type_name = detail::type_info_description(typeid(KeyType));
+    }
+    // Similarly for value type:
+    if (mapped_type_name == "%") {
+        mapped_type_name = detail::type_info_description(typeid(MappedType));
+    }
+
+    // Wrap KeysView[KeyType] if it wasn't already wrapped
+    if (!detail::get_type_info(typeid(KeysView))) {
+        class_<KeysView> keys_view(
+            scope, ("KeysView[" + key_type_name + "]").c_str(), pybind11::module_local(local));
+        keys_view.def("__len__", &KeysView::len);
+        keys_view.def("__iter__",
+                      &KeysView::iter,
+                      keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
+        );
+        keys_view.def("__contains__",
+                      static_cast<bool (KeysView::*)(const KeyType &)>(&KeysView::contains));
+        // Fallback for when the object is not of the key type
+        keys_view.def("__contains__",
+                      static_cast<bool (KeysView::*)(const object &)>(&KeysView::contains));
+    }
+    // Similarly for ValuesView:
+    if (!detail::get_type_info(typeid(ValuesView))) {
+        class_<ValuesView> values_view(scope,
+                                       ("ValuesView[" + mapped_type_name + "]").c_str(),
+                                       pybind11::module_local(local));
+        values_view.def("__len__", &ValuesView::len);
+        values_view.def("__iter__",
+                        &ValuesView::iter,
+                        keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
+        );
+    }
+    // Similarly for ItemsView:
+    if (!detail::get_type_info(typeid(ItemsView))) {
+        class_<ItemsView> items_view(
+            scope,
+            ("ItemsView[" + key_type_name + ", ").append(mapped_type_name + "]").c_str(),
+            pybind11::module_local(local));
+        items_view.def("__len__", &ItemsView::len);
+        items_view.def("__iter__",
+                       &ItemsView::iter,
+                       keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
+        );
+    }
 
     cl.def(init<>());
 
@@ -698,19 +788,25 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
 
     cl.def(
         "keys",
-        [](Map &m) { return KeysView{m}; },
+        [](Map &m) {
+            return std::unique_ptr<KeysView>(new detail::KeysViewImpl<Map, KeysView>(m));
+        },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
     cl.def(
         "values",
-        [](Map &m) { return ValuesView{m}; },
+        [](Map &m) {
+            return std::unique_ptr<ValuesView>(new detail::ValuesViewImpl<Map, ValuesView>(m));
+        },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
     cl.def(
         "items",
-        [](Map &m) { return ItemsView{m}; },
+        [](Map &m) {
+            return std::unique_ptr<ItemsView>(new detail::ItemsViewImpl<Map, ItemsView>(m));
+        },
         keep_alive<0, 1>() /* Essential: keep map alive while view exists */
     );
 
@@ -748,36 +844,6 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     });
 
     cl.def("__len__", &Map::size);
-
-    keys_view.def("__len__", [](KeysView &view) { return view.map.size(); });
-    keys_view.def(
-        "__iter__",
-        [](KeysView &view) { return make_key_iterator(view.map.begin(), view.map.end()); },
-        keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
-    );
-    keys_view.def("__contains__", [](KeysView &view, const KeyType &k) -> bool {
-        auto it = view.map.find(k);
-        if (it == view.map.end()) {
-            return false;
-        }
-        return true;
-    });
-    // Fallback for when the object is not of the key type
-    keys_view.def("__contains__", [](KeysView &, const object &) -> bool { return false; });
-
-    values_view.def("__len__", [](ValuesView &view) { return view.map.size(); });
-    values_view.def(
-        "__iter__",
-        [](ValuesView &view) { return make_value_iterator(view.map.begin(), view.map.end()); },
-        keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
-    );
-
-    items_view.def("__len__", [](ItemsView &view) { return view.map.size(); });
-    items_view.def(
-        "__iter__",
-        [](ItemsView &view) { return make_iterator(view.map.begin(), view.map.end()); },
-        keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
-    );
 
     return cl;
 }

@@ -143,11 +143,24 @@ constexpr descr<N, Ts...> concat(const descr<N, Ts...> &descr) {
     return descr;
 }
 
+#ifdef __cpp_fold_expressions
+template <size_t N1, size_t N2, typename... Ts1, typename... Ts2>
+constexpr descr<N1 + N2 + 2, Ts1..., Ts2...> operator,(const descr<N1, Ts1...> &a,
+                                                       const descr<N2, Ts2...> &b) {
+    return a + const_name(", ") + b;
+}
+
+template <size_t N, typename... Ts, typename... Args>
+constexpr auto concat(const descr<N, Ts...> &d, const Args &...args) {
+    return (d, ..., args);
+}
+#else
 template <size_t N, typename... Ts, typename... Args>
 constexpr auto concat(const descr<N, Ts...> &d, const Args &...args)
     -> decltype(std::declval<descr<N + 2, Ts...>>() + concat(args...)) {
     return d + const_name(", ") + concat(args...);
 }
+#endif
 
 template <size_t N, typename... Ts>
 constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {

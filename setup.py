@@ -96,7 +96,7 @@ def get_and_replace(
 
 # Use our input files instead when making the SDist (and anything that depends
 # on it, like a wheel)
-class SDist(setuptools.command.sdist.sdist):  # type: ignore[misc]
+class SDist(setuptools.command.sdist.sdist):
     def make_release_tree(self, base_dir: str, files: List[str]) -> None:
         super().make_release_tree(base_dir, files)
 

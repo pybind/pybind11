@@ -7,14 +7,19 @@ on:
     branches:
       - drake
 
+permissions: read-all
+
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
 env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
+  # For cmake:
+  VERBOSE: 1
 
 jobs:
   # This is the "main" test suite, which tests a large number of different
@@ -23,16 +28,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # runs-on: [ubuntu-latest, windows-2022, macos-latest]
-        runs-on: [ubuntu-latest, macos-latest]
+        # runs-on: [ubuntu-20.04, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, macos-latest]
         python:
         - '3.6'
         - '3.9'
         - '3.10'
-        - '3.11-dev'
-        # - 'pypy-3.7'
+        - '3.11'
+        - '3.12'
         # - 'pypy-3.8'
         # - 'pypy-3.9'
+        # - 'pypy-3.10'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -41,17 +47,19 @@ jobs:
         # We support an optional key: args, for cmake args
         include:
           # Just add a key
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-20.04
             python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
-          # - runs-on: windows-latest
+          # - runs-on: ubuntu-20.04
+          #   python: 'pypy-3.8'
+          #   args: >
+          #     -DPYBIND11_FINDPYTHON=ON
+          # - runs-on: windows-2019
           #   python: '3.6'
           #   args: >
           #     -DPYBIND11_FINDPYTHON=ON
-          # - runs-on: macos-latest
-          #   python: 'pypy-2.7'
           # Inject a couple Windows 2019 runs
           # - runs-on: windows-2019
           #   python: '3.9'
@@ -68,6 +76,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
@@ -79,7 +88,7 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -101,10 +110,12 @@ jobs:
       run: python -m pip install pytest-github-actions-annotate-failures
 
     # First build - C++11 mode and inplace
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here.
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
@@ -118,7 +129,7 @@ jobs:
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev' || matrix.python == 'pypy-3.8'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -128,10 +139,12 @@ jobs:
       run: git clean -fdx
 
     # Second build - C++17 mode and in a build directory
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
     - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
@@ -145,7 +158,7 @@ jobs:
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11-dev' || matrix.python == 'pypy-3.8'))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -157,7 +170,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
         ${{ matrix.args }}
 
     - name: Build (unstable ABI)
@@ -172,7 +184,9 @@ jobs:
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools
       if: "!(matrix.runs-on == 'windows-2022')"
 
 
@@ -185,23 +199,23 @@ jobs:
   #       - python-version: "3.9"
   #         python-debug: true
   #         valgrind: true
-  #       - python-version: "3.11-dev"
+  #       - python-version: "3.11"
   #         python-debug: false
 
   #   name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-20.04
 
   #   steps:
   #   - uses: actions/checkout@v3
 
   #   - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
-  #     uses: deadsnakes/action@v2.1.1
+  #     uses: deadsnakes/action@v3.0.1
   #     with:
   #       python-version: ${{ matrix.python-version }}
   #       debug: ${{ matrix.python-debug }}
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.13
+  #     uses: jwlawson/actions-setup-cmake@v1.14
 
   #   - name: Valgrind cache
   #     if: matrix.valgrind
@@ -273,11 +287,11 @@ jobs:
           - dev
         std:
           - 11
+        container_suffix:
+          - ""
         include:
           # - clang: 5
           #   std: 14
-          - clang: 10
-            std: 20
           - clang: 10
             std: 17
           - clang: 11
@@ -288,9 +302,12 @@ jobs:
             std: 20
           - clang: 14
             std: 20
+          - clang: 15
+            std: 20
+            container_suffix: "-bullseye"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
-    container: "silkeh/clang:${{ matrix.clang }}"
+    container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
 
     steps:
     - uses: actions/checkout@v3
@@ -323,8 +340,8 @@ jobs:
   # # Testing NVCC; forces sources to behave like .cu files
   # cuda:
   #   runs-on: ubuntu-latest
-  #   name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
-  #   container: nvidia/cuda:11.7.0-devel-ubuntu22.04
+  #   name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
+  #   container: nvidia/cuda:12.2.0-devel-ubuntu22.04
 
   #   steps:
   #   - uses: actions/checkout@v3
@@ -389,8 +406,9 @@ jobs:
 
   # # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   # centos-nvhpc7:
+    if: ${{ false }}  # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4690
   #   runs-on: ubuntu-latest
-  #   name: "🐍 3 • CentOS7 / PGI 22.3 • x64"
+  #   name: "🐍 3 • CentOS7 / PGI 22.9 • x64"
   #   container: centos:7
 
   #   steps:
@@ -400,7 +418,7 @@ jobs:
   #     run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3 yum-utils
 
   #   - name: Install NVidia HPC SDK
-  #     run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.3
+  #     run: yum-config-manager --add-repo https://developer.download.nvidia.com/hpc-sdk/rhel/nvhpc.repo && yum -y install nvhpc-22.9
 
     # # On CentOS 7, we have to filter a few tests (compiler internal error)
     # # and allow deeper template recursion (not needed on CentOS 8 with a newer
@@ -410,12 +428,12 @@ jobs:
     #   shell: bash
     #   run: |
     #     source /etc/profile.d/modules.sh
-    #     module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.3
+    #     module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/22.9
     #     cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
     #                         -DCMAKE_CXX_STANDARD=11 \
     #                         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
     #                         -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
-    #                         -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
+    #                         -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     # # Building before installing Pip should produce a warning but not an error
     # - name: Build
@@ -468,7 +486,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v1.14
 
     - name: Configure
       shell: bash
@@ -491,6 +509,24 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+    - name: Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      shell: bash
+      run: >
+        cmake -S . -B build_partial
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+    - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      run: cmake --build build_partial -j 2
+
+    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+      if: matrix.gcc == '12'
+      run: cmake --build build_partial --target pytest
 
   # # Testing on ICC using the oneAPI apt repo
   # icc:
@@ -759,10 +795,10 @@ jobs:
   #       architecture: x86
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.13
+  #     uses: jwlawson/actions-setup-cmake@v1.14
 
   #   - name: Prepare MSVC
-  #     uses: ilammy/msvc-dev-cmd@v1.12.0
+  #     uses: ilammy/msvc-dev-cmd@v1.12.1
   #     with:
   #       arch: x86
 
@@ -812,10 +848,10 @@ jobs:
   #       architecture: x86
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.13
+  #     uses: jwlawson/actions-setup-cmake@v1.14
 
   #   - name: Prepare MSVC
-  #     uses: ilammy/msvc-dev-cmd@v1.12.0
+  #     uses: ilammy/msvc-dev-cmd@v1.12.1
   #     with:
   #       arch: x86
 
@@ -863,7 +899,7 @@ jobs:
     #     python3 -m pip install -r tests/requirements.txt
 
     # - name: Update CMake
-    #   uses: jwlawson/actions-setup-cmake@v1.13
+    #   uses: jwlawson/actions-setup-cmake@v1.14
 
     # - name: Configure C++20
     #   run: >
@@ -884,6 +920,21 @@ jobs:
 
     # - name: Interface test C++20
     #   run: cmake --build build --target test_cmake_build
+
+    # - name: Configure C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+    #   run: >
+    #     cmake -S . -B build_partial
+    #     -DPYBIND11_WERROR=ON
+    #     -DDOWNLOAD_CATCH=ON
+    #     -DDOWNLOAD_EIGEN=ON
+    #     -DCMAKE_CXX_STANDARD=20
+    #     "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+    # - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+    #   run: cmake --build build_partial -j 2
+
+    # - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+    #   run: cmake --build build_partial --target pytest
 
   # mingw:
   #   name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
@@ -920,7 +971,7 @@ jobs:
   #   - name: Configure C++11
   #     # LTO leads to many undefined reference like
   #     # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
+  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
 
   #   - name: Build C++11
   #     run: cmake --build build -j 2
@@ -938,7 +989,7 @@ jobs:
   #     run: git clean -fdx
 
   #   - name: Configure C++14
-  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
+  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
 
   #   - name: Build C++14
   #     run: cmake --build build2 -j 2
@@ -956,7 +1007,7 @@ jobs:
   #     run: git clean -fdx
 
   #   - name: Configure C++17
-  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
+  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
 
   #   - name: Build C++17
   #     run: cmake --build build3 -j 2
@@ -969,3 +1020,156 @@ jobs:
 
   #   - name: Interface test C++17
   #     run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
+
+  # windows_clang:
+
+  #   strategy:
+  #     matrix:
+  #       os: [windows-latest]
+  #       python: ['3.10']
+
+  #   runs-on: "${{ matrix.os }}"
+
+  #   name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
+
+  #   steps:
+  #     - name: Show env
+  #       run: env
+
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+
+  #     - name: Set up Clang
+  #       uses: egor-tensin/setup-clang@v1
+
+  #     - name: Setup Python ${{ matrix.python }}
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.python }}
+
+  #     - name: Update CMake
+  #       uses: jwlawson/actions-setup-cmake@v1.14
+
+  #     - name: Install ninja-build tool
+  #       uses: seanmiddleditch/gha-setup-ninja@v3
+
+  #     - name: Run pip installs
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         python -m pip install -r tests/requirements.txt
+
+  #     - name: Show Clang++ version
+  #       run: clang++ --version
+
+  #     - name: Show CMake version
+  #       run: cmake --version
+
+  #     # TODO: WERROR=ON
+  #     - name: Configure Clang
+  #       run: >
+  #         cmake -G Ninja -S . -B .
+  #         -DPYBIND11_WERROR=OFF
+  #         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+  #         -DDOWNLOAD_CATCH=ON
+  #         -DDOWNLOAD_EIGEN=ON
+  #         -DCMAKE_CXX_COMPILER=clang++
+  #         -DCMAKE_CXX_STANDARD=17
+
+  #     - name: Build
+  #       run: cmake --build . -j 2
+
+  #     - name: Python tests
+  #       run: cmake --build . --target pytest -j 2
+
+  #     - name: C++ tests
+  #       run: cmake --build . --target cpptest -j 2
+
+  #     - name: Interface test
+  #       run: cmake --build . --target test_cmake_build -j 2
+
+  #     - name: Clean directory
+  #       run: git clean -fdx
+
+  macos_brew_install_llvm:
+    name: "macos-latest • brew install llvm"
+    runs-on: macos-latest
+
+    env:
+      # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
+      LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
+
+    steps:
+      - name: Update PATH
+        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Show Clang++ version before brew install llvm
+        run: clang++ --version
+
+      - name: brew install llvm
+        run: brew install llvm
+
+      - name: Show Clang++ version after brew install llvm
+        run: clang++ --version
+
+      - name: Update CMake
+        uses: jwlawson/actions-setup-cmake@v1.14
+
+      - name: Run pip installs
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tests/requirements.txt
+          python3 -m pip install numpy
+          python3 -m pip install scipy
+
+      - name: Show CMake version
+        run: cmake --version
+
+      - name: CMake Configure
+        run: >
+          cmake -S . -B .
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: >
+          cmake -S . -B build_partial
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=17
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
+
+      - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: cmake --build build_partial -j 2
+
+      - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
+        run: cmake --build build_partial --target pytest -j 2
+
+      - name: Clean directory
+        run: git clean -fdx

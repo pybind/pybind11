@@ -1,5 +1,5 @@
 import pytest
-from pytest import approx
+from pytest import approx  # noqa: PT013
 
 from pybind11_tests import ConstructorStats
 from pybind11_tests import sequences_and_iterators as m
@@ -103,7 +103,8 @@ def test_sequence():
 
     assert "Sequence" in repr(s)
     assert len(s) == 5
-    assert s[0] == 0 and s[3] == 0
+    assert s[0] == 0
+    assert s[3] == 0
     assert 12.34 not in s
     s[0], s[3] = 12.34, 56.78
     assert 12.34 in s
@@ -241,3 +242,11 @@ def test_iterator_rvp():
     assert list(m.make_iterator_1()) == [1, 2, 3]
     assert list(m.make_iterator_2()) == [1, 2, 3]
     assert not isinstance(m.make_iterator_1(), type(m.make_iterator_2()))
+
+
+def test_carray_iterator():
+    """#4100: Check for proper iterator overload with C-Arrays"""
+    args_gt = [float(i) for i in range(3)]
+    arr_h = m.CArrayHolder(*args_gt)
+    args = list(arr_h)
+    assert args_gt == args

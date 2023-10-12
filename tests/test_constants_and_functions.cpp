@@ -52,15 +52,12 @@ int f1(int x) noexcept { return x + 1; }
 #endif
 int f2(int x) noexcept(true) { return x + 2; }
 int f3(int x) noexcept(false) { return x + 3; }
-#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated"
-#endif
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
+PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
 // NOLINTNEXTLINE(modernize-use-noexcept)
 int f4(int x) throw() { return x + 4; } // Deprecated equivalent to noexcept(true)
-#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic pop
-#endif
+PYBIND11_WARNING_POP
 struct C {
     int m1(int x) noexcept { return x - 1; }
     int m2(int x) const noexcept { return x - 2; }
@@ -68,17 +65,14 @@ struct C {
     int m4(int x) const noexcept(true) { return x - 4; }
     int m5(int x) noexcept(false) { return x - 5; }
     int m6(int x) const noexcept(false) { return x - 6; }
-#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated"
-#endif
+    PYBIND11_WARNING_PUSH
+    PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
+    PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
     // NOLINTNEXTLINE(modernize-use-noexcept)
     int m7(int x) throw() { return x - 7; }
     // NOLINTNEXTLINE(modernize-use-noexcept)
     int m8(int x) const throw() { return x - 8; }
-#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic pop
-#endif
+    PYBIND11_WARNING_POP
 };
 } // namespace test_exc_sp
 
@@ -126,14 +120,12 @@ TEST_SUBMODULE(constants_and_functions, m) {
         .def("m8", &C::m8);
     m.def("f1", f1);
     m.def("f2", f2);
-#if defined(__INTEL_COMPILER)
-#    pragma warning push
-#    pragma warning disable 878 // incompatible exception specifications
-#endif
+
+    PYBIND11_WARNING_PUSH
+    PYBIND11_WARNING_DISABLE_INTEL(878) // incompatible exception specifications
     m.def("f3", f3);
-#if defined(__INTEL_COMPILER)
-#    pragma warning pop
-#endif
+    PYBIND11_WARNING_POP
+
     m.def("f4", f4);
 
     // test_function_record_leaks
@@ -156,4 +148,7 @@ TEST_SUBMODULE(constants_and_functions, m) {
             py::arg_v("y", 42, "<the answer>"),
             py::arg_v("z", default_value));
     });
+
+    // test noexcept(true) lambda (#4565)
+    m.def("l1", []() noexcept(true) { return 0; });
 }

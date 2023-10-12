@@ -7,9 +7,11 @@
 
 #include <pybind11/eigen/tensor.h>
 
-#include "pybind11_tests.h"
+PYBIND11_NAMESPACE_BEGIN(eigen_tensor_test)
 
-namespace PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE {
+namespace py = pybind11;
+
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 template <typename M>
 void reset_tensor(M &x) {
@@ -90,7 +92,7 @@ struct CustomExample {
 template <int Options>
 void init_tensor_module(pybind11::module &m) {
     const char *needed_options = "";
-    if (PYBIND11_SILENCE_MSVC_C4127(Options == Eigen::ColMajor)) {
+    if (Options == Eigen::ColMajor) {
         needed_options = "F";
     } else {
         needed_options = "C";
@@ -106,7 +108,7 @@ void init_tensor_module(pybind11::module &m) {
         return check_tensor(get_tensor<Options>()) && check_tensor(get_fixed_tensor<Options>());
     });
 
-    py::class_<CustomExample<Options>>(m, "CustomExample")
+    py::class_<CustomExample<Options>>(m, "CustomExample", py::module_local())
         .def(py::init<>())
         .def_readonly(
             "member", &CustomExample<Options>::member, py::return_value_policy::reference_internal)
@@ -320,8 +322,6 @@ void init_tensor_module(pybind11::module &m) {
         py::return_value_policy::reference);
 }
 
-void test_module(py::module_ &);
-test_initializer name(test_eigen_tensor_module_name, test_module);
 void test_module(py::module_ &m) {
     auto f_style = m.def_submodule("f_style");
     auto c_style = m.def_submodule("c_style");
@@ -330,4 +330,4 @@ void test_module(py::module_ &m) {
     init_tensor_module<Eigen::RowMajor>(c_style);
 }
 
-} // namespace PYBIND11_TEST_EIGEN_TENSOR_NAMESPACE
+PYBIND11_NAMESPACE_END(eigen_tensor_test)

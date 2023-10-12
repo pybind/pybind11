@@ -99,6 +99,8 @@ void m_defs(py::module_ &m) {
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
 TEST_SUBMODULE(pytypes, m) {
+    m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
+
     handle_from_move_only_type_with_operator_PyObject::m_defs(m);
 
     // test_bool
@@ -206,7 +208,12 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_char_ssize_t", []() { return py::str{"red", (py::ssize_t) 3}; });
     m.def("str_from_char_size_t", []() { return py::str{"blue", (py::size_t) 4}; });
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
+    m.def("str_from_std_string_input", [](const std::string &stri) { return py::str(stri); });
+    m.def("str_from_cstr_input", [](const char *c_str) { return py::str(c_str); });
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
+    m.def("str_from_bytes_input",
+          [](const py::bytes &encoded_str) { return py::str(encoded_str); });
+
     m.def("str_from_object", [](const py::object &obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object &obj) { return py::repr(obj); });
     m.def("str_from_handle", [](py::handle h) { return py::str(h); });
@@ -251,6 +258,15 @@ TEST_SUBMODULE(pytypes, m) {
         return py::capsule((void *) 1234, [](void *ptr) {
             py::print("destructing capsule: {}"_s.format((size_t) ptr));
         });
+    });
+
+    m.def("return_capsule_with_destructor_3", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule((void *) 1233, "oname", [](void *ptr) {
+            py::print("destructing capsule: {}"_s.format((size_t) ptr));
+        });
+        py::print("original name: {}"_s.format(cap.name()));
+        return cap;
     });
 
     m.def("return_renamed_capsule_with_destructor_2", []() {

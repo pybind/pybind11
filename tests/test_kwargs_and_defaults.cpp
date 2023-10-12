@@ -44,14 +44,13 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
+        PYBIND11_WARNING_PUSH
+
 #ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wreturn-std-move"
+        PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
 #endif
         return args;
-#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
-#    pragma clang diagnostic pop
-#endif
+        PYBIND11_WARNING_POP
     });
     m.def("args_kwargs_function", [](const py::args &args, const py::kwargs &kwargs) {
         return py::make_tuple(args, kwargs);

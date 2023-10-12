@@ -13,6 +13,8 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
+#include <type_traits>
+
 template <typename derived>
 struct empty {
     static const derived &get_one() { return instance_; }
@@ -293,3 +295,239 @@ TEST_SUBMODULE(copy_move_policies, m) {
     // Make sure that cast from pytype rvalue to other pytype works
     m.def("get_pytype_rvalue_castissue", [](double i) { return py::float_(i).cast<py::int_>(); });
 }
+
+/*
+ * Rest of the file:
+ * static_assert based tests for pybind11 adaptations of
+ * std::is_move_constructible, std::is_copy_constructible and
+ * std::is_copy_assignable (no adaptation of std::is_move_assignable).
+ * Difference between pybind11 and std traits: pybind11 traits will also check
+ * the contained value_types.
+ */
+
+struct NotMovable {
+    NotMovable() = default;
+    NotMovable(NotMovable const &) = default;
+    NotMovable(NotMovable &&) = delete;
+    NotMovable &operator=(NotMovable const &) = default;
+    NotMovable &operator=(NotMovable &&) = delete;
+};
+static_assert(!std::is_move_constructible<NotMovable>::value,
+              "!std::is_move_constructible<NotMovable>::value");
+static_assert(std::is_copy_constructible<NotMovable>::value,
+              "std::is_copy_constructible<NotMovable>::value");
+static_assert(!pybind11::detail::is_move_constructible<NotMovable>::value,
+              "!pybind11::detail::is_move_constructible<NotMovable>::value");
+static_assert(pybind11::detail::is_copy_constructible<NotMovable>::value,
+              "pybind11::detail::is_copy_constructible<NotMovable>::value");
+static_assert(!std::is_move_assignable<NotMovable>::value,
+              "!std::is_move_assignable<NotMovable>::value");
+static_assert(std::is_copy_assignable<NotMovable>::value,
+              "std::is_copy_assignable<NotMovable>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotMovable>::value,
+//               "!pybind11::detail::is_move_assignable<NotMovable>::value");
+static_assert(pybind11::detail::is_copy_assignable<NotMovable>::value,
+              "pybind11::detail::is_copy_assignable<NotMovable>::value");
+
+struct NotCopyable {
+    NotCopyable() = default;
+    NotCopyable(NotCopyable const &) = delete;
+    NotCopyable(NotCopyable &&) = default;
+    NotCopyable &operator=(NotCopyable const &) = delete;
+    NotCopyable &operator=(NotCopyable &&) = default;
+};
+static_assert(std::is_move_constructible<NotCopyable>::value,
+              "std::is_move_constructible<NotCopyable>::value");
+static_assert(!std::is_copy_constructible<NotCopyable>::value,
+              "!std::is_copy_constructible<NotCopyable>::value");
+static_assert(pybind11::detail::is_move_constructible<NotCopyable>::value,
+              "pybind11::detail::is_move_constructible<NotCopyable>::value");
+static_assert(!pybind11::detail::is_copy_constructible<NotCopyable>::value,
+              "!pybind11::detail::is_copy_constructible<NotCopyable>::value");
+static_assert(std::is_move_assignable<NotCopyable>::value,
+              "std::is_move_assignable<NotCopyable>::value");
+static_assert(!std::is_copy_assignable<NotCopyable>::value,
+              "!std::is_copy_assignable<NotCopyable>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotCopyable>::value,
+//               "!pybind11::detail::is_move_assignable<NotCopyable>::value");
+static_assert(!pybind11::detail::is_copy_assignable<NotCopyable>::value,
+              "!pybind11::detail::is_copy_assignable<NotCopyable>::value");
+
+struct NotCopyableNotMovable {
+    NotCopyableNotMovable() = default;
+    NotCopyableNotMovable(NotCopyableNotMovable const &) = delete;
+    NotCopyableNotMovable(NotCopyableNotMovable &&) = delete;
+    NotCopyableNotMovable &operator=(NotCopyableNotMovable const &) = delete;
+    NotCopyableNotMovable &operator=(NotCopyableNotMovable &&) = delete;
+};
+static_assert(!std::is_move_constructible<NotCopyableNotMovable>::value,
+              "!std::is_move_constructible<NotCopyableNotMovable>::value");
+static_assert(!std::is_copy_constructible<NotCopyableNotMovable>::value,
+              "!std::is_copy_constructible<NotCopyableNotMovable>::value");
+static_assert(!pybind11::detail::is_move_constructible<NotCopyableNotMovable>::value,
+              "!pybind11::detail::is_move_constructible<NotCopyableNotMovable>::value");
+static_assert(!pybind11::detail::is_copy_constructible<NotCopyableNotMovable>::value,
+              "!pybind11::detail::is_copy_constructible<NotCopyableNotMovable>::value");
+static_assert(!std::is_move_assignable<NotCopyableNotMovable>::value,
+              "!std::is_move_assignable<NotCopyableNotMovable>::value");
+static_assert(!std::is_copy_assignable<NotCopyableNotMovable>::value,
+              "!std::is_copy_assignable<NotCopyableNotMovable>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotCopyableNotMovable>::value,
+//               "!pybind11::detail::is_move_assignable<NotCopyableNotMovable>::value");
+static_assert(!pybind11::detail::is_copy_assignable<NotCopyableNotMovable>::value,
+              "!pybind11::detail::is_copy_assignable<NotCopyableNotMovable>::value");
+
+struct NotMovableVector : std::vector<NotMovable> {};
+static_assert(std::is_move_constructible<NotMovableVector>::value,
+              "std::is_move_constructible<NotMovableVector>::value");
+static_assert(std::is_copy_constructible<NotMovableVector>::value,
+              "std::is_copy_constructible<NotMovableVector>::value");
+static_assert(!pybind11::detail::is_move_constructible<NotMovableVector>::value,
+              "!pybind11::detail::is_move_constructible<NotMovableVector>::value");
+static_assert(pybind11::detail::is_copy_constructible<NotMovableVector>::value,
+              "pybind11::detail::is_copy_constructible<NotMovableVector>::value");
+static_assert(std::is_move_assignable<NotMovableVector>::value,
+              "std::is_move_assignable<NotMovableVector>::value");
+static_assert(std::is_copy_assignable<NotMovableVector>::value,
+              "std::is_copy_assignable<NotMovableVector>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotMovableVector>::value,
+//               "!pybind11::detail::is_move_assignable<NotMovableVector>::value");
+static_assert(pybind11::detail::is_copy_assignable<NotMovableVector>::value,
+              "pybind11::detail::is_copy_assignable<NotMovableVector>::value");
+
+struct NotCopyableVector : std::vector<NotCopyable> {};
+static_assert(std::is_move_constructible<NotCopyableVector>::value,
+              "std::is_move_constructible<NotCopyableVector>::value");
+static_assert(std::is_copy_constructible<NotCopyableVector>::value,
+              "std::is_copy_constructible<NotCopyableVector>::value");
+static_assert(pybind11::detail::is_move_constructible<NotCopyableVector>::value,
+              "pybind11::detail::is_move_constructible<NotCopyableVector>::value");
+static_assert(!pybind11::detail::is_copy_constructible<NotCopyableVector>::value,
+              "!pybind11::detail::is_copy_constructible<NotCopyableVector>::value");
+static_assert(std::is_move_assignable<NotCopyableVector>::value,
+              "std::is_move_assignable<NotCopyableVector>::value");
+static_assert(std::is_copy_assignable<NotCopyableVector>::value,
+              "std::is_copy_assignable<NotCopyableVector>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotCopyableVector>::value,
+//               "!pybind11::detail::is_move_assignable<NotCopyableVector>::value");
+static_assert(!pybind11::detail::is_copy_assignable<NotCopyableVector>::value,
+              "!pybind11::detail::is_copy_assignable<NotCopyableVector>::value");
+
+struct NotCopyableNotMovableVector : std::vector<NotCopyableNotMovable> {};
+static_assert(std::is_move_constructible<NotCopyableNotMovableVector>::value,
+              "std::is_move_constructible<NotCopyableNotMovableVector>::value");
+static_assert(std::is_copy_constructible<NotCopyableNotMovableVector>::value,
+              "std::is_copy_constructible<NotCopyableNotMovableVector>::value");
+static_assert(!pybind11::detail::is_move_constructible<NotCopyableNotMovableVector>::value,
+              "!pybind11::detail::is_move_constructible<NotCopyableNotMovableVector>::value");
+static_assert(!pybind11::detail::is_copy_constructible<NotCopyableNotMovableVector>::value,
+              "!pybind11::detail::is_copy_constructible<NotCopyableNotMovableVector>::value");
+static_assert(std::is_move_assignable<NotCopyableNotMovableVector>::value,
+              "std::is_move_assignable<NotCopyableNotMovableVector>::value");
+static_assert(std::is_copy_assignable<NotCopyableNotMovableVector>::value,
+              "std::is_copy_assignable<NotCopyableNotMovableVector>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotCopyableNotMovableVector>::value,
+//               "!pybind11::detail::is_move_assignable<NotCopyableNotMovableVector>::value");
+static_assert(!pybind11::detail::is_copy_assignable<NotCopyableNotMovableVector>::value,
+              "!pybind11::detail::is_copy_assignable<NotCopyableNotMovableVector>::value");
+
+struct NotMovableMap : std::map<int, NotMovable> {};
+static_assert(std::is_move_constructible<NotMovableMap>::value,
+              "std::is_move_constructible<NotMovableMap>::value");
+static_assert(std::is_copy_constructible<NotMovableMap>::value,
+              "std::is_copy_constructible<NotMovableMap>::value");
+static_assert(!pybind11::detail::is_move_constructible<NotMovableMap>::value,
+              "!pybind11::detail::is_move_constructible<NotMovableMap>::value");
+static_assert(pybind11::detail::is_copy_constructible<NotMovableMap>::value,
+              "pybind11::detail::is_copy_constructible<NotMovableMap>::value");
+static_assert(std::is_move_assignable<NotMovableMap>::value,
+              "std::is_move_assignable<NotMovableMap>::value");
+static_assert(std::is_copy_assignable<NotMovableMap>::value,
+              "std::is_copy_assignable<NotMovableMap>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotMovableMap>::value,
+//               "!pybind11::detail::is_move_assignable<NotMovableMap>::value");
+static_assert(pybind11::detail::is_copy_assignable<NotMovableMap>::value,
+              "pybind11::detail::is_copy_assignable<NotMovableMap>::value");
+
+struct NotCopyableMap : std::map<int, NotCopyable> {};
+static_assert(std::is_move_constructible<NotCopyableMap>::value,
+              "std::is_move_constructible<NotCopyableMap>::value");
+static_assert(std::is_copy_constructible<NotCopyableMap>::value,
+              "std::is_copy_constructible<NotCopyableMap>::value");
+static_assert(pybind11::detail::is_move_constructible<NotCopyableMap>::value,
+              "pybind11::detail::is_move_constructible<NotCopyableMap>::value");
+static_assert(!pybind11::detail::is_copy_constructible<NotCopyableMap>::value,
+              "!pybind11::detail::is_copy_constructible<NotCopyableMap>::value");
+static_assert(std::is_move_assignable<NotCopyableMap>::value,
+              "std::is_move_assignable<NotCopyableMap>::value");
+static_assert(std::is_copy_assignable<NotCopyableMap>::value,
+              "std::is_copy_assignable<NotCopyableMap>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotCopyableMap>::value,
+//               "!pybind11::detail::is_move_assignable<NotCopyableMap>::value");
+static_assert(!pybind11::detail::is_copy_assignable<NotCopyableMap>::value,
+              "!pybind11::detail::is_copy_assignable<NotCopyableMap>::value");
+
+struct NotCopyableNotMovableMap : std::map<int, NotCopyableNotMovable> {};
+static_assert(std::is_move_constructible<NotCopyableNotMovableMap>::value,
+              "std::is_move_constructible<NotCopyableNotMovableMap>::value");
+static_assert(std::is_copy_constructible<NotCopyableNotMovableMap>::value,
+              "std::is_copy_constructible<NotCopyableNotMovableMap>::value");
+static_assert(!pybind11::detail::is_move_constructible<NotCopyableNotMovableMap>::value,
+              "!pybind11::detail::is_move_constructible<NotCopyableNotMovableMap>::value");
+static_assert(!pybind11::detail::is_copy_constructible<NotCopyableNotMovableMap>::value,
+              "!pybind11::detail::is_copy_constructible<NotCopyableNotMovableMap>::value");
+static_assert(std::is_move_assignable<NotCopyableNotMovableMap>::value,
+              "std::is_move_assignable<NotCopyableNotMovableMap>::value");
+static_assert(std::is_copy_assignable<NotCopyableNotMovableMap>::value,
+              "std::is_copy_assignable<NotCopyableNotMovableMap>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<NotCopyableNotMovableMap>::value,
+//               "!pybind11::detail::is_move_assignable<NotCopyableNotMovableMap>::value");
+static_assert(!pybind11::detail::is_copy_assignable<NotCopyableNotMovableMap>::value,
+              "!pybind11::detail::is_copy_assignable<NotCopyableNotMovableMap>::value");
+
+struct RecursiveVector : std::vector<RecursiveVector> {};
+static_assert(std::is_move_constructible<RecursiveVector>::value,
+              "std::is_move_constructible<RecursiveVector>::value");
+static_assert(std::is_copy_constructible<RecursiveVector>::value,
+              "std::is_copy_constructible<RecursiveVector>::value");
+static_assert(pybind11::detail::is_move_constructible<RecursiveVector>::value,
+              "pybind11::detail::is_move_constructible<RecursiveVector>::value");
+static_assert(pybind11::detail::is_copy_constructible<RecursiveVector>::value,
+              "pybind11::detail::is_copy_constructible<RecursiveVector>::value");
+static_assert(std::is_move_assignable<RecursiveVector>::value,
+              "std::is_move_assignable<RecursiveVector>::value");
+static_assert(std::is_copy_assignable<RecursiveVector>::value,
+              "std::is_copy_assignable<RecursiveVector>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<RecursiveVector>::value,
+//               "!pybind11::detail::is_move_assignable<RecursiveVector>::value");
+static_assert(pybind11::detail::is_copy_assignable<RecursiveVector>::value,
+              "pybind11::detail::is_copy_assignable<RecursiveVector>::value");
+
+struct RecursiveMap : std::map<int, RecursiveMap> {};
+static_assert(std::is_move_constructible<RecursiveMap>::value,
+              "std::is_move_constructible<RecursiveMap>::value");
+static_assert(std::is_copy_constructible<RecursiveMap>::value,
+              "std::is_copy_constructible<RecursiveMap>::value");
+static_assert(pybind11::detail::is_move_constructible<RecursiveMap>::value,
+              "pybind11::detail::is_move_constructible<RecursiveMap>::value");
+static_assert(pybind11::detail::is_copy_constructible<RecursiveMap>::value,
+              "pybind11::detail::is_copy_constructible<RecursiveMap>::value");
+static_assert(std::is_move_assignable<RecursiveMap>::value,
+              "std::is_move_assignable<RecursiveMap>::value");
+static_assert(std::is_copy_assignable<RecursiveMap>::value,
+              "std::is_copy_assignable<RecursiveMap>::value");
+// pybind11 does not have this
+// static_assert(!pybind11::detail::is_move_assignable<RecursiveMap>::value,
+//               "!pybind11::detail::is_move_assignable<RecursiveMap>::value");
+static_assert(pybind11::detail::is_copy_assignable<RecursiveMap>::value,
+              "pybind11::detail::is_copy_assignable<RecursiveMap>::value");
