@@ -3089,7 +3089,9 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
 
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy. */
-#if !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION) && PY_VERSION_HEX < 0x030B0000
+    // TODO: Remove PyPy workaround for Python 3.11.
+    // Current API fails on 3.11 since co_varnames can be null.
 #    if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
@@ -3097,11 +3099,9 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
         // f_code is guaranteed to not be NULL
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
             PyObject *locals = PyEval_GetLocals();
-            if (locals != nullptr) {
-                PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
-                PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
-                Py_DECREF(co_varnames);
-                PyObject *self_caller = dict_getitem(locals, self_arg);
+            if (locals != nullptr && f_code->co_varnames != nullptr) {
+                PyObject *self_caller
+                    = dict_getitem(locals, PyTuple_GET_ITEM(f_code->co_varnames, 0));
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
                     Py_DECREF(frame);

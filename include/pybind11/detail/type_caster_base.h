@@ -577,7 +577,7 @@ PYBIND11_NOINLINE std::string error_string() {
         Py_XINCREF(frame);
         errorString += "\n\nAt:\n";
         while (frame) {
-#    if PY_VERSION_HEX >= 0x030900B1
+#    if PY_VERSION_HEX >= 0x03090000
             PyCodeObject *f_code = PyFrame_GetCode(frame);
 #    else
             PyCodeObject *f_code = frame->f_code;

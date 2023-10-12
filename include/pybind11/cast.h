@@ -1204,27 +1204,8 @@ object cast(T &&value,
         detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
 }
 
-template <typename T>
-T handle::cast() const {
-    return pybind11::cast<T>(*this);
-}
-template <>
-inline void handle::cast() const {
-    return;
-}
-
-template <typename T>
-detail::enable_if_t<
-    // TODO(eric.cousineau): Figure out how to prevent perfect-forwarding more elegantly.
-    std::is_rvalue_reference<T &&>::value && !detail::is_pyobject<detail::intrinsic_t<T>>::value,
-    object>
-move(T &&value) {
-    // TODO(eric.cousineau): Add policies, parent, etc.
-    // It'd be nice to supply a parent, but for now, just leave it as-is.
-    handle no_parent;
-    return reinterpret_steal<object>(detail::make_caster<T>::cast(
-        std::move(value), return_value_policy::take_ownership, no_parent));
-}
+template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
+template <> inline void handle::cast() const { return; }
 
 template <typename T>
 detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
@@ -1241,7 +1222,7 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     }
 
     // Move into a temporary and return that, because the reference may be a local value of `conv`
-    T ret = std::move(detail::cast_op<T>(detail::load_type<T>(obj)));
+    T ret = std::move(detail::load_type<T>(obj).operator T&());
     return ret;
 }
 
