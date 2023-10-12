@@ -75,6 +75,13 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
     d["missing"].cast<py::object>();
 }
 
+TEST_CASE("PYTHONPATH is used to update sys.path") {
+    // The setup for this TEST_CASE is in catch.cpp!
+    auto sys_path = py::str(py::module_::import("sys").attr("path")).cast<std::string>();
+    REQUIRE_THAT(sys_path,
+                 Catch::Matchers::Contains("pybind11_test_embed_PYTHONPATH_2099743835476552"));
+}
+
 TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
     auto module_ = py::module_::import("test_interpreter");
     REQUIRE(py::hasattr(module_, "DerivedWidget"));

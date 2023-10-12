@@ -12,6 +12,15 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+
+ci:
+  autoupdate_commit_msg: "chore(deps): update pre-commit hooks"
+  autofix_commit_msg: "style: pre-commit fixes"
+  autoupdate_schedule: monthly
+
+# third-party content
+exclude: ^tools/JoinPaths.cmake$
+
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -32,7 +41,7 @@ repos:
 
 # Upgrade old Python syntax
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.37.1"
+  rev: "v2.38.2"
   hooks:
   - id: pyupgrade
     args: [--py36-plus]
@@ -45,7 +54,7 @@ repos:
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: "22.6.0" # Keep in sync with blacken-docs
+  rev: "22.8.0" # Keep in sync with blacken-docs
   hooks:
   - id: black
 
@@ -55,23 +64,23 @@ repos:
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==22.6.0 # keep in sync with black hook
+    - black==22.8.0 # keep in sync with black hook
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.3.0"
+  rev: "v1.3.1"
   hooks:
   - id: remove-tabs
 
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.3.1"
+  rev: "0.4.0"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
 
 # Autoremoves unused imports
 - repo: https://github.com/hadialqattan/pycln
-  rev: "v2.0.1"
+  rev: "v2.1.1"
   hooks:
   - id: pycln
     stages: [manual]
@@ -90,7 +99,7 @@ repos:
 
 # Automatically remove noqa that are not used
 - repo: https://github.com/asottile/yesqa
-  rev: "v1.3.0"
+  rev: "v1.4.0"
   hooks:
   - id: yesqa
     additional_dependencies: &flake8_dependencies
@@ -99,7 +108,7 @@ repos:
 
 # Flake8 also supports pre-commit natively (same author)
 - repo: https://github.com/PyCQA/flake8
-  rev: "4.0.1"
+  rev: "5.0.4"
   hooks:
   - id: flake8
     exclude: ^(docs/.*|tools/.*)$
@@ -107,7 +116,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v2.14.4"
+  rev: "v2.15.3"
   hooks:
   - id: pylint
     files: ^pybind11
@@ -123,7 +132,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v0.961"
+  rev: "v0.981"
   hooks:
   - id: mypy
     args: []
@@ -140,12 +149,14 @@ repos:
     additional_dependencies: [cmake, ninja]
 
 # Check for spelling
+# Use tools/codespell_ignore_lines_from_errors.py
+# to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.1.0"
+  rev: "v2.2.1"
   hooks:
   - id: codespell
     exclude: ".supp$"
-    args: ["-L", "nd,ot,thist"]
+    args: ["-x", ".codespell-ignore-lines"]
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py

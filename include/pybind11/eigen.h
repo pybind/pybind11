@@ -27,6 +27,9 @@
 #    pragma warning(disable : 4127) // C4127: conditional expression is constant
 #    pragma warning(disable : 5054) // https://github.com/pybind/pybind11/pull/3741
 //       C5054: operator '&': deprecated between enumerations of different types
+#elif defined(__MINGW32__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 #include <Eigen/Core>
@@ -34,6 +37,8 @@
 
 #if defined(_MSC_VER)
 #    pragma warning(pop)
+#elif defined(__MINGW32__)
+#    pragma GCC diagnostic pop
 #endif
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit

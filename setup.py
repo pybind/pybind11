@@ -127,6 +127,7 @@ with remove_output("pybind11/include", "pybind11/share"):
             "-DCMAKE_INSTALL_PREFIX=pybind11",
             "-DBUILD_TESTING=OFF",
             "-DPYBIND11_NOPYTHON=ON",
+            "-Dprefix_for_pc_file=${pcfiledir}/../../",
         ]
         if "CMAKE_ARGS" in os.environ:
             fcommand = [

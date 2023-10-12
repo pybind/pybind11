@@ -266,9 +266,14 @@ TEST_SUBMODULE(builtin_casters, m) {
     });
     m.def("lvalue_nested", []() -> const decltype(lvnested) & { return lvnested; });
 
-    static std::pair<int, std::string> int_string_pair{2, "items"};
     m.def(
-        "int_string_pair", []() { return &int_string_pair; }, py::return_value_policy::reference);
+        "int_string_pair",
+        []() {
+            // Using no-destructor idiom to side-step warnings from overzealous compilers.
+            static auto *int_string_pair = new std::pair<int, std::string>{2, "items"};
+            return int_string_pair;
+        },
+        py::return_value_policy::reference);
 
     // test_builtins_cast_return_none
     m.def("return_none_string", []() -> std::string * { return nullptr; });

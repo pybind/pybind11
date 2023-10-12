@@ -1928,14 +1928,14 @@ public:
         return *this;
     }
 
-    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ &def(const detail::op_<id, ot, L, R> &op, const Extra &...extra) {
+    template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
+    class_ &def(const T &op, const Extra &...extra) {
         op.execute(*this, extra...);
         return *this;
     }
 
-    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ &def_cast(const detail::op_<id, ot, L, R> &op, const Extra &...extra) {
+    template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
+    class_ &def_cast(const T &op, const Extra &...extra) {
         op.execute_cast(*this, extra...);
         return *this;
     }
@@ -2491,7 +2491,7 @@ struct enum_base {
                               + "\" already exists!");
         }
 
-        entries[name] = std::make_pair(value, doc);
+        entries[name] = pybind11::make_tuple(value, doc);
         m_base.attr(std::move(name)) = std::move(value);
     }
 

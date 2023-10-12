@@ -79,7 +79,7 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.12
+      uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -201,7 +201,7 @@ jobs:
   #       debug: ${{ matrix.python-debug }}
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.12
+  #     uses: jwlawson/actions-setup-cmake@v1.13
 
   #   - name: Valgrind cache
   #     if: matrix.valgrind
@@ -280,6 +280,12 @@ jobs:
             std: 20
           - clang: 10
             std: 17
+          - clang: 11
+            std: 20
+          - clang: 12
+            std: 20
+          - clang: 13
+            std: 20
           - clang: 14
             std: 20
 
@@ -317,8 +323,8 @@ jobs:
   # # Testing NVCC; forces sources to behave like .cu files
   # cuda:
   #   runs-on: ubuntu-latest
-  #   name: "🐍 3.8 • CUDA 11.2 • Ubuntu 20.04"
-  #   container: nvidia/cuda:11.2.2-devel-ubuntu20.04
+  #   name: "🐍 3.10 • CUDA 11.7 • Ubuntu 22.04"
+  #   container: nvidia/cuda:11.7.0-devel-ubuntu22.04
 
   #   steps:
   #   - uses: actions/checkout@v3
@@ -440,14 +446,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gcc:
-          - 7
-          - latest
-        std:
-          - 11
         include:
-          - gcc: 10
-            std: 20
+          - { gcc: 7, std: 11 }
+          - { gcc: 7, std: 17 }
+          - { gcc: 8, std: 14 }
+          - { gcc: 8, std: 17 }
+          - { gcc: 10, std: 17 }
+          - { gcc: 11, std: 20 }
+          - { gcc: 12, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
     container: "gcc:${{ matrix.gcc }}"
@@ -462,7 +468,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.12
+      uses: jwlawson/actions-setup-cmake@v1.13
 
     - name: Configure
       shell: bash
@@ -736,6 +742,9 @@ jobs:
   #           args: -DCMAKE_CXX_STANDARD=20
   #         - python: 3.8
   #           args: -DCMAKE_CXX_STANDARD=17
+          - python: 3.7
+            args: -DCMAKE_CXX_STANDARD=14
+
 
   #   name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
   #   runs-on: windows-2019
@@ -750,10 +759,10 @@ jobs:
   #       architecture: x86
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.12
+  #     uses: jwlawson/actions-setup-cmake@v1.13
 
   #   - name: Prepare MSVC
-  #     uses: ilammy/msvc-dev-cmd@v1.10.0
+  #     uses: ilammy/msvc-dev-cmd@v1.12.0
   #     with:
   #       arch: x86
 
@@ -803,10 +812,10 @@ jobs:
   #       architecture: x86
 
   #   - name: Update CMake
-  #     uses: jwlawson/actions-setup-cmake@v1.12
+  #     uses: jwlawson/actions-setup-cmake@v1.13
 
   #   - name: Prepare MSVC
-  #     uses: ilammy/msvc-dev-cmd@v1.10.0
+  #     uses: ilammy/msvc-dev-cmd@v1.12.0
   #     with:
   #       arch: x86
 
@@ -854,7 +863,7 @@ jobs:
     #     python3 -m pip install -r tests/requirements.txt
 
     # - name: Update CMake
-    #   uses: jwlawson/actions-setup-cmake@v1.12
+    #   uses: jwlawson/actions-setup-cmake@v1.13
 
     # - name: Configure C++20
     #   run: >
@@ -911,7 +920,7 @@ jobs:
   #   - name: Configure C++11
   #     # LTO leads to many undefined reference like
   #     # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DDOWNLOAD_CATCH=ON -S . -B build
+  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
 
   #   - name: Build C++11
   #     run: cmake --build build -j 2
@@ -929,7 +938,7 @@ jobs:
   #     run: git clean -fdx
 
   #   - name: Configure C++14
-  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DDOWNLOAD_CATCH=ON -S . -B build2
+  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
 
   #   - name: Build C++14
   #     run: cmake --build build2 -j 2
@@ -947,7 +956,7 @@ jobs:
   #     run: git clean -fdx
 
   #   - name: Configure C++17
-  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DDOWNLOAD_CATCH=ON -S . -B build3
+  #     run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DCMAKE_VERBOSE_MAKEFILE=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
 
   #   - name: Build C++17
   #     run: cmake --build build3 -j 2

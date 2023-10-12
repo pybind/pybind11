@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 10
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_MINOR 11
+#define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020A0000
+#define PYBIND11_VERSION_HEX 0x020B00D1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -1129,12 +1129,7 @@ PYBIND11_NAMESPACE_END(detail)
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
-#    if (defined(_MSC_VER) && _MSC_VER < 1920) /* MSVC 2017 */                                    \
-        || (defined(__clang__) && __clang_major__ == 5)
-static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
-#    else
-static constexpr detail::overload_cast_impl<Args...> overload_cast;
-#    endif
+static constexpr detail::overload_cast_impl<Args...> overload_cast{};
 #endif
 
 /// Const member function selector for overload_cast
@@ -1252,6 +1247,24 @@ constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
 
 #else
 #    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
+#endif
+
+#if defined(__clang__)                                                                            \
+    && (defined(__apple_build_version__) /* AppleClang 13.0.0.13000029 was the only data point    \
+                                            available. */                                         \
+        || (__clang_major__ >= 7                                                                  \
+            && __clang_major__ <= 12) /* Clang 3, 5, 13, 14, 15 do not generate the warning. */   \
+    )
+#    define PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+// Example:
+// tests/test_kwargs_and_defaults.cpp:46:68: error: local variable 'args' will be copied despite
+// being returned by name [-Werror,-Wreturn-std-move]
+//     m.def("args_function", [](py::args args) -> py::tuple { return args; });
+//                                                                    ^~~~
+// test_kwargs_and_defaults.cpp:46:68: note: call 'std::move' explicitly to avoid copying
+//     m.def("args_function", [](py::args args) -> py::tuple { return args; });
+//                                                                    ^~~~
+//                                                                    std::move(args)
 #endif
 
 // Pybind offers detailed error messages by default for all builts that are debug (through the

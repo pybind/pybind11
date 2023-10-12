@@ -150,6 +150,8 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 #else
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
+    config.isolated = 0;
+    config.use_environment = 1;
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
 
     PyStatus status = PyConfig_SetBytesArgv(&config, argc, const_cast<char *const *>(argv));

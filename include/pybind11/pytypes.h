@@ -156,23 +156,23 @@ public:
     object operator-() const;
     object operator~() const;
     object operator+(object_api const &other) const;
-    object operator+=(object_api const &other) const;
+    object operator+=(object_api const &other);
     object operator-(object_api const &other) const;
-    object operator-=(object_api const &other) const;
+    object operator-=(object_api const &other);
     object operator*(object_api const &other) const;
-    object operator*=(object_api const &other) const;
+    object operator*=(object_api const &other);
     object operator/(object_api const &other) const;
-    object operator/=(object_api const &other) const;
+    object operator/=(object_api const &other);
     object operator|(object_api const &other) const;
-    object operator|=(object_api const &other) const;
+    object operator|=(object_api const &other);
     object operator&(object_api const &other) const;
-    object operator&=(object_api const &other) const;
+    object operator&=(object_api const &other);
     object operator^(object_api const &other) const;
-    object operator^=(object_api const &other) const;
+    object operator^=(object_api const &other);
     object operator<<(object_api const &other) const;
-    object operator<<=(object_api const &other) const;
+    object operator<<=(object_api const &other);
     object operator>>(object_api const &other) const;
-    object operator>>=(object_api const &other) const;
+    object operator>>=(object_api const &other);
 
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
@@ -335,12 +335,15 @@ public:
     }
 
     object &operator=(const object &other) {
-        other.inc_ref();
-        // Use temporary variable to ensure `*this` remains valid while
-        // `Py_XDECREF` executes, in case `*this` is accessible from Python.
-        handle temp(m_ptr);
-        m_ptr = other.m_ptr;
-        temp.dec_ref();
+        // Skip inc_ref and dec_ref if both objects are the same
+        if (!this->is(other)) {
+            other.inc_ref();
+            // Use temporary variable to ensure `*this` remains valid while
+            // `Py_XDECREF` executes, in case `*this` is accessible from Python.
+            handle temp(m_ptr);
+            m_ptr = other.m_ptr;
+            temp.dec_ref();
+        }
         return *this;
     }
 
@@ -353,6 +356,20 @@ public:
         }
         return *this;
     }
+
+#define PYBIND11_INPLACE_OP(iop)                                                                  \
+    object iop(object_api const &other) { return operator=(handle::iop(other)); }
+
+    PYBIND11_INPLACE_OP(operator+=)
+    PYBIND11_INPLACE_OP(operator-=)
+    PYBIND11_INPLACE_OP(operator*=)
+    PYBIND11_INPLACE_OP(operator/=)
+    PYBIND11_INPLACE_OP(operator|=)
+    PYBIND11_INPLACE_OP(operator&=)
+    PYBIND11_INPLACE_OP(operator^=)
+    PYBIND11_INPLACE_OP(operator<<=)
+    PYBIND11_INPLACE_OP(operator>>=)
+#undef PYBIND11_INPLACE_OP
 
     // Calling cast() on an object lvalue just copies (via handle::cast)
     template <typename T>
@@ -457,6 +474,12 @@ struct error_fetch_and_normalize {
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
+#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x07030a00
+        // This behavior runs the risk of masking errors in the error handling, but avoids a
+        // conflict with PyPy, which relies on the normalization here to change OSError to
+        // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075).
+        m_lazy_error_string = exc_type_name_norm;
+#else
         if (exc_type_name_norm != m_lazy_error_string) {
             std::string msg = std::string(called)
                               + ": MISMATCH of original and normalized "
@@ -468,6 +491,7 @@ struct error_fetch_and_normalize {
             msg += ": " + format_value_and_trace();
             pybind11_fail(msg);
         }
+#endif
     }
 
     error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;
@@ -1267,7 +1291,7 @@ public:                                                                         
 
 #define PYBIND11_OBJECT_CVT_DEFAULT(Name, Parent, CheckFun, ConvertFun)                           \
     PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun)                                       \
-    Name() : Parent() {}
+    Name() = default;
 
 #define PYBIND11_OBJECT_CHECK_FAILED(Name, o_ptr)                                                 \
     ::pybind11::type_error("Object of type '"                                                     \
@@ -1290,7 +1314,7 @@ public:                                                                         
 
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun)                                           \
     PYBIND11_OBJECT(Name, Parent, CheckFun)                                                       \
-    Name() : Parent() {}
+    Name() = default;
 
 /// \addtogroup pytypes
 /// @{
@@ -1359,7 +1383,7 @@ public:
 private:
     void advance() {
         value = reinterpret_steal<object>(PyIter_Next(m_ptr));
-        if (PyErr_Occurred()) {
+        if (value.ptr() == nullptr && PyErr_Occurred()) {
             throw error_already_set();
         }
     }
@@ -1786,16 +1810,16 @@ public:
 
     explicit capsule(const void *value,
                      const char *name = nullptr,
-                     void (*destructor)(PyObject *) = nullptr)
+                     PyCapsule_Destructor destructor = nullptr)
         : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
     }
 
-    PYBIND11_DEPRECATED("Please pass a destructor that takes a void pointer as input")
-    capsule(const void *value, void (*destruct)(PyObject *))
-        : object(PyCapsule_New(const_cast<void *>(value), nullptr, destruct), stolen_t{}) {
+    PYBIND11_DEPRECATED("Please use the ctor with value, name, destructor args")
+    capsule(const void *value, PyCapsule_Destructor destructor)
+        : object(PyCapsule_New(const_cast<void *>(value), nullptr, destructor), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
@@ -1806,21 +1830,21 @@ public:
             // guard if destructor called while err indicator is set
             error_scope error_guard;
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr) {
-                if (PyErr_Occurred()) {
-                    throw error_already_set();
-                }
-                pybind11_fail("Unable to get capsule context");
+            if (destructor == nullptr && PyErr_Occurred()) {
+                throw error_already_set();
             }
             const char *name = get_name_in_error_scope(o);
             void *ptr = PyCapsule_GetPointer(o, name);
             if (ptr == nullptr) {
                 throw error_already_set();
             }
-            destructor(ptr);
+
+            if (destructor != nullptr) {
+                destructor(ptr);
+            }
         });
 
-        if (!m_ptr || PyCapsule_SetContext(m_ptr, (void *) destructor) != 0) {
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
             throw error_already_set();
         }
     }
@@ -1944,7 +1968,11 @@ public:
     void clear() /* py-non-const */ { PyDict_Clear(ptr()); }
     template <typename T>
     bool contains(T &&key) const {
-        return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
+        auto result = PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr());
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return result == 1;
     }
 
 private:
@@ -1999,14 +2027,20 @@ public:
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T>
     void append(T &&val) /* py-non-const */ {
-        PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
+        if (PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) != 0) {
+            throw error_already_set();
+        }
     }
     template <typename IdxType,
               typename ValType,
               detail::enable_if_t<std::is_integral<IdxType>::value, int> = 0>
     void insert(const IdxType &index, ValType &&val) /* py-non-const */ {
-        PyList_Insert(
-            m_ptr, ssize_t_cast(index), detail::object_or_cast(std::forward<ValType>(val)).ptr());
+        if (PyList_Insert(m_ptr,
+                          ssize_t_cast(index),
+                          detail::object_or_cast(std::forward<ValType>(val)).ptr())
+            != 0) {
+            throw error_already_set();
+        }
     }
 };
 
@@ -2024,7 +2058,11 @@ public:
     bool empty() const { return size() == 0; }
     template <typename T>
     bool contains(T &&val) const {
-        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+        auto result = PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return result == 1;
     }
 };
 
@@ -2467,29 +2505,39 @@ bool object_api<D>::rich_compare(object_api const &other, int value) const {
         return result;                                                                            \
     }
 
+#define PYBIND11_MATH_OPERATOR_BINARY_INPLACE(iop, fn)                                            \
+    template <typename D>                                                                         \
+    object object_api<D>::iop(object_api const &other) {                                          \
+        object result = reinterpret_steal<object>(fn(derived().ptr(), other.derived().ptr()));    \
+        if (!result.ptr())                                                                        \
+            throw error_already_set();                                                            \
+        return result;                                                                            \
+    }
+
 PYBIND11_MATH_OPERATOR_UNARY(operator~, PyNumber_Invert)
 PYBIND11_MATH_OPERATOR_UNARY(operator-, PyNumber_Negative)
 PYBIND11_MATH_OPERATOR_BINARY(operator+, PyNumber_Add)
-PYBIND11_MATH_OPERATOR_BINARY(operator+=, PyNumber_InPlaceAdd)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator+=, PyNumber_InPlaceAdd)
 PYBIND11_MATH_OPERATOR_BINARY(operator-, PyNumber_Subtract)
-PYBIND11_MATH_OPERATOR_BINARY(operator-=, PyNumber_InPlaceSubtract)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator-=, PyNumber_InPlaceSubtract)
 PYBIND11_MATH_OPERATOR_BINARY(operator*, PyNumber_Multiply)
-PYBIND11_MATH_OPERATOR_BINARY(operator*=, PyNumber_InPlaceMultiply)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator*=, PyNumber_InPlaceMultiply)
 PYBIND11_MATH_OPERATOR_BINARY(operator/, PyNumber_TrueDivide)
-PYBIND11_MATH_OPERATOR_BINARY(operator/=, PyNumber_InPlaceTrueDivide)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator/=, PyNumber_InPlaceTrueDivide)
 PYBIND11_MATH_OPERATOR_BINARY(operator|, PyNumber_Or)
-PYBIND11_MATH_OPERATOR_BINARY(operator|=, PyNumber_InPlaceOr)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator|=, PyNumber_InPlaceOr)
 PYBIND11_MATH_OPERATOR_BINARY(operator&, PyNumber_And)
-PYBIND11_MATH_OPERATOR_BINARY(operator&=, PyNumber_InPlaceAnd)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator&=, PyNumber_InPlaceAnd)
 PYBIND11_MATH_OPERATOR_BINARY(operator^, PyNumber_Xor)
-PYBIND11_MATH_OPERATOR_BINARY(operator^=, PyNumber_InPlaceXor)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator^=, PyNumber_InPlaceXor)
 PYBIND11_MATH_OPERATOR_BINARY(operator<<, PyNumber_Lshift)
-PYBIND11_MATH_OPERATOR_BINARY(operator<<=, PyNumber_InPlaceLshift)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator<<=, PyNumber_InPlaceLshift)
 PYBIND11_MATH_OPERATOR_BINARY(operator>>, PyNumber_Rshift)
-PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
+PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY
+#undef PYBIND11_MATH_OPERATOR_BINARY_INPLACE
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

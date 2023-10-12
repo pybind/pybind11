@@ -482,6 +482,13 @@ def test_register_duplicate_class():
     assert str(exc_info.value) == expected
 
 
+def test_pr4220_tripped_over_this():
+    assert (
+        m.Empty0().get_msg()
+        == "This is really only meant to exercise successful compilation."
+    )
+
+
 @pytest.mark.skip(
     reason="Generally reproducible in CPython, Python 3, non-debug, on Linux. "
     "However, hard to pin this down for CI."

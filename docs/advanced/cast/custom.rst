@@ -38,7 +38,7 @@ type is explicitly allowed.
 
 .. code-block:: cpp
 
-    namespace pybind11 { namespace detail {
+    namespace PYBIND11_NAMESPACE { namespace detail {
         template <> struct type_caster<inty> {
         public:
             /**
@@ -78,7 +78,7 @@ type is explicitly allowed.
                 return PyLong_FromLong(src.long_value);
             }
         };
-    }} // namespace pybind11::detail
+    }} // namespace PYBIND11_NAMESPACE::detail
 
 .. note::
 

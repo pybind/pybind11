@@ -233,7 +233,9 @@ function(pybind11_add_module target_name)
     endif()
   endif()
 
-  if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+  # Use case-insensitive comparison to match the result of $<CONFIG:cfgs>
+  string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+  if(NOT MSVC AND NOT ${uppercase_CMAKE_BUILD_TYPE} MATCHES DEBUG|RELWITHDEBINFO)
     # Strip unnecessary sections of the binary on Linux/macOS
     pybind11_strip(${target_name})
   endif()

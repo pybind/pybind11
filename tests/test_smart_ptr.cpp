@@ -266,14 +266,14 @@ struct ElementList {
 // It is always possible to construct a ref<T> from an Object* pointer without
 // possible inconsistencies, hence the 'true' argument at the end.
 // Make pybind11 aware of the non-standard getter member function
-namespace pybind11 {
+namespace PYBIND11_NAMESPACE {
 namespace detail {
 template <typename T>
 struct holder_helper<ref<T>> {
     static const T *get(const ref<T> &p) { return p.get_ptr(); }
 };
 } // namespace detail
-} // namespace pybind11
+} // namespace PYBIND11_NAMESPACE
 
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);

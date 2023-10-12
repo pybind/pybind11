@@ -109,6 +109,11 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
     m.def("get_iterable", [] { return py::iterable(); });
+    m.def("get_frozenset_from_iterable",
+          [](const py::iterable &iter) { return py::frozenset(iter); });
+    m.def("get_list_from_iterable", [](const py::iterable &iter) { return py::list(iter); });
+    m.def("get_set_from_iterable", [](const py::iterable &iter) { return py::set(iter); });
+    m.def("get_tuple_from_iterable", [](const py::iterable &iter) { return py::tuple(iter); });
     // test_float
     m.def("get_float", [] { return py::float_(0.0f); });
     // test_list
@@ -178,7 +183,7 @@ TEST_SUBMODULE(pytypes, m) {
         return d2;
     });
     m.def("dict_contains",
-          [](const py::dict &dict, py::object val) { return dict.contains(val); });
+          [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
@@ -282,6 +287,12 @@ TEST_SUBMODULE(pytypes, m) {
         py::print(
             "created capsule ({}, '{}')"_s.format(result1 & result2 & result3, capsule.name()));
         return capsule;
+    });
+
+    m.def("return_capsule_with_explicit_nullptr_dtor", []() {
+        py::print("creating capsule with explicit nullptr dtor");
+        return py::capsule(reinterpret_cast<void *>(1234),
+                           static_cast<void (*)(void *)>(nullptr)); // PR #4221
     });
 
     // test_accessors
@@ -527,6 +538,9 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
 
+    m.def("obj_contains",
+          [](py::object &obj, const py::object &key) { return obj.contains(key); });
+
     m.def("test_number_protocol", [](const py::object &a, const py::object &b) {
         py::list l;
         l.append(a.equal(b));
@@ -755,5 +769,39 @@ TEST_SUBMODULE(pytypes, m) {
             o.attr(py::str(py::int_(i))) = py::str(py::int_(i));
         }
         return o;
+    });
+
+    // testing immutable object augmented assignment: #issue 3812
+    m.def("inplace_append", [](py::object &a, const py::object &b) {
+        a += b;
+        return a;
+    });
+    m.def("inplace_subtract", [](py::object &a, const py::object &b) {
+        a -= b;
+        return a;
+    });
+    m.def("inplace_multiply", [](py::object &a, const py::object &b) {
+        a *= b;
+        return a;
+    });
+    m.def("inplace_divide", [](py::object &a, const py::object &b) {
+        a /= b;
+        return a;
+    });
+    m.def("inplace_or", [](py::object &a, const py::object &b) {
+        a |= b;
+        return a;
+    });
+    m.def("inplace_and", [](py::object &a, const py::object &b) {
+        a &= b;
+        return a;
+    });
+    m.def("inplace_lshift", [](py::object &a, const py::object &b) {
+        a <<= b;
+        return a;
+    });
+    m.def("inplace_rshift", [](py::object &a, const py::object &b) {
+        a >>= b;
+        return a;
     });
 }

@@ -198,6 +198,9 @@ else()
 endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
+# https://github.com/jtojnar/cmake-snips/#concatenating-paths-when-building-pkg-config-files
+# TODO: cmake 3.20 adds the cmake_path() function, which obsoletes this snippet
+include("${CMAKE_CURRENT_SOURCE_DIR}/tools/JoinPaths.cmake")
 
 # Relative directory setting
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
@@ -261,6 +264,16 @@ if(PYBIND11_INSTALL)
     EXPORT "${PYBIND11_EXPORT_NAME}"
     NAMESPACE "pybind11::"
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+
+  # pkg-config support
+  if(NOT prefix_for_pc_file)
+    set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
+  endif()
+  join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
+                 "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"
+          DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig/")
 
   # Uninstall target
   if(PYBIND11_MASTER_PROJECT)

@@ -334,4 +334,14 @@ TEST_SUBMODULE(exceptions, m) {
             e.restore();
         }
     });
+
+    // https://github.com/pybind/pybind11/issues/4075
+    m.def("test_pypy_oserror_normalization", []() {
+        try {
+            py::module_::import("io").attr("open")("this_filename_must_not_exist", "r");
+        } catch (const py::error_already_set &e) {
+            return py::str(e.what()); // str must be built before e goes out of scope.
+        }
+        return py::str("UNEXPECTED");
+    });
 }

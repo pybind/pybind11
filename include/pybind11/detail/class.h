@@ -55,6 +55,9 @@ extern "C" inline int pybind11_static_set(PyObject *self, PyObject *obj, PyObjec
     return PyProperty_Type.tp_descr_set(self, cls, value);
 }
 
+// Forward declaration to use in `make_static_property_type()`
+inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type);
+
 /** A `static_property` is the same as a `property` but the `__get__()` and `__set__()`
     methods are modified to always use the object type instead of a concrete instance.
     Return value: New reference. */
@@ -86,6 +89,13 @@ inline PyTypeObject *make_static_property_type() {
     if (PyType_Ready(type) < 0) {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
     }
+
+#    if PY_VERSION_HEX >= 0x030C0000
+    // PRE 3.12 FEATURE FREEZE. PLEASE REVIEW AFTER FREEZE.
+    // Since Python-3.12 property-derived types are required to
+    // have dynamic attributes (to set `__doc__`)
+    enable_dynamic_attributes(heap_type);
+#    endif
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
@@ -502,31 +512,6 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     return (PyObject *) heap_type;
 }
 
-/// dynamic_attr: Support for `d = instance.__dict__`.
-extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
-    if (!dict) {
-        dict = PyDict_New();
-    }
-    Py_XINCREF(dict);
-    return dict;
-}
-
-/// dynamic_attr: Support for `instance.__dict__ = dict()`.
-extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void *) {
-    if (!PyDict_Check(new_dict)) {
-        PyErr_Format(PyExc_TypeError,
-                     "__dict__ must be set to a dictionary, not a '%.200s'",
-                     get_fully_qualified_tp_name(Py_TYPE(new_dict)).c_str());
-        return -1;
-    }
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
-    Py_INCREF(new_dict);
-    Py_CLEAR(dict);
-    dict = new_dict;
-    return 0;
-}
-
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
 extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -558,9 +543,17 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
 
-    static PyGetSetDef getset[] = {
-        {const_cast<char *>("__dict__"), pybind11_get_dict, pybind11_set_dict, nullptr, nullptr},
-        {nullptr, nullptr, nullptr, nullptr, nullptr}};
+    static PyGetSetDef getset[] = {{
+#if PY_VERSION_HEX < 0x03070000
+                                       const_cast<char *>("__dict__"),
+#else
+                                       "__dict__",
+#endif
+                                       PyObject_GenericGetDict,
+                                       PyObject_GenericSetDict,
+                                       nullptr,
+                                       nullptr},
+                                   {nullptr, nullptr, nullptr, nullptr, nullptr}};
     type->tp_getset = getset;
 }
 

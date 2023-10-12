@@ -8,5 +8,5 @@ def _to_int(s: str) -> Union[int, str]:
         return s
 
 
-__version__ = "2.10.0"
+__version__ = "2.11.0.dev1"
 version_info = tuple(_to_int(s) for s in __version__.split("."))
