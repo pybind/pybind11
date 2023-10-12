@@ -206,6 +206,17 @@ def test_string_view(capture):
         """
         )
 
+    assert m.string_view_bytes() == b"abc \x80\x80 def"
+    assert m.string_view_str() == u"abc ‽ def"
+    assert m.string_view_from_bytes(u"abc ‽ def".encode("utf-8")) == u"abc ‽ def"
+    if hasattr(m, "has_u8string"):
+        assert m.string_view8_str() == u"abc ‽ def"
+    if not env.PY2:
+        assert m.string_view_memoryview() == "Have some 🎂".encode()
+
+    assert m.bytes_from_type_with_both_operator_string_and_string_view() == b"success"
+    assert m.str_from_type_with_both_operator_string_and_string_view() == "success"
+
 
 def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""

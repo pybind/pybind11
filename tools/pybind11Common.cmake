@@ -318,13 +318,21 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       set(cxx_append ";-fno-fat-lto-objects")
     endif()
 
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND prefer_thin_lto)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le" OR CMAKE_SYSTEM_PROCESSOR MATCHES "mips64")
+      set(NO_FLTO_ARCH TRUE)
+    else()
+      set(NO_FLTO_ARCH FALSE)
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+       AND prefer_thin_lto
+       AND NOT NO_FLTO_ARCH)
       _pybind11_return_if_cxx_and_linker_flags_work(
         HAS_FLTO_THIN "-flto=thin${cxx_append}" "-flto=thin${linker_append}"
         PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
 
-    if(NOT HAS_FLTO_THIN)
+    if(NOT HAS_FLTO_THIN AND NOT NO_FLTO_ARCH)
       _pybind11_return_if_cxx_and_linker_flags_work(
         HAS_FLTO "-flto${cxx_append}" "-flto${linker_append}" PYBIND11_LTO_CXX_FLAGS
         PYBIND11_LTO_LINKER_FLAGS)

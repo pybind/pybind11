@@ -18,7 +18,12 @@ class ArgAlwaysConverts { };
 namespace pybind11 { namespace detail {
 template <> struct type_caster<ArgInspector1> {
 public:
+    // Classic
+#ifndef _
     PYBIND11_TYPE_CASTER(ArgInspector1, _("ArgInspector1"));
+#else
+    PYBIND11_TYPE_CASTER(ArgInspector1, const_name("ArgInspector1"));
+#endif
 
     bool load(handle src, bool convert) {
         value.arg = "loading ArgInspector1 argument " +
@@ -33,7 +38,7 @@ public:
 };
 template <> struct type_caster<ArgInspector2> {
 public:
-    PYBIND11_TYPE_CASTER(ArgInspector2, _("ArgInspector2"));
+    PYBIND11_TYPE_CASTER(ArgInspector2, const_name("ArgInspector2"));
 
     bool load(handle src, bool convert) {
         value.arg = "loading ArgInspector2 argument " +
@@ -48,7 +53,7 @@ public:
 };
 template <> struct type_caster<ArgAlwaysConverts> {
 public:
-    PYBIND11_TYPE_CASTER(ArgAlwaysConverts, _("ArgAlwaysConverts"));
+    PYBIND11_TYPE_CASTER(ArgAlwaysConverts, const_name("ArgAlwaysConverts"));
 
     bool load(handle, bool convert) {
         return convert;
@@ -76,7 +81,7 @@ public:
 };
 namespace pybind11 { namespace detail {
 template <> struct type_caster<DestructionTester> {
-    PYBIND11_TYPE_CASTER(DestructionTester, _("DestructionTester"));
+    PYBIND11_TYPE_CASTER(DestructionTester, const_name("DestructionTester"));
     bool load(handle, bool) { return true; }
 
     static handle cast(const DestructionTester &, return_value_policy, handle) {

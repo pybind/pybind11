@@ -97,7 +97,7 @@ public:
         return PyDelta_FromDSU(dd.count(), ss.count(), us.count());
     }
 
-    PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
+    PYBIND11_TYPE_CASTER(type, const_name("datetime.timedelta"));
 };
 
 inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
@@ -195,7 +195,7 @@ public:
                                           localtime.tm_sec,
                                           us.count());
     }
-    PYBIND11_TYPE_CASTER(type, _("datetime.datetime"));
+    PYBIND11_TYPE_CASTER(type, const_name("datetime.datetime"));
 };
 
 // Other clocks that are not the system clock are not measured as datetime.datetime objects

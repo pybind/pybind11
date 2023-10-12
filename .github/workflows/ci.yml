@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # runs-on: [ubuntu-latest, windows-latest, macos-latest]
+        # runs-on: [ubuntu-latest, windows-2022, macos-latest]
         runs-on: [ubuntu-latest, macos-latest]
         python:
         # - '2.7'
@@ -36,19 +36,25 @@ jobs:
         # present), or add new keys to an existing matrix element if all the
         # existing keys match.
         #
-        # We support an optional keys: args, for cmake args
+        # We support an optional key: args, for cmake args
         include:
           # Just add a key
           - runs-on: ubuntu-latest
-            python: 3.6
+            python: '3.6'
             args: >
               -DPYBIND11_FINDPYTHON=ON
+              -DCMAKE_CXX_FLAGS="-D_=1"
           # - runs-on: windows-latest
-          #   python: 3.6
+          #   python: '3.6'
           #   args: >
           #     -DPYBIND11_FINDPYTHON=ON
           # - runs-on: macos-latest
-          #   python: pypy-2.7
+          #   python: 'pypy-2.7'
+          # Inject a couple Windows 2019 runs
+          # - runs-on: windows-2019
+          #   python: '3.9'
+          # - runs-on: windows-2019
+          #   python: '2.7'
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -62,7 +68,8 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Setup Boost (Linux)
-      if: runner.os == 'Linux'
+      # Can't use boost + define _
+      if: runner.os == 'Linux' && matrix.python != '3.6'
       run: sudo apt-get install libboost-dev
 
     - name: Setup Boost (macOS)
@@ -180,6 +187,7 @@ jobs:
     # setuptools
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
+      if: "!(matrix.python == '3.5' && matrix.runs-on == 'windows-2022')"
 
 
   # deadsnakes:
@@ -240,6 +248,8 @@ jobs:
   #       python -m pip install -r tests/requirements.txt
 
   #   - name: Configure
+  #     env:
+  #       SETUPTOOLS_USE_DISTUTILS: stdlib
   #     run: >
   #       cmake -S . -B build
   #       -DCMAKE_BUILD_TYPE=Debug
@@ -552,37 +562,37 @@ jobs:
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
   #       cmake --build build-11 --target test_cmake_build
 
-  #   - name: Configure C++17
+  #   - name: Configure C++14
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake -S . -B build-17     \
+  #       cmake -S . -B build-14     \
   #       -DPYBIND11_WERROR=ON    \
   #       -DDOWNLOAD_CATCH=ON     \
   #       -DDOWNLOAD_EIGEN=OFF    \
-  #       -DCMAKE_CXX_STANDARD=17             \
+  #       -DCMAKE_CXX_STANDARD=14             \
   #       -DCMAKE_CXX_COMPILER=$(which icpc)  \
   #       -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
-  #   - name: Build C++17
+  #   - name: Build C++14
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake --build build-17 -j 2 -v
+  #       cmake --build build-14 -j 2 -v
 
-  #   - name: Python tests C++17
+  #   - name: Python tests C++14
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
   #       sudo service apport stop
-  #       cmake --build build-17 --target check
+  #       cmake --build build-14 --target check
 
-  #   - name: C++ tests C++17
+  #   - name: C++ tests C++14
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake --build build-17 --target cpptest
+  #       cmake --build build-14 --target cpptest
 
-  #   - name: Interface test C++17
+  #   - name: Interface test C++14
   #     run: |
   #       set +e; source /opt/intel/oneapi/setvars.sh; set -e
-  #       cmake --build build-17 --target test_cmake_build
+  #       cmake --build build-14 --target test_cmake_build
 
 
   # # Testing on CentOS (manylinux uses a centos base, and this is an easy way

@@ -11,11 +11,11 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 9
-#define PYBIND11_VERSION_PATCH 0.dev1
+#define PYBIND11_VERSION_PATCH 0
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020900D1
+#define PYBIND11_VERSION_HEX 0x02090000
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -154,6 +154,14 @@
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
 #  pragma warning(disable: 4505)
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
+// Workaround for a VS 2022 issue.
+// NOTE: This workaround knowingly violates the Python.h include order requirement:
+// https://docs.python.org/3/c-api/intro.html#include-files
+// See https://github.com/pybind/pybind11/pull/3497 for full context.
+#    include <yvals.h>
+#    if _MSVC_STL_VERSION >= 143
+#      include <crtdefs.h>
+#    endif
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
@@ -182,6 +190,21 @@
 #  define PYBIND11_HAS_OPTIONAL 1
 #  define PYBIND11_HAS_VARIANT 1
 #endif
+
+#if defined(PYBIND11_CPP17)
+#  if defined(__has_include)
+#    if __has_include(<string_view>)
+#      define PYBIND11_HAS_STRING_VIEW
+#    endif
+#  elif defined(_MSC_VER)
+#    define PYBIND11_HAS_STRING_VIEW
+#  endif
+#endif
+
+#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
+#  define PYBIND11_HAS_U8STRING
+#endif
+
 
 #include <Python.h>
 #include <frameobject.h>

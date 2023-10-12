@@ -102,6 +102,13 @@ inline wchar_t *widen_chars(const char *safe_arg) {
     wchar_t *widened_arg = Py_DecodeLocale(safe_arg, nullptr);
 #else
     wchar_t *widened_arg = nullptr;
+
+// warning C4996: 'mbstowcs': This function or variable may be unsafe.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4996)
+#endif
+
 #    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
     size_t count = strlen(safe_arg);
 #    else
@@ -111,6 +118,11 @@ inline wchar_t *widen_chars(const char *safe_arg) {
         widened_arg = new wchar_t[count + 1];
         mbstowcs(widened_arg, safe_arg, count + 1);
     }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
 #endif
     return widened_arg;
 }

@@ -92,7 +92,7 @@ public:
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(T, _("os.PathLike"));
+    PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
 };
 
 template<> struct type_caster<std::filesystem::path>

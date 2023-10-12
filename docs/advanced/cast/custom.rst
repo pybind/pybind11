@@ -46,7 +46,7 @@ type is explicitly allowed.
              * function signatures and declares a local variable
              * 'value' of type inty
              */
-            PYBIND11_TYPE_CASTER(inty, _("inty"));
+            PYBIND11_TYPE_CASTER(inty, const_name("inty"));
 
             /**
              * Conversion part 1 (Python->C++): convert a PyObject into a inty
