@@ -16,6 +16,7 @@
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
+#include "typing.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -2707,7 +2708,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
           typename... Extra>
-iterator make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+typing::Iterator<ValueType> make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_access<Iterator>,
                                       Policy,
                                       Iterator,
@@ -2725,7 +2726,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
           typename... Extra>
-iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+typing::Iterator<KeyType> make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_key_access<Iterator>,
                                       Policy,
                                       Iterator,
@@ -2743,7 +2744,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
           typename... Extra>
-iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+typing::Iterator<ValueType> make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_value_access<Iterator>,
                                       Policy,
                                       Iterator,
@@ -2758,8 +2759,10 @@ iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
+          typename ValueType = typename detail::iterator_access<
+              decltype(std::begin(std::declval<Type &>()))>::result_type,
           typename... Extra>
-iterator make_iterator(Type &value, Extra &&...extra) {
+typing::Iterator<ValueType> make_iterator(Type &value, Extra &&...extra) {
     return make_iterator<Policy>(
         std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
@@ -2768,8 +2771,10 @@ iterator make_iterator(Type &value, Extra &&...extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
+          typename KeyType = typename detail::iterator_key_access<
+              decltype(std::begin(std::declval<Type &>()))>::result_type,
           typename... Extra>
-iterator make_key_iterator(Type &value, Extra &&...extra) {
+typing::Iterator<KeyType> make_key_iterator(Type &value, Extra &&...extra) {
     return make_key_iterator<Policy>(
         std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
@@ -2778,8 +2783,10 @@ iterator make_key_iterator(Type &value, Extra &&...extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
+          typename ValueType = typename detail::iterator_value_access<
+              decltype(std::begin(std::declval<Type &>()))>::result_type,
           typename... Extra>
-iterator make_value_iterator(Type &value, Extra &&...extra) {
+typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
     return make_value_iterator<Policy>(
         std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
