@@ -1259,7 +1259,7 @@ move(T &&value) {
 
 template <typename T>
 detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {\
-    if constexpr (detail::cast_is_temporary_value_reference<T>::value) {
+    if (detail::cast_is_temporary_value_reference<T>::value) {
         if (obj.ref_count() > 1) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error(
