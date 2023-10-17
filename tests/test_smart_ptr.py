@@ -378,3 +378,16 @@ def test_unique_ptr_held_container_from_cpp():
 
     check_reset(obj_new=m.UniquePtrHeld(10))
     check_reset(obj_new=None)
+
+
+def test_unique_ptr_self_reference():
+    obj = None
+
+    def make_unique_ptr_held():
+        nonlocal obj
+        # This simulates a self-reference for a derived type.
+        obj = m.UniquePtrHeld(10)
+        return obj
+
+    out = m.unique_ptr_callback(make_unique_ptr_held)
+    assert obj is out

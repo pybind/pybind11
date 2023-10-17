@@ -215,7 +215,10 @@ def test_move_support():
     ncv2 = NCVirtExt2()
     assert ncv2.print_movable(7, 7) == "14"
     # Don't check the exception message here because it differs under debug/non-debug mode
-    with pytest.raises(RuntimeError):
+
+    # N.B. Drake fork allows this behavior.
+    if True:
+    # with pytest.raises(RuntimeError):
         ncv2.print_nc(9, 9)
 
     nc_stats = ConstructorStats.get(m.NonCopyable)
