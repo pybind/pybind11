@@ -493,7 +493,7 @@ protected:
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
-                    signature += tname;
+                    signature += "Annotated[Any, \"" + tname + "\"]";
                 }
             } else {
                 signature += c;
