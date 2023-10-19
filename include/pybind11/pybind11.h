@@ -493,7 +493,11 @@ protected:
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
-                    signature += "Annotated[Any, \"" + tname + "\"]";
+                    if (detail::cpp_name_needs_typing_annotated(tname.c_str())) {
+                        signature += "Annotated[Any, \"" + tname + "\"]";
+                    } else {
+                        signature += tname;
+                    }
                 }
             } else {
                 signature += c;

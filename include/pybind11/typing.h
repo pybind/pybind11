@@ -113,5 +113,15 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
                                  + const_name("]");
 };
 
+inline bool cpp_name_needs_typing_annotated(const char *cpp_name) {
+    while (*cpp_name) {
+        char c = *cpp_name++;
+        if (c == ':' || c == '<') { // Assuming valid names, there is no need to check for '>'.
+            return true;
+        }
+    }
+    return false;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
