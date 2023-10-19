@@ -874,6 +874,38 @@ struct handle_type_name {
     static constexpr auto name = const_name<T>();
 };
 template <>
+struct handle_type_name<object> {
+    static constexpr auto name = const_name("object");
+};
+template <>
+struct handle_type_name<list> {
+    static constexpr auto name = const_name("list");
+};
+template <>
+struct handle_type_name<dict> {
+    static constexpr auto name = const_name("dict");
+};
+template <>
+struct handle_type_name<set> {
+    static constexpr auto name = const_name("set");
+};
+template <>
+struct handle_type_name<frozenset> {
+    static constexpr auto name = const_name("frozenset");
+};
+template <>
+struct handle_type_name<anyset> {
+    static constexpr auto name = const_name("anyset");
+};
+template <>
+struct handle_type_name<str> {
+    static constexpr auto name = const_name("str");
+};
+template <>
+struct handle_type_name<tuple> {
+    static constexpr auto name = const_name("tuple");
+};
+template <>
 struct handle_type_name<bool_> {
     static constexpr auto name = const_name("bool");
 };
