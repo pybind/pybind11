@@ -114,7 +114,7 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 };
 
 inline bool cpp_name_needs_typing_annotated(const char *cpp_name) {
-    while (*cpp_name) {
+    while (*cpp_name != '\0') {
         char c = *cpp_name++;
         if (c == ':' || c == '<') { // Assuming valid names, there is no need to check for '>'.
             return true;
