@@ -48,7 +48,8 @@ typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster
 template <typename T>
 typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) {
-    using result_t = typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>;
+    using result_t = typename make_caster<T>::template cast_op_type<
+        typename std::add_rvalue_reference<T>::type>;
     return std::move(caster).operator result_t();
 }
 
