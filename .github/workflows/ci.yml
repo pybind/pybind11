@@ -195,9 +195,10 @@ jobs:
       matrix:
         include:
         # TODO: Fails on 3.10, investigate
-        - python-version: "3.9"
-          python-debug: true
-          valgrind: true
+        # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4889
+        # - python-version: "3.9"
+        #   python-debug: true
+        #   valgrind: true
         - python-version: "3.11"
           python-debug: false
 
