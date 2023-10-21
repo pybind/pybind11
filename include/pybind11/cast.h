@@ -889,7 +889,7 @@ struct handle_type_name<dict> {
 };
 template <>
 struct handle_type_name<anyset> {
-    static constexpr auto name = const_name("set | frozenset");
+    static constexpr auto name = const_name("Union[set, frozenset]");
 };
 template <>
 struct handle_type_name<set> {
