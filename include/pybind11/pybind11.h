@@ -494,7 +494,7 @@ protected:
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
                     if (detail::cpp_name_needs_typing_annotated(tname.c_str())) {
-                        signature += "Annotated[Any, \"" + tname + "\"]";
+                        signature += "Annotated[Any, CppTypePybind11(\"" + tname + "\")]";
                     } else {
                         signature += tname;
                     }
