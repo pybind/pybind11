@@ -888,16 +888,16 @@ struct handle_type_name<dict> {
     static constexpr auto name = const_name("dict");
 };
 template <>
+struct handle_type_name<anyset> {
+    static constexpr auto name = const_name("set");
+};
+template <>
 struct handle_type_name<set> {
     static constexpr auto name = const_name("set");
 };
 template <>
 struct handle_type_name<frozenset> {
     static constexpr auto name = const_name("frozenset");
-};
-template <>
-struct handle_type_name<anyset> {
-    static constexpr auto name = const_name("anyset");
 };
 template <>
 struct handle_type_name<str> {
