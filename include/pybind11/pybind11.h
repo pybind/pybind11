@@ -1318,6 +1318,15 @@ public:
     }
 };
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct handle_type_name<module_> {
+    static constexpr auto name = const_name("module");
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
 // C++20 allows "module" to be used. This is provided for backward compatibility, and for
 // simplicity, if someone wants to use py::module for example, that is perfectly safe.
