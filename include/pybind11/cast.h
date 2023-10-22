@@ -952,8 +952,20 @@ struct handle_type_name<sequence> {
     static constexpr auto name = const_name("Sequence");
 };
 template <>
+struct handle_type_name<bytearray> {
+    static constexpr auto name = const_name("bytearray");
+};
+template <>
+struct handle_type_name<memoryview> {
+    static constexpr auto name = const_name("memoryview");
+};
+template <>
 struct handle_type_name<slice> {
     static constexpr auto name = const_name("slice");
+};
+template <>
+struct handle_type_name<type> {
+    static constexpr auto name = const_name("type");
 };
 template <>
 struct handle_type_name<args> {
