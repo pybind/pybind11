@@ -382,4 +382,7 @@ TEST_SUBMODULE(exceptions, m) {
         // function returns None instead of int, should give a useful error message
         fn().cast<int>();
     });
+
+    // m.def("pass_exception_void", [](const py::exception<void>&) {}); // Does not compile.
+    m.def("return_exception_void", []() { return py::exception<void>(); });
 }
