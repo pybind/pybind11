@@ -14,6 +14,7 @@
 #include "detail/init.h"
 #include "attr.h"
 #include "gil.h"
+#include "gil_safe_call_once.h"
 #include "options.h"
 #include "typing.h"
 
@@ -2609,23 +2610,14 @@ public:
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-// Returns a reference to a function-local static exception object used in the simple
-// register_exception approach below.  (It would be simpler to have the static local variable
-// directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
-template <typename CppException>
-exception<CppException> &get_exception_object() {
-    static exception<CppException> ex;
-    return ex;
-}
 
 // Helper function for register_exception and register_local_exception
 template <typename CppException>
 exception<CppException> &
 register_exception_impl(handle scope, const char *name, handle base, bool isLocal) {
-    auto &ex = detail::get_exception_object<CppException>();
-    if (!ex) {
-        ex = exception<CppException>(scope, name, base);
-    }
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<exception<CppException>> exc_storage;
+    exc_storage.call_once_and_store_result(
+        [&]() { return exception<CppException>(scope, name, base); });
 
     auto register_func
         = isLocal ? &register_local_exception_translator : &register_exception_translator;
@@ -2637,10 +2629,10 @@ register_exception_impl(handle scope, const char *name, handle base, bool isLoca
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
-            set_error(detail::get_exception_object<CppException>(), e.what());
+            set_error(exc_storage.get_stored(), e.what());
         }
     });
-    return ex;
+    return exc_storage.get_stored();
 }
 
 PYBIND11_NAMESPACE_END(detail)
