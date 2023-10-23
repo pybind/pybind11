@@ -42,13 +42,15 @@ using make_caster = type_caster<intrinsic_t<type>>;
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
 typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
-    return caster.operator typename make_caster<T>::template cast_op_type<T>();
+    using result_t = typename make_caster<T>::template cast_op_type<T>; // See PR #4893
+    return caster.operator result_t();
 }
 template <typename T>
 typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) {
-    return std::move(caster).operator typename make_caster<T>::
-        template cast_op_type<typename std::add_rvalue_reference<T>::type>();
+    using result_t = typename make_caster<T>::template cast_op_type<
+        typename std::add_rvalue_reference<T>::type>; // See PR #4893
+    return std::move(caster).operator result_t();
 }
 
 template <typename type>
