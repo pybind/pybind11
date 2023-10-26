@@ -25,27 +25,27 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v16.0.6"
+  rev: "v17.0.3"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black-pre-commit-mirror
-  rev: "23.9.1" # Keep in sync with blacken-docs
+  rev: "23.10.1" # Keep in sync with blacken-docs
   hooks:
   - id: black
 
 # Ruff, the Python auto-correcting linter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.292
+  rev: v0.1.2
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.5.1"
+  rev: "v1.6.1"
   hooks:
   - id: mypy
     args: []
@@ -67,7 +67,7 @@ repos:
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v4.4.0"
+  rev: "v4.5.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -98,7 +98,7 @@ repos:
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.5.0"
+  rev: "0.6.2"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
@@ -147,7 +147,7 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.0.0"
+  rev: "v3.0.1"
   hooks:
   - id: pylint
     files: ^pybind11
