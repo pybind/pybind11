@@ -486,8 +486,10 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION)
     return PyThreadState_GET();
-#else
+#elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
+#else
+    return PyThreadState_GetUnchecked();
 #endif
 }
 
