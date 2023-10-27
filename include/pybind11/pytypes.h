@@ -310,14 +310,14 @@ private:
             "used for all translation units linked into a given pybind11 extension, otherwise "
             "there will be ODR violations.",
             function_name.c_str());
-        fflush(stderr);
         if (Py_TYPE(m_ptr)->tp_name != nullptr) {
             fprintf(stderr,
-                    "The failing %s call was triggered on a %s object.\n",
+                    " The failing %s call was triggered on a %s object.",
                     function_name.c_str(),
                     Py_TYPE(m_ptr)->tp_name);
-            fflush(stderr);
         }
+        fprintf(stderr, "\n");
+        fflush(stderr);
         throw std::runtime_error(function_name + " PyGILState_Check() failure.");
     }
 #endif
