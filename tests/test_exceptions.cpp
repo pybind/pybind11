@@ -6,6 +6,8 @@
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
+#include <pybind11/gil_safe_call_once.h>
+
 #include "test_exceptions.h"
 
 #include "local_bindings.h"
@@ -114,7 +116,9 @@ TEST_SUBMODULE(exceptions, m) {
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
 
     // PLEASE KEEP IN SYNC with docs/advanced/exceptions.rst
-    static py::handle ex = py::exception<MyException>(m, "MyException").release();
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> ex_storage;
+    ex_storage.call_once_and_store_result(
+        [&]() { return py::exception<MyException>(m, "MyException"); });
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) {
@@ -122,7 +126,7 @@ TEST_SUBMODULE(exceptions, m) {
             }
         } catch (const MyException &e) {
             // Set MyException as the active python error
-            py::set_error(ex, e.what());
+            py::set_error(ex_storage.get_stored(), e.what());
         }
     });
 

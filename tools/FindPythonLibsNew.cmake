@@ -95,6 +95,22 @@ if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "3.6")
 endif()
 
+if(NOT CMAKE_VERSION VERSION_LESS "3.27")
+  cmake_policy(GET CMP0148 _pybind11_cmp0148)
+  if(NOT _pybind11_cmp0148)
+    message(
+      AUTHOR_WARNING
+        "Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs "
+        "modules are removed.  Run \"cmake --help-policy CMP0148\" for policy "
+        "details.  Use the cmake_policy command to set the policy and suppress "
+        "this warning, or preferably upgrade to using FindPython, either by "
+        "calling it explicitly before pybind11, or by setting "
+        "PYBIND11_FINDPYTHON ON before pybind11.")
+  endif()
+  cmake_policy(SET CMP0148 OLD)
+  unset(_pybind11_cmp0148)
+endif()
+
 find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
              ${_pythonlibs_quiet})
 
@@ -172,12 +188,19 @@ _pybind11_get_if_undef(_PYTHON_VALUES 0 _PYTHON_VERSION_LIST)
 _pybind11_get_if_undef(_PYTHON_VALUES 1 PYTHON_PREFIX)
 _pybind11_get_if_undef(_PYTHON_VALUES 2 PYTHON_INCLUDE_DIR)
 _pybind11_get_if_undef(_PYTHON_VALUES 3 PYTHON_SITE_PACKAGES)
-_pybind11_get_if_undef(_PYTHON_VALUES 4 PYTHON_MODULE_EXTENSION)
 _pybind11_get_if_undef(_PYTHON_VALUES 5 PYTHON_IS_DEBUG)
 _pybind11_get_if_undef(_PYTHON_VALUES 6 PYTHON_SIZEOF_VOID_P)
 _pybind11_get_if_undef(_PYTHON_VALUES 7 PYTHON_LIBRARY_SUFFIX)
 _pybind11_get_if_undef(_PYTHON_VALUES 8 PYTHON_LIBDIR)
 _pybind11_get_if_undef(_PYTHON_VALUES 9 PYTHON_MULTIARCH)
+
+list(GET _PYTHON_VALUES 4 _PYTHON_MODULE_EXT_SUFFIX)
+if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+  get_filename_component(PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_EXT_SUFFIX}" NAME_WE)
+endif()
+if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED PYTHON_MODULE_EXTENSION)
+  get_filename_component(PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
+endif()
 
 # Make sure the Python has the same pointer-size as the chosen compiler
 # Skip if CMAKE_SIZEOF_VOID_P is not defined

@@ -95,25 +95,36 @@ endif()
 
 # Get the suffix - SO is deprecated, should use EXT_SUFFIX, but this is
 # required for PyPy3 (as of 7.3.1)
-if(NOT DEFINED PYTHON_MODULE_EXTENSION)
+if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
   execute_process(
     COMMAND
       "${${_Python}_EXECUTABLE}" "-c"
       "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
-    OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
-    ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
+    OUTPUT_VARIABLE _PYTHON_MODULE_EXT_SUFFIX
+    ERROR_VARIABLE _PYTHON_MODULE_EXT_SUFFIX_ERR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  if(_PYTHON_MODULE_EXTENSION STREQUAL "")
+  if(_PYTHON_MODULE_EXT_SUFFIX STREQUAL "")
     message(
       FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
-                  "package is not installed. Full error message:\n${_PYTHON_MODULE_EXTENSION_ERR}")
+                  "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}"
+    )
   endif()
 
   # This needs to be available for the pybind11_extension function
-  set(PYTHON_MODULE_EXTENSION
-      "${_PYTHON_MODULE_EXTENSION}"
-      CACHE INTERNAL "")
+  if(NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+    get_filename_component(_PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_EXT_SUFFIX}" NAME_WE)
+    set(PYTHON_MODULE_DEBUG_POSTFIX
+        "${_PYTHON_MODULE_DEBUG_POSTFIX}"
+        CACHE INTERNAL "")
+  endif()
+
+  if(NOT DEFINED PYTHON_MODULE_EXTENSION)
+    get_filename_component(_PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
+    set(PYTHON_MODULE_EXTENSION
+        "${_PYTHON_MODULE_EXTENSION}"
+        CACHE INTERNAL "")
+  endif()
 endif()
 
 # Python debug libraries expose slightly different objects before 3.8
@@ -253,6 +264,9 @@ endfunction()
 
 function(pybind11_extension name)
   # The extension is precomputed
-  set_target_properties(${name} PROPERTIES PREFIX "" SUFFIX "${PYTHON_MODULE_EXTENSION}")
-
+  set_target_properties(
+    ${name}
+    PROPERTIES PREFIX ""
+               DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
+               SUFFIX "${PYTHON_MODULE_EXTENSION}")
 endfunction()
