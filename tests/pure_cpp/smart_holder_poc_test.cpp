@@ -1,3 +1,5 @@
+#define PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP
+
 #include "pybind11/detail/smart_holder_poc.h"
 
 #include <functional>

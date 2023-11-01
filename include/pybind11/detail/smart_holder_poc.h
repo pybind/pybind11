@@ -335,6 +335,7 @@ struct smart_holder {
         return hld;
     }
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP
     template <typename T, typename D = std::default_delete<T>>
     std::unique_ptr<T, D> as_unique_ptr() {
         static const char *context = "as_unique_ptr";
@@ -344,6 +345,7 @@ struct smart_holder {
         release_ownership();
         return std::unique_ptr<T, D>(raw_ptr);
     }
+#endif
 
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
