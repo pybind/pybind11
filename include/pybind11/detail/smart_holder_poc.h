@@ -58,6 +58,12 @@ Details:
 
 #pragma once
 
+#if defined(_MSC_VER) && !defined(PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP)
+// Experiment related to
+// https://github.com/pybind/pybind11/pull/4850#issuecomment-1789780676
+#    define PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP
+#endif
+
 #include <functional>
 #include <memory>
 #include <stdexcept>
