@@ -112,7 +112,7 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 template <typename T, typename D>
 struct custom_deleter {
     D deleter;
-    explicit custom_deleter(D &&deleter) : deleter{std::move(deleter)} {}
+    explicit custom_deleter(D &&deleter) : deleter{std::forward<D>(deleter)} {}
     void operator()(void *raw_ptr) { deleter(static_cast<T *>(raw_ptr)); }
 };
 
