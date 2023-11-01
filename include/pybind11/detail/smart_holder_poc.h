@@ -44,6 +44,16 @@ Details:
 * The `void_cast_raw_ptr` option is needed to make the `smart_holder` `vptr`
   member invisible to the `shared_from_this` mechanism, in case the lifetime
   of a `PyObject` is tied to the pointee.
+
+* Regarding `PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP` below:
+  This define serves as a marker for code that is NOT used
+  from smart_holder_type_casters.h, but is exercised only from
+  tests/pure_cpp/smart_holder_poc_test.cpp. The marked code was useful
+  mainly for bootstrapping the smart_holder work. At this stage, with
+  smart_holder_type_casters.h in production use (at Google) since around
+  February 2021, it could be moved from here to tests/pure_cpp/ (help welcome).
+  It will probably be best in most cases to add tests for new functionality
+  under test/test_class_sh_*.
 */
 
 #pragma once
@@ -246,6 +256,7 @@ struct smart_holder {
         return static_cast<T *>(vptr.get());
     }
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T>
     T &as_lvalue_ref() const {
         static const char *context = "as_lvalue_ref";
@@ -253,7 +264,9 @@ struct smart_holder {
         ensure_has_pointee(context);
         return *as_raw_ptr_unowned<T>();
     }
+#endif
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T>
     T &&as_rvalue_ref() const {
         static const char *context = "as_rvalue_ref";
@@ -261,6 +274,7 @@ struct smart_holder {
         ensure_has_pointee(context);
         return std::move(*as_raw_ptr_unowned<T>());
     }
+#endif
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
@@ -305,6 +319,7 @@ struct smart_holder {
         release_disowned();
     }
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T>
     T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
         ensure_can_release_ownership(context);
@@ -312,6 +327,7 @@ struct smart_holder {
         release_ownership();
         return raw_ptr;
     }
+#endif
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
@@ -335,7 +351,7 @@ struct smart_holder {
         return hld;
     }
 
-#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T, typename D = std::default_delete<T>>
     std::unique_ptr<T, D> as_unique_ptr() {
         static const char *context = "as_unique_ptr";
@@ -343,6 +359,7 @@ struct smart_holder {
         ensure_use_count_1(context);
         T *raw_ptr = as_raw_ptr_unowned<T>();
         release_ownership();
+        // KNOWN DEFECT (see PR #4850): Does not copy the deleter.
         return std::unique_ptr<T, D>(raw_ptr);
     }
 #endif
