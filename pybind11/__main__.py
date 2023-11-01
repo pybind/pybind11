@@ -18,7 +18,7 @@ except ImportError:
     else:
         # minimal attempt, handling only the most common case (spaces in path)
         def quote(s: str) -> str:
-            return '"' + s + '"' if " " in s else s
+            return f'"{s}"' if " " in s else s
 
 
 def print_includes() -> None:
@@ -34,7 +34,7 @@ def print_includes() -> None:
         if d and d not in unique_dirs:
             unique_dirs.append(d)
 
-    print(" ".join(quote("-I" + d) for d in unique_dirs))
+    print(" ".join(quote(f"-I{d}") for d in unique_dirs))
 
 
 def main() -> None:
