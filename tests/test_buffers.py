@@ -219,3 +219,10 @@ def test_ctypes_from_buffer():
         assert cinfo.shape == pyinfo.shape
         assert cinfo.strides == pyinfo.strides
         assert not cinfo.readonly
+
+
+def test_buffer_docstring():
+    assert (
+        m.get_buffer_info.__doc__.strip()
+        == "get_buffer_info(arg0: Buffer) -> pybind11_tests.buffers.buffer_info"
+    )

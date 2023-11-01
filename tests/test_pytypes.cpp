@@ -662,8 +662,8 @@ TEST_SUBMODULE(pytypes, m) {
 // This is "most correct" and enforced on these platforms.
 #    define PYBIND11_AUTO_IT auto it
 #else
-// This works on many platforms and is (unfortunately) reflective of existing user code.
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
+    // This works on many platforms and is (unfortunately) reflective of existing user code.
+    // NOLINTNEXTLINE(bugprone-macro-parentheses)
 #    define PYBIND11_AUTO_IT auto &it
 #endif
 
@@ -828,6 +828,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_dict_str_int", [](const py::typing::Dict<py::str, int> &) {});
     m.def("annotate_list_int", [](const py::typing::List<int> &) {});
     m.def("annotate_set_str", [](const py::typing::Set<std::string> &) {});
+    m.def("annotate_iterable_str", [](const py::typing::Iterable<std::string> &) {});
+    m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 }

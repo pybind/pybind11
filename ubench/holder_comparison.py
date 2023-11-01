@@ -9,7 +9,7 @@ import sys
 import time
 from typing import Any, Callable, Dict, List
 
-import pybind11_ubench_holder_comparison as m  # type: ignore[import]
+import pybind11_ubench_holder_comparison as m  # type: ignore[import-not-found]
 
 number_bucket_pc = None
 

@@ -65,6 +65,7 @@ _pybind11_promote_to_cache(PYTHON_INCLUDE_DIRS)
 _pybind11_promote_to_cache(PYTHON_LIBRARIES)
 _pybind11_promote_to_cache(PYTHON_MODULE_PREFIX)
 _pybind11_promote_to_cache(PYTHON_MODULE_EXTENSION)
+_pybind11_promote_to_cache(PYTHON_MODULE_DEBUG_POSTFIX)
 _pybind11_promote_to_cache(PYTHON_VERSION_MAJOR)
 _pybind11_promote_to_cache(PYTHON_VERSION_MINOR)
 _pybind11_promote_to_cache(PYTHON_VERSION)
@@ -148,8 +149,11 @@ endif()
 
 function(pybind11_extension name)
   # The prefix and extension are provided by FindPythonLibsNew.cmake
-  set_target_properties(${name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                           SUFFIX "${PYTHON_MODULE_EXTENSION}")
+  set_target_properties(
+    ${name}
+    PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+               DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
+               SUFFIX "${PYTHON_MODULE_EXTENSION}")
 endfunction()
 
 # Build a Python extension module:

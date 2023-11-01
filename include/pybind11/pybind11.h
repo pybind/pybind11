@@ -15,7 +15,9 @@
 #include "detail/smart_holder_sfinae_hooks_only.h"
 #include "attr.h"
 #include "gil.h"
+#include "gil_safe_call_once.h"
 #include "options.h"
+#include "typing.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -58,11 +60,13 @@ inline std::string replace_newlines_and_squash(const char *text) {
     std::string result(text);
     bool previous_is_whitespace = false;
 
-    // Do not modify string representations
-    char first_char = result[0];
-    char last_char = result[result.size() - 1];
-    if (first_char == last_char && first_char == '\'') {
-        return result;
+    if (result.size() >= 2) {
+        // Do not modify string representations
+        char first_char = result[0];
+        char last_char = result[result.size() - 1];
+        if (first_char == last_char && first_char == '\'') {
+            return result;
+        }
     }
     result.clear();
 
@@ -1141,7 +1145,7 @@ protected:
                     }
                     msg += "kwargs: ";
                     bool first = true;
-                    for (auto kwarg : kwargs) {
+                    for (const auto &kwarg : kwargs) {
                         if (first) {
                             first = false;
                         } else {
@@ -2705,7 +2709,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
           typename... Extra>
-iterator make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+typing::Iterator<ValueType> make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_access<Iterator>,
                                       Policy,
                                       Iterator,
@@ -2723,7 +2727,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename KeyType = typename detail::iterator_key_access<Iterator>::result_type,
           typename... Extra>
-iterator make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+typing::Iterator<KeyType> make_key_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_key_access<Iterator>,
                                       Policy,
                                       Iterator,
@@ -2741,7 +2745,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_value_access<Iterator>::result_type,
           typename... Extra>
-iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+typing::Iterator<ValueType> make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_value_access<Iterator>,
                                       Policy,
                                       Iterator,
@@ -2756,8 +2760,10 @@ iterator make_value_iterator(Iterator first, Sentinel last, Extra &&...extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
+          typename ValueType = typename detail::iterator_access<
+              decltype(std::begin(std::declval<Type &>()))>::result_type,
           typename... Extra>
-iterator make_iterator(Type &value, Extra &&...extra) {
+typing::Iterator<ValueType> make_iterator(Type &value, Extra &&...extra) {
     return make_iterator<Policy>(
         std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
@@ -2766,8 +2772,10 @@ iterator make_iterator(Type &value, Extra &&...extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
+          typename KeyType = typename detail::iterator_key_access<
+              decltype(std::begin(std::declval<Type &>()))>::result_type,
           typename... Extra>
-iterator make_key_iterator(Type &value, Extra &&...extra) {
+typing::Iterator<KeyType> make_key_iterator(Type &value, Extra &&...extra) {
     return make_key_iterator<Policy>(
         std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
@@ -2776,8 +2784,10 @@ iterator make_key_iterator(Type &value, Extra &&...extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type,
+          typename ValueType = typename detail::iterator_value_access<
+              decltype(std::begin(std::declval<Type &>()))>::result_type,
           typename... Extra>
-iterator make_value_iterator(Type &value, Extra &&...extra) {
+typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
     return make_value_iterator<Policy>(
         std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
@@ -2860,23 +2870,14 @@ public:
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-// Returns a reference to a function-local static exception object used in the simple
-// register_exception approach below.  (It would be simpler to have the static local variable
-// directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
-template <typename CppException>
-exception<CppException> &get_exception_object() {
-    static exception<CppException> ex;
-    return ex;
-}
 
 // Helper function for register_exception and register_local_exception
 template <typename CppException>
 exception<CppException> &
 register_exception_impl(handle scope, const char *name, handle base, bool isLocal) {
-    auto &ex = detail::get_exception_object<CppException>();
-    if (!ex) {
-        ex = exception<CppException>(scope, name, base);
-    }
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<exception<CppException>> exc_storage;
+    exc_storage.call_once_and_store_result(
+        [&]() { return exception<CppException>(scope, name, base); });
 
     auto register_func
         = isLocal ? &register_local_exception_translator : &register_exception_translator;
@@ -2888,10 +2889,10 @@ register_exception_impl(handle scope, const char *name, handle base, bool isLoca
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
-            set_error(detail::get_exception_object<CppException>(), e.what());
+            set_error(exc_storage.get_stored(), e.what());
         }
     });
-    return ex;
+    return exc_storage.get_stored();
 }
 
 PYBIND11_NAMESPACE_END(detail)
