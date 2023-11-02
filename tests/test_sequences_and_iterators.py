@@ -58,6 +58,15 @@ def test_generalized_iterators_simple():
     assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).simple_values()) == [2, 4, 5]
 
 
+def test_iterator_doc_annotations():
+    assert m.IntPairs.nonref.__doc__.endswith("-> Iterator[tuple[int, int]]\n")
+    assert m.IntPairs.nonref_keys.__doc__.endswith("-> Iterator[int]\n")
+    assert m.IntPairs.nonref_values.__doc__.endswith("-> Iterator[int]\n")
+    assert m.IntPairs.simple_iterator.__doc__.endswith("-> Iterator[tuple[int, int]]\n")
+    assert m.IntPairs.simple_keys.__doc__.endswith("-> Iterator[int]\n")
+    assert m.IntPairs.simple_values.__doc__.endswith("-> Iterator[int]\n")
+
+
 def test_iterator_referencing():
     """Test that iterators reference rather than copy their referents."""
     vec = m.VectorNonCopyableInt()
@@ -169,6 +178,10 @@ def test_sequence_length():
 
     assert m.sequence_length([1, 2, 3]) == 3
     assert m.sequence_length("hello") == 5
+
+
+def test_sequence_doc():
+    assert m.sequence_length.__doc__.strip() == "sequence_length(arg0: Sequence) -> int"
 
 
 def test_map_iterator():

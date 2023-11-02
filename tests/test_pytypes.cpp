@@ -7,6 +7,8 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/typing.h>
+
 #include "pybind11_tests.h"
 
 #include <utility>
@@ -23,7 +25,7 @@ PyObject *conv(PyObject *o) {
             ret = PyFloat_FromDouble(v);
         }
     } else {
-        PyErr_SetString(PyExc_TypeError, "Unexpected type");
+        py::set_error(PyExc_TypeError, "Unexpected type");
     }
     return ret;
 }
@@ -660,8 +662,8 @@ TEST_SUBMODULE(pytypes, m) {
 // This is "most correct" and enforced on these platforms.
 #    define PYBIND11_AUTO_IT auto it
 #else
-// This works on many platforms and is (unfortunately) reflective of existing user code.
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
+    // This works on many platforms and is (unfortunately) reflective of existing user code.
+    // NOLINTNEXTLINE(bugprone-macro-parentheses)
 #    define PYBIND11_AUTO_IT auto &it
 #endif
 
@@ -820,4 +822,14 @@ TEST_SUBMODULE(pytypes, m) {
         a >>= b;
         return a;
     });
+
+    m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
+    m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
+    m.def("annotate_dict_str_int", [](const py::typing::Dict<py::str, int> &) {});
+    m.def("annotate_list_int", [](const py::typing::List<int> &) {});
+    m.def("annotate_set_str", [](const py::typing::Set<std::string> &) {});
+    m.def("annotate_iterable_str", [](const py::typing::Iterable<std::string> &) {});
+    m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
+    m.def("annotate_fn",
+          [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 }

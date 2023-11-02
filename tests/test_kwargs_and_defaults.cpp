@@ -42,6 +42,52 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("kw_func_udl", kw_func, "x"_a, "y"_a = 300);
     m.def("kw_func_udl_z", kw_func, "x"_a, "y"_a = 0);
 
+    // test line breaks in default argument representation
+    struct CustomRepr {
+        std::string repr_string;
+
+        explicit CustomRepr(const std::string &repr) : repr_string(repr) {}
+
+        std::string __repr__() const { return repr_string; }
+    };
+
+    py::class_<CustomRepr>(m, "CustomRepr")
+        .def(py::init<const std::string &>())
+        .def("__repr__", &CustomRepr::__repr__);
+
+    m.def(
+        "kw_lb_func0",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("  array([[A, B], [C, D]])  "));
+    m.def(
+        "kw_lb_func1",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("  array([[A, B],\n[C, D]])  "));
+    m.def(
+        "kw_lb_func2",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("\v\n   array([[A, B], [C, D]])"));
+    m.def(
+        "kw_lb_func3",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("array([[A, B], [C, D]])   \f\n"));
+    m.def(
+        "kw_lb_func4",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("array([[A, B],\n\f\n[C, D]])"));
+    m.def(
+        "kw_lb_func5",
+        [](const CustomRepr &) {},
+        py::arg("custom") = CustomRepr("array([[A, B],\r  [C, D]])"));
+    m.def(
+        "kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \v\t "));
+    m.def(
+        "kw_lb_func7",
+        [](const std::string &) {},
+        py::arg("str_arg") = "First line.\n  Second line.");
+    m.def(
+        "kw_lb_func8", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(""));
+
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
         PYBIND11_WARNING_PUSH

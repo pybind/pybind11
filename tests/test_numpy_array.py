@@ -298,7 +298,7 @@ def test_constructors():
     results = m.converting_constructors([1, 2, 3])
     for a in results.values():
         np.testing.assert_array_equal(a, [1, 2, 3])
-    assert results["array"].dtype == np.int_
+    assert results["array"].dtype == np.dtype(int)
     assert results["array_t<int32>"].dtype == np.int32
     assert results["array_t<double>"].dtype == np.float64
 

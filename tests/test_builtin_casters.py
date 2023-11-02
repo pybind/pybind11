@@ -352,7 +352,7 @@ def test_tuple(doc):
     assert (
         doc(m.pair_passthrough)
         == """
-        pair_passthrough(arg0: Tuple[bool, str]) -> Tuple[str, bool]
+        pair_passthrough(arg0: tuple[bool, str]) -> tuple[str, bool]
 
         Return a pair in reversed order
     """
@@ -360,7 +360,7 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: Tuple[bool, str, int]) -> Tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, int]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
