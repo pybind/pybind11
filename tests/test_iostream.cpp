@@ -7,12 +7,10 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if defined(_MSC_VER) && _MSC_VER < 1910  // VS 2015's MSVC
-#  pragma warning(disable: 4702) // unreachable code in system header (xatomic.h(382))
-#endif
-
 #include <pybind11/iostream.h>
+
 #include "pybind11_tests.h"
+
 #include <atomic>
 #include <iostream>
 #include <mutex>
@@ -22,8 +20,9 @@
 void noisy_function(const std::string &msg, bool flush) {
 
     std::cout << msg;
-    if (flush)
+    if (flush) {
         std::cout << std::flush;
+    }
 }
 
 void noisy_funct_dual(const std::string &msg, const std::string &emsg) {
@@ -50,13 +49,12 @@ struct TestThread {
                     std::cout << "x" << std::flush;
                 }
                 std::this_thread::sleep_for(std::chrono::microseconds(50));
-            } };
+            }
+        };
         t_ = new std::thread(std::move(thread_f));
     }
 
-    ~TestThread() {
-        delete t_;
-    }
+    ~TestThread() { delete t_; }
 
     void stop() { stop_ = true; }
 
@@ -74,7 +72,6 @@ struct TestThread {
     std::atomic<bool> stop_;
 };
 
-
 TEST_SUBMODULE(iostream, m) {
 
     add_ostream_redirect(m);
@@ -91,9 +88,11 @@ TEST_SUBMODULE(iostream, m) {
         std::cout << msg << std::flush;
     });
 
-    m.def("guard_output", &noisy_function,
-            py::call_guard<py::scoped_ostream_redirect>(),
-            py::arg("msg"), py::arg("flush")=true);
+    m.def("guard_output",
+          &noisy_function,
+          py::call_guard<py::scoped_ostream_redirect>(),
+          py::arg("msg"),
+          py::arg("flush") = true);
 
     m.def("captured_err", [](const std::string &msg) {
         py::scoped_ostream_redirect redir(std::cerr, py::module_::import("sys").attr("stderr"));
@@ -102,9 +101,11 @@ TEST_SUBMODULE(iostream, m) {
 
     m.def("noisy_function", &noisy_function, py::arg("msg"), py::arg("flush") = true);
 
-    m.def("dual_guard", &noisy_funct_dual,
-            py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),
-            py::arg("msg"), py::arg("emsg"));
+    m.def("dual_guard",
+          &noisy_funct_dual,
+          py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),
+          py::arg("msg"),
+          py::arg("emsg"));
 
     m.def("raw_output", [](const std::string &msg) { std::cout << msg << std::flush; });
 

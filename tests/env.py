@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import platform
 import sys
 
@@ -10,10 +9,6 @@ WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
-
-PY2 = sys.version_info.major == 2
-
-PY = sys.version_info
 
 
 def deprecated_call():
@@ -29,5 +24,4 @@ def deprecated_call():
     pytest_major_minor = (int(pieces[0]), int(pieces[1]))
     if pytest_major_minor < (3, 9):
         return pytest.warns((DeprecationWarning, PendingDeprecationWarning))
-    else:
-        return pytest.deprecated_call()
+    return pytest.deprecated_call()

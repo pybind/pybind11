@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import ctypes
 import io
 import struct
@@ -10,6 +9,63 @@ from pybind11_tests import ConstructorStats
 from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
+
+if m.long_double_and_double_have_same_size:
+    # Determined by the compiler used to build the pybind11 tests
+    # (e.g. MSVC gets here, but MinGW might not).
+    np_float128 = None
+    np_complex256 = None
+else:
+    # Determined by the compiler used to build numpy (e.g. MinGW).
+    np_float128 = getattr(np, *["float128"] * 2)
+    np_complex256 = getattr(np, *["complex256"] * 2)
+
+CPP_NAME_FORMAT_NP_DTYPE_TABLE = [
+    ("PyObject *", "O", object),
+    ("bool", "?", np.bool_),
+    ("std::int8_t", "b", np.int8),
+    ("std::uint8_t", "B", np.uint8),
+    ("std::int16_t", "h", np.int16),
+    ("std::uint16_t", "H", np.uint16),
+    ("std::int32_t", "i", np.int32),
+    ("std::uint32_t", "I", np.uint32),
+    ("std::int64_t", "q", np.int64),
+    ("std::uint64_t", "Q", np.uint64),
+    ("float", "f", np.float32),
+    ("double", "d", np.float64),
+    ("long double", "g", np_float128),
+    ("std::complex<float>", "Zf", np.complex64),
+    ("std::complex<double>", "Zd", np.complex128),
+    ("std::complex<long double>", "Zg", np_complex256),
+]
+CPP_NAME_FORMAT_TABLE = [
+    (cpp_name, format)
+    for cpp_name, format, np_dtype in CPP_NAME_FORMAT_NP_DTYPE_TABLE
+    if np_dtype is not None
+]
+CPP_NAME_NP_DTYPE_TABLE = [
+    (cpp_name, np_dtype) for cpp_name, _, np_dtype in CPP_NAME_FORMAT_NP_DTYPE_TABLE
+]
+
+
+@pytest.mark.parametrize(("cpp_name", "np_dtype"), CPP_NAME_NP_DTYPE_TABLE)
+def test_format_descriptor_format_buffer_info_equiv(cpp_name, np_dtype):
+    if np_dtype is None:
+        pytest.skip(
+            f"cpp_name=`{cpp_name}`: `long double` and `double` have same size."
+        )
+    if isinstance(np_dtype, str):
+        pytest.skip(f"np.{np_dtype} does not exist.")
+    np_array = np.array([], dtype=np_dtype)
+    for other_cpp_name, expected_format in CPP_NAME_FORMAT_TABLE:
+        format, np_array_is_matching = m.format_descriptor_format_buffer_info_equiv(
+            other_cpp_name, np_array
+        )
+        assert format == expected_format
+        if other_cpp_name == cpp_name:
+            assert np_array_is_matching
+        else:
+            assert not np_array_is_matching
 
 
 def test_from_python():
@@ -55,7 +111,8 @@ def test_to_python():
     mat2 = np.array(mat, copy=False)
     assert mat2.shape == (5, 4)
     assert abs(mat2).sum() == 11
-    assert mat2[2, 3] == 4 and mat2[3, 2] == 7
+    assert mat2[2, 3] == 4
+    assert mat2[3, 2] == 7
     mat2[2, 3] = 5
     assert mat2[2, 3] == 5
 
@@ -93,16 +150,16 @@ def test_pointer_to_member_fn():
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
-    assert view[0] == b"d" if env.PY2 else 0x64
+    assert view[0] == 0x64
     assert view.readonly
     with pytest.raises(TypeError):
-        view[0] = b"\0" if env.PY2 else 0
+        view[0] = 0
 
 
 def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 
-    memoryview(buf)[0] = b"d" if env.PY2 else 0x64
+    memoryview(buf)[0] = 0x64
     assert buf.value == 0x64
 
     io.BytesIO(b"A").readinto(buf)
@@ -110,7 +167,7 @@ def test_selective_readonly_buffer():
 
     buf.readonly = True
     with pytest.raises(TypeError):
-        memoryview(buf)[0] = b"\0" if env.PY2 else 0
+        memoryview(buf)[0] = 0
     with pytest.raises(TypeError):
         io.BytesIO(b"1").readinto(buf)
 
@@ -145,9 +202,6 @@ def test_ctypes_array_2d():
         assert not info.readonly
 
 
-@pytest.mark.skipif(
-    "env.PYPY and env.PY2", reason="PyPy2 bytes buffer not reported as readonly"
-)
 def test_ctypes_from_buffer():
     test_pystr = b"0123456789"
     for pyarray in (test_pystr, bytearray(test_pystr)):

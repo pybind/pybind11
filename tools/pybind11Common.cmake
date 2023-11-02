@@ -5,10 +5,9 @@ Adds the following targets::
     pybind11::pybind11 - link to headers and pybind11
     pybind11::module - Adds module links
     pybind11::embed - Adds embed links
-    pybind11::lto - Link time optimizations (manual selection)
-    pybind11::thin_lto - Link time optimizations (manual selection)
+    pybind11::lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
+    pybind11::thin_lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
     pybind11::python_link_helper - Adds link to Python libraries
-    pybind11::python2_no_register - Avoid warning/error with Python 2 + C++14/7
     pybind11::windows_extras - MSVC bigobj and mp for building multithreaded
     pybind11::opt_size - avoid optimizations that increase code size
 
@@ -21,7 +20,7 @@ Adds the following functions::
 
 # CMake 3.10 has an include_guard command, but we can't use that yet
 # include_guard(global) (pre-CMake 3.10)
-if(TARGET pybind11::lto)
+if(TARGET pybind11::pybind11)
   return()
 endif()
 
@@ -66,31 +65,6 @@ set_property(
   APPEND
   PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11)
 
-# ----------------------- no register ----------------------
-
-# Workaround for Python 2.7 and C++17 (C++14 as a warning) incompatibility
-# This adds the flags -Wno-register and -Wno-deprecated-register if the compiler
-# is Clang 3.9+ or AppleClang and the compile language is CXX, or /wd5033 for MSVC (all languages,
-# since MSVC didn't recognize COMPILE_LANGUAGE until CMake 3.11+).
-
-add_library(pybind11::python2_no_register INTERFACE IMPORTED ${optional_global})
-set(clang_4plus
-    "$<AND:$<CXX_COMPILER_ID:Clang>,$<NOT:$<VERSION_LESS:$<CXX_COMPILER_VERSION>,3.9>>>")
-set(no_register "$<OR:${clang_4plus},$<CXX_COMPILER_ID:AppleClang>>")
-
-if(MSVC AND CMAKE_VERSION VERSION_LESS 3.11)
-  set(cxx_no_register "${no_register}")
-else()
-  set(cxx_no_register "$<AND:$<COMPILE_LANGUAGE:CXX>,${no_register}>")
-endif()
-
-set(msvc "$<CXX_COMPILER_ID:MSVC>")
-
-set_property(
-  TARGET pybind11::python2_no_register
-  PROPERTY INTERFACE_COMPILE_OPTIONS
-           "$<${cxx_no_register}:-Wno-register;-Wno-deprecated-register>" "$<${msvc}:/wd5033>")
-
 # --------------------------- link helper ---------------------------
 
 add_library(pybind11::python_link_helper IMPORTED INTERFACE ${optional_global})
@@ -122,7 +96,7 @@ if(MSVC) # That's also clang-cl
   set_property(
     TARGET pybind11::windows_extras
     APPEND
-    PROPERTY INTERFACE_COMPILE_OPTIONS /bigobj)
+    PROPERTY INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:/bigobj>)
 
   # /MP enables multithreaded builds (relevant when there are many files) for MSVC
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") # no Clang no Intel
@@ -189,11 +163,19 @@ endif()
 
 # --------------------- Python specifics -------------------------
 
+# CMake 3.27 removes the classic FindPythonInterp if CMP0148 is NEW
+if(CMAKE_VERSION VERSION_LESS "3.27")
+  set(_pybind11_missing_old_python "OLD")
+else()
+  cmake_policy(GET CMP0148 _pybind11_missing_old_python)
+endif()
+
 # Check to see which Python mode we are in, new, old, or no python
 if(PYBIND11_NOPYTHON)
   set(_pybind11_nopython ON)
 elseif(
-  PYBIND11_FINDPYTHON
+  _pybind11_missing_old_python STREQUAL "NEW"
+  OR PYBIND11_FINDPYTHON
   OR Python_FOUND
   OR Python2_FOUND
   OR Python3_FOUND)
@@ -318,16 +300,34 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       set(cxx_append ";-fno-fat-lto-objects")
     endif()
 
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND prefer_thin_lto)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le" OR CMAKE_SYSTEM_PROCESSOR MATCHES "mips64")
+      set(NO_FLTO_ARCH TRUE)
+    else()
+      set(NO_FLTO_ARCH FALSE)
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+       AND prefer_thin_lto
+       AND NOT NO_FLTO_ARCH)
       _pybind11_return_if_cxx_and_linker_flags_work(
         HAS_FLTO_THIN "-flto=thin${cxx_append}" "-flto=thin${linker_append}"
         PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
 
-    if(NOT HAS_FLTO_THIN)
+    if(NOT HAS_FLTO_THIN AND NOT NO_FLTO_ARCH)
       _pybind11_return_if_cxx_and_linker_flags_work(
         HAS_FLTO "-flto${cxx_append}" "-flto${linker_append}" PYBIND11_LTO_CXX_FLAGS
         PYBIND11_LTO_LINKER_FLAGS)
+    endif()
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    # IntelLLVM equivalent to LTO is called IPO; also IntelLLVM is WIN32/UNIX
+    # WARNING/HELP WANTED: This block of code is currently not covered by pybind11 GitHub Actions!
+    if(WIN32)
+      _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_INTEL_IPO "-Qipo" "-Qipo" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+    else()
+      _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_INTEL_IPO "-ipo" "-ipo" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     # Intel equivalent to LTO is called IPO
@@ -380,11 +380,13 @@ function(_pybind11_generate_lto target prefer_thin_lto)
   endif()
 endfunction()
 
-add_library(pybind11::lto IMPORTED INTERFACE ${optional_global})
-_pybind11_generate_lto(pybind11::lto FALSE)
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  add_library(pybind11::lto IMPORTED INTERFACE ${optional_global})
+  _pybind11_generate_lto(pybind11::lto FALSE)
 
-add_library(pybind11::thin_lto IMPORTED INTERFACE ${optional_global})
-_pybind11_generate_lto(pybind11::thin_lto TRUE)
+  add_library(pybind11::thin_lto IMPORTED INTERFACE ${optional_global})
+  _pybind11_generate_lto(pybind11::thin_lto TRUE)
+endif()
 
 # ---------------------- pybind11_strip -----------------------------
 

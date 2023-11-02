@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import ConstructorStats, UserType
@@ -15,6 +14,7 @@ def test_vector(doc):
 
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
+    assert m.load_bool_vector((True, False))
 
     assert doc(m.cast_vector) == "cast_vector() -> List[int]"
     assert doc(m.load_vector) == "load_vector(arg0: List[int]) -> bool"
@@ -23,7 +23,7 @@ def test_vector(doc):
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
 
 
-def test_deque(doc):
+def test_deque():
     """std::deque <-> list"""
     lst = m.cast_deque()
     assert lst == [1]
@@ -37,9 +37,13 @@ def test_array(doc):
     lst = m.cast_array()
     assert lst == [1, 2]
     assert m.load_array(lst)
+    assert m.load_array(tuple(lst))
 
-    assert doc(m.cast_array) == "cast_array() -> List[int[2]]"
-    assert doc(m.load_array) == "load_array(arg0: List[int[2]]) -> bool"
+    assert doc(m.cast_array) == "cast_array() -> Annotated[List[int], FixedSize(2)]"
+    assert (
+        doc(m.load_array)
+        == "load_array(arg0: Annotated[List[int], FixedSize(2)]) -> bool"
+    )
 
 
 def test_valarray(doc):
@@ -47,6 +51,7 @@ def test_valarray(doc):
     lst = m.cast_valarray()
     assert lst == [1, 4, 9]
     assert m.load_valarray(lst)
+    assert m.load_valarray(tuple(lst))
 
     assert doc(m.cast_valarray) == "cast_valarray() -> List[int]"
     assert doc(m.load_valarray) == "load_valarray(arg0: List[int]) -> bool"
@@ -71,6 +76,7 @@ def test_set(doc):
     assert s == {"key1", "key2"}
     s.add("key3")
     assert m.load_set(s)
+    assert m.load_set(frozenset(s))
 
     assert doc(m.cast_set) == "cast_set() -> Set[str]"
     assert doc(m.load_set) == "load_set(arg0: Set[str]) -> bool"
@@ -92,7 +98,8 @@ def test_recursive_casting():
 
     # Issue #853 test case:
     z = m.cast_unique_ptr_vector()
-    assert z[0].value == 7 and z[1].value == 42
+    assert z[0].value == 7
+    assert z[1].value == 42
 
 
 def test_move_out_container():
@@ -264,6 +271,22 @@ def test_variant(doc):
     )
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "load_monostate_variant"), reason="no std::monostate"
+)
+def test_variant_monostate(doc):
+    assert m.load_monostate_variant(None) == "std::monostate"
+    assert m.load_monostate_variant(1) == "int"
+    assert m.load_monostate_variant("1") == "std::string"
+
+    assert m.cast_monostate_variant() == (None, 5, "Hello")
+
+    assert (
+        doc(m.load_monostate_variant)
+        == "load_monostate_variant(arg0: Union[None, int, str]) -> str"
+    )
+
+
 def test_vec_of_reference_wrapper():
     """#171: Can't return reference wrappers (or STL structures containing them)"""
     assert (
@@ -283,7 +306,7 @@ def test_stl_pass_by_pointer(msg):
             1. (v: List[int] = None) -> List[int]
 
         Invoked with:
-    """  # noqa: E501 line too long
+    """
     )
 
     with pytest.raises(TypeError) as excinfo:
@@ -295,7 +318,7 @@ def test_stl_pass_by_pointer(msg):
             1. (v: List[int] = None) -> List[int]
 
         Invoked with: None
-    """  # noqa: E501 line too long
+    """
     )
 
     assert m.stl_pass_by_pointer([1, 2, 3]) == [1, 2, 3]
@@ -347,7 +370,7 @@ def test_issue_1561():
     """check fix for issue #1561"""
     bar = m.Issue1561Outer()
     bar.list = [m.Issue1561Inner("bar")]
-    bar.list
+    assert bar.list
     assert bar.list[0].data == "bar"
 
 

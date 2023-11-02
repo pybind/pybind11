@@ -177,9 +177,12 @@ section.
     may be explicitly (re-)thrown to delegate it to the other,
     previously-declared existing exception translators.
 
-    Note that ``libc++`` and ``libstdc++`` `behave differently <https://stackoverflow.com/questions/19496643/using-clang-fvisibility-hidden-and-typeinfo-and-type-erasure/28827430>`_
-    with ``-fvisibility=hidden``. Therefore exceptions that are used across ABI boundaries need to be explicitly exported, as exercised in ``tests/test_exceptions.h``.
-    See also: "Problems with C++ exceptions" under `GCC Wiki <https://gcc.gnu.org/wiki/Visibility>`_.
+    Note that ``libc++`` and ``libstdc++`` `behave differently under macOS
+    <https://stackoverflow.com/questions/19496643/using-clang-fvisibility-hidden-and-typeinfo-and-type-erasure/28827430>`_
+    with ``-fvisibility=hidden``. Therefore exceptions that are used across ABI
+    boundaries need to be explicitly exported, as exercised in
+    ``tests/test_exceptions.h``. See also:
+    "Problems with C++ exceptions" under `GCC Wiki <https://gcc.gnu.org/wiki/Visibility>`_.
 
 
 Local vs Global Exception Translators
@@ -328,8 +331,8 @@ an invalid state.
 Chaining exceptions ('raise from')
 ==================================
 
-In Python 3.3 a mechanism for indicating that exceptions were caused by other
-exceptions was introduced:
+Python has a mechanism for indicating that exceptions were caused by other
+exceptions:
 
 .. code-block:: py
 
@@ -340,7 +343,7 @@ exceptions was introduced:
 
 To do a similar thing in pybind11, you can use the ``py::raise_from`` function. It
 sets the current python error indicator, so to continue propagating the exception
-you should ``throw py::error_already_set()`` (Python 3 only).
+you should ``throw py::error_already_set()``.
 
 .. code-block:: cpp
 

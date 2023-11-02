@@ -1,31 +1,48 @@
-# -*- coding: utf-8 -*-
 """pytest configuration
 
 Extends output capture as needed by pybind11: ignore constructors, optional unordered lines.
-Adds docstring and exceptions message sanitizers: ignore Python 2 vs 3 differences.
+Adds docstring and exceptions message sanitizers.
 """
 
 import contextlib
 import difflib
 import gc
+import multiprocessing
 import re
+import sys
 import textwrap
+import traceback
 
 import pytest
 
-import env
-
 # Early diagnostic for failed imports
-import pybind11_tests  # noqa: F401
+try:
+    import pybind11_tests
+except Exception:
+    # pytest does not show the traceback without this.
+    traceback.print_exc()
+    raise
 
-_unicode_marker = re.compile(r"u(\'[^\']*\')")
+
+@pytest.fixture(scope="session", autouse=True)
+def use_multiprocessing_forkserver_on_linux():
+    if sys.platform != "linux":
+        # The default on Windows and macOS is "spawn": If it's not broken, don't fix it.
+        return
+
+    # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
+    # In a nutshell: fork() after starting threads == flakiness in the form of deadlocks.
+    # It is actually a well-known pitfall, unfortunately without guard rails.
+    # "forkserver" is more performant than "spawn" (~9s vs ~13s for tests/test_gil_scoped.py,
+    # visit the issuecomment link above for details).
+    multiprocessing.set_start_method("forkserver")
+
+
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
 
 # Avoid collecting Python3 only files
 collect_ignore = []
-if env.PY2:
-    collect_ignore.append("test_async.py")
 
 
 def _strip_and_dedent(s):
@@ -45,7 +62,7 @@ def _make_explanation(a, b):
     ]
 
 
-class Output(object):
+class Output:
     """Basic output post-processing and comparison"""
 
     def __init__(self, string):
@@ -65,9 +82,8 @@ class Output(object):
         b = _strip_and_dedent(other).splitlines()
         if a == b:
             return True
-        else:
-            self.explanation = _make_explanation(a, b)
-            return False
+        self.explanation = _make_explanation(a, b)
+        return False
 
 
 class Unordered(Output):
@@ -78,12 +94,11 @@ class Unordered(Output):
         b = _split_and_sort(other)
         if a == b:
             return True
-        else:
-            self.explanation = _make_explanation(a, b)
-            return False
+        self.explanation = _make_explanation(a, b)
+        return False
 
 
-class Capture(object):
+class Capture:
     def __init__(self, capfd):
         self.capfd = capfd
         self.out = ""
@@ -101,9 +116,8 @@ class Capture(object):
         b = other
         if a == b:
             return True
-        else:
-            self.explanation = a.explanation
-            return False
+        self.explanation = a.explanation
+        return False
 
     def __str__(self):
         return self.out
@@ -120,13 +134,13 @@ class Capture(object):
         return Output(self.err)
 
 
-@pytest.fixture
+@pytest.fixture()
 def capture(capsys):
     """Extended `capsys` with context manager and custom equality operators"""
     return Capture(capsys)
 
 
-class SanitizedString(object):
+class SanitizedString:
     def __init__(self, sanitizer):
         self.sanitizer = sanitizer
         self.string = ""
@@ -141,27 +155,22 @@ class SanitizedString(object):
         b = _strip_and_dedent(other)
         if a == b:
             return True
-        else:
-            self.explanation = _make_explanation(a.splitlines(), b.splitlines())
-            return False
+        self.explanation = _make_explanation(a.splitlines(), b.splitlines())
+        return False
 
 
 def _sanitize_general(s):
     s = s.strip()
     s = s.replace("pybind11_tests.", "m.")
-    s = s.replace("unicode", "str")
-    s = _long_marker.sub(r"\1", s)
-    s = _unicode_marker.sub(r"\1", s)
-    return s
+    return _long_marker.sub(r"\1", s)
 
 
 def _sanitize_docstring(thing):
     s = thing.__doc__
-    s = _sanitize_general(s)
-    return s
+    return _sanitize_general(s)
 
 
-@pytest.fixture
+@pytest.fixture()
 def doc():
     """Sanitize docstrings and add custom failure explanation"""
     return SanitizedString(_sanitize_docstring)
@@ -170,30 +179,20 @@ def doc():
 def _sanitize_message(thing):
     s = str(thing)
     s = _sanitize_general(s)
-    s = _hexadecimal.sub("0", s)
-    return s
+    return _hexadecimal.sub("0", s)
 
 
-@pytest.fixture
+@pytest.fixture()
 def msg():
     """Sanitize messages and add custom failure explanation"""
     return SanitizedString(_sanitize_message)
 
 
-# noinspection PyUnusedLocal
-def pytest_assertrepr_compare(op, left, right):
+def pytest_assertrepr_compare(op, left, right):  # noqa: ARG001
     """Hook to insert custom failure explanation"""
     if hasattr(left, "explanation"):
         return left.explanation
-
-
-@contextlib.contextmanager
-def suppress(exception):
-    """Suppress the desired exception"""
-    try:
-        yield
-    except exception:
-        pass
+    return None
 
 
 def gc_collect():
@@ -204,5 +203,19 @@ def gc_collect():
 
 
 def pytest_configure():
-    pytest.suppress = suppress
+    pytest.suppress = contextlib.suppress
     pytest.gc_collect = gc_collect
+
+
+def pytest_report_header(config):
+    del config  # Unused.
+    assert (
+        pybind11_tests.compiler_info is not None
+    ), "Please update pybind11_tests.cpp if this assert fails."
+    return (
+        "C++ Info:"
+        f" {pybind11_tests.compiler_info}"
+        f" {pybind11_tests.cpp_std}"
+        f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
+        f" PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}"
+    )

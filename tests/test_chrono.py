@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import pytest
@@ -8,7 +7,6 @@ from pybind11_tests import chrono as m
 
 
 def test_chrono_system_clock():
-
     # Get the time from both c++ and datetime
     date0 = datetime.datetime.today()
     date1 = m.test_chrono1()
@@ -101,7 +99,7 @@ SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
 )
 def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
     if tz is not None:
-        monkeypatch.setenv("TZ", "/usr/share/zoneinfo/{}".format(tz))
+        monkeypatch.setenv("TZ", f"/usr/share/zoneinfo/{tz}")
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(time1)
@@ -123,7 +121,6 @@ def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
 
 
 def test_chrono_duration_roundtrip():
-
     # Get the difference between two times (a timedelta)
     date1 = datetime.datetime.today()
     date2 = datetime.datetime.today()
@@ -144,7 +141,6 @@ def test_chrono_duration_roundtrip():
 
 
 def test_chrono_duration_subtraction_equivalence():
-
     date1 = datetime.datetime.today()
     date2 = datetime.datetime.today()
 
@@ -155,7 +151,6 @@ def test_chrono_duration_subtraction_equivalence():
 
 
 def test_chrono_duration_subtraction_equivalence_date():
-
     date1 = datetime.date.today()
     date2 = datetime.date.today()
 

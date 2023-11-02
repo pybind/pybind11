@@ -8,21 +8,20 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include <pybind11/chrono.h>
+
+#include "pybind11_tests.h"
+
 #include <chrono>
 
 struct different_resolutions {
-    using time_point_h = std::chrono::time_point<
-        std::chrono::system_clock, std::chrono::hours>;
-    using time_point_m = std::chrono::time_point<
-        std::chrono::system_clock, std::chrono::minutes>;
-    using time_point_s = std::chrono::time_point<
-        std::chrono::system_clock, std::chrono::seconds>;
-    using time_point_ms = std::chrono::time_point<
-        std::chrono::system_clock, std::chrono::milliseconds>;
-    using time_point_us = std::chrono::time_point<
-        std::chrono::system_clock, std::chrono::microseconds>;
+    using time_point_h = std::chrono::time_point<std::chrono::system_clock, std::chrono::hours>;
+    using time_point_m = std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>;
+    using time_point_s = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
+    using time_point_ms
+        = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
+    using time_point_us
+        = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
     time_point_h timestamp_h;
     time_point_m timestamp_m;
     time_point_s timestamp_s;
@@ -65,12 +64,11 @@ TEST_SUBMODULE(chrono, m) {
     // Roundtrip a duration in microseconds from a float argument
     m.def("test_chrono7", [](std::chrono::microseconds t) { return t; });
     // Float durations (issue #719)
-    m.def("test_chrono_float_diff", [](std::chrono::duration<float> a, std::chrono::duration<float> b) {
-        return a - b; });
+    m.def("test_chrono_float_diff",
+          [](std::chrono::duration<float> a, std::chrono::duration<float> b) { return a - b; });
 
-    m.def("test_nano_timepoint", [](timestamp start, timespan delta) -> timestamp {
-        return start + delta;
-    });
+    m.def("test_nano_timepoint",
+          [](timestamp start, timespan delta) -> timestamp { return start + delta; });
 
     // Test different resolutions
     py::class_<different_resolutions>(m, "different_resolutions")
@@ -79,6 +77,5 @@ TEST_SUBMODULE(chrono, m) {
         .def_readwrite("timestamp_m", &different_resolutions::timestamp_m)
         .def_readwrite("timestamp_s", &different_resolutions::timestamp_s)
         .def_readwrite("timestamp_ms", &different_resolutions::timestamp_ms)
-        .def_readwrite("timestamp_us", &different_resolutions::timestamp_us)
-        ;
+        .def_readwrite("timestamp_us", &different_resolutions::timestamp_us);
 }

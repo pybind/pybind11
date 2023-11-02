@@ -7,7 +7,7 @@ if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STR
   return()
 endif()
 
-find_package(Catch 2.13.2)
+find_package(Catch 2.13.9)
 
 if(CATCH_FOUND)
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")

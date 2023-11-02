@@ -51,8 +51,6 @@ complex applications, and they are available in all modes:
   Python headers too.
 ``pybind11::python_link_helper``
   Just the "linking" part of ``pybind11:module``, for CMake < 3.15.
-``pybind11::python2_no_register``
-  Quiets the warning/error when mixing C++14+ and Python 2, also included in ``pybind11::module``.
 ``pybind11::thin_lto``
   An alternative to ``INTERPROCEDURAL_OPTIMIZATION``.
 ``pybind11::lto``
@@ -65,7 +63,9 @@ Modes
 
 There are two modes provided; classic, which is built on the old Python
 discovery packages in CMake, or the new FindPython mode, which uses FindPython
-from 3.12+ forward (3.15+ _highly_ recommended).
+from 3.12+ forward (3.15+ _highly_ recommended). If you set the minimum or
+maximum version of CMake to 3.27+, then FindPython is the default (since
+FindPythonInterp/FindPythonLibs has been removed via policy `CMP0148`).
 
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^
@@ -88,7 +88,7 @@ you can either use the basic targets, or use the FindPython tools:
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
                                   CXX_VISIBILITY_PRESET ON
-                                  VISIBLITY_INLINES_HIDDEN ON)
+                                  VISIBILITY_INLINES_HIDDEN ON)
 
 If you build targets yourself, you may be interested in stripping the output
 for reduced size; this is the one other feature that the helper function gives you.
@@ -195,7 +195,7 @@ Using ``find_package`` with version info is not recommended except for release v
 .. code-block:: cmake
 
   find_package(pybind11 CONFIG)
-  find_package(pybind11 2.0 EXACT CONFIG REQUIRED)
+  find_package(pybind11 2.9 EXACT CONFIG REQUIRED)
 
 #]=============================================================================]
 @PACKAGE_INIT@

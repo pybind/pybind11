@@ -7,18 +7,117 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <utility>
-
 #include "pybind11_tests.h"
 
+#include <utility>
+
+namespace external {
+namespace detail {
+bool check(PyObject *o) { return PyFloat_Check(o) != 0; }
+
+PyObject *conv(PyObject *o) {
+    PyObject *ret = nullptr;
+    if (PyLong_Check(o)) {
+        double v = PyLong_AsDouble(o);
+        if (!(v == -1.0 && PyErr_Occurred())) {
+            ret = PyFloat_FromDouble(v);
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "Unexpected type");
+    }
+    return ret;
+}
+
+PyObject *default_constructed() { return PyFloat_FromDouble(0.0); }
+} // namespace detail
+class float_ : public py::object {
+    PYBIND11_OBJECT_CVT(float_, py::object, external::detail::check, external::detail::conv)
+
+    float_() : py::object(external::detail::default_constructed(), stolen_t{}) {}
+
+    double get_value() const { return PyFloat_AsDouble(this->ptr()); }
+};
+} // namespace external
+
+namespace implicit_conversion_from_0_to_handle {
+// Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
+// void expected_to_trigger_compiler_error() { py::handle(0); }
+} // namespace implicit_conversion_from_0_to_handle
+
+// Used to validate systematically that PR #4008 does/did NOT change the behavior.
+void pure_compile_tests_for_handle_from_PyObject_pointers() {
+    {
+        PyObject *ptr = Py_None;
+        py::handle{ptr};
+    }
+    {
+        PyObject *const ptr = Py_None;
+        py::handle{ptr};
+    }
+    // Uncomment to trigger compiler errors.
+    // PyObject const *               ptr = Py_None; py::handle{ptr};
+    // PyObject const *const          ptr = Py_None; py::handle{ptr};
+    // PyObject volatile *            ptr = Py_None; py::handle{ptr};
+    // PyObject volatile *const       ptr = Py_None; py::handle{ptr};
+    // PyObject const volatile *      ptr = Py_None; py::handle{ptr};
+    // PyObject const volatile *const ptr = Py_None; py::handle{ptr};
+}
+
+namespace handle_from_move_only_type_with_operator_PyObject {
+
+// Reduced from
+// https://github.com/pytorch/pytorch/blob/279634f384662b7c3a9f8bf7ccc3a6afd2f05657/torch/csrc/utils/object_ptr.h
+struct operator_ncnst {
+    operator_ncnst() = default;
+    operator_ncnst(operator_ncnst &&) = default;
+    operator PyObject *() /* */ { return Py_None; } // NOLINT(google-explicit-constructor)
+};
+
+struct operator_const {
+    operator_const() = default;
+    operator_const(operator_const &&) = default;
+    operator PyObject *() const { return Py_None; } // NOLINT(google-explicit-constructor)
+};
+
+bool from_ncnst() {
+    operator_ncnst obj;
+    auto h = py::handle(obj);  // Critical part of test: does this compile?
+    return h.ptr() == Py_None; // Just something.
+}
+
+bool from_const() {
+    operator_const obj;
+    auto h = py::handle(obj);  // Critical part of test: does this compile?
+    return h.ptr() == Py_None; // Just something.
+}
+
+void m_defs(py::module_ &m) {
+    m.def("handle_from_move_only_type_with_operator_PyObject_ncnst", from_ncnst);
+    m.def("handle_from_move_only_type_with_operator_PyObject_const", from_const);
+}
+
+} // namespace handle_from_move_only_type_with_operator_PyObject
 
 TEST_SUBMODULE(pytypes, m) {
+    m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
+
+    handle_from_move_only_type_with_operator_PyObject::m_defs(m);
+
+    // test_bool
+    m.def("get_bool", [] { return py::bool_(false); });
     // test_int
-    m.def("get_int", []{return py::int_(0);});
+    m.def("get_int", [] { return py::int_(0); });
     // test_iterator
-    m.def("get_iterator", []{return py::iterator();});
+    m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
-    m.def("get_iterable", []{return py::iterable();});
+    m.def("get_iterable", [] { return py::iterable(); });
+    m.def("get_frozenset_from_iterable",
+          [](const py::iterable &iter) { return py::frozenset(iter); });
+    m.def("get_list_from_iterable", [](const py::iterable &iter) { return py::list(iter); });
+    m.def("get_set_from_iterable", [](const py::iterable &iter) { return py::set(iter); });
+    m.def("get_tuple_from_iterable", [](const py::iterable &iter) { return py::tuple(iter); });
+    // test_float
+    m.def("get_float", [] { return py::float_(0.0f); });
     // test_list
     m.def("list_no_args", []() { return py::list{}; });
     m.def("list_ssize_t", []() { return py::list{(py::ssize_t) 0}; });
@@ -36,14 +135,15 @@ TEST_SUBMODULE(pytypes, m) {
     });
     m.def("print_list", [](const py::list &list) {
         int index = 0;
-        for (auto item : list)
+        for (auto item : list) {
             py::print("list item {}: {}"_s.format(index++, item));
+        }
     });
     // test_none
-    m.def("get_none", []{return py::none();});
+    m.def("get_none", [] { return py::none(); });
     m.def("print_none", [](const py::none &none) { py::print("none: {}"_s.format(none)); });
 
-    // test_set
+    // test_set, test_frozenset
     m.def("get_set", []() {
         py::set set;
         set.add(py::str("key1"));
@@ -51,27 +151,41 @@ TEST_SUBMODULE(pytypes, m) {
         set.add(std::string("key3"));
         return set;
     });
-    m.def("print_set", [](const py::set &set) {
-        for (auto item : set)
-            py::print("key:", item);
+    m.def("get_frozenset", []() {
+        py::set set;
+        set.add(py::str("key1"));
+        set.add("key2");
+        set.add(std::string("key3"));
+        return py::frozenset(set);
     });
-    m.def("set_contains",
-          [](const py::set &set, const py::object &key) { return set.contains(key); });
-    m.def("set_contains", [](const py::set &set, const char *key) { return set.contains(key); });
+    m.def("print_anyset", [](const py::anyset &set) {
+        for (auto item : set) {
+            py::print("key:", item);
+        }
+    });
+    m.def("anyset_size", [](const py::anyset &set) { return set.size(); });
+    m.def("anyset_empty", [](const py::anyset &set) { return set.empty(); });
+    m.def("anyset_contains",
+          [](const py::anyset &set, const py::object &key) { return set.contains(key); });
+    m.def("anyset_contains",
+          [](const py::anyset &set, const char *key) { return set.contains(key); });
+    m.def("set_add", [](py::set &set, const py::object &key) { set.add(key); });
+    m.def("set_clear", [](py::set &set) { set.clear(); });
 
     // test_dict
-    m.def("get_dict", []() { return py::dict("key"_a="value"); });
+    m.def("get_dict", []() { return py::dict("key"_a = "value"); });
     m.def("print_dict", [](const py::dict &dict) {
-        for (auto item : dict)
+        for (auto item : dict) {
             py::print("key: {}, value={}"_s.format(item.first, item.second));
+        }
     });
     m.def("dict_keyword_constructor", []() {
-        auto d1 = py::dict("x"_a=1, "y"_a=2);
-        auto d2 = py::dict("z"_a=3, **d1);
+        auto d1 = py::dict("x"_a = 1, "y"_a = 2);
+        auto d2 = py::dict("z"_a = 3, **d1);
         return d2;
     });
     m.def("dict_contains",
-          [](const py::dict &dict, py::object val) { return dict.contains(val); });
+          [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
@@ -81,31 +195,34 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("tuple_size_t", []() { return py::tuple{(py::size_t) 0}; });
     m.def("get_tuple", []() { return py::make_tuple(42, py::none(), "spam"); });
 
-#if PY_VERSION_HEX >= 0x03030000
     // test_simple_namespace
     m.def("get_simple_namespace", []() {
-        auto ns = py::module_::import("types").attr("SimpleNamespace")("attr"_a=42, "x"_a="foo", "wrong"_a=1);
+        auto ns = py::module_::import("types").attr("SimpleNamespace")(
+            "attr"_a = 42, "x"_a = "foo", "wrong"_a = 1);
         py::delattr(ns, "wrong");
         py::setattr(ns, "right", py::int_(2));
         return ns;
     });
-#endif
 
     // test_str
     m.def("str_from_char_ssize_t", []() { return py::str{"red", (py::ssize_t) 3}; });
     m.def("str_from_char_size_t", []() { return py::str{"blue", (py::size_t) 4}; });
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
+    m.def("str_from_std_string_input", [](const std::string &stri) { return py::str(stri); });
+    m.def("str_from_cstr_input", [](const char *c_str) { return py::str(c_str); });
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
-    m.def("str_from_object", [](const py::object& obj) { return py::str(obj); });
-    m.def("repr_from_object", [](const py::object& obj) { return py::repr(obj); });
+    m.def("str_from_bytes_input",
+          [](const py::bytes &encoded_str) { return py::str(encoded_str); });
+
+    m.def("str_from_object", [](const py::object &obj) { return py::str(obj); });
+    m.def("repr_from_object", [](const py::object &obj) { return py::repr(obj); });
     m.def("str_from_handle", [](py::handle h) { return py::str(h); });
-    m.def("str_from_string_from_str", [](const py::str& obj) {
-        return py::str(static_cast<std::string>(obj));
-    });
+    m.def("str_from_string_from_str",
+          [](const py::str &obj) { return py::str(static_cast<std::string>(obj)); });
 
     m.def("str_format", []() {
         auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
-        auto s2 = "{a} + {b} = {c}"_s.format("a"_a=1, "b"_a=2, "c"_a=3);
+        auto s2 = "{a} + {b} = {c}"_s.format("a"_a = 1, "b"_a = 2, "c"_a = 3);
         return py::make_tuple(s1, s2);
     });
 
@@ -124,9 +241,16 @@ TEST_SUBMODULE(pytypes, m) {
     // test_capsule
     m.def("return_capsule_with_destructor", []() {
         py::print("creating capsule");
-        return py::capsule([]() {
-            py::print("destructing capsule");
-        });
+        return py::capsule([]() { py::print("destructing capsule"); });
+    });
+
+    m.def("return_renamed_capsule_with_destructor", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule([]() { py::print("destructing capsule"); });
+        static const char *capsule_name = "test_name1";
+        py::print("renaming capsule");
+        cap.set_name(capsule_name);
+        return cap;
     });
 
     m.def("return_capsule_with_destructor_2", []() {
@@ -136,29 +260,55 @@ TEST_SUBMODULE(pytypes, m) {
         });
     });
 
+    m.def("return_capsule_with_destructor_3", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule((void *) 1233, "oname", [](void *ptr) {
+            py::print("destructing capsule: {}"_s.format((size_t) ptr));
+        });
+        py::print("original name: {}"_s.format(cap.name()));
+        return cap;
+    });
+
+    m.def("return_renamed_capsule_with_destructor_2", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule((void *) 1234, [](void *ptr) {
+            py::print("destructing capsule: {}"_s.format((size_t) ptr));
+        });
+        static const char *capsule_name = "test_name2";
+        py::print("renaming capsule");
+        cap.set_name(capsule_name);
+        return cap;
+    });
+
     m.def("return_capsule_with_name_and_destructor", []() {
         auto capsule = py::capsule((void *) 12345, "pointer type description", [](PyObject *ptr) {
             if (ptr) {
-                auto name = PyCapsule_GetName(ptr);
+                const auto *name = PyCapsule_GetName(ptr);
                 py::print("destructing capsule ({}, '{}')"_s.format(
-                    (size_t) PyCapsule_GetPointer(ptr, name), name
-                ));
+                    (size_t) PyCapsule_GetPointer(ptr, name), name));
             }
         });
 
         capsule.set_pointer((void *) 1234);
 
         // Using get_pointer<T>()
-        void* contents1 = static_cast<void*>(capsule);
-        void* contents2 = capsule.get_pointer();
-        void* contents3 = capsule.get_pointer<void>();
+        void *contents1 = static_cast<void *>(capsule);
+        void *contents2 = capsule.get_pointer();
+        void *contents3 = capsule.get_pointer<void>();
 
         auto result1 = reinterpret_cast<size_t>(contents1);
         auto result2 = reinterpret_cast<size_t>(contents2);
         auto result3 = reinterpret_cast<size_t>(contents3);
 
-        py::print("created capsule ({}, '{}')"_s.format(result1 & result2 & result3, capsule.name()));
+        py::print(
+            "created capsule ({}, '{}')"_s.format(result1 & result2 & result3, capsule.name()));
         return capsule;
+    });
+
+    m.def("return_capsule_with_explicit_nullptr_dtor", []() {
+        py::print("creating capsule with explicit nullptr dtor");
+        return py::capsule(reinterpret_cast<void *>(1234),
+                           static_cast<void (*)(void *)>(nullptr)); // PR #4221
     });
 
     // test_accessors
@@ -235,53 +385,98 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
+    m.def("accessor_moves", []() { // See PR #3970
+        py::list return_list;
+#ifdef PYBIND11_HANDLE_REF_DEBUG
+        py::int_ py_int_0(0);
+        py::int_ py_int_42(42);
+        py::str py_str_count("count");
+
+        auto tup = py::make_tuple(0);
+
+        py::sequence seq(tup);
+
+        py::list lst;
+        lst.append(0);
+
+#    define PYBIND11_LOCAL_DEF(...)                                                               \
+        {                                                                                         \
+            std::size_t inc_refs = py::handle::inc_ref_counter();                                 \
+            __VA_ARGS__;                                                                          \
+            inc_refs = py::handle::inc_ref_counter() - inc_refs;                                  \
+            return_list.append(inc_refs);                                                         \
+        }
+
+        PYBIND11_LOCAL_DEF(tup[py_int_0])    // l-value (to have a control)
+        PYBIND11_LOCAL_DEF(tup[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(tup.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(tup.attr(py::str("count"))) // r-value
+
+        PYBIND11_LOCAL_DEF(seq[py_int_0])    // l-value
+        PYBIND11_LOCAL_DEF(seq[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(seq.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(seq.attr(py::str("count"))) // r-value
+
+        PYBIND11_LOCAL_DEF(lst[py_int_0])    // l-value
+        PYBIND11_LOCAL_DEF(lst[py::int_(0)]) // r-value
+
+        PYBIND11_LOCAL_DEF(lst.attr(py_str_count))     // l-value
+        PYBIND11_LOCAL_DEF(lst.attr(py::str("count"))) // r-value
+
+        auto lst_acc = lst[py::int_(0)];
+        lst_acc = py::int_(42);                    // Detaches lst_acc from lst.
+        PYBIND11_LOCAL_DEF(lst_acc = py_int_42)    // l-value
+        PYBIND11_LOCAL_DEF(lst_acc = py::int_(42)) // r-value
+#    undef PYBIND11_LOCAL_DEF
+#endif
+        return return_list;
+    });
+
     // test_constructors
     m.def("default_constructors", []() {
-        return py::dict(
-            "bytes"_a=py::bytes(),
-            "bytearray"_a=py::bytearray(),
-            "str"_a=py::str(),
-            "bool"_a=py::bool_(),
-            "int"_a=py::int_(),
-            "float"_a=py::float_(),
-            "tuple"_a=py::tuple(),
-            "list"_a=py::list(),
-            "dict"_a=py::dict(),
-            "set"_a=py::set()
-        );
+        return py::dict("bytes"_a = py::bytes(),
+                        "bytearray"_a = py::bytearray(),
+                        "str"_a = py::str(),
+                        "bool"_a = py::bool_(),
+                        "int"_a = py::int_(),
+                        "float"_a = py::float_(),
+                        "tuple"_a = py::tuple(),
+                        "list"_a = py::list(),
+                        "dict"_a = py::dict(),
+                        "set"_a = py::set());
     });
 
     m.def("converting_constructors", [](const py::dict &d) {
-        return py::dict(
-            "bytes"_a=py::bytes(d["bytes"]),
-            "bytearray"_a=py::bytearray(d["bytearray"]),
-            "str"_a=py::str(d["str"]),
-            "bool"_a=py::bool_(d["bool"]),
-            "int"_a=py::int_(d["int"]),
-            "float"_a=py::float_(d["float"]),
-            "tuple"_a=py::tuple(d["tuple"]),
-            "list"_a=py::list(d["list"]),
-            "dict"_a=py::dict(d["dict"]),
-            "set"_a=py::set(d["set"]),
-            "memoryview"_a=py::memoryview(d["memoryview"])
-        );
+        return py::dict("bytes"_a = py::bytes(d["bytes"]),
+                        "bytearray"_a = py::bytearray(d["bytearray"]),
+                        "str"_a = py::str(d["str"]),
+                        "bool"_a = py::bool_(d["bool"]),
+                        "int"_a = py::int_(d["int"]),
+                        "float"_a = py::float_(d["float"]),
+                        "tuple"_a = py::tuple(d["tuple"]),
+                        "list"_a = py::list(d["list"]),
+                        "dict"_a = py::dict(d["dict"]),
+                        "set"_a = py::set(d["set"]),
+                        "frozenset"_a = py::frozenset(d["frozenset"]),
+                        "memoryview"_a = py::memoryview(d["memoryview"]));
     });
 
     m.def("cast_functions", [](const py::dict &d) {
         // When converting between Python types, obj.cast<T>() should be the same as T(obj)
-        return py::dict(
-            "bytes"_a=d["bytes"].cast<py::bytes>(),
-            "bytearray"_a=d["bytearray"].cast<py::bytearray>(),
-            "str"_a=d["str"].cast<py::str>(),
-            "bool"_a=d["bool"].cast<py::bool_>(),
-            "int"_a=d["int"].cast<py::int_>(),
-            "float"_a=d["float"].cast<py::float_>(),
-            "tuple"_a=d["tuple"].cast<py::tuple>(),
-            "list"_a=d["list"].cast<py::list>(),
-            "dict"_a=d["dict"].cast<py::dict>(),
-            "set"_a=d["set"].cast<py::set>(),
-            "memoryview"_a=d["memoryview"].cast<py::memoryview>()
-        );
+        return py::dict("bytes"_a = d["bytes"].cast<py::bytes>(),
+                        "bytearray"_a = d["bytearray"].cast<py::bytearray>(),
+                        "str"_a = d["str"].cast<py::str>(),
+                        "bool"_a = d["bool"].cast<py::bool_>(),
+                        "int"_a = d["int"].cast<py::int_>(),
+                        "float"_a = d["float"].cast<py::float_>(),
+                        "tuple"_a = d["tuple"].cast<py::tuple>(),
+                        "list"_a = d["list"].cast<py::list>(),
+                        "dict"_a = d["dict"].cast<py::dict>(),
+                        "set"_a = d["set"].cast<py::set>(),
+                        "frozenset"_a = d["frozenset"].cast<py::frozenset>(),
+                        "memoryview"_a = d["memoryview"].cast<py::memoryview>());
     });
 
     m.def("convert_to_pybind11_str", [](const py::object &o) { return py::str(o); });
@@ -334,10 +529,7 @@ TEST_SUBMODULE(pytypes, m) {
         l.append(py::cast(12));
         l.append(py::int_(15));
 
-        return py::dict(
-            "d"_a=d,
-            "l"_a=l
-        );
+        return py::dict("d"_a = d, "l"_a = l);
     });
 
     // test_print
@@ -345,21 +537,25 @@ TEST_SUBMODULE(pytypes, m) {
         py::print("Hello, World!");
         py::print(1, 2.0, "three", true, std::string("-- multiple args"));
         auto args = py::make_tuple("and", "a", "custom", "separator");
-        py::print("*args", *args, "sep"_a="-");
-        py::print("no new line here", "end"_a=" -- ");
+        py::print("*args", *args, "sep"_a = "-");
+        py::print("no new line here", "end"_a = " -- ");
         py::print("next print");
 
         auto py_stderr = py::module_::import("sys").attr("stderr");
-        py::print("this goes to stderr", "file"_a=py_stderr);
+        py::print("this goes to stderr", "file"_a = py_stderr);
 
-        py::print("flush", "flush"_a=true);
+        py::print("flush", "flush"_a = true);
 
-        py::print("{a} + {b} = {c}"_s.format("a"_a="py::print", "b"_a="str.format", "c"_a="this"));
+        py::print(
+            "{a} + {b} = {c}"_s.format("a"_a = "py::print", "b"_a = "str.format", "c"_a = "this"));
     });
 
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
+
+    m.def("obj_contains",
+          [](py::object &obj, const py::object &key) { return obj.contains(key); });
 
     m.def("test_number_protocol", [](const py::object &a, const py::object &b) {
         py::list l;
@@ -399,43 +595,38 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::buffer &b) { return py::memoryview(b.request()); });
 
     m.def("test_memoryview_from_buffer", [](bool is_unsigned) {
-        static const int16_t si16[] = { 3, 1, 4, 1, 5 };
-        static const uint16_t ui16[] = { 2, 7, 1, 8 };
-        if (is_unsigned)
-            return py::memoryview::from_buffer(
-                ui16, { 4 }, { sizeof(uint16_t) });
+        static const int16_t si16[] = {3, 1, 4, 1, 5};
+        static const uint16_t ui16[] = {2, 7, 1, 8};
+        if (is_unsigned) {
+            return py::memoryview::from_buffer(ui16, {4}, {sizeof(uint16_t)});
+        }
         return py::memoryview::from_buffer(si16, {5}, {sizeof(int16_t)});
     });
 
     m.def("test_memoryview_from_buffer_nativeformat", []() {
-        static const char* format = "@i";
-        static const int32_t arr[] = { 4, 7, 5 };
-        return py::memoryview::from_buffer(
-            arr, sizeof(int32_t), format, { 3 }, { sizeof(int32_t) });
+        static const char *format = "@i";
+        static const int32_t arr[] = {4, 7, 5};
+        return py::memoryview::from_buffer(arr, sizeof(int32_t), format, {3}, {sizeof(int32_t)});
     });
 
     m.def("test_memoryview_from_buffer_empty_shape", []() {
-        static const char* buf = "";
-        return py::memoryview::from_buffer(buf, 1, "B", { }, { });
+        static const char *buf = "";
+        return py::memoryview::from_buffer(buf, 1, "B", {}, {});
     });
 
     m.def("test_memoryview_from_buffer_invalid_strides", []() {
-        static const char* buf = "\x02\x03\x04";
-        return py::memoryview::from_buffer(buf, 1, "B", { 3 }, { });
+        static const char *buf = "\x02\x03\x04";
+        return py::memoryview::from_buffer(buf, 1, "B", {3}, {});
     });
 
     m.def("test_memoryview_from_buffer_nullptr", []() {
-        return py::memoryview::from_buffer(
-            static_cast<void*>(nullptr), 1, "B", { }, { });
+        return py::memoryview::from_buffer(static_cast<void *>(nullptr), 1, "B", {}, {});
     });
 
-#if PY_MAJOR_VERSION >= 3
     m.def("test_memoryview_from_memory", []() {
-        const char* buf = "\xff\xe1\xab\x37";
-        return py::memoryview::from_memory(
-            buf, static_cast<py::ssize_t>(strlen(buf)));
+        const char *buf = "\xff\xe1\xab\x37";
+        return py::memoryview::from_memory(buf, static_cast<py::ssize_t>(strlen(buf)));
     });
-#endif
 
     // test_builtin_functions
     m.def("get_len", [](py::handle h) { return py::len(h); });
@@ -454,8 +645,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("pass_to_std_string", [](const std::string &s) { return s.size(); });
 
     // test_weakref
-    m.def("weakref_from_handle",
-          [](py::handle h) { return py::weakref(h); });
+    m.def("weakref_from_handle", [](py::handle h) { return py::weakref(h); });
     m.def("weakref_from_handle_and_function",
           [](py::handle h, py::function f) { return py::weakref(h, std::move(f)); });
     m.def("weakref_from_object", [](const py::object &o) { return py::weakref(o); });
@@ -556,5 +746,78 @@ TEST_SUBMODULE(pytypes, m) {
         py::detail::accessor_policies::tuple_item::set(o, (py::size_t) 1, s1);
         py::detail::accessor_policies::tuple_item::set(o, (py::size_t) 0, s0);
         return o;
+    });
+
+    m.def("square_float_", [](const external::float_ &x) -> double {
+        double v = x.get_value();
+        return v * v;
+    });
+
+    m.def("tuple_rvalue_getter", [](const py::tuple &tup) {
+        // tests accessing tuple object with rvalue int
+        for (size_t i = 0; i < tup.size(); i++) {
+            auto o = py::handle(tup[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("tuple is malformed");
+            }
+        }
+        return tup;
+    });
+    m.def("list_rvalue_getter", [](const py::list &l) {
+        // tests accessing list with rvalue int
+        for (size_t i = 0; i < l.size(); i++) {
+            auto o = py::handle(l[py::int_(i)]);
+            if (!o) {
+                throw py::value_error("list is malformed");
+            }
+        }
+        return l;
+    });
+    m.def("populate_dict_rvalue", [](int population) {
+        auto d = py::dict();
+        for (int i = 0; i < population; i++) {
+            d[py::int_(i)] = py::int_(i);
+        }
+        return d;
+    });
+    m.def("populate_obj_str_attrs", [](py::object &o, int population) {
+        for (int i = 0; i < population; i++) {
+            o.attr(py::str(py::int_(i))) = py::str(py::int_(i));
+        }
+        return o;
+    });
+
+    // testing immutable object augmented assignment: #issue 3812
+    m.def("inplace_append", [](py::object &a, const py::object &b) {
+        a += b;
+        return a;
+    });
+    m.def("inplace_subtract", [](py::object &a, const py::object &b) {
+        a -= b;
+        return a;
+    });
+    m.def("inplace_multiply", [](py::object &a, const py::object &b) {
+        a *= b;
+        return a;
+    });
+    m.def("inplace_divide", [](py::object &a, const py::object &b) {
+        a /= b;
+        return a;
+    });
+    m.def("inplace_or", [](py::object &a, const py::object &b) {
+        a |= b;
+        return a;
+    });
+    m.def("inplace_and", [](py::object &a, const py::object &b) {
+        a &= b;
+        return a;
+    });
+    m.def("inplace_lshift", [](py::object &a, const py::object &b) {
+        a <<= b;
+        return a;
+    });
+    m.def("inplace_rshift", [](py::object &a, const py::object &b) {
+        a >>= b;
+        return a;
     });
 }

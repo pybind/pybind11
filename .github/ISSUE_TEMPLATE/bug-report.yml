@@ -6,7 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Maintainers will only make a best effort to triage PRs. Please do your best to make the issue as easy to act on as possible, and only open if clearly a problem with pybind11 (ask first if unsure).
+        Please do your best to make the issue as easy to act on as possible, and only submit here if there is clearly a problem with pybind11 (ask first if unsure). **Note that a reproducer in a PR is much more likely to get immediate attention.**
+
   - type: checkboxes
     id: steps
     attributes:
@@ -19,6 +20,13 @@ body:
           required: true
         - label: Consider asking first in the [Gitter chat room](https://gitter.im/pybind/Lobby) or in a [Discussion](https:/pybind/pybind11/discussions/new).
           required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: What version (or hash if on master) of pybind11 are you using?
+    validations:
+      required: true
 
   - type: textarea
     id: description
@@ -40,6 +48,14 @@ body:
         The code should be minimal, have no external dependencies, isolate the
         function(s) that cause breakage. Submit matched and complete C++ and
         Python snippets that can be easily compiled and run to diagnose the
-        issue. If possible, make a PR with a new, failing test to give us a
-        starting point to work on!
+        issue. — Note that a reproducer in a PR is much more likely to get
+        immediate attention: failing tests in the pybind11 CI are the best
+        starting point for working out fixes.
       render: text
+
+  - type: input
+    id: regression
+    attributes:
+      label: Is this a regression? Put the last known working version here if it is.
+      description: Put the last known working version here if this is a regression.
+      value: Not a regression

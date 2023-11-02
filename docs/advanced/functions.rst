@@ -120,7 +120,7 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 .. code-block:: cpp
 
     class_<MyClass>(m, "MyClass")
-        .def_property("data"
+        .def_property("data",
             py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
             py::cpp_function(&MyClass::setData)
         );
@@ -372,7 +372,7 @@ like so:
 Keyword-only arguments
 ======================
 
-Python 3 introduced keyword-only arguments by specifying an unnamed ``*``
+Python implements keyword-only arguments by specifying an unnamed ``*``
 argument in a function definition:
 
 .. code-block:: python
@@ -395,19 +395,18 @@ argument annotations when registering the function:
     m.def("f", [](int a, int b) { /* ... */ },
           py::arg("a"), py::kw_only(), py::arg("b"));
 
-Note that you currently cannot combine this with a ``py::args`` argument.  This
-feature does *not* require Python 3 to work.
-
 .. versionadded:: 2.6
 
-As of pybind11 2.9, a ``py::args`` argument implies that any following arguments
-are keyword-only, as if ``py::kw_only()`` had been specified in the same
-relative location of the argument list as the ``py::args`` argument.  The
-``py::kw_only()`` may be included to be explicit about this, but is not
-required.  (Prior to 2.9 ``py::args`` may only occur at the end of the argument
-list, or immediately before a ``py::kwargs`` argument at the end).
+A ``py::args`` argument implies that any following arguments are keyword-only,
+as if ``py::kw_only()`` had been specified in the same relative location of the
+argument list as the ``py::args`` argument.  The ``py::kw_only()`` may be
+included to be explicit about this, but is not required.
 
-.. versionadded:: 2.9
+.. versionchanged:: 2.9
+   This can now be combined with ``py::args``. Before, ``py::args`` could only
+   occur at the end of the argument list, or immediately before a ``py::kwargs``
+   argument at the end.
+
 
 Positional-only arguments
 =========================
@@ -578,3 +577,38 @@ prefers earlier-defined overloads to later-defined ones.
 .. versionadded:: 2.6
 
     The ``py::prepend()`` tag.
+
+Binding functions with template parameters
+==========================================
+
+You can bind functions that have template parameters. Here's a function:
+
+.. code-block:: cpp
+
+    template <typename T>
+    void set(T t);
+
+C++ templates cannot be instantiated at runtime, so you cannot bind the
+non-instantiated function:
+
+.. code-block:: cpp
+
+    // BROKEN (this will not compile)
+    m.def("set", &set);
+
+You must bind each instantiated function template separately. You may bind
+each instantiation with the same name, which will be treated the same as
+an overloaded function:
+
+.. code-block:: cpp
+
+    m.def("set", &set<int>);
+    m.def("set", &set<std::string>);
+
+Sometimes it's more clear to bind them with separate names, which is also
+an option:
+
+.. code-block:: cpp
+
+    m.def("setInt", &set<int>);
+    m.def("setString", &set<std::string>);

@@ -48,15 +48,25 @@ interactive Python session demonstrating this example is shown below:
     >>> print(p)
     <example.Pet object at 0x10cd98060>
     >>> p.getName()
-    u'Molly'
+    'Molly'
     >>> p.setName("Charly")
     >>> p.getName()
-    u'Charly'
+    'Charly'
 
 .. seealso::
 
     Static member functions can be bound in the same way using
     :func:`class_::def_static`.
+
+.. note::
+
+    Binding C++ types in unnamed namespaces (also known as anonymous namespaces)
+    works reliably on many platforms, but not all. The `XFAIL_CONDITION` in
+    tests/test_unnamed_namespace_a.py encodes the currently known conditions.
+    For background see `#4319 <https://github.com/pybind/pybind11/pull/4319>`_.
+    If portability is a concern, it is therefore not recommended to bind C++
+    types in unnamed namespaces. It will be safest to manually pick unique
+    namespace names.
 
 Keyword and default arguments
 =============================
@@ -124,10 +134,10 @@ This makes it possible to write
 
     >>> p = example.Pet("Molly")
     >>> p.name
-    u'Molly'
+    'Molly'
     >>> p.name = "Charly"
     >>> p.name
-    u'Charly'
+    'Charly'
 
 Now suppose that ``Pet::name`` was a private internal variable
 that can only be accessed via setters and getters.
@@ -282,9 +292,9 @@ expose fields and methods of both types:
 
     >>> p = example.Dog("Molly")
     >>> p.name
-    u'Molly'
+    'Molly'
     >>> p.bark()
-    u'woof!'
+    'woof!'
 
 The C++ classes defined above are regular non-polymorphic types with an
 inheritance relationship. This is reflected in Python:
@@ -332,7 +342,7 @@ will automatically recognize this:
     >>> type(p)
     PolymorphicDog  # automatically downcast
     >>> p.bark()
-    u'woof!'
+    'woof!'
 
 Given a pointer to a polymorphic base, pybind11 performs automatic downcasting
 to the actual derived type. Note that this goes beyond the usual situation in
@@ -434,8 +444,7 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
         .def("set", overload_cast_<int>()(&Pet::set), "Set the pet's age")
         .def("set", overload_cast_<const std::string &>()(&Pet::set), "Set the pet's name");
 
-.. [#cpp14] A compiler which supports the ``-std=c++14`` flag
-            or Visual Studio 2015 Update 2 and newer.
+.. [#cpp14] A compiler which supports the ``-std=c++14`` flag.
 
 .. note::
 
@@ -483,7 +492,7 @@ The binding code for this example looks as follows:
         .value("Cat", Pet::Kind::Cat)
         .export_values();
 
-    py::class_<Pet::Attributes> attributes(pet, "Attributes")
+    py::class_<Pet::Attributes>(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
 
@@ -540,3 +549,7 @@ The ``name`` property returns the name of the enum value as a unicode string.
            ...
 
     By default, these are omitted to conserve space.
+
+.. warning::
+
+    Contrary to Python customs, enum values from the wrappers should not be compared using ``is``, but with ``==`` (see `#1177 <https://github.com/pybind/pybind11/issues/1177>`_ for background).

@@ -43,7 +43,7 @@ endif()
 
 # A user can set versions manually too
 set(Python_ADDITIONAL_VERSIONS
-    "3.11;3.10;3.9;3.8;3.7;3.6;3.5;3.4"
+    "3.11;3.10;3.9;3.8;3.7;3.6"
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
@@ -115,24 +115,36 @@ if(PYTHON_IS_DEBUG)
     PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
 endif()
 
-set_property(
-  TARGET pybind11::module
-  APPEND
-  PROPERTY
-    INTERFACE_LINK_LIBRARIES pybind11::python_link_helper
-    "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>")
-
-if(PYTHON_VERSION VERSION_LESS 3)
+# The <3.11 code here does not support release/debug builds at the same time, like on vcpkg
+if(CMAKE_VERSION VERSION_LESS 3.11)
   set_property(
-    TARGET pybind11::pybind11
+    TARGET pybind11::module
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python2_no_register)
-endif()
+    PROPERTY
+      INTERFACE_LINK_LIBRARIES
+      pybind11::python_link_helper
+      "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>"
+  )
 
-set_property(
-  TARGET pybind11::embed
-  APPEND
-  PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+  set_property(
+    TARGET pybind11::embed
+    APPEND
+    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+else()
+  # The IMPORTED INTERFACE library here is to ensure that "debug" and "release" get processed outside
+  # of a generator expression - https://gitlab.kitware.com/cmake/cmake/-/issues/18424, as they are
+  # target_link_library keywords rather than real libraries.
+  add_library(pybind11::_ClassicPythonLibraries IMPORTED INTERFACE)
+  target_link_libraries(pybind11::_ClassicPythonLibraries INTERFACE ${PYTHON_LIBRARIES})
+  target_link_libraries(
+    pybind11::module
+    INTERFACE
+      pybind11::python_link_helper
+      "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:pybind11::_ClassicPythonLibraries>")
+
+  target_link_libraries(pybind11::embed INTERFACE pybind11::pybind11
+                                                  pybind11::_ClassicPythonLibraries)
+endif()
 
 function(pybind11_extension name)
   # The prefix and extension are provided by FindPythonLibsNew.cmake
@@ -200,7 +212,9 @@ function(pybind11_add_module target_name)
     endif()
   endif()
 
-  if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+  # Use case-insensitive comparison to match the result of $<CONFIG:cfgs>
+  string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+  if(NOT MSVC AND NOT "${uppercase_CMAKE_BUILD_TYPE}" MATCHES DEBUG|RELWITHDEBINFO)
     pybind11_strip(${target_name})
   endif()
 

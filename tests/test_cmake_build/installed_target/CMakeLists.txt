@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.5)
 
-# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.18)
+if(${CMAKE_VERSION} VERSION_LESS 3.26)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.18)
+  cmake_policy(VERSION 3.26)
 endif()
 
 project(test_installed_target CXX)

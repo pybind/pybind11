@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import time
 from threading import Thread
 
@@ -6,6 +5,7 @@ import pytest
 
 import env  # noqa: F401
 from pybind11_tests import callbacks as m
+from pybind11_tests import detailed_error_messages_enabled
 
 
 def test_callbacks():
@@ -18,7 +18,7 @@ def test_callbacks():
         return "func2", a, b, c, d
 
     def func3(a):
-        return "func3({})".format(a)
+        return f"func3({a})"
 
     assert m.test_callback1(func1) == "func1"
     assert m.test_callback2(func2) == ("func2", "Hello", "x", True, 5)
@@ -71,11 +71,20 @@ def test_keyword_args_and_generalized_unpacking():
 
     with pytest.raises(RuntimeError) as excinfo:
         m.test_arg_conversion_error1(f)
-    assert "Unable to convert call argument" in str(excinfo.value)
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'1' of type 'UnregisteredType' to Python object"
+        if detailed_error_messages_enabled
+        else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.test_arg_conversion_error2(f)
-    assert "Unable to convert call argument" in str(excinfo.value)
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'expected_name' of type 'UnregisteredType' to Python object"
+        if detailed_error_messages_enabled
+        else "'expected_name' to Python object "
+        "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
+    )
 
 
 def test_lambda_closure_cleanup():
@@ -189,14 +198,21 @@ def test_callback_num_times():
         if not rep:
             print()
         print(
-            "callback_num_times: {:d} million / {:.3f} seconds = {:.3f} million / second".format(
-                num_millions, td, rate
-            )
+            f"callback_num_times: {num_millions:d} million / {td:.3f} seconds = {rate:.3f} million / second"
         )
     if len(rates) > 1:
         print("Min    Mean   Max")
-        print(
-            "{:6.3f} {:6.3f} {:6.3f}".format(
-                min(rates), sum(rates) / len(rates), max(rates)
-            )
-        )
+        print(f"{min(rates):6.3f} {sum(rates) / len(rates):6.3f} {max(rates):6.3f}")
+
+
+def test_custom_func():
+    assert m.custom_function(4) == 36
+    assert m.roundtrip(m.custom_function)(4) == 36
+
+
+@pytest.mark.skipif(
+    m.custom_function2 is None, reason="Current PYBIND11_INTERNALS_VERSION too low"
+)
+def test_custom_func2():
+    assert m.custom_function2(3) == 27
+    assert m.roundtrip(m.custom_function2)(3) == 27

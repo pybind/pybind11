@@ -241,7 +241,7 @@ extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4...3.18)
+    cmake_minimum_required(VERSION 3.5...3.26)
     project(example LANGUAGES CXX)
 
     add_subdirectory(pybind11)
@@ -260,6 +260,9 @@ PyPI integration, can be found in the [cmake_example]_  repository.
 
 .. versionchanged:: 2.6
    CMake 3.4+ is required.
+
+.. versionchanged:: 2.11
+   CMake 3.5+ is required.
 
 Further information can be found at :doc:`cmake/index`.
 
@@ -417,10 +420,10 @@ existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.19)
+    cmake_minimum_required(VERSION 3.15...3.22)
     project(example LANGUAGES CXX)
 
-    find_package(Python COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.6 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
@@ -433,9 +436,8 @@ algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
 
 .. warning::
 
-    If you use FindPython2 and FindPython3 to dual-target Python, use the
-    individual targets listed below, and avoid targets that directly include
-    Python parts.
+    If you use FindPython to multi-target Python versions, use the individual
+    targets listed below, and avoid targets that directly include Python parts.
 
 There are `many ways to hint or force a discovery of a specific Python
 installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
@@ -462,11 +464,8 @@ available in all modes. The targets provided are:
    ``pybind11::headers``
      Just the pybind11 headers and minimum compile requirements
 
-   ``pybind11::python2_no_register``
-     Quiets the warning/error when mixing C++14 or higher and Python 2
-
    ``pybind11::pybind11``
-     Python headers + ``pybind11::headers`` + ``pybind11::python2_no_register`` (Python 2 only)
+     Python headers + ``pybind11::headers``
 
    ``pybind11::python_link_helper``
      Just the "linking" part of pybind11:module
@@ -475,7 +474,7 @@ available in all modes. The targets provided are:
      Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython CMake 3.15+) or ``pybind11::python_link_helper``
 
    ``pybind11::embed``
-     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Embed`` (FindPython) or Python libs
+     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Python`` (FindPython) or Python libs
 
    ``pybind11::lto`` / ``pybind11::thin_lto``
      An alternative to `INTERPROCEDURAL_OPTIMIZATION` for adding link-time optimization.
@@ -499,7 +498,7 @@ You can use these targets to build complex applications. For example, the
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4)
+    cmake_minimum_required(VERSION 3.5...3.26)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -509,7 +508,10 @@ You can use these targets to build complex applications. For example, the
     target_link_libraries(example PRIVATE pybind11::module pybind11::lto pybind11::windows_extras)
 
     pybind11_extension(example)
-    pybind11_strip(example)
+    if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+        # Strip unnecessary sections of the binary on Linux/macOS
+        pybind11_strip(example)
+    endif()
 
     set_target_properties(example PROPERTIES CXX_VISIBILITY_PRESET "hidden"
                                              CUDA_VISIBILITY_PRESET "hidden")
@@ -554,7 +556,7 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4...3.18)
+    cmake_minimum_required(VERSION 3.5...3.26)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -577,20 +579,11 @@ On Linux, you can compile an example such as the one given in
 
     $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
-The flags given here assume that you're using Python 3. For Python 2, just
-change the executable appropriately (to ``python`` or ``python2``).
-
 The ``python3 -m pybind11 --includes`` command fetches the include paths for
 both pybind11 and Python headers. This assumes that pybind11 has been installed
 using ``pip`` or ``conda``. If it hasn't, you can also manually specify
 ``-I <path-to-pybind11>/include`` together with the Python includes path
 ``python3-config --includes``.
-
-Note that Python 2.7 modules don't use a special suffix, so you should simply
-use ``example.so`` instead of ``example$(python3-config --extension-suffix)``.
-Besides, the ``--extension-suffix`` option may or may not be available, depending
-on the distribution; in the latter case, the module extension can be manually
-set to ``.so``.
 
 On macOS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when

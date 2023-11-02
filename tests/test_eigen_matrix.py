@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import ConstructorStats
 
 np = pytest.importorskip("numpy")
-m = pytest.importorskip("pybind11_tests.eigen")
+m = pytest.importorskip("pybind11_tests.eigen_matrix")
 
 
 ref = np.array(
@@ -293,7 +292,7 @@ def test_negative_stride_from_python(msg):
         double_threer(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float32[1, 3], flags.writeable]) -> None
 
-        Invoked with: """  # noqa: E501 line too long
+        Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
     )
 
@@ -305,22 +304,29 @@ def test_negative_stride_from_python(msg):
         double_threec(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float32[3, 1], flags.writeable]) -> None
 
-        Invoked with: """  # noqa: E501 line too long
+        Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
     )
+
+
+def test_block_runtime_error_type_caster_eigen_ref_made_a_copy():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.block(ref, 0, 0, 0, 0)
+    assert str(excinfo.value) == "type_caster for Eigen::Ref made a copy."
 
 
 def test_nonunit_stride_to_python():
     assert np.all(m.diagonal(ref) == ref.diagonal())
     assert np.all(m.diagonal_1(ref) == ref.diagonal(1))
     for i in range(-5, 7):
-        assert np.all(
-            m.diagonal_n(ref, i) == ref.diagonal(i)
-        ), "m.diagonal_n({})".format(i)
+        assert np.all(m.diagonal_n(ref, i) == ref.diagonal(i)), f"m.diagonal_n({i})"
 
-    assert np.all(m.block(ref, 2, 1, 3, 3) == ref[2:5, 1:4])
-    assert np.all(m.block(ref, 1, 4, 4, 2) == ref[1:, 4:])
-    assert np.all(m.block(ref, 1, 4, 3, 2) == ref[1:4, 4:])
+    # Must be order="F", otherwise the type_caster will make a copy and
+    # m.block() will return a dangling reference (heap-use-after-free).
+    rof = np.asarray(ref, order="F")
+    assert np.all(m.block(rof, 2, 1, 3, 3) == rof[2:5, 1:4])
+    assert np.all(m.block(rof, 1, 4, 4, 2) == rof[1:, 4:])
+    assert np.all(m.block(rof, 1, 4, 3, 2) == rof[1:4, 4:])
 
 
 def test_eigen_ref_to_python():
@@ -329,7 +335,7 @@ def test_eigen_ref_to_python():
         mymat = chol(np.array([[1.0, 2, 4], [2, 13, 23], [4, 23, 77]]))
         assert np.all(
             mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])
-        ), "cholesky{}".format(i)
+        ), f"cholesky{i}"
 
 
 def assign_both(a1, a2, r, c, v):
@@ -346,111 +352,129 @@ def array_copy_but_one(a, r, c, v):
 def test_eigen_return_references():
     """Tests various ways of returning references and non-referencing copies"""
 
-    master = np.ones((10, 10))
+    primary = np.ones((10, 10))
     a = m.ReturnTester()
     a_get1 = a.get()
-    assert not a_get1.flags.owndata and a_get1.flags.writeable
-    assign_both(a_get1, master, 3, 3, 5)
+    assert not a_get1.flags.owndata
+    assert a_get1.flags.writeable
+    assign_both(a_get1, primary, 3, 3, 5)
     a_get2 = a.get_ptr()
-    assert not a_get2.flags.owndata and a_get2.flags.writeable
-    assign_both(a_get1, master, 2, 3, 6)
+    assert not a_get2.flags.owndata
+    assert a_get2.flags.writeable
+    assign_both(a_get1, primary, 2, 3, 6)
 
     a_view1 = a.view()
-    assert not a_view1.flags.owndata and not a_view1.flags.writeable
+    assert not a_view1.flags.owndata
+    assert not a_view1.flags.writeable
     with pytest.raises(ValueError):
         a_view1[2, 3] = 4
     a_view2 = a.view_ptr()
-    assert not a_view2.flags.owndata and not a_view2.flags.writeable
+    assert not a_view2.flags.owndata
+    assert not a_view2.flags.writeable
     with pytest.raises(ValueError):
         a_view2[2, 3] = 4
 
     a_copy1 = a.copy_get()
-    assert a_copy1.flags.owndata and a_copy1.flags.writeable
-    np.testing.assert_array_equal(a_copy1, master)
+    assert a_copy1.flags.owndata
+    assert a_copy1.flags.writeable
+    np.testing.assert_array_equal(a_copy1, primary)
     a_copy1[7, 7] = -44  # Shouldn't affect anything else
-    c1want = array_copy_but_one(master, 7, 7, -44)
+    c1want = array_copy_but_one(primary, 7, 7, -44)
     a_copy2 = a.copy_view()
-    assert a_copy2.flags.owndata and a_copy2.flags.writeable
-    np.testing.assert_array_equal(a_copy2, master)
+    assert a_copy2.flags.owndata
+    assert a_copy2.flags.writeable
+    np.testing.assert_array_equal(a_copy2, primary)
     a_copy2[4, 4] = -22  # Shouldn't affect anything else
-    c2want = array_copy_but_one(master, 4, 4, -22)
+    c2want = array_copy_but_one(primary, 4, 4, -22)
 
     a_ref1 = a.ref()
-    assert not a_ref1.flags.owndata and a_ref1.flags.writeable
-    assign_both(a_ref1, master, 1, 1, 15)
+    assert not a_ref1.flags.owndata
+    assert a_ref1.flags.writeable
+    assign_both(a_ref1, primary, 1, 1, 15)
     a_ref2 = a.ref_const()
-    assert not a_ref2.flags.owndata and not a_ref2.flags.writeable
+    assert not a_ref2.flags.owndata
+    assert not a_ref2.flags.writeable
     with pytest.raises(ValueError):
         a_ref2[5, 5] = 33
     a_ref3 = a.ref_safe()
-    assert not a_ref3.flags.owndata and a_ref3.flags.writeable
-    assign_both(a_ref3, master, 0, 7, 99)
+    assert not a_ref3.flags.owndata
+    assert a_ref3.flags.writeable
+    assign_both(a_ref3, primary, 0, 7, 99)
     a_ref4 = a.ref_const_safe()
-    assert not a_ref4.flags.owndata and not a_ref4.flags.writeable
+    assert not a_ref4.flags.owndata
+    assert not a_ref4.flags.writeable
     with pytest.raises(ValueError):
         a_ref4[7, 0] = 987654321
 
     a_copy3 = a.copy_ref()
-    assert a_copy3.flags.owndata and a_copy3.flags.writeable
-    np.testing.assert_array_equal(a_copy3, master)
+    assert a_copy3.flags.owndata
+    assert a_copy3.flags.writeable
+    np.testing.assert_array_equal(a_copy3, primary)
     a_copy3[8, 1] = 11
-    c3want = array_copy_but_one(master, 8, 1, 11)
+    c3want = array_copy_but_one(primary, 8, 1, 11)
     a_copy4 = a.copy_ref_const()
-    assert a_copy4.flags.owndata and a_copy4.flags.writeable
-    np.testing.assert_array_equal(a_copy4, master)
+    assert a_copy4.flags.owndata
+    assert a_copy4.flags.writeable
+    np.testing.assert_array_equal(a_copy4, primary)
     a_copy4[8, 4] = 88
-    c4want = array_copy_but_one(master, 8, 4, 88)
+    c4want = array_copy_but_one(primary, 8, 4, 88)
 
     a_block1 = a.block(3, 3, 2, 2)
-    assert not a_block1.flags.owndata and a_block1.flags.writeable
+    assert not a_block1.flags.owndata
+    assert a_block1.flags.writeable
     a_block1[0, 0] = 55
-    master[3, 3] = 55
+    primary[3, 3] = 55
     a_block2 = a.block_safe(2, 2, 3, 2)
-    assert not a_block2.flags.owndata and a_block2.flags.writeable
+    assert not a_block2.flags.owndata
+    assert a_block2.flags.writeable
     a_block2[2, 1] = -123
-    master[4, 3] = -123
+    primary[4, 3] = -123
     a_block3 = a.block_const(6, 7, 4, 3)
-    assert not a_block3.flags.owndata and not a_block3.flags.writeable
+    assert not a_block3.flags.owndata
+    assert not a_block3.flags.writeable
     with pytest.raises(ValueError):
         a_block3[2, 2] = -44444
 
     a_copy5 = a.copy_block(2, 2, 2, 3)
-    assert a_copy5.flags.owndata and a_copy5.flags.writeable
-    np.testing.assert_array_equal(a_copy5, master[2:4, 2:5])
+    assert a_copy5.flags.owndata
+    assert a_copy5.flags.writeable
+    np.testing.assert_array_equal(a_copy5, primary[2:4, 2:5])
     a_copy5[1, 1] = 777
-    c5want = array_copy_but_one(master[2:4, 2:5], 1, 1, 777)
+    c5want = array_copy_but_one(primary[2:4, 2:5], 1, 1, 777)
 
     a_corn1 = a.corners()
-    assert not a_corn1.flags.owndata and a_corn1.flags.writeable
+    assert not a_corn1.flags.owndata
+    assert a_corn1.flags.writeable
     a_corn1 *= 50
     a_corn1[1, 1] = 999
-    master[0, 0] = 50
-    master[0, 9] = 50
-    master[9, 0] = 50
-    master[9, 9] = 999
+    primary[0, 0] = 50
+    primary[0, 9] = 50
+    primary[9, 0] = 50
+    primary[9, 9] = 999
     a_corn2 = a.corners_const()
-    assert not a_corn2.flags.owndata and not a_corn2.flags.writeable
+    assert not a_corn2.flags.owndata
+    assert not a_corn2.flags.writeable
     with pytest.raises(ValueError):
         a_corn2[1, 0] = 51
 
     # All of the changes made all the way along should be visible everywhere
     # now (except for the copies, of course)
-    np.testing.assert_array_equal(a_get1, master)
-    np.testing.assert_array_equal(a_get2, master)
-    np.testing.assert_array_equal(a_view1, master)
-    np.testing.assert_array_equal(a_view2, master)
-    np.testing.assert_array_equal(a_ref1, master)
-    np.testing.assert_array_equal(a_ref2, master)
-    np.testing.assert_array_equal(a_ref3, master)
-    np.testing.assert_array_equal(a_ref4, master)
-    np.testing.assert_array_equal(a_block1, master[3:5, 3:5])
-    np.testing.assert_array_equal(a_block2, master[2:5, 2:4])
-    np.testing.assert_array_equal(a_block3, master[6:10, 7:10])
+    np.testing.assert_array_equal(a_get1, primary)
+    np.testing.assert_array_equal(a_get2, primary)
+    np.testing.assert_array_equal(a_view1, primary)
+    np.testing.assert_array_equal(a_view2, primary)
+    np.testing.assert_array_equal(a_ref1, primary)
+    np.testing.assert_array_equal(a_ref2, primary)
+    np.testing.assert_array_equal(a_ref3, primary)
+    np.testing.assert_array_equal(a_ref4, primary)
+    np.testing.assert_array_equal(a_block1, primary[3:5, 3:5])
+    np.testing.assert_array_equal(a_block2, primary[2:5, 2:4])
+    np.testing.assert_array_equal(a_block3, primary[6:10, 7:10])
     np.testing.assert_array_equal(
-        a_corn1, master[0 :: master.shape[0] - 1, 0 :: master.shape[1] - 1]
+        a_corn1, primary[0 :: primary.shape[0] - 1, 0 :: primary.shape[1] - 1]
     )
     np.testing.assert_array_equal(
-        a_corn2, master[0 :: master.shape[0] - 1, 0 :: master.shape[1] - 1]
+        a_corn2, primary[0 :: primary.shape[0] - 1, 0 :: primary.shape[1] - 1]
     )
 
     np.testing.assert_array_equal(a_copy1, c1want)
@@ -589,10 +613,14 @@ def test_numpy_ref_mutators():
 
     assert [zc[1, 2], zcro[1, 2], zr[1, 2], zrro[1, 2]] == [23] * 4
 
-    assert not zc.flags.owndata and zc.flags.writeable
-    assert not zr.flags.owndata and zr.flags.writeable
-    assert not zcro.flags.owndata and not zcro.flags.writeable
-    assert not zrro.flags.owndata and not zrro.flags.writeable
+    assert not zc.flags.owndata
+    assert zc.flags.writeable
+    assert not zr.flags.owndata
+    assert zr.flags.writeable
+    assert not zcro.flags.owndata
+    assert not zcro.flags.writeable
+    assert not zrro.flags.owndata
+    assert not zrro.flags.writeable
 
     zc[1, 2] = 99
     expect = np.array([[11.0, 12, 13], [21, 22, 99], [31, 32, 33]])
@@ -616,7 +644,8 @@ def test_numpy_ref_mutators():
     # the const should drop away)
     y1 = np.array(m.get_cm_const_ref())
 
-    assert y1.flags.owndata and y1.flags.writeable
+    assert y1.flags.owndata
+    assert y1.flags.writeable
     # We should get copies of the eigen data, which was modified above:
     assert y1[1, 2] == 99
     y1[1, 2] += 12
@@ -689,38 +718,38 @@ def test_nocopy_wrapper():
     # All but the second should fail with m.get_elem_nocopy:
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_colmajor)
-    assert "get_elem_nocopy(): incompatible function arguments." in str(
-        excinfo.value
-    ) and ", flags.f_contiguous" in str(excinfo.value)
+    assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
+    assert ", flags.f_contiguous" in str(excinfo.value)
     assert m.get_elem_nocopy(dbl_matrix_colmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_rowmajor)
-    assert "get_elem_nocopy(): incompatible function arguments." in str(
-        excinfo.value
-    ) and ", flags.f_contiguous" in str(excinfo.value)
+    assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
+    assert ", flags.f_contiguous" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(dbl_matrix_rowmajor)
-    assert "get_elem_nocopy(): incompatible function arguments." in str(
-        excinfo.value
-    ) and ", flags.f_contiguous" in str(excinfo.value)
+    assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
+    assert ", flags.f_contiguous" in str(excinfo.value)
 
     # For the row-major test, we take a long matrix in row-major, so only the third is allowed:
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(int_matrix_colmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
-    ) and ", flags.c_contiguous" in str(excinfo.value)
+    )
+    assert ", flags.c_contiguous" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_colmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
-    ) and ", flags.c_contiguous" in str(excinfo.value)
+    )
+    assert ", flags.c_contiguous" in str(excinfo.value)
     assert m.get_elem_rm_nocopy(int_matrix_rowmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_rowmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
-    ) and ", flags.c_contiguous" in str(excinfo.value)
+    )
+    assert ", flags.c_contiguous" in str(excinfo.value)
 
 
 def test_eigen_ref_life_support():
@@ -816,13 +845,13 @@ def test_sparse_signature(doc):
         doc(m.sparse_copy_r)
         == """
         sparse_copy_r(arg0: scipy.sparse.csr_matrix[numpy.float32]) -> scipy.sparse.csr_matrix[numpy.float32]
-    """  # noqa: E501 line too long
+    """
     )
     assert (
         doc(m.sparse_copy_c)
         == """
         sparse_copy_c(arg0: scipy.sparse.csc_matrix[numpy.float32]) -> scipy.sparse.csc_matrix[numpy.float32]
-    """  # noqa: E501 line too long
+    """
     )
 
 
@@ -843,6 +872,13 @@ def test_issue738_issue2038():
     assert np.all(m.iss738_f1(np.zeros((2, 0))) == np.zeros((2, 0)))
     assert np.all(m.iss738_f2(np.zeros((0, 2))) == np.zeros((0, 2)))
     assert np.all(m.iss738_f2(np.zeros((2, 0))) == np.zeros((2, 0)))
+
+
+@pytest.mark.parametrize("func", [m.iss738_f1, m.iss738_f2])
+@pytest.mark.parametrize("sizes", [(0, 2), (2, 0)])
+def test_zero_length(func, sizes):
+    """Ignore strides on a length-0 dimension (even if they would be incompatible length > 1)"""
+    assert np.all(func(np.zeros(sizes)) == np.zeros(sizes))
 
 
 def test_issue1105():

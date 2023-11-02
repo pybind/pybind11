@@ -40,18 +40,17 @@ TEST_SUBMODULE(call_policies, m) {
         Child(Child &&) = default;
         ~Child() { py::print("Releasing child."); }
     };
-    py::class_<Child>(m, "Child")
-        .def(py::init<>());
+    py::class_<Child>(m, "Child").def(py::init<>());
 
     class Parent {
     public:
         Parent() { py::print("Allocating parent."); }
-        Parent(const Parent& parent) = default;
+        Parent(const Parent &parent) = default;
         ~Parent() { py::print("Releasing parent."); }
-        void addChild(Child *) { }
+        void addChild(Child *) {}
         Child *returnChild() { return new Child(); }
         Child *returnNullChild() { return nullptr; }
-        static Child *staticFunction(Parent*) { return new Child(); }
+        static Child *staticFunction(Parent *) { return new Child(); }
     };
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
@@ -62,11 +61,12 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
-        .def_static(
-            "staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
+        .def_static("staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
 
-    m.def("free_function", [](Parent*, Child*) {}, py::keep_alive<1, 2>());
-    m.def("invalid_arg_index", []{}, py::keep_alive<0, 1>());
+    m.def(
+        "free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
+    m.def(
+        "invalid_arg_index", [] {}, py::keep_alive<0, 1>());
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc
@@ -74,29 +74,37 @@ TEST_SUBMODULE(call_policies, m) {
     public:
         using Parent::Parent;
     };
-    py::class_<ParentGC, Parent>(m, "ParentGC", py::dynamic_attr())
-        .def(py::init<>());
+    py::class_<ParentGC, Parent>(m, "ParentGC", py::dynamic_attr()).def(py::init<>());
 #endif
 
     // test_call_guard
     m.def("unguarded_call", &CustomGuard::report_status);
     m.def("guarded_call", &CustomGuard::report_status, py::call_guard<CustomGuard>());
 
-    m.def("multiple_guards_correct_order", []() {
-        return CustomGuard::report_status() + std::string(" & ") + DependentGuard::report_status();
-    }, py::call_guard<CustomGuard, DependentGuard>());
+    m.def(
+        "multiple_guards_correct_order",
+        []() {
+            return CustomGuard::report_status() + std::string(" & ")
+                   + DependentGuard::report_status();
+        },
+        py::call_guard<CustomGuard, DependentGuard>());
 
-    m.def("multiple_guards_wrong_order", []() {
-        return DependentGuard::report_status() + std::string(" & ") + CustomGuard::report_status();
-    }, py::call_guard<DependentGuard, CustomGuard>());
+    m.def(
+        "multiple_guards_wrong_order",
+        []() {
+            return DependentGuard::report_status() + std::string(" & ")
+                   + CustomGuard::report_status();
+        },
+        py::call_guard<DependentGuard, CustomGuard>());
 
 #if defined(WITH_THREAD) && !defined(PYPY_VERSION)
     // `py::call_guard<py::gil_scoped_release>()` should work in PyPy as well,
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
     auto report_gil_status = []() {
         auto is_gil_held = false;
-        if (auto tstate = py::detail::get_thread_state_unchecked())
+        if (auto *tstate = py::detail::get_thread_state_unchecked()) {
             is_gil_held = (tstate == PyGILState_GetThisThreadState());
+        }
 
         return is_gil_held ? "GIL held" : "GIL released";
     };

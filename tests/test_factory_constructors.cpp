@@ -10,6 +10,7 @@
 
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
+
 #include <cmath>
 #include <new>
 #include <utility>
@@ -38,8 +39,7 @@ class TestFactory2 {
     explicit TestFactory2(std::string v) : value(std::move(v)) { print_created(this, value); }
 
 public:
-    TestFactory2(TestFactory2 &&m) noexcept {
-        value = std::move(m.value);
+    TestFactory2(TestFactory2 &&m) noexcept : value{std::move(m.value)} {
         print_move_created(this);
     }
     TestFactory2 &operator=(TestFactory2 &&m) noexcept {
@@ -59,8 +59,7 @@ protected:
 
 public:
     explicit TestFactory3(std::string v) : value(std::move(v)) { print_created(this, value); }
-    TestFactory3(TestFactory3 &&m) noexcept {
-        value = std::move(m.value);
+    TestFactory3(TestFactory3 &&m) noexcept : value{std::move(m.value)} {
         print_move_created(this);
     }
     TestFactory3 &operator=(TestFactory3 &&m) noexcept {
@@ -89,14 +88,23 @@ class TestFactory6 {
 protected:
     int value;
     bool alias = false;
+
 public:
     explicit TestFactory6(int i) : value{i} { print_created(this, i); }
     TestFactory6(TestFactory6 &&f) noexcept {
         print_move_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         alias = f.alias;
     }
-    TestFactory6(const TestFactory6 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
+    TestFactory6(const TestFactory6 &f) {
+        print_copy_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        alias = f.alias;
+    }
     virtual ~TestFactory6() { print_destroyed(this); }
     virtual int get() { return value; }
     bool has_alias() const { return alias; }
@@ -127,14 +135,23 @@ class TestFactory7 {
 protected:
     int value;
     bool alias = false;
+
 public:
     explicit TestFactory7(int i) : value{i} { print_created(this, i); }
     TestFactory7(TestFactory7 &&f) noexcept {
         print_move_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         alias = f.alias;
     }
-    TestFactory7(const TestFactory7 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
+    TestFactory7(const TestFactory7 &f) {
+        print_copy_created(this);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = f.value;
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        alias = f.alias;
+    }
     virtual ~TestFactory7() { print_destroyed(this); }
     virtual int get() { return value; }
     bool has_alias() const { return alias; }
@@ -142,6 +159,7 @@ public:
 class PyTF7 : public TestFactory7 {
 public:
     explicit PyTF7(int i) : TestFactory7(i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         alias = true;
         print_created(this, i);
     }
@@ -151,14 +169,15 @@ public:
     int get() override { PYBIND11_OVERRIDE(int, TestFactory7, get, /*no args*/); }
 };
 
-
 class TestFactoryHelper {
 public:
     // Non-movable, non-copyable type:
     // Return via pointer:
     static TestFactory1 *construct1() { return new TestFactory1(); }
     // Holder:
-    static std::unique_ptr<TestFactory1> construct1(int a) { return std::unique_ptr<TestFactory1>(new TestFactory1(a)); }
+    static std::unique_ptr<TestFactory1> construct1(int a) {
+        return std::unique_ptr<TestFactory1>(new TestFactory1(a));
+    }
     // pointer again
     static TestFactory1 *construct1_string(std::string a) {
         return new TestFactory1(std::move(a));
@@ -168,7 +187,9 @@ public:
     // pointer:
     static TestFactory2 *construct2() { return new TestFactory2(); }
     // holder:
-    static std::unique_ptr<TestFactory2> construct2(int a) { return std::unique_ptr<TestFactory2>(new TestFactory2(a)); }
+    static std::unique_ptr<TestFactory2> construct2(int a) {
+        return std::unique_ptr<TestFactory2>(new TestFactory2(a));
+    }
     // by value moving:
     static TestFactory2 construct2(std::string a) { return TestFactory2(std::move(a)); }
 
@@ -176,16 +197,18 @@ public:
     // pointer:
     static TestFactory3 *construct3() { return new TestFactory3(); }
     // holder:
-    static std::shared_ptr<TestFactory3> construct3(int a) { return std::shared_ptr<TestFactory3>(new TestFactory3(a)); }
+    static std::shared_ptr<TestFactory3> construct3(int a) {
+        return std::shared_ptr<TestFactory3>(new TestFactory3(a));
+    }
 };
 
 TEST_SUBMODULE(factory_constructors, m) {
 
     // Define various trivial types to allow simpler overload resolution:
     py::module_ m_tag = m.def_submodule("tag");
-#define MAKE_TAG_TYPE(Name) \
-    struct Name##_tag {}; \
-    py::class_<Name##_tag>(m_tag, #Name "_tag").def(py::init<>()); \
+#define MAKE_TAG_TYPE(Name)                                                                       \
+    struct Name##_tag {};                                                                         \
+    py::class_<Name##_tag>(m_tag, #Name "_tag").def(py::init<>());                                \
     m_tag.attr(#Name) = py::cast(Name##_tag{})
     MAKE_TAG_TYPE(pointer);
     MAKE_TAG_TYPE(unique_ptr);
@@ -208,9 +231,9 @@ TEST_SUBMODULE(factory_constructors, m) {
         .def(py::init([](unique_ptr_tag, int v) { return TestFactoryHelper::construct1(v); }))
         .def(py::init(&TestFactoryHelper::construct1_string)) // raw function pointer
         .def(py::init([](pointer_tag) { return TestFactoryHelper::construct1(); }))
-        .def(py::init([](py::handle, int v, py::handle) { return TestFactoryHelper::construct1(v); }))
-        .def_readwrite("value", &TestFactory1::value)
-        ;
+        .def(py::init(
+            [](py::handle, int v, py::handle) { return TestFactoryHelper::construct1(v); }))
+        .def_readwrite("value", &TestFactory1::value);
     py::class_<TestFactory2>(m, "TestFactory2")
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct2(v); }))
         .def(py::init([](unique_ptr_tag, std::string v) {
@@ -221,7 +244,10 @@ TEST_SUBMODULE(factory_constructors, m) {
 
     // Stateful & reused:
     int c = 1;
-    auto c4a = [c](pointer_tag, TF4_tag, int a) { (void) c; return new TestFactory4(a);};
+    auto c4a = [c](pointer_tag, TF4_tag, int a) {
+        (void) c;
+        return new TestFactory4(a);
+    };
 
     // test_init_factory_basic, test_init_factory_casting
     py::class_<TestFactory3, std::shared_ptr<TestFactory3>> pyTestFactory3(m, "TestFactory3");
@@ -238,16 +264,17 @@ TEST_SUBMODULE(factory_constructors, m) {
         .def(py::init(c4a)) // derived ptr
         .def(py::init([](pointer_tag, TF5_tag, int a) { return new TestFactory5(a); }))
         // derived shared ptr:
-        .def(py::init([](shared_ptr_tag, TF4_tag, int a) { return std::make_shared<TestFactory4>(a); }))
-        .def(py::init([](shared_ptr_tag, TF5_tag, int a) { return std::make_shared<TestFactory5>(a); }))
+        .def(py::init(
+            [](shared_ptr_tag, TF4_tag, int a) { return std::make_shared<TestFactory4>(a); }))
+        .def(py::init(
+            [](shared_ptr_tag, TF5_tag, int a) { return std::make_shared<TestFactory5>(a); }))
 
         // Returns nullptr:
         .def(py::init([](null_ptr_tag) { return (TestFactory3 *) nullptr; }))
         .def(py::init([](null_unique_ptr_tag) { return std::unique_ptr<TestFactory3>(); }))
         .def(py::init([](null_shared_ptr_tag) { return std::shared_ptr<TestFactory3>(); }))
 
-        .def_readwrite("value", &TestFactory3::value)
-        ;
+        .def_readwrite("value", &TestFactory3::value);
 
     // test_init_factory_casting
     py::class_<TestFactory4, TestFactory3, std::shared_ptr<TestFactory4>>(m, "TestFactory4")
@@ -331,9 +358,7 @@ TEST_SUBMODULE(factory_constructors, m) {
     py::class_<NoPlacementNew>(m, "NoPlacementNew")
         .def(py::init<int>())
         .def(py::init([]() { return new NoPlacementNew(100); }))
-        .def_readwrite("i", &NoPlacementNew::i)
-        ;
-
+        .def_readwrite("i", &NoPlacementNew::i);
 
     // test_reallocations
     // Class that has verbose operator_new/operator_delete calls
@@ -343,23 +368,29 @@ TEST_SUBMODULE(factory_constructors, m) {
         explicit NoisyAlloc(double d) { py::print(py::str("NoisyAlloc(double {})").format(d)); }
         ~NoisyAlloc() { py::print("~NoisyAlloc()"); }
 
-        static void *operator new(size_t s) { py::print("noisy new"); return ::operator new(s); }
-        static void *operator new(size_t, void *p) { py::print("noisy placement new"); return p; }
-        static void operator delete(void *p, size_t) { py::print("noisy delete"); ::operator delete(p); }
+        static void *operator new(size_t s) {
+            py::print("noisy new");
+            return ::operator new(s);
+        }
+        static void *operator new(size_t, void *p) {
+            py::print("noisy placement new");
+            return p;
+        }
+        static void operator delete(void *p, size_t) {
+            py::print("noisy delete");
+            ::operator delete(p);
+        }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
-#if defined(_MSC_VER) && _MSC_VER < 1910
-        // MSVC 2015 bug: the above "noisy delete" isn't invoked (fixed in MSVC 2017)
-        static void operator delete(void *p) { py::print("noisy delete"); ::operator delete(p); }
-#endif
     };
 
-
     py::class_<NoisyAlloc> pyNoisyAlloc(m, "NoisyAlloc");
-        // Since these overloads have the same number of arguments, the dispatcher will try each of
-        // them until the arguments convert.  Thus we can get a pre-allocation here when passing a
-        // single non-integer:
+    // Since these overloads have the same number of arguments, the dispatcher will try each of
+    // them until the arguments convert.  Thus we can get a pre-allocation here when passing a
+    // single non-integer:
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def("__init__", [](NoisyAlloc *a, int i) { new (a) NoisyAlloc(i); }); // Regular constructor, runs first, requires preallocation
+        pyNoisyAlloc.def("__init__", [](NoisyAlloc *a, int i) {
+            new (a) NoisyAlloc(i);
+        }); // Regular constructor, runs first, requires preallocation
     });
 
     pyNoisyAlloc.def(py::init([](double d) { return new NoisyAlloc(d); }));
@@ -370,7 +401,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     pyNoisyAlloc.def(py::init([](double d, int) { return NoisyAlloc(d); }));
     // Old-style placement new init; requires preallocation
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def("__init__", [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); });
+        pyNoisyAlloc.def("__init__",
+                         [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); });
     });
     // Requires deallocation of previous overload preallocated value:
     pyNoisyAlloc.def(py::init([](int i, double) { return new NoisyAlloc(i); }));
@@ -380,7 +412,8 @@ TEST_SUBMODULE(factory_constructors, m) {
             "__init__", [](NoisyAlloc &a, int i, const std::string &) { new (&a) NoisyAlloc(i); });
     });
 
-    // static_assert testing (the following def's should all fail with appropriate compilation errors):
+    // static_assert testing (the following def's should all fail with appropriate compilation
+    // errors):
 #if 0
     struct BadF1Base {};
     struct BadF1 : BadF1Base {};

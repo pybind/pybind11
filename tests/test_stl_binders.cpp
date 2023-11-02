@@ -7,12 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/numpy.h>
+#include <pybind11/stl_bind.h>
+
 #include "pybind11_tests.h"
 
-#include <pybind11/stl_bind.h>
-#include <pybind11/numpy.h>
-#include <map>
 #include <deque>
+#include <map>
 #include <unordered_map>
 
 class El {
@@ -23,7 +24,7 @@ public:
     int a;
 };
 
-std::ostream & operator<<(std::ostream &s, El const&v) {
+std::ostream &operator<<(std::ostream &s, El const &v) {
     s << "El{" << v.a << '}';
     return s;
 }
@@ -40,35 +41,79 @@ public:
     int value;
 };
 
-template <class Container> Container *one_to_n(int n) {
-    auto v = new Container();
-    for (int i = 1; i <= n; i++)
+template <class Container>
+Container *one_to_n(int n) {
+    auto *v = new Container();
+    for (int i = 1; i <= n; i++) {
         v->emplace_back(i);
+    }
     return v;
 }
 
-template <class Map> Map *times_ten(int n) {
-    auto m = new Map();
-    for (int i = 1; i <= n; i++)
-        m->emplace(int(i), E_nc(10*i));
+template <class Map>
+Map *times_ten(int n) {
+    auto *m = new Map();
+    for (int i = 1; i <= n; i++) {
+        m->emplace(int(i), E_nc(10 * i));
+    }
     return m;
 }
 
-template <class NestMap> NestMap *times_hundred(int n) {
-    auto m = new NestMap();
-    for (int i = 1; i <= n; i++)
-        for (int j = 1; j <= n; j++)
-            (*m)[i].emplace(int(j*10), E_nc(100*j));
+template <class NestMap>
+NestMap *times_hundred(int n) {
+    auto *m = new NestMap();
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= n; j++) {
+            (*m)[i].emplace(int(j * 10), E_nc(100 * j));
+        }
+    }
     return m;
 }
+
+/*
+ * Recursive data structures as test for issue #4623
+ */
+struct RecursiveVector : std::vector<RecursiveVector> {
+    using Parent = std::vector<RecursiveVector>;
+    using Parent::Parent;
+};
+
+struct RecursiveMap : std::map<int, RecursiveMap> {
+    using Parent = std::map<int, RecursiveMap>;
+    using Parent::Parent;
+};
+
+/*
+ * Pybind11 does not catch more complicated recursion schemes, such as mutual
+ * recursion.
+ * In that case custom recursive_container_traits specializations need to be added,
+ * thus manually telling pybind11 about the recursion.
+ */
+struct MutuallyRecursiveContainerPairMV;
+struct MutuallyRecursiveContainerPairVM;
+
+struct MutuallyRecursiveContainerPairMV : std::map<int, MutuallyRecursiveContainerPairVM> {};
+struct MutuallyRecursiveContainerPairVM : std::vector<MutuallyRecursiveContainerPairMV> {};
+
+namespace pybind11 {
+namespace detail {
+template <typename SFINAE>
+struct recursive_container_traits<MutuallyRecursiveContainerPairMV, SFINAE> {
+    using type_to_check_recursively = recursive_bottom;
+};
+template <typename SFINAE>
+struct recursive_container_traits<MutuallyRecursiveContainerPairVM, SFINAE> {
+    using type_to_check_recursively = recursive_bottom;
+};
+} // namespace detail
+} // namespace pybind11
 
 TEST_SUBMODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
 
     // test_vector_custom
-    py::class_<El>(m, "El")
-        .def(py::init<int>());
+    py::class_<El>(m, "El").def(py::init<int>());
     py::bind_vector<std::vector<El>>(m, "VectorEl");
     py::bind_vector<std::vector<std::vector<El>>>(m, "VectorVectorEl");
 
@@ -78,11 +123,10 @@ TEST_SUBMODULE(stl_binders, m) {
 
     // test_map_string_double_const
     py::bind_map<std::map<std::string, double const>>(m, "MapStringDoubleConst");
-    py::bind_map<std::unordered_map<std::string, double const>>(m, "UnorderedMapStringDoubleConst");
+    py::bind_map<std::unordered_map<std::string, double const>>(m,
+                                                                "UnorderedMapStringDoubleConst");
 
-    py::class_<E_nc>(m, "ENC")
-        .def(py::init<int>())
-        .def_readwrite("value", &E_nc::value);
+    py::class_<E_nc>(m, "ENC").def(py::init<int>()).def_readwrite("value", &E_nc::value);
 
     // test_noncopyable_containers
     py::bind_vector<std::vector<E_nc>>(m, "VectorENC");
@@ -95,14 +139,15 @@ TEST_SUBMODULE(stl_binders, m) {
     m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>);
     // Issue #1885: binding nested std::map<X, Container<E>> with E non-copyable
     py::bind_map<std::map<int, std::vector<E_nc>>>(m, "MapVecENC");
-    m.def("get_nvnc", [](int n)
-        {
-            auto m = new std::map<int, std::vector<E_nc>>();
-            for (int i = 1; i <= n; i++)
-                for (int j = 1; j <= n; j++)
-                    (*m)[i].emplace_back(j);
-            return m;
-        });
+    m.def("get_nvnc", [](int n) {
+        auto *m = new std::map<int, std::vector<E_nc>>();
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                (*m)[i].emplace_back(j);
+            }
+        }
+        return m;
+    });
     py::bind_map<std::map<int, std::map<int, E_nc>>>(m, "MapMapENC");
     m.def("get_nmnc", &times_hundred<std::map<int, std::map<int, E_nc>>>);
     py::bind_map<std::unordered_map<int, std::unordered_map<int, E_nc>>>(m, "UmapUmapENC");
@@ -111,17 +156,37 @@ TEST_SUBMODULE(stl_binders, m) {
     // test_vector_buffer
     py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
     // no dtype declared for this version:
-    struct VUndeclStruct { bool w; uint32_t x; double y; bool z; };
-    m.def("create_undeclstruct", [m] () mutable {
-        py::bind_vector<std::vector<VUndeclStruct>>(m, "VectorUndeclStruct", py::buffer_protocol());
+    struct VUndeclStruct {
+        bool w;
+        uint32_t x;
+        double y;
+        bool z;
+    };
+    m.def("create_undeclstruct", [m]() mutable {
+        py::bind_vector<std::vector<VUndeclStruct>>(
+            m, "VectorUndeclStruct", py::buffer_protocol());
     });
 
+    // Bind recursive container types
+    py::bind_vector<RecursiveVector>(m, "RecursiveVector");
+    py::bind_map<RecursiveMap>(m, "RecursiveMap");
+    py::bind_map<MutuallyRecursiveContainerPairMV>(m, "MutuallyRecursiveContainerPairMV");
+    py::bind_vector<MutuallyRecursiveContainerPairVM>(m, "MutuallyRecursiveContainerPairVM");
+
     // The rest depends on numpy:
-    try { py::module_::import("numpy"); }
-    catch (...) { return; }
+    try {
+        py::module_::import("numpy");
+    } catch (...) {
+        return;
+    }
 
     // test_vector_buffer_numpy
-    struct VStruct { bool w; uint32_t x; double y; bool z; };
+    struct VStruct {
+        bool w;
+        uint32_t x;
+        double y;
+        bool z;
+    };
     PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
     py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
     py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());

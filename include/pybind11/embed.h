@@ -16,22 +16,12 @@
 #include <vector>
 
 #if defined(PYPY_VERSION)
-#  error Embedding the interpreter is not supported with PyPy
+#    error Embedding the interpreter is not supported with PyPy
 #endif
 
-#if PY_MAJOR_VERSION >= 3
-#  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
-      extern "C" PyObject *pybind11_init_impl_##name();  \
-      extern "C" PyObject *pybind11_init_impl_##name() { \
-          return pybind11_init_wrapper_##name();         \
-      }
-#else
-#  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
-      extern "C" void pybind11_init_impl_##name();       \
-      extern "C" void pybind11_init_impl_##name() {      \
-          pybind11_init_wrapper_##name();                \
-      }
-#endif
+#define PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                       \
+    extern "C" PyObject *pybind11_init_impl_##name();                                             \
+    extern "C" PyObject *pybind11_init_impl_##name() { return pybind11_init_wrapper_##name(); }
 
 /** \rst
     Add a new module to the table of builtins for the interpreter. Must be
@@ -71,69 +61,69 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Python 2.7/3.x compatible version of `PyImport_AppendInittab` and error checks.
 struct embedded_module {
-#if PY_MAJOR_VERSION >= 3
-    using init_t = PyObject *(*)();
-#else
-    using init_t = void (*)();
-#endif
+    using init_t = PyObject *(*) ();
     embedded_module(const char *name, init_t init) {
-        if (Py_IsInitialized() != 0)
+        if (Py_IsInitialized() != 0) {
             pybind11_fail("Can't add new modules after the interpreter has been initialized");
+        }
 
         auto result = PyImport_AppendInittab(name, init);
-        if (result == -1)
+        if (result == -1) {
             pybind11_fail("Insufficient memory to add a new module");
+        }
     }
 };
 
 struct wide_char_arg_deleter {
     void operator()(wchar_t *ptr) const {
-#if PY_VERSION_HEX >= 0x030500f0
         // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
         PyMem_RawFree(ptr);
-#else
-        delete[] ptr;
-#endif
     }
 };
 
 inline wchar_t *widen_chars(const char *safe_arg) {
-#if PY_VERSION_HEX >= 0x030500f0
     wchar_t *widened_arg = Py_DecodeLocale(safe_arg, nullptr);
-#else
-    wchar_t *widened_arg = nullptr;
-#    if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
-    size_t count = strlen(safe_arg);
-#    else
-    size_t count = mbstowcs(nullptr, safe_arg, 0);
-#    endif
-    if (count != static_cast<size_t>(-1)) {
-        widened_arg = new wchar_t[count + 1];
-        mbstowcs(widened_arg, safe_arg, count + 1);
-    }
-#endif
     return widened_arg;
 }
 
-/// Python 2.x/3.x-compatible version of `PySys_SetArgv`
-inline void set_interpreter_argv(int argc, const char *const *argv, bool add_program_dir_to_path) {
+inline void precheck_interpreter() {
+    if (Py_IsInitialized() != 0) {
+        pybind11_fail("The interpreter is already running");
+    }
+}
+
+#if !defined(PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX)
+#    define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX (0x03080000)
+#endif
+
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
+                                                int argc,
+                                                const char *const *argv,
+                                                bool add_program_dir_to_path) {
+    detail::precheck_interpreter();
+    Py_InitializeEx(init_signal_handlers ? 1 : 0);
+#    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
+    PyEval_InitThreads();
+#    endif
+
     // Before it was special-cased in python 3.8, passing an empty or null argv
     // caused a segfault, so we have to reimplement the special case ourselves.
     bool special_case = (argv == nullptr || argc <= 0);
 
     const char *const empty_argv[]{"\0"};
     const char *const *safe_argv = special_case ? empty_argv : argv;
-    if (special_case)
+    if (special_case) {
         argc = 1;
+    }
 
     auto argv_size = static_cast<size_t>(argc);
-#if PY_MAJOR_VERSION >= 3
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
     std::unique_ptr<wchar_t *[]> widened_argv(new wchar_t *[argv_size]);
-    std::vector<std::unique_ptr<wchar_t[], wide_char_arg_deleter>> widened_argv_entries;
+    std::vector<std::unique_ptr<wchar_t[], detail::wide_char_arg_deleter>> widened_argv_entries;
     widened_argv_entries.reserve(argv_size);
     for (size_t ii = 0; ii < argv_size; ++ii) {
-        widened_argv_entries.emplace_back(widen_chars(safe_argv[ii]));
+        widened_argv_entries.emplace_back(detail::widen_chars(safe_argv[ii]));
         if (!widened_argv_entries.back()) {
             // A null here indicates a character-encoding failure or the python
             // interpreter out of memory. Give up.
@@ -142,20 +132,43 @@ inline void set_interpreter_argv(int argc, const char *const *argv, bool add_pro
         widened_argv[ii] = widened_argv_entries.back().get();
     }
 
-    auto pysys_argv = widened_argv.get();
-#else
-    // python 2.x
-    std::vector<std::string> strings{safe_argv, safe_argv + argv_size};
-    std::vector<char *> char_strings{argv_size};
-    for (std::size_t i = 0; i < argv_size; ++i)
-        char_strings[i] = &strings[i][0];
-    char **pysys_argv = char_strings.data();
-#endif
+    auto *pysys_argv = widened_argv.get();
 
     PySys_SetArgvEx(argc, pysys_argv, static_cast<int>(add_program_dir_to_path));
 }
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
+
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+inline void initialize_interpreter(PyConfig *config,
+                                   int argc = 0,
+                                   const char *const *argv = nullptr,
+                                   bool add_program_dir_to_path = true) {
+    detail::precheck_interpreter();
+    PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
+    if (PyStatus_Exception(status) != 0) {
+        // A failure here indicates a character-encoding failure or the python
+        // interpreter out of memory. Give up.
+        PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to prepare CPython");
+    }
+    status = Py_InitializeFromConfig(config);
+    if (PyStatus_Exception(status) != 0) {
+        PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to init CPython");
+    }
+    if (add_program_dir_to_path) {
+        PyRun_SimpleString("import sys, os.path; "
+                           "sys.path.insert(0, "
+                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
+                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
+    }
+    PyConfig_Clear(config);
+}
+#endif
 
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
@@ -180,12 +193,18 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    if (Py_IsInitialized() != 0)
-        pybind11_fail("The interpreter is already running");
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+    detail::initialize_interpreter_pre_pyconfig(
+        init_signal_handlers, argc, argv, add_program_dir_to_path);
+#else
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+    // See PR #4473 for background
+    config.parse_argv = 0;
 
-    Py_InitializeEx(init_signal_handlers ? 1 : 0);
-
-    detail::set_interpreter_argv(argc, argv, add_program_dir_to_path);
+    config.install_signal_handlers = init_signal_handlers ? 1 : 0;
+    initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
+#endif
 }
 
 /** \rst
@@ -224,16 +243,19 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
  \endrst */
 inline void finalize_interpreter() {
-    handle builtins(PyEval_GetBuiltins());
-    const char *id = PYBIND11_INTERNALS_ID;
-
     // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
     // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
     detail::internals **internals_ptr_ptr = detail::get_internals_pp();
-    // It could also be stashed in builtins, so look there too:
-    if (builtins.contains(id) && isinstance<capsule>(builtins[id]))
-        internals_ptr_ptr = capsule(builtins[id]);
+    // It could also be stashed in state_dict, so look there too:
+    if (object internals_obj
+        = get_internals_obj_from_state_dict(detail::get_python_state_dict())) {
+        internals_ptr_ptr = detail::get_internals_pp_from_capsule(internals_obj);
+    }
+    // Local internals contains data managed by the current interpreter, so we must clear them to
+    // avoid undefined behaviors when initializing another interpreter
+    detail::get_local_internals().registered_types_cpp.clear();
+    detail::get_local_internals().registered_exception_translators.clear();
 
     Py_Finalize();
 
@@ -267,14 +289,24 @@ public:
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 
+#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+    explicit scoped_interpreter(PyConfig *config,
+                                int argc = 0,
+                                const char *const *argv = nullptr,
+                                bool add_program_dir_to_path = true) {
+        initialize_interpreter(config, argc, argv, add_program_dir_to_path);
+    }
+#endif
+
     scoped_interpreter(const scoped_interpreter &) = delete;
     scoped_interpreter(scoped_interpreter &&other) noexcept { other.is_valid = false; }
     scoped_interpreter &operator=(const scoped_interpreter &) = delete;
     scoped_interpreter &operator=(scoped_interpreter &&) = delete;
 
     ~scoped_interpreter() {
-        if (is_valid)
+        if (is_valid) {
             finalize_interpreter();
+        }
     }
 
 private:

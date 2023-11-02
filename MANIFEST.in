@@ -1,6 +1,6 @@
+prune tests
 recursive-include pybind11/include/pybind11 *.h
 recursive-include pybind11 *.py
 recursive-include pybind11 py.typed
-recursive-include pybind11 *.pyi
 include pybind11/share/cmake/pybind11/*.cmake
-include LICENSE README.rst README_DRAKE.md pyproject.toml setup.py setup.cfg
+include LICENSE README.rst README_DRAKE.md SECURITY.md pyproject.toml setup.py setup.cfg

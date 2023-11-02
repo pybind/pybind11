@@ -1,6 +1,6 @@
 version: 1.0.{build}
 image:
-- Visual Studio 2015
+- Visual Studio 2017
 test: off
 skip_branch_with_pr: true
 build:
@@ -11,11 +11,9 @@ environment:
   matrix:
   - PYTHON: 36
     CONFIG: Debug
-  - PYTHON: 27
-    CONFIG: Debug
 install:
 - ps: |
-    $env:CMAKE_GENERATOR = "Visual Studio 14 2015"
+    $env:CMAKE_GENERATOR = "Visual Studio 15 2017"
     if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
     $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
     python -W ignore -m pip install --upgrade pip wheel

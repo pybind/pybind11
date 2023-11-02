@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 import env  # noqa: F401
@@ -10,12 +9,12 @@ from pybind11_tests import ConstructorStats  # noqa: E402
 def test_override(capture, msg):
     class ExtendedExampleVirt(m.ExampleVirt):
         def __init__(self, state):
-            super(ExtendedExampleVirt, self).__init__(state + 1)
+            super().__init__(state + 1)
             self.data = "Hello world"
 
         def run(self, value):
-            print("ExtendedExampleVirt::run(%i), calling parent.." % value)
-            return super(ExtendedExampleVirt, self).run(value + 1)
+            print(f"ExtendedExampleVirt::run({value}), calling parent..")
+            return super().run(value + 1)
 
         def run_bool(self):
             print("ExtendedExampleVirt::run_bool()")
@@ -25,11 +24,11 @@ def test_override(capture, msg):
             return "override1"
 
         def pure_virtual(self):
-            print("ExtendedExampleVirt::pure_virtual(): %s" % self.data)
+            print(f"ExtendedExampleVirt::pure_virtual(): {self.data}")
 
     class ExtendedExampleVirt2(ExtendedExampleVirt):
         def __init__(self, state):
-            super(ExtendedExampleVirt2, self).__init__(state + 1)
+            super().__init__(state + 1)
 
         def get_string2(self):
             return "override2"
@@ -41,7 +40,7 @@ def test_override(capture, msg):
         capture
         == """
         Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
-    """  # noqa: E501 line too long
+    """
     )
 
     with pytest.raises(RuntimeError) as excinfo:
@@ -59,7 +58,7 @@ def test_override(capture, msg):
         == """
         ExtendedExampleVirt::run(20), calling parent..
         Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
-    """  # noqa: E501 line too long
+    """
     )
     with capture:
         assert m.runExampleVirtBool(ex12p) is False
@@ -76,7 +75,7 @@ def test_override(capture, msg):
         == """
         ExtendedExampleVirt::run(50), calling parent..
         Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
-    """  # noqa: E501 line too long
+    """
     )
 
     cstats = ConstructorStats.get(m.ExampleVirt)
@@ -97,7 +96,7 @@ def test_alias_delay_initialization1(capture):
 
     class B(m.A):
         def __init__(self):
-            super(B, self).__init__()
+            super().__init__()
 
         def f(self):
             print("In python f()")
@@ -137,7 +136,7 @@ def test_alias_delay_initialization2(capture):
 
     class B2(m.A2):
         def __init__(self):
-            super(B2, self).__init__()
+            super().__init__()
 
         def f(self):
             print("In python B2.f()")
@@ -193,8 +192,7 @@ def test_move_support():
     class NCVirtExt(m.NCVirt):
         def get_noncopyable(self, a, b):
             # Constructs and returns a new instance:
-            nc = m.NonCopyable(a * a, b * b)
-            return nc
+            return m.NonCopyable(a * a, b * b)
 
         def get_movable(self, a, b):
             # Return a referenced copy
@@ -217,7 +215,10 @@ def test_move_support():
     ncv2 = NCVirtExt2()
     assert ncv2.print_movable(7, 7) == "14"
     # Don't check the exception message here because it differs under debug/non-debug mode
-    with pytest.raises(RuntimeError):
+
+    # N.B. Drake fork allows this behavior.
+    if True:
+    # with pytest.raises(RuntimeError):
         ncv2.print_nc(9, 9)
 
     nc_stats = ConstructorStats.get(m.NonCopyable)
@@ -245,7 +246,7 @@ def test_dispatch_issue(msg):
     class PyClass2(m.DispatchIssue):
         def dispatch(self):
             with pytest.raises(RuntimeError) as excinfo:
-                super(PyClass2, self).dispatch()
+                super().dispatch()
             assert (
                 msg(excinfo.value)
                 == 'Tried to call pure virtual function "Base::dispatch"'
@@ -257,12 +258,12 @@ def test_dispatch_issue(msg):
     assert m.dispatch_issue_go(b) == "Yay.."
 
 
-def test_recursive_dispatch_issue(msg):
+def test_recursive_dispatch_issue():
     """#3357: Recursive dispatch fails to find python function override"""
 
     class Data(m.Data):
         def __init__(self, value):
-            super(Data, self).__init__()
+            super().__init__()
             self.value = value
 
     class Adder(m.Adder):
@@ -270,7 +271,7 @@ def test_recursive_dispatch_issue(msg):
             # lambda is a workaround, which adds extra frame to the
             # current CPython thread. Removing lambda reveals the bug
             # [https://github.com/pybind/pybind11/issues/3357]
-            (lambda: visitor(Data(first.value + second.value)))()
+            (lambda: visitor(Data(first.value + second.value)))()  # noqa: PLC3002
 
     class StoreResultVisitor:
         def __init__(self):
