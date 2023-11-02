@@ -1570,7 +1570,7 @@ public:
         }
         pybind11_fail("Unsupported buffer format!");
     }
-    static constexpr auto name = _("object");
+    static constexpr auto name = const_name("object");
 };
 
 #    define PYBIND11_NUMPY_OBJECT_DTYPE(Type)                                                     \
