@@ -44,15 +44,27 @@ Details:
 * The `void_cast_raw_ptr` option is needed to make the `smart_holder` `vptr`
   member invisible to the `shared_from_this` mechanism, in case the lifetime
   of a `PyObject` is tied to the pointee.
+
+* Regarding `PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP` below:
+  This define serves as a marker for code that is NOT used
+  from smart_holder_type_casters.h, but is exercised only from
+  tests/pure_cpp/smart_holder_poc_test.cpp. The marked code was useful
+  mainly for bootstrapping the smart_holder work. At this stage, with
+  smart_holder_type_casters.h in production use (at Google) since around
+  February 2021, it could be moved from here to tests/pure_cpp/ (help welcome).
+  It will probably be best in most cases to add tests for new functionality
+  under test/test_class_sh_*.
 */
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 // pybindit = Python Bindings Innovation Track.
 // Currently not in pybind11 namespace to signal that this POC does not depend
@@ -68,14 +80,23 @@ static constexpr bool type_has_shared_from_this(const std::enable_shared_from_th
 }
 
 struct guarded_delete {
-    std::weak_ptr<void> released_ptr; // Trick to keep the smart_holder memory footprint small.
-    void (*del_ptr)(void *);
+    std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
+    std::function<void(void *)> del_fun; // Rare case.
+    void (*del_ptr)(void *);             // Common case.
+    bool use_del_fun;
     bool armed_flag;
+    guarded_delete(std::function<void(void *)> &&del_fun, bool armed_flag)
+        : del_fun{std::move(del_fun)}, del_ptr{nullptr}, use_del_fun{true},
+          armed_flag{armed_flag} {}
     guarded_delete(void (*del_ptr)(void *), bool armed_flag)
-        : del_ptr{del_ptr}, armed_flag{armed_flag} {}
+        : del_ptr{del_ptr}, use_del_fun{false}, armed_flag{armed_flag} {}
     void operator()(void *raw_ptr) const {
         if (armed_flag) {
-            (*del_ptr)(raw_ptr);
+            if (use_del_fun) {
+                del_fun(raw_ptr);
+            } else {
+                del_ptr(raw_ptr);
+            }
         }
     }
 };
@@ -99,13 +120,16 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 }
 
 template <typename T, typename D>
-inline void custom_delete(void *raw_ptr) {
-    D()(static_cast<T *>(raw_ptr));
-}
+struct custom_deleter {
+    D deleter;
+    explicit custom_deleter(D &&deleter) : deleter{std::forward<D>(deleter)} {}
+    void operator()(void *raw_ptr) { deleter(static_cast<T *>(raw_ptr)); }
+};
 
 template <typename T, typename D>
-guarded_delete make_guarded_custom_deleter(bool armed_flag) {
-    return guarded_delete(custom_delete<T, D>, armed_flag);
+guarded_delete make_guarded_custom_deleter(D &&uqp_del, bool armed_flag) {
+    return guarded_delete(
+        std::function<void(void *)>(custom_deleter<T, D>(std::forward<D>(uqp_del))), armed_flag);
 }
 
 template <typename T>
@@ -232,6 +256,7 @@ struct smart_holder {
         return static_cast<T *>(vptr.get());
     }
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T>
     T &as_lvalue_ref() const {
         static const char *context = "as_lvalue_ref";
@@ -239,7 +264,9 @@ struct smart_holder {
         ensure_has_pointee(context);
         return *as_raw_ptr_unowned<T>();
     }
+#endif
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T>
     T &&as_rvalue_ref() const {
         static const char *context = "as_rvalue_ref";
@@ -247,6 +274,7 @@ struct smart_holder {
         ensure_has_pointee(context);
         return std::move(*as_raw_ptr_unowned<T>());
     }
+#endif
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
@@ -291,6 +319,7 @@ struct smart_holder {
         release_disowned();
     }
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T>
     T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
         ensure_can_release_ownership(context);
@@ -298,6 +327,7 @@ struct smart_holder {
         release_ownership();
         return raw_ptr;
     }
+#endif
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
@@ -309,7 +339,7 @@ struct smart_holder {
         if (hld.vptr_is_using_builtin_delete) {
             gd = make_guarded_builtin_delete<T>(true);
         } else {
-            gd = make_guarded_custom_deleter<T, D>(true);
+            gd = make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
         }
         if (void_ptr != nullptr) {
             hld.vptr.reset(void_ptr, std::move(gd));
@@ -321,6 +351,7 @@ struct smart_holder {
         return hld;
     }
 
+#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
     template <typename T, typename D = std::default_delete<T>>
     std::unique_ptr<T, D> as_unique_ptr() {
         static const char *context = "as_unique_ptr";
@@ -328,8 +359,10 @@ struct smart_holder {
         ensure_use_count_1(context);
         T *raw_ptr = as_raw_ptr_unowned<T>();
         release_ownership();
+        // KNOWN DEFECT (see PR #4850): Does not copy the deleter.
         return std::unique_ptr<T, D>(raw_ptr);
     }
+#endif
 
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {

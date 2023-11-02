@@ -1,4 +1,11 @@
+#define PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP
+
 #include "pybind11/detail/smart_holder_poc.h"
+
+#include <functional>
+#include <memory>
+#include <type_traits>
+#include <utility>
 
 // Catch uses _ internally, which breaks gettext style defines
 #ifdef _
@@ -21,6 +28,15 @@ struct movable_int {
 template <typename T>
 struct functor_builtin_delete {
     void operator()(T *ptr) { delete ptr; }
+#if (defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ == 8)                                   \
+    || (defined(__clang_major__) && __clang_major__ == 3 && __clang_minor__ == 6)
+    // Workaround for these errors:
+    // gcc 4.8.5: too many initializers for 'helpers::functor_builtin_delete<int>'
+    // clang 3.6: excess elements in struct initializer
+    functor_builtin_delete() = default;
+    functor_builtin_delete(const functor_builtin_delete &) {}
+    functor_builtin_delete(functor_builtin_delete &&) {}
+#endif
 };
 
 template <typename T>
@@ -254,6 +270,14 @@ TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[E]") {
 
 TEST_CASE("from_unique_ptr_with_deleter+as_lvalue_ref", "[S]") {
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
+    auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
+    REQUIRE(orig_owner.get() == nullptr);
+    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+}
+
+TEST_CASE("from_unique_ptr_with_std_function_deleter+as_lvalue_ref", "[S]") {
+    std::unique_ptr<int, std::function<void(const int *)>> orig_owner(
+        new int(19), [](const int *raw_ptr) { delete raw_ptr; });
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
     REQUIRE(hld.as_lvalue_ref<int>() == 19);
