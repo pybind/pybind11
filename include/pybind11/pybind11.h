@@ -2751,7 +2751,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
             PyObject *locals = PyEval_GetLocals();
             if (locals != nullptr) {
-#        if PY_VERSION_HEX >= 0x03110000
+#        if PY_VERSION_HEX >= 0x030b0000
                 PyObject *co_varnames = PyCode_GetVarnames(f_code);
 #        else
                 PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
