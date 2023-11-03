@@ -39,12 +39,15 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // violations in binaries that are otherwise already fully tested and assumed to be healthy.
 //
 // * MSVC 2017 does not support __builtin_FILE(), __builtin_LINE().
+// * MSVC 193732825 C++17 windows-2020 is failing for unknown reasons.
 // * Intel 2021.6.0.20220226 (g++ 9.4 mode) __builtin_LINE() is unreliable
 //   (line numbers vary between translation units).
 #if defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD_IF_AVAILABLE)                                   \
     && !defined(PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD) && defined(PYBIND11_CPP17)                 \
     && !defined(__INTEL_COMPILER)                                                                 \
-    && (!defined(_MSC_VER) || _MSC_VER >= 1920) // MSVC 2019 or newer.
+    && (!defined(_MSC_VER)                                                                        \
+        || (_MSC_VER >= 1920 /* MSVC 2019 or newer */                                             \
+            && (_MSC_VER != 193732825 || defined(PYBIND11_CPP20))))
 #    define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 #endif
 
