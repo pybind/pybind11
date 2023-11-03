@@ -47,7 +47,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
     && !defined(__INTEL_COMPILER)                                                                 \
     && (!defined(_MSC_VER)                                                                        \
         || (_MSC_VER >= 1920 /* MSVC 2019 or newer */                                             \
-            && (_MSC_VER != 193732825 || defined(PYBIND11_CPP20))))
+            && (_MSC_FULL_VER != 193732825 || defined(PYBIND11_CPP20))))
 #    define PYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD
 #endif
 
