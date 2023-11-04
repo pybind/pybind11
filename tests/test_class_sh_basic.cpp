@@ -67,19 +67,16 @@ std::string pass_udcp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp
 
 struct custom_deleter
 {
-  std::string delete_txt;
-  void operator()(atyp* p) const
-  {
-    std::default_delete<atyp>()(p);
-  }
+    std::string delete_txt;
+    void operator()(atyp* p) const
+    {
+        std::default_delete<atyp>()(p);
+    }
 };
 
 std::unique_ptr<atyp,       custom_deleter> rtrn_udmp_del() { return std::unique_ptr<atyp,       custom_deleter>(new atyp{"rtrn_udmp_del"}, custom_deleter{"udmp_deleter"}); }
  
-std::string pass_udmp_del(std::unique_ptr<atyp,       custom_deleter> obj) {
-  const auto d = obj.get_deleter();
-  return "pass_udmp_del:" + obj->mtxt + "," + d.delete_txt;
-}
+std::string pass_udmp_del(std::unique_ptr<atyp,       custom_deleter> obj) { return "pass_udmp_del:" + obj->mtxt + "," + obj.get_deleter().delete_txt; }
 
 // clang-format on
 
