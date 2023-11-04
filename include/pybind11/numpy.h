@@ -267,7 +267,7 @@ struct npy_api {
         int len;
     };
 
-    static npy_api &get() {
+    static inline npy_api &get() {
         PYBIND11_CONSTINIT static gil_safe_call_once_and_store<npy_api> storage;
         return storage.call_once_and_store_result(lookup).get_stored();
     }
@@ -761,7 +761,7 @@ public:
 #endif
 
 private:
-    static object &_dtype_from_pep3118() {
+    static inline object &_dtype_from_pep3118() {
         PYBIND11_CONSTINIT static gil_safe_call_once_and_store<object> storage;
         return storage
             .call_once_and_store_result([]() {
