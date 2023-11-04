@@ -81,7 +81,7 @@ private:
                                                   //  docstrings.
     };
 
-    static state &global_state() {
+    static inline state &global_state() {
         static state instance;
         return instance;
     }
