@@ -464,29 +464,6 @@ struct shared_ptr_trampoline_self_life_support {
     }
 };
 
-template <typename D, bool>
-struct delete_assigner {
-    static void assign(D &, bool, std::function<void(void *)> &, void (*)(void *) &) {
-        // Situation where the deleter cannot be assigned from either del_fun or del_ptr.
-        // This covers the default deleters and the like.
-    }
-};
-
-template <typename D>
-struct delete_assigner<D, true> {
-    static void assign(D &deleter,
-                       bool use_del_fun,
-                       std::function<void(void *)> &del_fun,
-                       void (*del_ptr)(void *) &) {
-        // Situation where D is assignable from del_fun.
-        if (use_del_fun) {
-            deleter = std::move(del_fun);
-        } else {
-            deleter = del_ptr;
-        }
-    }
-};
-
 template <typename T>
 struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
@@ -639,18 +616,16 @@ struct smart_holder_type_caster_load {
                               "instance cannot safely be transferred to C++.");
         }
 
-        // Need to extract the deleter from the holder such that it can be passed back to the
-        // unique pointer.
-
-        // Temporary variable to store the extracted deleter in.
+        // Default constructed temporary variable to store the extracted deleter in.
         D extracted_deleter;
 
-        // In smart_holder_poc, the deleter is always stored in a guarded delete.
-        // The guarded delete's std::function<void(void*)> actually points at the custom_deleter
-        // type, so we can verify it is of the custom deleter type and finally extract its deleter.
         auto *gd = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
         if (gd) {
             if (gd->use_del_fun) {
+                // In smart_holder_poc, a custom  deleter is always stored in a guarded delete.
+                // The guarded delete's std::function<void(void*)> actually points at the
+                // custom_deleter type, so we can verify it is of the custom deleter type and
+                // finally extract its deleter.
                 using custom_deleter_D = pybindit::memory::custom_deleter<T, D>;
                 const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter_D>();
                 if (!custom_deleter_ptr) {
@@ -661,14 +636,9 @@ struct smart_holder_type_caster_load {
                 // value we can extract the function.
                 extracted_deleter = std::move(custom_deleter_ptr->deleter);
             } else {
-                // The del_ptr attribute of the guarded deleter does not provide any type
-                // information that can be used to confirm it is convertible to D. SFINEA here is
-                // necessary to ensure that if D is not constructible from a void(void*) pointer,
-                // it does not cause compilation failures. If this hits an non-convertible type at
-                // compile time it throws.
-                constexpr bool assignable = std::is_constructible<D, decltype(gd->del_fun)>::value;
-                delete_assigner<D, assignable>::assign(
-                    extracted_deleter, gd->use_del_fun, gd->del_fun, gd->del_ptr);
+                // Not sure if anything needs to be done here. In general, if the del function is
+                // used a default destructor is used which should be accomodated by the type of the
+                // deleter used in the returned unique ptr.
             }
         }
 
