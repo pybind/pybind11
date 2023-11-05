@@ -64,6 +64,7 @@ def test_load_with_mtxt(pass_f, mtxt, expected):
 def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
     assert pass_f(rtrn_f()) == expected
 
+
 @pytest.mark.parametrize(
     ("pass_f", "rtrn_f", "expected"),
     [
@@ -73,6 +74,7 @@ def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
 )
 def test_deleter_roundtrip(pass_f, rtrn_f, expected):
     assert pass_f(rtrn_f()) == expected
+
 
 @pytest.mark.parametrize(
     ("pass_f", "rtrn_f", "expected"),

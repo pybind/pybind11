@@ -637,8 +637,8 @@ struct smart_holder_type_caster_load {
                 extracted_deleter = std::move(custom_deleter_ptr->deleter);
             } else {
                 // Not sure if anything needs to be done here. In general, if the del function is
-                // used a default destructor is used which should be accomodated by the type of the
-                // deleter used in the returned unique ptr.
+                // used a default destructor is used which should be accommodated by the type of
+                // the deleter used in the returned unique ptr.
             }
         }
 
