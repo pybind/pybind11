@@ -1083,7 +1083,7 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     cast(std::unique_ptr<T const, D> &&src, return_value_policy policy, handle parent) {
         return smart_holder_type_caster<std::unique_ptr<T, D>>::cast(
             std::unique_ptr<T, D>(const_cast<T *>(src.release()),
-                                  std::move(src.get_deleter())),  // Const2Mutbl
+                                  std::move(src.get_deleter())), // Const2Mutbl
             policy,
             parent);
     }
