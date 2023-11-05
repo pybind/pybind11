@@ -64,10 +64,15 @@ def test_load_with_mtxt(pass_f, mtxt, expected):
 def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
     assert pass_f(rtrn_f()) == expected
 
-def test_deleter_roundtrip():
-    t = m.rtrn_udmp_del()
-    r = m.pass_udmp_del(t)
-    assert r == "pass_udmp_del:rtrn_udmp_del,udmp_deleter"
+@pytest.mark.parametrize(
+    ("pass_f", "rtrn_f", "expected"),
+    [
+        (m.pass_udmp_del, m.rtrn_udmp_del, "pass_udmp_del:rtrn_udmp_del,udmp_deleter"),
+        (m.pass_udcp_del, m.rtrn_udcp_del, "pass_udcp_del:rtrn_udcp_del,udcp_deleter"),
+    ],
+)
+def test_deleter_roundtrip(pass_f, rtrn_f, expected):
+    assert pass_f(rtrn_f()) == expected
 
 @pytest.mark.parametrize(
     ("pass_f", "rtrn_f", "expected"),
