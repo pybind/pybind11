@@ -68,7 +68,7 @@ std::string pass_udcp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp
 struct custom_deleter
 {
     std::string delete_txt;
-    custom_deleter() = default;
+    custom_deleter() = delete;
     explicit custom_deleter(const std::string &delete_txt_) : delete_txt(delete_txt_) {}
     void operator()(atyp* p) const
     {
