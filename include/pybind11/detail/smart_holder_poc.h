@@ -103,7 +103,7 @@ struct guarded_delete {
 
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
 inline void builtin_delete_if_destructible(void *raw_ptr) {
-    delete static_cast<T *>(raw_ptr);
+    std::default_delete<T>{}(static_cast<T *>(raw_ptr));
 }
 
 template <typename T, typename std::enable_if<!std::is_destructible<T>::value, int>::type = 0>
