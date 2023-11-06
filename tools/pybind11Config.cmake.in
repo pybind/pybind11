@@ -149,7 +149,7 @@ default is ``MODULE``. There are several options:
 ``OPT_SIZE``
   Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``MinSizeRel``.
 ``THIN_LTO``
-  Use thin TLO instead of regular if there's a choice (pybind11's selection
+  Use thin LTO instead of regular if there's a choice (pybind11's selection
   is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
 ``WITHOUT_SOABI``
   Disable the SOABI component (``PYBIND11_NEWPYTHON`` mode only).
