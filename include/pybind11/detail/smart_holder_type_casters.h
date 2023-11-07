@@ -468,17 +468,20 @@ template <typename T,
           typename D,
           typename std::enable_if<std::is_default_constructible<D>::value, int>::type = 0>
 inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> &&deleter) {
-    if (deleter != nullptr) {
-        return std::unique_ptr<T, D>(raw_ptr, std::move(*deleter));
+    if (deleter == nullptr) {
+        return std::unique_ptr<T, D>(raw_ptr);
     }
-    return std::unique_ptr<T, D>(raw_ptr);
+    return std::unique_ptr<T, D>(raw_ptr, std::move(*deleter));
 }
 
 template <typename T,
           typename D,
           typename std::enable_if<!std::is_default_constructible<D>::value, int>::type = 0>
 inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> &&deleter) {
-    assert(deleter != nullptr);
+    if (deleter == nullptr) {
+        pybind11_fail("smart_holder_type_casters: deleter is not default constructible and no"
+                      " instance available to return.");
+    }
     return std::unique_ptr<T, D>(raw_ptr, std::move(*deleter));
 }
 
