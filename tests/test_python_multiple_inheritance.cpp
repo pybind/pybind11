@@ -61,4 +61,6 @@ TEST_SUBMODULE(python_multiple_inheritance, m) {
         .def("reset_drvd2_value", &CppDrvd2::reset_drvd2_value)
         .def("get_base_value_from_drvd2", &CppDrvd2::get_base_value_from_drvd2)
         .def("reset_base_value_from_drvd2", &CppDrvd2::reset_base_value_from_drvd2);
+
+    m.def("pass_CppBase", [](const CppBase *) {});
 }
