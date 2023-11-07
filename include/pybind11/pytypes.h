@@ -1863,11 +1863,10 @@ public:
     operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
 };
 
-class weakref : public object {
+class weakref : public handle {
 public:
-    PYBIND11_OBJECT_CVT_DEFAULT(weakref, object, PyWeakref_Check, raw_weakref)
     explicit weakref(handle obj, handle callback = {})
-        : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
+        : handle(PyWeakref_NewRef(obj.ptr(), callback.ptr())) {
         if (!m_ptr) {
             if (PyErr_Occurred()) {
                 throw error_already_set();

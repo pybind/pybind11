@@ -287,7 +287,7 @@ avoids this issue involves weak reference with a cleanup callback:
     );
 
     // Create a weak reference with a cleanup callback and initially leak it
-    (void) py::weakref(m.attr("BaseClass"), cleanup_callback).release();
+    (void) py::weakref(m.attr("BaseClass"), cleanup_callback);
 
 .. note::
 

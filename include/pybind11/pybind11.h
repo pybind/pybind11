@@ -1694,8 +1694,7 @@ public:
         weakref(m_ptr, cpp_function([ptr](handle wr) {
                     delete ptr;
                     wr.dec_ref();
-                }))
-            .release();
+                }));
         return *this;
     }
 
@@ -2290,7 +2289,6 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
         weakref wr(nurse, disable_lifesupport);
 
         patient.inc_ref(); /* reference patient and leak the weak reference */
-        (void) wr.release();
     }
 }
 
@@ -2338,8 +2336,7 @@ all_type_info_get_cache(PyTypeObject *type) {
                     }
 
                     wr.dec_ref();
-                }))
-            .release();
+                }));
     }
 
     return res;
