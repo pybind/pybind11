@@ -114,8 +114,8 @@ public:
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(Return (*f)(Args...), const Extra &...extra) {
-        initialize(f, f, extra...);
+    cpp_function(Return (*f)(Args...), Extra &&...extra) {
+        initialize(f, f, std::forward<Extra>(extra)...);
     }
 
     /// Construct a cpp_function from a lambda function (possibly with internal state)
@@ -131,11 +131,11 @@ public:
     /// Construct a cpp_function from a class method (non-const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(Return (Class::*f)(Arg...), const Extra &...extra) {
+    cpp_function(Return (Class::*f)(Arg...), Extra &&...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
             (Return(*)(Class *, Arg...)) nullptr,
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 
     /// Construct a cpp_function from a class method (non-const, lvalue ref-qualifier)
@@ -143,21 +143,21 @@ public:
     /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(Return (Class::*f)(Arg...) &, const Extra &...extra) {
+    cpp_function(Return (Class::*f)(Arg...) &, Extra &&...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
             (Return(*)(Class *, Arg...)) nullptr,
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 
     /// Construct a cpp_function from a class method (const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(Return (Class::*f)(Arg...) const, const Extra &...extra) {
+    cpp_function(Return (Class::*f)(Arg...) const, Extra &&...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return(*)(const Class *, Arg...)) nullptr,
-                   extra...);
+                   std::forward<Extra>(extra)...);
     }
 
     /// Construct a cpp_function from a class method (const, lvalue ref-qualifier)
@@ -165,11 +165,11 @@ public:
     /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(Return (Class::*f)(Arg...) const &, const Extra &...extra) {
+    cpp_function(Return (Class::*f)(Arg...) const &, Extra &&...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return(*)(const Class *, Arg...)) nullptr,
-                   extra...);
+                   std::forward<Extra>(extra)...);
     }
 
     /// Return the function name
@@ -1184,12 +1184,12 @@ public:
         details on the ``Extra&& ... extra`` argument, see section :ref:`extras`.
     \endrst */
     template <typename Func, typename... Extra>
-    module_ &def(const char *name_, Func &&f, const Extra &...extra) {
+    module_ &def(const char *name_, Func &&f, Extra &&...extra) {
         cpp_function func(std::forward<Func>(f),
                           name(name_),
                           scope(*this),
                           sibling(getattr(*this, name_, none())),
-                          extra...);
+                          std::forward<Extra>(extra)...);
         // NB: allow overwriting here because cpp_function sets up a chain with the intention of
         // overwriting (and has already checked internally that it isn't overwriting
         // non-functions).
@@ -1572,7 +1572,7 @@ public:
     PYBIND11_OBJECT(class_, generic_type, PyType_Check)
 
     template <typename... Extra>
-    class_(handle scope, const char *name, const Extra &...extra) {
+    class_(handle scope, const char *name, Extra &&...extra) {
         using namespace detail;
 
         // MI can only be specified via class_ template options, not constructor parameters
@@ -1601,7 +1601,7 @@ public:
         PYBIND11_EXPAND_SIDE_EFFECTS(add_base<options>(record));
 
         /* Process optional arguments, if any */
-        process_attributes<Extra...>::init(extra..., &record);
+        process_attributes<Extra...>::init(std::forward<Extra>(extra)..., &record);
 
         generic_type::initialize(record);
 
@@ -1627,65 +1627,65 @@ public:
     static void add_base(detail::type_record &) {}
 
     template <typename Func, typename... Extra>
-    class_ &def(const char *name_, Func &&f, const Extra &...extra) {
+    class_ &def(const char *name_, Func &&f, Extra &&...extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)),
                         name(name_),
                         is_method(*this),
                         sibling(getattr(*this, name_, none())),
-                        extra...);
+                        std::forward<Extra>(extra)...);
         add_class_method(*this, name_, cf);
         return *this;
     }
 
     template <typename Func, typename... Extra>
-    class_ &def_static(const char *name_, Func &&f, const Extra &...extra) {
+    class_ &def_static(const char *name_, Func &&f, Extra &&...extra) {
         static_assert(!std::is_member_function_pointer<Func>::value,
                       "def_static(...) called with a non-static member function pointer");
         cpp_function cf(std::forward<Func>(f),
                         name(name_),
                         scope(*this),
                         sibling(getattr(*this, name_, none())),
-                        extra...);
+                        std::forward<Extra>(extra)...);
         auto cf_name = cf.name();
         attr(std::move(cf_name)) = staticmethod(std::move(cf));
         return *this;
     }
 
     template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
-    class_ &def(const T &op, const Extra &...extra) {
-        op.execute(*this, extra...);
+    class_ &def(const T &op, Extra &&...extra) {
+        op.execute(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
-    class_ &def_cast(const T &op, const Extra &...extra) {
-        op.execute_cast(*this, extra...);
+    class_ &def_cast(const T &op, Extra &&...extra) {
+        op.execute_cast(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(const detail::initimpl::constructor<Args...> &init, const Extra &...extra) {
+    class_ &def(const detail::initimpl::constructor<Args...> &init, Extra &&...extra) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(init);
-        init.execute(*this, extra...);
+        init.execute(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(const detail::initimpl::alias_constructor<Args...> &init, const Extra &...extra) {
+    class_ &def(const detail::initimpl::alias_constructor<Args...> &init, Extra &&...extra) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(init);
-        init.execute(*this, extra...);
+        init.execute(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(detail::initimpl::factory<Args...> &&init, const Extra &...extra) {
-        std::move(init).execute(*this, extra...);
+    class_ &def(detail::initimpl::factory<Args...> &&init, Extra &&...extra) {
+        std::move(init).execute(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(detail::initimpl::pickle_factory<Args...> &&pf, const Extra &...extra) {
-        std::move(pf).execute(*this, extra...);
+    class_ &def(detail::initimpl::pickle_factory<Args...> &&pf, Extra &&...extra) {
+        std::move(pf).execute(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
@@ -1723,88 +1723,88 @@ public:
     }
 
     template <typename C, typename D, typename... Extra>
-    class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {
+    class_ &def_readwrite(const char *name, D C::*pm, Extra &&...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readwrite() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this)),
             fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
-        def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
+        def_property(name, fget, fset, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename C, typename D, typename... Extra>
-    class_ &def_readonly(const char *name, const D C::*pm, const Extra &...extra) {
+    class_ &def_readonly(const char *name, const D C::*pm, Extra &&...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readonly() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this));
-        def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
+        def_property_readonly(name, fget, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename D, typename... Extra>
-    class_ &def_readwrite_static(const char *name, D *pm, const Extra &...extra) {
+    class_ &def_readwrite_static(const char *name, D *pm, Extra &&...extra) {
         cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this)),
             fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
-        def_property_static(name, fget, fset, return_value_policy::reference, extra...);
+        def_property_static(name, fget, fset, return_value_policy::reference, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename D, typename... Extra>
-    class_ &def_readonly_static(const char *name, const D *pm, const Extra &...extra) {
+    class_ &def_readonly_static(const char *name, const D *pm, Extra &&...extra) {
         cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this));
-        def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
+        def_property_readonly_static(name, fget, return_value_policy::reference, std::forward<Extra>(extra)...);
         return *this;
     }
 
     /// Uses return_value_policy::reference_internal by default
     template <typename Getter, typename... Extra>
-    class_ &def_property_readonly(const char *name, const Getter &fget, const Extra &...extra) {
+    class_ &def_property_readonly(const char *name, const Getter &fget, Extra &&...extra) {
         return def_property_readonly(name,
                                      cpp_function(method_adaptor<type>(fget)),
                                      return_value_policy::reference_internal,
-                                     extra...);
+                                     std::forward<Extra>(extra)...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &
-    def_property_readonly(const char *name, const cpp_function &fget, const Extra &...extra) {
-        return def_property(name, fget, nullptr, extra...);
+    def_property_readonly(const char *name, const cpp_function &fget, Extra &&...extra) {
+        return def_property(name, fget, nullptr, std::forward<Extra>(extra)...);
     }
 
     /// Uses return_value_policy::reference by default
     template <typename Getter, typename... Extra>
     class_ &
-    def_property_readonly_static(const char *name, const Getter &fget, const Extra &...extra) {
+    def_property_readonly_static(const char *name, const Getter &fget, Extra &&...extra) {
         return def_property_readonly_static(
-            name, cpp_function(fget), return_value_policy::reference, extra...);
+            name, cpp_function(fget), return_value_policy::reference, std::forward<Extra>(extra)...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &def_property_readonly_static(const char *name,
                                          const cpp_function &fget,
-                                         const Extra &...extra) {
-        return def_property_static(name, fget, nullptr, extra...);
+                                         Extra &&...extra) {
+        return def_property_static(name, fget, nullptr, std::forward<Extra>(extra)...);
     }
 
     /// Uses return_value_policy::reference_internal by default
     template <typename Getter, typename Setter, typename... Extra>
     class_ &
-    def_property(const char *name, const Getter &fget, const Setter &fset, const Extra &...extra) {
+    def_property(const char *name, const Getter &fget, const Setter &fset, Extra &&...extra) {
         return def_property(
-            name, fget, cpp_function(method_adaptor<type>(fset), is_setter()), extra...);
+            name, fget, cpp_function(method_adaptor<type>(fset), is_setter()), std::forward<Extra>(extra)...);
     }
     template <typename Getter, typename... Extra>
     class_ &def_property(const char *name,
                          const Getter &fget,
                          const cpp_function &fset,
-                         const Extra &...extra) {
+                         Extra &&...extra) {
         return def_property(name,
                             cpp_function(method_adaptor<type>(fget)),
                             fset,
                             return_value_policy::reference_internal,
-                            extra...);
+                            std::forward<Extra>(extra)...);
     }
 
     /// Uses cpp_function's return_value_policy by default
@@ -1812,8 +1812,8 @@ public:
     class_ &def_property(const char *name,
                          const cpp_function &fget,
                          const cpp_function &fset,
-                         const Extra &...extra) {
-        return def_property_static(name, fget, fset, is_method(*this), extra...);
+                         Extra &&...extra) {
+        return def_property_static(name, fget, fset, is_method(*this), std::forward<Extra>(extra)...);
     }
 
     /// Uses return_value_policy::reference by default
@@ -1821,9 +1821,9 @@ public:
     class_ &def_property_static(const char *name,
                                 const Getter &fget,
                                 const cpp_function &fset,
-                                const Extra &...extra) {
+                                Extra &&...extra) {
         return def_property_static(
-            name, cpp_function(fget), fset, return_value_policy::reference, extra...);
+            name, cpp_function(fget), fset, return_value_policy::reference, std::forward<Extra>(extra)...);
     }
 
     /// Uses cpp_function's return_value_policy by default
@@ -1831,7 +1831,7 @@ public:
     class_ &def_property_static(const char *name,
                                 const cpp_function &fget,
                                 const cpp_function &fset,
-                                const Extra &...extra) {
+                                Extra &&...extra) {
         static_assert(0 == detail::constexpr_sum(std::is_base_of<arg, Extra>::value...),
                       "Argument annotations are not allowed for properties");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
@@ -2238,8 +2238,8 @@ public:
                                          Underlying>;
 
     template <typename... Extra>
-    enum_(const handle &scope, const char *name, const Extra &...extra)
-        : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+    enum_(const handle &scope, const char *name, Extra &&...extra)
+        : class_<Type>(scope, name, std::forward<Extra>(extra)...), m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);
