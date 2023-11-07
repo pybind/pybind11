@@ -28,6 +28,34 @@ struct uconsumer { // unique_ptr consumer
     const std::unique_ptr<atyp> &rtrn_cref() const { return held; }
 };
 
+struct custom_deleter {
+    std::string trace_txt;
+
+    custom_deleter() = delete;
+    explicit custom_deleter(const std::string &trace_txt_) : trace_txt(trace_txt_) {}
+
+    custom_deleter(const custom_deleter &other) { trace_txt = other.trace_txt + "_CpCtor"; }
+
+    custom_deleter &operator=(const custom_deleter &rhs) {
+        trace_txt = rhs.trace_txt + "_CpLhs";
+        return *this;
+    }
+
+    custom_deleter(custom_deleter &&other) {
+        trace_txt = other.trace_txt + "_MvCtorTo";
+        other.trace_txt += "_MvCtorFrom";
+    }
+
+    custom_deleter &operator=(custom_deleter &&rhs) {
+        trace_txt = rhs.trace_txt + "_MvLhs";
+        rhs.trace_txt += "_MvRhs";
+        return *this;
+    }
+
+    void operator()(atyp *p) const { std::default_delete<atyp>()(p); }
+    void operator()(const atyp *p) const { std::default_delete<const atyp>()(p); }
+};
+
 // clang-format off
 
 atyp        rtrn_valu() { atyp obj{"rtrn_valu"}; return obj; }
@@ -65,26 +93,11 @@ std::string pass_udmp(std::unique_ptr<atyp,       sddm> obj) { return "pass_udmp
 std::string pass_udcp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp:" + obj->mtxt; }
 
 
-struct custom_deleter
-{
-    std::string delete_txt;
-    custom_deleter() = delete;
-    explicit custom_deleter(const std::string &delete_txt_) : delete_txt(delete_txt_) {}
-    void operator()(atyp* p) const
-    {
-        std::default_delete<atyp>()(p);
-    }
-    void operator()(const atyp* p) const
-    {
-        std::default_delete<const atyp>()(p);
-    }
-};
-
 std::unique_ptr<atyp,       custom_deleter> rtrn_udmp_del() { return std::unique_ptr<atyp,       custom_deleter>(new atyp{"rtrn_udmp_del"}, custom_deleter{"udmp_deleter"}); }
 std::unique_ptr<atyp const, custom_deleter> rtrn_udcp_del() { return std::unique_ptr<atyp const, custom_deleter>(new atyp{"rtrn_udcp_del"}, custom_deleter{"udcp_deleter"}); }
 
-std::string pass_udmp_del(std::unique_ptr<atyp,       custom_deleter> obj) { return "pass_udmp_del:" + obj->mtxt + "," + obj.get_deleter().delete_txt; }
-std::string pass_udcp_del(std::unique_ptr<atyp const, custom_deleter> obj) { return "pass_udcp_del:" + obj->mtxt + "," + obj.get_deleter().delete_txt; }
+std::string pass_udmp_del(std::unique_ptr<atyp,       custom_deleter> obj) { return "pass_udmp_del:" + obj->mtxt + "," + obj.get_deleter().trace_txt; }
+std::string pass_udcp_del(std::unique_ptr<atyp const, custom_deleter> obj) { return "pass_udcp_del:" + obj->mtxt + "," + obj.get_deleter().trace_txt; }
 
 // clang-format on
 
