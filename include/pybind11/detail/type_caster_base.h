@@ -792,7 +792,7 @@ public:
                         matching_bases.push_back(base);
                     }
                 }
-                if (matching_bases.size() != 0) {
+                if (!matching_bases.empty()) {
                     if (matching_bases.size() > 1) {
                         matching_bases.push_back(const_cast<type_info *>(typeinfo));
                         all_type_info_check_for_divergence(matching_bases);
