@@ -42,12 +42,12 @@ struct custom_deleter {
         return *this;
     }
 
-    custom_deleter(custom_deleter &&other) {
+    custom_deleter(custom_deleter &&other) noexcept {
         trace_txt = other.trace_txt + "_MvCtorTo";
         other.trace_txt += "_MvCtorFrom";
     }
 
-    custom_deleter &operator=(custom_deleter &&rhs) {
+    custom_deleter &operator=(custom_deleter &&rhs) noexcept {
         trace_txt = rhs.trace_txt + "_MvLhs";
         rhs.trace_txt += "_MvRhs";
         return *this;
