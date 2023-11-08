@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 import env
@@ -201,6 +203,18 @@ def test_inheritance_init(msg):
         RabbitHamster()
     expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
     assert msg(exc_info.value) == expected
+
+
+@pytest.mark.parametrize(
+    "mock_return_value", [None, (1, 2, 3), m.Pet("Polly", "parrot"), m.Dog("Molly")]
+)
+def test_mock_new(mock_return_value):
+    with mock.patch.object(
+        m.Pet, "__new__", return_value=mock_return_value
+    ) as mock_new:
+        obj = m.Pet("Noname", "Nospecies")
+    assert obj is mock_return_value
+    mock_new.assert_called_once_with(m.Pet, "Noname", "Nospecies")
 
 
 def test_automatic_upcasting():
