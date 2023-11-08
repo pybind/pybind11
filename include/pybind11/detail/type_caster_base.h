@@ -115,40 +115,6 @@ inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &
     bases.push_back(addl_base);
 }
 
-inline void all_type_info_check_for_divergence(const std::vector<type_info *> &bases) {
-    using sz_t = std::size_t;
-    sz_t n = bases.size();
-    if (n < 3) {
-        return;
-    }
-    std::vector<sz_t> cluster_ids;
-    cluster_ids.reserve(n);
-    for (sz_t ci = 0; ci < n; ci++) {
-        cluster_ids.push_back(ci);
-    }
-    for (sz_t i = 0; i < n - 1; i++) {
-        if (cluster_ids[i] != i) {
-            continue;
-        }
-        for (sz_t j = i + 1; j < n; j++) {
-            if (PyType_IsSubtype(bases[i]->type, bases[j]->type) != 0) {
-                sz_t k = cluster_ids[j];
-                if (k == j) {
-                    cluster_ids[j] = i;
-                } else {
-                    PyErr_Format(
-                        PyExc_TypeError,
-                        "bases include diverging derived types: base=%s, derived1=%s, derived2=%s",
-                        bases[j]->type->tp_name,
-                        bases[k]->type->tp_name,
-                        bases[i]->type->tp_name);
-                    throw error_already_set();
-                }
-            }
-        }
-    }
-}
-
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
     assert(bases.empty());
@@ -202,7 +168,6 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
             }
         }
     }
-    all_type_info_check_for_divergence(bases);
 }
 
 /**
