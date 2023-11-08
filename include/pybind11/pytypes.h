@@ -1863,10 +1863,11 @@ public:
     operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
 };
 
-class weakref : public handle {
+class weakref : public object {
 public:
+    PYBIND11_OBJECT_CVT_DEFAULT(weakref, object, PyWeakref_Check, raw_weakref)
     explicit weakref(handle obj, handle callback = {})
-        : handle(PyWeakref_NewRef(obj.ptr(), callback.ptr())) {
+        : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
         if (!m_ptr) {
             if (PyErr_Occurred()) {
                 throw error_already_set();
@@ -1874,6 +1875,7 @@ public:
             pybind11_fail("Could not allocate weak reference!");
         }
     }
+    ~weakref() { release(); }
 
 private:
     static PyObject *raw_weakref(PyObject *o) { return PyWeakref_NewRef(o, nullptr); }
