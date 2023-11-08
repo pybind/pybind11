@@ -2759,7 +2759,6 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
                 PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
                 Py_DECREF(co_varnames);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
-                Py_DECREF(locals);
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
                     Py_DECREF(frame);
