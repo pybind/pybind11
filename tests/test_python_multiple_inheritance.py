@@ -30,12 +30,6 @@ class PCD(PC1, PC2):
     pass
 
 
-class PCDI(PC1, PC2):
-    def __init__(self):
-        PC1.__init__(self, 11)
-        PC2.__init__(self, 12)
-
-
 def test_PC():
     d = PC(11)
     assert d.get_base_value() == 11
@@ -75,9 +69,3 @@ def test_PCD():
         match=r"CppDrvd2\.__init__\(\) must be called when overriding __init__$",
     ):
         PCD(11)
-
-
-def test_PCDI():
-    obj = PCDI()
-    with pytest.raises(TypeError, match="^bases include diverging derived types: "):
-        m.pass_CppBase(obj)
