@@ -60,7 +60,6 @@ messages_control.disable = [
 [tool.ruff]
 target-version = "py37"
 src = ["src"]
-line-length = 120
 
 [tool.ruff.lint]
 extend-select = [
@@ -71,7 +70,6 @@ extend-select = [
   "C4",          # flake8-comprehensions
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
-  "ISC",         # flake8-implicit-str-concat
   "PGH",         # pygrep-hooks
   "PIE",         # flake8-pie
   "PL",          # pylint
@@ -90,7 +88,6 @@ ignore = [
   "SIM118", # iter(x) is not always the same as iter(x.keys())
 ]
 unfixable = ["T20"]
-exclude = []
 isort.known-first-party = ["env", "pybind11_cross_module_tests", "pybind11_tests"]
 
 [tool.ruff.lint.per-file-ignores]
