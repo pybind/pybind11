@@ -662,8 +662,8 @@ TEST_SUBMODULE(pytypes, m) {
 // This is "most correct" and enforced on these platforms.
 #    define PYBIND11_AUTO_IT auto it
 #else
-// This works on many platforms and is (unfortunately) reflective of existing user code.
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
+    // This works on many platforms and is (unfortunately) reflective of existing user code.
+    // NOLINTNEXTLINE(bugprone-macro-parentheses)
 #    define PYBIND11_AUTO_IT auto &it
 #endif
 
