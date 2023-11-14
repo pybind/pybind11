@@ -21,15 +21,15 @@ from pybind11_tests import stl as test_stl
         ),
         (
             m.MapIntUserType.values.__doc__,
-            "values(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ValuesView[test_cases_for_stubgen::user_type]\n",
+            'values(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ValuesView[Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
         ),
         (
             m.MapIntUserType.items.__doc__,
-            "items(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ItemsView[int, test_cases_for_stubgen::user_type]\n",
+            'items(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ItemsView[int, Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
         ),
         (
             m.MapUserTypeInt.keys.__doc__,
-            "keys(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.KeysView[test_cases_for_stubgen::user_type]\n",
+            'keys(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.KeysView[Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
         ),
         (
             m.MapUserTypeInt.values.__doc__,
@@ -37,7 +37,7 @@ from pybind11_tests import stl as test_stl
         ),
         (
             m.MapUserTypeInt.items.__doc__,
-            "items(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.ItemsView[test_cases_for_stubgen::user_type, int]\n",
+            'items(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.ItemsView[Annotated[Any, "test_cases_for_stubgen::user_type"], int]\n',
         ),
         (
             m.MapFloatUserType.keys.__doc__,
