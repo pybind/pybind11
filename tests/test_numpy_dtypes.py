@@ -343,7 +343,7 @@ def test_complex_array():
 def test_signature(doc):
     assert (
         doc(m.create_rec_nested) == "create_rec_nested(arg0: int) "
-        '-> numpy.ndarray[Annotated[Any, CppTypePybind11("NestedStruct")]]'
+        '-> numpy.ndarray[Annotated[Any, "NestedStruct"]]'
     )
 
 
