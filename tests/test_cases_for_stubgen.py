@@ -9,11 +9,11 @@ from pybind11_tests import stl as test_stl
     [
         (
             m.pass_user_type.__doc__,
-            'pass_user_type(arg0: Annotated[Any, "test_cases_for_stubgen::user_type"]) -> None\n',
+            'pass_user_type(arg0: Annotated[Any, "test_cases_for_stubgen::UserType"]) -> None\n',
         ),
         (
             m.return_user_type.__doc__,
-            'return_user_type() -> Annotated[Any, "test_cases_for_stubgen::user_type"]\n',
+            'return_user_type() -> Annotated[Any, "test_cases_for_stubgen::UserType"]\n',
         ),
         (
             m.MapIntUserType.keys.__doc__,
@@ -21,15 +21,15 @@ from pybind11_tests import stl as test_stl
         ),
         (
             m.MapIntUserType.values.__doc__,
-            'values(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ValuesView[Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
+            'values(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ValuesView[Annotated[Any, "test_cases_for_stubgen::UserType"]]\n',
         ),
         (
             m.MapIntUserType.items.__doc__,
-            'items(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ItemsView[int, Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
+            'items(self: pybind11_tests.cases_for_stubgen.MapIntUserType) -> pybind11_tests.cases_for_stubgen.ItemsView[int, Annotated[Any, "test_cases_for_stubgen::UserType"]]\n',
         ),
         (
             m.MapUserTypeInt.keys.__doc__,
-            'keys(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.KeysView[Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
+            'keys(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.KeysView[Annotated[Any, "test_cases_for_stubgen::UserType"]]\n',
         ),
         (
             m.MapUserTypeInt.values.__doc__,
@@ -37,7 +37,7 @@ from pybind11_tests import stl as test_stl
         ),
         (
             m.MapUserTypeInt.items.__doc__,
-            'items(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.ItemsView[Annotated[Any, "test_cases_for_stubgen::user_type"], int]\n',
+            'items(self: pybind11_tests.cases_for_stubgen.MapUserTypeInt) -> pybind11_tests.cases_for_stubgen.ItemsView[Annotated[Any, "test_cases_for_stubgen::UserType"], int]\n',
         ),
         (
             m.MapFloatUserType.keys.__doc__,
@@ -45,15 +45,15 @@ from pybind11_tests import stl as test_stl
         ),
         (
             m.MapFloatUserType.values.__doc__,
-            'values(self: pybind11_tests.cases_for_stubgen.MapFloatUserType) -> Iterator[Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
+            'values(self: pybind11_tests.cases_for_stubgen.MapFloatUserType) -> Iterator[Annotated[Any, "test_cases_for_stubgen::UserType"]]\n',
         ),
         (
             m.MapFloatUserType.__iter__.__doc__,
-            '__iter__(self: pybind11_tests.cases_for_stubgen.MapFloatUserType) -> Iterator[tuple[float, Annotated[Any, "test_cases_for_stubgen::user_type"]]]\n',
+            '__iter__(self: pybind11_tests.cases_for_stubgen.MapFloatUserType) -> Iterator[tuple[float, Annotated[Any, "test_cases_for_stubgen::UserType"]]]\n',
         ),
         (
             m.MapUserTypeFloat.keys.__doc__,
-            'keys(self: pybind11_tests.cases_for_stubgen.MapUserTypeFloat) -> Iterator[Annotated[Any, "test_cases_for_stubgen::user_type"]]\n',
+            'keys(self: pybind11_tests.cases_for_stubgen.MapUserTypeFloat) -> Iterator[Annotated[Any, "test_cases_for_stubgen::UserType"]]\n',
         ),
         (
             m.MapUserTypeFloat.values.__doc__,
@@ -61,7 +61,7 @@ from pybind11_tests import stl as test_stl
         ),
         (
             m.MapUserTypeFloat.__iter__.__doc__,
-            '__iter__(self: pybind11_tests.cases_for_stubgen.MapUserTypeFloat) -> Iterator[tuple[Annotated[Any, "test_cases_for_stubgen::user_type"], float]]\n',
+            '__iter__(self: pybind11_tests.cases_for_stubgen.MapUserTypeFloat) -> Iterator[tuple[Annotated[Any, "test_cases_for_stubgen::UserType"], float]]\n',
         ),
         (
             test_stl.cast_array.__doc__,

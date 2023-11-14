@@ -5,25 +5,25 @@
 
 namespace test_cases_for_stubgen {
 
-struct user_type {
-    bool operator<(const user_type &) const { return false; }
+struct UserType {
+    bool operator<(const UserType &) const { return false; }
 };
 
 struct minimal_caster {
-    static constexpr auto name = py::detail::const_name<user_type>();
+    static constexpr auto name = py::detail::const_name<UserType>();
 
     static py::handle
-    cast(user_type const & /*src*/, py::return_value_policy /*policy*/, py::handle /*parent*/) {
+    cast(UserType const & /*src*/, py::return_value_policy /*policy*/, py::handle /*parent*/) {
         return py::none().release();
     }
 
     // Maximizing simplicity. This will go terribly wrong for other arg types.
     template <typename>
-    using cast_op_type = const user_type &;
+    using cast_op_type = const UserType &;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator user_type const &() {
-        static user_type obj;
+    operator UserType const &() {
+        static UserType obj;
         return obj;
     }
 
@@ -36,19 +36,19 @@ namespace pybind11 {
 namespace detail {
 
 template <>
-struct type_caster<test_cases_for_stubgen::user_type> : test_cases_for_stubgen::minimal_caster {};
+struct type_caster<test_cases_for_stubgen::UserType> : test_cases_for_stubgen::minimal_caster {};
 
 } // namespace detail
 } // namespace pybind11
 
 TEST_SUBMODULE(cases_for_stubgen, m) {
-    using namespace test_cases_for_stubgen;
+    using UserType = test_cases_for_stubgen::UserType;
 
-    m.def("pass_user_type", [](const user_type &) {});
-    m.def("return_user_type", []() { return user_type(); });
+    m.def("pass_user_type", [](const UserType &) {});
+    m.def("return_user_type", []() { return UserType(); });
 
-    py::bind_map<std::map<int, user_type>>(m, "MapIntUserType");
-    py::bind_map<std::map<user_type, int>>(m, "MapUserTypeInt");
+    py::bind_map<std::map<int, UserType>>(m, "MapIntUserType");
+    py::bind_map<std::map<UserType, int>>(m, "MapUserTypeInt");
 
 #define MAP_TYPE(MapTypePythonName, ...)                                                          \
     py::class_<__VA_ARGS__>(m, MapTypePythonName)                                                 \
@@ -65,8 +65,8 @@ TEST_SUBMODULE(cases_for_stubgen, m) {
             [](const __VA_ARGS__ &v) { return py::make_iterator(v.begin(), v.end()); },           \
             py::keep_alive<0, 1>())
 
-    MAP_TYPE("MapFloatUserType", std::map<float, user_type>);
-    MAP_TYPE("MapUserTypeFloat", std::map<user_type, float>);
+    MAP_TYPE("MapFloatUserType", std::map<float, UserType>);
+    MAP_TYPE("MapUserTypeFloat", std::map<UserType, float>);
 
 #undef MAP_TYPE
 }
