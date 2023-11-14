@@ -1,6 +1,7 @@
 import pytest
 
 from pybind11_tests import cases_for_stubgen as m
+from pybind11_tests import stl as test_stl
 
 
 @pytest.mark.parametrize(
@@ -61,6 +62,14 @@ from pybind11_tests import cases_for_stubgen as m
         (
             m.MapUserTypeFloat.__iter__.__doc__,
             '__iter__(self: pybind11_tests.cases_for_stubgen.MapUserTypeFloat) -> Iterator[tuple[Annotated[Any, "test_cases_for_stubgen::user_type"], float]]\n',
+        ),
+        (
+            test_stl.cast_array.__doc__,
+            "cast_array() -> Annotated[list[int], FixedSize(2)]\n",
+        ),
+        (
+            test_stl.load_array.__doc__,
+            "load_array(arg0: Annotated[list[int], FixedSize(2)]) -> bool\n",
         ),
     ],
 )
