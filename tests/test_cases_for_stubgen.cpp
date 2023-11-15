@@ -104,8 +104,8 @@ void bind_basics(py::module& basics) {
         [](Point& self, double value){ self.y = value; }
     )
     .def_property_readonly("length", &Point::length)
-    .def_property_readonly_static("x_axis", [](py::object cls){return Point::x_axis;})
-    .def_property_readonly_static("y_axis", [](py::object cls){return Point::y_axis;})
+    .def_property_readonly_static("x_axis", [](py::object /*cls*/){return Point::x_axis;})
+    .def_property_readonly_static("y_axis", [](py::object /*cls*/){return Point::y_axis;})
     .def_readwrite_static("length_unit", &Point::length_unit)
     .def_property_static("angle_unit",
         [](py::object& /*cls*/){ return Point::angle_unit; },
@@ -171,7 +171,7 @@ PYBIND11_MAKE_OPAQUE(std::map<test_cases_for_stubgen::UserType, float>);
 
 TEST_SUBMODULE(cases_for_stubgen, m) {
     auto basics = m.def_submodule("basics");
-    bind_basics(basics);
+    test_cases_for_stubgen::bind_basics(basics);
 
     using UserType = test_cases_for_stubgen::UserType;
 
