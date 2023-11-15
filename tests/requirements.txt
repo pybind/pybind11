@@ -1,5 +1,6 @@
 --only-binary=:all:
-build~=1.0
+build~=0.9; python_version=="3.6"
+build~=1.0; python_version>="3.7"
 numpy~=1.20.0; python_version=="3.7" and platform_python_implementation=="PyPy"
 numpy~=1.22.2; python_version=="3.8" and platform_python_implementation=="PyPy"
 numpy~=1.25.0; python_version=="3.9" and platform_python_implementation=='PyPy'
