@@ -96,4 +96,6 @@ from pybind11_tests import cases_for_stubgen as m
     ],
 )
 def test_docstring(docstring, expected):
+    # On some platforms the stl_binders module name prevails for KeysView, ValuesView, ItemsView.
+    docstring = docstring.replace(".stl_binders.", ".cases_for_stubgen.")
     assert docstring == expected
