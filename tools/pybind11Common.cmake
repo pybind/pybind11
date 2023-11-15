@@ -218,8 +218,15 @@ if(NOT _pybind11_nopython)
 
     execute_process(
       COMMAND
-        ${${_Python}_EXECUTABLE} -c
-        "from pkg_resources import get_distribution; print(get_distribution('${PYPI_NAME}').version)"
+        ${${_Python}_EXECUTABLE} -c "
+try:
+    from importlib.metadata import version
+except ImportError:
+    from pkg_resources import get_distribution
+    def version(s):
+        return get_distribution(s).version
+print(version('${PYPI_NAME}'))
+        "
       RESULT_VARIABLE RESULT_PRESENT
       OUTPUT_VARIABLE PKG_VERSION
       ERROR_QUIET)
