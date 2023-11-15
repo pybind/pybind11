@@ -1,6 +1,8 @@
+#include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
 #include "pybind11_tests.h"
 
+#include <array>
 #include <map>
 
 namespace test_cases_for_stubgen {
@@ -41,6 +43,11 @@ struct type_caster<test_cases_for_stubgen::UserType> : test_cases_for_stubgen::m
 } // namespace detail
 } // namespace pybind11
 
+PYBIND11_MAKE_OPAQUE(std::map<int, test_cases_for_stubgen::UserType>);
+PYBIND11_MAKE_OPAQUE(std::map<test_cases_for_stubgen::UserType, int>);
+PYBIND11_MAKE_OPAQUE(std::map<float, test_cases_for_stubgen::UserType>);
+PYBIND11_MAKE_OPAQUE(std::map<test_cases_for_stubgen::UserType, float>);
+
 TEST_SUBMODULE(cases_for_stubgen, m) {
     using UserType = test_cases_for_stubgen::UserType;
 
@@ -50,7 +57,7 @@ TEST_SUBMODULE(cases_for_stubgen, m) {
     py::bind_map<std::map<int, UserType>>(m, "MapIntUserType");
     py::bind_map<std::map<UserType, int>>(m, "MapUserTypeInt");
 
-#define MAP_TYPE(MapTypePythonName, ...)                                                          \
+#define LOCAL_HELPER(MapTypePythonName, ...)                                                      \
     py::class_<__VA_ARGS__>(m, MapTypePythonName)                                                 \
         .def(                                                                                     \
             "keys",                                                                               \
@@ -65,8 +72,11 @@ TEST_SUBMODULE(cases_for_stubgen, m) {
             [](const __VA_ARGS__ &v) { return py::make_iterator(v.begin(), v.end()); },           \
             py::keep_alive<0, 1>())
 
-    MAP_TYPE("MapFloatUserType", std::map<float, UserType>);
-    MAP_TYPE("MapUserTypeFloat", std::map<UserType, float>);
+    LOCAL_HELPER("MapFloatUserType", std::map<float, UserType>);
+    LOCAL_HELPER("MapUserTypeFloat", std::map<UserType, float>);
 
 #undef MAP_TYPE
+
+    m.def("pass_std_array_int_2", [](const std::array<int, 2> &) {});
+    m.def("return_std_array_int_3", []() { return std::array<int, 3>{{1, 2, 3}}; });
 }
