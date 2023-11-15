@@ -33,6 +33,8 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+PYBIND11_WARNING_DISABLE_MSVC(4127)
+
 /* A few forward declarations */
 class handle;
 class object;
@@ -230,7 +232,8 @@ public:
         detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
                                                            detail::is_pyobj_ptr_or_nullptr_t<T>>,
                                            std::is_convertible<T, PyObject *>>::value,
-                            int> = 0>
+                            int>
+        = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
 
@@ -247,6 +250,11 @@ public:
 #ifdef PYBIND11_HANDLE_REF_DEBUG
         inc_ref_counter(1);
 #endif
+#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+        if (m_ptr != nullptr && !PyGILState_Check()) {
+            throw_gilstate_error("pybind11::handle::inc_ref()");
+        }
+#endif
         Py_XINCREF(m_ptr);
         return *this;
     }
@@ -257,6 +265,11 @@ public:
         this function automatically. Returns a reference to itself.
     \endrst */
     const handle &dec_ref() const & {
+#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+        if (m_ptr != nullptr && !PyGILState_Check()) {
+            throw_gilstate_error("pybind11::handle::dec_ref()");
+        }
+#endif
         Py_XDECREF(m_ptr);
         return *this;
     }
@@ -283,8 +296,33 @@ public:
 protected:
     PyObject *m_ptr = nullptr;
 
-#ifdef PYBIND11_HANDLE_REF_DEBUG
 private:
+#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
+    void throw_gilstate_error(const std::string &function_name) const {
+        fprintf(
+            stderr,
+            "%s is being called while the GIL is either not held or invalid. Please see "
+            "https://pybind11.readthedocs.io/en/stable/advanced/"
+            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n"
+            "If you are convinced there is no bug in your code, you can #define "
+            "PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF "
+            "to disable this check. In that case you have to ensure this #define is consistently "
+            "used for all translation units linked into a given pybind11 extension, otherwise "
+            "there will be ODR violations.",
+            function_name.c_str());
+        if (Py_TYPE(m_ptr)->tp_name != nullptr) {
+            fprintf(stderr,
+                    " The failing %s call was triggered on a %s object.",
+                    function_name.c_str(),
+                    Py_TYPE(m_ptr)->tp_name);
+        }
+        fprintf(stderr, "\n");
+        fflush(stderr);
+        throw std::runtime_error(function_name + " PyGILState_Check() failure.");
+    }
+#endif
+
+#ifdef PYBIND11_HANDLE_REF_DEBUG
     static std::size_t inc_ref_counter(std::size_t add) {
         thread_local std::size_t counter = 0;
         counter += add;
@@ -295,6 +333,14 @@ public:
     static std::size_t inc_ref_counter() { return inc_ref_counter(0); }
 #endif
 };
+
+inline void set_error(const handle &type, const char *message) {
+    PyErr_SetString(type.ptr(), message);
+}
+
+inline void set_error(const handle &type, const handle &value) {
+    PyErr_SetObject(type.ptr(), value.ptr());
+}
 
 /** \rst
     Holds a reference to a Python object (with reference counting)
@@ -430,7 +476,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
 inline const char *obj_class_name(PyObject *obj) {
-    if (Py_TYPE(obj) == &PyType_Type) {
+    if (PyType_Check(obj)) {
         return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
     }
     return Py_TYPE(obj)->tp_name;
@@ -438,13 +484,24 @@ inline const char *obj_class_name(PyObject *obj) {
 
 std::string error_string();
 
+// The code in this struct is very unusual, to minimize the chances of
+// masking bugs (elsewhere) by errors during the error handling (here).
+// This is meant to be a lifeline for troubleshooting long-running processes
+// that crash under conditions that are virtually impossible to reproduce.
+// Low-level implementation alternatives are preferred to higher-level ones
+// that might raise cascading exceptions. Last-ditch-kind-of attempts are made
+// to report as much of the original error as possible, even if there are
+// secondary issues obtaining some of the details.
 struct error_fetch_and_normalize {
-    // Immediate normalization is long-established behavior (starting with
-    // https://github.com/pybind/pybind11/commit/135ba8deafb8bf64a15b24d1513899eb600e2011
-    // from Sep 2016) and safest. Normalization could be deferred, but this could mask
-    // errors elsewhere, the performance gain is very minor in typical situations
-    // (usually the dominant bottleneck is EH unwinding), and the implementation here
-    // would be more complex.
+    // This comment only applies to Python <= 3.11:
+    //     Immediate normalization is long-established behavior (starting with
+    //     https://github.com/pybind/pybind11/commit/135ba8deafb8bf64a15b24d1513899eb600e2011
+    //     from Sep 2016) and safest. Normalization could be deferred, but this could mask
+    //     errors elsewhere, the performance gain is very minor in typical situations
+    //     (usually the dominant bottleneck is EH unwinding), and the implementation here
+    //     would be more complex.
+    // Starting with Python 3.12, PyErr_Fetch() normalizes exceptions immediately.
+    // Any errors during normalization are tracked under __notes__.
     explicit error_fetch_and_normalize(const char *called) {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
         if (!m_type) {
@@ -459,6 +516,14 @@ struct error_fetch_and_normalize {
                             "of the original active exception type.");
         }
         m_lazy_error_string = exc_type_name_orig;
+#if PY_VERSION_HEX >= 0x030C0000
+        // The presence of __notes__ is likely due to exception normalization
+        // errors, although that is not necessarily true, therefore insert a
+        // hint only:
+        if (PyObject_HasAttrString(m_value.ptr(), "__notes__")) {
+            m_lazy_error_string += "[WITH __notes__]";
+        }
+#else
         // PyErr_NormalizeException() may change the exception type if there are cascading
         // failures. This can potentially be extremely confusing.
         PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
@@ -468,17 +533,17 @@ struct error_fetch_and_normalize {
                             "active exception.");
         }
         const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
-        if (exc_type_name_orig == nullptr) {
+        if (exc_type_name_norm == nullptr) {
             pybind11_fail("Internal error: " + std::string(called)
                           + " failed to obtain the name "
                             "of the normalized active exception type.");
         }
-#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x07030a00
+#    if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x07030a00
         // This behavior runs the risk of masking errors in the error handling, but avoids a
         // conflict with PyPy, which relies on the normalization here to change OSError to
         // FileNotFoundError (https://github.com/pybind/pybind11/issues/4075).
         m_lazy_error_string = exc_type_name_norm;
-#else
+#    else
         if (exc_type_name_norm != m_lazy_error_string) {
             std::string msg = std::string(called)
                               + ": MISMATCH of original and normalized "
@@ -490,6 +555,7 @@ struct error_fetch_and_normalize {
             msg += ": " + format_value_and_trace();
             pybind11_fail(msg);
         }
+#    endif
 #endif
     }
 
@@ -525,6 +591,40 @@ struct error_fetch_and_normalize {
                     }
                 }
             }
+#if PY_VERSION_HEX >= 0x030B0000
+            auto notes
+                = reinterpret_steal<object>(PyObject_GetAttrString(m_value.ptr(), "__notes__"));
+            if (!notes) {
+                PyErr_Clear(); // No notes is good news.
+            } else {
+                auto len_notes = PyList_Size(notes.ptr());
+                if (len_notes < 0) {
+                    result += "\nFAILURE obtaining len(__notes__): " + detail::error_string();
+                } else {
+                    result += "\n__notes__ (len=" + std::to_string(len_notes) + "):";
+                    for (ssize_t i = 0; i < len_notes; i++) {
+                        PyObject *note = PyList_GET_ITEM(notes.ptr(), i);
+                        auto note_bytes = reinterpret_steal<object>(
+                            PyUnicode_AsEncodedString(note, "utf-8", "backslashreplace"));
+                        if (!note_bytes) {
+                            result += "\nFAILURE obtaining __notes__[" + std::to_string(i)
+                                      + "]: " + detail::error_string();
+                        } else {
+                            char *buffer = nullptr;
+                            Py_ssize_t length = 0;
+                            if (PyBytes_AsStringAndSize(note_bytes.ptr(), &buffer, &length)
+                                == -1) {
+                                result += "\nFAILURE formatting __notes__[" + std::to_string(i)
+                                          + "]: " + detail::error_string();
+                            } else {
+                                result += '\n';
+                                result += std::string(buffer, static_cast<std::size_t>(length));
+                            }
+                        }
+                    }
+                }
+            }
+#endif
         } else {
             result = "<MESSAGE UNAVAILABLE>";
         }
@@ -884,10 +984,8 @@ object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
 
-#if defined(_MSC_VER) && _MSC_VER < 1920
-#    pragma warning(push)
-#    pragma warning(disable : 4522) // warning C4522: multiple assignment operators specified
-#endif
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(4522) // warning C4522: multiple assignment operators specified
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;
@@ -951,9 +1049,7 @@ private:
     key_type key;
     mutable object cache;
 };
-#if defined(_MSC_VER) && _MSC_VER < 1920
-#    pragma warning(pop)
-#endif
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(accessor_policies)
 struct obj_attr {
@@ -1524,7 +1620,15 @@ inline namespace literals {
 /** \rst
     String literal version of `str`
  \endrst */
-inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
+inline str
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
+operator"" _s // gcc 4.8.5 insists on having a space (hard error).
+#else
+operator""_s // clang 17 generates a deprecation warning if there is a space.
+#endif
+    (const char *s, size_t size) {
+    return {s, size};
+}
 } // namespace literals
 
 /// \addtogroup pytypes
@@ -1693,7 +1797,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))) {
+    if (sizeof(Unsigned) <= sizeof(unsigned long)) {
         unsigned long v = PyLong_AsUnsignedLong(o);
         return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
@@ -1710,7 +1814,7 @@ public:
     template <typename T, detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     int_(T value) {
-        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
+        if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLong((long) value);
             } else {
@@ -1842,28 +1946,13 @@ public:
         }
     }
 
+    /// Capsule name is nullptr.
     capsule(const void *value, void (*destructor)(void *)) {
-        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
-            // guard if destructor called while err indicator is set
-            error_scope error_guard;
-            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr && PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            const char *name = get_name_in_error_scope(o);
-            void *ptr = PyCapsule_GetPointer(o, name);
-            if (ptr == nullptr) {
-                throw error_already_set();
-            }
+        initialize_with_void_ptr_destructor(value, nullptr, destructor);
+    }
 
-            if (destructor != nullptr) {
-                destructor(ptr);
-            }
-        });
-
-        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
-            throw error_already_set();
-        }
+    capsule(const void *value, const char *name, void (*destructor)(void *)) {
+        initialize_with_void_ptr_destructor(value, name, destructor);
     }
 
     explicit capsule(void (*destructor)()) {
@@ -1930,6 +2019,32 @@ private:
         }
 
         return name;
+    }
+
+    void initialize_with_void_ptr_destructor(const void *value,
+                                             const char *name,
+                                             void (*destructor)(void *)) {
+        m_ptr = PyCapsule_New(const_cast<void *>(value), name, [](PyObject *o) {
+            // guard if destructor called while err indicator is set
+            error_scope error_guard;
+            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            if (destructor == nullptr && PyErr_Occurred()) {
+                throw error_already_set();
+            }
+            const char *name = get_name_in_error_scope(o);
+            void *ptr = PyCapsule_GetPointer(o, name);
+            if (ptr == nullptr) {
+                throw error_already_set();
+            }
+
+            if (destructor != nullptr) {
+                destructor(ptr);
+            }
+        });
+
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
+            throw error_already_set();
+        }
     }
 };
 

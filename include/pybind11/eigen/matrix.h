@@ -10,35 +10,24 @@
 #pragma once
 
 #include "../numpy.h"
+#include "common.h"
 
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
    See also:
        https://stackoverflow.com/questions/2579576/i-dir-vs-isystem-dir
        https://stackoverflow.com/questions/1741816/isystem-for-ms-visual-studio-c-compiler
 */
-// The C4127 suppression was introduced for Eigen 3.4.0. In theory we could
-// make it version specific, or even remove it later, but considering that
-// 1. C4127 is generally far more distracting than useful for modern template code, and
-// 2. we definitely want to ignore any MSVC warnings originating from Eigen code,
-//    it is probably best to keep this around indefinitely.
-#if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4127) // C4127: conditional expression is constant
-#    pragma warning(disable : 5054) // https://github.com/pybind/pybind11/pull/3741
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(5054) // https://github.com/pybind/pybind11/pull/3741
 //       C5054: operator '&': deprecated between enumerations of different types
-#elif defined(__MINGW32__)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#if defined(__MINGW32__)
+PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
 #endif
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#if defined(_MSC_VER)
-#    pragma warning(pop)
-#elif defined(__MINGW32__)
-#    pragma GCC diagnostic pop
-#endif
+PYBIND11_WARNING_POP
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
 // move constructors that break things.  We could detect this an explicitly copy, but an extra copy
@@ -47,6 +36,8 @@ static_assert(EIGEN_VERSION_AT_LEAST(3, 2, 7),
               "Eigen matrix support in pybind11 requires Eigen >= 3.2.7");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 // Provide a convenience alias for easier pass-by-ref usage with fully dynamic strides:
 using EigenDStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
@@ -189,8 +180,7 @@ struct EigenProps {
             EigenIndex np_rows = a.shape(0), np_cols = a.shape(1),
                        np_rstride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar)),
                        np_cstride = a.strides(1) / static_cast<ssize_t>(sizeof(Scalar));
-            if ((PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && np_rows != rows)
-                || (PYBIND11_SILENCE_MSVC_C4127(fixed_cols) && np_cols != cols)) {
+            if ((fixed_rows && np_rows != rows) || (fixed_cols && np_cols != cols)) {
                 return false;
             }
 
@@ -203,7 +193,7 @@ struct EigenProps {
                          stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
 
         if (vector) { // Eigen type is a compile-time vector
-            if (PYBIND11_SILENCE_MSVC_C4127(fixed) && size != n) {
+            if (fixed && size != n) {
                 return false; // Vector size mismatch
             }
             return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
@@ -220,7 +210,7 @@ struct EigenProps {
             }
             return {1, n, stride};
         } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
-        if (PYBIND11_SILENCE_MSVC_C4127(fixed_rows) && rows != n) {
+        if (fixed_rows && rows != n) {
             return false;
         }
         return {n, 1, stride};
@@ -298,6 +288,8 @@ handle eigen_encapsulate(Type *src) {
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
     using Scalar = typename Type::Scalar;
+    static_assert(!std::is_pointer<Scalar>::value,
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using props = EigenProps<Type>;
 
     bool load(handle src, bool convert) {
@@ -416,6 +408,9 @@ private:
 // Base class for casting reference/map/block/etc. objects back to python.
 template <typename MapType>
 struct eigen_map_caster {
+    static_assert(!std::is_pointer<typename MapType::Scalar>::value,
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+
 private:
     using props = EigenProps<MapType>;
 
@@ -468,6 +463,8 @@ private:
     using Type = Eigen::Ref<PlainObjectType, 0, StrideType>;
     using props = EigenProps<Type>;
     using Scalar = typename props::Scalar;
+    static_assert(!std::is_pointer<Scalar>::value,
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using MapType = Eigen::Map<PlainObjectType, 0, StrideType>;
     using Array
         = array_t<Scalar,
@@ -615,6 +612,9 @@ private:
 // regular Eigen::Matrix, then casting that.
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_other<Type>::value>> {
+    static_assert(!std::is_pointer<typename Type::Scalar>::value,
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
+
 protected:
     using Matrix
         = Eigen::Matrix<typename Type::Scalar, Type::RowsAtCompileTime, Type::ColsAtCompileTime>;
@@ -643,6 +643,8 @@ public:
 template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     using Scalar = typename Type::Scalar;
+    static_assert(!std::is_pointer<Scalar>::value,
+                  PYBIND11_EIGEN_MESSAGE_POINTER_TYPES_ARE_NOT_SUPPORTED);
     using StorageIndex = remove_reference_t<decltype(*std::declval<Type>().outerIndexPtr())>;
     using Index = typename Type::Index;
     static constexpr bool rowMajor = Type::IsRowMajor;

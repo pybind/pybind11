@@ -12,15 +12,20 @@ on:
     - stable
     - "v*"
 
+permissions:
+  contents: read
+
 env:
   FORCE_COLOR: 3
+  # For cmake:
+  VERBOSE: 1
 
 jobs:
   pre-commit:
     name: Format
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with:
         python-version: "3.x"
@@ -36,12 +41,12 @@ jobs:
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
     runs-on: ubuntu-latest
-    container: silkeh/clang:13
+    container: silkeh/clang:15-bullseye
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install requirements
-      run: apt-get update && apt-get install -y python3-dev python3-pytest
+      run: apt-get update && apt-get install -y git python3-dev python3-pytest
 
     - name: Configure
       run: >

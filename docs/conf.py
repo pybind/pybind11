@@ -353,12 +353,11 @@ def prepare(app):
         f.write(contents)
 
 
-def clean_up(app, exception):
+def clean_up(app, exception):  # noqa: ARG001
     (DIR / "readme.rst").unlink()
 
 
 def setup(app):
-
     # Add hook for building doxygen xml when needed
     app.connect("builder-inited", generate_doxygen_xml)
 

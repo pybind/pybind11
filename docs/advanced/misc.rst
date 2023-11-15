@@ -118,6 +118,34 @@ The ``call_go`` wrapper can also be simplified using the ``call_guard`` policy
     m.def("call_go", &call_go, py::call_guard<py::gil_scoped_release>());
 
 
+Common Sources Of Global Interpreter Lock Errors
+==================================================================
+
+Failing to properly hold the Global Interpreter Lock (GIL) is one of the
+more common sources of bugs within code that uses pybind11. If you are
+running into GIL related errors, we highly recommend you consult the
+following checklist.
+
+- Do you have any global variables that are pybind11 objects or invoke
+  pybind11 functions in either their constructor or destructor? You are generally
+  not allowed to invoke any Python function in a global static context. We recommend
+  using lazy initialization and then intentionally leaking at the end of the program.
+
+- Do you have any pybind11 objects that are members of other C++ structures? One
+  commonly overlooked requirement is that pybind11 objects have to increase their reference count
+  whenever their copy constructor is called. Thus, you need to be holding the GIL to invoke
+  the copy constructor of any C++ class that has a pybind11 member. This can sometimes be very
+  tricky to track for complicated programs Think carefully when you make a pybind11 object
+  a member in another struct.
+
+- C++ destructors that invoke Python functions can be particularly troublesome as
+  destructors can sometimes get invoked in weird and unexpected circumstances as a result
+  of exceptions.
+
+- You should try running your code in a debug build. That will enable additional assertions
+  within pybind11 that will throw exceptions on certain GIL handling errors
+  (reference counting operations).
+
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
 
@@ -324,6 +352,15 @@ The class ``options`` allows you to selectively suppress auto-generated signatur
         m.def("add", [](int a, int b) { return a + b; }, "A function which adds two numbers");
     }
 
+pybind11 also appends all members of an enum to the resulting enum docstring.
+This default behavior can be disabled by using the ``disable_enum_members_docstring()``
+function of the ``options`` class.
+
+With ``disable_user_defined_docstrings()`` all user defined docstrings of
+``module_::def()``, ``class_::def()`` and ``enum_()`` are disabled, but the
+function signatures and enum members are included in the docstring, unless they
+are disabled separately.
+
 Note that changes to the settings affect only function bindings created during the
 lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function,
 the default settings are restored to prevent unwanted side effects.
@@ -361,3 +398,32 @@ before they are used as a parameter or return type of a function:
         pyFoo.def(py::init<const ns::Bar&>());
         pyBar.def(py::init<const ns::Foo&>());
     }
+
+Setting inner type hints in docstrings
+======================================
+
+When you use pybind11 wrappers for ``list``, ``dict``, and other generic python
+types, the docstring will just display the generic type. You can convey the
+inner types in the docstring by using a special 'typed' version of the generic
+type.
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        m.def("pass_list_of_str", [](py::typing::List<py::str> arg) {
+            // arg can be used just like py::list
+        ));
+    }
+
+The resulting docstring will be ``pass_list_of_str(arg0: list[str]) -> None``.
+
+The following special types are available in ``pybind11/typing.h``:
+
+* ``py::Tuple<Args...>``
+* ``py::Dict<K, V>``
+* ``py::List<V>``
+* ``py::Set<V>``
+* ``py::Callable<Signature>``
+
+.. warning:: Just like in python, these are merely hints. They don't actually
+             enforce the types of their contents at runtime or compile time.

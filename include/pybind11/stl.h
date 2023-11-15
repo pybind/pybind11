@@ -100,7 +100,7 @@ public:
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type, const_name("set[") + key_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
@@ -157,7 +157,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
+                         const_name("dict[") + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
 };
 
@@ -208,7 +208,7 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, const_name("list[") + value_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Alloc>
@@ -273,11 +273,11 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(ArrayType,
-                         const_name("List[") + value_conv::name
+                         const_name<Resizable>(const_name(""), const_name("Annotated["))
+                             + const_name("list[") + value_conv::name + const_name("]")
                              + const_name<Resizable>(const_name(""),
-                                                     const_name("[") + const_name<Size>()
-                                                         + const_name("]"))
-                             + const_name("]"));
+                                                     const_name(", FixedSize(")
+                                                         + const_name<Size>() + const_name(")]")));
 };
 
 template <typename Type, size_t Size>
@@ -316,6 +316,7 @@ struct optional_caster {
         if (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Value>::policy(policy);
         }
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         return value_conv::cast(*std::forward<T>(src), policy, parent);
     }
 

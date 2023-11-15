@@ -126,8 +126,8 @@ def test_bytes_to_string():
 
     assert m.strlen(b"hi") == 2
     assert m.string_length(b"world") == 5
-    assert m.string_length("a\x00b".encode()) == 3
-    assert m.strlen("a\x00b".encode()) == 1  # C-string limitation
+    assert m.string_length(b"a\x00b") == 3
+    assert m.strlen(b"a\x00b") == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
     assert m.string_length("💩".encode()) == 4
@@ -352,7 +352,7 @@ def test_tuple(doc):
     assert (
         doc(m.pair_passthrough)
         == """
-        pair_passthrough(arg0: Tuple[bool, str]) -> Tuple[str, bool]
+        pair_passthrough(arg0: tuple[bool, str]) -> tuple[str, bool]
 
         Return a pair in reversed order
     """
@@ -360,7 +360,7 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: Tuple[bool, str, int]) -> Tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, int]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
@@ -421,13 +421,15 @@ def test_reference_wrapper():
     a2 = m.refwrap_list(copy=True)
     assert [x.value for x in a1] == [2, 3]
     assert [x.value for x in a2] == [2, 3]
-    assert not a1[0] is a2[0] and not a1[1] is a2[1]
+    assert a1[0] is not a2[0]
+    assert a1[1] is not a2[1]
 
     b1 = m.refwrap_list(copy=False)
     b2 = m.refwrap_list(copy=False)
     assert [x.value for x in b1] == [1, 2]
     assert [x.value for x in b2] == [1, 2]
-    assert b1[0] is b2[0] and b1[1] is b2[1]
+    assert b1[0] is b2[0]
+    assert b1[1] is b2[1]
 
     assert m.refwrap_iiw(IncType(5)) == 5
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]

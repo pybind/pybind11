@@ -135,7 +135,7 @@ The valid options are:
 * Use `-G` and the name of a generator to use something different. `cmake
   --help` lists the generators available.
       - On Unix, setting `CMAKE_GENERATER=Ninja` in your environment will give
-        you automatic mulithreading on all your CMake projects!
+        you automatic multithreading on all your CMake projects!
 * Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * You can use `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the `.json` file
   that some tools expect.
@@ -235,8 +235,8 @@ directory inside your pybind11 git clone. Files will be modified in place,
 so you can use git to monitor the changes.
 
 ```bash
-docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:13
-apt-get update && apt-get install -y python3-dev python3-pytest
+docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:15-bullseye
+apt-get update && apt-get install -y git python3-dev python3-pytest
 cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);--use-color" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
 cmake --build build -j 2
 ```

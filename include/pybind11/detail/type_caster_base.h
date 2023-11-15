@@ -102,8 +102,22 @@ public:
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type);
 
+// Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
+inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &bases,
+                                                      type_info *addl_base) {
+    for (auto it = bases.begin(); it != bases.end(); it++) {
+        type_info *existing_base = *it;
+        if (PyType_IsSubtype(addl_base->type, existing_base->type) != 0) {
+            bases.insert(it, addl_base);
+            return;
+        }
+    }
+    bases.push_back(addl_base);
+}
+
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+    assert(bases.empty());
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
@@ -136,7 +150,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                     }
                 }
                 if (!found) {
-                    bases.push_back(tinfo);
+                    all_type_info_add_base_most_derived_first(bases, tinfo);
                 }
             }
         } else if (type->tp_bases) {
@@ -258,9 +272,9 @@ struct value_and_holder {
 
     // Main constructor for a found value/holder:
     value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index)
-        : inst{i}, index{index}, type{type}, vh{inst->simple_layout
-                                                    ? inst->simple_value_holder
-                                                    : &inst->nonsimple.values_and_holders[vpos]} {}
+        : inst{i}, index{index}, type{type},
+          vh{inst->simple_layout ? inst->simple_value_holder
+                                 : &inst->nonsimple.values_and_holders[vpos]} {}
 
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
     value_and_holder() = default;
@@ -322,18 +336,29 @@ public:
     explicit values_and_holders(instance *inst)
         : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
 
+    explicit values_and_holders(PyObject *obj)
+        : inst{nullptr}, tinfo(all_type_info(Py_TYPE(obj))) {
+        if (!tinfo.empty()) {
+            inst = reinterpret_cast<instance *>(obj);
+        }
+    }
+
     struct iterator {
     private:
         instance *inst = nullptr;
         const type_vec *types = nullptr;
         value_and_holder curr;
         friend struct values_and_holders;
-        iterator(instance *inst, const type_vec *tinfo)
-            : inst{inst}, types{tinfo},
-              curr(inst /* instance */,
-                   types->empty() ? nullptr : (*types)[0] /* type info */,
-                   0, /* vpos: (non-simple types only): the first vptr comes first */
-                   0 /* index */) {}
+        iterator(instance *inst, const type_vec *tinfo) : inst{inst}, types{tinfo} {
+            if (inst != nullptr) {
+                assert(!types->empty());
+                curr = value_and_holder(
+                    inst /* instance */,
+                    (*types)[0] /* type info */,
+                    0, /* vpos: (non-simple types only): the first vptr comes first */
+                    0 /* index */);
+            }
+        }
         // Past-the-end iterator:
         explicit iterator(size_t end) : curr(end) {}
 
@@ -364,6 +389,16 @@ public:
     }
 
     size_t size() { return tinfo.size(); }
+
+    // Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
+    bool is_redundant_value_and_holder(const value_and_holder &vh) {
+        for (size_t i = 0; i < vh.index; i++) {
+            if (PyType_IsSubtype(tinfo[i]->type, tinfo[vh.index]->type) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 /**
@@ -486,8 +521,10 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION)
     return PyThreadState_GET();
-#else
+#elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
+#else
+    return PyThreadState_GetUnchecked();
 #endif
 }
 
@@ -786,7 +823,7 @@ public:
         std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
         detail::clean_type_id(tname);
         std::string msg = "Unregistered type : " + tname;
-        PyErr_SetString(PyExc_TypeError, msg.c_str());
+        set_error(PyExc_TypeError, msg.c_str());
         return {nullptr, nullptr};
     }
 
@@ -822,23 +859,179 @@ using movable_cast_op_type
                                   typename std::add_rvalue_reference<intrinsic_t<T>>::type,
                                   typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
 
+// Does the container have a mapped type and is it recursive?
+// Implemented by specializations below.
+template <typename Container, typename SFINAE = void>
+struct container_mapped_type_traits {
+    static constexpr bool has_mapped_type = false;
+    static constexpr bool has_recursive_mapped_type = false;
+};
+
+template <typename Container>
+struct container_mapped_type_traits<
+    Container,
+    typename std::enable_if<
+        std::is_same<typename Container::mapped_type, Container>::value>::type> {
+    static constexpr bool has_mapped_type = true;
+    static constexpr bool has_recursive_mapped_type = true;
+};
+
+template <typename Container>
+struct container_mapped_type_traits<
+    Container,
+    typename std::enable_if<
+        negation<std::is_same<typename Container::mapped_type, Container>>::value>::type> {
+    static constexpr bool has_mapped_type = true;
+    static constexpr bool has_recursive_mapped_type = false;
+};
+
+// Does the container have a value type and is it recursive?
+// Implemented by specializations below.
+template <typename Container, typename SFINAE = void>
+struct container_value_type_traits : std::false_type {
+    static constexpr bool has_value_type = false;
+    static constexpr bool has_recursive_value_type = false;
+};
+
+template <typename Container>
+struct container_value_type_traits<
+    Container,
+    typename std::enable_if<
+        std::is_same<typename Container::value_type, Container>::value>::type> {
+    static constexpr bool has_value_type = true;
+    static constexpr bool has_recursive_value_type = true;
+};
+
+template <typename Container>
+struct container_value_type_traits<
+    Container,
+    typename std::enable_if<
+        negation<std::is_same<typename Container::value_type, Container>>::value>::type> {
+    static constexpr bool has_value_type = true;
+    static constexpr bool has_recursive_value_type = false;
+};
+
+/*
+ * Tag to be used for representing the bottom of recursively defined types.
+ * Define this tag so we don't have to use void.
+ */
+struct recursive_bottom {};
+
+/*
+ * Implementation detail of `recursive_container_traits` below.
+ * `T` is the `value_type` of the container, which might need to be modified to
+ * avoid recursive types and const types.
+ */
+template <typename T, bool is_this_a_map>
+struct impl_type_to_check_recursively {
+    /*
+     * If the container is recursive, then no further recursion should be done.
+     */
+    using if_recursive = recursive_bottom;
+    /*
+     * Otherwise yield `T` unchanged.
+     */
+    using if_not_recursive = T;
+};
+
+/*
+ * For pairs - only as value type of a map -, the first type should remove the `const`.
+ * Also, if the map is recursive, then the recursive checking should consider
+ * the first type only.
+ */
+template <typename A, typename B>
+struct impl_type_to_check_recursively<std::pair<A, B>, /* is_this_a_map = */ true> {
+    using if_recursive = typename std::remove_const<A>::type;
+    using if_not_recursive = std::pair<typename std::remove_const<A>::type, B>;
+};
+
+/*
+ * Implementation of `recursive_container_traits` below.
+ */
+template <typename Container, typename SFINAE = void>
+struct impl_recursive_container_traits {
+    using type_to_check_recursively = recursive_bottom;
+};
+
+template <typename Container>
+struct impl_recursive_container_traits<
+    Container,
+    typename std::enable_if<container_value_type_traits<Container>::has_value_type>::type> {
+    static constexpr bool is_recursive
+        = container_mapped_type_traits<Container>::has_recursive_mapped_type
+          || container_value_type_traits<Container>::has_recursive_value_type;
+    /*
+     * This member dictates which type Pybind11 should check recursively in traits
+     * such as `is_move_constructible`, `is_copy_constructible`, `is_move_assignable`, ...
+     * Direct access to `value_type` should be avoided:
+     * 1. `value_type` might recursively contain the type again
+     * 2. `value_type` of STL map types is `std::pair<A const, B>`, the `const`
+     *    should be removed.
+     *
+     */
+    using type_to_check_recursively = typename std::conditional<
+        is_recursive,
+        typename impl_type_to_check_recursively<
+            typename Container::value_type,
+            container_mapped_type_traits<Container>::has_mapped_type>::if_recursive,
+        typename impl_type_to_check_recursively<
+            typename Container::value_type,
+            container_mapped_type_traits<Container>::has_mapped_type>::if_not_recursive>::type;
+};
+
+/*
+ * This trait defines the `type_to_check_recursively` which is needed to properly
+ * handle recursively defined traits such as `is_move_constructible` without going
+ * into an infinite recursion.
+ * Should be used instead of directly accessing the `value_type`.
+ * It cancels the recursion by returning the `recursive_bottom` tag.
+ *
+ * The default definition of `type_to_check_recursively` is as follows:
+ *
+ * 1. By default, it is `recursive_bottom`, so that the recursion is canceled.
+ * 2. If the type is non-recursive and defines a `value_type`, then the `value_type` is used.
+ *    If the `value_type` is a pair and a `mapped_type` is defined,
+ *    then the `const` is removed from the first type.
+ * 3. If the type is recursive and `value_type` is not a pair, then `recursive_bottom` is returned.
+ * 4. If the type is recursive and `value_type` is a pair and a `mapped_type` is defined,
+ *    then `const` is removed from the first type and the first type is returned.
+ *
+ * This behavior can be extended by the user as seen in test_stl_binders.cpp.
+ *
+ * This struct is exactly the same as impl_recursive_container_traits.
+ * The duplication achieves that user-defined specializations don't compete
+ * with internal specializations, but take precedence.
+ */
+template <typename Container, typename SFINAE = void>
+struct recursive_container_traits : impl_recursive_container_traits<Container> {};
+
+template <typename T>
+struct is_move_constructible
+    : all_of<std::is_move_constructible<T>,
+             is_move_constructible<
+                 typename recursive_container_traits<T>::type_to_check_recursively>> {};
+
+template <>
+struct is_move_constructible<recursive_bottom> : std::true_type {};
+
+// Likewise for std::pair
+// (after C++17 it is mandatory that the move constructor not exist when the two types aren't
+// themselves move constructible, but this can not be relied upon when T1 or T2 are themselves
+// containers).
+template <typename T1, typename T2>
+struct is_move_constructible<std::pair<T1, T2>>
+    : all_of<is_move_constructible<T1>, is_move_constructible<T2>> {};
+
 // std::is_copy_constructible isn't quite enough: it lets std::vector<T> (and similar) through when
 // T is non-copyable, but code containing such a copy constructor fails to actually compile.
-template <typename T, typename SFINAE = void>
-struct is_copy_constructible : std::is_copy_constructible<T> {};
+template <typename T>
+struct is_copy_constructible
+    : all_of<std::is_copy_constructible<T>,
+             is_copy_constructible<
+                 typename recursive_container_traits<T>::type_to_check_recursively>> {};
 
-// Specialization for types that appear to be copy constructible but also look like stl containers
-// (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
-// so, copy constructability depends on whether the value_type is copy constructible.
-template <typename Container>
-struct is_copy_constructible<
-    Container,
-    enable_if_t<
-        all_of<std::is_copy_constructible<Container>,
-               std::is_same<typename Container::value_type &, typename Container::reference>,
-               // Avoid infinite recursion
-               negation<std::is_same<Container, typename Container::value_type>>>::value>>
-    : is_copy_constructible<typename Container::value_type> {};
+template <>
+struct is_copy_constructible<recursive_bottom> : std::true_type {};
 
 // Likewise for std::pair
 // (after C++17 it is mandatory that the copy constructor not exist when the two types aren't
@@ -849,14 +1042,16 @@ struct is_copy_constructible<std::pair<T1, T2>>
     : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
 
 // The same problems arise with std::is_copy_assignable, so we use the same workaround.
-template <typename T, typename SFINAE = void>
-struct is_copy_assignable : std::is_copy_assignable<T> {};
-template <typename Container>
-struct is_copy_assignable<Container,
-                          enable_if_t<all_of<std::is_copy_assignable<Container>,
-                                             std::is_same<typename Container::value_type &,
-                                                          typename Container::reference>>::value>>
-    : is_copy_assignable<typename Container::value_type> {};
+template <typename T>
+struct is_copy_assignable
+    : all_of<
+          std::is_copy_assignable<T>,
+          is_copy_assignable<typename recursive_container_traits<T>::type_to_check_recursively>> {
+};
+
+template <>
+struct is_copy_assignable<recursive_bottom> : std::true_type {};
+
 template <typename T1, typename T2>
 struct is_copy_assignable<std::pair<T1, T2>>
     : all_of<is_copy_assignable<T1>, is_copy_assignable<T2>> {};
@@ -994,7 +1189,7 @@ protected:
         return [](const void *arg) -> void * { return new T(*reinterpret_cast<const T *>(arg)); };
     }
 
-    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
+    template <typename T, typename = enable_if_t<is_move_constructible<T>::value>>
     static auto make_move_constructor(const T *)
         -> decltype(new T(std::declval<T &&>()), Constructor{}) {
         return [](const void *arg) -> void * {
@@ -1005,6 +1200,15 @@ protected:
     static Constructor make_copy_constructor(...) { return nullptr; }
     static Constructor make_move_constructor(...) { return nullptr; }
 };
+
+PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
+    if (auto *type_data = get_type_info(ti)) {
+        handle th((PyObject *) type_data->type);
+        return th.attr("__module__").cast<std::string>() + '.'
+               + th.attr("__qualname__").cast<std::string>();
+    }
+    return clean_type_id(ti.name());
+}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
