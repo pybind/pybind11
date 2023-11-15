@@ -7,6 +7,29 @@ from pybind11_tests import cases_for_stubgen as m
     ("docstring", "expected"),
     [
         (
+            m.basics.answer.__doc__,
+            'answer() -> int\n\nanswer docstring, with end quote"\n',
+        ),
+        (
+            m.basics.sum.__doc__,
+            "sum(arg0: int, arg1: int) -> int\n\nmultiline docstring test, edge case quotes \"\"\"'''\n",
+        ),
+        (m.basics.midpoint.__doc__, "midpoint(left: float, right: float) -> float\n"),
+        (
+            m.basics.weighted_midpoint.__doc__,
+            "weighted_midpoint(left: float, right: float, alpha: float = 0.5) -> float\n",
+        ),
+        (
+            m.basics.Point.__init__.__doc__,
+            "__init__(*args, **kwargs)\nOverloaded function.\n\n1. __init__(self: pybind11_tests.cases_for_stubgen.basics.Point) -> None\n\n2. __init__(self: pybind11_tests.cases_for_stubgen.basics.Point, x: float, y: float) -> None\n",
+        ),
+        (
+            m.basics.Point.distance_to.__doc__,
+            "distance_to(*args, **kwargs)\nOverloaded function.\n\n1. distance_to(self: pybind11_tests.cases_for_stubgen.basics.Point, x: float, y: float) -> float\n\n2. distance_to(self: pybind11_tests.cases_for_stubgen.basics.Point, other: pybind11_tests.cases_for_stubgen.basics.Point) -> float\n",
+        ),
+        (m.basics.Point.length_unit.__doc__, "Members:\n\n  mm\n\n  pixel\n\n  inch"),
+        (m.basics.Point.angle_unit.__doc__, "Members:\n\n  radian\n\n  degree"),
+        (
             m.pass_user_type.__doc__,
             'pass_user_type(arg0: Annotated[Any, "test_cases_for_stubgen::UserType"]) -> None\n',
         ),
