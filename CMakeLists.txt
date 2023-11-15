@@ -289,7 +289,7 @@ if(PYBIND11_INSTALL)
           string(APPEND prefix_for_pc_file "/..")
         endwhile()
       else()
-        cmake_path(RELATIVE_PATH pcfiledir BASE_DIRECTORY CMAKE_INSTALL_DATAROOTDIR
+        cmake_path(RELATIVE_PATH CMAKE_INSTALL_PREFIX BASE_DIRECTORY CMAKE_INSTALL_DATAROOTDIR
                    OUTPUT_VARIABLE prefix_for_pc_file)
       endif()
     endif()
