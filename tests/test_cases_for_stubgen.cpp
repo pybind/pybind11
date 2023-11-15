@@ -83,6 +83,7 @@ void bind_basics(py::module &basics) {
 
     pyPoint.def(py::init<>())
         .def(py::init<double, double>(), py::arg("x"), py::arg("y"))
+#ifdef PYBIND11_CPP14
         .def("distance_to",
              py::overload_cast<double, double>(&Point::distance_to, py::const_),
              py::arg("x"),
@@ -90,6 +91,15 @@ void bind_basics(py::module &basics) {
         .def("distance_to",
              py::overload_cast<const Point &>(&Point::distance_to, py::const_),
              py::arg("other"))
+#else
+        .def("distance_to",
+             static_cast<double (Point::*)(double, double) const>(&Point::distance_to),
+             py::arg("x"),
+             py::arg("y"))
+        .def("distance_to",
+             static_cast<double (Point::*)(const Point &) const>(&Point::distance_to),
+             py::arg("other"))
+#endif
         .def_readwrite("x", &Point::x)
         .def_property(
             "y",
