@@ -66,7 +66,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   # Explicitly export version for callers (including our own functions)
-  if(NOT is_config AND NOT Python_ARTIFACTS_INTERACTIVE)
+  if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE)
     set(Python_VERSION
         "${Python_VERSION}"
         CACHE INTERNAL "")
