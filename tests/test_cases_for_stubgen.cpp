@@ -106,13 +106,13 @@ void bind_basics(py::module &basics) {
             [](Point &self) { return self.y; },
             [](Point &self, double value) { self.y = value; })
         .def_property_readonly("length", &Point::length)
-        .def_property_readonly_static("x_axis", [](py::object /*cls*/) { return Point::x_axis; })
-        .def_property_readonly_static("y_axis", [](py::object /*cls*/) { return Point::y_axis; })
+        .def_property_readonly_static("x_axis", [](py::handle /*cls*/) { return Point::x_axis; })
+        .def_property_readonly_static("y_axis", [](py::handle /*cls*/) { return Point::y_axis; })
         .def_readwrite_static("length_unit", &Point::length_unit)
         .def_property_static(
             "angle_unit",
-            [](py::object & /*cls*/) { return Point::angle_unit; },
-            [](py::object & /*cls*/, Point::AngleUnit value) { Point::angle_unit = value; });
+            [](py::handle /*cls*/) { return Point::angle_unit; },
+            [](py::handle /*cls*/, Point::AngleUnit value) { Point::angle_unit = value; });
 
     pyPoint.attr("origin") = Point::origin;
 
