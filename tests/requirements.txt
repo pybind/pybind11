@@ -1,11 +1,8 @@
 --only-binary=:all:
-build~=0.9.0
-numpy~=1.21.0; python_version=='3.7' and platform_python_implementation=='PyPy' and sys_platform == 'linux'
-numpy~=1.24.0; python_version=='3.8' and platform_python_implementation=='PyPy'
-numpy~=1.25.0; python_version=='3.9' and platform_python_implementation=='PyPy'
-oldest_supported_numpy; platform_python_implementation!='PyPy'
+build~=1.0
+oldest-suppored-numpy
 pytest~=7.0.0
 pytest-timeout
 scipy~=1.5.4; platform_python_implementation!="PyPy" and python_version<"3.10"
 scipy~=1.8.0; platform_python_implementation!="PyPy" and python_version=="3.10"
-scipy~=1.11.0; platform_python_implementation!="PyPy" and python_version=="3.11"
+scipy~=1.11.1; platform_python_implementation!="PyPy" and python_version>="3.11"

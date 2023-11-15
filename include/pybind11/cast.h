@@ -42,13 +42,15 @@ using make_caster = type_caster<intrinsic_t<type>>;
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
 typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
-    return caster.operator typename make_caster<T>::template cast_op_type<T>();
+    using result_t = typename make_caster<T>::template cast_op_type<T>; // See PR #4893
+    return caster.operator result_t();
 }
 template <typename T>
 typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) {
-    return std::move(caster).operator typename make_caster<T>::
-        template cast_op_type<typename std::add_rvalue_reference<T>::type>();
+    using result_t = typename make_caster<T>::template cast_op_type<
+        typename std::add_rvalue_reference<T>::type>; // See PR #4893
+    return std::move(caster).operator result_t();
 }
 
 template <typename type>
@@ -661,7 +663,7 @@ public:
     }
 
     static constexpr auto name
-        = const_name("Tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
+        = const_name("tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
 
     template <typename T>
     using cast_op_type = type;
@@ -882,6 +884,10 @@ struct handle_type_name<bytes> {
     static constexpr auto name = const_name(PYBIND11_BYTES_NAME);
 };
 template <>
+struct handle_type_name<buffer> {
+    static constexpr auto name = const_name("Buffer");
+};
+template <>
 struct handle_type_name<int_> {
     static constexpr auto name = const_name("int");
 };
@@ -898,8 +904,20 @@ struct handle_type_name<float_> {
     static constexpr auto name = const_name("float");
 };
 template <>
+struct handle_type_name<function> {
+    static constexpr auto name = const_name("Callable");
+};
+template <>
+struct handle_type_name<handle> {
+    static constexpr auto name = handle_type_name<object>::name;
+};
+template <>
 struct handle_type_name<none> {
     static constexpr auto name = const_name("None");
+};
+template <>
+struct handle_type_name<sequence> {
+    static constexpr auto name = const_name("Sequence");
 };
 template <>
 struct handle_type_name<args> {
@@ -1377,7 +1395,15 @@ inline namespace literals {
 /** \rst
     String literal version of `arg`
  \endrst */
-constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
+constexpr arg
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
+operator"" _a // gcc 4.8.5 insists on having a space (hard error).
+#else
+operator""_a // clang 17 generates a deprecation warning if there is a space.
+#endif
+    (const char *name, size_t) {
+    return arg(name);
+}
 } // namespace literals
 
 PYBIND11_NAMESPACE_BEGIN(detail)

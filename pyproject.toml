@@ -19,7 +19,7 @@ ignore = [
 
 [tool.mypy]
 files = ["pybind11"]
-python_version = "3.6"
+python_version = "3.7"
 strict = true
 show_error_codes = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
@@ -57,10 +57,12 @@ messages_control.disable = [
   "unused-argument",  # covered by Ruff ARG
 ]
 
-
 [tool.ruff]
-select = [
-  "E", "F", "W", # flake8
+target-version = "py37"
+src = ["src"]
+
+[tool.ruff.lint]
+extend-select = [
   "B",           # flake8-bugbear
   "I",           # isort
   "N",           # pep8-naming
@@ -68,7 +70,6 @@ select = [
   "C4",          # flake8-comprehensions
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
-  "ISC",         # flake8-implicit-str-concat
   "PGH",         # pygrep-hooks
   "PIE",         # flake8-pie
   "PL",          # pylint
@@ -86,13 +87,9 @@ ignore = [
   "PT004",  # Fixture that doesn't return needs underscore (no, it is fine)
   "SIM118", # iter(x) is not always the same as iter(x.keys())
 ]
-target-version = "py37"
-src = ["src"]
 unfixable = ["T20"]
-exclude = []
-line-length = 120
 isort.known-first-party = ["env", "pybind11_cross_module_tests", "pybind11_tests"]
 
-[tool.ruff.per-file-ignores]
-"tests/**" = ["EM", "N"]
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["EM", "N", "E721"]
 "tests/test_call_policies.py" = ["PLC1901"]

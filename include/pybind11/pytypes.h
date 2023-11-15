@@ -303,16 +303,21 @@ private:
             stderr,
             "%s is being called while the GIL is either not held or invalid. Please see "
             "https://pybind11.readthedocs.io/en/stable/advanced/"
-            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n",
+            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n"
+            "If you are convinced there is no bug in your code, you can #define "
+            "PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF "
+            "to disable this check. In that case you have to ensure this #define is consistently "
+            "used for all translation units linked into a given pybind11 extension, otherwise "
+            "there will be ODR violations.",
             function_name.c_str());
-        fflush(stderr);
         if (Py_TYPE(m_ptr)->tp_name != nullptr) {
             fprintf(stderr,
-                    "The failing %s call was triggered on a %s object.\n",
+                    " The failing %s call was triggered on a %s object.",
                     function_name.c_str(),
                     Py_TYPE(m_ptr)->tp_name);
-            fflush(stderr);
         }
+        fprintf(stderr, "\n");
+        fflush(stderr);
         throw std::runtime_error(function_name + " PyGILState_Check() failure.");
     }
 #endif
@@ -328,6 +333,14 @@ public:
     static std::size_t inc_ref_counter() { return inc_ref_counter(0); }
 #endif
 };
+
+inline void set_error(const handle &type, const char *message) {
+    PyErr_SetString(type.ptr(), message);
+}
+
+inline void set_error(const handle &type, const handle &value) {
+    PyErr_SetObject(type.ptr(), value.ptr());
+}
 
 /** \rst
     Holds a reference to a Python object (with reference counting)
@@ -1607,7 +1620,15 @@ inline namespace literals {
 /** \rst
     String literal version of `str`
  \endrst */
-inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
+inline str
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ < 5
+operator"" _s // gcc 4.8.5 insists on having a space (hard error).
+#else
+operator""_s // clang 17 generates a deprecation warning if there is a space.
+#endif
+    (const char *s, size_t size) {
+    return {s, size};
+}
 } // namespace literals
 
 /// \addtogroup pytypes
@@ -1925,28 +1946,13 @@ public:
         }
     }
 
+    /// Capsule name is nullptr.
     capsule(const void *value, void (*destructor)(void *)) {
-        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
-            // guard if destructor called while err indicator is set
-            error_scope error_guard;
-            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
-            if (destructor == nullptr && PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            const char *name = get_name_in_error_scope(o);
-            void *ptr = PyCapsule_GetPointer(o, name);
-            if (ptr == nullptr) {
-                throw error_already_set();
-            }
+        initialize_with_void_ptr_destructor(value, nullptr, destructor);
+    }
 
-            if (destructor != nullptr) {
-                destructor(ptr);
-            }
-        });
-
-        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
-            throw error_already_set();
-        }
+    capsule(const void *value, const char *name, void (*destructor)(void *)) {
+        initialize_with_void_ptr_destructor(value, name, destructor);
     }
 
     explicit capsule(void (*destructor)()) {
@@ -2013,6 +2019,32 @@ private:
         }
 
         return name;
+    }
+
+    void initialize_with_void_ptr_destructor(const void *value,
+                                             const char *name,
+                                             void (*destructor)(void *)) {
+        m_ptr = PyCapsule_New(const_cast<void *>(value), name, [](PyObject *o) {
+            // guard if destructor called while err indicator is set
+            error_scope error_guard;
+            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            if (destructor == nullptr && PyErr_Occurred()) {
+                throw error_already_set();
+            }
+            const char *name = get_name_in_error_scope(o);
+            void *ptr = PyCapsule_GetPointer(o, name);
+            if (ptr == nullptr) {
+                throw error_already_set();
+            }
+
+            if (destructor != nullptr) {
+                destructor(ptr);
+            }
+        });
+
+        if (!m_ptr || PyCapsule_SetContext(m_ptr, reinterpret_cast<void *>(destructor)) != 0) {
+            throw error_already_set();
+        }
     }
 };
 

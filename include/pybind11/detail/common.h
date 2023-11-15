@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 11
+#define PYBIND11_VERSION_MINOR 12
 #define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020B00D1
+#define PYBIND11_VERSION_HEX 0x020C00D1
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -116,6 +116,14 @@
 #            endif
 #        endif
 #    endif
+#endif
+
+#if defined(PYBIND11_CPP20)
+#    define PYBIND11_CONSTINIT constinit
+#    define PYBIND11_DTOR_CONSTEXPR constexpr
+#else
+#    define PYBIND11_CONSTINIT
+#    define PYBIND11_DTOR_CONSTEXPR
 #endif
 
 // Compiler version assertions
@@ -324,11 +332,8 @@ PYBIND11_WARNING_POP
 #endif
 
 // See description of PR #4246:
-#if !defined(NDEBUG) && !defined(PY_ASSERT_GIL_HELD_INCREF_DECREF)                                \
-    && !(defined(PYPY_VERSION)                                                                    \
-         && defined(_MSC_VER)) /* PyPy Windows: pytest hangs indefinitely at the end of the       \
-                                  process (see PR #4268) */                                       \
-    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+#if !defined(PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(NDEBUG)                       \
+    && !defined(PYPY_VERSION) && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
@@ -402,7 +407,7 @@ PYBIND11_WARNING_POP
         return nullptr;                                                                           \
     }                                                                                             \
     catch (const std::exception &e) {                                                             \
-        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        ::pybind11::set_error(PyExc_ImportError, e.what());                                       \
         return nullptr;                                                                           \
     }
 

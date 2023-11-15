@@ -34,8 +34,9 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PY_VERSION_HEX >= 0x030C0000
+#    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
+// Version bump for MSVC piggy-backed on PR #4779. See comments there.
 #        define PYBIND11_INTERNALS_VERSION 5
 #    else
 #        define PYBIND11_INTERNALS_VERSION 4
@@ -291,9 +292,12 @@ struct type_info {
 #endif
 
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
+/// On MSVC, changes in _MSC_VER may indicate ABI incompatibility (#2898).
 #ifndef PYBIND11_BUILD_ABI
 #    if defined(__GXX_ABI_VERSION)
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#    elif defined(_MSC_VER)
+#        define PYBIND11_BUILD_ABI "_mscver" PYBIND11_TOSTRING(_MSC_VER)
 #    else
 #        define PYBIND11_BUILD_ABI ""
 #    endif
@@ -352,7 +356,7 @@ inline bool raise_err(PyObject *exc_type, const char *msg) {
         raise_from(exc_type, msg);
         return true;
     }
-    PyErr_SetString(exc_type, msg);
+    set_error(exc_type, msg);
     return false;
 }
 
@@ -447,6 +451,7 @@ inline object get_python_state_dict() {
 #endif
     if (!state_dict) {
         raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
+        throw error_already_set();
     }
     return state_dict;
 }
@@ -459,6 +464,7 @@ inline internals **get_internals_pp_from_capsule(handle obj) {
     void *raw_ptr = PyCapsule_GetPointer(obj.ptr(), /*name=*/nullptr);
     if (raw_ptr == nullptr) {
         raise_from(PyExc_SystemError, "pybind11::detail::get_internals_pp_from_capsule() FAILED");
+        throw error_already_set();
     }
     return static_cast<internals **>(raw_ptr);
 }
