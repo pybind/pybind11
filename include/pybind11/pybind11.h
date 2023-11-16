@@ -492,9 +492,7 @@ protected:
                     signature += rec->scope.attr("__module__").cast<std::string>() + "."
                                  + rec->scope.attr("__qualname__").cast<std::string>();
                 } else {
-                    std::string tname(t->name());
-                    detail::clean_type_id(tname);
-                    signature += "Annotated[Any, \"" + tname + "\"]";
+                    signature += detail::annotated_any(detail::clean_type_id(t->name()));
                 }
             } else {
                 signature += c;
