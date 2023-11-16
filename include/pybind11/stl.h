@@ -49,7 +49,7 @@ while pybind11 was very far on the strict side. Originally PyCLIF accepted any
 Python iterable as input for a C++ `vector`/`set`/`map` argument, as long as
 the elements were convertible. The obvious (in hindsight) problem was that
 any empty Python iterable could be passed to any of these C++ types, e.g. `{}`
-was accpeted for C++ `vector`/`set` arguments, or `[]` for C++ `map` arguments.
+was accepted for C++ `vector`/`set` arguments, or `[]` for C++ `map` arguments.
 
 The functions below strike a practical permissive-vs-strict compromise,
 informed by tens of thousands of use cases in the wild. A main objective is
