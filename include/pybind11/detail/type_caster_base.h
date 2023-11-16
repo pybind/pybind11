@@ -1202,7 +1202,7 @@ protected:
 };
 
 inline std::string annotated_any(const std::string &cpp_type) {
-    return "Annotated[Any, \"" + cpp_type + "\"]";
+    return "Annotated[Any, pybind11.CppType(\"" + cpp_type + "\")]";
 }
 
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
