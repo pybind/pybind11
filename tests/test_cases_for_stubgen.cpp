@@ -4,6 +4,7 @@
 
 #include <array>
 #include <map>
+#include <vector>
 
 namespace test_cases_for_stubgen {
 
@@ -198,9 +199,24 @@ TEST_SUBMODULE(cases_for_stubgen, m) {
 
     LOCAL_HELPER("MapFloatUserType", std::map<float, UserType>);
     LOCAL_HELPER("MapUserTypeFloat", std::map<UserType, float>);
-
-#undef MAP_TYPE
+#undef LOCAL_HELPER
 
     m.def("pass_std_array_int_2", [](const std::array<int, 2> &) {});
     m.def("return_std_array_int_3", []() { return std::array<int, 3>{{1, 2, 3}}; });
+
+    // Rather arbitrary, meant to be a torture test for recursive processing.
+    using nested_case_01a = std::vector<std::array<int, 2>>;
+    using nested_case_02a = std::vector<UserType>;
+    using nested_case_03a = std::map<std::array<int, 2>, UserType>;
+    using nested_case_04a = std::map<nested_case_01a, nested_case_02a>;
+    using nested_case_05a = std::vector<nested_case_04a>;
+    using nested_case_06a = std::map<nested_case_04a, nested_case_05a>;
+#define LOCAL_HELPER(name) m.def(#name, [](const name &) {})
+    LOCAL_HELPER(nested_case_01a);
+    LOCAL_HELPER(nested_case_02a);
+    LOCAL_HELPER(nested_case_03a);
+    LOCAL_HELPER(nested_case_04a);
+    LOCAL_HELPER(nested_case_05a);
+    LOCAL_HELPER(nested_case_06a);
+#undef LOCAL_HELPER
 }

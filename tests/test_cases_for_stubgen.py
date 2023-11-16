@@ -93,6 +93,30 @@ from pybind11_tests import cases_for_stubgen as m
             m.return_std_array_int_3.__doc__,
             "return_std_array_int_3() -> Annotated[list[int], FixedSize(3)]\n",
         ),
+        (
+            m.nested_case_01a.__doc__,
+            "nested_case_01a(arg0: list[Annotated[list[int], FixedSize(2)]]) -> None\n",
+        ),
+        (
+            m.nested_case_02a.__doc__,
+            'nested_case_02a(arg0: list[Annotated[Any, "test_cases_for_stubgen::UserType"]]) -> None\n',
+        ),
+        (
+            m.nested_case_03a.__doc__,
+            'nested_case_03a(arg0: dict[Annotated[list[int], FixedSize(2)], Annotated[Any, "test_cases_for_stubgen::UserType"]]) -> None\n',
+        ),
+        (
+            m.nested_case_04a.__doc__,
+            'nested_case_04a(arg0: dict[list[Annotated[list[int], FixedSize(2)]], list[Annotated[Any, "test_cases_for_stubgen::UserType"]]]) -> None\n',
+        ),
+        (
+            m.nested_case_05a.__doc__,
+            'nested_case_05a(arg0: list[dict[list[Annotated[list[int], FixedSize(2)]], list[Annotated[Any, "test_cases_for_stubgen::UserType"]]]]) -> None\n',
+        ),
+        (
+            m.nested_case_06a.__doc__,
+            'nested_case_06a(arg0: dict[dict[list[Annotated[list[int], FixedSize(2)]], list[Annotated[Any, "test_cases_for_stubgen::UserType"]]], list[dict[list[Annotated[list[int], FixedSize(2)]], list[Annotated[Any, "test_cases_for_stubgen::UserType"]]]]]) -> None\n',
+        ),
     ],
 )
 def test_docstring(docstring, expected):
