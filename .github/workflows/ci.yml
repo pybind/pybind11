@@ -1141,7 +1141,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
-          -DPython_EXECUTABLE=/usr/local/bin/python3
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
       - name: Build
         run: cmake --build . -j 2
@@ -1164,7 +1164,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
-          -DPython_EXECUTABLE=/usr/local/bin/python3
+          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
           "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
       - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
