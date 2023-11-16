@@ -5,6 +5,11 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+# Propagate this policy (FindPythonInterp removal) so it can be detected later
+if(NOT CMAKE_VERSION VERSION_LESS "3.27")
+  cmake_policy(GET CMP0148 _pybind11_cmp0148)
+endif()
+
 cmake_minimum_required(VERSION 3.5)
 
 # The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
@@ -14,6 +19,11 @@ if(${CMAKE_VERSION} VERSION_LESS 3.26)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
   cmake_policy(VERSION 3.26)
+endif()
+
+if(_pybind11_cmp0148)
+  cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
+  unset(_pybind11_cmp0148)
 endif()
 
 # Avoid infinite recursion if tests include this as a subdirectory
@@ -132,6 +142,7 @@ set(PYBIND11_HEADERS
     include/pybind11/embed.h
     include/pybind11/eval.h
     include/pybind11/gil.h
+    include/pybind11/gil_safe_call_once.h
     include/pybind11/iostream.h
     include/pybind11/functional.h
     include/pybind11/numpy.h
@@ -278,7 +289,21 @@ if(PYBIND11_INSTALL)
 
   # pkg-config support
   if(NOT prefix_for_pc_file)
-    set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
+    if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
+      set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
+    else()
+      set(pc_datarootdir "${CMAKE_INSTALL_DATAROOTDIR}")
+      if(CMAKE_VERSION VERSION_LESS 3.20)
+        set(prefix_for_pc_file "\${pcfiledir}/..")
+        while(pc_datarootdir)
+          get_filename_component(pc_datarootdir "${pc_datarootdir}" DIRECTORY)
+          string(APPEND prefix_for_pc_file "/..")
+        endwhile()
+      else()
+        cmake_path(RELATIVE_PATH CMAKE_INSTALL_PREFIX BASE_DIRECTORY CMAKE_INSTALL_DATAROOTDIR
+                   OUTPUT_VARIABLE prefix_for_pc_file)
+      endif()
+    endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
