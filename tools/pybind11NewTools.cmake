@@ -39,12 +39,23 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
   endif()
 
+  # Callers need to be able to access Python_EXECUTABLE
+  set(_pybind11_global_keyword "")
+  if(NOT is_config AND NOT DEFINED Python_ARTIFACTS_INTERACTIVE)
+    set(Python_ARTIFACTS_INTERACTIVE TRUE)
+    if(NOT CMAKE_VERSION VERSION_LESS 3.24)
+      set(_pybind11_global_keyword "GLOBAL")
+    endif()
+  endif()
+
   find_package(Python 3.6 REQUIRED COMPONENTS Interpreter ${_pybind11_dev_component}
-                                              ${_pybind11_quiet})
+                                              ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
-  if(NOT is_config)
+  if(NOT is_config
+     AND NOT Python_ARTIFACTS_INTERACTIVE
+     AND _pybind11_global_keyword STREQUAL "")
     if(TARGET Python::Python)
       set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
@@ -52,6 +63,22 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     if(TARGET Python::Module)
       set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
+  endif()
+
+  # Explicitly export version for callers (including our own functions)
+  if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE)
+    set(Python_VERSION
+        "${Python_VERSION}"
+        CACHE INTERNAL "")
+    set(Python_VERSION_MAJOR
+        "${Python_VERSION_MAJOR}"
+        CACHE INTERNAL "")
+    set(Python_VERSION_MINOR
+        "${Python_VERSION_MINOR}"
+        CACHE INTERNAL "")
+    set(Python_VERSION_PATCH
+        "${Python_VERSION_PATCH}"
+        CACHE INTERNAL "")
   endif()
 endif()
 
