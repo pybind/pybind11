@@ -844,7 +844,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     });
 
     // Always use a lambda in case of `using` declaration
-    cl.def("__len__", [](const Map& m){ return m.size(); });
+    cl.def("__len__", [](const Map &m) { return m.size(); });
 
     return cl;
 }
