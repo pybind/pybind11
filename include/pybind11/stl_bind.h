@@ -843,7 +843,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         m.erase(it);
     });
 
-    cl.def("__len__", &Map::size);
+    // Always use a lambda in case of `using` declaration
+    cl.def("__len__", [](const Map& m){ return m.size(); });
 
     return cl;
 }
