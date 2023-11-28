@@ -15,6 +15,7 @@
 #include <deque>
 #include <map>
 #include <unordered_map>
+#include <vector>
 
 class El {
 public:
@@ -81,6 +82,74 @@ struct RecursiveVector : std::vector<RecursiveVector> {
 struct RecursiveMap : std::map<int, RecursiveMap> {
     using Parent = std::map<int, RecursiveMap>;
     using Parent::Parent;
+};
+
+class UserVectorLike : private std::vector<int> {
+public:
+    using Base = std::vector<int>;
+    using typename Base::value_type;
+    using typename Base::size_type;
+    using typename Base::difference_type;
+    using typename Base::iterator;
+    using typename Base::const_iterator;
+
+    using Base::Base;
+    using Base::begin;
+    using Base::end;
+    using Base::cbegin;
+    using Base::cend;
+    using Base::empty;
+    using Base::clear;
+    using Base::push_back;
+    using Base::insert;
+    using Base::swap;
+    using Base::at;
+    using Base::reserve;
+    using Base::erase;
+    using Base::pop_back;
+    using Base::shrink_to_fit;
+    using Base::front;
+    using Base::back;
+    using Base::operator[];
+    using Base::capacity;
+    using Base::size;
+};
+
+bool operator==(UserVectorLike const& , UserVectorLike const& ) { return true; }
+bool operator!=(UserVectorLike const& , UserVectorLike const& ) { return false; }
+
+class UserMapLike : private std::map<int, int> {
+public:
+
+    using Base = std::map<int, int>;
+    using typename Base::key_type;
+    using typename Base::mapped_type;
+    using typename Base::value_type;
+    using typename Base::size_type;
+    using typename Base::iterator;
+    using typename Base::const_iterator;
+
+    using Base::Base;
+    using Base::begin;
+    using Base::end;
+    using Base::cbegin;
+    using Base::cend;
+    using Base::empty;
+    using Base::max_size;
+    using Base::clear;
+    using Base::insert;
+    using Base::insert_or_assign;
+    using Base::emplace;
+    using Base::emplace_hint;
+    using Base::try_emplace;
+    using Base::erase;
+    using Base::swap;
+    using Base::extract;
+    using Base::merge;
+    using Base::find;
+    using Base::at;
+    using Base::operator[];
+    using Base::size;
 };
 
 /*
@@ -172,6 +241,11 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_map<RecursiveMap>(m, "RecursiveMap");
     py::bind_map<MutuallyRecursiveContainerPairMV>(m, "MutuallyRecursiveContainerPairMV");
     py::bind_vector<MutuallyRecursiveContainerPairVM>(m, "MutuallyRecursiveContainerPairVM");
+
+    // Bind with private inheritance + `using` directives.
+    // Feel free to add new `using` directives there.
+    py::bind_vector<UserVectorLike>(m, "UserVectorLike");
+    py::bind_map<UserMapLike>(m, "UserMapLike");
 
     // The rest depends on numpy:
     try {
