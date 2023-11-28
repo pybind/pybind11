@@ -139,14 +139,10 @@ public:
     using Base::empty;
     using Base::end;
     using Base::erase;
-    using Base::extract;
     using Base::find;
     using Base::insert;
-    using Base::insert_or_assign;
     using Base::max_size;
-    using Base::merge;
     using Base::swap;
-    using Base::try_emplace;
     using Base::operator[];
     using Base::size;
 };
