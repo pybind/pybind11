@@ -525,7 +525,7 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
         [](const Vector &v) -> bool { return !v.empty(); },
         "Check whether the list is nonempty");
 
-    cl.def("__len__", [](const Vector& vec) { return vec.size(); });
+    cl.def("__len__", [](const Vector &vec) { return vec.size(); });
 
 #if 0
     // C++ style functions deprecated, leaving it here as an example

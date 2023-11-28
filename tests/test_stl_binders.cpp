@@ -87,67 +87,66 @@ struct RecursiveMap : std::map<int, RecursiveMap> {
 class UserVectorLike : private std::vector<int> {
 public:
     using Base = std::vector<int>;
-    using typename Base::value_type;
-    using typename Base::size_type;
+    using typename Base::const_iterator;
     using typename Base::difference_type;
     using typename Base::iterator;
-    using typename Base::const_iterator;
+    using typename Base::size_type;
+    using typename Base::value_type;
 
+    using Base::at;
+    using Base::back;
     using Base::Base;
     using Base::begin;
-    using Base::end;
     using Base::cbegin;
     using Base::cend;
-    using Base::empty;
     using Base::clear;
-    using Base::push_back;
-    using Base::insert;
-    using Base::swap;
-    using Base::at;
-    using Base::reserve;
+    using Base::empty;
+    using Base::end;
     using Base::erase;
-    using Base::pop_back;
-    using Base::shrink_to_fit;
     using Base::front;
-    using Base::back;
+    using Base::insert;
+    using Base::pop_back;
+    using Base::push_back;
+    using Base::reserve;
+    using Base::shrink_to_fit;
+    using Base::swap;
     using Base::operator[];
     using Base::capacity;
     using Base::size;
 };
 
-bool operator==(UserVectorLike const& , UserVectorLike const& ) { return true; }
-bool operator!=(UserVectorLike const& , UserVectorLike const& ) { return false; }
+bool operator==(UserVectorLike const &, UserVectorLike const &) { return true; }
+bool operator!=(UserVectorLike const &, UserVectorLike const &) { return false; }
 
 class UserMapLike : private std::map<int, int> {
 public:
-
     using Base = std::map<int, int>;
+    using typename Base::const_iterator;
+    using typename Base::iterator;
     using typename Base::key_type;
     using typename Base::mapped_type;
-    using typename Base::value_type;
     using typename Base::size_type;
-    using typename Base::iterator;
-    using typename Base::const_iterator;
+    using typename Base::value_type;
 
+    using Base::at;
     using Base::Base;
     using Base::begin;
-    using Base::end;
     using Base::cbegin;
     using Base::cend;
-    using Base::empty;
-    using Base::max_size;
     using Base::clear;
-    using Base::insert;
-    using Base::insert_or_assign;
     using Base::emplace;
     using Base::emplace_hint;
-    using Base::try_emplace;
+    using Base::empty;
+    using Base::end;
     using Base::erase;
-    using Base::swap;
     using Base::extract;
-    using Base::merge;
     using Base::find;
-    using Base::at;
+    using Base::insert;
+    using Base::insert_or_assign;
+    using Base::max_size;
+    using Base::merge;
+    using Base::swap;
+    using Base::try_emplace;
     using Base::operator[];
     using Base::size;
 };
