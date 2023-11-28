@@ -311,7 +311,7 @@ struct type_info {
 #endif
 
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-/// On MSVC, mixing /MT and /MD will result in crashes. See (#4779)
+/// On MSVC, mixing /MT and /MD will result in crashes. See (#4953)
 #ifndef PYBIND11_BUILD_ABI
 #    if defined(__GXX_ABI_VERSION)
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
