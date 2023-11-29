@@ -662,8 +662,9 @@ public:
         return cast(*src, policy, parent);
     }
 
-    static constexpr auto name
-        = const_name("tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
+    static constexpr auto name = const_name("tuple[")
+                                 + pybind11::detail::concat(make_caster<Ts>::name...)
+                                 + const_name("]");
 
     template <typename T>
     using cast_op_type = type;
@@ -1464,7 +1465,8 @@ public:
     static_assert(args_pos == -1 || args_pos == constexpr_first<argument_is_args, Args...>(),
                   "py::args cannot be specified more than once");
 
-    static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
+    static constexpr auto arg_names
+        = pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 
