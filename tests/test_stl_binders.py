@@ -353,3 +353,17 @@ def test_recursive_map():
     recursive_map[100][101] = m.RecursiveMap()
     recursive_map[100][102] = m.RecursiveMap()
     assert list(recursive_map[100].keys()) == [101, 102]
+
+
+def test_user_vector_like():
+    vec = m.UserVectorLike()
+    vec.append(2)
+    assert vec[0] == 2
+    assert len(vec) == 1
+
+
+def test_user_like_map():
+    map = m.UserMapLike()
+    map[33] = 44
+    assert map[33] == 44
+    assert len(map) == 1
