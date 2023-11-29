@@ -131,9 +131,7 @@ if(PYBIND11_MASTER_PROJECT
    AND PYBIND11_FINDPYTHON
    AND DEFINED PYTHON_EXECUTABLE
    AND NOT DEFINED Python_EXECUTABLE)
-  set(Python_EXECUTABLE
-      "${PYTHON_EXECUTABLE}"
-      CACHE INTERNAL "")
+  set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
 endif()
 
 # NB: when adding a header don't forget to also add it to setup.py
