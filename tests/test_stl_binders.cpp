@@ -86,6 +86,7 @@ struct RecursiveMap : std::map<int, RecursiveMap> {
 
 class UserVectorLike : private std::vector<int> {
 public:
+    // This is only a subset of the member functions, as needed at the time.
     using Base = std::vector<int>;
     using typename Base::const_iterator;
     using typename Base::difference_type;
@@ -120,6 +121,7 @@ bool operator!=(UserVectorLike const &, UserVectorLike const &) { return false; 
 
 class UserMapLike : private std::map<int, int> {
 public:
+    // This is only a subset of the member functions, as needed at the time.
     using Base = std::map<int, int>;
     using typename Base::const_iterator;
     using typename Base::iterator;
@@ -238,7 +240,6 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_vector<MutuallyRecursiveContainerPairVM>(m, "MutuallyRecursiveContainerPairVM");
 
     // Bind with private inheritance + `using` directives.
-    // Feel free to add new `using` directives there.
     py::bind_vector<UserVectorLike>(m, "UserVectorLike");
     py::bind_map<UserMapLike>(m, "UserMapLike");
 
