@@ -127,4 +127,16 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         (void) py::cast(*ptr);
     }
 #endif
+
+    m.def("pyobject_ptr_from_handle_nullptr", []() {
+        py::handle handle_nullptr;
+        if (handle_nullptr.ptr() != nullptr) {
+            return "UNEXPECTED: handle_nullptr.ptr() != nullptr";
+        }
+        auto *pyobject_ptr_from_handle = py::cast<PyObject *>(handle_nullptr);
+        if (pyobject_ptr_from_handle != nullptr) {
+            return "UNEXPECTED: pyobject_ptr_from_handle != nullptr";
+        }
+        return "SUCCESS";
+    });
 }
