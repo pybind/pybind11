@@ -1321,6 +1321,15 @@ struct arg {
 /// Annotation for arguments with values
 struct arg_v : arg {
 private:
+    arg_v(arg &&base, object x, const char *descr = nullptr)
+        : arg(base), value(x), value_is_nullptr(x.ptr() == nullptr), descr(descr)
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+          ,
+          type(x.ptr() ? detail::obj_class_name(x.ptr()) : "std::nullptr_t")
+#endif
+    {
+    }
+
     template <typename T>
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
         : arg(base), value(reinterpret_steal<object>(detail::make_caster<T>::cast(
@@ -1364,6 +1373,7 @@ public:
 
     /// The default value
     object value;
+    bool value_is_nullptr = false;
     /// The (optional) description of the default value
     const char *descr;
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)

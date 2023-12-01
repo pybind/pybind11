@@ -491,7 +491,7 @@ struct process_attribute<arg_v> : process_attribute_default<arg_v> {
                 "self", /*descr=*/nullptr, /*parent=*/handle(), /*convert=*/true, /*none=*/false);
         }
 
-        if (!a.value) {
+        if (!a.value && !a.value_is_nullptr) {
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             std::string descr("'");
             if (a.name) {

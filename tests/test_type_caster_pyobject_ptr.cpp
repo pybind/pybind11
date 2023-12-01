@@ -139,4 +139,14 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         }
         return "SUCCESS";
     });
+
+    m.def(
+        "py_arg_handle_nullptr",
+        [](PyObject *ptr) {
+            if (ptr == nullptr) {
+                return "ptr == nullptr";
+            }
+            return py::detail::obj_class_name(ptr);
+        },
+        py::arg("ptr") = py::object());
 }
