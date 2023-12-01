@@ -1122,6 +1122,8 @@ jobs:
       - name: Show Clang++ version before brew install llvm
         run: clang++ --version
 
+      - run: brew update
+
       - name: brew install llvm
         run: brew install llvm
 
