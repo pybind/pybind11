@@ -11,6 +11,12 @@ endif()
 
 project(test_subdirectory_target CXX)
 
+# Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
+# (makes transition easier while we support both modes).
+if(DEFINED PYTHON_EXECUTABLE AND NOT DEFINED Python_EXECUTABLE)
+  set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
+endif()
+
 add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 
 add_library(test_subdirectory_target MODULE ../main.cpp)

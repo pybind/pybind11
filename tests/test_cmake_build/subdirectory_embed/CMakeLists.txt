@@ -16,6 +16,12 @@ set(PYBIND11_INSTALL
     CACHE BOOL "")
 set(PYBIND11_EXPORT_NAME test_export)
 
+# Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
+# (makes transition easier while we support both modes).
+if(DEFINED PYTHON_EXECUTABLE AND NOT DEFINED Python_EXECUTABLE)
+  set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
+endif()
+
 add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 
 # Test basic target functionality
