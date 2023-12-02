@@ -1317,15 +1317,17 @@ struct arg {
     bool flag_none : 1;      ///< If set (the default), allow None to be passed to this argument
 };
 
+struct nullptr_default_arg {};
+
 /// \ingroup annotations
 /// Annotation for arguments with values
 struct arg_v : arg {
 private:
-    arg_v(arg &&base, object x, const char *descr = nullptr)
-        : arg(base), value(x), value_is_nullptr(x.ptr() == nullptr), descr(descr)
+    arg_v(arg &&base, nullptr_default_arg, const char *descr = nullptr)
+        : arg(base), value(), value_is_nullptr(true), descr(descr)
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
           ,
-          type(x.ptr() ? detail::obj_class_name(x.ptr()) : "std::nullptr_t")
+          type("pybind11::nullptr_default_arg")
 #endif
     {
     }
