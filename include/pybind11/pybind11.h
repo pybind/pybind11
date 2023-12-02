@@ -905,7 +905,7 @@ protected:
                             break;
                         }
 
-                        if (value || (arg_rec.convert && arg_rec.none)) {
+                        if (value || arg_rec.value_is_nullptr) {
                             // If we're at the py::args index then first insert a stub for it to be
                             // replaced later
                             if (func.has_args && call.args.size() == func.nargs_pos) {
