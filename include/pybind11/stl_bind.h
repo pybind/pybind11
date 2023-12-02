@@ -525,7 +525,7 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
         [](const Vector &v) -> bool { return !v.empty(); },
         "Check whether the list is nonempty");
 
-    cl.def("__len__", &Vector::size);
+    cl.def("__len__", [](const Vector &vec) { return vec.size(); });
 
 #if 0
     // C++ style functions deprecated, leaving it here as an example
@@ -843,7 +843,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         m.erase(it);
     });
 
-    cl.def("__len__", &Map::size);
+    // Always use a lambda in case of `using` declaration
+    cl.def("__len__", [](const Map &m) { return m.size(); });
 
     return cl;
 }
