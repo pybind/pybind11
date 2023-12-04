@@ -25,14 +25,14 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v17.0.4"
+  rev: "v17.0.6"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.1.4
+  rev: v0.1.6
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -40,7 +40,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.6.1"
+  rev: "v1.7.1"
   hooks:
   - id: mypy
     args: []
@@ -93,7 +93,7 @@ repos:
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.6.2"
+  rev: "0.6.3"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
