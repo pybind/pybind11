@@ -107,6 +107,7 @@ There are three small differences compared to Classic pybind11:
   ``#include <pybind11/pybind11.h>``.
 
 - The ``PYBIND11_SMART_HOLDER_TYPE_CASTERS(Foo)`` macro is needed.
+  — NOTE: This macro needs to be in the global namespace.
 
 - ``py::classh`` is used instead of ``py::class_``.
 
