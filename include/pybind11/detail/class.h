@@ -86,16 +86,15 @@ inline PyTypeObject *make_static_property_type() {
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
 
-    if (PyType_Ready(type) < 0) {
-        pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
-    }
-
 #    if PY_VERSION_HEX >= 0x030C0000
-    // PRE 3.12 FEATURE FREEZE. PLEASE REVIEW AFTER FREEZE.
     // Since Python-3.12 property-derived types are required to
     // have dynamic attributes (to set `__doc__`)
     enable_dynamic_attributes(heap_type);
 #    endif
+
+    if (PyType_Ready(type) < 0) {
+        pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
+    }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
