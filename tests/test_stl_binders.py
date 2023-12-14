@@ -314,22 +314,29 @@ def test_map_delitem():
 def test_map_view_types():
     map_string_double = m.MapStringDouble()
     unordered_map_string_double = m.UnorderedMapStringDouble()
+    map_string_float = m.MapStringFloat()
+    unordered_map_string_float = m.UnorderedMapStringFloat()
     map_string_double_const = m.MapStringDoubleConst()
     unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
 
-    assert map_string_double.keys().__class__.__name__ == "KeysView[str]"
-    assert map_string_double.values().__class__.__name__ == "ValuesView[float]"
-    assert map_string_double.items().__class__.__name__ == "ItemsView[str, float]"
+    assert map_string_double.values().__class__.__name__ == "ValuesView[double]"
+    assert map_string_float.values().__class__.__name__ == "ValuesView[float]"
 
     keys_type = type(map_string_double.keys())
     assert type(unordered_map_string_double.keys()) is keys_type
+    assert type(map_string_float.keys()) is keys_type
+    assert type(unordered_map_string_float.keys()) is keys_type
     assert type(map_string_double_const.keys()) is keys_type
     assert type(unordered_map_string_double_const.keys()) is keys_type
 
-    values_type = type(map_string_double.values())
-    assert type(unordered_map_string_double.values()) is values_type
-    assert type(map_string_double_const.values()) is values_type
-    assert type(unordered_map_string_double_const.values()) is values_type
+    values_type_double = type(map_string_double.values())
+    assert type(unordered_map_string_double.values()) is values_type_double
+    assert type(map_string_double_const.values()) is values_type_double
+    assert type(unordered_map_string_double_const.values()) is values_type_double
+
+    values_type_float = type(map_string_float.values())
+    assert values_type_float is not values_type_double
+    assert type(unordered_map_string_float.values()) is values_type_float
 
     items_type = type(map_string_double.items())
     assert type(unordered_map_string_double.items()) is items_type

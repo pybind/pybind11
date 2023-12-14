@@ -187,6 +187,10 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
     py::bind_map<std::unordered_map<std::string, double>>(m, "UnorderedMapStringDouble");
 
+    // test_map_string_float
+    py::bind_map<std::map<std::string, float>>(m, "MapStringFloat");
+    py::bind_map<std::unordered_map<std::string, float>>(m, "UnorderedMapStringFloat");
+
     // test_map_string_double_const
     py::bind_map<std::map<std::string, double const>>(m, "MapStringDoubleConst");
     py::bind_map<std::unordered_map<std::string, double const>>(m,

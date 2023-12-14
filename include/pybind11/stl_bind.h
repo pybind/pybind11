@@ -718,18 +718,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     }
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
-    static constexpr auto key_type_descr = detail::make_caster<KeyType>::name;
-    static constexpr auto mapped_type_descr = detail::make_caster<MappedType>::name;
-    std::string key_type_name(key_type_descr.text), mapped_type_name(mapped_type_descr.text);
-
-    // If key type isn't properly wrapped, fall back to C++ names
-    if (key_type_name == "%") {
-        key_type_name = detail::type_info_description(typeid(KeyType));
-    }
-    // Similarly for value type:
-    if (mapped_type_name == "%") {
-        mapped_type_name = detail::type_info_description(typeid(MappedType));
-    }
+    std::string key_type_name(detail::type_info_description(typeid(KeyType)));
+    std::string mapped_type_name(detail::type_info_description(typeid(MappedType)));
 
     // Wrap KeysView[KeyType] if it wasn't already wrapped
     if (!detail::get_type_info(typeid(KeysView))) {
