@@ -20,7 +20,7 @@ def is_disowned(callable_method):
     try:
         callable_method()
     except ValueError as e:
-        assert "Python instance was disowned" in str(e)
+        assert "Python instance was disowned" in str(e)  # noqa: PT017
         return True
     return False
 

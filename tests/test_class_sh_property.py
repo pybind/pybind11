@@ -87,7 +87,7 @@ def test_uqp(m_attr_readwrite):
     field_orig = m.Field()
     field_orig.num = 39
     setattr(outer, m_attr_readwrite, field_orig)
-    with pytest.raises(ValueError, match="Python instance was disowned") as excinfo:
+    with pytest.raises(ValueError, match="Python instance was disowned"):
         _ = field_orig.num
     field_retr1 = getattr(outer, m_attr_readwrite)
     assert getattr(outer, m_attr_readwrite) is None

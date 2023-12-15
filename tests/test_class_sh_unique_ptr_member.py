@@ -16,7 +16,7 @@ def test_pointee_and_ptr_owner(give_up_ownership_via):
     obj = m.pointee()
     assert obj.get_int() == 213
     owner = m.ptr_owner(obj)
-    with pytest.raises(ValueError, match="Python instance was disowned") as exc_info:
+    with pytest.raises(ValueError, match="Python instance was disowned"):
         obj.get_int()
     assert owner.is_owner()
     reclaimed = getattr(owner, give_up_ownership_via)()
