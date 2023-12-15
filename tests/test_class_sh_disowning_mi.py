@@ -20,10 +20,7 @@ def is_disowned(callable_method):
     try:
         callable_method()
     except ValueError as e:
-        assert (  # noqa: PT017
-            str(e)
-            == "Missing value for wrapped C++ type: Python instance was disowned."
-        )
+        assert "Python instance was disowned" in str(e)
         return True
     return False
 

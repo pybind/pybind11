@@ -9,7 +9,7 @@ from pybind11_tests import class_sh_property as m
 
 @pytest.mark.xfail("env.PYPY", reason="gc after `del field` is apparently deferred")
 @pytest.mark.parametrize("m_attr", ["m_valu_readonly", "m_valu_readwrite"])
-def test_valu_getter(msg, m_attr):
+def test_valu_getter(m_attr):
     # Reduced from PyCLIF test:
     # https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/testing/python/nested_fields_test.py#L56
     outer = m.Outer()
@@ -17,15 +17,11 @@ def test_valu_getter(msg, m_attr):
     assert field.num == -99
     with pytest.raises(ValueError) as excinfo:
         m.DisownOuter(outer)
-    assert msg(excinfo.value) == "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
+    assert str(excinfo.value) == "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
     del field
     m.DisownOuter(outer)
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match="Python instance was disowned") as excinfo:
         getattr(outer, m_attr)
-    assert (
-        msg(excinfo.value)
-        == "Missing value for wrapped C++ type: Python instance was disowned."
-    )
 
 
 def test_valu_setter():
@@ -85,18 +81,14 @@ def test_ptr(field_type, num_default, outer_type, m_attr, r_kind):
 
 
 @pytest.mark.parametrize("m_attr_readwrite", ["m_uqmp_readwrite", "m_uqcp_readwrite"])
-def test_uqp(m_attr_readwrite, msg):
+def test_uqp(m_attr_readwrite):
     outer = m.Outer()
     assert getattr(outer, m_attr_readwrite) is None
     field_orig = m.Field()
     field_orig.num = 39
     setattr(outer, m_attr_readwrite, field_orig)
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match="Python instance was disowned") as excinfo:
         _ = field_orig.num
-    assert (
-        msg(excinfo.value)
-        == "Missing value for wrapped C++ type: Python instance was disowned."
-    )
     field_retr1 = getattr(outer, m_attr_readwrite)
     assert getattr(outer, m_attr_readwrite) is None
     assert field_retr1.num == 39

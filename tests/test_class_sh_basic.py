@@ -109,7 +109,9 @@ def test_pass_unique_ptr_disowns(pass_f, rtrn_f, expected):
     with pytest.raises(ValueError) as exc_info:
         pass_f(obj)
     assert str(exc_info.value) == (
-        "Missing value for wrapped C++ type: Python instance was disowned."
+        "Missing value for wrapped C++ type"
+        + " `pybind11_tests::class_sh_basic::atyp`:"
+        + " Python instance was disowned."
     )
 
 
