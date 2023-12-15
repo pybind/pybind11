@@ -54,7 +54,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
   if(NOT is_config
-     AND NOT Python_ARTIFACTS_INTERACTIVE
+     AND Python_ARTIFACTS_INTERACTIVE
      AND _pybind11_global_keyword STREQUAL "")
     if(TARGET Python::Python)
       set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
