@@ -505,7 +505,7 @@ struct smart_holder_type_caster_load {
         }
         if (void_ptr == nullptr) {
             if (have_holder()) {
-                throw_if_uninitialized_or_disowned_holder();
+                throw_if_uninitialized_or_disowned_holder(typeid(T));
                 void_ptr = holder().template as_raw_ptr_unowned<void>();
             } else if (load_impl.loaded_v_h.vh != nullptr) {
                 void_ptr = load_impl.loaded_v_h.value_ptr();
@@ -548,7 +548,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder()) {
             return nullptr;
         }
-        throw_if_uninitialized_or_disowned_holder();
+        throw_if_uninitialized_or_disowned_holder(typeid(T));
         holder_type &hld = holder();
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
@@ -612,7 +612,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
-        throw_if_uninitialized_or_disowned_holder();
+        throw_if_uninitialized_or_disowned_holder(typeid(T));
         throw_if_instance_is_currently_owned_by_shared_ptr();
         holder().ensure_is_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
@@ -694,15 +694,20 @@ private:
     holder_type &holder() const { return load_impl.loaded_v_h.holder<holder_type>(); }
 
     // have_holder() must be true or this function will fail.
-    void throw_if_uninitialized_or_disowned_holder() const {
+    void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
+        static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
         if (!holder().is_populated) {
-            pybind11_fail("Missing value for wrapped C++ type:"
-                          " Python instance is uninitialized.");
+            throw value_error(missing_value_msg + clean_type_id(typeid_name)
+                              + "`: Python instance is uninitialized.");
         }
         if (!holder().has_pointee()) {
-            throw value_error("Missing value for wrapped C++ type:"
-                              " Python instance was disowned.");
+            throw value_error(missing_value_msg + clean_type_id(typeid_name)
+                              + "`: Python instance was disowned.");
         }
+    }
+
+    void throw_if_uninitialized_or_disowned_holder(const std::type_info &type_info) const {
+        throw_if_uninitialized_or_disowned_holder(type_info.name());
     }
 
     // have_holder() must be true or this function will fail.
