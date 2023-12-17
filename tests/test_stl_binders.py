@@ -329,15 +329,15 @@ def test_map_view_types():
     assert map_int_float.values().__class__.__name__ == "ValuesView[float]"
     assert map_int_float.items().__class__.__name__ == "ItemsView[int, float]"
 
-    assert map_int64_double.keys().__class__.__name__ == "KeysView[long]"
+    assert map_int64_double.keys().__class__.__name__ in ["KeysView[long]", "KeysView[long long]", "KeysView[__int64]"]
     assert map_int64_double.values().__class__.__name__ == "ValuesView[double]"
-    assert map_int64_double.items().__class__.__name__ == "ItemsView[long, double]"
+    assert map_int64_double.items().__class__.__name__ in ["ItemsView[long, double]", "ItemsView[long long, double]", "ItemsView[__int64, double]"]
 
-    assert map_uint64_double.keys().__class__.__name__ == "KeysView[unsigned long]"
+    assert map_uint64_double.keys().__class__.__name__ in ["KeysView[unsigned long]", "KeysView[unsigned long long]", "KeysView[unsigned __int64]"]
     assert map_uint64_double.values().__class__.__name__ == "ValuesView[double]"
     assert (
         map_uint64_double.items().__class__.__name__
-        == "ItemsView[unsigned long, double]"
+        in ["ItemsView[unsigned long, double]", "ItemsView[unsigned long long, double]", "ItemsView[unsigned __int64, double]"]
     )
 
     keys_type = type(map_int_double.keys())
