@@ -424,4 +424,4 @@ def test_fn_cast_int_exception():
 def test_return_exception_void():
     with pytest.raises(TypeError) as excinfo:
         m.return_exception_void()
-    assert "`exception<void>`" in str(excinfo.value)
+    assert "Exception" in str(excinfo.value)
