@@ -335,7 +335,10 @@ def test_map_view_types():
 
     assert map_uint64_double.keys().__class__.__name__ == "KeysView[unsigned long]"
     assert map_uint64_double.values().__class__.__name__ == "ValuesView[double]"
-    assert map_uint64_double.items().__class__.__name__ == "ItemsView[unsigned long, double]"
+    assert (
+        map_uint64_double.items().__class__.__name__
+        == "ItemsView[unsigned long, double]"
+    )
 
     keys_type = type(map_int_double.keys())
     assert type(unordered_map_int_double.keys()) is keys_type
