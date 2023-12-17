@@ -187,14 +187,23 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
     py::bind_map<std::unordered_map<std::string, double>>(m, "UnorderedMapStringDouble");
 
-    // test_map_string_float
-    py::bind_map<std::map<std::string, float>>(m, "MapStringFloat");
-    py::bind_map<std::unordered_map<std::string, float>>(m, "UnorderedMapStringFloat");
-
     // test_map_string_double_const
     py::bind_map<std::map<std::string, double const>>(m, "MapStringDoubleConst");
     py::bind_map<std::unordered_map<std::string, double const>>(m,
                                                                 "UnorderedMapStringDoubleConst");
+
+    // test_map_view_types
+    py::bind_map<std::map<int, double>>(m, "MapIntDouble");
+    py::bind_map<std::unordered_map<int, double>>(m, "UnorderedMapIntDouble");
+
+    py::bind_map<std::map<int, double const>>(m, "MapIntDoubleConst");
+    py::bind_map<std::unordered_map<int, double const>>(m, "UnorderedMapIntDoubleConst");
+
+    py::bind_map<std::map<int, float>>(m, "MapIntFloat");
+    py::bind_map<std::unordered_map<int, float>>(m, "UnorderedMapIntFloat");
+
+    py::bind_map<std::map<int64_t, double>>(m, "MapInt64Double");
+    py::bind_map<std::map<uint64_t, double>>(m, "MapUInt64Double");
 
     py::class_<E_nc>(m, "ENC").def(py::init<int>()).def_readwrite("value", &E_nc::value);
 

@@ -312,36 +312,51 @@ def test_map_delitem():
 
 
 def test_map_view_types():
-    map_string_double = m.MapStringDouble()
-    unordered_map_string_double = m.UnorderedMapStringDouble()
-    map_string_float = m.MapStringFloat()
-    unordered_map_string_float = m.UnorderedMapStringFloat()
-    map_string_double_const = m.MapStringDoubleConst()
-    unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
+    map_int_double = m.MapIntDouble()
+    unordered_map_int_double = m.UnorderedMapIntDouble()
+    map_int_double_const = m.MapIntDoubleConst()
+    unordered_map_int_double_const = m.UnorderedMapIntDoubleConst()
+    map_int_float = m.MapIntFloat()
+    unordered_map_int_float = m.UnorderedMapIntFloat()
+    map_int64_double = m.MapInt64Double()
+    map_uint64_double = m.MapUInt64Double()
 
-    assert map_string_double.values().__class__.__name__ == "ValuesView[double]"
-    assert map_string_float.values().__class__.__name__ == "ValuesView[float]"
+    assert map_int_double.keys().__class__.__name__ == "KeysView[int]"
+    assert map_int_double.values().__class__.__name__ == "ValuesView[double]"
+    assert map_int_double.items().__class__.__name__ == "ItemsView[int, double]"
 
-    keys_type = type(map_string_double.keys())
-    assert type(unordered_map_string_double.keys()) is keys_type
-    assert type(map_string_float.keys()) is keys_type
-    assert type(unordered_map_string_float.keys()) is keys_type
-    assert type(map_string_double_const.keys()) is keys_type
-    assert type(unordered_map_string_double_const.keys()) is keys_type
+    assert map_int_float.keys().__class__.__name__ == "KeysView[int]"
+    assert map_int_float.values().__class__.__name__ == "ValuesView[float]"
+    assert map_int_float.items().__class__.__name__ == "ItemsView[int, float]"
 
-    values_type_double = type(map_string_double.values())
-    assert type(unordered_map_string_double.values()) is values_type_double
-    assert type(map_string_double_const.values()) is values_type_double
-    assert type(unordered_map_string_double_const.values()) is values_type_double
+    assert map_int64_double.keys().__class__.__name__ == "KeysView[long]"
+    assert map_int64_double.values().__class__.__name__ == "ValuesView[double]"
+    assert map_int64_double.items().__class__.__name__ == "ItemsView[long, double]"
 
-    values_type_float = type(map_string_float.values())
+    assert map_uint64_double.keys().__class__.__name__ == "KeysView[unsigned long]"
+    assert map_uint64_double.values().__class__.__name__ == "ValuesView[double]"
+    assert map_uint64_double.items().__class__.__name__ == "ItemsView[unsigned long, double]"
+
+    keys_type = type(map_int_double.keys())
+    assert type(unordered_map_int_double.keys()) is keys_type
+    assert type(map_int_float.keys()) is keys_type
+    assert type(unordered_map_int_float.keys()) is keys_type
+    assert type(map_int_double_const.keys()) is keys_type
+    assert type(unordered_map_int_double_const.keys()) is keys_type
+
+    values_type_double = type(map_int_double.values())
+    assert type(unordered_map_int_double.values()) is values_type_double
+    assert type(map_int_double_const.values()) is values_type_double
+    assert type(unordered_map_int_double_const.values()) is values_type_double
+
+    values_type_float = type(map_int_float.values())
     assert values_type_float is not values_type_double
-    assert type(unordered_map_string_float.values()) is values_type_float
+    assert type(unordered_map_int_float.values()) is values_type_float
 
-    items_type = type(map_string_double.items())
-    assert type(unordered_map_string_double.items()) is items_type
-    assert type(map_string_double_const.items()) is items_type
-    assert type(unordered_map_string_double_const.items()) is items_type
+    items_type = type(map_int_double.items())
+    assert type(unordered_map_int_double.items()) is items_type
+    assert type(map_int_double_const.items()) is items_type
+    assert type(unordered_map_int_double_const.items()) is items_type
 
 
 def test_recursive_vector():
