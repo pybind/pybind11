@@ -492,7 +492,7 @@ protected:
                     signature += rec->scope.attr("__module__").cast<std::string>() + "."
                                  + rec->scope.attr("__qualname__").cast<std::string>();
                 } else {
-                    signature += detail::annotated_any(detail::clean_type_id(t->name()));
+                    signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
             } else {
                 signature += c;

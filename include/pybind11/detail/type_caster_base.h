@@ -1201,8 +1201,8 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
-inline std::string annotated_any(const std::string &cpp_type) {
-    return "Annotated[Any, pybind11.CppType(\"" + cpp_type + "\")]";
+inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
+    return "`" + cpp_type_name + "`"; // See PR #4888
 }
 
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
@@ -1211,7 +1211,7 @@ PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
     }
-    return annotated_any(clean_type_id(ti.name()));
+    return quote_cpp_type_name(clean_type_id(ti.name()));
 }
 
 PYBIND11_NAMESPACE_END(detail)
