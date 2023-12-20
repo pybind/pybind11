@@ -317,9 +317,9 @@ def test_map_view_types():
     map_string_double_const = m.MapStringDoubleConst()
     unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
 
-    assert map_string_double.keys().__class__.__name__ == "KeysView[str]"
-    assert map_string_double.values().__class__.__name__ == "ValuesView[float]"
-    assert map_string_double.items().__class__.__name__ == "ItemsView[str, float]"
+    assert map_string_double.keys().__class__.__name__ == "KeysView"
+    assert map_string_double.values().__class__.__name__ == "ValuesView"
+    assert map_string_double.items().__class__.__name__ == "ItemsView"
 
     keys_type = type(map_string_double.keys())
     assert type(unordered_map_string_double.keys()) is keys_type
