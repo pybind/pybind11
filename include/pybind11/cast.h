@@ -876,6 +876,10 @@ struct handle_type_name {
     static constexpr auto name = const_name<T>();
 };
 template <>
+struct handle_type_name<object> {
+    static constexpr auto name = const_name("object");
+};
+template <>
 struct handle_type_name<bool_> {
     static constexpr auto name = const_name("bool");
 };
