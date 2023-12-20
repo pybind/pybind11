@@ -187,6 +187,35 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
     py::bind_map<std::unordered_map<std::string, double>>(m, "UnorderedMapStringDouble");
 
+    // test_map_view_types
+    py::bind_map<std::map<std::string, float>>(m, "MapStringFloat");
+    py::bind_map<std::unordered_map<std::string, float>>(m, "UnorderedMapStringFloat");
+    py::bind_map<std::map<int16_t, double>>(m, "MapInt16Double");
+    py::bind_map<std::map<int32_t, double>>(m, "MapInt32Double");
+    py::bind_map<std::map<int64_t, double>>(m, "MapInt64Double");
+    py::bind_map<std::map<uint64_t, double>>(m, "MapUInt64Double");
+    py::bind_map<std::map<std::pair<short, short>, double>>(m, "MapPairShortShortDouble");
+    py::bind_map<std::map<std::pair<short, long>, std::complex<float>>>(
+        m, "MapPairShortLongComplexFloat");
+    py::bind_map<std::map<std::pair<long, short>, std::complex<double>>>(
+        m, "MapPairLongShortComplexDouble");
+    py::bind_map<std::map<std::tuple<long, long>, std::complex<double>>>(
+        m, "MapTupleLongLongComplexDouble");
+    py::bind_map<std::map<char, std::function<float(int, float)>>>(m,
+                                                                   "MapCharFunctionFloatIntFloat");
+    py::bind_map<std::map<std::string, std::function<double(long, double)>>>(
+        m, "MapStringFunctionDoubleLongDouble");
+    py::bind_map<std::map<std::string, std::function<void(long, double)>>>(
+        m, "MapStringFunctionVoidLongDouble");
+    py::bind_map<std::map<std::string, std::nullptr_t>>(m, "MapStringNone");
+
+    py::bind_map<std::map<int, std::pair<std::map<int, int>, int>>>(m, "MapIntMapIntIntInt");
+    py::bind_map<std::map<int, std::pair<std::map<int, int>, long>>>(m, "MapIntMapIntIntLong");
+    py::bind_map<std::map<int, std::pair<std::map<long, int>, long>>>(m, "MapIntMapLongIntLong");
+
+    py::bind_map<std::map<pybind11::int_, int>>(m, "MapPyIntInt");
+    py::bind_map<std::map<pybind11::int_, pybind11::int_>>(m, "MapPyIntPyInt");
+
     // test_map_string_double_const
     py::bind_map<std::map<std::string, double const>>(m, "MapStringDoubleConst");
     py::bind_map<std::unordered_map<std::string, double const>>(m,

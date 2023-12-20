@@ -314,6 +314,8 @@ def test_map_delitem():
 def test_map_view_types():
     map_string_double = m.MapStringDouble()
     unordered_map_string_double = m.UnorderedMapStringDouble()
+    map_string_float = m.MapStringFloat()
+    unordered_map_string_float = m.UnorderedMapStringFloat()
     map_string_double_const = m.MapStringDoubleConst()
     unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
 
@@ -321,20 +323,123 @@ def test_map_view_types():
     assert map_string_double.values().__class__.__name__ == "ValuesView[float]"
     assert map_string_double.items().__class__.__name__ == "ItemsView[str, float]"
 
-    keys_type = type(map_string_double.keys())
-    assert type(unordered_map_string_double.keys()) is keys_type
-    assert type(map_string_double_const.keys()) is keys_type
-    assert type(unordered_map_string_double_const.keys()) is keys_type
+    assert map_string_float.keys().__class__.__name__ == "KeysView[str]"
+    assert map_string_float.values().__class__.__name__ == "ValuesView[float]"
+    assert map_string_float.items().__class__.__name__ == "ItemsView[str, float]"
 
-    values_type = type(map_string_double.values())
-    assert type(unordered_map_string_double.values()) is values_type
-    assert type(map_string_double_const.values()) is values_type
-    assert type(unordered_map_string_double_const.values()) is values_type
+    keys_type = map_string_double.keys().__class__
+    assert unordered_map_string_double.keys().__class__ is keys_type
+    assert map_string_double_const.keys().__class__ is keys_type
+    assert unordered_map_string_double_const.keys().__class__ is keys_type
+    assert map_string_float.keys().__class__ is keys_type
+    assert unordered_map_string_float.keys().__class__ is keys_type
 
-    items_type = type(map_string_double.items())
-    assert type(unordered_map_string_double.items()) is items_type
-    assert type(map_string_double_const.items()) is items_type
-    assert type(unordered_map_string_double_const.items()) is items_type
+    values_type = map_string_double.values().__class__
+    assert unordered_map_string_double.values().__class__ is values_type
+    assert map_string_double_const.values().__class__ is values_type
+    assert unordered_map_string_double_const.values().__class__ is values_type
+    assert map_string_float.values().__class__ is values_type
+    assert unordered_map_string_float.values().__class__ is values_type
+
+    items_type = map_string_double.items().__class__
+    assert unordered_map_string_double.items().__class__ is items_type
+    assert map_string_double_const.items().__class__ is items_type
+    assert unordered_map_string_double_const.items().__class__ is items_type
+    assert map_string_float.items().__class__ is items_type
+    assert unordered_map_string_float.items().__class__ is items_type
+
+    map_int16_double = m.MapInt16Double()
+    map_int32_double = m.MapInt32Double()
+    map_int64_double = m.MapInt64Double()
+    map_uint64_double = m.MapUInt64Double()
+
+    assert map_int16_double.keys().__class__.__name__ == "KeysView[int]"
+    assert map_int16_double.keys().__class__ is map_int32_double.keys().__class__
+    assert map_int16_double.keys().__class__ is map_int64_double.keys().__class__
+    assert map_int16_double.keys().__class__ is map_uint64_double.keys().__class__
+
+    assert (1 << 50) not in map_uint64_double.keys()
+    map_uint64_double[1 << 50] = 1.0
+    assert (1 << 50) in map_uint64_double.keys()
+
+    map_pair_short_short_double = m.MapPairShortShortDouble()
+    map_pair_short_long_complex_float = m.MapPairShortLongComplexFloat()
+    map_pair_long_short_complex_double = m.MapPairLongShortComplexDouble()
+    map_tuple_long_long_complex_double = m.MapTupleLongLongComplexDouble()
+    assert (
+        map_pair_short_long_complex_float.keys().__class__.__name__
+        == "KeysView[tuple[int, int]]"
+    )
+    assert (
+        map_pair_short_long_complex_float.values().__class__.__name__
+        == "ValuesView[complex]"
+    )
+    assert (
+        map_pair_short_long_complex_float.items().__class__.__name__
+        == "ItemsView[tuple[int, int], complex]"
+    )
+    assert (
+        map_pair_short_long_complex_float.keys().__class__
+        is map_pair_short_short_double.keys().__class__
+    )
+    assert (
+        map_pair_short_long_complex_float.keys().__class__
+        is map_pair_long_short_complex_double.keys().__class__
+    )
+    assert (
+        map_pair_short_long_complex_float.keys().__class__
+        is map_tuple_long_long_complex_double.keys().__class__
+    )
+    assert (
+        map_pair_short_long_complex_float.values().__class__
+        is map_pair_long_short_complex_double.values().__class__
+    )
+    assert (
+        map_pair_short_long_complex_float.values().__class__
+        is map_tuple_long_long_complex_double.values().__class__
+    )
+
+    map_char_func_fif = m.MapCharFunctionFloatIntFloat()
+    map_string_func_dld = m.MapStringFunctionDoubleLongDouble()
+    assert map_char_func_fif.keys().__class__.__name__ == "KeysView[str]"
+    assert (
+        map_char_func_fif.values().__class__.__name__
+        == "ValuesView[Callable[[int, float], float]]"
+    )
+    assert (
+        map_char_func_fif.items().__class__.__name__
+        == "ItemsView[str, Callable[[int, float], float]]"
+    )
+    assert map_char_func_fif.keys().__class__ is map_string_func_dld.keys().__class__
+    assert (
+        map_char_func_fif.values().__class__ is map_string_func_dld.values().__class__
+    )
+    assert map_char_func_fif.items().__class__ is map_string_func_dld.items().__class__
+
+    map_string_func_vld = m.MapStringFunctionVoidLongDouble()
+    map_string_none = m.MapStringNone()
+    assert (
+        map_string_func_vld.values().__class__.__name__
+        == "ValuesView[Callable[[int, float], None]]"
+    )
+    assert map_string_none.values().__class__.__name__ == "ValuesView[None]"
+
+    map_int_map_int_int_int = m.MapIntMapIntIntInt()
+    map_int_map_int_int_long = m.MapIntMapIntIntLong()
+    map_int_map_long_int_long = m.MapIntMapLongIntLong()
+    assert (
+        map_int_map_int_int_int.values().__class__
+        is map_int_map_int_int_long.values().__class__
+    )
+    assert (
+        map_int_map_int_int_long.values().__class__
+        is not map_int_map_long_int_long.values().__class__
+    )
+
+    map_pyint_int = m.MapPyIntInt()
+    map_pyint_pyint = m.MapPyIntPyInt()
+    assert map_pyint_int.items().__class__.__name__ == "ItemsView[int, int]"
+    assert map_pyint_int.items().__class__ is map_pyint_pyint.items().__class__
 
 
 def test_recursive_vector():

@@ -12,6 +12,8 @@
 #include "detail/common.h"
 #include "detail/type_caster_base.h"
 #include "cast.h"
+#include "complex.h"
+#include "functional.h"
 #include "operators.h"
 
 #include <algorithm>
@@ -483,6 +485,138 @@ void vector_buffer(Class_ &cl) {
         cl, detail::any_of<std::is_same<Args, buffer_protocol>...>{});
 }
 
+// Issue #3986 and #4529: map C++ types to Python types with typing strings
+template <typename T, typename SFINAE = void>
+struct type_mapper {
+    using py_type = T;
+    static std::string py_name() { return detail::type_info_description(typeid(T)); }
+};
+
+template <>
+struct type_mapper<std::nullptr_t> {
+    using py_type = pybind11::none;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<std::nullptr_t>::name;
+        return descr.text;
+    }
+};
+
+template <>
+struct type_mapper<bool> {
+    using py_type = pybind11::bool_;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<bool>::name;
+        return descr.text;
+    }
+};
+
+template <typename T>
+struct type_mapper<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
+    using py_type
+        = conditional_t<std::is_floating_point<T>::value, pybind11::float_, pybind11::int_>;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<T>::name;
+        return descr.text;
+    }
+};
+
+template <typename T>
+struct type_mapper<std::complex<T>> {
+    using py_type = std::complex<typename type_mapper<T>::py_type>;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<std::complex<T>>::name;
+        return descr.text;
+    }
+};
+
+template <typename T>
+struct type_mapper<T, enable_if_t<is_std_char_type<T>::value>> {
+    using py_type = pybind11::str;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<T>::name;
+        return descr.text;
+    }
+};
+
+template <typename T>
+struct type_mapper<T, enable_if_t<is_pyobject<T>::value>> {
+    using py_type = T;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<T>::name;
+        return descr.text;
+    }
+};
+
+template <typename T>
+struct type_mapper<std::shared_ptr<T>> : public type_mapper<T> {};
+
+template <typename T, typename Deleter>
+struct type_mapper<std::unique_ptr<T, Deleter>> : public type_mapper<T> {};
+
+template <typename CharT, typename Traits, typename Allocator>
+struct type_mapper<std::basic_string<CharT, Traits, Allocator>,
+                   enable_if_t<is_std_char_type<CharT>::value>> {
+    using py_type = pybind11::str;
+    static std::string py_name() {
+        constexpr auto descr
+            = detail::make_caster<std::basic_string<CharT, Traits, Allocator>>::name;
+        return descr.text;
+    }
+};
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+template <typename CharT, typename Traits>
+struct type_mapper<std::basic_string_view<CharT, Traits>,
+                   enable_if_t<is_std_char_type<CharT>::value>> {
+    using py_type = pybind11::str;
+    static std::string py_name() {
+        constexpr auto descr = detail::make_caster<std::basic_string_view<CharT, Traits>>::name;
+        return descr.text;
+    }
+};
+#endif
+
+template <typename T1, typename T2>
+struct type_mapper<std::pair<T1, T2>> {
+    using py_type
+        = std::tuple<typename type_mapper<T1>::py_type, typename type_mapper<T1>::py_type>;
+    static std::string py_name() {
+        return "tuple[" + type_mapper<T1>::py_name() + ", " + type_mapper<T2>::py_name() + "]";
+    }
+};
+
+template <typename... Ts>
+struct type_mapper<std::tuple<Ts...>> {
+    using py_type = std::tuple<typename type_mapper<Ts>::py_type...>;
+    static std::string py_name() {
+        std::vector<std::string> names = {type_mapper<Ts>::py_name()...};
+        std::ostringstream s;
+        s << "tuple[";
+        for (size_t i = 0; i < names.size(); ++i) {
+            s << (i != 0 ? ", " : "") << names[i];
+        }
+        s << "]";
+        return s.str();
+    }
+};
+
+template <typename Return, typename... Args>
+struct type_mapper<std::function<Return(Args...)>> {
+    using retval_type = conditional_t<std::is_same<Return, void>::value, std::nullptr_t, Return>;
+    using py_type = std::function<typename type_mapper<retval_type>::py_type(
+        typename type_mapper<Args>::py_type...)>;
+    static std::string py_name() {
+        std::vector<std::string> names = {type_mapper<Args>::py_name()...};
+        std::ostringstream s;
+        s << "Callable[[";
+        for (size_t i = 0; i < names.size(); ++i) {
+            s << (i != 0 ? ", " : "") << names[i];
+        }
+        s << "], " << type_mapper<retval_type>::py_name() << "]";
+        return s.str();
+    }
+};
+
 PYBIND11_NAMESPACE_END(detail)
 
 //
@@ -649,8 +783,7 @@ template <typename KeyType>
 struct keys_view {
     virtual size_t len() = 0;
     virtual iterator iter() = 0;
-    virtual bool contains(const KeyType &k) = 0;
-    virtual bool contains(const object &k) = 0;
+    virtual bool contains(const handle &k) = 0;
     virtual ~keys_view() = default;
 };
 
@@ -673,8 +806,10 @@ struct KeysViewImpl : public KeysView {
     explicit KeysViewImpl(Map &map) : map(map) {}
     size_t len() override { return map.size(); }
     iterator iter() override { return make_key_iterator(map.begin(), map.end()); }
-    bool contains(const typename Map::key_type &k) override { return map.find(k) != map.end(); }
-    bool contains(const object &) override { return false; }
+    bool contains(const handle &k) override {
+        return detail::make_caster<typename Map::key_type>().load(k, true)
+               && map.find(k.template cast<typename Map::key_type>()) != map.end();
+    }
     Map &map;
 };
 
@@ -702,9 +837,11 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     using MappedType = typename Map::mapped_type;
     using StrippedKeyType = detail::remove_cvref_t<KeyType>;
     using StrippedMappedType = detail::remove_cvref_t<MappedType>;
-    using KeysView = detail::keys_view<StrippedKeyType>;
-    using ValuesView = detail::values_view<StrippedMappedType>;
-    using ItemsView = detail::items_view<StrippedKeyType, StrippedMappedType>;
+    using PyKeyType = typename detail::type_mapper<StrippedKeyType>::py_type;
+    using PyMappedType = typename detail::type_mapper<StrippedMappedType>::py_type;
+    using KeysView = detail::keys_view<PyKeyType>;
+    using ValuesView = detail::values_view<PyMappedType>;
+    using ItemsView = detail::items_view<PyKeyType, PyMappedType>;
     using Class_ = class_<Map, holder_type>;
 
     // If either type is a non-module-local bound type then make the map binding non-local as well;
@@ -718,20 +855,10 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     }
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
-    static constexpr auto key_type_descr = detail::make_caster<KeyType>::name;
-    static constexpr auto mapped_type_descr = detail::make_caster<MappedType>::name;
-    std::string key_type_name(key_type_descr.text), mapped_type_name(mapped_type_descr.text);
+    std::string key_type_name = detail::type_mapper<StrippedKeyType>::py_name();
+    std::string mapped_type_name = detail::type_mapper<StrippedMappedType>::py_name();
 
-    // If key type isn't properly wrapped, fall back to C++ names
-    if (key_type_name == "%") {
-        key_type_name = detail::type_info_description(typeid(KeyType));
-    }
-    // Similarly for value type:
-    if (mapped_type_name == "%") {
-        mapped_type_name = detail::type_info_description(typeid(MappedType));
-    }
-
-    // Wrap KeysView[KeyType] if it wasn't already wrapped
+    // Wrap KeysView[PyKeyType] if it wasn't already wrapped
     if (!detail::get_type_info(typeid(KeysView))) {
         class_<KeysView> keys_view(
             scope, ("KeysView[" + key_type_name + "]").c_str(), pybind11::module_local(local));
@@ -741,10 +868,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
                       keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
         );
         keys_view.def("__contains__",
-                      static_cast<bool (KeysView::*)(const KeyType &)>(&KeysView::contains));
-        // Fallback for when the object is not of the key type
-        keys_view.def("__contains__",
-                      static_cast<bool (KeysView::*)(const object &)>(&KeysView::contains));
+                      static_cast<bool (KeysView::*)(const handle &)>(&KeysView::contains));
     }
     // Similarly for ValuesView:
     if (!detail::get_type_info(typeid(ValuesView))) {
