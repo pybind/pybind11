@@ -12,11 +12,11 @@
 #include "detail/common.h"
 #include "detail/type_caster_base.h"
 #include "cast.h"
-#include "complex.h"
-#include "functional.h"
 #include "operators.h"
 
 #include <algorithm>
+#include <complex>
+#include <functional>
 #include <sstream>
 #include <type_traits>
 
@@ -496,7 +496,7 @@ template <>
 struct type_mapper<std::nullptr_t> {
     using py_type = pybind11::none;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<std::nullptr_t>::name;
+        constexpr auto descr = const_name("None");
         return descr.text;
     }
 };
@@ -505,7 +505,7 @@ template <>
 struct type_mapper<bool> {
     using py_type = pybind11::bool_;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<bool>::name;
+        constexpr auto descr = const_name("bool");
         return descr.text;
     }
 };
@@ -515,7 +515,7 @@ struct type_mapper<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_t
     using py_type
         = conditional_t<std::is_floating_point<T>::value, pybind11::float_, pybind11::int_>;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<T>::name;
+        constexpr auto descr = const_name<std::is_integral<T>::value>("int", "float");
         return descr.text;
     }
 };
@@ -524,7 +524,7 @@ template <typename T>
 struct type_mapper<std::complex<T>> {
     using py_type = std::complex<typename type_mapper<T>::py_type>;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<std::complex<T>>::name;
+        constexpr auto descr = const_name("complex");
         return descr.text;
     }
 };
@@ -533,7 +533,7 @@ template <typename T>
 struct type_mapper<T, enable_if_t<is_std_char_type<T>::value>> {
     using py_type = pybind11::str;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<T>::name;
+        constexpr auto descr = const_name(PYBIND11_STRING_NAME);
         return descr.text;
     }
 };
@@ -542,7 +542,7 @@ template <typename T>
 struct type_mapper<T, enable_if_t<is_pyobject<T>::value>> {
     using py_type = T;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<T>::name;
+        constexpr auto descr = handle_type_name<T>::name;
         return descr.text;
     }
 };
@@ -558,8 +558,7 @@ struct type_mapper<std::basic_string<CharT, Traits, Allocator>,
                    enable_if_t<is_std_char_type<CharT>::value>> {
     using py_type = pybind11::str;
     static std::string py_name() {
-        constexpr auto descr
-            = detail::make_caster<std::basic_string<CharT, Traits, Allocator>>::name;
+        constexpr auto descr = const_name(PYBIND11_STRING_NAME);
         return descr.text;
     }
 };
@@ -570,7 +569,7 @@ struct type_mapper<std::basic_string_view<CharT, Traits>,
                    enable_if_t<is_std_char_type<CharT>::value>> {
     using py_type = pybind11::str;
     static std::string py_name() {
-        constexpr auto descr = detail::make_caster<std::basic_string_view<CharT, Traits>>::name;
+        constexpr auto descr = const_name(PYBIND11_STRING_NAME);
         return descr.text;
     }
 };
@@ -807,8 +806,11 @@ struct KeysViewImpl : public KeysView {
     size_t len() override { return map.size(); }
     iterator iter() override { return make_key_iterator(map.begin(), map.end()); }
     bool contains(const handle &k) override {
-        return detail::make_caster<typename Map::key_type>().load(k, true)
-               && map.find(k.template cast<typename Map::key_type>()) != map.end();
+        try {
+            return map.find(k.template cast<typename Map::key_type>()) != map.end();
+        } catch (const cast_error &) {
+            return false;
+        }
     }
     Map &map;
 };
