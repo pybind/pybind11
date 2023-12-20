@@ -149,7 +149,7 @@ set(PYBIND11_TEST_FILES
     test_sequences_and_iterators
     test_smart_ptr
     test_stl
-    test_stl_binders
+    test_stl_binders.py
     test_tagbased_polymorphic
     test_thread
     test_type_caster_pyobject_ptr
@@ -220,6 +220,7 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
+tests_extra_targets("test_stl_binders.py" "stl_binders")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
