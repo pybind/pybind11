@@ -336,6 +336,30 @@ def test_map_view_types():
     assert type(map_string_double_const.items()) is items_type
     assert type(unordered_map_string_double_const.items()) is items_type
 
+    map_string_float = m.MapStringFloat()
+    unordered_map_string_float = m.UnorderedMapStringFloat()
+
+    assert type(map_string_float.keys()) is keys_type
+    assert type(unordered_map_string_float.keys()) is keys_type
+    assert type(map_string_float.values()) is values_type
+    assert type(unordered_map_string_float.values()) is values_type
+    assert type(map_string_float.items()) is items_type
+    assert type(unordered_map_string_float.items()) is items_type
+
+    map_pair_double_int_int32 = m.MapPairDoubleIntInt32()
+    map_pair_double_int_int64 = m.MapPairDoubleIntInt64()
+
+    assert type(map_pair_double_int_int32.values()) is values_type
+    assert type(map_pair_double_int_int64.values()) is values_type
+
+    map_int_object = m.MapIntObject()
+    map_string_object = m.MapStringObject()
+
+    assert type(map_int_object.keys()) is keys_type
+    assert type(map_string_object.keys()) is keys_type
+    assert type(map_int_object.items()) is items_type
+    assert type(map_string_object.items()) is items_type
+
 
 def test_recursive_vector():
     recursive_vector = m.RecursiveVector()
