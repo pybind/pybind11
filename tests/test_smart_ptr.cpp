@@ -106,18 +106,20 @@ private:
 // test_unique_nodelete
 // Object with a private destructor
 class MyObject4;
-std::unordered_set<MyObject4 *> myobject4_instances;
+// Avoid non-pod-global-static (clazy).
+// See also: https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+auto myobject4_instances = new std::unordered_set<MyObject4 *>();
 class MyObject4 {
 public:
     explicit MyObject4(int value) : value{value} {
         print_created(this);
-        myobject4_instances.insert(this);
+        myobject4_instances->insert(this);
     }
     int value;
 
     static void cleanupAllInstances() {
-        auto tmp = std::move(myobject4_instances);
-        myobject4_instances.clear();
+        auto tmp = std::move(*myobject4_instances);
+        myobject4_instances->clear();
         for (auto *o : tmp) {
             delete o;
         }
@@ -125,7 +127,7 @@ public:
 
 private:
     ~MyObject4() {
-        myobject4_instances.erase(this);
+        myobject4_instances->erase(this);
         print_destroyed(this);
     }
 };
@@ -134,18 +136,18 @@ private:
 // Object with std::unique_ptr<T, D> where D is not matching the base class
 // Object with a protected destructor
 class MyObject4a;
-std::unordered_set<MyObject4a *> myobject4a_instances;
+auto myobject4a_instances = new std::unordered_set<MyObject4a *>();
 class MyObject4a {
 public:
     explicit MyObject4a(int i) : value{i} {
         print_created(this);
-        myobject4a_instances.insert(this);
+        myobject4a_instances->insert(this);
     };
     int value;
 
     static void cleanupAllInstances() {
-        auto tmp = std::move(myobject4a_instances);
-        myobject4a_instances.clear();
+        auto tmp = std::move(*myobject4a_instances);
+        myobject4a_instances->clear();
         for (auto *o : tmp) {
             delete o;
         }
@@ -153,7 +155,7 @@ public:
 
 protected:
     virtual ~MyObject4a() {
-        myobject4a_instances.erase(this);
+        myobject4a_instances->erase(this);
         print_destroyed(this);
     }
 };
