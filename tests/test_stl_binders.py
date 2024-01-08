@@ -1,6 +1,5 @@
 import pytest
-
-from pybind11_tests import stl_binders as m
+import stl_binders as m
 
 
 def test_vector_int():

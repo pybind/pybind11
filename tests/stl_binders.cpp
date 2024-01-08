@@ -10,12 +10,12 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 
-#include "pybind11_tests.h"
-
 #include <deque>
 #include <map>
 #include <unordered_map>
 #include <vector>
+
+namespace py = pybind11;
 
 class El {
 public:
@@ -174,7 +174,7 @@ struct recursive_container_traits<MutuallyRecursiveContainerPairVM, SFINAE> {
 } // namespace detail
 } // namespace pybind11
 
-TEST_SUBMODULE(stl_binders, m) {
+PYBIND11_MODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
 
