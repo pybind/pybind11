@@ -172,7 +172,7 @@ struct list_caster {
         auto s = reinterpret_borrow<sequence>(src);
         value.clear();
         reserve_maybe(s, &value);
-        for (auto it : s) {
+        for (const auto &it : s) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -247,7 +247,7 @@ public:
             return false;
         }
         size_t ctr = 0;
-        for (auto it : l) {
+        for (const auto &it : l) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;

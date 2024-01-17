@@ -192,6 +192,16 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_map<std::unordered_map<std::string, double const>>(m,
                                                                 "UnorderedMapStringDoubleConst");
 
+    // test_map_view_types
+    py::bind_map<std::map<std::string, float>>(m, "MapStringFloat");
+    py::bind_map<std::unordered_map<std::string, float>>(m, "UnorderedMapStringFloat");
+
+    py::bind_map<std::map<std::pair<double, int>, int32_t>>(m, "MapPairDoubleIntInt32");
+    py::bind_map<std::map<std::pair<double, int>, int64_t>>(m, "MapPairDoubleIntInt64");
+
+    py::bind_map<std::map<int, py::object>>(m, "MapIntObject");
+    py::bind_map<std::map<std::string, py::object>>(m, "MapStringObject");
+
     py::class_<E_nc>(m, "ENC").def(py::init<int>()).def_readwrite("value", &E_nc::value);
 
     // test_noncopyable_containers

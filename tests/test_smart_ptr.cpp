@@ -103,21 +103,26 @@ private:
     int value;
 };
 
+template <typename T>
+std::unordered_set<T *> &pointer_set() {
+    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+    static auto singleton = new std::unordered_set<T *>();
+    return *singleton;
+}
+
 // test_unique_nodelete
 // Object with a private destructor
-class MyObject4;
-std::unordered_set<MyObject4 *> myobject4_instances;
 class MyObject4 {
 public:
     explicit MyObject4(int value) : value{value} {
         print_created(this);
-        myobject4_instances.insert(this);
+        pointer_set<MyObject4>().insert(this);
     }
     int value;
 
     static void cleanupAllInstances() {
-        auto tmp = std::move(myobject4_instances);
-        myobject4_instances.clear();
+        auto tmp = std::move(pointer_set<MyObject4>());
+        pointer_set<MyObject4>().clear();
         for (auto *o : tmp) {
             delete o;
         }
@@ -125,7 +130,7 @@ public:
 
 private:
     ~MyObject4() {
-        myobject4_instances.erase(this);
+        pointer_set<MyObject4>().erase(this);
         print_destroyed(this);
     }
 };
@@ -133,19 +138,17 @@ private:
 // test_unique_deleter
 // Object with std::unique_ptr<T, D> where D is not matching the base class
 // Object with a protected destructor
-class MyObject4a;
-std::unordered_set<MyObject4a *> myobject4a_instances;
 class MyObject4a {
 public:
     explicit MyObject4a(int i) : value{i} {
         print_created(this);
-        myobject4a_instances.insert(this);
+        pointer_set<MyObject4a>().insert(this);
     };
     int value;
 
     static void cleanupAllInstances() {
-        auto tmp = std::move(myobject4a_instances);
-        myobject4a_instances.clear();
+        auto tmp = std::move(pointer_set<MyObject4a>());
+        pointer_set<MyObject4a>().clear();
         for (auto *o : tmp) {
             delete o;
         }
@@ -153,7 +156,7 @@ public:
 
 protected:
     virtual ~MyObject4a() {
-        myobject4a_instances.erase(this);
+        pointer_set<MyObject4a>().erase(this);
         print_destroyed(this);
     }
 };
