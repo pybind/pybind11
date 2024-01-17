@@ -1,5 +1,5 @@
---- ci.yml	2023-12-14 23:14:57.621249678 -0800
-+++ ci_sh_def.yml	2023-12-14 23:58:28.144667703 -0800
+--- ci.yml	2024-01-16 21:10:28.100295655 -0800
++++ ci_sh_def.yml	2024-01-16 21:10:56.792251785 -0800
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -165,7 +165,7 @@
          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
  
      - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-@@ -976,6 +1003,7 @@
+@@ -983,6 +1010,7 @@
        run: >-
          cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
          -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
@@ -173,7 +173,7 @@
          -S . -B build
  
      - name: Build C++11
-@@ -997,6 +1025,7 @@
+@@ -1004,6 +1032,7 @@
        run: >-
          cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
          -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
@@ -181,7 +181,7 @@
          -S . -B build2
  
      - name: Build C++14
-@@ -1018,6 +1047,7 @@
+@@ -1025,6 +1054,7 @@
        run: >-
          cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
          -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
@@ -189,7 +189,7 @@
          -S . -B build3
  
      - name: Build C++17
-@@ -1085,6 +1115,7 @@
+@@ -1092,6 +1122,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
@@ -197,7 +197,7 @@
  
        - name: Build
          run: cmake --build . -j 2
-@@ -1150,6 +1181,7 @@
+@@ -1157,6 +1188,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
@@ -205,7 +205,7 @@
            -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
        - name: Build
-@@ -1173,6 +1205,7 @@
+@@ -1180,6 +1212,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
