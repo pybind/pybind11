@@ -959,13 +959,20 @@ jobs:
           mingw-w64-${{matrix.env}}-gcc
           mingw-w64-${{matrix.env}}-python-pip
           mingw-w64-${{matrix.env}}-python-numpy
-          mingw-w64-${{matrix.env}}-python-scipy
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
           mingw-w64-${{matrix.env}}-eigen3
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
+
+    - uses: msys2/setup-msys2@v2
+      if: matrix.sys == 'mingw64'
+      with:
+        msystem: ${{matrix.sys}}
+        install: >-
+          git
+          mingw-w64-${{matrix.env}}-python-scipy
 
     - uses: actions/checkout@v4
 
