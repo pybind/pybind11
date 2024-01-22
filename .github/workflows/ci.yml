@@ -90,7 +90,7 @@ jobs:
 
     - name: Cache wheels
       if: runner.os == 'macOS'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         # This path is specific to macOS - we really only need it for PyPy NumPy wheels
         # See https://github.com/actions/cache/blob/master/examples.md#python---pip
@@ -218,7 +218,7 @@ jobs:
 
     - name: Valgrind cache
       if: matrix.valgrind
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-valgrind
       with:
         path: valgrind
@@ -644,7 +644,7 @@ jobs:
       if: matrix.container != 'centos:7'
 
     - name: Pin actions/checkout as required for centos:7
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: matrix.container == 'centos:7'
 
     - name: Add Python 3 (RHEL 7)
@@ -693,7 +693,7 @@ jobs:
     container: i386/debian:buster
 
     steps:
-    - uses: actions/checkout@v1  # v1 is required to run inside docker
+    - uses: actions/checkout@v4  # v1 is required to run inside docker
 
     - name: Install requirements
       run: |
