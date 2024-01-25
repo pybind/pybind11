@@ -639,3 +639,11 @@ cross-project dependency management. Additionally, it is able to autogenerate
 customizable pybind11-based wrappers by parsing C++ header files.
 
 .. [robotpy-build] https://robotpy-build.readthedocs.io
+
+[litgen]_ is an automatic python bindings generator with a focus on generating
+documented and discoverable bindings: bindings will nicely reproduce the documentation
+found in headers. It is is based on srcML (srcml.org), a highly scalable, multi-language
+parsing tool with a developer centric approach. The API that you want to expose to python
+must be C++14 compatible (but your implementation can use more modern constructs).
+
+.. [litgen] https://pthom.github.io/litgen
