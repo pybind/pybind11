@@ -1,3 +1,4 @@
+import abc
 import sys
 
 import pytest
@@ -225,6 +226,22 @@ def test_metaclass_override():
     m.MetaclassOverride.readonly = 2
     assert m.MetaclassOverride.readonly == 2
     assert isinstance(m.MetaclassOverride.__dict__["readonly"], int)
+
+
+def test_abc_meta_incompatibility():  # Mostly to clearly expose the behavior.
+    with pytest.raises(TypeError) as exc_info:
+
+        class ExampleMandAABC(m.ExampleMandA, metaclass=abc.ABCMeta):
+            pass
+
+    assert "metaclass conflict" in str(exc_info.value)
+
+
+def test_abc_meta_compatibility():
+    class MetaclassOverrideABC(m.MetaclassOverride, metaclass=abc.ABCMeta):
+        pass
+
+    assert type(MetaclassOverrideABC).__name__ == "ABCMeta"
 
 
 def test_no_mixed_overloads():
