@@ -82,6 +82,7 @@ struct dynamic_attr {};
 struct buffer_protocol {};
 
 /// Annotation which requests that a special metaclass is created for a type
+/// NOTE: pybind11's default metaclass is not compatible with abc.ABCMeta
 struct metaclass {
     handle value;
 
@@ -90,6 +91,12 @@ struct metaclass {
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) {}
+
+    /// Example usage: py::metaclass(PyType_Type)
+    /// PyType_Type is recommended if compatibility with abc.ABCMeta is required.
+    /// The only potential downside is that static properties behave differently
+    //  (see pybind/pybind11#679 for background).
+    explicit metaclass(PyTypeObject &type_obj) : value(reinterpret_cast<PyObject *>(&type_obj)) {}
 };
 
 /// Specifies a custom callback with signature `void (PyHeapTypeObject*)` that
