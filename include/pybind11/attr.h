@@ -95,7 +95,7 @@ struct metaclass {
     /// Example usage: py::metaclass(PyType_Type)
     /// PyType_Type is recommended if compatibility with abc.ABCMeta is required.
     /// The only potential downside is that static properties behave differently
-    //  (see pybind/pybind11#679 for background).
+    /// (see pybind/pybind11#679 for background).
     explicit metaclass(PyTypeObject &type_obj) : value(reinterpret_cast<PyObject *>(&type_obj)) {}
 };
 
