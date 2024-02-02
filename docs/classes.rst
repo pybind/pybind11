@@ -63,7 +63,7 @@ interactive Python session demonstrating this example is shown below:
     By default pybind11 uses a custom metaclass which is known to be
     incompatible with
     `abc.ABCMeta <https://docs.python.org/3/library/abc.html#abc.ABCMeta>`_
-    and can also lead to other surprising issues. In such cases,
+    and can also lead to other surprising side effects. In such cases,
     using ``py::metaclass(PyType_Type)`` is often a good solution
     (e.g. ``py::class_<Pet>(m, "Pet", py::metaclass(PyType_Type))``).
     Please see
