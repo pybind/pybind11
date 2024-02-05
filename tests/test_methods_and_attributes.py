@@ -229,16 +229,42 @@ def test_metaclass_override():
 
 
 def test_abc_meta_incompatibility():  # Mostly to clearly expose the behavior.
-    with pytest.raises(TypeError) as exc_info:
+    with pytest.raises(TypeError, match="metaclass conflict"):
 
         class ExampleMandAABC(m.ExampleMandA, metaclass=abc.ABCMeta):
             pass
 
-    assert "metaclass conflict" in str(exc_info.value)
+
+def test_abc_abc_1st_incompatibility():  # Mostly to clearly expose the behavior.
+    with pytest.raises(TypeError, match="metaclass conflict"):
+
+        class ABCExampleMandA(abc.ABC, m.ExampleMandA):
+            pass
+
+
+def test_abc_abc_2nd_incompatibility():  # Mostly to clearly expose the behavior.
+    with pytest.raises(TypeError, match="metaclass conflict"):
+
+        class ExampleMandAABC(m.ExampleMandA, abc.ABC):
+            pass
 
 
 def test_abc_meta_compatibility():
     class MetaclassOverrideABC(m.MetaclassOverride, metaclass=abc.ABCMeta):
+        pass
+
+    assert type(MetaclassOverrideABC).__name__ == "ABCMeta"
+
+
+def test_abc_abc_1st_compatibility():
+    class ABCMetaclassOverride(abc.ABC, m.MetaclassOverride):
+        pass
+
+    assert type(ABCMetaclassOverride).__name__ == "ABCMeta"
+
+
+def test_abc_abc_2nd_compatibility():
+    class MetaclassOverrideABC(m.MetaclassOverride, abc.ABC):
         pass
 
     assert type(MetaclassOverrideABC).__name__ == "ABCMeta"
