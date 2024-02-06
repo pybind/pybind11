@@ -32,7 +32,7 @@ repos:
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.1.9
+  rev: v0.2.0
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -93,7 +93,7 @@ repos:
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.6.3"
+  rev: "0.6.4"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
