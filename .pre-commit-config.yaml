@@ -146,3 +146,10 @@ repos:
   hooks:
   - id: pylint
     files: ^pybind11
+
+- repo: https://github.com/python-jsonschema/check-jsonschema
+  rev: 0.28.0
+  hooks:
+  - id: check-readthedocs
+  - id: check-github-workflows
+  - id: check-dependabot

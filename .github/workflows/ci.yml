@@ -529,8 +529,6 @@ jobs:
   # Testing on ICC using the oneAPI apt repo
   icc:
     runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
 
     name: "🐍 3 • ICC latest • x64"
 
