@@ -12,4 +12,4 @@ updates:
     ignore:
       - dependency-name: actions/checkout
         versions:
-          - "<2"
+          - "<5"
