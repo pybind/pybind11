@@ -55,6 +55,16 @@ TEST_SUBMODULE(enums, m) {
     m.def("test_enum_to_uint", [](uint32_t) {});
     m.def("test_enum_to_long_long", [](long long) {});
 
+    // Trying to pass an enum to a function that accepts a float should
+    // trigger a type error
+    m.def("test_enum_to_float", [](double) {});
+
+    // When performing overload resolution, calling f(0, ScopedEnum.TWO)
+    // should select f(float, ScopedEnum), NOT f(float, float)
+    m.def("test_enum_overload_resolution", [](double, double) { return "f(float, float)"; });
+    m.def("test_enum_overload_resolution",
+          [](double, ScopedEnum) { return "f(float, ScopedEnum)"; });
+
     // test_duplicate_enum_name
     enum SimpleEnum { ONE, TWO, THREE };
 
