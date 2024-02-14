@@ -316,9 +316,9 @@ struct type_info {
 /// Classic / Conservative / Progressive cross-module compatibility
 #ifndef PYBIND11_INTERNALS_SH_DEF
 #    if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)
-#        define PYBIND11_INTERNALS_SH_DEF ""
-#    else
 #        define PYBIND11_INTERNALS_SH_DEF "_sh_def"
+#    else
+#        define PYBIND11_INTERNALS_SH_DEF ""
 #    endif
 #endif
 
