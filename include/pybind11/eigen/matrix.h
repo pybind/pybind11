@@ -649,7 +649,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     using Index = typename Type::Index;
     static constexpr bool rowMajor = Type::IsRowMajor;
 
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
         if (!src) {
             return false;
         }
@@ -659,6 +659,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         object matrix_type = sparse_module.attr(rowMajor ? "csr_matrix" : "csc_matrix");
 
         if (!type::handle_of(obj).is(matrix_type)) {
+            if (!convert) {
+                return false;
+            }
             try {
                 obj = matrix_type(obj);
             } catch (const error_already_set &) {
