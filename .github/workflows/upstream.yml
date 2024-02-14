@@ -36,7 +36,7 @@ jobs:
       run: sudo apt-get install libboost-dev
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Run pip installs
       run: |
