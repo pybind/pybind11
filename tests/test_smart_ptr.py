@@ -246,6 +246,7 @@ def test_enable_shared_from_this_with_custom_holder():
     assert a.value == 1
     assert b.value == 2
 
+
 def test_move_only_holder():
     a = m.TypeWithMoveOnlyHolder.make()
     b = m.TypeWithMoveOnlyHolder.make_as_object()
