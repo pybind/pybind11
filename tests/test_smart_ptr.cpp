@@ -211,6 +211,27 @@ struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
 };
 struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 
+// Issue #3851: object inherited from std::enable_shared_from_this held by custom holder
+// instead of std::shared_ptr
+struct SharedFromThisForCustomHolder
+    : std::enable_shared_from_this<SharedFromThisForCustomHolder> {
+    int value;
+    explicit SharedFromThisForCustomHolder(int v) : value(v) { print_created(this, toString()); }
+    ~SharedFromThisForCustomHolder() { print_destroyed(this, toString()); }
+    std::string toString() const {
+        return "SharedFromThisForCustomHolder[" + std::to_string(value) + "]";
+    }
+};
+template <typename T>
+class CustomHolderForSharedFromThis {
+    std::shared_ptr<T> impl;
+
+public:
+    explicit CustomHolderForSharedFromThis(T *p) : impl(p) {}
+    explicit CustomHolderForSharedFromThis(std::shared_ptr<T> &p) : impl(p) {}
+    T *get() const { return impl.get(); }
+};
+
 // test_move_only_holder
 struct C {
     C() { print_created(this); }
@@ -286,6 +307,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>);
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>);
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, CustomHolderForSharedFromThis<T>);
 
 TEST_SUBMODULE(smart_ptr, m) {
     // Please do not interleave `struct` and `class` definitions with bindings code,
@@ -412,6 +434,20 @@ TEST_SUBMODULE(smart_ptr, m) {
     static std::shared_ptr<SharedFromThisVirt> sft(new SharedFromThisVirt());
     py::class_<SharedFromThisVirt, std::shared_ptr<SharedFromThisVirt>>(m, "SharedFromThisVirt")
         .def_static("get", []() { return sft.get(); });
+
+    // Issue #3851: object inherited from std::enable_shared_from_this held by custom holder
+    // instead of std::shared_ptr
+    py::class_<SharedFromThisForCustomHolder,
+               CustomHolderForSharedFromThis<SharedFromThisForCustomHolder>>(
+        m, "SharedFromThisForCustomHolder")
+        .def_static("make_as_raw_ptr", []() { return new SharedFromThisForCustomHolder(1); })
+        .def_static("make_as_custom_holder",
+                    []() {
+                        return CustomHolderForSharedFromThis<SharedFromThisForCustomHolder>(
+                            new SharedFromThisForCustomHolder(2));
+                    })
+        .def_property_readonly(
+            "value", [](const SharedFromThisForCustomHolder &self) { return self.value; });
 
     // test_move_only_holder
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")

@@ -240,6 +240,12 @@ def test_shared_ptr_from_this_and_references():
     assert y is z
 
 
+def test_enable_shared_from_this_with_custom_holder():
+    a = m.SharedFromThisForCustomHolder.make_as_raw_ptr()
+    b = m.SharedFromThisForCustomHolder.make_as_custom_holder()
+    assert a.value == 1
+    assert b.value == 2
+
 def test_move_only_holder():
     a = m.TypeWithMoveOnlyHolder.make()
     b = m.TypeWithMoveOnlyHolder.make_as_object()

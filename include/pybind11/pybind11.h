@@ -1848,11 +1848,12 @@ public:
     }
 
 private:
-    /// Initialize holder object, variant 1: object derives from enable_shared_from_this
-    template <typename T>
+    /// Initialize holder object, variant 1: holder is shared_ptr and object derives
+    /// from enable_shared_from_this
+    template <typename T, typename U>
     static void init_holder(detail::instance *inst,
                             detail::value_and_holder &v_h,
-                            const holder_type * /* unused */,
+                            const std::shared_ptr<U> * /* dummy */,
                             const std::enable_shared_from_this<T> * /* dummy */) {
 
         auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
