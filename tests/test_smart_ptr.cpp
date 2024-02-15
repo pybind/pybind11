@@ -216,8 +216,9 @@ struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 struct SharedFromThisForCustomHolder
     : std::enable_shared_from_this<SharedFromThisForCustomHolder> {
     int value;
+    SharedFromThisForCustomHolder(const SharedFromThisForCustomHolder &) = default;
     explicit SharedFromThisForCustomHolder(int v) : value(v) { print_created(this, toString()); }
-    ~SharedFromThisForCustomHolder() { print_destroyed(this, toString()); }
+    virtual ~SharedFromThisForCustomHolder() { print_destroyed(this, toString()); }
     std::string toString() const {
         return "SharedFromThisForCustomHolder[" + std::to_string(value) + "]";
     }
