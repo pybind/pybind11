@@ -252,12 +252,24 @@ inline void finalize_interpreter() {
         = get_internals_obj_from_state_dict(detail::get_python_state_dict())) {
         internals_ptr_ptr = detail::get_internals_pp_from_capsule(internals_obj);
     }
-    // Local internals contains data managed by the current interpreter, so we must clear them to
-    // avoid undefined behaviors when initializing another interpreter
-    detail::get_local_internals().registered_types_cpp.clear();
-    detail::get_local_internals().registered_exception_translators.clear();
+
+    // We must clear this data after the interpreter is finalized but calling get_local_internals()
+    // is UB at that point, so he have to cache a references here.
+    auto &local_internals = detail::get_local_internals();
+
+    // Hack to materialize local internals from static method variable before Py_Finalize.
+    bool need_to_clear = !local_internals.registered_exception_translators.empty()
+                         || !local_internals.registered_exception_translators.empty();
 
     Py_Finalize();
+
+    // This local data is needed during Py_Finalize() for callbacks or hooks such as atexit.
+    // Local internals contains data managed by the current interpreter, so we must clear them to
+    // avoid undefined behaviors when initializing another interpreter
+    if (need_to_clear) {
+        local_internals.registered_types_cpp.clear();
+        local_internals.registered_exception_translators.clear();
+    }
 
     if (internals_ptr_ptr) {
         delete *internals_ptr_ptr;

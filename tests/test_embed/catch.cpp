@@ -34,7 +34,8 @@ int main(int argc, char *argv[]) {
 #else
     setenv("PYTHONPATH", updated_pythonpath.c_str(), /*replace=*/1);
 #endif
-
+    // Below is a test case for a potential segfault. See PR #4500.
+    { py::scoped_interpreter guard; }
     py::scoped_interpreter guard{};
 
     auto result = Catch::Session().run(argc, argv);
