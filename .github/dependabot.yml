@@ -9,3 +9,7 @@ updates:
       actions:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: actions/checkout
+        versions:
+          - "<5"
