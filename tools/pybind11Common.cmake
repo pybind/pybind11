@@ -174,11 +174,14 @@ endif()
 if(PYBIND11_NOPYTHON)
   set(_pybind11_nopython ON)
 elseif(
-  _pybind11_missing_old_python STREQUAL "NEW"
-  OR PYBIND11_FINDPYTHON
-  OR Python_FOUND
-  OR Python2_FOUND
-  OR Python3_FOUND)
+  NOT (DEFINED PYBIND11_FINDPYTHON AND NOT PYBIND11_FINDPYTHON)
+  AND (_pybind11_missing_old_python STREQUAL "NEW"
+       OR PYBIND11_FINDPYTHON
+       OR Python_FOUND
+       OR Python2_FOUND
+       OR Python3_FOUND
+      ))
+
   # New mode
   include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
 
