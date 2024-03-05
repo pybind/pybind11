@@ -37,8 +37,8 @@ generation. Without comments, the core header files only require ~4K
 lines of code and depend on Python (3.6+, or PyPy) and the C++
 standard library. This compact implementation was possible thanks to
 some of the new C++11 language features (specifically: tuples, lambda
-functions and variadic templates). Since its creation, this library has
-grown beyond Boost.Python in many ways, leading to dramatically simpler
+functions, and variadic templates). Since its creation, this library has
+grown beyond Boost. Python in many ways, leads to dramatically simpler
 binding code in many common situations.
 
 Tutorial and reference documentation is provided at
@@ -47,6 +47,36 @@ A PDF version of the manual is available
 `here <https://pybind11.readthedocs.io/_/downloads/en/latest/pdf/>`_.
 And the source code is always available at
 `github.com/pybind/pybind11 <https://github.com/pybind/pybind11>`_.
+**Examples:**
+NumPy Feature:
+C++ Code:
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+namespace py = pybind11;
+// Define a function that converts a C++ list to a NumPy array.
+py::array_t<int> convert_list_to_numpy_array(std::vector<int> list) {
+  // Create a NumPy array from the C++ list.
+  py::array_t<int> array(list.size());
+  for (int i = 0; i < list.size(); i++) {
+    array[i] = list[i];
+  }
+  // Return the NumPy array.
+  return array;
+}
+// Export the function to Python.
+PYBIND11_MODULE(example, m) {
+  m.def("convert_list_to_numpy_array", &convert_list_to_numpy_array);
+}
+Compile the code:
+$ g++ -O3 -Wall -shared -std=c++17 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+Use in Python:
+import example
+# Create a C++ list.
+list = [1, 2, 3, 4, 5]
+# Convert the C++ list to a NumPy array.
+array = example.convert_list_to_numpy_array(list)
+# Print the NumPy array.
+print(type(array))
 
 
 Core features
