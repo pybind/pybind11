@@ -178,7 +178,7 @@ def test_dtype(simple_dtype):
     assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
     assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]
     assert m.test_dtype_alignment() == [np.dtype(ch).alignment for ch in expected_chars]
-    assert m.test_dtype_flags() == [chr(np.dtype(ch).flags) for ch in expected_chars]
+    assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
 
 
 def test_recarray(simple_dtype, packed_dtype):
