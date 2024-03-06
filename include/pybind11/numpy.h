@@ -59,11 +59,44 @@ struct PyArrayDescr_Proxy {
     char kind;
     char type;
     char byteorder;
+    char _former_flags;
+    int type_num;
+    /* Additional fields are NumPy version specific. */
+};
+
+/* NumPy 1 proxy (always includes legacy fields) */
+struct PyArrayDescr1_Proxy {
+    PyObject_HEAD
+    PyObject *typeobj;
+    char kind;
+    char type;
+    char byteorder;
     char flags;
     int type_num;
     int elsize;
     int alignment;
     char *subarray;
+    PyObject *fields;
+    PyObject *names;
+};
+
+/* NumPy 2 proxy, including legacy fields */
+struct PyArrayDescr2_Proxy {
+    PyObject_HEAD
+    PyObject *typeobj;
+    char kind;
+    char type;
+    char byteorder;
+    char _former_flags;
+    int type_num;
+    std::uint64_t flags;
+    ssize_t elsize;
+    ssize_t alignment;
+    PyObject *metadata;
+    Py_hash_t hash;
+    void *reserved_null[2];
+    /* The following fields only exist if 0 < type_num < 2000 */
+    struct _arr_descr *subarray;
     PyObject *fields;
     PyObject *names;
 };
@@ -203,6 +236,8 @@ struct npy_api {
             NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
     };
 
+    unsigned int PyArray_RUNTIME_VERSION_;
+
     struct PyArray_Dims {
         Py_intptr_t *ptr;
         int len;
@@ -241,14 +276,6 @@ struct npy_api {
     PyObject *(*PyArray_FromAny_)(PyObject *, PyObject *, int, int, int, PyObject *);
     int (*PyArray_DescrConverter_)(PyObject *, PyObject **);
     bool (*PyArray_EquivTypes_)(PyObject *, PyObject *);
-    int (*PyArray_GetArrayParamsFromObject_)(PyObject *,
-                                             PyObject *,
-                                             unsigned char,
-                                             PyObject **,
-                                             int *,
-                                             Py_intptr_t *,
-                                             PyObject **,
-                                             PyObject *);
     PyObject *(*PyArray_Squeeze_)(PyObject *);
     // Unused. Not removed because that affects ABI of the class.
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
@@ -275,7 +302,6 @@ private:
         API_PyArray_View = 137,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
-        API_PyArray_GetArrayParamsFromObject = 278,
         API_PyArray_SetBaseObject = 282
     };
 
@@ -290,7 +316,8 @@ private:
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
-        if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7) {
+        api.PyArray_RUNTIME_VERSION_ = api.PyArray_GetNDArrayCFeatureVersion_();
+        if (api.PyArray_RUNTIME_VERSION_ < 0x7) {
             pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
         }
         DECL_NPY_API(PyArray_Type);
@@ -309,7 +336,6 @@ private:
         DECL_NPY_API(PyArray_View);
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
-        DECL_NPY_API(PyArray_GetArrayParamsFromObject);
         DECL_NPY_API(PyArray_SetBaseObject);
 
 #undef DECL_NPY_API
@@ -329,6 +355,14 @@ inline PyArrayDescr_Proxy *array_descriptor_proxy(PyObject *ptr) {
 
 inline const PyArrayDescr_Proxy *array_descriptor_proxy(const PyObject *ptr) {
     return reinterpret_cast<const PyArrayDescr_Proxy *>(ptr);
+}
+
+inline const PyArrayDescr1_Proxy *array_descriptor1_proxy(const PyObject *ptr) {
+    return reinterpret_cast<const PyArrayDescr1_Proxy *>(ptr);
+}
+
+inline const PyArrayDescr2_Proxy *array_descriptor2_proxy(const PyObject *ptr) {
+    return reinterpret_cast<const PyArrayDescr2_Proxy *>(ptr);
 }
 
 inline bool check_flags(const void *ptr, int flag) {
@@ -610,10 +644,23 @@ public:
     }
 
     /// Size of the data type in bytes.
-    ssize_t itemsize() const { return detail::array_descriptor_proxy(m_ptr)->elsize; }
+    ssize_t itemsize() const {
+        if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
+            return detail::array_descriptor1_proxy(m_ptr)->elsize;
+        }
+        return detail::array_descriptor2_proxy(m_ptr)->elsize;
+    }
 
     /// Returns true for structured data types.
-    bool has_fields() const { return detail::array_descriptor_proxy(m_ptr)->names != nullptr; }
+    bool has_fields() const {
+        if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
+            return detail::array_descriptor1_proxy(m_ptr)->names != nullptr;
+        }
+        if (num() < 0 || num() > 2000) {
+            return false;
+        }
+        return detail::array_descriptor2_proxy(m_ptr)->names != nullptr;
+    }
 
     /// Single-character code for dtype's kind.
     /// For example, floating point types are 'f' and integral types are 'i'.
@@ -640,10 +687,20 @@ public:
     char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
 
     /// Alignment of the data type
-    int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
+    ssize_t alignment() const {
+        if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
+            return detail::array_descriptor1_proxy(m_ptr)->alignment;
+        }
+        return detail::array_descriptor2_proxy(m_ptr)->alignment;
+    }
 
     /// Flags for the array descriptor
-    char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
+    std::uint64_t flags() const {
+        if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
+            return (unsigned char) detail::array_descriptor1_proxy(m_ptr)->flags;
+        }
+        return detail::array_descriptor2_proxy(m_ptr)->flags;
+    }
 
 private:
     static object &_dtype_from_pep3118() {
@@ -810,9 +867,7 @@ public:
     }
 
     /// Byte size of a single element
-    ssize_t itemsize() const {
-        return detail::array_descriptor_proxy(detail::array_proxy(m_ptr)->descr)->elsize;
-    }
+    ssize_t itemsize() const { return dtype().itemsize(); }
 
     /// Total number of bytes
     ssize_t nbytes() const { return size() * itemsize(); }
