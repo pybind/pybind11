@@ -38,7 +38,6 @@ main_headers = {
     "include/pybind11/gil_safe_call_once.h",
     "include/pybind11/iostream.h",
     "include/pybind11/numpy.h",
-    "include/pybind11/numpy2.h",
     "include/pybind11/operators.h",
     "include/pybind11/options.h",
     "include/pybind11/pybind11.h",

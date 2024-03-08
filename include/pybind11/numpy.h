@@ -69,7 +69,7 @@ struct PyArrayDescr1_Proxy {
     PyObject *names;
 };
 
-#ifdef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifdef PYBIND11_NUMPY2_SUPPORT
 struct PyArrayDescr_Proxy {
     PyObject_HEAD
     PyObject *typeobj;
@@ -169,11 +169,11 @@ PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name
     object numpy_version = numpy_lib.attr("NumpyVersion")(version_string);
     int major_version = numpy_version.attr("major").cast<int>();
 
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
     if (major_version >= 2) {
-        throw std::runtime_error("module compiled without NumPy 2 support.  Please modify the "
-                                 "`pybind11/numpy.h` include to `pybind11/numpy2.h` and recompile "
-                                 "(this remains NumPy 1.x compatible but has minor changes).");
+        throw std::runtime_error("module compiled without NumPy 2 support. Please "
+                                 "define PYBIND11_NUMPY2_SUPPORT before the `numpy2.h` "
+                                 "to enable it.");
     }
 #endif
     /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
@@ -288,7 +288,7 @@ struct npy_api {
     PyObject *(*PyArray_FromAny_)(PyObject *, PyObject *, int, int, int, PyObject *);
     int (*PyArray_DescrConverter_)(PyObject *, PyObject **);
     bool (*PyArray_EquivTypes_)(PyObject *, PyObject *);
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
     int (*PyArray_GetArrayParamsFromObject_)(PyObject *,
                                              PyObject *,
                                              unsigned char,
@@ -324,7 +324,7 @@ private:
         API_PyArray_View = 137,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
         API_PyArray_GetArrayParamsFromObject = 278,
 #endif
         API_PyArray_SetBaseObject = 282
@@ -361,7 +361,7 @@ private:
         DECL_NPY_API(PyArray_View);
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
         DECL_NPY_API(PyArray_GetArrayParamsFromObject);
 #endif
         DECL_NPY_API(PyArray_SetBaseObject);
@@ -672,7 +672,7 @@ public:
     }
 
     /// Size of the data type in bytes.
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
     ssize_t itemsize() const { return detail::array_descriptor_proxy(m_ptr)->elsize; }
 #else
     ssize_t itemsize() const {
@@ -684,7 +684,7 @@ public:
 #endif
 
     /// Returns true for structured data types.
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
     bool has_fields() const { return detail::array_descriptor_proxy(m_ptr)->names != nullptr; }
 #else
     bool has_fields() const {
@@ -723,7 +723,7 @@ public:
     char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
 
 /// Alignment of the data type
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
     int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
 #else
     ssize_t alignment() const {
@@ -735,7 +735,7 @@ public:
 #endif
 
 /// Flags for the array descriptor
-#ifndef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
+#ifndef PYBIND11_NUMPY2_SUPPORT
     char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
 #else
     std::uint64_t flags() const {

@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "../numpy2.h"
+#include "../numpy.h"
 #include "common.h"
 
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.

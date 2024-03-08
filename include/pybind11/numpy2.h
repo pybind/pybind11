@@ -1,5 +1,0 @@
-#pragma once
-
-#define PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT
-#include "numpy.h"
-#undef PYBIND11_COMPILE_WITH_NUMPY2_SUPPORT

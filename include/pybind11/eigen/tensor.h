@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../numpy2.h"
+#include "../numpy.h"
 #include "common.h"
 
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
