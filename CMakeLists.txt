@@ -109,12 +109,16 @@ option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
 option(PYBIND11_SIMPLE_GIL_MANAGEMENT
        "Use simpler GIL management logic that does not support disassociation" OFF)
+option(PYBIND11_NUMPY2_SUPPORT "Enable compile in a NumPy 2 and 1 compatible way" OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
 
 if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
   add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+endif()
+if(PYBIND11_NUMPY2_SUPPORT)
+  add_compile_definitions(PYBIND11_NUMPY2_SUPPORT)
 endif()
 
 cmake_dependent_option(
