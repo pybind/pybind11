@@ -82,7 +82,7 @@ struct PyArrayDescr_Proxy {
 };
 #else
 /* NumPy 1.x only, we can expose all fields */
-typedef PyArrayDescr1_Proxy PyArrayDescr_Proxy;
+using PyArrayDescr_Proxy = PyArrayDescr1_Proxy;
 #endif
 
 /* NumPy 2 proxy, including legacy fields */
@@ -100,8 +100,8 @@ struct PyArrayDescr2_Proxy {
     PyObject *metadata;
     Py_hash_t hash;
     void *reserved_null[2];
-    /* The following fields only exist if 0 < type_num < 2000 */
-    struct _arr_descr *subarray;
+    /* The following fields only exist if 0 < type_num < 2056 */
+    char *subarray;
     PyObject *fields;
     PyObject *names;
 };
@@ -691,7 +691,7 @@ public:
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return detail::array_descriptor1_proxy(m_ptr)->names != nullptr;
         }
-        if (num() < 0 || num() > 2000) {
+        if (num() < 0 || num() > 2056) {
             return false;
         }
         return detail::array_descriptor2_proxy(m_ptr)->names != nullptr;
