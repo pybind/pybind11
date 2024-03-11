@@ -902,7 +902,7 @@ jobs:
       # Ensure use of NumPy 2 (via NumPy nightlies but can be changed soon)
       run: |
         python3 -m pip install -r tests/requirements.txt
-        python3 -m pip install --upgrade --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
+        python3 -m pip install --upgrade --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v2.0

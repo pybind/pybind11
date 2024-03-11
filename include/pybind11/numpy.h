@@ -32,7 +32,8 @@
 /* This will be true on all flat address space platforms and allows us to reduce the
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
-   upon the library user. */
+   upon the library user.
+   Note that NumPy 2 now uses ssize_t for `npy_intp` to simplify this. */
 static_assert(sizeof(::pybind11::ssize_t) == sizeof(Py_intptr_t), "ssize_t != Py_intptr_t");
 static_assert(std::is_signed<Py_intptr_t>::value, "Py_intptr_t must be signed");
 // We now can reinterpret_cast between py::ssize_t and Py_intptr_t (MSVC + PyPy cares)
@@ -100,7 +101,7 @@ struct PyArrayDescr2_Proxy {
     PyObject *metadata;
     Py_hash_t hash;
     void *reserved_null[2];
-    /* The following fields only exist if 0 < type_num < 2056 */
+    /* The following fields only exist if 0 <= type_num < 2056 */
     char *subarray;
     PyObject *fields;
     PyObject *names;
@@ -691,7 +692,7 @@ public:
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return detail::array_descriptor1_proxy(m_ptr)->names != nullptr;
         }
-        if (num() < 0 || num() > 2056) {
+        if (num() < 0 || num() >= 2056) {
             return false;
         }
         return detail::array_descriptor2_proxy(m_ptr)->names != nullptr;
