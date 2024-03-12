@@ -588,7 +588,7 @@ def test_argument_conversions(forcecast, contiguity, noconvert):
 def test_dtype_refcount_leak():
     from sys import getrefcount
 
-    dtype = np.dtype(np.float_)
+    dtype = np.dtype(np.float64)
     a = np.array([1], dtype=dtype)
     before = getrefcount(dtype)
     m.ndim(a)
