@@ -404,10 +404,10 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         return l;
     });
 
-    // test_dtype
+    // test_dtype (ulong was missing, but uint default changed on windows so use L)
     std::vector<const char *> dtype_names{
         "byte",    "short",   "intc",        "long",  "longlong",   "ubyte",       "ushort",
-        "uintc",   "ulong",   "ulonglong",   "half",  "single",     "double",      "longdouble",
+        "uintc",   "L",       "ulonglong",   "half",  "single",     "double",      "longdouble",
         "csingle", "cdouble", "clongdouble", "bool_", "datetime64", "timedelta64", "object_"};
 
     m.def("print_dtypes", []() {
