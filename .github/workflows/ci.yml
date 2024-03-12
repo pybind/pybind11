@@ -663,12 +663,14 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install cmake -r tests/requirements.txt
+        python3 -m pip install --upgrade --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
 
     - name: Configure
       shell: bash
       run: >
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=MinSizeRel
+        -DPYBIND11_NUMPY2_SUPPORT=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
