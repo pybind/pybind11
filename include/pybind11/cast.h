@@ -327,8 +327,9 @@ public:
             value = false;
             return true;
         }
-        if (convert || (std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name) == 0)) {
-            // (allow non-implicit conversion for numpy booleans)
+        if (convert || (std::strncmp("numpy.bool", Py_TYPE(src.ptr())->tp_name, 10) == 0)) {
+            // (allow non-implicit conversion for numpy booleans), use strncmp
+            // since NumPy 1.x had an additional trailing underscore.
 
             Py_ssize_t res = -1;
             if (src.is_none()) {
