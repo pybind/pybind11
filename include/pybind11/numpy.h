@@ -316,7 +316,7 @@ private:
         API_PyArray_DescrFromScalar = 57,
         API_PyArray_FromAny = 69,
         API_PyArray_Resize = 80,
-        API_PyArray_CopyInto = 82,
+        API_PyArray_CopyInto = 50,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
         API_PyArray_DescrNewFromType = 96,
