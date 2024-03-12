@@ -536,7 +536,12 @@ def test_format_descriptors_for_floating_point_types(test_func):
 @pytest.mark.parametrize("contiguity", [None, "C", "F"])
 @pytest.mark.parametrize("noconvert", [False, True])
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values to real discards the imaginary part:numpy.ComplexWarning"
+    "ignore:Casting complex values to real discards the imaginary part:"
+    + (
+        "numpy.exceptions.ComplexWarning"
+        if hasattr(np, "exceptions")
+        else "numpy.ComplexWarning"
+    )
 )
 def test_argument_conversions(forcecast, contiguity, noconvert):
     function_name = "accept_double"
