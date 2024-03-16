@@ -1122,9 +1122,13 @@ protected:
                 msg += '\n';
             }
             msg += "\nInvoked with: ";
+            constexpr auto max_args_repr_size = 5000u;
+            const auto orig_msg_size = msg.size();
             auto args_ = reinterpret_borrow<tuple>(args_in);
             bool some_args = false;
-            for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
+            for (size_t ti = overloads->is_constructor ? 1 : 0;
+                 ti < args_.size() && msg.size() - orig_msg_size <= max_args_repr_size;
+                 ++ti) {
                 if (!some_args) {
                     some_args = true;
                 } else {
@@ -1136,7 +1140,7 @@ protected:
                     msg += "<repr raised Error>";
                 }
             }
-            if (kwargs_in) {
+            if (kwargs_in && msg.size() - orig_msg_size <= max_args_repr_size) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);
                 if (!kwargs.empty()) {
                     if (some_args) {
@@ -1145,6 +1149,10 @@ protected:
                     msg += "kwargs: ";
                     bool first = true;
                     for (const auto &kwarg : kwargs) {
+                        if (msg.size() - orig_msg_size > max_args_repr_size) {
+                            break;
+                        }
+
                         if (first) {
                             first = false;
                         } else {
@@ -1158,6 +1166,10 @@ protected:
                         }
                     }
                 }
+            }
+
+            if (msg.size() - orig_msg_size > max_args_repr_size) {
+                msg += "...";
             }
 
             append_note_if_missing_header_is_suspected(msg);
