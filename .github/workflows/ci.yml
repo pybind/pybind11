@@ -109,13 +109,13 @@ jobs:
 
     # First build - C++11 mode and inplace
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here
-    # (same for PYBIND11_NUMPY2_SUPPORT).
+    # (same for PYBIND11_NUMPY_1_ONLY, but requires a NumPy 1.x at runtime).
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
-        -DPYBIND11_NUMPY2_SUPPORT=ON
+        -DPYBIND11_NUMPY_1_ONLY=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
@@ -140,13 +140,13 @@ jobs:
 
     # Second build - C++17 mode and in a build directory
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
-    # (same for PYBIND11_NUMPY2_SUPPORT, but requires a NumPy 1.x at runtime).
+    # (same for PYBIND11_NUMPY_1_ONLY, but requires a NumPy 1.x at runtime).
     - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-        -DPYBIND11_NUMPY2_SUPPORT=OFF
+        -DPYBIND11_NUMPY_1_ONLY=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
@@ -670,7 +670,6 @@ jobs:
       run: >
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=MinSizeRel
-        -DPYBIND11_NUMPY2_SUPPORT=ON
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -913,7 +912,6 @@ jobs:
       run: >
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
-        -DPYBIND11_NUMPY2_SUPPORT=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
@@ -934,7 +932,6 @@ jobs:
       run: >
         cmake -S . -B build_partial
         -DPYBIND11_WERROR=ON
-        -DPYBIND11_NUMPY2_SUPPORT=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
