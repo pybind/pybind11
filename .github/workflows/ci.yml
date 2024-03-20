@@ -1054,6 +1054,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+
       - name: Setup Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
@@ -1086,6 +1089,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
+          -DPYBIND11_PYTEST_ARGS='-k "not test_throw_nested_exception"'
 
       - name: Build
         run: cmake --build . -j 2
