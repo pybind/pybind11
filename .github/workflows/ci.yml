@@ -1089,7 +1089,6 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
-          -DPYBIND11_PYTEST_ARGS='-k "not test_throw_nested_exception"'
 
       - name: Build
         run: cmake --build . -j 2
