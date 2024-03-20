@@ -1054,9 +1054,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
-
       - name: Setup Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
@@ -1084,7 +1081,7 @@ jobs:
         run: >
           cmake -G Ninja -S . -B .
           -DPYBIND11_WERROR=OFF
-          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
