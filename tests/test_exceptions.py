@@ -251,7 +251,7 @@ def test_nested_throws(capture):
 # TODO: Investigate this crash, see pybind/pybind11#5062 for background
 @pytest.mark.skipif(
     sys.platform.startswith("win32") and "Clang" in pybind11_tests.compiler_info,
-    reason="Started sefaulting March 2024",
+    reason="Started segfaulting February 2024",
 )
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
