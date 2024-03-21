@@ -520,11 +520,15 @@ set(PYBIND11_TEST_PREFIX_COMMAND
     ""
     CACHE STRING "Put this before pytest, use for checkers and such")
 
+set(PYBIND11_PYTEST_ARGS
+    ""
+    CACHE STRING "Extra arguments for pytest")
+
 # A single command to compile and run the tests
 add_custom_target(
   pytest
   COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
-          ${PYBIND11_ABS_PYTEST_FILES}
+          ${PYBIND11_ABS_PYTEST_FILES} ${PYBIND11_PYTEST_ARGS}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
