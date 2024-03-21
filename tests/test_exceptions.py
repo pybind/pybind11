@@ -248,7 +248,7 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
-# TODO: Investigate this crash
+# TODO: Investigate this crash, see pybind/pybind11#5062 for background
 @pytest.mark.skipif(
     sys.platform.startswith("win32") and "Clang" in pybind11_tests.compiler_info,
     reason="Started sefaulting March 2024",
