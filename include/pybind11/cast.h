@@ -327,7 +327,7 @@ public:
             value = false;
             return true;
         }
-        if (convert || (std::strncmp("numpy.bool", Py_TYPE(src.ptr())->tp_name, 10) == 0)) {
+        if (convert || is_numpy_bool(src)) {
             // (allow non-implicit conversion for numpy booleans), use strncmp
             // since NumPy 1.x had an additional trailing underscore.
 
@@ -1243,6 +1243,13 @@ template <typename T>
 enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>, std::is_void<T>>::value, T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
+}
+
+// Test if an object is a NumPy boolean (without fetching the type).
+inline bool is_numpy_bool(handle object) {
+    const char *name = Py_TYPE(object.ptr())->tp_name;
+    // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
+    return std::strcmp("numpy.bool", name) == 0 || std::strcmp("numpy.bool_", name) == 0;
 }
 
 PYBIND11_NAMESPACE_END(detail)

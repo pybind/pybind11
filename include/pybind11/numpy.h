@@ -176,9 +176,9 @@ PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name
 
 #ifdef PYBIND11_NUMPY_1_ONLY
     if (major_version >= 2) {
-        throw std::runtime_error("module compiled without NumPy 2 support. Do not define "
-                                 "PYBIND11_NUMPY_1_ONLY before including `numpy.h` "
-                                 "or define it during build to enable NumPy 2 support.");
+        throw std::runtime_error("This extension was built with PYBIND11_NUMPY_1_ONLY defined,
+                                  but NumPy 2 is used in this process. For NumPy2 compatibility,
+                                  this extension needs to be rebuilt without the PYBIND11_NUMPY_1_ONLY define.");
     }
 #endif
     /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
