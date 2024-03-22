@@ -361,6 +361,14 @@ public:
         return handle(src ? Py_True : Py_False).inc_ref();
     }
     PYBIND11_TYPE_CASTER(bool, const_name("bool"));
+
+private:
+    // Test if an object is a NumPy boolean (without fetching the type).
+    static inline bool is_numpy_bool(handle object) {
+        const char *name = Py_TYPE(object.ptr())->tp_name;
+        // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
+        return std::strcmp("numpy.bool", name) == 0 || std::strcmp("numpy.bool_", name) == 0;
+    }
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -1243,13 +1251,6 @@ template <typename T>
 enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>, std::is_void<T>>::value, T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
-}
-
-// Test if an object is a NumPy boolean (without fetching the type).
-inline bool is_numpy_bool(handle object) {
-    const char *name = Py_TYPE(object.ptr())->tp_name;
-    // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
-    return std::strcmp("numpy.bool", name) == 0 || std::strcmp("numpy.bool_", name) == 0;
 }
 
 PYBIND11_NAMESPACE_END(detail)
