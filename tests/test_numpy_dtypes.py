@@ -173,8 +173,10 @@ def test_dtype(simple_dtype):
         np.zeros(1, m.trailing_padding_dtype())
     )
 
-    expected_chars = "bhilqBHILQefdgFDG?MmO"
-    assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmO")
+    expected_chars = list("bhilqBHILQefdgFDG?MmO")
+    # Note that int_ and uint size and mapping is NumPy version dependent:
+    expected_chars += [np.dtype(_).char for _ in ("int_", "uint", "intp", "uintp")]
+    assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmOiuiu")
     assert m.test_dtype_char_() == list(expected_chars)
     assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
     assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]

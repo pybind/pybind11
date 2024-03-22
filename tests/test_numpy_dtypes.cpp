@@ -404,11 +404,36 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         return l;
     });
 
-    // test_dtype (ulong was missing, but uint default changed on windows so use L)
+    // test_dtype
+    // Below we use `L` for unsigned long as unfortunately the only name that
+    // works reliably on Both NumPy 2.x and old NumPy 1.x.
     std::vector<const char *> dtype_names{
-        "byte",    "short",   "intc",        "long",  "longlong",   "ubyte",       "ushort",
-        "uintc",   "L",       "ulonglong",   "half",  "single",     "double",      "longdouble",
-        "csingle", "cdouble", "clongdouble", "bool_", "datetime64", "timedelta64", "object_"};
+        "byte",
+        "short",
+        "intc",
+        "long",
+        "longlong",
+        "ubyte",
+        "ushort",
+        "uintc",
+        "L",
+        "ulonglong",
+        "half",
+        "single",
+        "double",
+        "longdouble",
+        "csingle",
+        "cdouble",
+        "clongdouble",
+        "bool_",
+        "datetime64",
+        "timedelta64",
+        "object_",
+        // platform dependent aliases (int_ and uint are also NumPy version dependent on windows)
+        "int_",
+        "uint",
+        "intp",
+        "uintp"};
 
     m.def("print_dtypes", []() {
         py::list l;

@@ -588,6 +588,7 @@ def test_argument_conversions(forcecast, contiguity, noconvert):
 def test_dtype_refcount_leak():
     from sys import getrefcount
 
+    # Was np.float_ but that alias for float64 was removed in NumPy 2.
     dtype = np.dtype(np.float64)
     a = np.array([1], dtype=dtype)
     before = getrefcount(dtype)
