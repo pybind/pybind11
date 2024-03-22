@@ -663,6 +663,10 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install cmake -r tests/requirements.txt
+
+    - name: Ensure NumPy 2 is used (required Python >= 3.9)
+      if: matrix.container == 'almalinux:9'
+      run: |
         python3 -m pip install 'numpy>=2.0.0b1' 'scipy>=1.13.0rc1'
 
     - name: Configure
