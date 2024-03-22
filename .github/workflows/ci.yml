@@ -663,7 +663,7 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install cmake -r tests/requirements.txt
-        python3 -m pip install --upgrade --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
+        python3 -m pip install 'numpy>=2.0.0b1' 'scipy>=1.13.0rc1'
 
     - name: Configure
       shell: bash
@@ -903,7 +903,7 @@ jobs:
       # Ensure use of NumPy 2 (via NumPy nightlies but can be changed soon)
       run: |
         python3 -m pip install -r tests/requirements.txt
-        python3 -m pip install --upgrade --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
+        python3 -m pip install 'numpy>=2.0.0b1' 'scipy>=1.13.0rc1'
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v2.0
