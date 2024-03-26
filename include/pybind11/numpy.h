@@ -698,10 +698,11 @@ public:
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return detail::array_descriptor1_proxy(m_ptr)->names != nullptr;
         }
-        if (num() < 0 || num() >= 2056) {
+        const auto *proxy = detail::array_descriptor2_proxy(m_ptr);
+        if (proxy->type_num < 0 || proxy->type_num >= 2056) {
             return false;
         }
-        return detail::array_descriptor2_proxy(m_ptr)->names != nullptr;
+        return proxy->names != nullptr;
     }
 #endif
 
