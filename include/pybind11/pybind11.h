@@ -1192,6 +1192,14 @@ protected:
     }
 };
 
+class module_;
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+module_ create_extension_module_impl(const char *, const char *, PyModuleDef *, bool);
+
+PYBIND11_NAMESPACE_END(detail)
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
@@ -1293,31 +1301,44 @@ public:
         ``def`` should point to a statically allocated module_def.
     \endrst */
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
-        // module_def is PyModuleDef
-        // Placement new (not an allocation).
-        def = new (def)
-            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                        /* m_name */ name,
-                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                        /* m_size */ -1,
-                        /* m_methods */ nullptr,
-                        /* m_slots */ nullptr,
-                        /* m_traverse */ nullptr,
-                        /* m_clear */ nullptr,
-                        /* m_free */ nullptr};
-        auto *m = PyModule_Create(def);
-        if (m == nullptr) {
-            if (PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            pybind11_fail("Internal error in module_::create_extension_module()");
-        }
-        // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
-        //       returned from PyInit_...
-        //       For Python 2, reinterpret_borrow was correct.
-        return reinterpret_borrow<module_>(m);
+        return detail::create_extension_module_impl(name, doc, def, false);
     }
 };
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Initializes a 'PyModuleDef' instance and create an extension module out of it.
+inline module_ create_extension_module_impl(const char *name,
+                                            const char *doc,
+                                            PyModuleDef *def,
+                                            bool is_embedded) {
+    // module_def is PyModuleDef
+    // Placement new (not an allocation).
+    def = new (def) PyModuleDef{
+        /* m_base */ PyModuleDef_HEAD_INIT,
+        /* m_name */ name,
+        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+        /* m_size */ -1,
+        /* m_methods */ nullptr,
+        /* m_slots */ nullptr,
+        /* m_traverse */ nullptr,
+        /* m_clear */ nullptr,
+        // Non-embedded modules must clean their own locals since they can only be accessed by them
+        /* m_free */ is_embedded ? nullptr : +[](void *) { detail::clear_local_internals(); }};
+    auto *m = PyModule_Create(def);
+    if (m == nullptr) {
+        if (PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        pybind11_fail("Internal error in module_::create_extension_module_impl()");
+    }
+    // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
+    //       returned from PyInit_...
+    //       For Python 2, reinterpret_borrow was correct.
+    return reinterpret_borrow<module_>(m);
+}
+
+PYBIND11_NAMESPACE_END(detail)
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
 // C++20 allows "module" to be used. This is provided for backward compatibility, and for

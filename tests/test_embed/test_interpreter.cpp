@@ -278,6 +278,7 @@ TEST_CASE("Restart the interpreter") {
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
+    // PR #3798 : Local internals must be cleared on finalization so they can be registered again.
     py::finalize_interpreter();
     REQUIRE(Py_IsInitialized() == 0);
 

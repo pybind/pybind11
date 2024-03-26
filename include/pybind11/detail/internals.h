@@ -592,6 +592,8 @@ struct local_internals {
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
+/// There is one variable storing the local internals for each module, but every embedded module
+/// shares the same locals.
 inline local_internals &get_local_internals() {
     // Current static can be created in the interpreter finalization routine. If the later will be
     // destroyed in another static variable destructor, creation of this static there will cause
@@ -600,6 +602,12 @@ inline local_internals &get_local_internals() {
     // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
     static auto *locals = new local_internals();
     return *locals;
+}
+
+/// Clears the locally registered types and exception translators.
+inline void clear_local_internals() {
+    detail::get_local_internals().registered_types_cpp.clear();
+    detail::get_local_internals().registered_exception_translators.clear();
 }
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its

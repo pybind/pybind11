@@ -42,8 +42,11 @@
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name);           \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     static PyObject PYBIND11_CONCAT(*pybind11_init_wrapper_, name)() {                            \
-        auto m = ::pybind11::module_::create_extension_module(                                    \
-            PYBIND11_TOSTRING(name), nullptr, &PYBIND11_CONCAT(pybind11_module_def_, name));      \
+        auto m = ::pybind11::detail::create_extension_module_impl(                                \
+            PYBIND11_TOSTRING(name),                                                              \
+            nullptr,                                                                              \
+            &PYBIND11_CONCAT(pybind11_module_def_, name),                                         \
+            true);                                                                                \
         try {                                                                                     \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
             return m.ptr();                                                                       \
@@ -254,8 +257,7 @@ inline void finalize_interpreter() {
     }
     // Local internals contains data managed by the current interpreter, so we must clear them to
     // avoid undefined behaviors when initializing another interpreter
-    detail::get_local_internals().registered_types_cpp.clear();
-    detail::get_local_internals().registered_exception_translators.clear();
+    detail::clear_local_internals();
 
     Py_Finalize();
 
