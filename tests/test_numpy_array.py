@@ -536,7 +536,12 @@ def test_format_descriptors_for_floating_point_types(test_func):
 @pytest.mark.parametrize("contiguity", [None, "C", "F"])
 @pytest.mark.parametrize("noconvert", [False, True])
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values to real discards the imaginary part:numpy.ComplexWarning"
+    "ignore:Casting complex values to real discards the imaginary part:"
+    + (
+        "numpy.exceptions.ComplexWarning"
+        if hasattr(np, "exceptions")
+        else "numpy.ComplexWarning"
+    )
 )
 def test_argument_conversions(forcecast, contiguity, noconvert):
     function_name = "accept_double"
@@ -583,7 +588,8 @@ def test_argument_conversions(forcecast, contiguity, noconvert):
 def test_dtype_refcount_leak():
     from sys import getrefcount
 
-    dtype = np.dtype(np.float_)
+    # Was np.float_ but that alias for float64 was removed in NumPy 2.
+    dtype = np.dtype(np.float64)
     a = np.array([1], dtype=dtype)
     before = getrefcount(dtype)
     m.ndim(a)

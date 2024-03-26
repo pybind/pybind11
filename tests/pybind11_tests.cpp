@@ -95,6 +95,12 @@ PYBIND11_MODULE(pybind11_tests, m) {
 #else
         false;
 #endif
+    m.attr("PYBIND11_NUMPY_1_ONLY") =
+#if defined(PYBIND11_NUMPY_1_ONLY)
+        true;
+#else
+        false;
+#endif
 
     bind_ConstructorStats(m);
 
