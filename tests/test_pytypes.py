@@ -911,6 +911,13 @@ def test_tuple_empty_annotations(doc):
     )
 
 
+def test_tuple_variable_length_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_variable_length)
+        == "annotate_tuple_variable_length(arg0: tuple[float, ...]) -> None"
+    )
+
+
 def test_dict_annotations(doc):
     assert (
         doc(m.annotate_dict_str_int)

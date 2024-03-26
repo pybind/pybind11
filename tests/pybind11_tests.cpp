@@ -80,10 +80,10 @@ PYBIND11_MODULE(pybind11_tests, m) {
 
     // Intentionally kept minimal to not create a maintenance chore
     // ("just enough" to be conclusive).
-#if defined(_MSC_FULL_VER)
-    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
-#elif defined(__VERSION__)
+#if defined(__VERSION__)
     m.attr("compiler_info") = __VERSION__;
+#elif defined(_MSC_FULL_VER)
+    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
 #else
     m.attr("compiler_info") = py::none();
 #endif

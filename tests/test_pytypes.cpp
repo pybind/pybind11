@@ -825,6 +825,8 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
     m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
+    m.def("annotate_tuple_variable_length",
+          [](const py::typing::Tuple<py::float_, py::ellipsis> &) {});
     m.def("annotate_dict_str_int", [](const py::typing::Dict<py::str, int> &) {});
     m.def("annotate_list_int", [](const py::typing::List<int> &) {});
     m.def("annotate_set_str", [](const py::typing::Set<std::string> &) {});
