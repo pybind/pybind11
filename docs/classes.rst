@@ -60,6 +60,18 @@ interactive Python session demonstrating this example is shown below:
 
 .. note::
 
+    By default pybind11 uses a custom metaclass which is known to be
+    incompatible with
+    `abc.ABCMeta <https://docs.python.org/3/library/abc.html#abc.ABCMeta>`_
+    and can also lead to other surprising side effects. In such cases,
+    using ``py::metaclass(PyType_Type)`` is often a good solution
+    (e.g. ``py::class_<Pet>(m, "Pet", py::metaclass(PyType_Type))``).
+    Please see
+    `#5015 <https://github.com/pybind/pybind11/pull/5015>`_
+    for more background.
+
+.. note::
+
     Binding C++ types in unnamed namespaces (also known as anonymous namespaces)
     works reliably on many platforms, but not all. The `XFAIL_CONDITION` in
     tests/test_unnamed_namespace_a.py encodes the currently known conditions.

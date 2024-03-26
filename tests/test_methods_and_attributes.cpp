@@ -367,7 +367,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 
     // test_metaclass_override
     struct MetaclassOverride {};
-    py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
+    py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass(PyType_Type))
         .def_property_readonly_static("readonly", [](const py::object &) { return 1; });
 
     // test_overload_ordering
