@@ -18,6 +18,13 @@ Changes will be summarized here periodically.
 
 New Features:
 
+* ``pybind11`` now supports compiling for
+  `NumPy 2 <https://numpy.org/devdocs/numpy_2_0_migration_guide.html>`_. Most
+  code shouldn't change (see :ref:`upgrade-guide-2.12` for details). However,
+  if you experience issues you can define ``PYBIND11_NUMPY_1_ONLY`` to disable
+  the new support for now, but this will be removed in the future.
+  `#5050 <https://github.com/pybind/pybind11/pull/5050>`_
+
 * ``pybind11/gil_safe_call_once.h`` was added (it needs to be included
   explicitly). The primary use case is GIL-safe initialization of C++
   ``static`` variables.
@@ -35,12 +42,6 @@ New Features:
   `#4772 <https://github.com/pybind/pybind11/pull/4772>`_
 
 Bug fixes:
-
-* ``pybind11`` now supports compiling for NumPy 2.  The required changes are
-  small and should not matter to most projects. However, if you experience
-  issues you can use   ``#define PYBIND11_NUMPY_1_ONLY`` to disable the new
-  support for now.
-  `#5050 <https://github.com/pybind/pybind11/pull/5050>`_
 
 * Removes potential for Undefined Behavior during process teardown.
   `#4897 <https://github.com/pybind/pybind11/pull/4897>`_
