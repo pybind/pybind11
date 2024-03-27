@@ -128,7 +128,8 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(type,
-                         const_name("Callable[[") + concat(make_caster<Args>::name...)
+                         const_name("Callable[[")
+                             + ::pybind11::detail::concat(make_caster<Args>::name...)
                              + const_name("], ") + make_caster<retval_type>::name
                              + const_name("]"));
 };
