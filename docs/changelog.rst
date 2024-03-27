@@ -15,6 +15,8 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Version 2.12.0 (March 27, 2025)
+-------------------------------
 
 New Features:
 
