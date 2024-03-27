@@ -36,10 +36,10 @@ with everything stripped away that isn't relevant for binding
 generation. Without comments, the core header files only require ~4K
 lines of code and depend on Python (3.6+, or PyPy) and the C++
 standard library. This compact implementation was possible thanks to
-some of the new C++11 language features (specifically: tuples, lambda
-functions and variadic templates). Since its creation, this library has
-grown beyond Boost.Python in many ways, leading to dramatically simpler
-binding code in many common situations.
+some C++11 language features (specifically: tuples, lambda functions and
+variadic templates). Since its creation, this library has grown beyond
+Boost.Python in many ways, leading to dramatically simpler binding code in many
+common situations.
 
 Tutorial and reference documentation is provided at
 `pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_.
@@ -71,6 +71,7 @@ pybind11 can map the following core C++ features to Python:
 - Internal references with correct reference counting
 - C++ classes with virtual (and pure virtual) methods can be extended
   in Python
+- Integrated NumPy support (NumPy 2 requires pybind11 2.12+)
 
 Goodies
 -------
