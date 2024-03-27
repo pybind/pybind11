@@ -102,8 +102,22 @@ public:
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type);
 
+// Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
+inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &bases,
+                                                      type_info *addl_base) {
+    for (auto it = bases.begin(); it != bases.end(); it++) {
+        type_info *existing_base = *it;
+        if (PyType_IsSubtype(addl_base->type, existing_base->type) != 0) {
+            bases.insert(it, addl_base);
+            return;
+        }
+    }
+    bases.push_back(addl_base);
+}
+
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+    assert(bases.empty());
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
@@ -136,7 +150,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                     }
                 }
                 if (!found) {
-                    bases.push_back(tinfo);
+                    all_type_info_add_base_most_derived_first(bases, tinfo);
                 }
             }
         } else if (type->tp_bases) {
@@ -322,18 +336,29 @@ public:
     explicit values_and_holders(instance *inst)
         : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
 
+    explicit values_and_holders(PyObject *obj)
+        : inst{nullptr}, tinfo(all_type_info(Py_TYPE(obj))) {
+        if (!tinfo.empty()) {
+            inst = reinterpret_cast<instance *>(obj);
+        }
+    }
+
     struct iterator {
     private:
         instance *inst = nullptr;
         const type_vec *types = nullptr;
         value_and_holder curr;
         friend struct values_and_holders;
-        iterator(instance *inst, const type_vec *tinfo)
-            : inst{inst}, types{tinfo},
-              curr(inst /* instance */,
-                   types->empty() ? nullptr : (*types)[0] /* type info */,
-                   0, /* vpos: (non-simple types only): the first vptr comes first */
-                   0 /* index */) {}
+        iterator(instance *inst, const type_vec *tinfo) : inst{inst}, types{tinfo} {
+            if (inst != nullptr) {
+                assert(!types->empty());
+                curr = value_and_holder(
+                    inst /* instance */,
+                    (*types)[0] /* type info */,
+                    0, /* vpos: (non-simple types only): the first vptr comes first */
+                    0 /* index */);
+            }
+        }
         // Past-the-end iterator:
         explicit iterator(size_t end) : curr(end) {}
 
@@ -364,6 +389,16 @@ public:
     }
 
     size_t size() { return tinfo.size(); }
+
+    // Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
+    bool is_redundant_value_and_holder(const value_and_holder &vh) {
+        for (size_t i = 0; i < vh.index; i++) {
+            if (PyType_IsSubtype(tinfo[i]->type, tinfo[vh.index]->type) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 /**
@@ -486,8 +521,10 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION)
     return PyThreadState_GET();
-#else
+#elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
+#else
+    return PyThreadState_GetUnchecked();
 #endif
 }
 
@@ -786,7 +823,7 @@ public:
         std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
         detail::clean_type_id(tname);
         std::string msg = "Unregistered type : " + tname;
-        PyErr_SetString(PyExc_TypeError, msg.c_str());
+        set_error(PyExc_TypeError, msg.c_str());
         return {nullptr, nullptr};
     }
 
@@ -1164,13 +1201,17 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
+inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
+    return cpp_type_name; // No-op for now. See PR #4888
+}
+
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
     if (auto *type_data = get_type_info(ti)) {
         handle th((PyObject *) type_data->type);
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
     }
-    return clean_type_id(ti.name());
+    return quote_cpp_type_name(clean_type_id(ti.name()));
 }
 
 PYBIND11_NAMESPACE_END(detail)

@@ -135,7 +135,7 @@ The valid options are:
 * Use `-G` and the name of a generator to use something different. `cmake
   --help` lists the generators available.
       - On Unix, setting `CMAKE_GENERATER=Ninja` in your environment will give
-        you automatic mulithreading on all your CMake projects!
+        you automatic multithreading on all your CMake projects!
 * Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * You can use `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the `.json` file
   that some tools expect.

@@ -49,10 +49,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Python 3.7
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.7
         architecture: ${{ matrix.arch }}
@@ -63,7 +63,7 @@ jobs:
     # An action for adding a specific version of CMake:
     #   https://github.com/jwlawson/actions-setup-cmake
     - name: Setup CMake ${{ matrix.cmake }}
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
       with:
         cmake-version: ${{ matrix.cmake }}
 

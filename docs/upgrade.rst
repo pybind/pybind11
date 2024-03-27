@@ -8,6 +8,34 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-2.12:
+
+v2.12
+=====
+
+NumPy support has been upgraded to support the 2.x series too. The two relevant
+changes are that:
+
+* ``dtype.flags()`` is now a ``uint64`` and ``dtype.alignment()`` an
+  ``ssize_t`` (and NumPy may return an larger than integer value for
+  ``itemsize()`` in NumPy 2.x).
+
+* The long deprecated NumPy function ``PyArray_GetArrayParamsFromObject``
+  function is not available anymore.
+
+Due to NumPy changes, you may experience difficulties updating to NumPy 2.
+Please see the [NumPy 2 migration guide](https://numpy.org/devdocs/numpy_2_0_migration_guide.html) for details.
+For example, a more direct change could be that the default integer ``"int_"``
+(and ``"uint"``) is now ``ssize_t`` and not ``long`` (affects 64bit windows).
+
+If you want to only support NumPy 1.x for now and are having problems due to
+the two internal changes listed above, you can define
+``PYBIND11_NUMPY_1_ONLY`` to disable the new support for now. Make sure you
+define this on all pybind11 compile units, since it could be a source of ODR
+violations if used inconsistently. This option will be removed in the future,
+so adapting your code is highly recommended.
+
+
 .. _upgrade-guide-2.11:
 
 v2.11

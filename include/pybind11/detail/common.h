@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 11
-#define PYBIND11_VERSION_PATCH 1
+#define PYBIND11_VERSION_MINOR 12
+#define PYBIND11_VERSION_PATCH 0
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020B0100
+#define PYBIND11_VERSION_HEX 0x020C0000
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -116,6 +116,14 @@
 #            endif
 #        endif
 #    endif
+#endif
+
+#if defined(PYBIND11_CPP20)
+#    define PYBIND11_CONSTINIT constinit
+#    define PYBIND11_DTOR_CONSTEXPR constexpr
+#else
+#    define PYBIND11_CONSTINIT
+#    define PYBIND11_DTOR_CONSTEXPR
 #endif
 
 // Compiler version assertions
@@ -288,6 +296,10 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #    undef copysign
 #endif
 
+#if defined(PYBIND11_NUMPY_1_ONLY)
+#    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
+#endif
+
 #if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
@@ -399,7 +411,7 @@ PYBIND11_WARNING_POP
         return nullptr;                                                                           \
     }                                                                                             \
     catch (const std::exception &e) {                                                             \
-        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        ::pybind11::set_error(PyExc_ImportError, e.what());                                       \
         return nullptr;                                                                           \
     }
 

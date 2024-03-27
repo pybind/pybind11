@@ -100,7 +100,7 @@ public:
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type, const_name("set[") + key_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
@@ -157,7 +157,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
+                         const_name("dict[") + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
 };
 
@@ -172,7 +172,7 @@ struct list_caster {
         auto s = reinterpret_borrow<sequence>(src);
         value.clear();
         reserve_maybe(s, &value);
-        for (auto it : s) {
+        for (const auto &it : s) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -208,7 +208,7 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, const_name("list[") + value_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Alloc>
@@ -247,7 +247,7 @@ public:
             return false;
         }
         size_t ctr = 0;
-        for (auto it : l) {
+        for (const auto &it : l) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -274,7 +274,7 @@ public:
 
     PYBIND11_TYPE_CASTER(ArrayType,
                          const_name<Resizable>(const_name(""), const_name("Annotated["))
-                             + const_name("List[") + value_conv::name + const_name("]")
+                             + const_name("list[") + value_conv::name + const_name("]")
                              + const_name<Resizable>(const_name(""),
                                                      const_name(", FixedSize(")
                                                          + const_name<Size>() + const_name(")]")));
@@ -421,7 +421,8 @@ struct variant_caster<V<Ts...>> {
 
     using Type = V<Ts...>;
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Union[") + detail::concat(make_caster<Ts>::name...)
+                         const_name("Union[")
+                             + ::pybind11::detail::concat(make_caster<Ts>::name...)
                              + const_name("]"));
 };
 

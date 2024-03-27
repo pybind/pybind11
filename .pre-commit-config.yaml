@@ -25,27 +25,22 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v16.0.6"
+  rev: "v17.0.6"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
-# Black, the code formatter, natively supports pre-commit
-- repo: https://github.com/psf/black
-  rev: "23.3.0" # Keep in sync with blacken-docs
-  hooks:
-  - id: black
-
-# Ruff, the Python auto-correcting linter written in Rust
+# Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.276
+  rev: v0.2.0
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
+  - id: ruff-format
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.4.1"
+  rev: "v1.8.0"
   hooks:
   - id: mypy
     args: []
@@ -67,7 +62,7 @@ repos:
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v4.4.0"
+  rev: "v4.5.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -84,21 +79,21 @@ repos:
 
 # Also code format the docs
 - repo: https://github.com/asottile/blacken-docs
-  rev: "1.14.0"
+  rev: "1.16.0"
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==23.3.0 # keep in sync with black hook
+    - black==23.*
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.5.1"
+  rev: "v1.5.4"
   hooks:
   - id: remove-tabs
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.5.0"
+  rev: "0.6.4"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
@@ -124,7 +119,7 @@ repos:
 # Use tools/codespell_ignore_lines_from_errors.py
 # to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.2.5"
+  rev: "v2.2.6"
   hooks:
   - id: codespell
     exclude: ".supp$"
@@ -132,7 +127,7 @@ repos:
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.9.0.5"
+  rev: "v0.9.0.6"
   hooks:
   - id: shellcheck
 
@@ -142,12 +137,19 @@ repos:
   - id: disallow-caps
     name: Disallow improper capitalization
     language: pygrep
-    entry: PyBind|Numpy|Cmake|CCache|PyTest
+    entry: PyBind|\bNumpy\b|Cmake|CCache|PyTest
     exclude: ^\.pre-commit-config.yaml$
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.0.0a6"
+  rev: "v3.0.3"
   hooks:
   - id: pylint
     files: ^pybind11
+
+- repo: https://github.com/python-jsonschema/check-jsonschema
+  rev: 0.28.0
+  hooks:
+  - id: check-readthedocs
+  - id: check-github-workflows
+  - id: check-dependabot

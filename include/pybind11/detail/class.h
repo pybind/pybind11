@@ -86,16 +86,15 @@ inline PyTypeObject *make_static_property_type() {
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
 
-    if (PyType_Ready(type) < 0) {
-        pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
-    }
-
 #    if PY_VERSION_HEX >= 0x030C0000
-    // PRE 3.12 FEATURE FREEZE. PLEASE REVIEW AFTER FREEZE.
     // Since Python-3.12 property-derived types are required to
     // have dynamic attributes (to set `__doc__`)
     enable_dynamic_attributes(heap_type);
 #    endif
+
+    if (PyType_Ready(type) < 0) {
+        pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
+    }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
@@ -189,12 +188,10 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
         return nullptr;
     }
 
-    // This must be a pybind11 instance
-    auto *instance = reinterpret_cast<detail::instance *>(self);
-
     // Ensure that the base __init__ function(s) were called
-    for (const auto &vh : values_and_holders(instance)) {
-        if (!vh.holder_constructed()) {
+    values_and_holders vhs(self);
+    for (const auto &vh : vhs) {
+        if (!vh.holder_constructed() && !vhs.is_redundant_value_and_holder(vh)) {
             PyErr_Format(PyExc_TypeError,
                          "%.200s.__init__() must be called when overriding __init__",
                          get_fully_qualified_tp_name(vh.type->type).c_str());
@@ -375,7 +372,7 @@ extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, 
 extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
     PyTypeObject *type = Py_TYPE(self);
     std::string msg = get_fully_qualified_tp_name(type) + ": No constructor defined!";
-    PyErr_SetString(PyExc_TypeError, msg.c_str());
+    set_error(PyExc_TypeError, msg.c_str());
     return -1;
 }
 
@@ -522,8 +519,12 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
 
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
 extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_VisitManagedDict(self, visit, arg);
+#else
     PyObject *&dict = *_PyObject_GetDictPtr(self);
     Py_VISIT(dict);
+#endif
 // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
 #if PY_VERSION_HEX >= 0x03090000
     Py_VISIT(Py_TYPE(self));
@@ -533,8 +534,12 @@ extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *a
 
 /// dynamic_attr: Allow the GC to clear the dictionary.
 extern "C" inline int pybind11_clear(PyObject *self) {
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_ClearManagedDict(self);
+#else
     PyObject *&dict = *_PyObject_GetDictPtr(self);
     Py_CLEAR(dict);
+#endif
     return 0;
 }
 
@@ -579,7 +584,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         if (view) {
             view->obj = nullptr;
         }
-        PyErr_SetString(PyExc_BufferError, "pybind11_getbuffer(): Internal error");
+        set_error(PyExc_BufferError, "pybind11_getbuffer(): Internal error");
         return -1;
     }
     std::memset(view, 0, sizeof(Py_buffer));
@@ -587,7 +592,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
         delete info;
         // view->obj = nullptr;  // Was just memset to 0, so not necessary
-        PyErr_SetString(PyExc_BufferError, "Writable buffer requested for readonly storage");
+        set_error(PyExc_BufferError, "Writable buffer requested for readonly storage");
         return -1;
     }
     view->obj = obj;

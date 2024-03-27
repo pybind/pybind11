@@ -7,13 +7,13 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-# The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.5...3.27)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.26)
+if(${CMAKE_VERSION} VERSION_LESS 3.27)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.26)
+  cmake_policy(VERSION 3.27)
 endif()
 
 # Filter out items; print an optional message if any items filtered. This ignores extensions.
@@ -144,6 +144,7 @@ set(PYBIND11_TEST_FILES
     test_opaque_types
     test_operator_overloading
     test_pickling
+    test_python_multiple_inheritance
     test_pytypes
     test_sequences_and_iterators
     test_smart_ptr
@@ -519,11 +520,15 @@ set(PYBIND11_TEST_PREFIX_COMMAND
     ""
     CACHE STRING "Put this before pytest, use for checkers and such")
 
+set(PYBIND11_PYTEST_ARGS
+    ""
+    CACHE STRING "Extra arguments for pytest")
+
 # A single command to compile and run the tests
 add_custom_target(
   pytest
   COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
-          ${PYBIND11_ABS_PYTEST_FILES}
+          ${PYBIND11_ABS_PYTEST_FILES} ${PYBIND11_PYTEST_ARGS}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)

@@ -4,7 +4,7 @@ import pytest
 
 import env
 import pybind11_cross_module_tests as cm
-import pybind11_tests  # noqa: F401
+import pybind11_tests
 from pybind11_tests import exceptions as m
 
 
@@ -139,7 +139,15 @@ def test_custom(msg):
     # Can we catch a MyException?
     with pytest.raises(m.MyException) as excinfo:
         m.throws1()
-    assert msg(excinfo.value) == "this error should go to a custom type"
+    assert msg(excinfo.value) == "this error should go to py::exception<MyException>"
+
+    # Can we catch a MyExceptionUseDeprecatedOperatorCall?
+    with pytest.raises(m.MyExceptionUseDeprecatedOperatorCall) as excinfo:
+        m.throws1d()
+    assert (
+        msg(excinfo.value)
+        == "this error should go to py::exception<MyExceptionUseDeprecatedOperatorCall>"
+    )
 
     # Can we translate to standard Python exceptions?
     with pytest.raises(RuntimeError) as excinfo:
@@ -240,6 +248,11 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
+# TODO: Investigate this crash, see pybind/pybind11#5062 for background
+@pytest.mark.skipif(
+    sys.platform.startswith("win32") and "Clang" in pybind11_tests.compiler_info,
+    reason="Started segfaulting February 2024",
+)
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_nested_exception()
@@ -411,3 +424,9 @@ def test_fn_cast_int_exception():
     assert str(excinfo.value).startswith(
         "Unable to cast Python instance of type <class 'NoneType'> to C++ type"
     )
+
+
+def test_return_exception_void():
+    with pytest.raises(TypeError) as excinfo:
+        m.return_exception_void()
+    assert "Exception" in str(excinfo.value)

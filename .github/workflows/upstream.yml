@@ -13,30 +13,30 @@ concurrency:
 
 env:
   PIP_BREAK_SYSTEM_PACKAGES: 1
-  PIP_ONLY_BINARY: ":all:"
   # For cmake:
   VERBOSE: 1
 
 jobs:
   standard:
-    name: "🐍 3.12 latest • ubuntu-latest • x64"
+    name: "🐍 3.13 latest • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     # Only runs when the  'python dev' label is selected
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Setup Python 3.12
-      uses: actions/setup-python@v4
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.12-dev"
+        python-version: "3.13"
+        allow-prereleases: true
 
     - name: Setup Boost
       run: sudo apt-get install libboost-dev
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Run pip installs
       run: |

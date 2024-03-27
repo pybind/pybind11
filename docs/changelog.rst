@@ -10,8 +10,188 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
+IN DEVELOPMENT
+--------------
+
+Changes will be summarized here periodically.
+
+Version 2.12.0 (March 27, 2025)
+-------------------------------
+
+New Features:
+
+* ``pybind11`` now supports compiling for
+  `NumPy 2 <https://numpy.org/devdocs/numpy_2_0_migration_guide.html>`_. Most
+  code shouldn't change (see :ref:`upgrade-guide-2.12` for details). However,
+  if you experience issues you can define ``PYBIND11_NUMPY_1_ONLY`` to disable
+  the new support for now, but this will be removed in the future.
+  `#5050 <https://github.com/pybind/pybind11/pull/5050>`_
+
+* ``pybind11/gil_safe_call_once.h`` was added (it needs to be included
+  explicitly). The primary use case is GIL-safe initialization of C++
+  ``static`` variables.
+  `#4877 <https://github.com/pybind/pybind11/pull/4877>`_
+
+* Support move-only iterators in ``py::make_iterator``,
+  ``py::make_key_iterator``, ``py::make_value_iterator``.
+  `#4834 <https://github.com/pybind/pybind11/pull/4834>`_
+
+* Two simple ``py::set_error()`` functions were added and the documentation was
+  updated accordingly. In particular, ``py::exception<>::operator()`` was
+  deprecated (use one of the new functions instead). The documentation for
+  ``py::exception<>`` was further updated to not suggest code that may result
+  in undefined behavior.
+  `#4772 <https://github.com/pybind/pybind11/pull/4772>`_
+
+Bug fixes:
+
+* Removes potential for Undefined Behavior during process teardown.
+  `#4897 <https://github.com/pybind/pybind11/pull/4897>`_
+
+* Improve compatibility with the nvcc compiler (especially CUDA 12.1/12.2).
+  `#4893 <https://github.com/pybind/pybind11/pull/4893>`_
+
+* ``pybind11/numpy.h`` now imports NumPy's ``multiarray`` and ``_internal``
+  submodules with paths depending on the installed version of NumPy (for
+  compatibility with NumPy 2).
+  `#4857 <https://github.com/pybind/pybind11/pull/4857>`_
+
+* Builtins collections names in docstrings are now consistently rendered in
+  lowercase (list, set, dict, tuple), in accordance with PEP 585.
+  `#4833 <https://github.com/pybind/pybind11/pull/4833>`_
+
+* Added ``py::typing::Iterator<T>``, ``py::typing::Iterable<T>``.
+  `#4832 <https://github.com/pybind/pybind11/pull/4832>`_
+
+* Render ``py::function`` as ``Callable`` in docstring.
+  `#4829 <https://github.com/pybind/pybind11/pull/4829>`_
+
+* Also bump ``PYBIND11_INTERNALS_VERSION`` for MSVC, which unlocks two new
+  features without creating additional incompatibilities.
+  `#4819 <https://github.com/pybind/pybind11/pull/4819>`_
+
+* Guard against crashes/corruptions caused by modules built with different MSVC
+  versions.
+  `#4779 <https://github.com/pybind/pybind11/pull/4779>`_
+
+* A long-standing bug in the handling of Python multiple inheritance was fixed.
+  See PR #4762 for the rather complex details.
+  `#4762 <https://github.com/pybind/pybind11/pull/4762>`_
+
+* Fix ``bind_map`` with ``using`` declarations.
+  `#4952 <https://github.com/pybind/pybind11/pull/4952>`_
+
+* Qualify ``py::detail::concat`` usage to avoid ADL selecting one from
+  somewhere else, such as modernjson's concat.
+  `#4955 <https://github.com/pybind/pybind11/pull/4955>`_
+
+* Use new PyCode API on Python 3.12+.
+  `#4916 <https://github.com/pybind/pybind11/pull/4916>`_
+
+* Minor cleanup from warnings reported by Clazy.
+  `#4988 <https://github.com/pybind/pybind11/pull/4988>`_
+
+* Remove typing and duplicate ``class_`` for ``KeysView``/``ValuesView``/``ItemsView``.
+  `#4985 <https://github.com/pybind/pybind11/pull/4985>`_
+
+* Use ``PyObject_VisitManagedDict()`` and ``PyObject_ClearManagedDict()`` on Python 3.13 and newer.
+  `#4973 <https://github.com/pybind/pybind11/pull/4973>`_
+
+* Update ``make_static_property_type()`` to make it compatible with Python 3.13.
+  `#4971 <https://github.com/pybind/pybind11/pull/4971>`_
+
+.. fix(types)
+
+* Render typed iterators for ``make_iterator``, ``make_key_iterator``,
+  ``make_value_iterator``.
+  `#4876 <https://github.com/pybind/pybind11/pull/4876>`_
+
+* Add several missing type name specializations.
+  `#5073 <https://github.com/pybind/pybind11/pull/5073>`_
+
+* Change docstring render for ``py::buffer``, ``py::sequence`` and
+  ``py::handle`` (to ``Buffer``, ``Sequence``, ``Any``).
+  `#4831 <https://github.com/pybind/pybind11/pull/4831>`_
+
+* Fixed ``base_enum.__str__`` docstring.
+  `#4827 <https://github.com/pybind/pybind11/pull/4827>`_
+
+* Enforce single line docstring signatures.
+  `#4735 <https://github.com/pybind/pybind11/pull/4735>`_
+
+* Special 'typed' wrappers now available in ``typing.h`` to annotate tuple, dict,
+  list, set, and function.
+  `#4259 <https://github.com/pybind/pybind11/pull/4259>`_
+
+* Create ``handle_type_name`` specialization to type-hint variable length tuples.
+  `#5051 <https://github.com/pybind/pybind11/pull/5051>`_
+
+.. fix(build)
+
+* Setting ``PYBIND11_FINDPYTHON`` to OFF will force the old FindPythonLibs mechanism to be used.
+  `#5042 <https://github.com/pybind/pybind11/pull/5042>`_
+
+* Skip empty ``PYBIND11_PYTHON_EXECUTABLE_LAST`` for the first cmake run.
+  `#4856 <https://github.com/pybind/pybind11/pull/4856>`_
+
+* Fix FindPython mode exports & avoid ``pkg_resources`` if
+  ``importlib.metadata`` available.
+  `#4941 <https://github.com/pybind/pybind11/pull/4941>`_
+
+*  ``Python_ADDITIONAL_VERSIONS`` (classic search) now includes 3.12.
+  `#4909 <https://github.com/pybind/pybind11/pull/4909>`_
+
+* ``pybind11.pc`` is now relocatable by default as long as install destinations
+  are not absolute paths.
+  `#4830 <https://github.com/pybind/pybind11/pull/4830>`_
+
+* Correctly detect CMake FindPython removal when used as a subdirectory.
+  `#4806 <https://github.com/pybind/pybind11/pull/4806>`_
+
+* Don't require the libs component on CMake 3.18+ when using
+  PYBIND11_FINDPYTHON (fixes manylinux builds).
+  `#4805 <https://github.com/pybind/pybind11/pull/4805>`_
+
+* ``pybind11_strip`` is no longer automatically applied when
+  ``CMAKE_BUILD_TYPE`` is unset.
+  `#4780 <https://github.com/pybind/pybind11/pull/4780>`_
+
+* Support ``DEBUG_POSFIX`` correctly for debug builds.
+  `#4761 <https://github.com/pybind/pybind11/pull/4761>`_
+
+* Hardcode lto/thin lto for Emscripten cross-compiles.
+  `#4642 <https://github.com/pybind/pybind11/pull/4642>`_
+
+* Upgrade maximum supported CMake version to 3.27 to fix CMP0148 warnings.
+  `#4786 <https://github.com/pybind/pybind11/pull/4786>`_
+
+Documentation:
+
+* Small fix to grammar in ``functions.rst``.
+  `#4791 <https://github.com/pybind/pybind11/pull/4791>`_
+
+* Remove upper bound in example pyproject.toml for setuptools.
+  `#4774 <https://github.com/pybind/pybind11/pull/4774>`_
+
+CI:
+
+* CI: Update NVHPC to 23.5 and Ubuntu 20.04.
+  `#4764 <https://github.com/pybind/pybind11/pull/4764>`_
+
+* Test on PyPy 3.10.
+  `#4714 <https://github.com/pybind/pybind11/pull/4714>`_
+
+Other:
+
+* Use Ruff formatter instead of Black.
+  `#4912 <https://github.com/pybind/pybind11/pull/4912>`_
+
+* An ``assert()`` was added to help Coverty avoid generating a false positive.
+  `#4817 <https://github.com/pybind/pybind11/pull/4817>`_
+
+
 Version 2.11.1 (July 17, 2023)
------------------------------
+------------------------------
 
 Changes:
 
@@ -26,7 +206,7 @@ Changes:
 
 
 Version 2.11.0 (July 14, 2023)
------------------------------
+------------------------------
 
 New features:
 
