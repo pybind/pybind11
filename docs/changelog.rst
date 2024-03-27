@@ -90,6 +90,9 @@ Bug fixes:
   ``make_value_iterator``.
   `#4876 <https://github.com/pybind/pybind11/pull/4876>`_
 
+* Add several missing type name specializations.
+  `#5073 <https://github.com/pybind/pybind11/pull/5073>`_
+
 * Change docstring render for ``py::buffer``, ``py::sequence`` and
   ``py::handle`` (to ``Buffer``, ``Sequence``, ``Any``).
   `#4831 <https://github.com/pybind/pybind11/pull/4831>`_
