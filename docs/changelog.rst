@@ -85,6 +85,21 @@ Bug fixes:
   somewhere else, such as modernjson's concat.
   `#4955 <https://github.com/pybind/pybind11/pull/4955>`_
 
+* Use new PyCode API on Python 3.12+.
+  `#4916 <https://github.com/pybind/pybind11/pull/4916>`_
+
+* Minor cleanup from warnings reported by Clazy.
+  `#4988 <https://github.com/pybind/pybind11/pull/4988>`_
+
+* Remove typing and duplicate ``class_`` for ``KeysView``/``ValuesView``/``ItemsView``.
+  `#4985 <https://github.com/pybind/pybind11/pull/4985>`_
+
+* Use ``PyObject_VisitManagedDict()`` and ``PyObject_ClearManagedDict()`` on Python 3.13 and newer.
+  `#4973 <https://github.com/pybind/pybind11/pull/4973>`_
+
+* Update ``make_static_property_type()`` to make it compatible with Python 3.13.
+  `#4971 <https://github.com/pybind/pybind11/pull/4971>`_
+
 .. fix(types)
 
 * Render typed iterators for ``make_iterator``, ``make_key_iterator``,
@@ -104,11 +119,20 @@ Bug fixes:
 * Enforce single line docstring signatures.
   `#4735 <https://github.com/pybind/pybind11/pull/4735>`_
 
-* Special 'typed' wrappers now available in typing.h to annotate tuple, dict,
+* Special 'typed' wrappers now available in ``typing.h`` to annotate tuple, dict,
   list, set, and function.
   `#4259 <https://github.com/pybind/pybind11/pull/4259>`_
 
+* Create ``handle_type_name`` specialization to type-hint variable length tuples.
+  `#5051 <https://github.com/pybind/pybind11/pull/5051>`_
+
 .. fix(build)
+
+* Setting ``PYBIND11_FINDPYTHON`` to OFF will force the old FindPythonLibs mechanism to be used.
+  `#5042 <https://github.com/pybind/pybind11/pull/5042>`_
+
+* Skip empty ``PYBIND11_PYTHON_EXECUTABLE_LAST`` for the first cmake run.
+  `#4856 <https://github.com/pybind/pybind11/pull/4856>`_
 
 * Fix FindPython mode exports & avoid ``pkg_resources`` if
   ``importlib.metadata`` available.
@@ -132,15 +156,18 @@ Bug fixes:
   ``CMAKE_BUILD_TYPE`` is unset.
   `#4780 <https://github.com/pybind/pybind11/pull/4780>`_
 
-* Support DEBUG_POSFIX correctly for debug builds.
+* Support ``DEBUG_POSFIX`` correctly for debug builds.
   `#4761 <https://github.com/pybind/pybind11/pull/4761>`_
 
 * Hardcode lto/thin lto for Emscripten cross-compiles.
   `#4642 <https://github.com/pybind/pybind11/pull/4642>`_
 
+* Upgrade maximum supported CMake version to 3.27 to fix CMP0148 warnings.
+  `#4786 <https://github.com/pybind/pybind11/pull/4786>`_
+
 Documentation:
 
-* Small fix to grammar in functions.rst.
+* Small fix to grammar in ``functions.rst``.
   `#4791 <https://github.com/pybind/pybind11/pull/4791>`_
 
 * Remove upper bound in example pyproject.toml for setuptools.
@@ -155,9 +182,6 @@ CI:
   `#4714 <https://github.com/pybind/pybind11/pull/4714>`_
 
 Other:
-
-* Use new PyCode API on Python 3.12+.
-  `#4916 <https://github.com/pybind/pybind11/pull/4916>`_
 
 * Use Ruff formatter instead of Black.
   `#4912 <https://github.com/pybind/pybind11/pull/4912>`_
