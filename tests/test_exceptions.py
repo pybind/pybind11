@@ -424,3 +424,9 @@ def test_fn_cast_int_exception():
     assert str(excinfo.value).startswith(
         "Unable to cast Python instance of type <class 'NoneType'> to C++ type"
     )
+
+
+def test_return_exception_void():
+    with pytest.raises(TypeError) as excinfo:
+        m.return_exception_void()
+    assert "Exception" in str(excinfo.value)

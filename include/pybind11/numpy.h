@@ -46,9 +46,15 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_WARNING_DISABLE_MSVC(4127)
 
+class dtype; // Forward declaration
 class array; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct handle_type_name<dtype> {
+    static constexpr auto name = const_name("numpy.dtype");
+};
 
 template <>
 struct handle_type_name<array> {

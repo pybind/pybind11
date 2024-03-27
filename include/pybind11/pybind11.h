@@ -492,9 +492,7 @@ protected:
                     signature += rec->scope.attr("__module__").cast<std::string>() + "."
                                  + rec->scope.attr("__qualname__").cast<std::string>();
                 } else {
-                    std::string tname(t->name());
-                    detail::clean_type_id(tname);
-                    signature += tname;
+                    signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
             } else {
                 signature += c;
@@ -1192,6 +1190,15 @@ protected:
     }
 };
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct handle_type_name<cpp_function> {
+    static constexpr auto name = const_name("Callable");
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
@@ -1318,6 +1325,15 @@ public:
         return reinterpret_borrow<module_>(m);
     }
 };
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct handle_type_name<module_> {
+    static constexpr auto name = const_name("module");
+};
+
+PYBIND11_NAMESPACE_END(detail)
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
 // C++20 allows "module" to be used. This is provided for backward compatibility, and for
@@ -2610,6 +2626,11 @@ public:
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct handle_type_name<exception<void>> {
+    static constexpr auto name = const_name("Exception");
+};
 
 // Helper function for register_exception and register_local_exception
 template <typename CppException>
