@@ -881,8 +881,20 @@ struct is_holder_type
 template <typename base, typename deleter>
 struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
 
+#ifdef PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION // See PR #4888
+
+// This leads to compilation errors if a specialization is missing.
 template <typename T>
 struct handle_type_name;
+
+#else
+
+template <typename T>
+struct handle_type_name {
+    static constexpr auto name = const_name<T>();
+};
+
+#endif
 
 template <>
 struct handle_type_name<object> {
