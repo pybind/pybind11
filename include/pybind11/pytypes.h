@@ -59,6 +59,7 @@ struct sequence_item;
 struct list_item;
 struct tuple_item;
 } // namespace accessor_policies
+// PLEASE KEEP handle_type_name SPECIALIZATIONS IN SYNC.
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
 using item_accessor = accessor<accessor_policies::generic_item>;

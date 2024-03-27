@@ -41,6 +41,15 @@ class float_ : public py::object {
 };
 } // namespace external
 
+namespace pybind11 {
+namespace detail {
+template <>
+struct handle_type_name<external::float_> {
+    static constexpr auto name = const_name("float");
+};
+} // namespace detail
+} // namespace pybind11
+
 namespace implicit_conversion_from_0_to_handle {
 // Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
 // void expected_to_trigger_compiler_error() { py::handle(0); }

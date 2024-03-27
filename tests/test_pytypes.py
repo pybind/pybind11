@@ -121,7 +121,7 @@ def test_set(capture, doc):
     assert m.anyset_contains({"foo"}, "foo")
 
     assert doc(m.get_set) == "get_set() -> set"
-    assert doc(m.print_anyset) == "print_anyset(arg0: anyset) -> None"
+    assert doc(m.print_anyset) == "print_anyset(arg0: Union[set, frozenset]) -> None"
 
 
 def test_frozenset(capture, doc):
