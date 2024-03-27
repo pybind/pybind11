@@ -38,7 +38,7 @@ New Features:
 
 * Two simple ``py::set_error()`` functions were added and the documentation was
   updated accordingly. In particular, ``py::exception<>::operator()`` was
-  deprecated (use one of the new function instead). The documentation for
+  deprecated (use one of the new functions instead). The documentation for
   ``py::exception<>`` was further updated to not suggest code that may result
   in undefined behavior.
   `#4772 <https://github.com/pybind/pybind11/pull/4772>`_
@@ -52,8 +52,8 @@ Bug fixes:
   `#4893 <https://github.com/pybind/pybind11/pull/4893>`_
 
 * ``pybind11/numpy.h`` now imports NumPy's ``multiarray`` and ``_internal``
-  submodules with paths depending on the version of installed NumPy (handling
-  change in NumPy 2.0).
+  submodules with paths depending on the installed version of NumPy (for
+  compatibility with NumPy 2).
   `#4857 <https://github.com/pybind/pybind11/pull/4857>`_
 
 * Builtins collections names in docstrings are now consistently rendered in
@@ -85,6 +85,7 @@ Bug fixes:
   somewhere else, such as modernjson's concat.
   `#4955 <https://github.com/pybind/pybind11/pull/4955>`_
 
+.. fix(types)
 
 * Render typed iterators for ``make_iterator``, ``make_key_iterator``,
   ``make_value_iterator``.
@@ -107,6 +108,7 @@ Bug fixes:
   list, set, and function.
   `#4259 <https://github.com/pybind/pybind11/pull/4259>`_
 
+.. fix(build)
 
 * Fix FindPython mode exports & avoid ``pkg_resources`` if
   ``importlib.metadata`` available.
