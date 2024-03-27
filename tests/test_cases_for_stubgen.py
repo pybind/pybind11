@@ -40,6 +40,6 @@ TEST_CASES = {
 def test_docstring(test_case):
     assert dir(m)  # Only direct use of m, to stop tooling from removing the import.
     # On some platforms the stl_binders module name prevails for KeysView, ValuesView, ItemsView.
-    docstring = eval(test_case).replace(".stl_binders.", ".cases_for_stubgen.")  # noqa: PGH001
+    docstring = eval(test_case).replace(".stl_binders.", ".cases_for_stubgen.")
     expected = TEST_CASES[test_case]
     assert docstring == expected
