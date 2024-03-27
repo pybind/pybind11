@@ -81,6 +81,10 @@ Bug fixes:
 * Fix ``bind_map`` with ``using`` declarations.
   `#4952 <https://github.com/pybind/pybind11/pull/4952>`_
 
+* Qualify ``py::detail::concat`` usage to avoid ADL selecting one from
+  somewhere else, such as modernjson's concat.
+  `#4955 <https://github.com/pybind/pybind11/pull/4955>`_
+
 
 * Render typed iterators for ``make_iterator``, ``make_key_iterator``,
   ``make_value_iterator``.
