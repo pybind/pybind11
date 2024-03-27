@@ -317,9 +317,9 @@ def test_map_view_types():
     map_string_double_const = m.MapStringDoubleConst()
     unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
 
-    assert map_string_double.keys().__class__.__name__ == "KeysView[str]"
-    assert map_string_double.values().__class__.__name__ == "ValuesView[float]"
-    assert map_string_double.items().__class__.__name__ == "ItemsView[str, float]"
+    assert map_string_double.keys().__class__.__name__ == "KeysView"
+    assert map_string_double.values().__class__.__name__ == "ValuesView"
+    assert map_string_double.items().__class__.__name__ == "ItemsView"
 
     keys_type = type(map_string_double.keys())
     assert type(unordered_map_string_double.keys()) is keys_type
@@ -335,6 +335,30 @@ def test_map_view_types():
     assert type(unordered_map_string_double.items()) is items_type
     assert type(map_string_double_const.items()) is items_type
     assert type(unordered_map_string_double_const.items()) is items_type
+
+    map_string_float = m.MapStringFloat()
+    unordered_map_string_float = m.UnorderedMapStringFloat()
+
+    assert type(map_string_float.keys()) is keys_type
+    assert type(unordered_map_string_float.keys()) is keys_type
+    assert type(map_string_float.values()) is values_type
+    assert type(unordered_map_string_float.values()) is values_type
+    assert type(map_string_float.items()) is items_type
+    assert type(unordered_map_string_float.items()) is items_type
+
+    map_pair_double_int_int32 = m.MapPairDoubleIntInt32()
+    map_pair_double_int_int64 = m.MapPairDoubleIntInt64()
+
+    assert type(map_pair_double_int_int32.values()) is values_type
+    assert type(map_pair_double_int_int64.values()) is values_type
+
+    map_int_object = m.MapIntObject()
+    map_string_object = m.MapStringObject()
+
+    assert type(map_int_object.keys()) is keys_type
+    assert type(map_string_object.keys()) is keys_type
+    assert type(map_int_object.items()) is items_type
+    assert type(map_string_object.items()) is items_type
 
 
 def test_recursive_vector():

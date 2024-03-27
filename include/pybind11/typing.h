@@ -79,6 +79,13 @@ struct handle_type_name<typing::Tuple<>> {
     static constexpr auto name = const_name("tuple[()]");
 };
 
+template <typename T>
+struct handle_type_name<typing::Tuple<T, ellipsis>> {
+    // PEP 484 specifies this syntax for a variable-length tuple
+    static constexpr auto name
+        = const_name("tuple[") + make_caster<T>::name + const_name(", ...]");
+};
+
 template <typename K, typename V>
 struct handle_type_name<typing::Dict<K, V>> {
     static constexpr auto name = const_name("dict[") + make_caster<K>::name + const_name(", ")

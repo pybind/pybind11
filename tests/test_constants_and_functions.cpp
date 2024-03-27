@@ -54,7 +54,11 @@ int f2(int x) noexcept(true) { return x + 2; }
 int f3(int x) noexcept(false) { return x + 3; }
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
+#if defined(__clang_major__) && __clang_major__ >= 5
+PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-dynamic-exception-spec")
+#else
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
+#endif
 // NOLINTNEXTLINE(modernize-use-noexcept)
 int f4(int x) throw() { return x + 4; } // Deprecated equivalent to noexcept(true)
 PYBIND11_WARNING_POP
