@@ -138,7 +138,7 @@ Bug fixes:
   ``importlib.metadata`` available.
   `#4941 <https://github.com/pybind/pybind11/pull/4941>`_
 
-*  ``Python_ADDITIONAL_VERSIONS`` (classic search) now includes 3.12.
+* ``Python_ADDITIONAL_VERSIONS`` (classic search) now includes 3.12.
   `#4909 <https://github.com/pybind/pybind11/pull/4909>`_
 
 * ``pybind11.pc`` is now relocatable by default as long as install destinations
