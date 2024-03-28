@@ -357,8 +357,9 @@ public:
             value = false;
             return true;
         }
-        if (convert || (std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name) == 0)) {
-            // (allow non-implicit conversion for numpy booleans)
+        if (convert || is_numpy_bool(src)) {
+            // (allow non-implicit conversion for numpy booleans), use strncmp
+            // since NumPy 1.x had an additional trailing underscore.
 
             Py_ssize_t res = -1;
             if (src.is_none()) {
@@ -390,6 +391,15 @@ public:
         return handle(src ? Py_True : Py_False).inc_ref();
     }
     PYBIND11_TYPE_CASTER(bool, const_name("bool"));
+
+private:
+    // Test if an object is a NumPy boolean (without fetching the type).
+    static inline bool is_numpy_bool(handle object) {
+        const char *type_name = Py_TYPE(object.ptr())->tp_name;
+        // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
+        return std::strcmp("numpy.bool", type_name) == 0
+               || std::strcmp("numpy.bool_", type_name) == 0;
+    }
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
@@ -696,8 +706,9 @@ public:
         return cast(*src, policy, parent);
     }
 
-    static constexpr auto name
-        = const_name("tuple[") + concat(make_caster<Ts>::name...) + const_name("]");
+    static constexpr auto name = const_name("tuple[")
+                                 + ::pybind11::detail::concat(make_caster<Ts>::name...)
+                                 + const_name("]");
 
     template <typename T>
     using cast_op_type = type;
@@ -909,9 +920,52 @@ struct is_holder_type
 template <typename base, typename deleter>
 struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
 
+#ifdef PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION // See PR #4888
+
+// This leads to compilation errors if a specialization is missing.
+template <typename T>
+struct handle_type_name;
+
+#else
+
 template <typename T>
 struct handle_type_name {
     static constexpr auto name = const_name<T>();
+};
+
+#endif
+
+template <>
+struct handle_type_name<object> {
+    static constexpr auto name = const_name("object");
+};
+template <>
+struct handle_type_name<list> {
+    static constexpr auto name = const_name("list");
+};
+template <>
+struct handle_type_name<dict> {
+    static constexpr auto name = const_name("dict");
+};
+template <>
+struct handle_type_name<anyset> {
+    static constexpr auto name = const_name("Union[set, frozenset]");
+};
+template <>
+struct handle_type_name<set> {
+    static constexpr auto name = const_name("set");
+};
+template <>
+struct handle_type_name<frozenset> {
+    static constexpr auto name = const_name("frozenset");
+};
+template <>
+struct handle_type_name<str> {
+    static constexpr auto name = const_name("str");
+};
+template <>
+struct handle_type_name<tuple> {
+    static constexpr auto name = const_name("tuple");
 };
 template <>
 struct handle_type_name<bool_> {
@@ -958,12 +1012,64 @@ struct handle_type_name<sequence> {
     static constexpr auto name = const_name("Sequence");
 };
 template <>
+struct handle_type_name<bytearray> {
+    static constexpr auto name = const_name("bytearray");
+};
+template <>
+struct handle_type_name<memoryview> {
+    static constexpr auto name = const_name("memoryview");
+};
+template <>
+struct handle_type_name<slice> {
+    static constexpr auto name = const_name("slice");
+};
+template <>
+struct handle_type_name<type> {
+    static constexpr auto name = const_name("type");
+};
+template <>
+struct handle_type_name<capsule> {
+    static constexpr auto name = const_name("capsule");
+};
+template <>
+struct handle_type_name<ellipsis> {
+    static constexpr auto name = const_name("ellipsis");
+};
+template <>
+struct handle_type_name<weakref> {
+    static constexpr auto name = const_name("weakref");
+};
+template <>
 struct handle_type_name<args> {
     static constexpr auto name = const_name("*args");
 };
 template <>
 struct handle_type_name<kwargs> {
     static constexpr auto name = const_name("**kwargs");
+};
+template <>
+struct handle_type_name<obj_attr_accessor> {
+    static constexpr auto name = const_name<obj_attr_accessor>();
+};
+template <>
+struct handle_type_name<str_attr_accessor> {
+    static constexpr auto name = const_name<str_attr_accessor>();
+};
+template <>
+struct handle_type_name<item_accessor> {
+    static constexpr auto name = const_name<item_accessor>();
+};
+template <>
+struct handle_type_name<sequence_accessor> {
+    static constexpr auto name = const_name<sequence_accessor>();
+};
+template <>
+struct handle_type_name<list_accessor> {
+    static constexpr auto name = const_name<list_accessor>();
+};
+template <>
+struct handle_type_name<tuple_accessor> {
+    static constexpr auto name = const_name<tuple_accessor>();
 };
 
 template <typename type>
@@ -1506,7 +1612,8 @@ public:
     static_assert(args_pos == -1 || args_pos == constexpr_first<argument_is_args, Args...>(),
                   "py::args cannot be specified more than once");
 
-    static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
+    static constexpr auto arg_names
+        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 

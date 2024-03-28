@@ -121,7 +121,7 @@ def test_set(capture, doc):
     assert m.anyset_contains({"foo"}, "foo")
 
     assert doc(m.get_set) == "get_set() -> set"
-    assert doc(m.print_anyset) == "print_anyset(arg0: anyset) -> None"
+    assert doc(m.print_anyset) == "print_anyset(arg0: Union[set, frozenset]) -> None"
 
 
 def test_frozenset(capture, doc):
@@ -908,6 +908,13 @@ def test_tuple_nonempty_annotations(doc):
 def test_tuple_empty_annotations(doc):
     assert (
         doc(m.annotate_tuple_empty) == "annotate_tuple_empty(arg0: tuple[()]) -> None"
+    )
+
+
+def test_tuple_variable_length_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_variable_length)
+        == "annotate_tuple_variable_length(arg0: tuple[float, ...]) -> None"
     )
 
 

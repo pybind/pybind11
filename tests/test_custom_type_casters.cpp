@@ -134,6 +134,16 @@ struct type_caster<other_lib::MyType> : public other_lib::my_caster {};
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+// This simply is required to compile
+namespace ADL_issue {
+template <typename OutStringType = std::string, typename... Args>
+OutStringType concat(Args &&...) {
+    return OutStringType();
+}
+
+struct test {};
+} // namespace ADL_issue
+
 TEST_SUBMODULE(custom_type_casters, m) {
     // test_custom_type_casters
 
@@ -206,4 +216,6 @@ TEST_SUBMODULE(custom_type_casters, m) {
           py::return_value_policy::reference);
 
     m.def("other_lib_type", [](other_lib::MyType x) { return x; });
+
+    m.def("_adl_issue", [](const ADL_issue::test &) {});
 }

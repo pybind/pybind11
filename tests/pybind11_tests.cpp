@@ -80,10 +80,10 @@ PYBIND11_MODULE(pybind11_tests, m) {
 
     // Intentionally kept minimal to not create a maintenance chore
     // ("just enough" to be conclusive).
-#if defined(_MSC_FULL_VER)
-    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
-#elif defined(__VERSION__)
+#if defined(__VERSION__)
     m.attr("compiler_info") = __VERSION__;
+#elif defined(_MSC_FULL_VER)
+    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
 #else
     m.attr("compiler_info") = py::none();
 #endif
@@ -91,6 +91,12 @@ PYBIND11_MODULE(pybind11_tests, m) {
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
     m.attr("PYBIND11_SIMPLE_GIL_MANAGEMENT") =
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+        true;
+#else
+        false;
+#endif
+    m.attr("PYBIND11_NUMPY_1_ONLY") =
+#if defined(PYBIND11_NUMPY_1_ONLY)
         true;
 #else
         false;

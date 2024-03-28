@@ -10,12 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 12
+#define PYBIND11_VERSION_MINOR 13
 #define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020C00D1
+#define PYBIND11_VERSION_HEX 0x020D00D1
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -294,6 +294,10 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 
 #if defined(copysign)
 #    undef copysign
+#endif
+
+#if defined(PYBIND11_NUMPY_1_ONLY)
+#    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
 #endif
 
 #if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)

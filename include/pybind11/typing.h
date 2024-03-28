@@ -69,14 +69,22 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename... Types>
 struct handle_type_name<typing::Tuple<Types...>> {
-    static constexpr auto name
-        = const_name("tuple[") + concat(make_caster<Types>::name...) + const_name("]");
+    static constexpr auto name = const_name("tuple[")
+                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
+                                 + const_name("]");
 };
 
 template <>
 struct handle_type_name<typing::Tuple<>> {
     // PEP 484 specifies this syntax for an empty tuple
     static constexpr auto name = const_name("tuple[()]");
+};
+
+template <typename T>
+struct handle_type_name<typing::Tuple<T, ellipsis>> {
+    // PEP 484 specifies this syntax for a variable-length tuple
+    static constexpr auto name
+        = const_name("tuple[") + make_caster<T>::name + const_name(", ...]");
 };
 
 template <typename K, typename V>
@@ -108,9 +116,9 @@ struct handle_type_name<typing::Iterator<T>> {
 template <typename Return, typename... Args>
 struct handle_type_name<typing::Callable<Return(Args...)>> {
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
-    static constexpr auto name = const_name("Callable[[") + concat(make_caster<Args>::name...)
-                                 + const_name("], ") + make_caster<retval_type>::name
-                                 + const_name("]");
+    static constexpr auto name
+        = const_name("Callable[[") + ::pybind11::detail::concat(make_caster<Args>::name...)
+          + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
 PYBIND11_NAMESPACE_END(detail)
