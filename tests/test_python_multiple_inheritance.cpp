@@ -26,6 +26,18 @@ private:
     int drvd_value;
 };
 
+struct CppDrvd2 : CppBase {
+    explicit CppDrvd2(int value) : CppBase(value), drvd2_value(value * 5) {}
+    int get_drvd2_value() const { return drvd2_value; }
+    void reset_drvd2_value(int new_value) { drvd2_value = new_value; }
+
+    int get_base_value_from_drvd2() const { return get_base_value(); }
+    void reset_base_value_from_drvd2(int new_value) { reset_base_value(new_value); }
+
+private:
+    int drvd2_value;
+};
+
 } // namespace test_python_multiple_inheritance
 
 TEST_SUBMODULE(python_multiple_inheritance, m) {
@@ -42,4 +54,13 @@ TEST_SUBMODULE(python_multiple_inheritance, m) {
         .def("reset_drvd_value", &CppDrvd::reset_drvd_value)
         .def("get_base_value_from_drvd", &CppDrvd::get_base_value_from_drvd)
         .def("reset_base_value_from_drvd", &CppDrvd::reset_base_value_from_drvd);
+
+    py::class_<CppDrvd2, CppBase>(m, "CppDrvd2")
+        .def(py::init<int>())
+        .def("get_drvd2_value", &CppDrvd2::get_drvd2_value)
+        .def("reset_drvd2_value", &CppDrvd2::reset_drvd2_value)
+        .def("get_base_value_from_drvd2", &CppDrvd2::get_base_value_from_drvd2)
+        .def("reset_base_value_from_drvd2", &CppDrvd2::reset_base_value_from_drvd2);
+
+    m.def("pass_CppBase", [](const CppBase *) {});
 }
