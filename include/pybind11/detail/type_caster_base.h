@@ -1201,13 +1201,17 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
+inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
+    return cpp_type_name; // No-op for now. See PR #4888
+}
+
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
     if (auto *type_data = get_type_info(ti)) {
         handle th((PyObject *) type_data->type);
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
     }
-    return clean_type_id(ti.name());
+    return quote_cpp_type_name(clean_type_id(ti.name()));
 }
 
 PYBIND11_NAMESPACE_END(detail)

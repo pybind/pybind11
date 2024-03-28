@@ -36,19 +36,19 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
-  - Ensure that all the information in ``setup.cfg`` is up-to-date, like
+- Ensure that all the information in ``setup.cfg`` is up-to-date, like
     supported Python versions.
 
-  - Add release date in ``docs/changelog.rst`` and integrate the output of
-    ``nox -s make_changelog``.
+- Add release date in ``docs/changelog.rst`` and integrate the output of
+  ``nox -s make_changelog``.
 
-    - Note that the ``make_changelog`` command inspects
-      `needs changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_.
+  - Note that the ``nox -s make_changelog`` command inspects
+    `needs changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_.
 
-    - Manually clear the ``needs changelog`` labels using the GitHub web
-      interface (very easy: start by clicking the link above).
+  - Manually clear the ``needs changelog`` labels using the GitHub web
+    interface (very easy: start by clicking the link above).
 
-  - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
+- ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
     fails due to a known flake issue, either ignore or restart CI.)
 
 - Add a release branch if this is a new MINOR version, or update the existing

@@ -46,12 +46,18 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_WARNING_DISABLE_MSVC(4127)
 
+class dtype; // Forward declaration
 class array; // Forward declaration
 
 template <typename>
 struct numpy_scalar; // Forward declaration
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct handle_type_name<dtype> {
+    static constexpr auto name = const_name("numpy.dtype");
+};
 
 template <>
 struct handle_type_name<array> {
@@ -538,7 +544,7 @@ struct array_info<std::array<T, N>> {
     }
 
     static constexpr auto extents = const_name<array_info<T>::is_array>(
-        concat(const_name<N>(), array_info<T>::extents), const_name<N>());
+        ::pybind11::detail::concat(const_name<N>(), array_info<T>::extents), const_name<N>());
 };
 // For numpy we have special handling for arrays of characters, so we don't include
 // the size in the array extents.
