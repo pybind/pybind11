@@ -229,6 +229,28 @@ def test_enum_to_int():
     m.test_enum_to_long_long(m.ScopedBoolEnum.TRUE)
 
 
+def test_enum_overload_resolution():
+    """When performing overload resolution, enums should not be silently
+    converted to floats"""
+    assert m.test_enum_overload_resolution(0.0, 0.0) == "f(float, float)"
+    assert m.test_enum_overload_resolution(0, 0) == "f(float, float)"
+    assert (
+        m.test_enum_overload_resolution(0.0, m.ScopedEnum.Two) == "f(float, ScopedEnum)"
+    )
+    assert (
+        m.test_enum_overload_resolution(0, m.ScopedEnum.Two) == "f(float, ScopedEnum)"
+    )
+
+
+def test_enum_to_float():
+    """Passing an enum to a function taking a float should trigger a type error"""
+    with pytest.raises(TypeError) as execinfo:
+        m.test_enum_to_float(m.ScopedBoolEnum.TRUE)
+    assert str(execinfo.value).startswith(
+        "TypeError: test_enum_to_float(): incompatible function arguments."
+    )
+
+
 def test_duplicate_enum_name():
     with pytest.raises(ValueError) as excinfo:
         m.register_bad_enum()
