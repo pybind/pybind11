@@ -1,5 +1,5 @@
---- ci.yml	2024-02-20 12:29:08.800226093 -0800
-+++ ci_sh_def.yml	2024-02-20 12:29:39.408187912 -0800
+--- ci.yml	2024-03-27 17:06:50.362431921 -0700
++++ ci_sh_def.yml	2024-03-27 17:07:41.890376614 -0700
 @@ -1,4 +1,16 @@
 -name: CI
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -27,7 +27,7 @@
    cancel-in-progress: true
  
  env:
-@@ -118,6 +130,7 @@
+@@ -121,6 +133,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -35,7 +35,7 @@
          ${{ matrix.args }}
  
      - name: Build C++11
-@@ -147,6 +160,7 @@
+@@ -152,6 +165,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=17
@@ -43,7 +43,7 @@
          ${{ matrix.args }}
  
      - name: Build
-@@ -168,6 +182,7 @@
+@@ -173,6 +187,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=17
@@ -51,7 +51,7 @@
          -DPYBIND11_INTERNALS_VERSION=10000000
          ${{ matrix.args }}
  
-@@ -255,6 +270,7 @@
+@@ -260,6 +275,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=17
@@ -59,7 +59,7 @@
  
      - name: Build
        run: cmake --build build -j 2
-@@ -323,6 +339,7 @@
+@@ -328,6 +344,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -67,7 +67,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -352,7 +369,7 @@
+@@ -357,7 +374,7 @@
        run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
  
      - name: Configure
@@ -76,7 +76,7 @@
  
      - name: Build
        run: cmake --build build -j2 --verbose
-@@ -440,7 +457,7 @@
+@@ -445,7 +462,7 @@
          cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                              -DCMAKE_CXX_STANDARD=17 \
                              -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
@@ -85,7 +85,7 @@
                              -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
  
      - name: Build
-@@ -494,6 +511,7 @@
+@@ -499,6 +516,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -93,7 +93,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -516,6 +534,7 @@
+@@ -521,6 +539,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -101,7 +101,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
  
-@@ -565,6 +584,7 @@
+@@ -570,6 +589,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=11             \
@@ -109,7 +109,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -597,6 +617,7 @@
+@@ -602,6 +622,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=17             \
@@ -117,7 +117,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -670,6 +691,7 @@
+@@ -680,6 +701,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -125,7 +125,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -720,6 +742,7 @@
+@@ -730,6 +752,7 @@
          cmake ../pybind11-tests
          -DDOWNLOAD_CATCH=ON
          -DPYBIND11_WERROR=ON
@@ -133,7 +133,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -815,6 +838,7 @@
+@@ -825,6 +848,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -141,7 +141,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -869,6 +893,7 @@
+@@ -879,6 +903,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -149,7 +149,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build --config Debug -j 2
-@@ -909,6 +934,7 @@
+@@ -921,6 +946,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=20
@@ -157,7 +157,7 @@
  
      - name: Build C++20
        run: cmake --build build -j 2
-@@ -929,6 +955,7 @@
+@@ -941,6 +967,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=20
@@ -165,7 +165,7 @@
          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
  
      - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-@@ -981,6 +1008,7 @@
+@@ -993,6 +1020,7 @@
        run: >-
          cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
          -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
@@ -173,7 +173,7 @@
          -S . -B build
  
      - name: Build C++11
-@@ -1002,6 +1030,7 @@
+@@ -1014,6 +1042,7 @@
        run: >-
          cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
          -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
@@ -181,7 +181,7 @@
          -S . -B build2
  
      - name: Build C++14
-@@ -1023,6 +1052,7 @@
+@@ -1035,6 +1064,7 @@
        run: >-
          cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
          -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
@@ -189,7 +189,7 @@
          -S . -B build3
  
      - name: Build C++17
-@@ -1090,6 +1120,7 @@
+@@ -1102,6 +1132,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
@@ -197,7 +197,7 @@
  
        - name: Build
          run: cmake --build . -j 2
-@@ -1155,6 +1186,7 @@
+@@ -1167,6 +1198,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
@@ -205,7 +205,7 @@
            -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
        - name: Build
-@@ -1178,6 +1210,7 @@
+@@ -1190,6 +1222,7 @@
            -DDOWNLOAD_EIGEN=ON
            -DCMAKE_CXX_COMPILER=clang++
            -DCMAKE_CXX_STANDARD=17
