@@ -107,7 +107,8 @@ if(NOT CMAKE_CROSSCOMPILING)
   if(NOT DEFINED ${_Python}_EXECUTABLE)
     message(
       FATAL_ERROR
-        "${_Python} was found without the Interpreter component. Pybind11 requires this component.")
+        "${_Python} was found without the Interpreter component. Pybind11 requires this component."
+    )
 
   endif()
 
@@ -146,9 +147,9 @@ if(NOT CMAKE_CROSSCOMPILING)
 
     if(_PYTHON_MODULE_EXT_SUFFIX STREQUAL "")
       message(
-        FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
-                    "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}"
-      )
+        FATAL_ERROR
+          "pybind11 could not query the module file extension, likely the 'distutils'"
+          "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}")
     endif()
 
     # This needs to be available for the pybind11_extension function
@@ -169,12 +170,13 @@ if(NOT CMAKE_CROSSCOMPILING)
 else()
   # When cross-compiling, we cannot query the Python interpreter, so we require
   # the user to set these variables explicitly.
-  if(NOT DEFINED PYTHON_IS_DEBUG OR NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+  if(NOT DEFINED PYTHON_IS_DEBUG
+     OR NOT DEFINED PYTHON_MODULE_EXTENSION
+     OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
     message(
       FATAL_ERROR
-        "When cross-compiling, you should set the PYTHON_IS_DEBUG,"
-        "PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX"
-        "variables appropriately before loading pybind11 (e.g. in your CMake toolchain file)")
+        "When cross-compiling, you should set the PYTHON_IS_DEBUG, PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX \
+        variables appropriately before loading pybind11 (e.g. in your CMake toolchain file)")
   endif()
 endif()
 
