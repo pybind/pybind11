@@ -178,6 +178,12 @@ if(NOT CMAKE_CROSSCOMPILING)
     endif()
   endif()
 else()
+  if(NOT DEFINED PYTHON_IS_DEBUG
+     OR NOT DEFINED PYTHON_MODULE_EXTENSION
+     OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+    include("${CMAKE_CURRENT_LIST_DIR}/pybind11GuessPythonExtSuffix.cmake")
+    pybind11_guess_python_module_extension("${_Python}")
+  endif()
   # When cross-compiling, we cannot query the Python interpreter, so we require
   # the user to set these variables explicitly.
   if(NOT DEFINED PYTHON_IS_DEBUG

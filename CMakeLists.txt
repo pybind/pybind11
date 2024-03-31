@@ -299,6 +299,7 @@ if(PYBIND11_INSTALL)
           tools/pybind11Common.cmake
           tools/pybind11Tools.cmake
           tools/pybind11NewTools.cmake
+          tools/pybind11GuessPythonExtSuffix.cmake
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
   if(NOT PYBIND11_EXPORT_NAME)
