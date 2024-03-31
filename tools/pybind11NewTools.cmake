@@ -32,6 +32,13 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
+  # Interpreter should not be found when cross-compiling
+  if(CMAKE_CROSSCOMPILING)
+    set(_pybind11_interp_component "")
+  else()
+    set(_pybind11_interp_component Interpreter)
+  endif()
+
   # Development.Module support (required for manylinux) started in 3.18
   if(CMAKE_VERSION VERSION_LESS 3.18)
     set(_pybind11_dev_component Development)
@@ -48,8 +55,9 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     endif()
   endif()
 
-  find_package(Python 3.6 REQUIRED COMPONENTS Interpreter ${_pybind11_dev_component}
-                                              ${_pybind11_quiet} ${_pybind11_global_keyword})
+  find_package(
+    Python 3.6 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+                                   ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
@@ -59,7 +67,9 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     if(TARGET Python::Python)
       set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
-    set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
+    if(TARGET Python::Interpreter)
+      set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
+    endif()
     if(TARGET Python::Module)
       set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
