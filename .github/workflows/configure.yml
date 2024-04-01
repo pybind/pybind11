@@ -35,7 +35,7 @@ jobs:
 
         - runs-on: ubuntu-20.04
           arch: x64
-          cmake: "3.27"
+          cmake: "3.29"
 
         - runs-on: macos-latest
           arch: x64
