@@ -287,8 +287,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // Only accept the exact types:
-    sm.def(
-        "overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
+    sm.def("overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
     sm.def(
         "overloaded3",
         [](const py::array_t<double> &) { return "double"; },
@@ -444,9 +443,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     });
 
     // resize to 3D array with each dimension = N
-    sm.def("array_resize3", [](py::array_t<double> a, size_t N, bool refcheck) {
-        a.resize({N, N, N}, refcheck);
-    });
+    sm.def("array_resize3",
+           [](py::array_t<double> a, size_t N, bool refcheck) { a.resize({N, N, N}, refcheck); });
 
     // test_array_create_and_resize
     // return 2D array with Nrows = Ncols = N
@@ -460,9 +458,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("array_view",
            [](py::array_t<uint8_t> a, const std::string &dtype) { return a.view(dtype); });
 
-    sm.def("reshape_initializer_list", [](py::array_t<int> a, size_t N, size_t M, size_t O) {
-        return a.reshape({N, M, O});
-    });
+    sm.def("reshape_initializer_list",
+           [](py::array_t<int> a, size_t N, size_t M, size_t O) { return a.reshape({N, M, O}); });
     sm.def("reshape_tuple", [](py::array_t<int> a, const std::vector<int> &new_shape) {
         return a.reshape(new_shape);
     });
@@ -471,8 +468,7 @@ TEST_SUBMODULE(numpy_array, sm) {
            [](const py::array &a) { return a[py::make_tuple(0, py::ellipsis(), 0)]; });
 
     // test_argument_conversions
-    sm.def(
-        "accept_double", [](const py::array_t<double, 0> &) {}, py::arg("a"));
+    sm.def("accept_double", [](const py::array_t<double, 0> &) {}, py::arg("a"));
     sm.def(
         "accept_double_forcecast",
         [](const py::array_t<double, py::array::forcecast> &) {},
@@ -493,8 +489,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         "accept_double_f_style_forcecast",
         [](const py::array_t<double, py::array::forcecast | py::array::f_style> &) {},
         py::arg("a"));
-    sm.def(
-        "accept_double_noconvert", [](const py::array_t<double, 0> &) {}, "a"_a.noconvert());
+    sm.def("accept_double_noconvert", [](const py::array_t<double, 0> &) {}, "a"_a.noconvert());
     sm.def(
         "accept_double_forcecast_noconvert",
         [](const py::array_t<double, py::array::forcecast> &) {},

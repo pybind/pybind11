@@ -121,8 +121,7 @@ void init_tensor_module(pybind11::module &m) {
         []() { return &get_fixed_tensor<Options>(); },
         py::return_value_policy::copy);
 
-    m.def(
-        "copy_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::copy);
+    m.def("copy_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::copy);
 
     m.def(
         "copy_const_tensor",
