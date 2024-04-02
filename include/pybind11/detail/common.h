@@ -925,8 +925,7 @@ using is_template_base_of
     = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr));
 #else
 struct is_template_base_of
-    : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr)) {
-};
+    : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T> *) nullptr)){};
 #endif
 
 /// Check if T is an instantiation of the template `Class`. For example:
@@ -1108,14 +1107,14 @@ struct overload_cast_impl {
     }
 
     template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...), std::false_type = {}) const noexcept
-        -> decltype(pmf) {
+    constexpr auto operator()(Return (Class::*pmf)(Args...),
+                              std::false_type = {}) const noexcept -> decltype(pmf) {
         return pmf;
     }
 
     template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const, std::true_type) const noexcept
-        -> decltype(pmf) {
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const,
+                              std::true_type) const noexcept -> decltype(pmf) {
         return pmf;
     }
 };

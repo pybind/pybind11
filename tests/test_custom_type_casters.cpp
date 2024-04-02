@@ -185,14 +185,10 @@ TEST_SUBMODULE(custom_type_casters, m) {
         py::arg_v(nullptr, ArgInspector1()).noconvert(true),
         py::arg() = ArgAlwaysConverts());
 
-    m.def(
-        "floats_preferred", [](double f) { return 0.5 * f; }, "f"_a);
-    m.def(
-        "floats_only", [](double f) { return 0.5 * f; }, "f"_a.noconvert());
-    m.def(
-        "ints_preferred", [](int i) { return i / 2; }, "i"_a);
-    m.def(
-        "ints_only", [](int i) { return i / 2; }, "i"_a.noconvert());
+    m.def("floats_preferred", [](double f) { return 0.5 * f; }, "f"_a);
+    m.def("floats_only", [](double f) { return 0.5 * f; }, "f"_a.noconvert());
+    m.def("ints_preferred", [](int i) { return i / 2; }, "i"_a);
+    m.def("ints_only", [](int i) { return i / 2; }, "i"_a.noconvert());
 
     // test_custom_caster_destruction
     // Test that `take_ownership` works on types with a custom type caster when given a pointer

@@ -461,8 +461,7 @@ TEST_SUBMODULE(class_, m) {
     py::class_<Nested>(base, "Nested")
         .def(py::init<>())
         .def("fn", [](Nested &, int, NestBase &, Nested &) {})
-        .def(
-            "fa", [](Nested &, int, NestBase &, Nested &) {}, "a"_a, "b"_a, "c"_a);
+        .def("fa", [](Nested &, int, NestBase &, Nested &) {}, "a"_a, "b"_a, "c"_a);
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
 
