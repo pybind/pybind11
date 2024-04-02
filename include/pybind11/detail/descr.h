@@ -259,7 +259,8 @@ template <size_t N, typename... Ts, typename... Args>
 constexpr auto concat(const descr<N, Ts...> &d,
                       const Args &...args) -> decltype(std::declval<descr<N + 2, Ts...>>()
                                                        + concat(args...)) {
-    return d + const_name(", ") + concat(args...);
+    // Ensure that src_loc of existing descr is used.
+    return d + const_name(", ", src_loc{nullptr, 0}) + concat(args...);
 }
 #endif
 
