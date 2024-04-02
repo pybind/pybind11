@@ -46,7 +46,7 @@ repos:
     args: []
     exclude: ^(tests|docs)/
     additional_dependencies:
-    - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
+    - markdown-it-py
     - nox
     - rich
     - types-setuptools
