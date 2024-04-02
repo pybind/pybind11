@@ -4,7 +4,6 @@
 # This code has no unit tests.
 # ruff cleanup deferred until the next time this code is actually used.
 
-
 import sys
 from typing import List, Optional
 

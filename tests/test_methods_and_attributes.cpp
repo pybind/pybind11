@@ -374,8 +374,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("overload_order", [](const std::string &) { return 1; });
     m.def("overload_order", [](const std::string &) { return 2; });
     m.def("overload_order", [](int) { return 3; });
-    m.def(
-        "overload_order", [](int) { return 4; }, py::prepend{});
+    m.def("overload_order", [](int) { return 4; }, py::prepend{});
 
 #if !defined(PYPY_VERSION)
     // test_dynamic_attributes
