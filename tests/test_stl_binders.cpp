@@ -270,7 +270,6 @@ TEST_SUBMODULE(stl_binders, m) {
     PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
     py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
     py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());
-    m.def("get_vectorstruct", [] {
-        return std::vector<VStruct>{{false, 5, 3.0, true}, {true, 30, -1e4, false}};
-    });
+    m.def("get_vectorstruct",
+          [] { return std::vector<VStruct>{{false, 5, 3.0, true}, {true, 30, -1e4, false}}; });
 }

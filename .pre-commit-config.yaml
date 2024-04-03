@@ -25,14 +25,14 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v17.0.6"
+  rev: "v18.1.2"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.2.0
+  rev: v0.3.5
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -40,13 +40,13 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.8.0"
+  rev: "v1.9.0"
   hooks:
   - id: mypy
     args: []
     exclude: ^(tests|docs)/
     additional_dependencies:
-    - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
+    - markdown-it-py
     - nox
     - rich
     - types-setuptools
@@ -87,13 +87,13 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.5.4"
+  rev: "v1.5.5"
   hooks:
   - id: remove-tabs
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.6.4"
+  rev: "0.6.6"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
@@ -127,7 +127,7 @@ repos:
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.9.0.6"
+  rev: "v0.10.0.1"
   hooks:
   - id: shellcheck
 
@@ -142,13 +142,13 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.0.3"
+  rev: "v3.1.0"
   hooks:
   - id: pylint
     files: ^pybind11
 
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.28.0
+  rev: 0.28.1
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows

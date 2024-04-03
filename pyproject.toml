@@ -19,7 +19,7 @@ ignore = [
 
 [tool.mypy]
 files = ["pybind11"]
-python_version = "3.7"
+python_version = "3.8"
 strict = true
 show_error_codes = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
