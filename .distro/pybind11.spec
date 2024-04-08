@@ -14,6 +14,9 @@ BuildRequires:  cmake
 BuildRequires:  ninja-build
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
+# Project CMake dependencies
+BuildRequires:  catch-devel
+BuildRequires:  eigen3-devel
 # Test dependencies from tests/requirements.txt
 # Cannot include the file because requirements are too constrained
 BuildRequires:  python3dist(build)
@@ -56,15 +59,20 @@ sed -i -E 's/,?\s*"ninja[^"]*"//' pyproject.toml
 
 
 %build
+%cmake
+%cmake_build
+# Also running pyproject_wheel to get python metadata files
 %pyproject_wheel
 
 
 %install
+%cmake_install
 %pyproject_install
 %pyproject_save_files pybind11
 
 
 %check
+%ctest
 %pytest
 
 
