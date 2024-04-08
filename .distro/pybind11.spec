@@ -72,8 +72,11 @@ sed -i -E 's/,?\s*"ninja[^"]*"//' pyproject.toml
 
 
 %check
-%ctest
-%pytest
+# %%ctest
+# %%pytest
+# Cannot use ctest or pytest integration yet. Replicating ci.yaml workflow
+# https://github.com/pybind/pybind11/issues/5095
+%cmake_build --target check
 
 
 %files devel
