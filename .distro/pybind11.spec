@@ -14,6 +14,13 @@ BuildRequires:  cmake
 BuildRequires:  ninja-build
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
+# Test dependencies from tests/requirements.txt
+# Cannot include the file because requirements are too constrained
+BuildRequires:  python3dist(build)
+BuildRequires:  python3dist(numpy)
+BuildRequires:  python3dist(pytest)
+BuildRequires:  python3dist(pytest-timeout)
+BuildRequires:  python3dist(scipy)
 
 %global _description %{expand:
 pybind11 is a lightweight header-only library that exposes C++ types
@@ -39,6 +46,9 @@ BuildRequires:  pybind11-devel
 
 %prep
 %autosetup -n pybind11-%{version}
+# Remove cmake and ninja from buildrequires
+sed -i -E 's/,?\s*"cmake[^"]*"//' pyproject.toml
+sed -i -E 's/,?\s*"ninja[^"]*"//' pyproject.toml
 
 
 %generate_buildrequires
