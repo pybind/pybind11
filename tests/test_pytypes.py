@@ -712,6 +712,7 @@ def test_pass_bytes_or_unicode_to_string_types():
             m.pass_to_pybind11_str(malformed_utf8)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 @pytest.mark.parametrize(
     ("create_weakref", "create_weakref_with_callback"),
     [
@@ -765,7 +766,10 @@ def test_weakref_err(create_weakref, has_callback):
 
     ob = C()
     # Should raise TypeError on CPython
-    with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
+    cm = pytest.raises(TypeError)
+    if env.PYPY or env.GRAALPY:
+        cm = contextlib.nullcontext()
+    with cm:
         _ = create_weakref(ob, callback) if has_callback else create_weakref(ob)
 
 

@@ -70,6 +70,7 @@ def test_format_descriptor_format_buffer_info_equiv(cpp_name, np_dtype):
             assert not np_array_is_matching
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_from_python():
     with pytest.raises(RuntimeError) as excinfo:
         m.Matrix(np.array([1, 2, 3]))  # trying to assign a 1D array
@@ -98,6 +99,7 @@ def test_from_python():
 @pytest.mark.xfail(
     env.PYPY, reason="PyPy 7.3.7 doesn't clear this anymore", strict=False
 )
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_to_python():
     mat = m.Matrix(5, 4)
     assert memoryview(mat).shape == (5, 4)

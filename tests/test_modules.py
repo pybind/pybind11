@@ -25,6 +25,7 @@ def test_nested_modules():
     assert ms.submodule_func() == "submodule_func()"
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_reference_internal():
     b = ms.B()
     assert str(b.get_a1()) == "A[1]"
@@ -97,9 +98,9 @@ def test_def_submodule_failures():
     sm = m.def_submodule(m, b"ScratchSubModuleName")  # Using bytes to show it works.
     assert sm.__name__ == m.__name__ + "." + "ScratchSubModuleName"
     malformed_utf8 = b"\x80"
-    if env.PYPY:
+    if env.PYPY or env.GRAALPY:
         # It is not worth the effort finding a trigger for a failure when running with PyPy.
-        pytest.skip("Sufficiently exercised on platforms other than PyPy.")
+        pytest.skip("Sufficiently exercised on platforms other than PyPy/GraalPy.")
     else:
         # Meant to trigger PyModule_GetName() failure:
         sm_name_orig = sm.__name__

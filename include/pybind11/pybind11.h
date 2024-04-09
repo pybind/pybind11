@@ -573,8 +573,7 @@ protected:
                 // chain.
                 chain_start = rec;
                 rec->next = chain;
-                auto rec_capsule
-                    = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
+                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(m_ptr));
                 rec_capsule.set_pointer(unique_rec.release());
                 guarded_strdup.release();
             } else {
@@ -636,10 +635,16 @@ protected:
 
         /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
+#if !defined(GRAALVM_PYTHON)
         std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
         func->m_ml->ml_doc
             = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+#else
+        std::free(const_cast<char *>(GraalPyCFunction_GetDoc(m_ptr)));
+        GraalPyCFunction_SetDoc(
+            m_ptr, signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str()));
+#endif
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -2780,8 +2785,8 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
     }
 
     /* Don't call dispatch code if invoked from overridden function.
-       Unfortunately this doesn't work on PyPy. */
-#if !defined(PYPY_VERSION)
+       Unfortunately this doesn't work on PyPy and GraalPy. */
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
 #    if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {

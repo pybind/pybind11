@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from pytest import approx  # noqa: PT013
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 from pybind11_tests import sequences_and_iterators as m
 
@@ -106,6 +107,7 @@ def test_sliceable():
     assert sliceable[50:60:-1] == (50, 60, -1)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_sequence():
     cstats = ConstructorStats.get(m.Sequence)
 

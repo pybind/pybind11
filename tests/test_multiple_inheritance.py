@@ -272,6 +272,7 @@ def test_mi_dynamic_attributes():
         assert d.dynamic == 1
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_mi_unaligned_base():
     """Returning an offset (non-first MI) base class pointer should recognize the instance"""
 
@@ -297,6 +298,7 @@ def test_mi_unaligned_base():
     assert ConstructorStats.detail_reg_inst() == n_inst
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_mi_base_return():
     """Tests returning an offset (non-first MI) base class pointer to a derived instance"""
 

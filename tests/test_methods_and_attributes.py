@@ -19,6 +19,7 @@ NO_DELETER_MSG = (
 )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_methods_and_attributes():
     instance1 = m.ExampleMandA()
     instance2 = m.ExampleMandA(32)
@@ -295,6 +296,7 @@ def test_property_rvalue_policy():
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_dynamic_attributes():
     instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
@@ -337,6 +339,7 @@ def test_dynamic_attributes():
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()
