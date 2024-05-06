@@ -403,7 +403,7 @@ TEST_SUBMODULE(class_, m) {
         // [workaround(intel)] = default does not work here
         // Removing or defaulting this destructor results in linking errors with the Intel compiler
         // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
-        ~PublicistB() override{}; // NOLINT(modernize-use-equals-default)
+        ~PublicistB() override {}; // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
         using ProtectedB::get_self;
         using ProtectedB::void_foo;
