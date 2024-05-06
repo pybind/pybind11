@@ -15,6 +15,7 @@ beautifulsoup4==4.12.3 \
 breathe==4.35.0 \
     --hash=sha256:5165541c3c67b6c7adde8b3ecfe895c6f7844783c4076b6d8d287e4f33d62386 \
     --hash=sha256:52c581f42ca4310737f9e435e3851c3d1f15446205a85fbc272f1f97ed74f5be
+    # via -r requirements.in
 certifi==2024.2.2 \
     --hash=sha256:0569859f95fc761b18b45ef421b1290a0f65f147e92a1e5eb3e635f9a5e4e66f \
     --hash=sha256:dc383c07b76109f368f6106eee2b593b04a011ea4d55f652c6ca24a754d1cdd1
@@ -120,9 +121,10 @@ docutils==0.20.1 \
 furo==2024.1.29 \
     --hash=sha256:3548be2cef45a32f8cdc0272d415fcb3e5fa6a0eb4ddfe21df3ecf1fe45a13cf \
     --hash=sha256:4d6b2fe3f10a6e36eb9cc24c1e7beb38d7a23fc7b3c382867503b7fcac8a1e02
-idna==3.6 \
-    --hash=sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca \
-    --hash=sha256:c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f
+    # via -r requirements.in
+idna==3.7 \
+    --hash=sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc \
+    --hash=sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0
     # via requests
 imagesize==1.4.1 \
     --hash=sha256:0d8d18d08f840c19d0ee7ca1fd82490fdc3729b7ac93f49870406ddde8ef8d8b \
@@ -220,6 +222,7 @@ sphinx==7.2.6 \
     --hash=sha256:1e09160a40b956dc623c910118fa636da93bd3ca0b9876a7b3df90f07d691560 \
     --hash=sha256:9a5160e1ea90688d5963ba09a2dcd8bdd526620edbb65c328728f1b2228d5ab5
     # via
+    #   -r requirements.in
     #   breathe
     #   furo
     #   sphinx-basic-ng
@@ -233,6 +236,7 @@ sphinx-basic-ng==1.0.0b2 \
 sphinx-copybutton==0.5.2 \
     --hash=sha256:4cf17c82fb9646d1bc9ca92ac280813a3b605d8c421225fd9913154103ee1fbd \
     --hash=sha256:fb543fd386d917746c9a2c50360c7905b605726b9355cd26e9974857afeae06e
+    # via -r requirements.in
 sphinxcontrib-applehelp==1.0.8 \
     --hash=sha256:c40a4f96f3776c4393d933412053962fac2b84f4c99a7982ba42e09576a70619 \
     --hash=sha256:cb61eb0ec1b61f349e5cc36b2028e9e7ca765be05e49641c97241274753067b4
@@ -252,6 +256,7 @@ sphinxcontrib-jsmath==1.0.1 \
 sphinxcontrib-moderncmakedomain==3.27.0 \
     --hash=sha256:51e259e91f58d17cc0fac9307fd40106aa59d5acaa741887903fc3660361d1a1 \
     --hash=sha256:70a73e0e7cff1b117074e968ccb7f72383ed0f572414df0e216cea06914de988
+    # via -r requirements.in
 sphinxcontrib-qthelp==1.0.7 \
     --hash=sha256:053dedc38823a80a7209a80860b16b722e9e0209e32fea98c90e4e6624588ed6 \
     --hash=sha256:e2ae3b5c492d58fcbd73281fbd27e34b8393ec34a073c792642cd8e529288182
@@ -263,6 +268,7 @@ sphinxcontrib-serializinghtml==1.1.10 \
 sphinxcontrib-svg2pdfconverter==1.2.2 \
     --hash=sha256:04ec767b55780a6b18d89cc1a8ada6d900c6efde9d1683abdb98a49b144465ca \
     --hash=sha256:80a55ca61f70eae93efc65f3814f2f177c86ba55934a9f6c5022f1778b62146b
+    # via -r requirements.in
 urllib3==2.2.1 \
     --hash=sha256:450b20ec296a467077128bff42b73080516e71b56ff59a60a02bef2232c4fa9d \
     --hash=sha256:d0570876c61ab9e520d776c38acbbb5b05a776d3f9ff98a5c8fd5162a444cf19
