@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, windows-2022, macos-13]
         python:
         - '3.6'
         - '3.9'
@@ -1118,8 +1118,8 @@ jobs:
         run: git clean -fdx
 
   macos_brew_install_llvm:
-    name: "macos-latest • brew install llvm"
-    runs-on: macos-latest
+    name: "macos-13 • brew install llvm"
+    runs-on: macos-13
 
     env:
       # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
