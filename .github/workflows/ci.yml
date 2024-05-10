@@ -972,7 +972,6 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-eigen3
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
 
@@ -983,6 +982,7 @@ jobs:
         install: >-
           git
           mingw-w64-${{matrix.env}}-python-scipy
+          mingw-w64-${{matrix.env}}-eigen3
 
     - uses: actions/checkout@v4
 
