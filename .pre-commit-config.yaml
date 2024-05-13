@@ -25,14 +25,14 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v18.1.2"
+  rev: "v18.1.4"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.3.5
+  rev: v0.4.3
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -40,7 +40,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.9.0"
+  rev: "v1.10.0"
   hooks:
   - id: mypy
     args: []
@@ -62,7 +62,7 @@ repos:
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v4.5.0"
+  rev: "v4.6.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -123,7 +123,7 @@ repos:
   hooks:
   - id: codespell
     exclude: ".supp$"
-    args: ["-x.codespell-ignore-lines", "-Lccompiler"]
+    args: ["-x.codespell-ignore-lines", "-Lccompiler,intstruct"]
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
@@ -148,7 +148,7 @@ repos:
     files: ^pybind11
 
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.28.1
+  rev: 0.28.2
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows
