@@ -388,15 +388,19 @@ inline void clear_patients(PyObject *self) {
     auto *instance = reinterpret_cast<detail::instance *>(self);
     auto &internals = get_internals();
     auto pos = internals.patients.find(self);
-    assert(pos != internals.patients.end());
-    // Clearing the patients can cause more Python code to run, which
-    // can invalidate the iterator. Extract the vector of patients
-    // from the unordered_map first.
-    auto patients = std::move(pos->second);
-    internals.patients.erase(pos);
-    instance->has_patients = false;
-    for (PyObject *&patient : patients) {
-        Py_CLEAR(patient);
+
+    if (pos != internals.patients.end()) {
+        // Clearing the patients can cause more Python code to run, which
+        // can invalidate the iterator. Extract the vector of patients
+        // from the unordered_map first.
+        auto patients = std::move(pos->second);
+        internals.patients.erase(pos);
+        instance->has_patients = false;
+        for (PyObject *&patient : patients) {
+            Py_CLEAR(patient);
+        }
+    } else {
+        assert(pos != internals.patients.end());
     }
 }
 
