@@ -1,4 +1,3 @@
-import gc
 import re
 
 import pytest
@@ -210,7 +209,6 @@ def test_init_factory_alias():
     assert ConstructorStats.detail_reg_inst() == n_inst + 3
     assert [i.alive() for i in cstats] == [3, 3]
     del x, y, z
-    gc.collect()
     assert [i.alive() for i in cstats] == [0, 0]
     assert ConstructorStats.detail_reg_inst() == n_inst
 
@@ -290,11 +288,9 @@ def test_init_factory_dual():
     assert ConstructorStats.detail_reg_inst() == n_inst + 13
 
     del a1, a2, b1, d1, e1, e2
-    gc.collect()
     assert [i.alive() for i in cstats] == [7, 4]
     assert ConstructorStats.detail_reg_inst() == n_inst + 7
     del b2, c1, c2, d2, f1, f2, g1
-    gc.collect()
     assert [i.alive() for i in cstats] == [0, 0]
     assert ConstructorStats.detail_reg_inst() == n_inst
 
