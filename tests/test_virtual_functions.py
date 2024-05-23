@@ -1,3 +1,5 @@
+import gc
+
 import pytest
 
 import env  # noqa: F401
@@ -81,6 +83,7 @@ def test_override(capture, msg):
     cstats = ConstructorStats.get(m.ExampleVirt)
     assert cstats.alive() == 3
     del ex12, ex12p, ex12p2
+    gc.collect()  # Python 3.13 incremental gc needs this
     assert cstats.alive() == 0
     assert cstats.values() == ["10", "11", "17"]
     assert cstats.copy_constructions == 0
