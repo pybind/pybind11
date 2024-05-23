@@ -63,11 +63,6 @@ jobs:
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
-          # Fill in a few macOS ARM
-          - runs-on: macos-14
-            python: '3.9'
-          - runs-on: macos-14
-            python: '3.12'
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
