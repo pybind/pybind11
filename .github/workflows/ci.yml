@@ -34,9 +34,8 @@ jobs:
         python:
         - '3.6'
         - '3.9'
-        - '3.10'
-        - '3.11'
         - '3.12'
+        - '3.13'
         - 'pypy-3.8'
         - 'pypy-3.9'
         - 'pypy-3.10'
@@ -64,6 +63,10 @@ jobs:
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
+          # Extra ubuntu latest job
+          - runs-on: ubuntu-latest
+            python: '3.11'
+
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -75,6 +78,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
