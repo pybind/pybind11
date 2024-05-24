@@ -377,7 +377,8 @@ def test_class_refcount():
         refcount_3 = getrefcount(cls)
 
         assert refcount_1 == refcount_3
-        assert refcount_2 > refcount_1
+        # Free-threaded Python uses UINT32_MAX for immortal objects
+        assert (refcount_2 > refcount_1) or (refcount_2 == refcount_1 == 2**32 - 1)
 
 
 def test_reentrant_implicit_conversion_failure(msg):

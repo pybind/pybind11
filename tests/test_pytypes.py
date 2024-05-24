@@ -635,7 +635,8 @@ def test_memoryview_refcount(method):
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)
-    assert ref_before < ref_after
+    # Free threaded Python uses UINT32_MAX
+    assert ref_before < ref_after or ref_before == ref_after == 2**32 - 1
     assert list(view) == list(buf)
 
 

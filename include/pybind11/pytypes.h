@@ -183,7 +183,7 @@ public:
     str_attr_accessor doc() const;
 
     /// Return the object's current reference count
-    int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
+    ssize_t ref_count() const { return Py_REFCNT(derived().ptr()); }
 
     // TODO PYBIND11_DEPRECATED(
     //     "Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
