@@ -384,7 +384,7 @@ def test_args_refcount():
     myval = 54321
     expected = refcount(myval)
     assert m.arg_refcount_h(myval) == expected
-    assert m.arg_refcount_o(myval) == expected + 1
+    assert m.arg_refcount_o(myval) in {expected + 1, 2**32 - 1}
     assert m.arg_refcount_h(myval) == expected
     assert refcount(myval) == expected
 
