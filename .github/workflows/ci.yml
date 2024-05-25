@@ -197,11 +197,8 @@ jobs:
       if: "!(matrix.runs-on == 'windows-2022')"
 
   manylinux:
-    name: Manylinux on 🐍 ${{ matrix.python }}
+    name: Manylinux on 🐍 3.13t • GIL
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: ["3.13t", "3.13"]
     timeout-minutes: 40
     container: quay.io/pypa/musllinux_1_2_x86_64:latest
     steps:
@@ -210,7 +207,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare venv
-        run: python${{ matrix.python }} -m venv .venv
+        run: python3.13 -m venv .venv
 
       - name: Install Python deps
         run: .venv/bin/pip install -r tests/requirements.txt

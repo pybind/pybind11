@@ -384,6 +384,7 @@ def test_args_refcount():
     myval = 54321
     expected = refcount(myval)
     assert m.arg_refcount_h(myval) == expected
+    # Free threaded Python uses UINT32_MAX for immortal objects.
     assert m.arg_refcount_o(myval) in {expected + 1, 2**32 - 1}
     assert m.arg_refcount_h(myval) == expected
     assert refcount(myval) == expected
@@ -420,6 +421,7 @@ def test_args_refcount():
     # for the `py::args`; in the previous case, we could simply inc_ref and pass on Python's input
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
+    # Free threaded Python uses UINT32_MAX for immortal objects.
     exp3_3 = 2**32 - 1 if exp3 == 2**32 - 1 else exp3 + 3
     assert m.mixed_args_refcount(myval, myval, myval) == (exp3_3, exp3_3, exp3_3)
 

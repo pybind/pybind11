@@ -150,6 +150,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
 // test_args_refcount
 // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
+// PyPy uses the top few bits for REFCNT_FROM_PYPY & REFCNT_FROM_PYPY_LIGHT, so truncate
 #ifdef PYPY_VERSION
 #    define GC_IF_NEEDED ConstructorStats::gc()
 #    define REFCNT(x) (int) Py_REFCNT(x)
