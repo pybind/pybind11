@@ -1344,8 +1344,14 @@ using module = module_;
 /// Return a dictionary representing the global variables in the current execution frame,
 /// or ``__main__.__dict__`` if there is no frame (usually when the interpreter is embedded).
 inline dict globals() {
+#if PY_VERSION_HEX >= 0x030d0000
+    PyObject *p = PyEval_GetFrameGlobals();
+    return p ? reinterpret_steal<dict>(p)
+             : reinterpret_borrow<dict>(module_::import("__main__").attr("__dict__").ptr());
+#else
     PyObject *p = PyEval_GetGlobals();
     return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
+#endif
 }
 
 template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
@@ -2770,7 +2776,12 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
         PyCodeObject *f_code = PyFrame_GetCode(frame);
         // f_code is guaranteed to not be NULL
         if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
+#        if PY_VERSION_HEX >= 0x030d0000
+            PyObject *locals = PyEval_GetFrameLocals();
+#        else
             PyObject *locals = PyEval_GetLocals();
+            Py_INCREF(locals);
+#        endif
             if (locals != nullptr) {
 #        if PY_VERSION_HEX >= 0x030b0000
                 PyObject *co_varnames = PyCode_GetVarnames(f_code);
@@ -2780,6 +2791,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
                 PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
                 Py_DECREF(co_varnames);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
+                Py_DECREF(locals);
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
                     Py_DECREF(frame);
