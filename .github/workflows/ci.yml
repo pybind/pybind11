@@ -31,13 +31,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, windows-2022, macos-13]
         python:
         - '3.6'
         - '3.9'
-        - '3.10'
-        - '3.11'
         - '3.12'
+        - '3.13'
         - 'pypy-3.8'
         - 'pypy-3.9'
         - 'pypy-3.10'
@@ -65,6 +64,10 @@ jobs:
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
+          # Extra ubuntu latest job
+          - runs-on: ubuntu-latest
+            python: '3.11'
+
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -76,6 +79,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
@@ -973,7 +977,6 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-eigen3
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
 
@@ -984,6 +987,7 @@ jobs:
         install: >-
           git
           mingw-w64-${{matrix.env}}-python-scipy
+          mingw-w64-${{matrix.env}}-eigen3
 
     - uses: actions/checkout@v4
 
@@ -1119,8 +1123,8 @@ jobs:
         run: git clean -fdx
 
   macos_brew_install_llvm:
-    name: "macos-latest • brew install llvm"
-    runs-on: macos-latest
+    name: "macos-13 • brew install llvm"
+    runs-on: macos-13
 
     env:
       # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
