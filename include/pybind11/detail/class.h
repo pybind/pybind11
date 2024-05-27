@@ -400,8 +400,7 @@ inline void clear_patients(PyObject *self) {
         for (PyObject *&patient : patients) {
             Py_CLEAR(patient);
         }
-    }
-    else {
+    } else {
         pybind11_fail("FATAL: Internal consistency check failed: Invalid clear_patients() call.");
     }
 }
