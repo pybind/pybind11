@@ -389,7 +389,6 @@ inline void clear_patients(PyObject *self) {
     auto &internals = get_internals();
     auto pos = internals.patients.find(self);
 
-    assert(pos != internals.patients.end());
     if (pos != internals.patients.end()) {
         // Clearing the patients can cause more Python code to run, which
         // can invalidate the iterator. Extract the vector of patients
