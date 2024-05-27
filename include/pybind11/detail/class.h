@@ -401,6 +401,9 @@ inline void clear_patients(PyObject *self) {
             Py_CLEAR(patient);
         }
     }
+    else {
+        pybind11_fail("FATAL: Internal consistency check failed: Invalid clear_patients() call.");
+    }
 }
 
 /// Clears all internal data from the instance and removes it from registered instances in
