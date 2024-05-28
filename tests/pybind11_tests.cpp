@@ -89,6 +89,7 @@ PYBIND11_MODULE(pybind11_tests, m) {
 #endif
     m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+    m.attr("PYBIND11_REFCNT_IMMORTAL") = UINT32_MAX;
     m.attr("PYBIND11_SIMPLE_GIL_MANAGEMENT") =
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
         true;

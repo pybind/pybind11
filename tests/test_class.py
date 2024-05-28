@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats, UserType
+from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
 
@@ -378,7 +378,9 @@ def test_class_refcount():
 
         assert refcount_1 == refcount_3
         # Free-threaded Python uses UINT32_MAX for immortal objects.
-        assert (refcount_2 > refcount_1) or (refcount_2 == refcount_1 == 2**32 - 1)
+        assert (refcount_2 > refcount_1) or (
+            refcount_2 == refcount_1 == PYBIND11_REFCNT_IMMORTAL
+        )
 
 
 def test_reentrant_implicit_conversion_failure(msg):

@@ -5,7 +5,7 @@ import types
 import pytest
 
 import env
-from pybind11_tests import detailed_error_messages_enabled
+from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
 
@@ -636,7 +636,7 @@ def test_memoryview_refcount(method):
     view = method(buf)
     ref_after = sys.getrefcount(buf)
     # Free threaded Python uses UINT32_MAX for immortal objects.
-    assert ref_before < ref_after or ref_before == ref_after == 2**32 - 1
+    assert ref_before < ref_after or ref_before == ref_after == PYBIND11_REFCNT_IMMORTAL
     assert list(view) == list(buf)
 
 
