@@ -635,7 +635,6 @@ def test_memoryview_refcount(method):
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)
-    # Free threaded Python uses UINT32_MAX for immortal objects.
     assert ref_before < ref_after or ref_before == ref_after == PYBIND11_REFCNT_IMMORTAL
     assert list(view) == list(buf)
 
