@@ -33,7 +33,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   # Interpreter should not be found when cross-compiling
-  if(PYBIND11_CROSSCOMPILING)
+  if(_PYBIND11_CROSSCOMPILING)
     set(_pybind11_interp_component "")
   else()
     set(_pybind11_interp_component Interpreter)
@@ -110,7 +110,7 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-if(NOT PYBIND11_CROSSCOMPILING)
+if(NOT _PYBIND11_CROSSCOMPILING)
   # If a user finds Python, they may forget to include the Interpreter component
   # and the following two steps require it. It is highly recommended by CMake
   # when finding development libraries anyway, so we will require it.

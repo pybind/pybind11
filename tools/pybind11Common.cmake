@@ -42,21 +42,14 @@ set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}"
     CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
 
-# Cross-compilation support
-if(NOT DEFINED PYBIND11_CROSSCOMPILING)
-  if(CMAKE_CROSSCOMPILING)
-    message(
-      WARNING
-        "A behavior change for cross-compilation is planned for future versions "
-        "of pybind11. To opt in to the improved cross-compilation logic now and "
-        "to silence this warning, use 'set(PYBIND11_CROSSCOMPILING ${CMAKE_CROSSCOMPILING})'.")
-  endif()
-  set(PYBIND11_CROSSCOMPILING
-      Off
-      CACHE
-        BOOL
-        "Enable cross-compilation mode and avoid using the build machine's Python interpreter to infer properties about the host machine."
-  )
+if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_CROSSCOMPILING
+      ON
+      CACHE INTERNAL "")
+else()
+  set(_PYBIND11_CROSSCOMPILING
+      OFF
+      CACHE INTERNAL "")
 endif()
 
 # --------------------- Shared targets ----------------------------
@@ -212,7 +205,7 @@ endif()
 
 # --------------------- pybind11_find_import -------------------------------
 
-if(NOT _pybind11_nopython AND NOT PYBIND11_CROSSCOMPILING)
+if(NOT _pybind11_nopython AND NOT _PYBIND11_CROSSCOMPILING)
   # Check to see if modules are importable. Use REQUIRED to force an error if
   # one of the modules is not found. <package_name>_FOUND will be set if the
   # package was found (underscores replace dashes if present). QUIET will hide
