@@ -80,6 +80,10 @@ jobs:
         python-version: ${{ matrix.python }}
         allow-prereleases: true
 
+    - name: Use the mold linker (Linux)
+      if: runner.os == 'Linux'
+      uses: rui314/setup-mold@v1
+
     - name: Setup Boost (Linux)
       # Can't use boost + define _
       if: runner.os == 'Linux' && matrix.python != '3.6'
