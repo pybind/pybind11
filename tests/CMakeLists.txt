@@ -330,7 +330,7 @@ if(Boost_FOUND)
     add_library(Boost::headers IMPORTED INTERFACE)
     if(TARGET Boost::boost)
       # Classic FindBoost
-      set_property(TARGET Boost::boost PROPERTY INTERFACE_LINK_LIBRARIES Boost::boost)
+      set_property(TARGET Boost::headers PROPERTY INTERFACE_LINK_LIBRARIES Boost::boost)
     else()
       # Very old FindBoost, or newer Boost than CMake in older CMakes
       set_property(TARGET Boost::headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
