@@ -5,7 +5,7 @@ import types
 import pytest
 
 import env
-from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, detailed_error_messages_enabled
+from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
 
@@ -631,11 +631,12 @@ def test_memoryview(method, args, fmt, expected_view):
     ],
 )
 def test_memoryview_refcount(method):
-    buf = b"\x0a\x0b\x0c\x0d"
+    # Avoiding a literal to avoid an immortal object in free-threaded builds
+    buf = "\x0a\x0b\x0c\x0d".encode("ascii")
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)
-    assert ref_before < ref_after or ref_before == ref_after == PYBIND11_REFCNT_IMMORTAL
+    assert ref_before < ref_after
     assert list(view) == list(buf)
 
 

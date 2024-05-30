@@ -207,7 +207,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare venv
-        run: python3.13 -m venv .venv
+        run: python3.13t -m venv .venv
 
       - name: Install Python deps
         run: .venv/bin/pip install -r tests/requirements.txt
