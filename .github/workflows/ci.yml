@@ -131,15 +131,15 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build C++11
-      run: cmake --build . -j 2
+      run: cmake --build . -j 4
 
     - name: Python tests C++11
-      run: cmake --build . --target pytest -j 2
+      run: cmake --build . --target pytest -j 4
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
       if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
-      run: cmake --build .  --target cpptest -j 2
+      run: cmake --build .  --target cpptest -j 4
 
     - name: Interface test C++11
       run: cmake --build . --target test_cmake_build
@@ -162,7 +162,7 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build
-      run: cmake --build build2 -j 2
+      run: cmake --build build2 -j 4
 
     - name: Python tests
       run: cmake --build build2 --target pytest
@@ -184,7 +184,7 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build (unstable ABI)
-      run: cmake --build build3 -j 2
+      run: cmake --build build3 -j 4
 
     - name: Python tests (unstable ABI)
       run: cmake --build build3 --target pytest
@@ -274,7 +274,7 @@ jobs:
         mv valgrind-$VALGRIND_VERSION valgrind
         cd valgrind
         ./configure
-        make -j 2 > /dev/null
+        make -j 4 > /dev/null
 
     - name: Install Valgrind
       if: matrix.valgrind
@@ -298,7 +298,7 @@ jobs:
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests
       run: cmake --build build --target pytest
@@ -367,7 +367,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests
       run: cmake --build build --target pytest
@@ -434,7 +434,7 @@ jobs:
 #        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 #
 #    - name: Build
-#      run: cmake --build build -j 2 --verbose
+#      run: cmake --build build -j 4 --verbose
 #
 #    - name: Python tests
 #      run: cmake --build build --target pytest
@@ -485,7 +485,7 @@ jobs:
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     - name: Build
-      run: cmake --build build -j 2 --verbose
+      run: cmake --build build -j 4 --verbose
 
     - name: Python tests
       run: cmake --build build --target pytest
@@ -538,7 +538,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests
       run: cmake --build build --target pytest
@@ -562,7 +562,7 @@ jobs:
 
     - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
       if: matrix.gcc == '12'
-      run: cmake --build build_partial -j 2
+      run: cmake --build build_partial -j 4
 
     - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
       if: matrix.gcc == '12'
@@ -612,7 +612,7 @@ jobs:
     - name: Build C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 -j 2 -v
+        cmake --build build-11 -j 4 -v
 
     - name: Python tests C++11
       run: |
@@ -644,7 +644,7 @@ jobs:
     - name: Build C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-17 -j 2 -v
+        cmake --build build-17 -j 4 -v
 
     - name: Python tests C++17
       run: |
@@ -719,7 +719,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests
       run: cmake --build build --target pytest
@@ -770,7 +770,7 @@ jobs:
       working-directory: /build-tests
 
     - name: Python tests
-      run: make pytest -j 2
+      run: make pytest -j 4
       working-directory: /build-tests
 
 
@@ -863,7 +863,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
     - name: Build C++11
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests
       run: cmake --build build -t pytest
@@ -917,7 +917,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
     - name: Build C++11
-      run: cmake --build build --config Debug -j 2
+      run: cmake --build build --config Debug -j 4
 
     - name: Python tests
       run: cmake --build build --config Debug -t pytest
@@ -959,13 +959,13 @@ jobs:
         -DCMAKE_CXX_STANDARD=20
 
     - name: Build C++20
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests
       run: cmake --build build --target pytest
 
     - name: C++20 tests
-      run: cmake --build build --target cpptest -j 2
+      run: cmake --build build --target cpptest -j 4
 
     - name: Interface test C++20
       run: cmake --build build --target test_cmake_build
@@ -980,7 +980,7 @@ jobs:
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
     - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      run: cmake --build build_partial -j 2
+      run: cmake --build build_partial -j 4
 
     - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
       run: cmake --build build_partial --target pytest
@@ -1032,13 +1032,13 @@ jobs:
         -S . -B build
 
     - name: Build C++11
-      run: cmake --build build -j 2
+      run: cmake --build build -j 4
 
     - name: Python tests C++11
-      run: cmake --build build --target pytest -j 2
+      run: cmake --build build --target pytest -j 4
 
     - name: C++11 tests
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 4
 
     - name: Interface test C++11
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cmake_build
@@ -1053,13 +1053,13 @@ jobs:
         -S . -B build2
 
     - name: Build C++14
-      run: cmake --build build2 -j 2
+      run: cmake --build build2 -j 4
 
     - name: Python tests C++14
-      run: cmake --build build2 --target pytest -j 2
+      run: cmake --build build2 --target pytest -j 4
 
     - name: C++14 tests
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 4
 
     - name: Interface test C++14
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cmake_build
@@ -1074,13 +1074,13 @@ jobs:
         -S . -B build3
 
     - name: Build C++17
-      run: cmake --build build3 -j 2
+      run: cmake --build build3 -j 4
 
     - name: Python tests C++17
-      run: cmake --build build3 --target pytest -j 2
+      run: cmake --build build3 --target pytest -j 4
 
     - name: C++17 tests
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 2
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 4
 
     - name: Interface test C++17
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
@@ -1140,16 +1140,16 @@ jobs:
           -DCMAKE_CXX_STANDARD=17
 
       - name: Build
-        run: cmake --build . -j 2
+        run: cmake --build . -j 4
 
       - name: Python tests
-        run: cmake --build . --target pytest -j 2
+        run: cmake --build . --target pytest -j 4
 
       - name: C++ tests
-        run: cmake --build . --target cpptest -j 2
+        run: cmake --build . --target cpptest -j 4
 
       - name: Interface test
-        run: cmake --build . --target test_cmake_build -j 2
+        run: cmake --build . --target test_cmake_build -j 4
 
       - name: Clean directory
         run: git clean -fdx
@@ -1206,16 +1206,16 @@ jobs:
           -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
       - name: Build
-        run: cmake --build . -j 2
+        run: cmake --build . -j 4
 
       - name: Python tests
-        run: cmake --build . --target pytest -j 2
+        run: cmake --build . --target pytest -j 4
 
       - name: C++ tests
-        run: cmake --build . --target cpptest -j 2
+        run: cmake --build . --target cpptest -j 4
 
       - name: Interface test
-        run: cmake --build . --target test_cmake_build -j 2
+        run: cmake --build . --target test_cmake_build -j 4
 
       - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
         run: >
@@ -1230,10 +1230,10 @@ jobs:
           "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
       - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: cmake --build build_partial -j 2
+        run: cmake --build build_partial -j 4
 
       - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: cmake --build build_partial --target pytest -j 2
+        run: cmake --build build_partial --target pytest -j 4
 
       - name: Clean directory
         run: git clean -fdx
