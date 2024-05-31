@@ -1206,6 +1206,8 @@ struct handle_type_name<cpp_function> {
 
 PYBIND11_NAMESPACE_END(detail)
 
+struct gil_not_used {};
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
@@ -1299,15 +1301,6 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-    /** \rst
-        Mark the module as not requiring the GIL in free-threaded Python builds.
-    \endrst */
-    void set_gil_not_used() {
-#ifdef Py_GIL_DISABLED
-        PyUnstable_Module_SetGIL(m_ptr, Py_MOD_GIL_NOT_USED);
-#endif
-    }
-
     using module_def = PyModuleDef; // TODO: Can this be removed (it was needed only for Python 2)?
 
     /** \rst
@@ -1316,6 +1309,20 @@ public:
         ``def`` should point to a statically allocated module_def.
     \endrst */
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
+        return _create_extension_module(name, doc, def, false);
+    }
+
+    static module_
+    create_extension_module(const char *name, const char *doc, module_def *def, gil_not_used) {
+        return _create_extension_module(name, doc, def, true);
+    }
+
+private:
+    static module_ _create_extension_module(const char *name,
+                                            const char *doc,
+                                            module_def *def,
+                                            bool gil_disabled) {
+
         // module_def is PyModuleDef
         // Placement new (not an allocation).
         def = new (def)
@@ -1334,6 +1341,11 @@ public:
                 throw error_already_set();
             }
             pybind11_fail("Internal error in module_::create_extension_module()");
+        }
+        if (gil_disabled) {
+#ifdef Py_GIL_DISABLED
+            PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
+#endif
         }
         // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
         //       returned from PyInit_...
