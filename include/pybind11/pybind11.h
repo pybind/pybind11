@@ -2597,7 +2597,11 @@ void implicitly_convertible() {
         ~set_flag() { flag = false; }
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-        static thread_local bool currently_used = false;
+#ifdef Py_GIL_DISABLED
+        thread_local bool currently_used = false;
+#else
+        static bool currently_used = false;
+#endif
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }

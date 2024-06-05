@@ -36,10 +36,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PY_VERSION_HEX >= 0x030D0000
-// Version bump for Python 3.13+.
-#        define PYBIND11_INTERNALS_VERSION 6
-#    elif PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
+#    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
 #        define PYBIND11_INTERNALS_VERSION 5
@@ -175,24 +172,23 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
-struct instance_map_shard {
+struct alignas(64) instance_map_shard {
     std::mutex mutex;
     instance_map registered_instances;
-    char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
 };
 
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
-#if PYBIND11_INTERNALS_VERSION >= 6
+#ifdef Py_GIL_DISABLED
     std::mutex mutex;
 #endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py;
-#if PYBIND11_INTERNALS_VERSION >= 6
+#ifdef Py_GIL_DISABLED
     std::unique_ptr<instance_map_shard[]> instance_shards; // void * -> instance*
     size_t instance_shards_mask;
 #else
@@ -578,18 +574,14 @@ PYBIND11_NOINLINE internals &get_internals() {
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
-#if PYBIND11_INTERNALS_VERSION >= 6
-#    if defined(Py_GIL_DISABLED)
+#ifdef Py_GIL_DISABLED
         size_t num_shards = (size_t) next_pow2(2 * std::thread::hardware_concurrency());
         if (num_shards == 0) {
             num_shards = 1;
         }
-#    else
-        size_t num_shards = 1;
-#    endif
         internals_ptr->instance_shards.reset(new instance_map_shard[num_shards]);
         internals_ptr->instance_shards_mask = num_shards - 1;
-#endif // PYBIND11_INTERNALS_VERSION >= 6
+#endif // Py_GIL_DISABLED
     }
     return **internals_pp;
 }
@@ -650,7 +642,7 @@ inline local_internals &get_local_internals() {
     return *locals;
 }
 
-#if PYBIND11_INTERNALS_VERSION >= 6 && defined(Py_GIL_DISABLED)
+#ifdef Py_GIL_DISABLED
 #    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<std::mutex> lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
@@ -674,7 +666,7 @@ inline auto with_instance_map(const void *ptr,
                               const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
     auto &internals = get_internals();
 
-#if PYBIND11_INTERNALS_VERSION >= 6
+#ifdef Py_GIL_DISABLED
     // Hash address to compute shard, but ignore low bits. We'd like allocations
     // from the same thread/core to map to the same shard and allocations from
     // other threads/cores to map to other shards. Using the high bits is a good
@@ -685,9 +677,7 @@ inline auto with_instance_map(const void *ptr,
     size_t idx = (size_t) hash & internals.instance_shards_mask;
 
     auto &shard = internals.instance_shards[idx];
-#    if defined(Py_GIL_DISABLED)
     std::unique_lock<std::mutex> lock(shard.mutex);
-#    endif
     return cb(shard.registered_instances);
 #else
     (void) ptr;
@@ -697,7 +687,7 @@ inline auto with_instance_map(const void *ptr,
 
 inline size_t num_registered_instances() {
     auto &internals = get_internals();
-#if PYBIND11_INTERNALS_VERSION >= 6
+#ifdef Py_GIL_DISABLED
     size_t count = 0;
     for (size_t i = 0; i <= internals.instance_shards_mask; ++i) {
         auto &shard = internals.instance_shards[i];
