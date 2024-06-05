@@ -172,6 +172,9 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
+// ignore: structure was padded due to alignment specifier
+PYBIND11_WARNING_DISABLE_MSVC(4324)
+
 struct alignas(64) instance_map_shard {
     std::mutex mutex;
     instance_map registered_instances;
