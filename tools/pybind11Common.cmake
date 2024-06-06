@@ -42,6 +42,16 @@ set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}"
     CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
 
+if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_CROSSCOMPILING
+      ON
+      CACHE INTERNAL "")
+else()
+  set(_PYBIND11_CROSSCOMPILING
+      OFF
+      CACHE INTERNAL "")
+endif()
+
 # --------------------- Shared targets ----------------------------
 
 # Build an interface library target:
@@ -195,7 +205,7 @@ endif()
 
 # --------------------- pybind11_find_import -------------------------------
 
-if(NOT _pybind11_nopython)
+if(NOT _pybind11_nopython AND NOT _PYBIND11_CROSSCOMPILING)
   # Check to see if modules are importable. Use REQUIRED to force an error if
   # one of the modules is not found. <package_name>_FOUND will be set if the
   # package was found (underscores replace dashes if present). QUIET will hide

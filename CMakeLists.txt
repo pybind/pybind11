@@ -116,6 +116,7 @@ option(PYBIND11_NUMPY_1_ONLY
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
+option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
 
 if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
   add_compile_definitions(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
@@ -299,6 +300,7 @@ if(PYBIND11_INSTALL)
           tools/pybind11Common.cmake
           tools/pybind11Tools.cmake
           tools/pybind11NewTools.cmake
+          tools/pybind11GuessPythonExtSuffix.cmake
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
   if(NOT PYBIND11_EXPORT_NAME)
