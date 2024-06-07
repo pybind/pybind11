@@ -2183,6 +2183,11 @@ public:
             throw error_already_set();
         }
     }
+    void clear() /* py-non-const */ {
+        if (PyList_SetSlice(m_ptr, 0, PyList_Size(m_ptr), nullptr) == -1) {
+            throw error_already_set();
+        }
+    }
 };
 
 class args : public tuple {

@@ -135,6 +135,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("list_size_t", []() { return py::list{(py::size_t) 0}; });
     m.def("list_insert_ssize_t", [](py::list *l) { return l->insert((py::ssize_t) 1, 83); });
     m.def("list_insert_size_t", [](py::list *l) { return l->insert((py::size_t) 3, 57); });
+    m.def("list_clear", [](py::list *l) { l->clear(); });
     m.def("get_list", []() {
         py::list list;
         list.append("value");
