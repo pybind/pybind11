@@ -2868,7 +2868,8 @@ function get_override(const T *this_ptr, const char *name) {
             = pybind11::get_override(static_cast<const cname *>(this), name);                     \
         if (override) {                                                                           \
             auto o = override(__VA_ARGS__);                                                       \
-            if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) {           \
+            if (!pybind11::detail::is_same_ignoring_cvref<ret_type, PyObject *>::value            \
+                && pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) {        \
                 static pybind11::detail::override_caster_t<ret_type> caster;                      \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster);                \
             }                                                                                     \
