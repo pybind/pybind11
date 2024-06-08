@@ -1206,7 +1206,15 @@ struct handle_type_name<cpp_function> {
 
 PYBIND11_NAMESPACE_END(detail)
 
-struct gil_not_used {};
+// Use to activate Py_MOD_GIL_NOT_USED.
+class mod_gil_not_used {
+public:
+    mod_gil_not_used(bool flag = true) : flag_(flag) {}
+    bool flag() const { return flag_; }
+
+private:
+    bool flag_;
+};
 
 /// Wrapper for Python extension modules
 class module_ : public object {
@@ -1308,21 +1316,11 @@ public:
 
         ``def`` should point to a statically allocated module_def.
     \endrst */
-    static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
-        return _create_extension_module(name, doc, def, false);
-    }
-
-    static module_
-    create_extension_module(const char *name, const char *doc, module_def *def, gil_not_used) {
-        return _create_extension_module(name, doc, def, true);
-    }
-
-private:
-    static module_ _create_extension_module(const char *name,
-                                            const char *doc,
-                                            module_def *def,
-                                            bool gil_disabled) {
-
+    static module_ create_extension_module(const char *name,
+                                           const char *doc,
+                                           module_def *def,
+                                           mod_gil_not_used gil_not_used
+                                           = mod_gil_not_used(false)) {
         // module_def is PyModuleDef
         // Placement new (not an allocation).
         def = new (def)
@@ -1342,7 +1340,7 @@ private:
             }
             pybind11_fail("Internal error in module_::create_extension_module()");
         }
-        if (gil_disabled) {
+        if (gil_not_used.flag()) {
 #ifdef Py_GIL_DISABLED
             PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
 #endif
