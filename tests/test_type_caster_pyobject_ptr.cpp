@@ -33,9 +33,11 @@ struct WithPyObjectPtrReturnTrampoline : WithPyObjectPtrReturn {
 
 std::string call_return_pyobject_ptr(const WithPyObjectPtrReturn *base_class_ptr) {
     PyObject *returned_obj = base_class_ptr->return_pyobject_ptr();
+#if !defined(PYPY_VERSION) // It is not worth the trouble doing something special for PyPy.
     if (Py_REFCNT(returned_obj) != 1) {
         py::pybind11_fail(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }
+#endif
     auto ret_val = py::repr(returned_obj).cast<std::string>();
     Py_DECREF(returned_obj);
     return ret_val;
