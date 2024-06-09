@@ -29,7 +29,7 @@ struct WithPyObjectPtrReturn {
 };
 
 struct WithPyObjectPtrReturnTrampoline : WithPyObjectPtrReturn {
-    PyObject *return_pyobject_ptr() const {
+    PyObject *return_pyobject_ptr() const override {
         PYBIND11_OVERRIDE_PURE(PyObject *, WithPyObjectPtrReturn, return_pyobject_ptr,
                                /* no arguments */);
     }
