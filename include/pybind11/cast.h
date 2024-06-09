@@ -1354,8 +1354,8 @@ cast_safe(object &&o) {
 }
 template <typename T>
 enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>,
-                            std::is_void<T>,
-                            detail::is_same_ignoring_cvref<T, PyObject *>>::value,
+                            detail::is_same_ignoring_cvref<T, PyObject *>,
+                            std::is_void<T>>::value,
             T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
