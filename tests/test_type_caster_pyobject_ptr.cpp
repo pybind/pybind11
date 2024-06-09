@@ -20,6 +20,10 @@ std::vector<PyObject *> make_vector_pyobject_ptr(const py::object &ValueHolder) 
 }
 
 struct WithPyObjectPtrReturn {
+#if defined(__clang_major__) && __clang_major__ < 4
+    WithPyObjectPtrReturn() = default;
+    WithPyObjectPtrReturn(const WithPyObjectPtrReturn &) = default;
+#endif
     virtual ~WithPyObjectPtrReturn() = default;
     virtual PyObject *return_pyobject_ptr() const = 0;
 };
