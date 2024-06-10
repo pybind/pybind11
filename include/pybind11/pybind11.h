@@ -2872,9 +2872,10 @@ function get_override(const T *this_ptr, const char *name) {
             PYBIND11_WARNING_DISABLE_MSVC(4127)                                                   \
             if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value              \
                 && !pybind11::detail::is_same_ignoring_cvref<ret_type, PyObject *>::value) {      \
-                PYBIND11_WARNING_POP static pybind11::detail::override_caster_t<ret_type> caster; \
+                static pybind11::detail::override_caster_t<ret_type> caster;                      \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster);                \
             }                                                                                     \
+            PYBIND11_WARNING_POP                                                                  \
             return pybind11::detail::cast_safe<ret_type>(std::move(o));                           \
         }                                                                                         \
     } while (false)
