@@ -65,6 +65,8 @@ def test_list(capture, doc):
     assert lins == [1, 83, 2]
     m.list_insert_size_t(lins)
     assert lins == [1, 83, 2, 57]
+    m.list_clear(lins)
+    assert lins == []
 
     with capture:
         lst = m.get_list()
@@ -631,7 +633,8 @@ def test_memoryview(method, args, fmt, expected_view):
     ],
 )
 def test_memoryview_refcount(method):
-    buf = b"\x0a\x0b\x0c\x0d"
+    # Avoiding a literal to avoid an immortal object in free-threaded builds
+    buf = "\x0a\x0b\x0c\x0d".encode("ascii")
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)

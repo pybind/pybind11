@@ -150,10 +150,13 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
 // test_args_refcount
 // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
+// PyPy uses the top few bits for REFCNT_FROM_PYPY & REFCNT_FROM_PYPY_LIGHT, so truncate
 #ifdef PYPY_VERSION
 #    define GC_IF_NEEDED ConstructorStats::gc()
+#    define REFCNT(x) (int) Py_REFCNT(x)
 #else
 #    define GC_IF_NEEDED
+#    define REFCNT(x) Py_REFCNT(x)
 #endif
     m.def("arg_refcount_h", [](py::handle h) {
         GC_IF_NEEDED;
@@ -172,7 +175,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         py::tuple t(a.size());
         for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+            t[i] = REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         }
         return t;
     });
@@ -182,7 +185,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         t[0] = o.ref_count();
         for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+            t[i + 1] = REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         }
         return t;
     });

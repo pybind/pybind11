@@ -388,7 +388,11 @@ inline void clear_patients(PyObject *self) {
     auto *instance = reinterpret_cast<detail::instance *>(self);
     auto &internals = get_internals();
     auto pos = internals.patients.find(self);
-    assert(pos != internals.patients.end());
+
+    if (pos == internals.patients.end()) {
+        pybind11_fail("FATAL: Internal consistency check failed: Invalid clear_patients() call.");
+    }
+
     // Clearing the patients can cause more Python code to run, which
     // can invalidate the iterator. Extract the vector of patients
     // from the unordered_map first.

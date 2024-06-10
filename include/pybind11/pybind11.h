@@ -3040,7 +3040,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
             PyObject *locals = PyEval_GetFrameLocals();
 #        else
             PyObject *locals = PyEval_GetLocals();
-            Py_INCREF(locals);
+            Py_XINCREF(locals);
 #        endif
             if (locals != nullptr) {
 #        if PY_VERSION_HEX >= 0x030b0000
