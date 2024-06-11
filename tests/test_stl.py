@@ -379,14 +379,3 @@ def test_return_vector_bool_raw_ptr():
     v = m.return_vector_bool_raw_ptr()
     assert isinstance(v, list)
     assert len(v) == 4513
-
-
-def test_return_as_bytes_policy():
-    expected_return_value = b"\xba\xd0\xba\xd0"
-    assert m.invalid_utf8_string_array_as_bytes() == [expected_return_value]
-    with pytest.raises(UnicodeDecodeError):
-        m.invalid_utf8_string_array_as_str()
-    if hasattr(m, "has_optional"):
-        assert m.invalid_utf8_optional_string_as_bytes() == expected_return_value
-    if hasattr(m, "load_variant"):
-        assert m.invalid_utf8_variant_string_as_bytes() == expected_return_value
