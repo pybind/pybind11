@@ -1170,7 +1170,6 @@ struct return_value_policy_override<
                         void>> {
     static return_value_policy policy(return_value_policy p) {
         return !std::is_lvalue_reference<Return>::value && !std::is_pointer<Return>::value
-                       && p != return_value_policy::_clif_automatic
                    ? return_value_policy::move
                    : p;
     }
