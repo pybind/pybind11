@@ -5,9 +5,10 @@
 #include "pybind11_tests.h"
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
-namespace {
+namespace test_type_caster_pyobject_ptr {
 
 std::vector<PyObject *> make_vector_pyobject_ptr(const py::object &ValueHolder) {
     std::vector<PyObject *> vec_obj;
@@ -18,9 +19,39 @@ std::vector<PyObject *> make_vector_pyobject_ptr(const py::object &ValueHolder) 
     return vec_obj;
 }
 
-} // namespace
+struct WithPyObjectPtrReturn {
+#if defined(__clang_major__) && __clang_major__ < 4
+    WithPyObjectPtrReturn() = default;
+    WithPyObjectPtrReturn(const WithPyObjectPtrReturn &) = default;
+#endif
+    virtual ~WithPyObjectPtrReturn() = default;
+    virtual PyObject *return_pyobject_ptr() const = 0;
+};
+
+struct WithPyObjectPtrReturnTrampoline : WithPyObjectPtrReturn {
+    PyObject *return_pyobject_ptr() const override {
+        PYBIND11_OVERRIDE_PURE(PyObject *, WithPyObjectPtrReturn, return_pyobject_ptr,
+                               /* no arguments */);
+    }
+};
+
+std::string call_return_pyobject_ptr(const WithPyObjectPtrReturn *base_class_ptr) {
+    PyObject *returned_obj = base_class_ptr->return_pyobject_ptr();
+#if !defined(PYPY_VERSION) // It is not worth the trouble doing something special for PyPy.
+    if (Py_REFCNT(returned_obj) != 1) {
+        py::pybind11_fail(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
+    }
+#endif
+    auto ret_val = py::repr(returned_obj).cast<std::string>();
+    Py_DECREF(returned_obj);
+    return ret_val;
+}
+
+} // namespace test_type_caster_pyobject_ptr
 
 TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
+    using namespace test_type_caster_pyobject_ptr;
+
     m.def("cast_from_pyobject_ptr", []() {
         PyObject *ptr = PyLong_FromLongLong(6758L);
         return py::cast(ptr, py::return_value_policy::take_ownership);
@@ -127,4 +158,10 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         (void) py::cast(*ptr);
     }
 #endif
+
+    py::class_<WithPyObjectPtrReturn, WithPyObjectPtrReturnTrampoline>(m, "WithPyObjectPtrReturn")
+        .def(py::init<>())
+        .def("return_pyobject_ptr", &WithPyObjectPtrReturn::return_pyobject_ptr);
+
+    m.def("call_return_pyobject_ptr", call_return_pyobject_ptr);
 }
