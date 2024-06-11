@@ -526,17 +526,3 @@ def test_const_ref_caster():
     assert m.takes_const_ptr(x) == 5
     assert m.takes_const_ref(x) == 4
     assert m.takes_const_ref_wrap(x) == 4
-
-
-def test_return_as_bytes_policy():
-    expected_return_value = b"\xba\xd0\xba\xd0"
-    assert m.invalid_utf8_string_as_bytes() == expected_return_value
-    with pytest.raises(UnicodeDecodeError):
-        m.invalid_utf8_string_as_str()
-    assert m.invalid_utf8_char_array_as_bytes() == expected_return_value
-    obj = m.StringAttr(expected_return_value)
-    assert obj.value == expected_return_value
-    obj.value = "123"
-    assert obj.value == b"123"
-    if hasattr(m, "has_string_view"):
-        assert m.invalid_utf8_string_view_as_bytes() == expected_return_value

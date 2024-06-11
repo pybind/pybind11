@@ -909,15 +909,12 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
                 break;
             case return_value_policy::take_ownership:
                 throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
-                break;
             case return_value_policy::copy:
             case return_value_policy::move:
                 break;
             case return_value_policy::reference:
                 throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
-                break;
             case return_value_policy::reference_internal:
-            case return_value_policy::_return_as_bytes:
                 break;
         }
         if (!src) {

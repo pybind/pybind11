@@ -11,15 +11,8 @@
 
 #include "pybind11_tests.h"
 
-#include <utility>
-
 struct ConstRefCasted {
     int tag;
-};
-
-struct StringAttr {
-    explicit StringAttr(std::string v) : value(std::move(v)) {}
-    std::string value;
 };
 
 PYBIND11_NAMESPACE_BEGIN(pybind11)
@@ -389,30 +382,6 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("takes_const_ref", [](const ConstRefCasted &x) { return x.tag; });
     m.def("takes_const_ref_wrap",
           [](std::reference_wrapper<const ConstRefCasted> x) { return x.get().tag; });
-
-    // test return_value_policy::_return_as_bytes
-    m.def(
-        "invalid_utf8_string_as_bytes",
-        []() { return std::string("\xba\xd0\xba\xd0"); },
-        py::return_value_policy::_return_as_bytes);
-    m.def("invalid_utf8_string_as_str", []() { return std::string("\xba\xd0\xba\xd0"); });
-    m.def(
-        "invalid_utf8_char_array_as_bytes",
-        []() { return "\xba\xd0\xba\xd0"; },
-        py::return_value_policy::_return_as_bytes);
-    py::class_<StringAttr>(m, "StringAttr")
-        .def(py::init<std::string>())
-        .def_property(
-            "value",
-            py::cpp_function([](StringAttr &self) { return self.value; },
-                             py::return_value_policy::_return_as_bytes),
-            py::cpp_function([](StringAttr &self, std::string v) { self.value = std::move(v); }));
-#ifdef PYBIND11_HAS_STRING_VIEW
-    m.def(
-        "invalid_utf8_string_view_as_bytes",
-        []() { return std::string_view("\xba\xd0\xba\xd0"); },
-        py::return_value_policy::_return_as_bytes);
-#endif
 
     PYBIND11_WARNING_POP
 }
