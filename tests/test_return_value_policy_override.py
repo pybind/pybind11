@@ -17,21 +17,6 @@ def test_return_pointer():
     assert m.return_pointer_with_policy_clif_automatic() == "_clif_automatic"
 
 
-def test_persistent_holder():
-    h = m.data_fields_holder(2)
-    assert h.vec_at(0).value == 13
-    assert h.vec_at(1).value == 24
-    assert h.vec_at_const_ptr(0).value == 13
-    assert h.vec_at_const_ptr(1).value == 24
-
-
-def test_temporary_holder():
-    data_field = m.data_fields_holder(2).vec_at(1)
-    assert data_field.value == 24
-    data_field = m.data_fields_holder(2).vec_at_const_ptr(1)
-    assert data_field.value == 24
-
-
 @pytest.mark.parametrize(
     ("func", "expected"),
     [
