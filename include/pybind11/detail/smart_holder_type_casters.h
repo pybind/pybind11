@@ -36,72 +36,6 @@ struct is_smart_holder_type<smart_holder> : std::true_type {};
 // SMART_HOLDER_WIP: Needs refactoring of existing pybind11 code.
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
-extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
-
-// Replace all occurrences of substrings in a string.
-inline void replace_all(std::string &str, const std::string &from, const std::string &to) {
-    if (str.empty()) {
-        return;
-    }
-    size_t pos = 0;
-    while ((pos = str.find(from, pos)) != std::string::npos) {
-        str.replace(pos, from.length(), to);
-        pos += to.length();
-    }
-}
-
-inline bool type_is_pybind11_class_(PyTypeObject *type_obj) {
-#if defined(PYPY_VERSION)
-    auto &internals = get_internals();
-    return bool(internals.registered_types_py.find(type_obj)
-                != internals.registered_types_py.end());
-#else
-    return bool(type_obj->tp_new == pybind11_object_new);
-#endif
-}
-
-inline bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name) {
-    PyObject *descr = _PyType_Lookup(type_obj, attr_name);
-    return bool((descr != nullptr) && PyInstanceMethod_Check(descr));
-}
-
-inline object try_get_as_capsule_method(PyObject *obj, PyObject *attr_name) {
-    if (PyType_Check(obj)) {
-        return object();
-    }
-    PyTypeObject *type_obj = Py_TYPE(obj);
-    bool known_callable = false;
-    if (type_is_pybind11_class_(type_obj)) {
-        if (!is_instance_method_of_type(type_obj, attr_name)) {
-            return object();
-        }
-        known_callable = true;
-    }
-    PyObject *method = PyObject_GetAttr(obj, attr_name);
-    if (method == nullptr) {
-        PyErr_Clear();
-        return object();
-    }
-    if (!known_callable && PyCallable_Check(method) == 0) {
-        Py_DECREF(method);
-        return object();
-    }
-    return reinterpret_steal<object>(method);
-}
-
-inline void *try_as_void_ptr_capsule_get_pointer(handle src, const char *typeid_name) {
-    std::string suffix = clean_type_id(typeid_name);
-    replace_all(suffix, "::", "_"); // Convert `a::b::c` to `a_b_c`.
-    replace_all(suffix, "*", "");
-    object as_capsule_method = try_get_as_capsule_method(src.ptr(), str("as_" + suffix).ptr());
-    if (as_capsule_method) {
-        object void_ptr_capsule = as_capsule_method();
-        if (isinstance<capsule>(void_ptr_capsule)) {
-            return reinterpret_borrow<capsule>(void_ptr_capsule).get_pointer();
-        }
-    }
-    return nullptr;
-}
 
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
 // vice versa. The main difference is that the original code only propagates a reference to the
@@ -172,15 +106,6 @@ public:
             if (converter(src.ptr(), unowned_void_ptr_from_direct_conversion)) {
                 return true;
             }
-        }
-        return false;
-    }
-
-    bool try_as_void_ptr_capsule(handle src) {
-        unowned_void_ptr_from_void_ptr_capsule
-            = try_as_void_ptr_capsule_get_pointer(src, cpptype->name());
-        if (unowned_void_ptr_from_void_ptr_capsule != nullptr) {
-            return true;
         }
         return false;
     }
@@ -337,16 +262,12 @@ public:
             loaded_v_h = value_and_holder();
             return true;
         }
-        if (convert && cpptype && try_as_void_ptr_capsule(src)) {
-            return true;
-        }
         return false;
     }
 
     const type_info *typeinfo = nullptr;
     const std::type_info *cpptype = nullptr;
     void *unowned_void_ptr_from_direct_conversion = nullptr;
-    void *unowned_void_ptr_from_void_ptr_capsule = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
     std::vector<void *(*) (void *)> implicit_casts;
     value_and_holder loaded_v_h;
@@ -499,10 +420,7 @@ struct smart_holder_type_caster_load {
     }
 
     T *loaded_as_raw_ptr_unowned() const {
-        void *void_ptr = load_impl.unowned_void_ptr_from_void_ptr_capsule;
-        if (void_ptr == nullptr) {
-            void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
-        }
+        void *void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
         if (void_ptr == nullptr) {
             if (have_holder()) {
                 throw_if_uninitialized_or_disowned_holder(typeid(T));
@@ -531,13 +449,6 @@ struct smart_holder_type_caster_load {
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr(handle responsible_parent = nullptr) const {
-        if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
-            if (responsible_parent) {
-                return make_shared_ptr_with_responsible_parent(responsible_parent);
-            }
-            throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
-                             " std::shared_ptr.");
-        }
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr) {
             if (responsible_parent) {
                 return make_shared_ptr_with_responsible_parent(responsible_parent);
@@ -601,10 +512,6 @@ struct smart_holder_type_caster_load {
 
     template <typename D>
     std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
-        if (load_impl.unowned_void_ptr_from_void_ptr_capsule) {
-            throw cast_error("Unowned pointer from a void pointer capsule cannot be converted to a"
-                             " std::unique_ptr.");
-        }
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr) {
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::unique_ptr.");
