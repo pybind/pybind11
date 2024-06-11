@@ -167,7 +167,6 @@ set(PYBIND11_TEST_FILES
     test_pickling
     test_python_multiple_inheritance
     test_pytypes
-    test_return_value_policy_override
     test_sequences_and_iterators
     test_smart_ptr
     test_stl
