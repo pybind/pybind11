@@ -32,8 +32,7 @@ public:
             raise_from(PyExc_SystemError, "src != nullptr but PyErr_Occurred()");
             throw error_already_set();
         }
-        if (policy == return_value_policy::take_ownership
-            || policy == return_value_policy::_clif_automatic) {
+        if (policy == return_value_policy::take_ownership) {
             return src;
         }
         if (policy == return_value_policy::reference
