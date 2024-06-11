@@ -545,8 +545,6 @@ enum class return_value_policy : uint8_t {
     reference_internal
 };
 
-#define PYBIND11_HAS_RETURN_VALUE_POLICY_RETURN_AS_BYTES
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline static constexpr int log2(size_t n, int k = 0) {
