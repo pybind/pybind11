@@ -554,16 +554,7 @@ enum class return_value_policy : uint8_t {
         but the purpose of _return_as_bytes is certain to be orthogonal, because
         C++ strings are always copied to Python `bytes` or `str`.
         NOTE: This policy is NOT available on master. */
-    _return_as_bytes,
-
-    /** This policy should only be used by PyCLIF to automatically select a
-        return value policy. Legacy PyCLIF automatically decides object lifetime
-        management based on their properties:
-        https://github.com/google/clif/tree/main/clif/python#pointers-references-and-object-ownership
-        With this policy, the return value policy selection is consistent with
-        legacy PyCLIF.
-        NOTE: This policy is NOT available on master. */
-    _clif_automatic
+    _return_as_bytes
 };
 
 #define PYBIND11_HAS_RETURN_VALUE_POLICY_RETURN_AS_BYTES
