@@ -313,10 +313,6 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 writeable = !std::is_const<C>::value;
                 break;
 
-            case return_value_policy::_return_as_bytes:
-                pybind11_fail("return_value_policy::_return_as_bytes does not apply.");
-                break;
-
             default:
                 pybind11_fail("pybind11 bug in eigen.h, please file a bug report");
         }
