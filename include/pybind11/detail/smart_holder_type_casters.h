@@ -753,8 +753,7 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     static handle cast(T const &src, return_value_policy policy, handle parent) {
         // type_caster_base BEGIN
         if (policy == return_value_policy::automatic
-            || policy == return_value_policy::automatic_reference
-            || policy == return_value_policy::_clif_automatic) {
+            || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
         }
         return cast(&src, policy, parent);
@@ -762,21 +761,11 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     }
 
     static handle cast(T &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::_clif_automatic) {
-            if (is_move_constructible<T>::value) {
-                policy = return_value_policy::move;
-            } else {
-                policy = return_value_policy::automatic;
-            }
-        }
         return cast(const_cast<T const &>(src), policy, parent); // Mutbl2Const
     }
 
     static handle cast(T const *src, return_value_policy policy, handle parent) {
         auto st = type_caster_base<T>::src_and_type(src);
-        if (policy == return_value_policy::_clif_automatic) {
-            policy = return_value_policy::copy;
-        }
         return cast_const_raw_ptr( // Originally type_caster_generic::cast.
             st.first,
             policy,
@@ -787,9 +776,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     }
 
     static handle cast(T *src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::_clif_automatic) {
-            policy = return_value_policy::reference;
-        }
         return cast(const_cast<T const *>(src), policy, parent); // Mutbl2Const
     }
 
@@ -1006,8 +992,7 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::automatic_reference
             && policy != return_value_policy::reference_internal
-            && policy != return_value_policy::move
-            && policy != return_value_policy::_clif_automatic) {
+            && policy != return_value_policy::move) {
             // SMART_HOLDER_WIP: IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for unique_ptr.");
         }
