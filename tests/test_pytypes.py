@@ -65,6 +65,8 @@ def test_list(capture, doc):
     assert lins == [1, 83, 2]
     m.list_insert_size_t(lins)
     assert lins == [1, 83, 2, 57]
+    m.list_clear(lins)
+    assert lins == []
 
     with capture:
         lst = m.get_list()
