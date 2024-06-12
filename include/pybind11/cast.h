@@ -699,7 +699,7 @@ protected:
     template <size_t... Is>
     bool load_impl(const sequence &seq, bool convert, index_sequence<Is...>) {
         using std::get;
-        
+
 #ifdef __cpp_fold_expressions
         if ((... || !get<Is>(subcasters).load(seq[Is], convert))) {
             return false;
