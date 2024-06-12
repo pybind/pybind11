@@ -685,10 +685,12 @@ public:
 protected:
     template <size_t... Is>
     type implicit_cast(index_sequence<Is...>) & {
+        using std::get;
         return type(cast_op<Ts>(get<Is>(subcasters))...);
     }
     template <size_t... Is>
     type implicit_cast(index_sequence<Is...>) && {
+        using std::get;
         return type(cast_op<Ts>(std::move(get<Is>(subcasters)))...);
     }
 
@@ -696,6 +698,8 @@ protected:
 
     template <size_t... Is>
     bool load_impl(const sequence &seq, bool convert, index_sequence<Is...>) {
+        using std::get;
+        
 #ifdef __cpp_fold_expressions
         if ((... || !get<Is>(subcasters).load(seq[Is], convert))) {
             return false;
@@ -714,6 +718,7 @@ protected:
     template <typename T, size_t... Is>
     static handle
     cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
+        using std::get;
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
         PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
         std::array<object, size> entries{{reinterpret_steal<object>(
