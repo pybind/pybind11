@@ -844,13 +844,17 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
-    
-    m.def("annotate_union", [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l, py::str a, py::int_ b, py::object c) -> py::typing::List<py::typing::Union<py::str, py::int_,  py::object>>  {
-        l.append(a);
-        l.append(b);
-        l.append(c);
-        return l;
-    });
+
+    m.def("annotate_union",
+          [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
+             py::str a,
+             py::int_ b,
+             py::object c) -> py::typing::List<py::typing::Union<py::str, py::int_, py::object>> {
+              l.append(a);
+              l.append(b);
+              l.append(c);
+              return l;
+          });
 
     m.def("annotate_optional", []() -> py::typing::List<py::typing::Optional<py::str>> {
         auto list = py::list();
