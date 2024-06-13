@@ -958,10 +958,10 @@ def test_fn_annotations(doc):
 
 
 def test_union_annotations(doc):
-    assert doc(m.annotate_union) == "annotate_union(arg0: Union[int, str]) -> None"
+    assert doc(m.annotate_union) == "annotate_union(arg0: list[Union[str, int, object], arg1: str, arg2: int, arg3: object) -> list[Union[str, int, object]]"
 
 
 def test_optional_annotations(doc):
     assert (
-        doc(m.annotate_optional) == "annotate_optional(arg0: Optional[float]) -> None"
+        doc(m.annotate_optional) == "annotate_optional() -> list[Optional[str]]"
     )
