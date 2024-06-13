@@ -64,12 +64,12 @@ class Callable<Return(Args...)> : public function {
 };
 
 template <typename... Types>
-class Union : public type{
+class Union : public type {
     using type::type;
 };
 
 template <typename T>
-class Optional : public type{
+class Optional : public type {
     using type::type;
 };
 
