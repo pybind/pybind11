@@ -64,10 +64,14 @@ class Callable<Return(Args...)> : public function {
 };
 
 template <typename... Types>
-class Union {};
+class Union : public type{
+    using type::type;
+};
 
 template <typename T>
-class Optional {};
+class Optional : public type{
+    using type::type;
+};
 
 PYBIND11_NAMESPACE_END(typing)
 
