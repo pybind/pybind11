@@ -966,7 +966,7 @@ def test_union_annotations(doc):
 
 def test_union_typing_only(doc):
     assert (
-        doc(m.annotate_union)
+        doc(m.union_typing_only)
         == "annotate_union(arg0: list[Union[str]) -> list[Union[int]]"
     )
 
