@@ -856,9 +856,9 @@ TEST_SUBMODULE(pytypes, m) {
               return l;
           });
 
-    m.def("union_typing_only", [](py::typing::List<py::typing::Union<py::str>> l) -> py::typing::List<py::typing::Union<py::int_>>  {
-        return l;
-    });
+    m.def("union_typing_only",
+          [](py::typing::List<py::typing::Union<py::str>> l)
+              -> py::typing::List<py::typing::Union<py::int_>> { return l; });
 
     m.def("annotate_optional", []() -> py::typing::List<py::typing::Optional<py::str>> {
         auto list = py::list();

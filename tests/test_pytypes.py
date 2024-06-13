@@ -963,8 +963,12 @@ def test_union_annotations(doc):
         == "annotate_union(arg0: list[Union[str, int, object]], arg1: str, arg2: int, arg3: object) -> list[Union[str, int, object]]"
     )
 
+
 def test_union_typing_only(doc):
-    assert doc(m.annotate_union) == "annotate_union(arg0: list[Union[str]) -> list[Union[int]]"
+    assert (
+        doc(m.annotate_union)
+        == "annotate_union(arg0: list[Union[str]) -> list[Union[int]]"
+    )
 
 
 def test_optional_annotations(doc):
