@@ -955,3 +955,13 @@ def test_fn_annotations(doc):
         doc(m.annotate_fn)
         == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
     )
+
+
+def test_union_annotations(doc):
+    assert doc(m.annotate_union) == "annotate_union(arg0: Union[int, str]) -> None"
+
+
+def test_optional_annotations(doc):
+    assert (
+        doc(m.annotate_optional) == "annotate_optional(arg0: Optional[float]) -> None"
+    )
