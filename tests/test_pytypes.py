@@ -972,4 +972,4 @@ def test_union_typing_only(doc):
 
 
 def test_optional_annotations(doc):
-    assert doc(m.annotate_optional) == "annotate_optional() -> list[Optional[str]]"
+    assert doc(m.annotate_optional) == "annotate_optional(arg0: list) -> list[Optional[str]]"
