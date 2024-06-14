@@ -955,3 +955,10 @@ def test_fn_annotations(doc):
         doc(m.annotate_fn)
         == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
     )
+
+
+def test_type_annotation(doc):
+    assert (
+        doc(m.annotate_type)
+        == "annotate_type(arg0: type[int]) -> None"
+    )
