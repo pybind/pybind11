@@ -63,6 +63,7 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
+#if defined(PYBIND11_CPP20)
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
@@ -75,6 +76,7 @@ class TypeVar : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
 };
+#endif
 
 PYBIND11_NAMESPACE_END(typing)
 
@@ -134,10 +136,12 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
+#if defined(PYBIND11_CPP20)
 template <typing::StringLiteral lit>
 struct handle_type_name<typing::TypeVar<lit>> {
     static constexpr auto name = const_name(lit.value);
 };
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
