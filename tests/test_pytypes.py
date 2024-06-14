@@ -955,3 +955,17 @@ def test_fn_annotations(doc):
         doc(m.annotate_fn)
         == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
     )
+
+
+def test_fn_generics(doc):
+    assert (
+        doc(m.annotate_fn_generics)
+        == "annotate_fn_generics(arg0: list[T]) -> T"
+    )
+
+
+def test_fn_generics_uniqueness(doc):
+    assert (
+        doc(m.annotate_fn_different_generics)
+        == "annotate_fn_different_generics(arg0: T) -> V"
+    )

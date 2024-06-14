@@ -63,6 +63,11 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
+template <std::string name, typename T = object>
+class TypeVar : public T {
+    using T::T;
+};
+
 PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -119,6 +124,11 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
     static constexpr auto name
         = const_name("Callable[[") + ::pybind11::detail::concat(make_caster<Args>::name...)
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
+};
+
+template <std::string NameT, typename T = object>
+struct handle_type_name<typing::TypeVar<std::string NameT, typename T = object> {
+    static constexpr auto name = const_name(NameT);
 };
 
 PYBIND11_NAMESPACE_END(detail)
