@@ -63,7 +63,6 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-
 template <fixed_string NameT, typename T = object>
 class TypeVar : public T {
     using T::T;
