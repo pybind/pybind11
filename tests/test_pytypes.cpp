@@ -857,12 +857,12 @@ TEST_SUBMODULE(pytypes, m) {
               return l;
           });
 
-    #if defined(PYBIND11_CPP20)
-        m.def("annotate_listT_to_T",
-            [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
-        m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
-    #else
-        m.def("annotate_listT_to_T", "annotate_listT_to_T(arg0: list[T]) -> T");
-        m.def("annotate_object_to_T", "annotate_object_to_T(arg0: object) -> T");
-    #endif
+#if defined(PYBIND11_CPP20)
+    m.def("annotate_listT_to_T",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
+    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+#else
+    m.def("annotate_listT_to_T", "annotate_listT_to_T(arg0: list[T]) -> T");
+    m.def("annotate_object_to_T", "annotate_object_to_T(arg0: object) -> T");
+#endif
 }
