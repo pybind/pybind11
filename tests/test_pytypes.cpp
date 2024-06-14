@@ -110,10 +110,10 @@ void m_defs(py::module_ &m) {
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
 #if defined(PYBIND11_CPP20)
-    namespace typevar {
-        typedef py::typing::TypeVar<"T"> TypeVarT;
-        typedef py::typing::TypeVar<"V"> TypeVarV;
-    } // namespace typevar
+namespace typevar {
+typedef py::typing::TypeVar<"T"> TypeVarT;
+typedef py::typing::TypeVar<"V"> TypeVarV;
+} // namespace typevar
 #endif
 
 TEST_SUBMODULE(pytypes, m) {
@@ -851,7 +851,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
-
 
 #if defined(PYBIND11_CPP20)
     m.def("annotate_generic_containers",
