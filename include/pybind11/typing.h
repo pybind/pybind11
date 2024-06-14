@@ -71,7 +71,10 @@ struct StringLiteral {
 };
 
 template <StringLiteral lit>
-class TypeVar : public object {};
+class TypeVar : public object {
+    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
+    using object::object;
+};
 
 PYBIND11_NAMESPACE_END(typing)
 

@@ -966,3 +966,7 @@ def test_fn_generics(doc):
 
 def test_fn_generics_uniqueness(doc):
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+
+
+def test_object_and_typevar_equilvance(doc):
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"

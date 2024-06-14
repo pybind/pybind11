@@ -110,12 +110,6 @@ void m_defs(py::module_ &m) {
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
 namespace typevar {
-// const char t[] = "T";
-// const char v[] = "V";
-
-// typedef py::typing::TypeVar<t> TypeVarT;
-// typedef py::typing::TypeVar<v> TypeVarV;
-
 typedef py::typing::TypeVar<"T"> TypeVarT;
 typedef py::typing::TypeVar<"V"> TypeVarV;
 } // namespace typevar
@@ -860,7 +854,8 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
               return l;
           });
-    // TODO T -> T
     m.def("annotate_listT_to_T",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> py::object { return l[0]; });
+          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
+    m.def("annotate_object_to_T",
+          [](const py::object &o) -> typevar::TypeVarT { return o; });
 }
