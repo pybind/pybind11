@@ -63,7 +63,7 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-template <std::string name, typename T = object>
+template <std::string NameT, typename T = object>
 class TypeVar : public T {
     using T::T;
 };
@@ -127,7 +127,7 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 };
 
 template <std::string NameT, typename T = object>
-    struct handle_type_name < typing::TypeVar<std::string NameT, typename T = object> {
+struct handle_type_name<typing::TypeVar<std::string NameT, typename T = object> {
     static constexpr auto name = const_name(NameT);
 };
 
