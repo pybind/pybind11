@@ -958,7 +958,4 @@ def test_fn_annotations(doc):
 
 
 def test_type_annotation(doc):
-    assert (
-        doc(m.annotate_type)
-        == "annotate_type(arg0: type[int]) -> None"
-    )
+    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> None"
