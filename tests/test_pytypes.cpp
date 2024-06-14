@@ -109,7 +109,7 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
-#if defined(PYBIND11_CPP20)
+#if defined(__cpp_nontype_template_args)
 namespace typevar {
 typedef py::typing::TypeVar<"T"> TypeVarT;
 typedef py::typing::TypeVar<"V"> TypeVarV;
@@ -852,7 +852,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 
-#if defined(PYBIND11_CPP20)
+#if defined(__cpp_nontype_template_args)
     m.def("annotate_generic_containers",
           [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
               return l;
@@ -861,5 +861,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_listT_to_T",
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
     m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+#else
+    m.def("requires_ccp_not_type_template_args", []());
 #endif
 }
