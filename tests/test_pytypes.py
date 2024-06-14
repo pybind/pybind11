@@ -959,9 +959,9 @@ def test_fn_annotations(doc):
 
 
 def test_fn_generics(doc):
-    if cpp_std() != "C++20"{
+    if cpp_std() != "C++20":
         return
-    }
+
     assert (
         doc(m.annotate_generic_containers)
         == "annotate_generic_containers(arg0: list[T]) -> list[V]"
@@ -969,14 +969,14 @@ def test_fn_generics(doc):
 
 
 def test_fn_generics_uniqueness(doc):
-    if cpp_std() != "C++20"{
+    if cpp_std() != "C++20":
         return
-    }
+
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
 
 def test_object_and_typevar_equilvance(doc):
-    if cpp_std() != "C++20"{
+    if cpp_std() != "C++20":
         return
-    }
+
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
