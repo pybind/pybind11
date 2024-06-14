@@ -71,21 +71,7 @@ struct StringLiteral {
 };
 
 template <StringLiteral lit>
-class TypeVar : public object {
-    // public:
-    //     constexpr auto name = lit.value;
-    //         const char name[N];
-    //         // TODO likely use this vv
-    //         // PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyTypeVar_Check)
-    //         constexpr TypeVar(const char (&s)[N]){
-    //             std::copy_n(s, s + N, name);
-    //         }
-    //         // // Very hacky
-    //         // bool check_(handle &){
-    //         //     // Check type then name?
-    //         //     return false;
-    //         // };
-};
+class TypeVar : public object {};
 
 PYBIND11_NAMESPACE_END(typing)
 
@@ -147,7 +133,6 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 
 template <typing::StringLiteral lit>
 struct handle_type_name<typing::TypeVar<lit>> {
-    // static constexpr auto name = const_name("TP");
     static constexpr auto name = const_name(lit.value);
 };
 
