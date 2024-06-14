@@ -958,7 +958,7 @@ def test_fn_annotations(doc):
 
 
 def test_generics_compatability(doc):
-    if cpp_std() != "C++20":
+    if cpp_std != "C++20":
         return
 
     assert (
@@ -968,14 +968,14 @@ def test_generics_compatability(doc):
 
 
 def test_get_generic_from_container(doc):
-    if cpp_std() != "C++20":
+    if cpp_std != "C++20":
         return
 
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
 
 def test_object_and_typevar_equivalence(doc):
-    if cpp_std() != "C++20":
+    if cpp_std != "C++20":
         return
 
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
