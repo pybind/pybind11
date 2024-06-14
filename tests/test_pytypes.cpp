@@ -856,6 +856,5 @@ TEST_SUBMODULE(pytypes, m) {
           });
     m.def("annotate_listT_to_T",
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
-    m.def("annotate_object_to_T",
-          [](const py::object &o) -> typevar::TypeVarT { return o; });
+    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
 }
