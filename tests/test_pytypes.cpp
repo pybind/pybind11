@@ -110,8 +110,15 @@ void m_defs(py::module_ &m) {
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
 namespace typevar {
-typedef py::typing::TypeVar<"T", py::str> TypeVarT;
-typedef py::typing::TypeVar<"V", py::str> TypeVarV;
+    // const char t[] = "T";
+    // const char v[] = "V";
+
+    // typedef py::typing::TypeVar<t> TypeVarT;
+    // typedef py::typing::TypeVar<v> TypeVarV;
+
+
+    typedef py::typing::TypeVar<"T"> TypeVarT;
+    typedef py::typing::TypeVar<"V"> TypeVarV;
 } // namespace typevar
 
 TEST_SUBMODULE(pytypes, m) {
@@ -850,8 +857,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 
-    m.def("annotate_fn_generics",
-          [](const py::typing::List<typevar::TypeVarT> &) -> typevar::TypeVarT {});
-    m.def("annotate_fn_different_generics",
-          [](const typevar::TypeVarT &a) -> typevar::TypeVarV { return a; });
+    m.def("annotate_generic_containers",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {return l;});
+    // TODO T -> T
+    m.def("annotate_listT_to_T",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> py::object { return l[0]; });
 }

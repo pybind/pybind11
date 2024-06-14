@@ -63,10 +63,31 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-template <std::basic_fixed_string NameT, typename T = object>
-class TypeVar : public T {
-    using T::T;
-    // constexpr TypeVar(const std::string)
+template<size_t N>
+struct StringLiteral {
+    constexpr StringLiteral(const char (&str)[N]) {
+        std::copy_n(str, N, value);
+    }
+    
+    char value[N];
+};
+
+
+template <StringLiteral lit>
+class TypeVar : public object {
+    // public: 
+    //     constexpr auto name = lit.value;
+//         const char name[N];
+//         // TODO likely use this vv
+//         // PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyTypeVar_Check)
+//         constexpr TypeVar(const char (&s)[N]){
+//             std::copy_n(s, s + N, name);
+//         }
+//         // // Very hacky
+//         // bool check_(handle &){
+//         //     // Check type then name?
+//         //     return false;
+//         // };
 };
 
 PYBIND11_NAMESPACE_END(typing)
@@ -127,9 +148,10 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
-template <std::basic_fixed_string NameT, typename T = object>
-struct handle_type_name<typing::TypeVar<NameT, T>> {
-    static constexpr auto name = const_name(NameT);
+template <typing::StringLiteral lit>
+struct handle_type_name<typing::TypeVar<lit>> {
+    // static constexpr auto name = const_name("TP");
+    static constexpr auto name = const_name(lit.value);
 };
 
 PYBIND11_NAMESPACE_END(detail)
