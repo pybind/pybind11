@@ -7,6 +7,7 @@ import pytest
 import env
 from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
+from pybind11_test import cpp_std
 
 
 def test_obj_class_name():
@@ -958,6 +959,9 @@ def test_fn_annotations(doc):
 
 
 def test_fn_generics(doc):
+    if cpp_std() != "C++20"{
+        return
+    }
     assert (
         doc(m.annotate_generic_containers)
         == "annotate_generic_containers(arg0: list[T]) -> list[V]"
@@ -965,8 +969,14 @@ def test_fn_generics(doc):
 
 
 def test_fn_generics_uniqueness(doc):
+    if cpp_std() != "C++20"{
+        return
+    }
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
 
 def test_object_and_typevar_equilvance(doc):
+    if cpp_std() != "C++20"{
+        return
+    }
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
