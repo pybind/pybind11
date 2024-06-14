@@ -960,7 +960,7 @@ def test_fn_annotations(doc):
 def test_generics_compatibility(doc):
     try:
         m.requires__cpp_nontype_template_parameter_class()
-    except NameError:
+    except AttributeError:
         return
 
     assert (
@@ -972,7 +972,7 @@ def test_generics_compatibility(doc):
 def test_get_generic_from_container(doc):
     try:
         m.requires__cpp_nontype_template_parameter_class()
-    except NameError:
+    except AttributeError:
         return
 
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
@@ -981,7 +981,7 @@ def test_get_generic_from_container(doc):
 def test_object_and_typevar_equivalence(doc):
     try:
         m.requires__cpp_nontype_template_parameter_class()
-    except NameError:
+    except AttributeError:
         return
 
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
