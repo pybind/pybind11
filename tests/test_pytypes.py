@@ -3,11 +3,11 @@ import sys
 import types
 
 import pytest
+from pybind11_test import cpp_std
 
 import env
 from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
-from pybind11_test import cpp_std
 
 
 def test_obj_class_name():
