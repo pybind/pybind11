@@ -127,7 +127,8 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 };
 
 template <const std::string NameT, typename T = object>
-struct handle_type_name<typing::TypeVarNameT, T>> {
+    struct handle_type_name < typing::TypeVarNameT,
+    T >> {
     static constexpr auto name = const_name(NameT);
 };
 
