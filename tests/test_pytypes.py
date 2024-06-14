@@ -958,10 +958,7 @@ def test_fn_annotations(doc):
 
 
 def test_fn_generics(doc):
-    assert (
-        doc(m.annotate_fn_generics)
-        == "annotate_fn_generics(arg0: list[T]) -> T"
-    )
+    assert doc(m.annotate_fn_generics) == "annotate_fn_generics(arg0: list[T]) -> T"
 
 
 def test_fn_generics_uniqueness(doc):
