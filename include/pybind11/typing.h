@@ -63,9 +63,11 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-template <const std::string NameT, typename T = object>
+
+template <fixed_string NameT, typename T = object>
 class TypeVar : public T {
     using T::T;
+    // constexpr TypeVar(const std::string)
 };
 
 PYBIND11_NAMESPACE_END(typing)
@@ -126,7 +128,7 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
-template <const std::string NameT, typename T = object>
+template <fixed_string NameT, typename T = object>
 struct handle_type_name<typing::TypeVar<NameT, T>> {
     static constexpr auto name = const_name(NameT);
 };
