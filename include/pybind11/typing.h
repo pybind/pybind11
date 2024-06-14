@@ -63,7 +63,7 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-#if defined(__cpp_nontype_template_args)
+#if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
@@ -136,7 +136,7 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
-#if defined(__cpp_nontype_template_args)
+#if defined(__cpp_nontype_template_parameter_class)
 template <typing::StringLiteral lit>
 struct handle_type_name<typing::TypeVar<lit>> {
     static constexpr auto name = const_name(lit.value);
