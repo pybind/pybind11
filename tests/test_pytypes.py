@@ -981,7 +981,6 @@ def test_string_literal(doc):
             doc(m.annotate_str_literal)
             == 'annotate_object_to_T(arg0: Literal["A", "B", C"]) -> str'
         )
-    
 
 
 def test_int_literal(doc):
