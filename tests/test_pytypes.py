@@ -989,3 +989,33 @@ def test_int_literal(doc):
             doc(m.annotate_int_literal)
             == "annotate_object_to_T(arg0: Literal[1, 2, 3]) -> int"
         )
+
+def test_bool_literal(doc):
+    with contextlib.suppress(AttributeError):
+        assert (
+            doc(m.annotate_bool_literal)
+            == "annotate_object_to_T(arg0: Literal[True, False]) -> bool"
+        )
+
+
+def test_none_literal(doc):
+    with contextlib.suppress(AttributeError):
+        assert (
+            doc(m.annotate_none_literal)
+            == "annotate_object_to_T(arg0: Literal[None]) -> None"
+        )
+
+def test_any_literal(doc):
+    with contextlib.suppress(AttributeError):
+        assert (
+            doc(m.annotate_none_literal)
+            == 'annotate_object_to_T(arg0: Literal["A", 1, true, None]) -> object'
+        )
+
+
+# def test_literal_order(doc):
+#     with contextlib.suppress(AttributeError):
+#         assert (
+#             doc(m.annotate_int_literal)
+#             == "annotate_object_to_T(arg0: Literal[1, 2, 3]) -> int"
+#         )

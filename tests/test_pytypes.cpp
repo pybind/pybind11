@@ -863,8 +863,14 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
 
     typedef typing::Literal<"A", "B", "C"> stringLiteral;
-    m.def("annotate_str_literal", [](const stringLiteral s) { return s; });
+    m.def("annotate_str_literal", [](const stringLiteral s) -> py::str { return s; });
     typedef typing::Literal<1, 2, 3> intLiteral;
-    m.def("annotate_int_literal", [](const intLiteral i) { return i; });
+    m.def("annotate_int_literal", [](const intLiteral i) -> py::int_ { return i; });
+    typedef typing::Literal<true, false> boolLiteral;
+    m.def("annotate_bool_literal", [](const boolLiteral i) -> py::bool_ { return i; });
+    typedef typing::Literal<py::none> noneLiteral;
+    m.def("annotate_none_literal", [](const noneLiteral i) -> py::none { return i; });
+    typedef typing::Literal<"A", 1, true, py::none> anyLiteral;
+    m.def("annotate_any_literal", [](const anyLiteral i) -> py::object { return i; });
 #endif
 }

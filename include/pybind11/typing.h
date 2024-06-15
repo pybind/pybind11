@@ -77,6 +77,9 @@ class TypeVar : public object {
     using object::object;
 };
 
+
+// Does not currently support Literals of byte strings, unicode strings, and Enum values.
+// Also due to how C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
 template <StringLiteral... lit>
 class Literal : public py::str {
     using str::str;
@@ -86,6 +89,23 @@ template <int... intLit>
 class Literal : public py::int_ {
     using int_::int_;
 };
+
+template <bool... boolLit>
+class Literal : public py::bool_ {
+    using bool_::bool_;
+};
+
+template <py::none>
+class Literal : public py::none {
+    using none::none;
+};
+
+template <any... anyLit>
+class Literal : public py::object {
+    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
+    using object::object;
+};
+
 #endif
 
 PYBIND11_NAMESPACE_END(typing)
@@ -153,19 +173,34 @@ struct handle_type_name<typing::TypeVar<lit>> {
 };
 
 template <typing::StringLiteral... lit>
-struct handle_type_name<typing::TypeVar<lit>> {
-    static constexpr auto name = const_name("Literal[")+
-    pybind11::detail::concat(lit.value);
-    + const_name("]");
+struct handle_type_name<typing::Literal<lit>> {
+    static constexpr auto name
+        = const_name("Literal[") + pybind11::detail::concat(lit.value) + const_name("]");
 };
 
 template <int... intLit>
-struct handle_type_name<typing::TypeVar<intLit>> {
-    static constexpr auto name = const_name("Literal[")+
-    pybind11::detail::concat(intLit);
-    + const_name("]");
+struct handle_type_name<typing::Literal<intLit>> {
+    static constexpr auto name
+        = const_name("Literal[") + pybind11::detail::concat(intLit) + const_name("]");
 };
+
+template <bool... boolLit>
+struct handle_type_name<typing::Literal<boolLit>> {
+    static constexpr auto name
+        = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
+}
+
+template <>
+struct handle_type_name<typing::Literal<py::none>> {
+    static constexpr auto name
+        = const_name("Literal[None]");
+}
+
+template <any... anyLit>
+struct handle_type_name<typing::Literal<anyLit>> {
+    // TODO handle conststr
+    static constexpr auto name = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
+}
 #endif
 
-PYBIND11_NAMESPACE_END(detail)
-PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail) PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
