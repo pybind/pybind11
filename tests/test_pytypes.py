@@ -974,6 +974,7 @@ def test_union_typing_only(doc):
         == "union_typing_only(arg0: list[Union[str]]) -> list[Union[int]]"
     )
 
+
 def test_union_object_annotations(doc):
     assert (
         doc(m.annotate_union_to_object)

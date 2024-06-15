@@ -851,7 +851,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
-    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t;});
+    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t; });
 
     m.def("annotate_union",
           [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
@@ -869,9 +869,7 @@ TEST_SUBMODULE(pytypes, m) {
               -> py::typing::List<py::typing::Union<py::int_>> { return l; });
 
     m.def("annotate_union_to_object",
-          [](py::typing::Union<int, py::str> &o) -> py::object {
-              return o;
-          });
+          [](py::typing::Union<int, py::str> &o) -> py::object { return o; });
 
     m.def("annotate_optional",
           [](py::list &list) -> py::typing::List<py::typing::Optional<py::str>> {
@@ -880,10 +878,7 @@ TEST_SUBMODULE(pytypes, m) {
               return list;
           });
     m.def("annotate_optional_to_object",
-          [](py::typing::Optional<int> &o) -> py::object {
-              return o;
-          });
-
+          [](py::typing::Optional<int> &o) -> py::object { return o; });
 
 #if defined(__cpp_nontype_template_parameter_class)
     m.def("annotate_generic_containers",

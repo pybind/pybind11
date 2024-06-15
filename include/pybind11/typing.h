@@ -97,7 +97,7 @@ struct StringLiteral {
 // Example syntax for creating a TypeVar.
 // typedef typing::TypeVar<"T"> TypeVarT;
 template <StringLiteral>
-class TypeVar : public object{
+class TypeVar : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
 };
