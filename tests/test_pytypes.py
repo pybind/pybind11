@@ -979,7 +979,7 @@ def test_string_literal(doc):
     with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_str_literal)
-            == 'annotate_object_to_T(arg0: Literal["A", "B", C"]) -> str'
+            == 'annotate_str_literal(arg0: Literal["A", "B", C"]) -> str'
         )
 
 
@@ -987,14 +987,15 @@ def test_int_literal(doc):
     with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_int_literal)
-            == "annotate_object_to_T(arg0: Literal[1, 2, 3]) -> int"
+            == "annotate_int_literal(arg0: Literal[1, 2, 3]) -> int"
         )
+
 
 def test_bool_literal(doc):
     with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_bool_literal)
-            == "annotate_object_to_T(arg0: Literal[True, False]) -> bool"
+            == "annotate_bool_literal(arg0: Literal[True, False]) -> bool"
         )
 
 
@@ -1002,14 +1003,15 @@ def test_none_literal(doc):
     with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_none_literal)
-            == "annotate_object_to_T(arg0: Literal[None]) -> None"
+            == "annotate_none_literal(arg0: Literal[None]) -> None"
         )
+
 
 def test_any_literal(doc):
     with contextlib.suppress(AttributeError):
         assert (
-            doc(m.annotate_none_literal)
-            == 'annotate_object_to_T(arg0: Literal["A", 1, true, None]) -> object'
+            doc(m.annotate_any_literal)
+            == 'annotate_any_literal(arg0: Literal["A", 1, true, None]) -> object'
         )
 
 
