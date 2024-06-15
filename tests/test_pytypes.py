@@ -970,6 +970,8 @@ def test_typevar(doc):
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+
+
 def test_type_annotation(doc):
     assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> None"
 
