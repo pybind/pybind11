@@ -80,31 +80,47 @@ class TypeVar : public object {
 
 // Does not currently support Literals of byte strings, unicode strings, and Enum values.
 // Also due to how C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
-template <StringLiteral... lit>
-class Literal : public py::str {
-    using str::str;
+// template <StringLiteral... lit>
+// class Literal : public str {
+//     using str::str;
+// };
+
+template <typename inputT, typename T>
+class Literal : public T {
+    // if std::is_same<T, object>{
+    //     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type);
+    // }
+    using T::T;
 };
 
-template <int... intLit>
-class Literal : public py::int_ {
-    using int_::int_;
-};
+template<StringLiteral... literal>
+typedef Literal<StringLiteral, str> LiteralStr;
 
-template <bool... boolLit>
-class Literal : public py::bool_ {
-    using bool_::bool_;
-};
+typedef LiteralStr<"1", "2"> LiteralStrOneTwo;
 
-template <py::none>
-class Literal : public py::none {
-    using none::none;
-};
 
-template <any... anyLit>
-class Literal : public py::object {
-    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
-    using object::object;
-};
+// typedef Literal<StringLiteral, str, "3", "4"> LiteralStrThreeFour;
+
+// template <int... intLit>
+// class Literal : public py::int_ {
+//     using int_::int_;
+// };
+
+// template <bool... boolLit>
+// class Literal : public bool_ {
+//     using bool_::bool_;
+// };
+
+// template <py::none>
+// class Literal : public none {
+//     using none::none;
+// };
+
+// template <any... anyLit>
+// class Literal : public py::object {
+//     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
+//     using object::object;
+// };
 
 #endif
 
@@ -173,34 +189,34 @@ struct handle_type_name<typing::TypeVar<lit>> {
 };
 
 template <typing::StringLiteral... lit>
-struct handle_type_name<typing::Literal<lit>> {
+struct handle_type_name<typing::LiteralStr<lit>> {
     static constexpr auto name
         = const_name("Literal[") + pybind11::detail::concat(lit.value) + const_name("]");
 };
 
-template <int... intLit>
-struct handle_type_name<typing::Literal<intLit>> {
-    static constexpr auto name
-        = const_name("Literal[") + pybind11::detail::concat(intLit) + const_name("]");
-};
+// template <int... intLit>
+// struct handle_type_name<typing::Literal<intLit>> {
+//     static constexpr auto name
+//         = const_name("Literal[") + pybind11::detail::concat(intLit) + const_name("]");
+// };
 
-template <bool... boolLit>
-struct handle_type_name<typing::Literal<boolLit>> {
-    static constexpr auto name
-        = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
-}
+// template <bool... boolLit>
+// struct handle_type_name<typing::Literal<boolLit>> {
+//     static constexpr auto name
+//         = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
+// }
 
-template <>
-struct handle_type_name<typing::Literal<py::none>> {
-    static constexpr auto name
-        = const_name("Literal[None]");
-}
+// template <>
+// struct handle_type_name<typing::Literal<py::none>> {
+//     static constexpr auto name
+//         = const_name("Literal[None]");
+// }
 
-template <any... anyLit>
-struct handle_type_name<typing::Literal<anyLit>> {
-    // TODO handle conststr
-    static constexpr auto name = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
-}
+// template <any... anyLit>
+// struct handle_type_name<typing::Literal<anyLit>> {
+//     // TODO handle conststr
+//     static constexpr auto name = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
+// }
 #endif
 
 PYBIND11_NAMESPACE_END(detail) PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
