@@ -63,20 +63,6 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
-template <size_t N>
-struct StringLiteral {
-    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
-
-    char value[N];
-};
-
-template <StringLiteral>
-class TypeVar : public object {
-    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
-    using object::object;
-};
-#endif
 template <typename T>
 class Type : public type {
     using type::type;
@@ -91,6 +77,29 @@ template <typename T>
 class Optional : public object {
     using object::object;
 };
+
+#if defined(__cpp_nontype_template_parameter_class)
+template <size_t N>
+struct StringLiteral {
+// This struct is different than detail::descr since it accepts a string rather than a type.
+// StringLiteral is used in TypeVar to create "instances" of c++ type objects.
+    constexpr StringLiteral(const char (&str)[N]) {
+        // Ensures This copy is done at compile time
+        if (std::is_constant_evaluated()) {
+            std::copy_n(str, N, value);
+        }
+    }
+    char value[N];
+};
+
+// Example syntax for creating a TypeVar.
+// typedef typing::TypeVar<"T"> TypeVarT;
+template <StringLiteral>
+class TypeVar : public object {
+    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
+    using object::object;
+};
+#endif
 
 PYBIND11_NAMESPACE_END(typing)
 
@@ -150,12 +159,6 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
-template <typing::StringLiteral StrLit>
-struct handle_type_name<typing::TypeVar<StrLit>> {
-    static constexpr auto name = const_name(StrLit.value);
-};
-#endif
 template <typename T>
 struct handle_type_name<typing::Type<T>> {
     static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
@@ -172,6 +175,13 @@ template <typename T>
 struct handle_type_name<typing::Optional<T>> {
     static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
 };
+
+#if defined(__cpp_nontype_template_parameter_class)
+template <typing::StringLiteral StrLit>
+struct handle_type_name<typing::TypeVar<StrLit>> {
+    static constexpr auto name = const_name(StrLit.value);
+};
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
