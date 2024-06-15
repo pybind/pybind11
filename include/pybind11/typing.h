@@ -66,6 +66,14 @@ class Callable<Return(Args...)> : public function {
 template <typename T>
 class Type : public type {
     using type::type;
+} template <typename... Types>
+class Union : public object {
+    using object::object;
+};
+
+template <typename T>
+class Optional : public object {
+    using object::object;
 };
 
 PYBIND11_NAMESPACE_END(typing)
@@ -129,6 +137,16 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 template <typename T>
 struct handle_type_name<typing::Type<T>> {
     static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
+} template <typename... Types>
+struct handle_type_name<typing::Union<Types...>> {
+    static constexpr auto name = const_name("Union[")
+                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
+                                 + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::Optional<T>> {
+    static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
 };
 
 PYBIND11_NAMESPACE_END(detail)
