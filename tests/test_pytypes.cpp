@@ -865,5 +865,7 @@ TEST_SUBMODULE(pytypes, m) {
     typedef typing::Literal<"A", "B", "C"> stringLiteral;
     m.def("annotate_str_literal", [](const stringLiteral s) { return s;});
     typedef typing::Literal<1, 2, 3> intLiteral;
+    m.def("annotate_int_literal", [](const intLiteral i) { return i;});
+    
 #endif
 }
