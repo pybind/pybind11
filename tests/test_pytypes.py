@@ -958,44 +958,35 @@ def test_fn_annotations(doc):
 
 
 def test_generics_compatibility(doc):
-    try:
+    with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_generic_containers)
             == "annotate_generic_containers(arg0: list[T]) -> list[V]"
         )
-    except AttributeError:
-        pass
 
 
 def test_get_generic_from_container(doc):
-    try:
+    with contextlib.suppress(AttributeError):
         assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
-    except AttributeError:
-        pass
 
 
 def test_object_and_typevar_equivalence(doc):
-    try:
+    with contextlib.suppress(AttributeError):
         assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
-    except AttributeError:
-        pass
 
 
 def test_string_literal(doc):
-    try:
+    with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_str_literal)
             == 'annotate_object_to_T(arg0: Literal["A", "B", C"]) -> str'
         )
-    except AttributeError:
-        pass
+    
 
 
 def test_int_literal(doc):
-    try:
+    with contextlib.suppress(AttributeError):
         assert (
             doc(m.annotate_int_literal)
             == "annotate_object_to_T(arg0: Literal[1, 2, 3]) -> int"
         )
-    except AttributeError:
-        pass
