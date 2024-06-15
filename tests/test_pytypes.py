@@ -960,9 +960,9 @@ def test_fn_annotations(doc):
 def test_generics_compatibility(doc):
     try:
         assert (
-        doc(m.annotate_generic_containers)
-        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
-    )
+            doc(m.annotate_generic_containers)
+            == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+        )
     except AttributeError:
         pass
 
