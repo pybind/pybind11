@@ -957,23 +957,8 @@ def test_fn_annotations(doc):
     )
 
 
-@pytest.mark.skipif(
-    not m.if_defined__cpp_nontype_template_parameter_class,
-    reason="C++20 feature not available.",
-)
-def test_typevar(doc):
-    assert (
-        doc(m.annotate_generic_containers)
-        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
-    )
-
-    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
-
-    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
-
-
 def test_type_annotation(doc):
-    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> None"
+    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> type"
 
 
 def test_union_annotations(doc):
@@ -989,9 +974,37 @@ def test_union_typing_only(doc):
         == "union_typing_only(arg0: list[Union[str]]) -> list[Union[int]]"
     )
 
+def test_union_object_annotations(doc):
+    assert (
+        doc(m.annotate_union_to_object)
+        == "annotate_union_to_object(arg0: Union[int, str]) -> object"
+    )
+
 
 def test_optional_annotations(doc):
     assert (
         doc(m.annotate_optional)
         == "annotate_optional(arg0: list) -> list[Optional[str]]"
     )
+
+
+def test_optional_object_annotations(doc):
+    assert (
+        doc(m.annotate_optional_to_object)
+        == "annotate_optional_to_object(arg0: Optional[int]) -> object"
+    )
+
+
+@pytest.mark.skipif(
+    not m.if_defined__cpp_nontype_template_parameter_class,
+    reason="C++20 feature not available.",
+)
+def test_typevar(doc):
+    assert (
+        doc(m.annotate_generic_containers)
+        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+    )
+
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"

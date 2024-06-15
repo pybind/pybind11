@@ -70,11 +70,13 @@ class Type : public type {
 
 template <typename... Types>
 class Union : public object {
+    PYBIND11_OBJECT_DEFAULT(Union, object, PyObject_Type)
     using object::object;
 };
 
 template <typename T>
 class Optional : public object {
+    PYBIND11_OBJECT_DEFAULT(Optional, object, PyObject_Type)
     using object::object;
 };
 
@@ -95,7 +97,7 @@ struct StringLiteral {
 // Example syntax for creating a TypeVar.
 // typedef typing::TypeVar<"T"> TypeVarT;
 template <StringLiteral>
-class TypeVar : public object {
+class TypeVar : public object{
     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
 };
