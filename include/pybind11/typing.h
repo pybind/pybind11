@@ -82,10 +82,10 @@ class Literal : public py::str {
     using str::str;
 };
 
-// template <int... intlit>
-// class Literal : public py::int {
-//     using str::str;
-// };
+template <int... intLit>
+class Literal : public py::int_ {
+    using int_::int_;
+};
 #endif
 
 PYBIND11_NAMESPACE_END(typing)
@@ -156,6 +156,13 @@ template <typing::StringLiteral... lit>
 struct handle_type_name<typing::TypeVar<lit>> {
     static constexpr auto name = const_name("Literal[")+
     pybind11::detail::concat(lit.value);
+    + const_name("]");
+};
+
+template <int... intLit>
+struct handle_type_name<typing::TypeVar<intLit>> {
+    static constexpr auto name = const_name("Literal[")+
+    pybind11::detail::concat(intLit);
     + const_name("]");
 };
 #endif

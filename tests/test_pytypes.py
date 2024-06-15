@@ -983,6 +983,12 @@ def test_object_and_typevar_equivalence(doc):
 
 def test_string_literal(doc):
     try:
-        assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+        assert doc(m.annotate_str_literal) == 'annotate_object_to_T(arg0: Literal["A", "B", C"]) -> str'
+    except AttributeError:
+        pass
+
+def test_int_literal(doc):
+    try:
+        assert doc(m.annotate_int_literal) == 'annotate_object_to_T(arg0: Literal[1, 2, 3]) -> int'
     except AttributeError:
         pass
