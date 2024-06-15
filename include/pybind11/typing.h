@@ -63,6 +63,11 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
+template <typename T>
+class Type : public type {
+    using type::type;
+};
+
 template <typename... Types>
 class Union : public object {
     using object::object;
@@ -129,6 +134,11 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
     static constexpr auto name
         = const_name("Callable[[") + ::pybind11::detail::concat(make_caster<Args>::name...)
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::Type<T>> {
+    static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename... Types>
