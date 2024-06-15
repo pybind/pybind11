@@ -972,9 +972,16 @@ def test_get_generic_from_container(doc):
         assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
     except AttributeError:
         pass
-    
 
+    
 def test_object_and_typevar_equivalence(doc):
+    try:
+        assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+    except AttributeError:
+        pass
+
+
+def test_string_literal(doc):
     try:
         assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
     except AttributeError:

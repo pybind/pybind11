@@ -76,6 +76,16 @@ class TypeVar : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
 };
+
+template <StringLiteral... lit>
+class Literal : public py::str {
+    using str::str;
+};
+
+// template <int... intlit>
+// class Literal : public py::int {
+//     using str::str;
+// };
 #endif
 
 PYBIND11_NAMESPACE_END(typing)
@@ -140,6 +150,13 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 template <typing::StringLiteral lit>
 struct handle_type_name<typing::TypeVar<lit>> {
     static constexpr auto name = const_name(lit.value);
+};
+
+template <typing::StringLiteral... lit>
+struct handle_type_name<typing::TypeVar<lit>> {
+    static constexpr auto name = const_name("Literal[")+
+    pybind11::detail::concat(lit.value);
+    + const_name("]");
 };
 #endif
 
