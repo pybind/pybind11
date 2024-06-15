@@ -71,7 +71,7 @@ struct StringLiteral {
     char value[N];
 };
 
-template <StringLiteral lit>
+template <StringLiteral>
 class TypeVar : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
@@ -146,9 +146,9 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
 };
 
 #if defined(__cpp_nontype_template_parameter_class)
-template <typing::StringLiteral lit>
-struct handle_type_name<typing::TypeVar<lit>> {
-    static constexpr auto name = const_name(lit.value);
+template <typing::StringLiteral StrLit>
+struct handle_type_name<typing::TypeVar<StrLit>> {
+    static constexpr auto name = const_name(StrLit.value);
 };
 #endif
 template <typename... Types>

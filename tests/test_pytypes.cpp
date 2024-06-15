@@ -861,6 +861,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_listT_to_T",
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
     m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+    m.attr("if_defined__cpp_nontype_template_parameter_class") = true;
+#else
+    m.attr("if_defined__cpp_nontype_template_parameter_class") = false;
 #endif
     m.def("annotate_union",
           [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,

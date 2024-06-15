@@ -957,22 +957,19 @@ def test_fn_annotations(doc):
     )
 
 
-def test_generics_compatibility(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_generic_containers)
-            == "annotate_generic_containers(arg0: list[T]) -> list[V]"
-        )
+@pytest.mark.skipif(
+    not m.if_defined__cpp_nontype_template_parameter_class,
+    reason="C++20 feature not available.",
+)
+def test_typevar(doc):
+    assert (
+        doc(m.annotate_generic_containers)
+        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+    )
 
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
-def test_get_generic_from_container(doc):
-    with contextlib.suppress(AttributeError):
-        assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
-
-
-def test_object_and_typevar_equivalence(doc):
-    with contextlib.suppress(AttributeError):
-        assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
 
 
 def test_union_annotations(doc):
