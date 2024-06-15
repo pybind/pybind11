@@ -83,14 +83,7 @@ class Optional : public object {
 #if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
-    // This struct is different than detail::descr since it accepts a string rather than a type.
-    // StringLiteral is used in TypeVar to create "instances" of c++ type objects.
-    constexpr StringLiteral(const char (&str)[N]) {
-        // Ensures This copy is done at compile time
-        if (std::is_constant_evaluated()) {
-            std::copy_n(str, N, value);
-        }
-    }
+    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
     char value[N];
 };
 
