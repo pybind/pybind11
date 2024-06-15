@@ -862,4 +862,25 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
     m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
 #endif
+    m.def("annotate_union",
+          [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
+             py::str a,
+             py::int_ b,
+             py::object c) -> py::typing::List<py::typing::Union<py::str, py::int_, py::object>> {
+              l.append(a);
+              l.append(b);
+              l.append(c);
+              return l;
+          });
+
+    m.def("union_typing_only",
+          [](py::typing::List<py::typing::Union<py::str>> &l)
+              -> py::typing::List<py::typing::Union<py::int_>> { return l; });
+
+    m.def("annotate_optional",
+          [](py::list &list) -> py::typing::List<py::typing::Optional<py::str>> {
+              list.append(py::str("hi"));
+              list.append(py::none());
+              return list;
+          });
 }

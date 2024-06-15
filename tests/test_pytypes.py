@@ -973,3 +973,24 @@ def test_get_generic_from_container(doc):
 def test_object_and_typevar_equivalence(doc):
     with contextlib.suppress(AttributeError):
         assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+
+
+def test_union_annotations(doc):
+    assert (
+        doc(m.annotate_union)
+        == "annotate_union(arg0: list[Union[str, int, object]], arg1: str, arg2: int, arg3: object) -> list[Union[str, int, object]]"
+    )
+
+
+def test_union_typing_only(doc):
+    assert (
+        doc(m.union_typing_only)
+        == "union_typing_only(arg0: list[Union[str]]) -> list[Union[int]]"
+    )
+
+
+def test_optional_annotations(doc):
+    assert (
+        doc(m.annotate_optional)
+        == "annotate_optional(arg0: list) -> list[Optional[str]]"
+    )
