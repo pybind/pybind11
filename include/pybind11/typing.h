@@ -77,6 +77,11 @@ class TypeVar : public object {
     using object::object;
 };
 #endif
+template <typename T>
+class Type : public type {
+    using type::type;
+};
+
 template <typename... Types>
 class Union : public object {
     using object::object;
@@ -151,6 +156,11 @@ struct handle_type_name<typing::TypeVar<StrLit>> {
     static constexpr auto name = const_name(StrLit.value);
 };
 #endif
+template <typename T>
+struct handle_type_name<typing::Type<T>> {
+    static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
+};
+
 template <typename... Types>
 struct handle_type_name<typing::Union<Types...>> {
     static constexpr auto name = const_name("Union[")

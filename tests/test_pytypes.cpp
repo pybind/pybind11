@@ -851,6 +851,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
+    m.def("annotate_type", [](const py::typing::Type<int> &) {});
 
 #if defined(__cpp_nontype_template_parameter_class)
     m.def("annotate_generic_containers",
