@@ -583,7 +583,8 @@ PYBIND11_NOINLINE internals &get_internals() {
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
-        auto num_shards = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        auto num_shards
+            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
         if (num_shards == 0) {
             num_shards = 1;
         }
