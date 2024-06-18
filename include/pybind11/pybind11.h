@@ -1209,7 +1209,7 @@ PYBIND11_NAMESPACE_END(detail)
 // Use to activate Py_MOD_GIL_NOT_USED.
 class mod_gil_not_used {
 public:
-    mod_gil_not_used(bool flag = true) : flag_(flag) {}
+    explicit mod_gil_not_used(bool flag = true) : flag_(flag) {}
     bool flag() const { return flag_; }
 
 private:
