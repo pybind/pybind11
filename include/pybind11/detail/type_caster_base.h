@@ -217,12 +217,15 @@ inline detail::type_info *get_local_type_info(const std::type_index &tp) {
 }
 
 inline detail::type_info *get_global_type_info(const std::type_index &tp) {
-    auto &types = get_internals().registered_types_cpp;
-    auto it = types.find(tp);
-    if (it != types.end()) {
-        return it->second;
-    }
-    return nullptr;
+    return with_internals([&](internals &internals) {
+        detail::type_info *type_info = nullptr;
+        auto &types = internals.registered_types_cpp;
+        auto it = types.find(tp);
+        if (it != types.end()) {
+            type_info = it->second;
+        }
+        return type_info;
+    });
 }
 
 /// Return the type info for a given C++ type; on lookup failure can either throw or return
@@ -253,15 +256,17 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
 PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
                                                          const detail::type_info *tinfo) {
-    auto it_instances = get_internals().registered_instances.equal_range(src);
-    for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-        for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                return handle((PyObject *) it_i->second).inc_ref();
+    return with_instance_map(src, [&](instance_map &instances) {
+        auto it_instances = instances.equal_range(src);
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
+                    return handle((PyObject *) it_i->second).inc_ref();
+                }
             }
         }
-    }
-    return handle();
+        return handle();
+    });
 }
 
 struct value_and_holder {
@@ -506,16 +511,17 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
 }
 
 PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_info *type) {
-    auto &instances = get_internals().registered_instances;
-    auto range = instances.equal_range(ptr);
-    for (auto it = range.first; it != range.second; ++it) {
-        for (const auto &vh : values_and_holders(it->second)) {
-            if (vh.type == type) {
-                return handle((PyObject *) it->second);
+    return with_instance_map(ptr, [&](instance_map &instances) {
+        auto range = instances.equal_range(ptr);
+        for (auto it = range.first; it != range.second; ++it) {
+            for (const auto &vh : values_and_holders(it->second)) {
+                if (vh.type == type) {
+                    return handle((PyObject *) it->second);
+                }
             }
         }
-    }
-    return handle();
+        return handle();
+    });
 }
 
 inline PyThreadState *get_thread_state_unchecked() {
