@@ -4,7 +4,7 @@ Build systems
 #############
 
 For an overview of Python packaging including compiled packaging with a pybind11
-example, along with a cookiecutter than includes several pybind11 options, see
+example, along with a cookiecutter that includes several pybind11 options, see
 the `Scientific Python Development Guide`_.
 
 .. _Scientific Python Development Guide: https://learn.scientific-python.org/development/guides/packaging-compiled/
@@ -68,6 +68,8 @@ Modules with meson-python
 
 You can also build a package with `Meson`_ using `meson-python`_, if you prefer
 that. Your ``meson.build`` file would look something like this:
+
+.. _meson-example:
 
 .. code-block:: meson
 
@@ -688,30 +690,7 @@ Building with Meson
 ===================
 
 You can use Meson, which has support for ``pybind11`` as a dependency (internally
-relying on our ``pkg-config`` support):
-
-.. code-block:: meson
-
-   project(
-       'example',
-       'cpp',
-       version: '0.1.0',
-       default_options: [
-           'cpp_std=c++11',
-       ],
-   )
-
-   py = import('python').find_installation(pure: false)
-   pybind11_dep = dependency('pybind11')
-
-   py.extension_module('example',
-       'example.cpp',
-       install: true,
-       dependencies : [pybind11_dep],
-   )
-
-You need to set the ``cpp_std`` option to at least ``c++11``, and you need to
-use ``pure: false`` when finding Python.
+relying on our ``pkg-config`` support). See the :ref:`module example above <meson-example>`.
 
 
 Generating binding code automatically
