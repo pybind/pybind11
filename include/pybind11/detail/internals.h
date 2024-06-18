@@ -588,7 +588,11 @@ struct local_internals {
         loader_life_support_tls_key
             = static_cast<shared_loader_life_support_data *>(ptr)->loader_life_support_tls_key;
     }
+#else
+    local_internals() = default;
 #endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+    local_internals(const local_internals &) = delete;
+    local_internals &operator=(const local_internals &) = delete;
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
