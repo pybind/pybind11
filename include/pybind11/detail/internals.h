@@ -173,12 +173,16 @@ struct override_hash {
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
 // ignore: structure was padded due to alignment specifier
+PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_MSVC(4324)
 
+// Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct alignas(64) instance_map_shard {
     std::mutex mutex;
     instance_map registered_instances;
 };
+
+PYBIND11_WARNING_POP
 
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
@@ -495,7 +499,7 @@ inline internals **get_internals_pp_from_capsule(handle obj) {
     return static_cast<internals **>(raw_ptr);
 }
 
-inline uint64_t next_pow2(uint64_t x) {
+inline uint64_t round_up_to_next_pow2(uint64_t x) {
     // Round-up to the next power of two.
     // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
     x--;
@@ -578,7 +582,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
 #ifdef Py_GIL_DISABLED
-        size_t num_shards = (size_t) next_pow2(2 * std::thread::hardware_concurrency());
+        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
+        auto num_shards
+            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
         if (num_shards == 0) {
             num_shards = 1;
         }
@@ -658,7 +664,10 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     return cb(internals);
 }
 
-inline uint64_t splitmix64(uint64_t z) {
+inline std::uint64_t mix64(std::uint64_t z) {
+    // David Stafford's variant 13 of the MurmurHash3 finalizer popularized
+    // by the SplitMix PRNG.
+    // https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
     z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
     return z ^ (z >> 31);
@@ -675,9 +684,9 @@ inline auto with_instance_map(const void *ptr,
     // other threads/cores to map to other shards. Using the high bits is a good
     // heuristic because memory allocators often have a per-thread
     // arena/superblock/segment from which smaller allocations are served.
-    auto addr = reinterpret_cast<uintptr_t>(ptr);
-    uint64_t hash = splitmix64((uint64_t) (addr >> 20));
-    size_t idx = (size_t) hash & internals.instance_shards_mask;
+    auto addr = reinterpret_cast<std::uintptr_t>(ptr);
+    auto hash = mix64(static_cast<std::uint64_t>(addr >> 20));
+    auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
 
     auto &shard = internals.instance_shards[idx];
     std::unique_lock<std::mutex> lock(shard.mutex);
@@ -688,6 +697,8 @@ inline auto with_instance_map(const void *ptr,
 #endif
 }
 
+// Returns the number of registered instances for testing purposes.  The result may not be
+// consistent if other threads are registering or unregistering instances concurrently.
 inline size_t num_registered_instances() {
     auto &internals = get_internals();
 #ifdef Py_GIL_DISABLED
