@@ -16,7 +16,7 @@
 #include <numeric>
 #include <utility>
 
-PYBIND11_MODULE(pybind11_cross_module_tests, m) {
+PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 cross-module test module";
 
     // test_local_bindings.py tests:

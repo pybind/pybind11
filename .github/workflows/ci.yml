@@ -1112,7 +1112,7 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2.0
 
       - name: Install ninja-build tool
-        uses: seanmiddleditch/gha-setup-ninja@v4
+        uses: seanmiddleditch/gha-setup-ninja@v5
 
       - name: Run pip installs
         run: |

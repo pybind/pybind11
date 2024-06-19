@@ -955,3 +955,28 @@ def test_fn_annotations(doc):
         doc(m.annotate_fn)
         == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
     )
+
+
+def test_type_annotation(doc):
+    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> None"
+
+
+def test_union_annotations(doc):
+    assert (
+        doc(m.annotate_union)
+        == "annotate_union(arg0: list[Union[str, int, object]], arg1: str, arg2: int, arg3: object) -> list[Union[str, int, object]]"
+    )
+
+
+def test_union_typing_only(doc):
+    assert (
+        doc(m.union_typing_only)
+        == "union_typing_only(arg0: list[Union[str]]) -> list[Union[int]]"
+    )
+
+
+def test_optional_annotations(doc):
+    assert (
+        doc(m.annotate_optional)
+        == "annotate_optional(arg0: list) -> list[Optional[str]]"
+    )
