@@ -464,7 +464,7 @@ PYBIND11_WARNING_POP
             });
         }
 \endrst */
-#define PYBIND11_MODULE(name, variable)                                                           \
+#define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
     PYBIND11_MAYBE_UNUSED                                                                         \
@@ -473,7 +473,10 @@ PYBIND11_WARNING_POP
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
         auto m = ::pybind11::module_::create_extension_module(                                    \
-            PYBIND11_TOSTRING(name), nullptr, &PYBIND11_CONCAT(pybind11_module_def_, name));      \
+            PYBIND11_TOSTRING(name),                                                              \
+            nullptr,                                                                              \
+            &PYBIND11_CONCAT(pybind11_module_def_, name),                                         \
+            ##__VA_ARGS__);                                                                       \
         try {                                                                                     \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
             return m.ptr();                                                                       \

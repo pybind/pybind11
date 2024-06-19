@@ -18,6 +18,8 @@
 #include "../pytypes.h"
 
 #include <exception>
+#include <mutex>
+#include <thread>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
@@ -168,15 +170,37 @@ struct override_hash {
     }
 };
 
+using instance_map = std::unordered_multimap<const void *, instance *>;
+
+// ignore: structure was padded due to alignment specifier
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_MSVC(4324)
+
+// Instance map shards are used to reduce mutex contention in free-threaded Python.
+struct alignas(64) instance_map_shard {
+    std::mutex mutex;
+    instance_map registered_instances;
+};
+
+PYBIND11_WARNING_POP
+
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
+#ifdef Py_GIL_DISABLED
+    std::mutex mutex;
+#endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py;
-    std::unordered_multimap<const void *, instance *> registered_instances; // void * -> instance*
+#ifdef Py_GIL_DISABLED
+    std::unique_ptr<instance_map_shard[]> instance_shards; // void * -> instance*
+    size_t instance_shards_mask;
+#else
+    instance_map registered_instances; // void * -> instance*
+#endif
     std::unordered_set<std::pair<const PyObject *, const char *>, override_hash>
         inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
@@ -462,7 +486,8 @@ inline object get_python_state_dict() {
 }
 
 inline object get_internals_obj_from_state_dict(handle state_dict) {
-    return reinterpret_borrow<object>(dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID));
+    return reinterpret_steal<object>(
+        dict_getitemstringref(state_dict.ptr(), PYBIND11_INTERNALS_ID));
 }
 
 inline internals **get_internals_pp_from_capsule(handle obj) {
@@ -472,6 +497,20 @@ inline internals **get_internals_pp_from_capsule(handle obj) {
         throw error_already_set();
     }
     return static_cast<internals **>(raw_ptr);
+}
+
+inline uint64_t round_up_to_next_pow2(uint64_t x) {
+    // Round-up to the next power of two.
+    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    x--;
+    x |= (x >> 1);
+    x |= (x >> 2);
+    x |= (x >> 4);
+    x |= (x >> 8);
+    x |= (x >> 16);
+    x |= (x >> 32);
+    x++;
+    return x;
 }
 
 /// Return a reference to the current `internals` data
@@ -542,6 +581,16 @@ PYBIND11_NOINLINE internals &get_internals() {
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
+#ifdef Py_GIL_DISABLED
+        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
+        auto num_shards
+            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        if (num_shards == 0) {
+            num_shards = 1;
+        }
+        internals_ptr->instance_shards.reset(new instance_map_shard[num_shards]);
+        internals_ptr->instance_shards_mask = num_shards - 1;
+#endif // Py_GIL_DISABLED
     }
     return **internals_pp;
 }
@@ -602,13 +651,80 @@ inline local_internals &get_local_internals() {
     return *locals;
 }
 
+#ifdef Py_GIL_DISABLED
+#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<std::mutex> lock((internals).mutex)
+#else
+#    define PYBIND11_LOCK_INTERNALS(internals)
+#endif
+
+template <typename F>
+inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
+    auto &internals = get_internals();
+    PYBIND11_LOCK_INTERNALS(internals);
+    return cb(internals);
+}
+
+inline std::uint64_t mix64(std::uint64_t z) {
+    // David Stafford's variant 13 of the MurmurHash3 finalizer popularized
+    // by the SplitMix PRNG.
+    // https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+    return z ^ (z >> 31);
+}
+
+template <typename F>
+inline auto with_instance_map(const void *ptr,
+                              const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
+    auto &internals = get_internals();
+
+#ifdef Py_GIL_DISABLED
+    // Hash address to compute shard, but ignore low bits. We'd like allocations
+    // from the same thread/core to map to the same shard and allocations from
+    // other threads/cores to map to other shards. Using the high bits is a good
+    // heuristic because memory allocators often have a per-thread
+    // arena/superblock/segment from which smaller allocations are served.
+    auto addr = reinterpret_cast<std::uintptr_t>(ptr);
+    auto hash = mix64(static_cast<std::uint64_t>(addr >> 20));
+    auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
+
+    auto &shard = internals.instance_shards[idx];
+    std::unique_lock<std::mutex> lock(shard.mutex);
+    return cb(shard.registered_instances);
+#else
+    (void) ptr;
+    return cb(internals.registered_instances);
+#endif
+}
+
+// Returns the number of registered instances for testing purposes.  The result may not be
+// consistent if other threads are registering or unregistering instances concurrently.
+inline size_t num_registered_instances() {
+    auto &internals = get_internals();
+#ifdef Py_GIL_DISABLED
+    size_t count = 0;
+    for (size_t i = 0; i <= internals.instance_shards_mask; ++i) {
+        auto &shard = internals.instance_shards[i];
+        std::unique_lock<std::mutex> lock(shard.mutex);
+        count += shard.registered_instances.size();
+    }
+    return count;
+#else
+    return internals.registered_instances.size();
+#endif
+}
+
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only
 /// cleared when the program exits or after interpreter shutdown (when embedding), and so are
 /// suitable for c-style strings needed by Python internals (such as PyTypeObject's tp_name).
 template <typename... Args>
 const char *c_str(Args &&...args) {
-    auto &strings = get_internals().static_strings;
+    // GCC 4.8 doesn't like parameter unpack within lambda capture, so use
+    // PYBIND11_LOCK_INTERNALS.
+    auto &internals = get_internals();
+    PYBIND11_LOCK_INTERNALS(internals);
+    auto &strings = internals.static_strings;
     strings.emplace_front(std::forward<Args>(args)...);
     return strings.front().c_str();
 }
@@ -638,15 +754,18 @@ PYBIND11_NAMESPACE_END(detail)
 /// pybind11 version) running in the current interpreter. Names starting with underscores
 /// are reserved for internal usage. Returns `nullptr` if no matching entry was found.
 PYBIND11_NOINLINE void *get_shared_data(const std::string &name) {
-    auto &internals = detail::get_internals();
-    auto it = internals.shared_data.find(name);
-    return it != internals.shared_data.end() ? it->second : nullptr;
+    return detail::with_internals([&](detail::internals &internals) {
+        auto it = internals.shared_data.find(name);
+        return it != internals.shared_data.end() ? it->second : nullptr;
+    });
 }
 
 /// Set the shared data that can be later recovered by `get_shared_data()`.
 PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
-    detail::get_internals().shared_data[name] = data;
-    return data;
+    return detail::with_internals([&](detail::internals &internals) {
+        internals.shared_data[name] = data;
+        return data;
+    });
 }
 
 /// Returns a typed reference to a shared data entry (by using `get_shared_data()`) if
@@ -654,14 +773,15 @@ PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
 /// added to the shared data under the given name and a reference to it is returned.
 template <typename T>
 T &get_or_create_shared_data(const std::string &name) {
-    auto &internals = detail::get_internals();
-    auto it = internals.shared_data.find(name);
-    T *ptr = (T *) (it != internals.shared_data.end() ? it->second : nullptr);
-    if (!ptr) {
-        ptr = new T();
-        internals.shared_data[name] = ptr;
-    }
-    return *ptr;
+    return *detail::with_internals([&](detail::internals &internals) {
+        auto it = internals.shared_data.find(name);
+        T *ptr = (T *) (it != internals.shared_data.end() ? it->second : nullptr);
+        if (!ptr) {
+            ptr = new T();
+            internals.shared_data[name] = ptr;
+        }
+        return ptr;
+    });
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
