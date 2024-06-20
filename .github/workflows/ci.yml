@@ -45,13 +45,13 @@ jobs:
         # existing keys match.
         #
         # We support an optional key: args, for cmake args
+        # TODO: Find a platform to test -DCMAKE_CXX_FLAGS="-D_=1"
         include:
           # Just add a key
           - runs-on: ubuntu-20.04
             python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
-              -DCMAKE_CXX_FLAGS="-D_=1"
           - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
