@@ -801,16 +801,25 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - 3.7
-        - 3.8
-        - 3.9
+        - '3.7'
+        - '3.8'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+        - '3.12'
 
         include:
-          - python: 3.9
+          - python: '3.12'
             args: -DCMAKE_CXX_STANDARD=20
-          - python: 3.8
+          - python: '3.11'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.10'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.9'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: 3.7
+          - python: '3.7'
             args: -DCMAKE_CXX_STANDARD=14
 
 
