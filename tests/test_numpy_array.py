@@ -198,7 +198,6 @@ def test_wrap():
         assert a.flags.f_contiguous == b.flags.f_contiguous
         assert a.flags.writeable == b.flags.writeable
         assert a.flags.aligned == b.flags.aligned
-        # 1.13 supported Python 3.6
         if tuple(int(x) for x in np.__version__.split(".")[:2]) >= (1, 14):
             assert a.flags.writebackifcopy == b.flags.writebackifcopy
         else:
