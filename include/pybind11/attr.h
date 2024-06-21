@@ -68,6 +68,31 @@ struct base {
     base() = default;
 };
 
+/** \rst
+    Annotation indicating that a class should appear to python to derive from
+    another given type. This is useful for wrapping type systems that don't
+    utilize standard C++ inheritance.
+
+    You must provide a caster function that casts from the derived type to
+    the base type. As an example, standard C++ inheritance would do this:
+
+    .. code-block:: c++
+
+        py::class_<Derived> cls(m, "Derived", py::custom_base<Base>([](void *o) {
+            return static_cast<Base*>(reinterpret_cast<Derived*>(o));
+        }));
+
+    .. note:: This is an advanced feature. If you use this, you likely need
+              to implement polymorphic_type_hook for your type hierarchy.
+ \endrst */
+template <typename T>
+struct custom_base {
+    using caster = void *(*) (void *);
+
+    explicit custom_base(const caster &f) : fn(f) {}
+    caster fn;
+};
+
 /// Keep patient alive while nurse lives
 template <size_t Nurse, size_t Patient>
 struct keep_alive {};
@@ -561,6 +586,16 @@ struct process_attribute<T, enable_if_t<is_pyobject<T>::value>>
 template <typename T>
 struct process_attribute<base<T>> : process_attribute_default<base<T>> {
     static void init(const base<T> &, type_record *r) { r->add_base(typeid(T), nullptr); }
+};
+
+/// Process a custom base attribute
+template <typename T>
+struct process_attribute<custom_base<T>> : process_attribute_default<custom_base<T>> {
+    static void init(const custom_base<T> &b, type_record *r) {
+        r->add_base(typeid(T), b.fn);
+        // TODO: rename this to 'nonsimple'?
+        r->multiple_inheritance = true;
+    }
 };
 
 /// Process a multiple inheritance attribute
