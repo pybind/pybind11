@@ -655,13 +655,13 @@ using ``pip`` or ``conda``. If it hasn't, you can also manually specify
 ``-I <path-to-pybind11>/include`` together with the Python includes path
 ``python3-config --includes``.
 
-On macOS: the build command is almost the same but it also requires passing
-the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
-building the module:
+On macOS: the build command is almost the same but it also requires passing the
+``-undefined dynamic_lookup -Wl,no_fixup_chains`` flag to ignore missing symbols
+when building the module:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup -Wl,no_fixup_chains $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
