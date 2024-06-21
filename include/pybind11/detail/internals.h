@@ -11,7 +11,7 @@
 
 #include "common.h"
 
-#if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    include "../gil.h"
 #endif
 
@@ -192,28 +192,27 @@ struct internals {
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
-#if defined(WITH_THREAD)
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
-#    endif // PYBIND11_INTERNALS_VERSION > 4
+#endif // PYBIND11_INTERNALS_VERSION > 4
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
     // Note that we have to use a std::string to allocate memory to ensure a unique address
     // We want unique addresses since we use pointer equality to compare function records
     std::string function_record_capsule_name = internals_function_record_capsule_name;
-#    endif
+#endif
 
     internals() = default;
     internals(const internals &other) = delete;
     internals &operator=(const internals &other) = delete;
     ~internals() {
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
-#    endif // PYBIND11_INTERNALS_VERSION > 4
+#endif // PYBIND11_INTERNALS_VERSION > 4
 
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
         // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is
@@ -224,7 +223,6 @@ struct internals {
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
     }
-#endif
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
@@ -309,11 +307,7 @@ struct type_info {
 #endif
 
 #ifndef PYBIND11_INTERNALS_KIND
-#    if defined(WITH_THREAD)
-#        define PYBIND11_INTERNALS_KIND ""
-#    else
-#        define PYBIND11_INTERNALS_KIND "_without_thread"
-#    endif
+#    define PYBIND11_INTERNALS_KIND ""
 #endif
 
 #define PYBIND11_INTERNALS_ID                                                                     \
@@ -496,10 +490,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
-#if defined(WITH_THREAD)
-#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
     gil_scoped_acquire gil;
-#    else
+#else
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
@@ -509,7 +502,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
-#    endif
 #endif
     error_scope err_scope;
 
@@ -534,7 +526,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
-#if defined(WITH_THREAD)
 
         PyThreadState *tstate = PyThreadState_Get();
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
@@ -543,15 +534,14 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
         PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
 
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
             pybind11_fail("get_internals: could not successfully initialize the "
                           "loader_life_support TSS key!");
         }
-#    endif
-        internals_ptr->istate = tstate->interp;
 #endif
+        internals_ptr->istate = tstate->interp;
         state_dict[PYBIND11_INTERNALS_ID] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
@@ -580,7 +570,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
-#if defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+#if PYBIND11_INTERNALS_VERSION == 4
 
     // For ABI compatibility, we can't store the loader_life_support TLS key in
     // the `internals` struct directly.  Instead, we store it in `shared_data` and
@@ -613,7 +603,7 @@ struct local_internals {
         loader_life_support_tls_key
             = static_cast<shared_loader_life_support_data *>(ptr)->loader_life_support_tls_key;
     }
-#endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+#endif //  PYBIND11_INTERNALS_VERSION == 4
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
