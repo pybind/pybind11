@@ -64,65 +64,41 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
-#if PY_VERSION_HEX >= 0x03070000
 // Avoid unnecessary allocation of `Py_tss_t`, since we cannot use
 // `Py_LIMITED_API` anyway.
-#    if PYBIND11_INTERNALS_VERSION > 4
-#        define PYBIND11_TLS_KEY_REF Py_tss_t &
-#        if defined(__clang__)
-#            define PYBIND11_TLS_KEY_INIT(var)                                                    \
-                _Pragma("clang diagnostic push")                                         /**/     \
-                    _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/     \
-                    Py_tss_t var                                                                  \
-                    = Py_tss_NEEDS_INIT;                                                          \
-                _Pragma("clang diagnostic pop")
-#        elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
-#            define PYBIND11_TLS_KEY_INIT(var)                                                    \
-                _Pragma("GCC diagnostic push")                                         /**/       \
-                    _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/       \
-                    Py_tss_t var                                                                  \
-                    = Py_tss_NEEDS_INIT;                                                          \
-                _Pragma("GCC diagnostic pop")
-#        else
-#            define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
-#        endif
-#        define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
-#        define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
-#        define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
+#if PYBIND11_INTERNALS_VERSION > 4
+#    define PYBIND11_TLS_KEY_REF Py_tss_t &
+#    if defined(__clang__)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("clang diagnostic push")                                         /**/         \
+                _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/         \
+                Py_tss_t var                                                                      \
+                = Py_tss_NEEDS_INIT;                                                              \
+            _Pragma("clang diagnostic pop")
+#    elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("GCC diagnostic push")                                         /**/           \
+                _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/           \
+                Py_tss_t var                                                                      \
+                = Py_tss_NEEDS_INIT;                                                              \
+            _Pragma("GCC diagnostic pop")
 #    else
-#        define PYBIND11_TLS_KEY_REF Py_tss_t *
-#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
-#        define PYBIND11_TLS_KEY_CREATE(var)                                                      \
-            (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
-#        define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
-#        define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
+#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
 #    endif
+#    define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 #else
-// Usually an int but a long on Cygwin64 with Python 3.x
-#    define PYBIND11_TLS_KEY_REF decltype(PyThread_create_key())
-#    define PYBIND11_TLS_KEY_INIT(var) PYBIND11_TLS_KEY_REF var = 0;
-#    define PYBIND11_TLS_KEY_CREATE(var) (((var) = PyThread_create_key()) != -1)
-#    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
-#    if defined(PYPY_VERSION)
-// On CPython < 3.4 and on PyPy, `PyThread_set_key_value` strangely does not set
-// the value if it has already been set.  Instead, it must first be deleted and
-// then set again.
-inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
-    PyThread_delete_key_value(key);
-    PyThread_set_key_value(key, value);
-}
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_delete_key_value(key)
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                                            \
-            ::pybind11::detail::tls_replace_value((key), (value))
-#    else
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_set_key_value((key), nullptr)
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_set_key_value((key), (value))
-#    endif
-#    define PYBIND11_TLS_FREE(key) (void) key
+#    define PYBIND11_TLS_KEY_REF Py_tss_t *
+#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
+#    define PYBIND11_TLS_KEY_CREATE(var)                                                          \
+        (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 #endif
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
