@@ -133,9 +133,7 @@ jobs:
       run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
-      # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
-      run: cmake --build .  --target cpptest -j 2
+      run: cmake --build . --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build . --target test_cmake_build
@@ -164,8 +162,6 @@ jobs:
       run: cmake --build build2 --target pytest
 
     - name: C++ tests
-      # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -811,17 +807,26 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - 3.6
-        - 3.7
-        - 3.8
-        - 3.9
+        - '3.6'
+        - '3.7'
+        - '3.8'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+        - '3.12'
 
         include:
-          - python: 3.9
+          - python: '3.12'
             args: -DCMAKE_CXX_STANDARD=20
-          - python: 3.8
+          - python: '3.11'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.10'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.9'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: 3.7
+          - python: '3.7'
             args: -DCMAKE_CXX_STANDARD=14
 
 
