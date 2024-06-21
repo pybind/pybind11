@@ -224,7 +224,6 @@ jobs:
         run: cmake --build build --target pytest -j2
 
   deadsnakes:
-    if: github.actor_id == 'THIS IS JUST A TRICK TO DISABLE THIS JOB'
     strategy:
       fail-fast: false
       matrix:
