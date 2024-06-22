@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 import pybind11_tests.type_caster_odr_guard_2 as m

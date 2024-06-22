@@ -10,6 +10,7 @@
 # test_cross_module_exception_translator (test_exceptions.py) failure. This
 # test has to be imported (by pytest) before test_exceptions.py; pytest sorts
 # lexically. See https://github.com/pybind/pybind11/pull/4054 for more information.
+from __future__ import annotations
 
 import itertools
 

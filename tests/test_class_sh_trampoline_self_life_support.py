@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 import pybind11_tests.class_sh_trampoline_self_life_support as m

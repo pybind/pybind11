@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pybind11_tests.class_sh_trampoline_unique_ptr as m
 
 

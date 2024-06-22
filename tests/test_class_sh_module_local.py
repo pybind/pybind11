@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import class_sh_module_local_0 as m0
 import class_sh_module_local_1 as m1
 import class_sh_module_local_2 as m2

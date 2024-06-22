@@ -1,4 +1,6 @@
 # Importing re before pytest after observing a PyPy CI flake when importing pytest first.
+from __future__ import annotations
+
 import re
 
 import pytest

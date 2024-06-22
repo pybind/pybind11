@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pybind11_tests import class_sh_inheritance as m
 
 
