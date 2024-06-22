@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import threading
 
 from pybind11_tests import thread as m

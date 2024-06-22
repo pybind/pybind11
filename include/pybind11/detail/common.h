@@ -272,9 +272,8 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #endif
 
 #include <Python.h>
-// Reminder: WITH_THREAD is always defined if PY_VERSION_HEX >= 0x03070000
-#if PY_VERSION_HEX < 0x03060000
-#    error "PYTHON < 3.6 IS UNSUPPORTED. pybind11 v2.9 was the last to support Python 2 and 3.5."
+#if PY_VERSION_HEX < 0x03070000
+#    error "PYTHON < 3.7 IS UNSUPPORTED. pybind11 v2.12 was the last to support Python 3.6."
 #endif
 #include <frameobject.h>
 #include <pythread.h>

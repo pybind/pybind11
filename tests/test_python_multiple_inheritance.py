@@ -1,5 +1,6 @@
 # Adapted from:
 # https://github.com/google/clif/blob/5718e4d0807fd3b6a8187dde140069120b81ecef/clif/testing/python/python_multiple_inheritance_test.py
+from __future__ import annotations
 
 from pybind11_tests import python_multiple_inheritance as m
 
