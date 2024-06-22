@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import type_caster_pyobject_ptr as m

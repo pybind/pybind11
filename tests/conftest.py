@@ -4,6 +4,8 @@ Extends output capture as needed by pybind11: ignore constructors, optional unor
 Adds docstring and exceptions message sanitizers.
 """
 
+from __future__ import annotations
+
 import contextlib
 import difflib
 import gc

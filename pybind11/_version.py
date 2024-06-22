@@ -1,7 +1,7 @@
-from typing import Union
+from __future__ import annotations
 
 
-def _to_int(s: str) -> Union[int, str]:
+def _to_int(s: str) -> int | str:
     try:
         return int(s)
     except ValueError:
