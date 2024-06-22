@@ -9,7 +9,7 @@ platform:
 - x86
 environment:
   matrix:
-  - PYTHON: 36
+  - PYTHON: 38
     CONFIG: Debug
 install:
 - ps: |

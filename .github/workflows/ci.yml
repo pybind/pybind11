@@ -33,7 +33,7 @@ jobs:
       matrix:
         runs-on: [ubuntu-20.04, windows-2022, macos-13]
         python:
-        - '3.6'
+        - '3.8'
         - '3.9'
         - '3.12'
         - '3.13'
@@ -49,16 +49,17 @@ jobs:
         include:
           # Just add a key
           - runs-on: ubuntu-20.04
-            python: '3.6'
+            python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
+            exercise_D_: 1
           - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-2019
-            python: '3.6'
+            python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           # Inject a couple Windows 2019 runs
@@ -83,7 +84,7 @@ jobs:
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
-      if: runner.os == 'Linux' && matrix.python != '3.6'
+      if: runner.os == 'Linux' && matrix.exercise_D_ != 1
       run: sudo apt-get install libboost-dev
 
     - name: Setup Boost (macOS)
@@ -134,9 +135,7 @@ jobs:
       run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
-      # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
-      run: cmake --build .  --target cpptest -j 2
+      run: cmake --build . --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build . --target test_cmake_build
@@ -165,8 +164,6 @@ jobs:
       run: cmake --build build2 --target pytest
 
     - name: C++ tests
-      # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -660,15 +657,13 @@ jobs:
         cmake --build build-17 --target test_cmake_build
 
 
-  # Testing on CentOS (manylinux uses a centos base, and this is an easy way
-  # to get GCC 4.8, which is the manylinux1 compiler).
+  # Testing on CentOS (manylinux uses a centos base).
   centos:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         container:
-          - "centos:7"  # GCC 4.8
           - "almalinux:8"
           - "almalinux:9"
 
@@ -678,18 +673,13 @@ jobs:
     steps:
     - name: Latest actions/checkout
       uses: actions/checkout@v4
-      if: matrix.container != 'centos:7'
 
-    - name: Pin actions/checkout as required for centos:7
-      uses: actions/checkout@v3
-      if: matrix.container == 'centos:7'
+    - name: Add Python 3.8
+      if: matrix.container == 'almalinux:8'
+      run: dnf update -y && dnf install -y python38-devel gcc-c++ make git
 
-    - name: Add Python 3 (RHEL 7)
-      if: matrix.container == 'centos:7'
-      run: yum update -y && yum install -y python3-devel gcc-c++ make git
-
-    - name: Add Python 3 (RHEL 8+)
-      if: matrix.container != 'centos:7'
+    - name: Add Python 3 (default)
+      if: matrix.container != 'almalinux:8'
       run: dnf update -y && dnf install -y python3-devel gcc-c++ make git
 
     - name: Update pip
@@ -812,17 +802,25 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - 3.6
-        - 3.7
-        - 3.8
-        - 3.9
+        - '3.7'
+        - '3.8'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+        - '3.12'
 
         include:
-          - python: 3.9
+          - python: '3.12'
             args: -DCMAKE_CXX_STANDARD=20
-          - python: 3.8
+          - python: '3.11'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.10'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.9'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: 3.7
+          - python: '3.7'
             args: -DCMAKE_CXX_STANDARD=14
 
 

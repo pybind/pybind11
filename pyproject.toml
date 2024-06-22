@@ -30,7 +30,7 @@ ignore_missing_imports = true
 
 
 [tool.pylint]
-master.py-version = "3.6"
+master.py-version = "3.7"
 reports.output-format = "colorized"
 messages_control.disable = [
   "design",
@@ -76,6 +76,8 @@ ignore = [
 ]
 unfixable = ["T20"]
 isort.known-first-party = ["env", "pybind11_cross_module_tests", "pybind11_tests"]
+isort.required-imports = ["from __future__ import annotations"]
+
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["EM", "N", "E721"]

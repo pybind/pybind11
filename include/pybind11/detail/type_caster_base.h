@@ -36,14 +36,13 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
-#if defined(WITH_THREAD)
     // Store stack pointer in thread-local storage.
     static PYBIND11_TLS_KEY_REF get_stack_tls_key() {
-#    if PYBIND11_INTERNALS_VERSION == 4
+#if PYBIND11_INTERNALS_VERSION == 4
         return get_local_internals().loader_life_support_tls_key;
-#    else
+#else
         return get_internals().loader_life_support_tls_key;
-#    endif
+#endif
     }
     static loader_life_support *get_stack_top() {
         return static_cast<loader_life_support *>(PYBIND11_TLS_GET_VALUE(get_stack_tls_key()));
@@ -51,15 +50,6 @@ private:
     static void set_stack_top(loader_life_support *value) {
         PYBIND11_TLS_REPLACE_VALUE(get_stack_tls_key(), value);
     }
-#else
-    // Use single global variable for stack.
-    static loader_life_support **get_stack_pp() {
-        static loader_life_support *global_stack = nullptr;
-        return global_stack;
-    }
-    static loader_life_support *get_stack_top() { return *get_stack_pp(); }
-    static void set_stack_top(loader_life_support *value) { *get_stack_pp() = value; }
-#endif
 
 public:
     /// A new patient frame is created when a function is entered

@@ -95,7 +95,7 @@ TEST_SUBMODULE(call_policies, m) {
         },
         py::call_guard<DependentGuard, CustomGuard>());
 
-#if defined(WITH_THREAD) && !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION)
     // `py::call_guard<py::gil_scoped_release>()` should work in PyPy as well,
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
     auto report_gil_status = []() {

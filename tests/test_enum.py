@@ -1,4 +1,5 @@
 # ruff: noqa: SIM201 SIM300 SIM202
+from __future__ import annotations
 
 import pytest
 
