@@ -32,6 +32,7 @@ issues = (issue for page in issues_pages for issue in page)
 missing = []
 cats_descr = {
     "feat": "New Features",
+    "feat(types)": "",
     "fix": "Bug fixes",
     "fix(types)": "",
     "fix(cmake)": "",
