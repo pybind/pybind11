@@ -63,67 +63,6 @@ class Callable<Return(Args...)> : public function {
     using function::function;
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
-template <size_t N>
-struct StringLiteral {
-    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
-
-    char value[N];
-};
-
-template <StringLiteral lit>
-class TypeVar : public object {
-    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
-    using object::object;
-};
-
-
-// Does not currently support Literals of byte strings, unicode strings, and Enum values.
-// Also due to how C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
-// template <StringLiteral... lit>
-// class Literal : public str {
-//     using str::str;
-// };
-
-template <typename inputT, typename T>
-class Literal : public T {
-    // if std::is_same<T, object>{
-    //     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type);
-    // }
-    using T::T;
-};
-
-template<StringLiteral... literal>
-typedef Literal<StringLiteral, str> LiteralStr;
-
-typedef LiteralStr<"1", "2"> LiteralStrOneTwo;
-
-
-// typedef Literal<StringLiteral, str, "3", "4"> LiteralStrThreeFour;
-
-// template <int... intLit>
-// class Literal : public py::int_ {
-//     using int_::int_;
-// };
-
-// template <bool... boolLit>
-// class Literal : public bool_ {
-//     using bool_::bool_;
-// };
-
-// template <py::none>
-// class Literal : public none {
-//     using none::none;
-// };
-
-// template <any... anyLit>
-// class Literal : public py::object {
-//     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
-//     using object::object;
-// };
-
-#endif
-
 template <typename T>
 class Type : public type {
     using type::type;
@@ -141,18 +80,16 @@ class Optional : public object {
     using object::object;
 };
 
+// Also due to how C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
 #if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
-    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
-    char value[N];
+    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
+    char name[N];
 };
-
-// Example syntax for creating a TypeVar.
-// typedef typing::TypeVar<"T"> TypeVarT;
-template <StringLiteral>
-class TypeVar : public object {
-    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
+template <StringLiteral... StrLits>
+class Literal : public object {
+    PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
     using object::object;
 };
 #endif
@@ -215,44 +152,6 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
-template <typing::StringLiteral lit>
-struct handle_type_name<typing::TypeVar<lit>> {
-    static constexpr auto name = const_name(lit.value);
-};
-
-template <typing::StringLiteral... lit>
-struct handle_type_name<typing::LiteralStr<lit>> {
-    static constexpr auto name
-        = const_name("Literal[") + pybind11::detail::concat(lit.value) + const_name("]");
-};
-
-// template <int... intLit>
-// struct handle_type_name<typing::Literal<intLit>> {
-//     static constexpr auto name
-//         = const_name("Literal[") + pybind11::detail::concat(intLit) + const_name("]");
-// };
-
-// template <bool... boolLit>
-// struct handle_type_name<typing::Literal<boolLit>> {
-//     static constexpr auto name
-//         = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
-// }
-
-// template <>
-// struct handle_type_name<typing::Literal<py::none>> {
-//     static constexpr auto name
-//         = const_name("Literal[None]");
-// }
-
-// template <any... anyLit>
-// struct handle_type_name<typing::Literal<anyLit>> {
-//     // TODO handle conststr
-//     static constexpr auto name = const_name("Literal[") + pybind11::detail::concat(boolLit) + const_name("]");
-// }
-#endif
-
-PYBIND11_NAMESPACE_END(detail) PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 template <typename T>
 struct handle_type_name<typing::Type<T>> {
     static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
@@ -271,9 +170,10 @@ struct handle_type_name<typing::Optional<T>> {
 };
 
 #if defined(__cpp_nontype_template_parameter_class)
-template <typing::StringLiteral StrLit>
-struct handle_type_name<typing::TypeVar<StrLit>> {
-    static constexpr auto name = const_name(StrLit.value);
+template <typing::StringLiteral... Literals>
+struct handle_type_name<typing::Literal<Literals...>> {
+    static constexpr auto name
+        = const_name("Literal[") + pybind11::detail::concat(const_name(Literals.name)...) + const_name("]");
 };
 #endif
 

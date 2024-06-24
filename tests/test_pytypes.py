@@ -958,71 +958,6 @@ def test_fn_annotations(doc):
         == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
     )
 
-
-def test_generics_compatibility(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_generic_containers)
-            == "annotate_generic_containers(arg0: list[T]) -> list[V]"
-        )
-
-
-def test_get_generic_from_container(doc):
-    with contextlib.suppress(AttributeError):
-        assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
-
-
-def test_object_and_typevar_equivalence(doc):
-    with contextlib.suppress(AttributeError):
-        assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
-
-
-def test_string_literal(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_str_literal)
-            == 'annotate_str_literal(arg0: Literal["A", "B", C"]) -> str'
-        )
-
-
-def test_int_literal(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_int_literal)
-            == "annotate_int_literal(arg0: Literal[1, 2, 3]) -> int"
-        )
-
-
-def test_bool_literal(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_bool_literal)
-            == "annotate_bool_literal(arg0: Literal[True, False]) -> bool"
-        )
-
-
-def test_none_literal(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_none_literal)
-            == "annotate_none_literal(arg0: Literal[None]) -> None"
-        )
-
-
-def test_any_literal(doc):
-    with contextlib.suppress(AttributeError):
-        assert (
-            doc(m.annotate_any_literal)
-            == 'annotate_any_literal(arg0: Literal["A", 1, true, None]) -> object'
-        )
-
-
-# def test_literal_order(doc):
-#     with contextlib.suppress(AttributeError):
-#         assert (
-#             doc(m.annotate_int_literal)
-#             == "annotate_object_to_T(arg0: Literal[1, 2, 3]) -> int"
-#         )
 def test_type_annotation(doc):
     assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> type"
 
@@ -1061,17 +996,12 @@ def test_optional_object_annotations(doc):
         == "annotate_optional_to_object(arg0: Optional[int]) -> object"
     )
 
-
 @pytest.mark.skipif(
     not m.if_defined__cpp_nontype_template_parameter_class,
     reason="C++20 feature not available.",
 )
-def test_typevar(doc):
+def test_literal(doc):
     assert (
-        doc(m.annotate_generic_containers)
-        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+        doc(m.annotate_literal)
+        == "annotate_literal(arg0: Literal[26, 0x1A, \"hello world\", b\"hello world\", u\"hello world\", True, Color.RED, None]) -> object"
     )
-
-    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
-
-    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"

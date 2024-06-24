@@ -109,12 +109,16 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
+namespace literals {
 #if defined(__cpp_nontype_template_parameter_class)
-namespace typevar {
-typedef py::typing::TypeVar<"T"> TypeVarT;
-typedef py::typing::TypeVar<"V"> TypeVarV;
-} // namespace typevar
+enum Color {
+    RED = 0,
+    BLUE = 1
+};
+
+typedef py::typing::Literal<"26", "0x1A", "\"hello world\"", "b\"hello world\"", "u\"hello world\"", "True", "Color.RED", "None"> LiteralFoo;
 #endif
+} // namespace literals
 
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
@@ -852,28 +856,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 
-#if defined(__cpp_nontype_template_parameter_class)
-    m.def("annotate_generic_containers",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
-              return l;
-          });
-
-    m.def("annotate_listT_to_T",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
-    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
-
-    typedef typing::Literal<"A", "B", "C"> stringLiteral;
-    m.def("annotate_str_literal", [](const stringLiteral s) -> py::str { return s; });
-    typedef typing::Literal<1, 2, 3> intLiteral;
-    m.def("annotate_int_literal", [](const intLiteral i) -> py::int_ { return i; });
-    typedef typing::Literal<true, false> boolLiteral;
-    m.def("annotate_bool_literal", [](const boolLiteral i) -> py::bool_ { return i; });
-    typedef typing::Literal<py::none> noneLiteral;
-    m.def("annotate_none_literal", [](const noneLiteral i) -> py::none { return i; });
-    typedef typing::Literal<"A", 1, true, py::none> anyLiteral;
-    m.def("annotate_any_literal", [](const anyLiteral i) -> py::object { return i; });
-#endif
-    m.def("annotate_type", [](const py::typing::Type<int> &) {});
+    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type {return t;});
 
     m.def("annotate_union",
           [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
@@ -903,14 +886,12 @@ TEST_SUBMODULE(pytypes, m) {
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 
 #if defined(__cpp_nontype_template_parameter_class)
-    m.def("annotate_generic_containers",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
-              return l;
-          });
+    py::enum_<literals::Color>(m, "Color")
+    .value("RED", literals::Color::RED)
+    .value("BLUE", literals::Color::BLUE);
 
-    m.def("annotate_listT_to_T",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
-    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+    m.def("annotate_literal",
+        [](literals::LiteralFoo &o) -> py::object {return o;});
     m.attr("if_defined__cpp_nontype_template_parameter_class") = true;
 #else
     m.attr("if_defined__cpp_nontype_template_parameter_class") = false;
