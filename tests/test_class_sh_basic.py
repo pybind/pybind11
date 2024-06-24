@@ -218,3 +218,9 @@ def test_function_signatures(doc):
 
 def test_unique_ptr_return_value_policy_automatic_reference():
     assert m.get_mtxt(m.rtrn_uq_automatic_reference()) == "rtrn_uq_automatic_reference"
+
+
+def test_unusual_op_ref():
+    # Merely to test that this still exists and built successfully.
+    assert m.CallCastUnusualOpRefConstRef().__class__.__name__ == "LocalUnusualOpRef"
+    assert m.CallCastUnusualOpRefMovable().__class__.__name__ == "LocalUnusualOpRef"

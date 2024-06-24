@@ -1107,11 +1107,11 @@ public:
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
         }
-        return cast(&src, policy, parent);
+        return cast(std::addressof(src), policy, parent);
     }
 
     static handle cast(itype &&src, return_value_policy, handle parent) {
-        return cast(&src, return_value_policy::move, parent);
+        return cast(std::addressof(src), return_value_policy::move, parent);
     }
 
     // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
