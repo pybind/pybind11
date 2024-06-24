@@ -311,11 +311,6 @@ jobs:
       fail-fast: false
       matrix:
         clang:
-          - 3.6
-          - 3.7
-          - 3.9
-          - 7
-          - 9
           - dev
         std:
           - 11
@@ -324,8 +319,6 @@ jobs:
         include:
           - clang: 5
             std: 14
-          - clang: 10
-            std: 17
           - clang: 11
             std: 20
           - clang: 12
@@ -497,10 +490,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { gcc: 7, std: 11 }
-          - { gcc: 7, std: 17 }
-          - { gcc: 8, std: 14 }
-          - { gcc: 8, std: 17 }
           - { gcc: 10, std: 17 }
           - { gcc: 11, std: 20 }
           - { gcc: 12, std: 20 }
