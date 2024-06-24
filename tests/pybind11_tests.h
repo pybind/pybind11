@@ -59,7 +59,7 @@ public:
     using NonTrivialType = std::shared_ptr<int>; // Almost any non-trivial type will do.
     // Overriding operator& should not break pybind11.
     NonTrivialType operator&() { return non_trivial_member; }
-    const NonTrivialType operator&() const { return non_trivial_member; }
+    NonTrivialType operator&() const { return non_trivial_member; }
 
 private:
     NonTrivialType non_trivial_member;
