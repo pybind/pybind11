@@ -80,13 +80,14 @@ class Optional : public object {
     using object::object;
 };
 
-// Also due to how C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
 #if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
     char name[N];
 };
+
+// NOTE: C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
 template <StringLiteral... StrLits>
 class Literal : public object {
     PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
