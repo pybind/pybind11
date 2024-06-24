@@ -958,6 +958,7 @@ def test_fn_annotations(doc):
         == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
     )
 
+
 def test_type_annotation(doc):
     assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> type"
 
@@ -996,6 +997,7 @@ def test_optional_object_annotations(doc):
         == "annotate_optional_to_object(arg0: Optional[int]) -> object"
     )
 
+
 @pytest.mark.skipif(
     not m.if_defined__cpp_nontype_template_parameter_class,
     reason="C++20 feature not available.",
@@ -1003,5 +1005,5 @@ def test_optional_object_annotations(doc):
 def test_literal(doc):
     assert (
         doc(m.annotate_literal)
-        == "annotate_literal(arg0: Literal[26, 0x1A, \"hello world\", b\"hello world\", u\"hello world\", True, Color.RED, None]) -> object"
+        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )

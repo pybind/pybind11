@@ -111,12 +111,17 @@ void m_defs(py::module_ &m) {
 
 namespace literals {
 #if defined(__cpp_nontype_template_parameter_class)
-enum Color {
-    RED = 0,
-    BLUE = 1
-};
+enum Color { RED = 0, BLUE = 1 };
 
-typedef py::typing::Literal<"26", "0x1A", "\"hello world\"", "b\"hello world\"", "u\"hello world\"", "True", "Color.RED", "None"> LiteralFoo;
+typedef py::typing::Literal<"26",
+                            "0x1A",
+                            "\"hello world\"",
+                            "b\"hello world\"",
+                            "u\"hello world\"",
+                            "True",
+                            "Color.RED",
+                            "None">
+    LiteralFoo;
 #endif
 } // namespace literals
 
@@ -856,7 +861,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 
-    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type {return t;});
+    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t; });
 
     m.def("annotate_union",
           [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
@@ -887,11 +892,10 @@ TEST_SUBMODULE(pytypes, m) {
 
 #if defined(__cpp_nontype_template_parameter_class)
     py::enum_<literals::Color>(m, "Color")
-    .value("RED", literals::Color::RED)
-    .value("BLUE", literals::Color::BLUE);
+        .value("RED", literals::Color::RED)
+        .value("BLUE", literals::Color::BLUE);
 
-    m.def("annotate_literal",
-        [](literals::LiteralFoo &o) -> py::object {return o;});
+    m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
     m.attr("if_defined__cpp_nontype_template_parameter_class") = true;
 #else
     m.attr("if_defined__cpp_nontype_template_parameter_class") = false;

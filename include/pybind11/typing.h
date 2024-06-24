@@ -172,8 +172,9 @@ struct handle_type_name<typing::Optional<T>> {
 #if defined(__cpp_nontype_template_parameter_class)
 template <typing::StringLiteral... Literals>
 struct handle_type_name<typing::Literal<Literals...>> {
-    static constexpr auto name
-        = const_name("Literal[") + pybind11::detail::concat(const_name(Literals.name)...) + const_name("]");
+    static constexpr auto name = const_name("Literal[")
+                                 + pybind11::detail::concat(const_name(Literals.name)...)
+                                 + const_name("]");
 };
 #endif
 
