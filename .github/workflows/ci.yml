@@ -719,9 +719,9 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
-    name: "🐍 3.7 • Debian • x86 •  Install"
+    name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
-    container: i386/debian:buster
+    container: i386/debian:bullseye
 
     steps:
     - uses: actions/checkout@v1  # v1 is required to run inside docker
@@ -801,7 +801,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - '3.7'
         - '3.8'
         - '3.9'
         - '3.10'
@@ -819,8 +818,6 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=20
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: '3.7'
-            args: -DCMAKE_CXX_STANDARD=14
 
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
