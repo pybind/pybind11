@@ -13,7 +13,7 @@
 
 #include <cassert>
 
-#if defined(WITH_THREAD) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    include "detail/internals.h"
 #endif
 
@@ -26,9 +26,7 @@ PyThreadState *get_thread_state_unchecked();
 
 PYBIND11_NAMESPACE_END(detail)
 
-#if defined(WITH_THREAD)
-
-#    if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 
 /* The functions below essentially reproduce the PyGILState_* API using a RAII
  * pattern, but there are a few important differences:
@@ -69,11 +67,11 @@ public:
 
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
-#        if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (!tstate) {
                 pybind11_fail("scoped_acquire: could not create thread state!");
             }
-#        endif
+#    endif
             tstate->gilstate_counter = 0;
             PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
         } else {
@@ -94,20 +92,20 @@ public:
 
     PYBIND11_NOINLINE void dec_ref() {
         --tstate->gilstate_counter;
-#        if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         if (detail::get_thread_state_unchecked() != tstate) {
             pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
         }
         if (tstate->gilstate_counter < 0) {
             pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
         }
-#        endif
+#    endif
         if (tstate->gilstate_counter == 0) {
-#        if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (!release) {
                 pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             }
-#        endif
+#    endif
             PyThreadState_Clear(tstate);
             if (active) {
                 PyThreadState_DeleteCurrent();
@@ -188,7 +186,7 @@ private:
     bool active = true;
 };
 
-#    else // PYBIND11_SIMPLE_GIL_MANAGEMENT
+#else // PYBIND11_SIMPLE_GIL_MANAGEMENT
 
 class gil_scoped_acquire {
     PyGILState_STATE state;
@@ -216,32 +214,6 @@ public:
     void disarm() {}
 };
 
-#    endif // PYBIND11_SIMPLE_GIL_MANAGEMENT
-
-#else // WITH_THREAD
-
-class gil_scoped_acquire {
-public:
-    gil_scoped_acquire() {
-        // Trick to suppress `unused variable` error messages (at call sites).
-        (void) (this != (this + 1));
-    }
-    gil_scoped_acquire(const gil_scoped_acquire &) = delete;
-    gil_scoped_acquire &operator=(const gil_scoped_acquire &) = delete;
-    void disarm() {}
-};
-
-class gil_scoped_release {
-public:
-    gil_scoped_release() {
-        // Trick to suppress `unused variable` error messages (at call sites).
-        (void) (this != (this + 1));
-    }
-    gil_scoped_release(const gil_scoped_release &) = delete;
-    gil_scoped_release &operator=(const gil_scoped_release &) = delete;
-    void disarm() {}
-};
-
-#endif // WITH_THREAD
+#endif // PYBIND11_SIMPLE_GIL_MANAGEMENT
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

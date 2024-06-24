@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import unnamed_namespace_a as m

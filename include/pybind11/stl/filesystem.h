@@ -14,8 +14,7 @@
 
 #ifdef __has_include
 #    if defined(PYBIND11_CPP17)
-#        if __has_include(<filesystem>) && \
-          PY_VERSION_HEX >= 0x03060000
+#        if __has_include(<filesystem>)
 #            include <filesystem>
 #            define PYBIND11_HAS_FILESYSTEM 1
 #        elif __has_include(<experimental/filesystem>)
