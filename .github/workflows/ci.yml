@@ -368,6 +368,56 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
 
+  gcc7:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        std:
+          - 11
+        python:
+          - '3.8'
+
+    name: "🐍 ${{ matrix.python }} • GCC 7 • C++${{ matrix.std }} • x64"
+    container: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Add GCC
+      run: apt-get update && apt-get install -y gcc
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Prepare env
+      run: |
+        python -m pip install -r tests/requirements.txt
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+
+
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
