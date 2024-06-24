@@ -157,6 +157,13 @@ public:
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
 
+namespace {
+
+py::object CastUnusualOpRefConstRef(const UnusualOpRef &cref) { return py::cast(cref); }
+py::object CastUnusualOpRefMovable(UnusualOpRef &&mvbl) { return py::cast(std::move(mvbl)); }
+
+} // namespace
+
 TEST_SUBMODULE(copy_move_policies, m) {
     // test_lacking_copy_ctor
     py::class_<lacking_copy_ctor>(m, "lacking_copy_ctor")
@@ -293,6 +300,11 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // Make sure that cast from pytype rvalue to other pytype works
     m.def("get_pytype_rvalue_castissue", [](double i) { return py::float_(i).cast<py::int_>(); });
+
+    py::class_<UnusualOpRef>(m, "UnusualOpRef");
+    m.def("CallCastUnusualOpRefConstRef",
+          []() { return CastUnusualOpRefConstRef(UnusualOpRef()); });
+    m.def("CallCastUnusualOpRefMovable", []() { return CastUnusualOpRefMovable(UnusualOpRef()); });
 }
 
 /*

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import copy_move_policies as m
@@ -130,3 +132,9 @@ def test_pytype_rvalue_cast():
 
     value = m.get_pytype_rvalue_castissue(1.0)
     assert value == 1
+
+
+def test_unusual_op_ref():
+    # Merely to test that this still exists and built successfully.
+    assert m.CallCastUnusualOpRefConstRef().__class__.__name__ == "UnusualOpRef"
+    assert m.CallCastUnusualOpRefMovable().__class__.__name__ == "UnusualOpRef"

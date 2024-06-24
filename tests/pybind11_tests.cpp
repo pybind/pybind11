@@ -58,7 +58,7 @@ void bind_ConstructorStats(py::module_ &m) {
         // registered instances to allow instance cleanup checks (invokes a GC first)
         .def_static("detail_reg_inst", []() {
             ConstructorStats::gc();
-            return py::detail::get_internals().registered_instances.size();
+            return py::detail::num_registered_instances();
         });
 }
 
@@ -75,7 +75,7 @@ const char *cpp_std() {
 #endif
 }
 
-PYBIND11_MODULE(pybind11_tests, m) {
+PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 test module";
 
     // Intentionally kept minimal to not create a maintenance chore
