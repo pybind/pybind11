@@ -33,6 +33,7 @@ missing = []
 cats_descr = {
     "feat": "New Features",
     "feat(types)": "",
+    "feat(cmake)": "",
     "fix": "Bug fixes",
     "fix(types)": "",
     "fix(cmake)": "",

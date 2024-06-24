@@ -39,6 +39,16 @@ New Features:
 * ``Union`` and ``Optional`` were added to ``pybind11/typing.h``.
   `#5165 <https://github.com/pybind/pybind11/pull/5165>`_
 
+.. feat(cmake)
+
+* In CMake, if ``PYBIND11_USE_CROSSCOMPILING`` is enabled, then
+  ``CMAKE_CROSSCOMPILING`` will be respected and will keep pybind11 from
+  accessing the interpreter during configuration. Several CMake variables will
+  be required in this case, but can be deduced from the environment variable
+  ``SETUPTOOLS_EXT_SUFFIX``. The default (currently ``OFF``) may be changed in
+  the future.
+  `#5083 <https://github.com/pybind/pybind11/pull/5083>`_
+
 
 Bug fixes:
 
@@ -57,10 +67,6 @@ Bug fixes:
 
 * Fix mistake affecting old cmake and old boost.
   `#5149 <https://github.com/pybind/pybind11/pull/5149>`_
-
-* No longer rely on the Python interpreter when cross-compiling if
-  ``PYBIND11_USE_CROSSCOMPILING`` is set.
-  `#5083 <https://github.com/pybind/pybind11/pull/5083>`_
 
 
 Documentation:
