@@ -379,7 +379,7 @@ jobs:
           - '3.8'
 
     name: "🐍 ${{ matrix.python }} • GCC 7 • C++${{ matrix.std }} • x64"
-    container: ubuntu-18.04
+    container: ubuntu:18.04
 
     steps:
     - uses: actions/checkout@v4
