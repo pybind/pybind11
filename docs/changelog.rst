@@ -59,7 +59,11 @@ Bug fixes:
 * Return ``py::ssize_t`` from ``.ref_count()`` instead of ``int``.
   `#5139 <https://github.com/pybind/pybind11/pull/5139>`_
 
-* Run CI on Python 3.13.
+* A subtle bug involving C++ types with unusual ``operator&`` overrides
+  was fixed.
+  `#5189 <https://github.com/pybind/pybind11/pull/5189>`_
+
+* Support Python 3.13 with minor fix, add to CI.
   `#5127 <https://github.com/pybind/pybind11/pull/5127>`_
 
 
