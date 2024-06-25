@@ -58,7 +58,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m pip install -r tests/requirements.txt build twine
+        python -m pip install -r tests/requirements.txt build twine!=5.1.0
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
