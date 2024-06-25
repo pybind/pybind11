@@ -109,7 +109,6 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
-
 #if defined(__cpp_nontype_template_parameter_class)
 namespace literals {
 enum Color { RED = 0, BLUE = 1 };
