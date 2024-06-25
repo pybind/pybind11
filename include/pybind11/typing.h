@@ -86,7 +86,7 @@ struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
     char name[N];
 };
-
+ 
 template <StringLiteral... StrLits>
 class Literal : public object {
     PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
