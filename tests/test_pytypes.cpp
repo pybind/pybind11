@@ -867,4 +867,10 @@ TEST_SUBMODULE(pytypes, m) {
               list.append(py::none());
               return list;
           });
+
+    m.def("annotate_type_guard", [](py::object &o) -> py::typing::TypeGuard<py::str> {
+        return py::isinstance<py::str>(o);
+    });
+    m.def("annotate_type_is",
+          [](py::object &o) -> py::typing::TypeIs<py::str> { return py::isinstance<py::str>(o); });
 }

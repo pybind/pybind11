@@ -78,6 +78,16 @@ class Optional : public object {
     using object::object;
 };
 
+template <typename T>
+class TypeGuard : public bool_ {
+    using bool_::bool_;
+};
+
+template <typename T>
+class TypeIs : public bool_ {
+    using bool_::bool_;
+};
+
 PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -151,6 +161,16 @@ struct handle_type_name<typing::Union<Types...>> {
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
     static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::TypeGuard<T>> {
+    static constexpr auto name = const_name("TypeGuard[") + make_caster<T>::name + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::TypeIs<T>> {
+    static constexpr auto name = const_name("TypeIs[") + make_caster<T>::name + const_name("]");
 };
 
 PYBIND11_NAMESPACE_END(detail)
