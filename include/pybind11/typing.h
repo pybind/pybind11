@@ -87,7 +87,6 @@ struct StringLiteral {
     char name[N];
 };
 
-// NOTE: C++ implemented constant template Literal[1, 2] does not equal Literal[2, 1]
 template <StringLiteral... StrLits>
 class Literal : public object {
     PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
