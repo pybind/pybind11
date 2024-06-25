@@ -109,6 +109,13 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
+#if defined(__cpp_nontype_template_parameter_class)
+namespace typevar {
+typedef py::typing::TypeVar<"T"> TypeVarT;
+typedef py::typing::TypeVar<"V"> TypeVarV;
+} // namespace typevar
+#endif
+
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -844,7 +851,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
-    m.def("annotate_type", [](const py::typing::Type<int> &) {});
+    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t; });
 
     m.def("annotate_union",
           [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
@@ -861,10 +868,29 @@ TEST_SUBMODULE(pytypes, m) {
           [](py::typing::List<py::typing::Union<py::str>> &l)
               -> py::typing::List<py::typing::Union<py::int_>> { return l; });
 
+    m.def("annotate_union_to_object",
+          [](py::typing::Union<int, py::str> &o) -> py::object { return o; });
+
     m.def("annotate_optional",
           [](py::list &list) -> py::typing::List<py::typing::Optional<py::str>> {
               list.append(py::str("hi"));
               list.append(py::none());
               return list;
           });
+    m.def("annotate_optional_to_object",
+          [](py::typing::Optional<int> &o) -> py::object { return o; });
+
+#if defined(__cpp_nontype_template_parameter_class)
+    m.def("annotate_generic_containers",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
+              return l;
+          });
+
+    m.def("annotate_listT_to_T",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
+    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+    m.attr("if_defined__cpp_nontype_template_parameter_class") = true;
+#else
+    m.attr("if_defined__cpp_nontype_template_parameter_class") = false;
+#endif
 }
