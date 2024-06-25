@@ -867,4 +867,7 @@ TEST_SUBMODULE(pytypes, m) {
               list.append(py::none());
               return list;
           });
+
+    m.def("annotate_no_return", []() -> py::typing::NoReturn { throw 0; });
+    m.def("annotate_never", []() -> py::typing::Never { throw 0; });
 }

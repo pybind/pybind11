@@ -78,6 +78,14 @@ class Optional : public object {
     using object::object;
 };
 
+class NoReturn : public none {
+    using none::none;
+};
+
+class Never : public none {
+    using none::none;
+};
+
 PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -151,6 +159,16 @@ struct handle_type_name<typing::Union<Types...>> {
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
     static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
+};
+
+template <>
+struct handle_type_name<typing::NoReturn> {
+    static constexpr auto name = const_name("NoReturn");
+};
+
+template <>
+struct handle_type_name<typing::Never> {
+    static constexpr auto name = const_name("Never");
 };
 
 PYBIND11_NAMESPACE_END(detail)

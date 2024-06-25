@@ -982,3 +982,11 @@ def test_optional_annotations(doc):
         doc(m.annotate_optional)
         == "annotate_optional(arg0: list) -> list[Optional[str]]"
     )
+
+
+def test_no_return_annotation(doc):
+    assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
+
+
+def test_never_annotation(doc):
+    assert doc(m.annotate_never) == "annotate_never() -> Never"
