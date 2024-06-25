@@ -1002,6 +1002,17 @@ def test_optional_object_annotations(doc):
     not m.if_defined__cpp_nontype_template_parameter_class,
     reason="C++20 feature not available.",
 )
+def test_literal(doc):
+    assert (
+        doc(m.annotate_literal)
+        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
+    )
+
+
+@pytest.mark.skipif(
+    not m.if_defined__cpp_nontype_template_parameter_class,
+    reason="C++20 feature not available.",
+)
 def test_typevar(doc):
     assert (
         doc(m.annotate_generic_containers)

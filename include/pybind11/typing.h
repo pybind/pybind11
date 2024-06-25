@@ -83,8 +83,13 @@ class Optional : public object {
 #if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
-    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
-    char value[N];
+    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
+    char name[N];
+};
+
+template <StringLiteral... StrLits>
+class Literal : public object {
+    PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
 };
 
 // Example syntax for creating a TypeVar.
@@ -172,9 +177,15 @@ struct handle_type_name<typing::Optional<T>> {
 };
 
 #if defined(__cpp_nontype_template_parameter_class)
+template <typing::StringLiteral... Literals>
+struct handle_type_name<typing::Literal<Literals...>> {
+    static constexpr auto name = const_name("Literal[")
+                                 + pybind11::detail::concat(const_name(Literals.name)...)
+                                 + const_name("]");
+};
 template <typing::StringLiteral StrLit>
 struct handle_type_name<typing::TypeVar<StrLit>> {
-    static constexpr auto name = const_name(StrLit.value);
+    static constexpr auto name = const_name(StrLit.name);
 };
 #endif
 
