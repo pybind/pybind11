@@ -70,11 +70,13 @@ class Type : public type {
 
 template <typename... Types>
 class Union : public object {
+    PYBIND11_OBJECT_DEFAULT(Union, object, PyObject_Type)
     using object::object;
 };
 
 template <typename T>
 class Optional : public object {
+    PYBIND11_OBJECT_DEFAULT(Optional, object, PyObject_Type)
     using object::object;
 };
 
@@ -87,6 +89,21 @@ template <typename T>
 class TypeIs : public bool_ {
     using bool_::bool_;
 };
+#if defined(__cpp_nontype_template_parameter_class)
+template <size_t N>
+struct StringLiteral {
+    constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
+    char value[N];
+};
+
+// Example syntax for creating a TypeVar.
+// typedef typing::TypeVar<"T"> TypeVarT;
+template <StringLiteral>
+class TypeVar : public object {
+    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
+    using object::object;
+};
+#endif
 
 PYBIND11_NAMESPACE_END(typing)
 
@@ -172,6 +189,12 @@ template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
     static constexpr auto name = const_name("TypeIs[") + make_caster<T>::name + const_name("]");
 };
+#if defined(__cpp_nontype_template_parameter_class)
+template <typing::StringLiteral StrLit>
+struct handle_type_name<typing::TypeVar<StrLit>> {
+    static constexpr auto name = const_name(StrLit.value);
+};
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
