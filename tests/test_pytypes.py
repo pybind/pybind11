@@ -1007,3 +1007,17 @@ def test_literal(doc):
         doc(m.annotate_literal)
         == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
+@pytest.mark.skipif(
+    not m.if_defined__cpp_nontype_template_parameter_class,
+    reason="C++20 feature not available.",
+)
+def te
+def test_typevar(doc):
+    assert (
+        doc(m.annotate_generic_containers)
+        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+    )
+
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"

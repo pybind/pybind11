@@ -122,8 +122,12 @@ typedef py::typing::Literal<"26",
                             "Color.RED",
                             "None">
     LiteralFoo;
-#endif
 } // namespace literals
+namespace typevar {
+typedef py::typing::TypeVar<"T"> TypeVarT;
+typedef py::typing::TypeVar<"V"> TypeVarV;
+} // namespace typevar
+#endif
 
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
@@ -896,6 +900,14 @@ TEST_SUBMODULE(pytypes, m) {
         .value("BLUE", literals::Color::BLUE);
 
     m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
+    m.def("annotate_generic_containers",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
+              return l;
+          });
+
+    m.def("annotate_listT_to_T",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
+    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
     m.attr("if_defined__cpp_nontype_template_parameter_class") = true;
 #else
     m.attr("if_defined__cpp_nontype_template_parameter_class") = false;

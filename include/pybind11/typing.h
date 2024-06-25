@@ -90,6 +90,13 @@ struct StringLiteral {
 template <StringLiteral... StrLits>
 class Literal : public object {
     PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
+};
+
+// Example syntax for creating a TypeVar.
+// typedef typing::TypeVar<"T"> TypeVarT;
+template <StringLiteral>
+class TypeVar : public object {
+    PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
 };
 #endif
@@ -175,6 +182,10 @@ struct handle_type_name<typing::Literal<Literals...>> {
     static constexpr auto name = const_name("Literal[")
                                  + pybind11::detail::concat(const_name(Literals.name)...)
                                  + const_name("]");
+};
+template <typing::StringLiteral StrLit>
+struct handle_type_name<typing::TypeVar<StrLit>> {
+    static constexpr auto name = const_name(StrLit.name);
 };
 #endif
 
