@@ -1011,7 +1011,6 @@ def test_literal(doc):
     not m.if_defined__cpp_nontype_template_parameter_class,
     reason="C++20 feature not available.",
 )
-def te
 def test_typevar(doc):
     assert (
         doc(m.annotate_generic_containers)
