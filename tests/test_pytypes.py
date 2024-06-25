@@ -1007,6 +1007,8 @@ def test_literal(doc):
         doc(m.annotate_literal)
         == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
+
+
 @pytest.mark.skipif(
     not m.if_defined__cpp_nontype_template_parameter_class,
     reason="C++20 feature not available.",
