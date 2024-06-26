@@ -991,6 +991,17 @@ def test_optional_annotations(doc):
     )
 
 
+def test_type_guard_annotations(doc):
+    assert (
+        doc(m.annotate_type_guard)
+        == "annotate_type_guard(arg0: object) -> TypeGuard[str]"
+    )
+
+
+def test_type_is_annotations(doc):
+    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> TypeIs[str]"
+
+
 def test_no_return_annotation(doc):
     assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
 
