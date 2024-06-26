@@ -97,7 +97,7 @@ class NoReturn : public none {
 class Never : public none {
     using none::none;
 };
-  
+
 #if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
@@ -203,7 +203,7 @@ template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
     static constexpr auto name = const_name("TypeIs[") + make_caster<T>::name + const_name("]");
 };
-  
+
 template <>
 struct handle_type_name<typing::NoReturn> {
     static constexpr auto name = const_name("NoReturn");
