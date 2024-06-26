@@ -153,7 +153,7 @@ struct instance_map_shard {
     std::mutex mutex;
     instance_map registered_instances;
     // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
-    PYBIND11_MAYBE_UNUSED char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
+    char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
 };
 
 /// Internal data structure used to track registered instances and types.
