@@ -348,7 +348,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // is not a POD type
     struct NotPOD {
         std::string v;
-        NotPOD() : v("hi"){};
+        NotPOD() : v("hi") {};
     };
     PYBIND11_NUMPY_DTYPE(NotPOD, v);
 #endif

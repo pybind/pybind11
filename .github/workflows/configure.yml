@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, macos-latest, windows-latest]
+        runs-on: [ubuntu-20.04, macos-13, windows-latest]
         arch: [x64]
         cmake: ["3.26"]
 
@@ -35,9 +35,9 @@ jobs:
 
         - runs-on: ubuntu-20.04
           arch: x64
-          cmake: "3.27"
+          cmake: "3.29"
 
-        - runs-on: macos-latest
+        - runs-on: macos-13
           arch: x64
           cmake: "3.7"
 

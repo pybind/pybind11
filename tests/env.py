@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import platform
 import sys
+import sysconfig
 
 import pytest
 
@@ -9,6 +12,7 @@ WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
+PY_GIL_DISABLED = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 def deprecated_call():

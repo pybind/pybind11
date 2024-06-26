@@ -158,8 +158,7 @@ void vector_modifiers(
         return v.release();
     }));
 
-    cl.def(
-        "clear", [](Vector &v) { v.clear(); }, "Clear the contents");
+    cl.def("clear", [](Vector &v) { v.clear(); }, "Clear the contents");
 
     cl.def(
         "extend",

@@ -32,6 +32,13 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
+  # Interpreter should not be found when cross-compiling
+  if(_PYBIND11_CROSSCOMPILING)
+    set(_pybind11_interp_component "")
+  else()
+    set(_pybind11_interp_component Interpreter)
+  endif()
+
   # Development.Module support (required for manylinux) started in 3.18
   if(CMAKE_VERSION VERSION_LESS 3.18)
     set(_pybind11_dev_component Development)
@@ -48,8 +55,9 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     endif()
   endif()
 
-  find_package(Python 3.6 REQUIRED COMPONENTS Interpreter ${_pybind11_dev_component}
-                                              ${_pybind11_quiet} ${_pybind11_global_keyword})
+  find_package(
+    Python 3.7 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+                                   ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
@@ -59,7 +67,9 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     if(TARGET Python::Python)
       set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
-    set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
+    if(TARGET Python::Interpreter)
+      set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
+    endif()
     if(TARGET Python::Module)
       set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
@@ -100,69 +110,89 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-# If a user finds Python, they may forget to include the Interpreter component
-# and the following two steps require it. It is highly recommended by CMake
-# when finding development libraries anyway, so we will require it.
-if(NOT DEFINED ${_Python}_EXECUTABLE)
-  message(
-    FATAL_ERROR
-      "${_Python} was found without the Interpreter component. Pybind11 requires this component.")
-
-endif()
-
-if(DEFINED PYBIND11_PYTHON_EXECUTABLE_LAST AND NOT ${_Python}_EXECUTABLE STREQUAL
-                                               PYBIND11_PYTHON_EXECUTABLE_LAST)
-  # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
-  unset(PYTHON_IS_DEBUG CACHE)
-  unset(PYTHON_MODULE_EXTENSION CACHE)
-endif()
-
-set(PYBIND11_PYTHON_EXECUTABLE_LAST
-    "${${_Python}_EXECUTABLE}"
-    CACHE INTERNAL "Python executable during the last CMake run")
-
-if(NOT DEFINED PYTHON_IS_DEBUG)
-  # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
-  execute_process(
-    COMMAND "${${_Python}_EXECUTABLE}" "-c"
-            "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
-    RESULT_VARIABLE _PYTHON_IS_DEBUG)
-  set(PYTHON_IS_DEBUG
-      "${_PYTHON_IS_DEBUG}"
-      CACHE INTERNAL "Python debug status")
-endif()
-
-# Get the suffix - SO is deprecated, should use EXT_SUFFIX, but this is
-# required for PyPy3 (as of 7.3.1)
-if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
-  execute_process(
-    COMMAND
-      "${${_Python}_EXECUTABLE}" "-c"
-      "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
-    OUTPUT_VARIABLE _PYTHON_MODULE_EXT_SUFFIX
-    ERROR_VARIABLE _PYTHON_MODULE_EXT_SUFFIX_ERR
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  if(_PYTHON_MODULE_EXT_SUFFIX STREQUAL "")
+if(NOT _PYBIND11_CROSSCOMPILING)
+  # If a user finds Python, they may forget to include the Interpreter component
+  # and the following two steps require it. It is highly recommended by CMake
+  # when finding development libraries anyway, so we will require it.
+  if(NOT DEFINED ${_Python}_EXECUTABLE)
     message(
-      FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
-                  "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}"
+      FATAL_ERROR
+        "${_Python} was found without the Interpreter component. Pybind11 requires this component."
     )
+
   endif()
 
-  # This needs to be available for the pybind11_extension function
-  if(NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
-    get_filename_component(_PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_EXT_SUFFIX}" NAME_WE)
-    set(PYTHON_MODULE_DEBUG_POSTFIX
-        "${_PYTHON_MODULE_DEBUG_POSTFIX}"
-        CACHE INTERNAL "")
+  if(DEFINED PYBIND11_PYTHON_EXECUTABLE_LAST AND NOT ${_Python}_EXECUTABLE STREQUAL
+                                                 PYBIND11_PYTHON_EXECUTABLE_LAST)
+    # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
+    unset(PYTHON_IS_DEBUG CACHE)
+    unset(PYTHON_MODULE_EXTENSION CACHE)
   endif()
 
-  if(NOT DEFINED PYTHON_MODULE_EXTENSION)
-    get_filename_component(_PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
-    set(PYTHON_MODULE_EXTENSION
-        "${_PYTHON_MODULE_EXTENSION}"
-        CACHE INTERNAL "")
+  set(PYBIND11_PYTHON_EXECUTABLE_LAST
+      "${${_Python}_EXECUTABLE}"
+      CACHE INTERNAL "Python executable during the last CMake run")
+
+  if(NOT DEFINED PYTHON_IS_DEBUG)
+    # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
+    execute_process(
+      COMMAND "${${_Python}_EXECUTABLE}" "-c"
+              "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
+      RESULT_VARIABLE _PYTHON_IS_DEBUG)
+    set(PYTHON_IS_DEBUG
+        "${_PYTHON_IS_DEBUG}"
+        CACHE INTERNAL "Python debug status")
+  endif()
+
+  # Get the suffix - SO is deprecated, should use EXT_SUFFIX, but this is
+  # required for PyPy3 (as of 7.3.1)
+  if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+    execute_process(
+      COMMAND
+        "${${_Python}_EXECUTABLE}" "-c"
+        "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
+      OUTPUT_VARIABLE _PYTHON_MODULE_EXT_SUFFIX
+      ERROR_VARIABLE _PYTHON_MODULE_EXT_SUFFIX_ERR
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    if(_PYTHON_MODULE_EXT_SUFFIX STREQUAL "")
+      message(
+        FATAL_ERROR
+          "pybind11 could not query the module file extension, likely the 'distutils'"
+          "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}")
+    endif()
+
+    # This needs to be available for the pybind11_extension function
+    if(NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+      get_filename_component(_PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_EXT_SUFFIX}" NAME_WE)
+      set(PYTHON_MODULE_DEBUG_POSTFIX
+          "${_PYTHON_MODULE_DEBUG_POSTFIX}"
+          CACHE INTERNAL "")
+    endif()
+
+    if(NOT DEFINED PYTHON_MODULE_EXTENSION)
+      get_filename_component(_PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
+      set(PYTHON_MODULE_EXTENSION
+          "${_PYTHON_MODULE_EXTENSION}"
+          CACHE INTERNAL "")
+    endif()
+  endif()
+else()
+  if(NOT DEFINED PYTHON_IS_DEBUG
+     OR NOT DEFINED PYTHON_MODULE_EXTENSION
+     OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+    include("${CMAKE_CURRENT_LIST_DIR}/pybind11GuessPythonExtSuffix.cmake")
+    pybind11_guess_python_module_extension("${_Python}")
+  endif()
+  # When cross-compiling, we cannot query the Python interpreter, so we require
+  # the user to set these variables explicitly.
+  if(NOT DEFINED PYTHON_IS_DEBUG
+     OR NOT DEFINED PYTHON_MODULE_EXTENSION
+     OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+    message(
+      FATAL_ERROR
+        "When cross-compiling, you should set the PYTHON_IS_DEBUG, PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX \
+        variables appropriately before loading pybind11 (e.g. in your CMake toolchain file)")
   endif()
 endif()
 

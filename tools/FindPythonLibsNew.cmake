@@ -92,7 +92,7 @@ endif()
 
 # Use the Python interpreter to find the libs.
 if(NOT PythonLibsNew_FIND_VERSION)
-  set(PythonLibsNew_FIND_VERSION "3.6")
+  set(PythonLibsNew_FIND_VERSION "3.7")
 endif()
 
 if(NOT CMAKE_VERSION VERSION_LESS "3.27")
@@ -205,7 +205,7 @@ endif()
 # Make sure the Python has the same pointer-size as the chosen compiler
 # Skip if CMAKE_SIZEOF_VOID_P is not defined
 # This should be skipped for (non-Apple) cross-compiles (like EMSCRIPTEN)
-if(NOT CMAKE_CROSSCOMPILING
+if(NOT _PYBIND11_CROSSCOMPILING
    AND CMAKE_SIZEOF_VOID_P
    AND (NOT "${PYTHON_SIZEOF_VOID_P}" STREQUAL "${CMAKE_SIZEOF_VOID_P}"))
   if(PythonLibsNew_FIND_REQUIRED)

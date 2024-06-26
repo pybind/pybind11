@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import pytest
@@ -77,9 +79,7 @@ def partial_nested_fmt():
     partial_size = partial_ld_off + ld.itemsize
     partial_end_padding = partial_size % np.dtype("uint64").alignment
     partial_nested_size = partial_nested_off * 2 + partial_size + partial_end_padding
-    return "{{'names':['a'],'formats':[{}],'offsets':[{}],'itemsize':{}}}".format(
-        partial_dtype_fmt(), partial_nested_off, partial_nested_size
-    )
+    return f"{{'names':['a'],'formats':[{partial_dtype_fmt()}],'offsets':[{partial_nested_off}],'itemsize':{partial_nested_size}}}"
 
 
 def assert_equal(actual, expected_data, expected_dtype):

@@ -12,13 +12,13 @@ endif()
 
 cmake_minimum_required(VERSION 3.5)
 
-# The `cmake_minimum_required(VERSION 3.5...3.27)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.5...3.29)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.27)
+if(${CMAKE_VERSION} VERSION_LESS 3.29)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.27)
+  cmake_policy(VERSION 3.29)
 endif()
 
 if(_pybind11_cmp0148)
@@ -116,6 +116,7 @@ option(PYBIND11_NUMPY_1_ONLY
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
+option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
 
 if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
   add_compile_definitions(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
@@ -299,6 +300,7 @@ if(PYBIND11_INSTALL)
           tools/pybind11Common.cmake
           tools/pybind11Tools.cmake
           tools/pybind11NewTools.cmake
+          tools/pybind11GuessPythonExtSuffix.cmake
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
   if(NOT PYBIND11_EXPORT_NAME)

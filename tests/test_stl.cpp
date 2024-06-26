@@ -78,7 +78,7 @@ struct hash<TplCtorClass> {
 template <template <typename> class OptionalImpl, typename T>
 struct OptionalHolder {
     // NOLINTNEXTLINE(modernize-use-equals-default): breaks GCC 4.8
-    OptionalHolder(){};
+    OptionalHolder() {};
     bool member_initialized() const { return member && member->initialized; }
     OptionalImpl<T> member = T{};
 };
@@ -217,9 +217,8 @@ TEST_SUBMODULE(stl, m) {
     // NB: map and set keys are `const`, so while we technically do move them (as `const Type &&`),
     // casters don't typically do anything with that, which means they fall to the `const Type &`
     // caster.
-    m.def("cast_rv_map", []() {
-        return std::unordered_map<std::string, RValueCaster>{{"a", RValueCaster{}}};
-    });
+    m.def("cast_rv_map",
+          []() { return std::unordered_map<std::string, RValueCaster>{{"a", RValueCaster{}}}; });
     m.def("cast_rv_nested", []() {
         std::vector<std::array<std::list<std::unordered_map<std::string, RValueCaster>>, 2>> v;
         v.emplace_back();           // add an array
@@ -497,8 +496,7 @@ TEST_SUBMODULE(stl, m) {
     });
 
     // test_stl_pass_by_pointer
-    m.def(
-        "stl_pass_by_pointer", [](std::vector<int> *v) { return *v; }, "v"_a = nullptr);
+    m.def("stl_pass_by_pointer", [](std::vector<int> *v) { return *v; }, "v"_a = nullptr);
 
     // #1258: pybind11/stl.h converts string to vector<string>
     m.def("func_with_string_or_vector_string_arg_overload",

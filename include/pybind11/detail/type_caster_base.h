@@ -36,14 +36,13 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
-#if defined(WITH_THREAD)
     // Store stack pointer in thread-local storage.
     static PYBIND11_TLS_KEY_REF get_stack_tls_key() {
-#    if PYBIND11_INTERNALS_VERSION == 4
+#if PYBIND11_INTERNALS_VERSION == 4
         return get_local_internals().loader_life_support_tls_key;
-#    else
+#else
         return get_internals().loader_life_support_tls_key;
-#    endif
+#endif
     }
     static loader_life_support *get_stack_top() {
         return static_cast<loader_life_support *>(PYBIND11_TLS_GET_VALUE(get_stack_tls_key()));
@@ -51,15 +50,6 @@ private:
     static void set_stack_top(loader_life_support *value) {
         PYBIND11_TLS_REPLACE_VALUE(get_stack_tls_key(), value);
     }
-#else
-    // Use single global variable for stack.
-    static loader_life_support **get_stack_pp() {
-        static loader_life_support *global_stack = nullptr;
-        return global_stack;
-    }
-    static loader_life_support *get_stack_top() { return *get_stack_pp(); }
-    static void set_stack_top(loader_life_support *value) { *get_stack_pp() = value; }
-#endif
 
 public:
     /// A new patient frame is created when a function is entered
@@ -217,12 +207,15 @@ inline detail::type_info *get_local_type_info(const std::type_index &tp) {
 }
 
 inline detail::type_info *get_global_type_info(const std::type_index &tp) {
-    auto &types = get_internals().registered_types_cpp;
-    auto it = types.find(tp);
-    if (it != types.end()) {
-        return it->second;
-    }
-    return nullptr;
+    return with_internals([&](internals &internals) {
+        detail::type_info *type_info = nullptr;
+        auto &types = internals.registered_types_cpp;
+        auto it = types.find(tp);
+        if (it != types.end()) {
+            type_info = it->second;
+        }
+        return type_info;
+    });
 }
 
 /// Return the type info for a given C++ type; on lookup failure can either throw or return
@@ -253,15 +246,17 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
 PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
                                                          const detail::type_info *tinfo) {
-    auto it_instances = get_internals().registered_instances.equal_range(src);
-    for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-        for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                return handle((PyObject *) it_i->second).inc_ref();
+    return with_instance_map(src, [&](instance_map &instances) {
+        auto it_instances = instances.equal_range(src);
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
+                    return handle((PyObject *) it_i->second).inc_ref();
+                }
             }
         }
-    }
-    return handle();
+        return handle();
+    });
 }
 
 struct value_and_holder {
@@ -506,16 +501,17 @@ PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) 
 }
 
 PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_info *type) {
-    auto &instances = get_internals().registered_instances;
-    auto range = instances.equal_range(ptr);
-    for (auto it = range.first; it != range.second; ++it) {
-        for (const auto &vh : values_and_holders(it->second)) {
-            if (vh.type == type) {
-                return handle((PyObject *) it->second);
+    return with_instance_map(ptr, [&](instance_map &instances) {
+        auto range = instances.equal_range(ptr);
+        for (auto it = range.first; it != range.second; ++it) {
+            for (const auto &vh : values_and_holders(it->second)) {
+                if (vh.type == type) {
+                    return handle((PyObject *) it->second);
+                }
             }
         }
-    }
-    return handle();
+        return handle();
+    });
 }
 
 inline PyThreadState *get_thread_state_unchecked() {
@@ -1111,11 +1107,11 @@ public:
             || policy == return_value_policy::automatic_reference) {
             policy = return_value_policy::copy;
         }
-        return cast(&src, policy, parent);
+        return cast(std::addressof(src), policy, parent);
     }
 
     static handle cast(itype &&src, return_value_policy, handle parent) {
-        return cast(&src, return_value_policy::move, parent);
+        return cast(std::addressof(src), return_value_policy::move, parent);
     }
 
     // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
@@ -1184,14 +1180,14 @@ protected:
        does not have a private operator new implementation. A comma operator is used in the
        decltype argument to apply SFINAE to the public copy/move constructors.*/
     template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *)
-        -> decltype(new T(std::declval<const T>()), Constructor{}) {
+    static auto make_copy_constructor(const T *) -> decltype(new T(std::declval<const T>()),
+                                                             Constructor{}) {
         return [](const void *arg) -> void * { return new T(*reinterpret_cast<const T *>(arg)); };
     }
 
     template <typename T, typename = enable_if_t<is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *)
-        -> decltype(new T(std::declval<T &&>()), Constructor{}) {
+    static auto make_move_constructor(const T *) -> decltype(new T(std::declval<T &&>()),
+                                                             Constructor{}) {
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };

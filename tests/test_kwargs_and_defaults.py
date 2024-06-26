@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import kwargs_and_defaults as m
@@ -381,7 +383,7 @@ def test_args_refcount():
     arguments"""
     refcount = m.arg_refcount_h
 
-    myval = 54321
+    myval = object()
     expected = refcount(myval)
     assert m.arg_refcount_h(myval) == expected
     assert m.arg_refcount_o(myval) == expected + 1
@@ -420,6 +422,7 @@ def test_args_refcount():
     # for the `py::args`; in the previous case, we could simply inc_ref and pass on Python's input
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
-    assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
+    exp3_3 = exp3 + 3
+    assert m.mixed_args_refcount(myval, myval, myval) == (exp3_3, exp3_3, exp3_3)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"
