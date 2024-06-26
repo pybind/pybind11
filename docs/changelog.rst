@@ -33,11 +33,15 @@ New Features:
 
 .. feat(types)
 
-* Support for ``type[T]`` was added to pybind11/typing.h.
+* Support for ``Union``, ``Optional``, ``type[T]``, ``typing.TypeGuard``,
+  ``typing.TypeIs``, ``typing.Never``, ``typing.NoReturn`` and
+  ``typing.Literal`` was added to ``pybind11/typing.h``.
   `#5166 <https://github.com/pybind/pybind11/pull/5166>`_
-
-* ``Union`` and ``Optional`` were added to ``pybind11/typing.h``.
   `#5165 <https://github.com/pybind/pybind11/pull/5165>`_
+  `#5194 <https://github.com/pybind/pybind11/pull/5194>`_
+  `#5193 <https://github.com/pybind/pybind11/pull/5193>`_
+  `#5192 <https://github.com/pybind/pybind11/pull/5192>`_
+
 
 .. feat(cmake)
 
@@ -93,6 +97,9 @@ CI:
 * Use ``macos-13`` (Intel) for CI jobs for now (will drop Python 3.7 soon).
   `#5109 <https://github.com/pybind/pybind11/pull/5109>`_
 
+* Releases now have artifact attestations, visible at
+  https://github.com/pybind/pybind11/attestations.
+  `#5196 <https://github.com/pybind/pybind11/pull/5196>`_
 
 Other:
 
