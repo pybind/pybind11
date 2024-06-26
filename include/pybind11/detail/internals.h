@@ -152,7 +152,7 @@ using instance_map = std::unordered_multimap<const void *, instance *>;
 struct instance_map_shard {
     std::mutex mutex;
     instance_map registered_instances;
-    // alignas(64) would be better, but causes compile errors in macOS before 10.14
+    // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
     char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
 };
 
