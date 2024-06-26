@@ -31,7 +31,6 @@ New Features:
   `#5153 <https://github.com/pybind/pybind11/pull/5153>`_
 
 
-
 .. feat(types)
 
 * Support for ``Union``, ``Optional``, ``type[T]``, ``typing.TypeGuard``,
@@ -42,9 +41,6 @@ New Features:
   `#5194 <https://github.com/pybind/pybind11/pull/5194>`_
   `#5193 <https://github.com/pybind/pybind11/pull/5193>`_
   `#5192 <https://github.com/pybind/pybind11/pull/5192>`_
-
-
-CI:
 
 
 .. feat(cmake)
