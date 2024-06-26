@@ -1002,10 +1002,29 @@ def test_type_is_annotations(doc):
     assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> TypeIs[str]"
 
 
+def test_no_return_annotation(doc):
+    assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
+
+
+def test_never_annotation(doc):
+    assert doc(m.annotate_never) == "annotate_never() -> Never"
+
+
 def test_optional_object_annotations(doc):
     assert (
         doc(m.annotate_optional_to_object)
         == "annotate_optional_to_object(arg0: Optional[int]) -> object"
+    )
+
+
+@pytest.mark.skipif(
+    not m.if_defined__cpp_nontype_template_parameter_class,
+    reason="C++20 feature not available.",
+)
+def test_literal(doc):
+    assert (
+        doc(m.annotate_literal)
+        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
 
 

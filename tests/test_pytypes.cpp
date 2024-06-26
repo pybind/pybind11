@@ -110,6 +110,19 @@ void m_defs(py::module_ &m) {
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
 #if defined(__cpp_nontype_template_parameter_class)
+namespace literals {
+enum Color { RED = 0, BLUE = 1 };
+
+typedef py::typing::Literal<"26",
+                            "0x1A",
+                            "\"hello world\"",
+                            "b\"hello world\"",
+                            "u\"hello world\"",
+                            "True",
+                            "Color.RED",
+                            "None">
+    LiteralFoo;
+} // namespace literals
 namespace typevar {
 typedef py::typing::TypeVar<"T"> TypeVarT;
 typedef py::typing::TypeVar<"V"> TypeVarV;
@@ -851,6 +864,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
+
     m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t; });
 
     m.def("annotate_union",
@@ -883,10 +897,19 @@ TEST_SUBMODULE(pytypes, m) {
     });
     m.def("annotate_type_is",
           [](py::object &o) -> py::typing::TypeIs<py::str> { return py::isinstance<py::str>(o); });
+
+    m.def("annotate_no_return", []() -> py::typing::NoReturn { throw 0; });
+    m.def("annotate_never", []() -> py::typing::Never { throw 0; });
+
     m.def("annotate_optional_to_object",
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 
 #if defined(__cpp_nontype_template_parameter_class)
+    py::enum_<literals::Color>(m, "Color")
+        .value("RED", literals::Color::RED)
+        .value("BLUE", literals::Color::BLUE);
+
+    m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
     m.def("annotate_generic_containers",
           [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
               return l;
