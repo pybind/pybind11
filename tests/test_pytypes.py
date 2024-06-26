@@ -991,6 +991,14 @@ def test_optional_annotations(doc):
     )
 
 
+def test_no_return_annotation(doc):
+    assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
+
+
+def test_never_annotation(doc):
+    assert doc(m.annotate_never) == "annotate_never() -> Never"
+
+
 def test_optional_object_annotations(doc):
     assert (
         doc(m.annotate_optional_to_object)

@@ -891,6 +891,9 @@ TEST_SUBMODULE(pytypes, m) {
               list.append(py::none());
               return list;
           });
+
+    m.def("annotate_no_return", []() -> py::typing::NoReturn { throw 0; });
+    m.def("annotate_never", []() -> py::typing::Never { throw 0; });
     m.def("annotate_optional_to_object",
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 
