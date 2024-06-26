@@ -1,14 +1,5 @@
 from __future__ import annotations
 
-import sys
-
-import pytest
-
-if sys.platform.startswith("emscripten"):
-    pytest.skip(
-        "Test not implemented from single wheel on Pyodide", allow_module_level=True
-    )
-
 import trampoline_module
 
 
