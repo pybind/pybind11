@@ -15,6 +15,20 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Version 2.13.1 (June 26, 2024)
+------------------------------
+
+New Features:
+
+* Add support for ``Typing.Callable[..., T]``.
+  `#5202 <https://github.com/pybind/pybind11/pull/5202>`_
+
+Bug fixes:
+
+* Avoid aligned allocation in free-threaded build in order to support macOS
+  versions before 10.14.
+  `#5200 <https://github.com/pybind/pybind11/pull/5200>`_
+
 Version 2.13.0 (June 25, 2024)
 ------------------------------
 
