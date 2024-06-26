@@ -177,6 +177,14 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
           + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
+template <typename Return>
+struct handle_type_name<typing::Callable<Return(ellipsis)>> {
+    // PEP 484 specifies this syntax for defining only return types of callables
+    using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
+    static constexpr auto name
+        = const_name("Callable[..., ") + make_caster<retval_type>::name + const_name("]");
+};
+
 template <typename T>
 struct handle_type_name<typing::Type<T>> {
     static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
