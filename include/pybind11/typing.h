@@ -98,6 +98,8 @@ class Never : public none {
     using none::none;
 };
 
+// Define guard around specific GCC version
+// https://github.com/pybind/pybind11/issues/5201
 #if defined(__cpp_nontype_template_parameter_class)
 template <size_t N>
 struct StringLiteral {
