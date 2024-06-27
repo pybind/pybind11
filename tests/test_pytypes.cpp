@@ -109,7 +109,9 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
-#if defined(__cpp_nontype_template_parameter_class) && (!defined(__GNUC__) || defined(__GNUC__) && (__GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 3)))
+#if defined(__cpp_nontype_template_parameter_class)                                               \
+    && (!defined(__GNUC__)                                                                        \
+        || defined(__GNUC__) && (__GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 3)))
 namespace literals {
 enum Color { RED = 0, BLUE = 1 };
 
@@ -905,7 +907,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_optional_to_object",
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 
-#if defined(__cpp_nontype_template_parameter_class) && (!defined(__GNUC__) || defined(__GNUC__) && (__GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 3)))
+#if defined(__cpp_nontype_template_parameter_class)                                               \
+    && (!defined(__GNUC__)                                                                        \
+        || defined(__GNUC__) && (__GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 3)))
     py::enum_<literals::Color>(m, "Color")
         .value("RED", literals::Color::RED)
         .value("BLUE", literals::Color::BLUE);
