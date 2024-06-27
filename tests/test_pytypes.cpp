@@ -865,6 +865,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_fn",
           [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
 
+    m.def("annotate_fn_only_return", [](const py::typing::Callable<int(py::ellipsis)> &) {});
     m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t; });
 
     m.def("annotate_union",
@@ -892,8 +893,15 @@ TEST_SUBMODULE(pytypes, m) {
               return list;
           });
 
+    m.def("annotate_type_guard", [](py::object &o) -> py::typing::TypeGuard<py::str> {
+        return py::isinstance<py::str>(o);
+    });
+    m.def("annotate_type_is",
+          [](py::object &o) -> py::typing::TypeIs<py::str> { return py::isinstance<py::str>(o); });
+
     m.def("annotate_no_return", []() -> py::typing::NoReturn { throw 0; });
     m.def("annotate_never", []() -> py::typing::Never { throw 0; });
+
     m.def("annotate_optional_to_object",
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 

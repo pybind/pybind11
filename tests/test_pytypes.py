@@ -959,6 +959,13 @@ def test_fn_annotations(doc):
     )
 
 
+def test_fn_return_only(doc):
+    assert (
+        doc(m.annotate_fn_only_return)
+        == "annotate_fn_only_return(arg0: Callable[..., int]) -> None"
+    )
+
+
 def test_type_annotation(doc):
     assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> type"
 
@@ -989,6 +996,17 @@ def test_optional_annotations(doc):
         doc(m.annotate_optional)
         == "annotate_optional(arg0: list) -> list[Optional[str]]"
     )
+
+
+def test_type_guard_annotations(doc):
+    assert (
+        doc(m.annotate_type_guard)
+        == "annotate_type_guard(arg0: object) -> TypeGuard[str]"
+    )
+
+
+def test_type_is_annotations(doc):
+    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> TypeIs[str]"
 
 
 def test_no_return_annotation(doc):

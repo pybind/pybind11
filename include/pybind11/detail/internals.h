@@ -148,17 +148,13 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
-// ignore: structure was padded due to alignment specifier
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_MSVC(4324)
-
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
-struct alignas(64) instance_map_shard {
+struct instance_map_shard {
     std::mutex mutex;
     instance_map registered_instances;
+    // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
+    char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
 };
-
-PYBIND11_WARNING_POP
 
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
