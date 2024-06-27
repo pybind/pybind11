@@ -905,7 +905,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_optional_to_object",
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 
-#if defined(__cpp_nontype_template_parameter_class)
+
+#if defined(__cpp_nontype_template_parameter_class) || define(__GNUG__) && (__GNUC__ >= 10 && __GNUC_MINOR__ < 2)
     py::enum_<literals::Color>(m, "Color")
         .value("RED", literals::Color::RED)
         .value("BLUE", literals::Color::BLUE);

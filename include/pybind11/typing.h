@@ -100,7 +100,8 @@ class Never : public none {
 
 // Define guard around specific GCC version
 // https://github.com/pybind/pybind11/issues/5201
-#if defined(__cpp_nontype_template_parameter_class)
+#if defined(__cpp_nontype_template_parameter_class) || define(__GNUG__) && (__GNUC__ >= 10 && __GNUC_MINOR__ < 2)
+__gcc_major
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
@@ -224,7 +225,8 @@ struct handle_type_name<typing::Never> {
     static constexpr auto name = const_name("Never");
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
+
+#if defined(__cpp_nontype_template_parameter_class) || define(__GNUG__) && (__GNUC__ >= 10 && __GNUC_MINOR__ < 2)
 template <typing::StringLiteral... Literals>
 struct handle_type_name<typing::Literal<Literals...>> {
     static constexpr auto name = const_name("Literal[")
