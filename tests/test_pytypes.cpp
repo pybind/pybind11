@@ -907,7 +907,7 @@ TEST_SUBMODULE(pytypes, m) {
 
 #if (defined(__cpp_nontype_template_parameter_class) && !defined(__GNUG__))                       \
     || defined(__cpp_nontype_template_parameter_class)                                            \
-           && (__GNUC__ > 10 || __GNUC__ == 10 && __GNUC_MINOR__ >= 3)
+           && (!(__GNUC__ < 10) && __GNUC__ == 10 && __GNUC_MINOR__ >= 3)
     py::enum_<literals::Color>(m, "Color")
         .value("RED", literals::Color::RED)
         .value("BLUE", literals::Color::BLUE);
