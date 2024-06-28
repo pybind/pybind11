@@ -826,8 +826,7 @@ An instance can now be pickled as follows:
     always use the latest available version. Beware: failure to follow these
     instructions will cause important pybind11 memory allocation routines to be
     skipped during unpickling, which will likely lead to memory corruption
-    and/or segmentation faults. Python defaults to version 3 (Python 3-3.7) and
-    version 4 for Python 3.8+.
+    and/or segmentation faults.
 
 .. seealso::
 

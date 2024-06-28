@@ -19,7 +19,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline void ensure_builtins_in_globals(object &global) {
-#if defined(PYPY_VERSION) || PY_VERSION_HEX < 0x03080000
+#if defined(PYPY_VERSION)
     // Running exec and eval adds `builtins` module under `__builtins__` key to
     // globals if not yet present.  Python 3.8 made PyRun_String behave
     // similarly. Let's also do that for older versions, for consistency. This

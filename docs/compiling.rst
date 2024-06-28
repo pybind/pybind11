@@ -426,7 +426,7 @@ with ``PYTHON_EXECUTABLE``.  For example:
 
 .. code-block:: bash
 
-    cmake -DPYBIND11_PYTHON_VERSION=3.7 ..
+    cmake -DPYBIND11_PYTHON_VERSION=3.8 ..
 
     # Another method:
     cmake -DPYTHON_EXECUTABLE=/path/to/python ..
@@ -493,7 +493,7 @@ existing targets instead:
     cmake_minimum_required(VERSION 3.15...3.22)
     project(example LANGUAGES CXX)
 
-    find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
