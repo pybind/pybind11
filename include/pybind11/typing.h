@@ -14,6 +14,8 @@
 #include "cast.h"
 #include "pytypes.h"
 
+#include <algorithm>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(typing)
 
