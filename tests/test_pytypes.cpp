@@ -109,7 +109,7 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
-#if defined(__cpp_nontype_template_parameter_class)
+#if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
 namespace literals {
 enum Color { RED = 0, BLUE = 1 };
 
@@ -905,7 +905,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_optional_to_object",
           [](py::typing::Optional<int> &o) -> py::object { return o; });
 
-#if defined(__cpp_nontype_template_parameter_class)
+#if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
     py::enum_<literals::Color>(m, "Color")
         .value("RED", literals::Color::RED)
         .value("BLUE", literals::Color::BLUE);
@@ -919,8 +919,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("annotate_listT_to_T",
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
     m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
-    m.attr("if_defined__cpp_nontype_template_parameter_class") = true;
+    m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = true;
 #else
-    m.attr("if_defined__cpp_nontype_template_parameter_class") = false;
+    m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
 #endif
 }
