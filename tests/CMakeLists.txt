@@ -117,6 +117,7 @@ set(PYBIND11_TEST_FILES
     test_builtin_casters
     test_call_policies
     test_callbacks
+    test_cases_for_stubgen
     test_chrono
     test_class
     test_const_name
