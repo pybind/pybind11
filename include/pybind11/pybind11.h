@@ -11,6 +11,7 @@
 #pragma once
 
 #include "detail/class.h"
+#include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/init.h"
 #include "detail/smart_holder_poc.h"
 #include "attr.h"
@@ -1968,8 +1969,37 @@ private:
 
     template <typename H = holder_type,
               detail::enable_if_t<std::is_same<H, pybindit::memory::smart_holder>::value, int> = 0>
-    static void init_instance(detail::instance * /*inst*/, const void * /*holder_ptr*/) {
-        // detail::type_caster<T>::template init_instance_for_type<T, A>(inst, holder_ptr);
+    static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
+        // Need for const_cast is a consequence of the type_info::init_instance type:
+        // void (*init_instance)(instance *, const void *);
+        auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
+
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
+        if (!v_h.instance_registered()) {
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+            v_h.set_instance_registered();
+        }
+        auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
+        auto *value_ptr_w_t = v_h.value_ptr<type>();
+        bool pointee_depends_on_holder_owner
+            = detail::dynamic_raw_ptr_cast_if_possible<type_alias>(value_ptr_w_t) != nullptr;
+        if (holder_void_ptr) {
+            // Note: inst->owned ignored.
+            auto *holder_ptr = static_cast<holder_type *>(holder_void_ptr);
+            new (uninitialized_location) holder_type(std::move(*holder_ptr));
+        } else if (!try_initialization_using_shared_from_this(
+                       uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
+            if (inst->owned) {
+                new (uninitialized_location) holder_type(holder_type::from_raw_ptr_take_ownership(
+                    value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
+            } else {
+                new (uninitialized_location)
+                    holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
+            }
+        }
+        v_h.holder<holder_type>().pointee_depends_on_holder_owner
+            = pointee_depends_on_holder_owner;
+        v_h.set_holder_constructed();
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
