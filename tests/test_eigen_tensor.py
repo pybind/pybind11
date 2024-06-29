@@ -268,7 +268,8 @@ def test_round_trip_references_actually_refer(m):
 @pytest.mark.parametrize("m", submodules)
 def test_doc_string(m, doc):
     assert (
-        doc(m.copy_tensor) == "copy_tensor() -> numpy.typing.NDArray[numpy.float64[?, ?, ?]]"
+        doc(m.copy_tensor)
+        == "copy_tensor() -> numpy.typing.NDArray[numpy.float64[?, ?, ?]]"
     )
     assert (
         doc(m.copy_fixed_tensor)

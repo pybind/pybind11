@@ -105,8 +105,9 @@ def test_mutator_descriptors():
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_a(np.array([[1, 2], [3, 4]], dtype="float32"))
-    assert "(arg0: numpy.typing.NDArray[numpy.float32[5, 6], flags.writeable]) -> None" in str(
-        excinfo.value
+    assert (
+        "(arg0: numpy.typing.NDArray[numpy.float32[5, 6], flags.writeable]) -> None"
+        in str(excinfo.value)
     )
     zr.flags.writeable = False
     with pytest.raises(TypeError):
