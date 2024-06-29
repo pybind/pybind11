@@ -13,5 +13,7 @@ TEST_SUBMODULE(wip, m) {
 
     using namespace pybind11_tests::wip;
 
-    py::class_<SomeType>(m, "SomeType").def(py::init<>());
+    py::class_<SomeType>(m, "SomeType").def(py::init([]() {
+        return std::unique_ptr<SomeType>(new SomeType);
+    }));
 }
