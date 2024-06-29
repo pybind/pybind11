@@ -320,13 +320,13 @@ def test_overload_resolution(msg):
         msg(excinfo.value)
         == """
         overloaded(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.float64]) -> str
-            2. (arg0: numpy.ndarray[numpy.float32]) -> str
-            3. (arg0: numpy.ndarray[numpy.int32]) -> str
-            4. (arg0: numpy.ndarray[numpy.uint16]) -> str
-            5. (arg0: numpy.ndarray[numpy.int64]) -> str
-            6. (arg0: numpy.ndarray[numpy.complex128]) -> str
-            7. (arg0: numpy.ndarray[numpy.complex64]) -> str
+            1. (arg0: numpy.typing.NDArray[numpy.float64]) -> str
+            2. (arg0: numpy.typing.NDArray[numpy.float32]) -> str
+            3. (arg0: numpy.typing.NDArray[numpy.int32]) -> str
+            4. (arg0: numpy.typing.NDArray[numpy.uint16]) -> str
+            5. (arg0: numpy.typing.NDArray[numpy.int64]) -> str
+            6. (arg0: numpy.typing.NDArray[numpy.complex128]) -> str
+            7. (arg0: numpy.typing.NDArray[numpy.complex64]) -> str
 
         Invoked with: 'not an array'
     """
@@ -342,8 +342,8 @@ def test_overload_resolution(msg):
     assert m.overloaded3(np.array([1], dtype="intc")) == "int"
     expected_exc = """
         overloaded3(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.int32]) -> str
-            2. (arg0: numpy.ndarray[numpy.float64]) -> str
+            1. (arg0: numpy.typing.NDArray[numpy.int32]) -> str
+            2. (arg0: numpy.typing.NDArray[numpy.float64]) -> str
 
         Invoked with: """
 
@@ -527,7 +527,7 @@ def test_index_using_ellipsis():
     ],
 )
 def test_format_descriptors_for_floating_point_types(test_func):
-    assert "numpy.ndarray[numpy.float" in test_func.__doc__
+    assert "numpy.typing.NDArray[numpy.float" in test_func.__doc__
 
 
 @pytest.mark.parametrize("forcecast", [False, True])

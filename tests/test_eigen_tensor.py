@@ -268,23 +268,23 @@ def test_round_trip_references_actually_refer(m):
 @pytest.mark.parametrize("m", submodules)
 def test_doc_string(m, doc):
     assert (
-        doc(m.copy_tensor) == "copy_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
+        doc(m.copy_tensor) == "copy_tensor() -> numpy.typing.NDArray[numpy.float64[?, ?, ?]]"
     )
     assert (
         doc(m.copy_fixed_tensor)
-        == "copy_fixed_tensor() -> numpy.ndarray[numpy.float64[3, 5, 2]]"
+        == "copy_fixed_tensor() -> numpy.typing.NDArray[numpy.float64[3, 5, 2]]"
     )
     assert (
         doc(m.reference_const_tensor)
-        == "reference_const_tensor() -> numpy.ndarray[numpy.float64[?, ?, ?]]"
+        == "reference_const_tensor() -> numpy.typing.NDArray[numpy.float64[?, ?, ?]]"
     )
 
     order_flag = f"flags.{m.needed_options.lower()}_contiguous"
     assert doc(m.round_trip_view_tensor) == (
-        f"round_trip_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}])"
-        f" -> numpy.ndarray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}]"
+        f"round_trip_view_tensor(arg0: numpy.typing.NDArray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}])"
+        f" -> numpy.typing.NDArray[numpy.float64[?, ?, ?], flags.writeable, {order_flag}]"
     )
     assert doc(m.round_trip_const_view_tensor) == (
-        f"round_trip_const_view_tensor(arg0: numpy.ndarray[numpy.float64[?, ?, ?], {order_flag}])"
-        " -> numpy.ndarray[numpy.float64[?, ?, ?]]"
+        f"round_trip_const_view_tensor(arg0: numpy.typing.NDArray[numpy.float64[?, ?, ?], {order_flag}])"
+        " -> numpy.typing.NDArray[numpy.float64[?, ?, ?]]"
     )

@@ -127,7 +127,7 @@ struct get_tensor_descriptor {
           + const_name<static_cast<int>(Type::Layout) == static_cast<int>(Eigen::RowMajor)>(
               ", flags.c_contiguous", ", flags.f_contiguous");
     static constexpr auto value
-        = const_name("numpy.ndarray[") + npy_format_descriptor<typename Type::Scalar>::name
+        = const_name("numpy.typing.NDArray[") + npy_format_descriptor<typename Type::Scalar>::name
           + const_name("[") + eigen_tensor_helper<remove_cv_t<Type>>::dimensions_descriptor
           + const_name("]") + const_name<ShowDetails>(details, const_name("")) + const_name("]");
 };
