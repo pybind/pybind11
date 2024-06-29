@@ -1601,7 +1601,8 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
+    using holder_type
+        = detail::exactly_one_t<is_holder, pybindit::memory::smart_holder, options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
                   "Unknown/invalid class_ template parameters provided");
@@ -1633,7 +1634,7 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
+        record.default_holder = std::is_same<holder_type, pybindit::memory::smart_holder>::value;
 
         set_operator_new<type>(&record);
 
