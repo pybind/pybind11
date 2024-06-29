@@ -12,6 +12,7 @@
 
 #include "detail/class.h"
 #include "detail/init.h"
+#include "detail/smart_holder_poc.h"
 #include "attr.h"
 #include "gil.h"
 #include "gil_safe_call_once.h"
