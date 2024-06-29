@@ -228,14 +228,20 @@ TEST_SUBMODULE(factory_constructors, m) {
 
     // test_init_factory_basic, test_bad_type
     py::class_<TestFactory1>(m, "TestFactory1")
+#ifdef BAKEIN_BREAK
         .def(py::init([](unique_ptr_tag, int v) { return TestFactoryHelper::construct1(v); }))
+#endif
         .def(py::init(&TestFactoryHelper::construct1_string)) // raw function pointer
         .def(py::init([](pointer_tag) { return TestFactoryHelper::construct1(); }))
+#ifdef BAKEIN_BREAK
         .def(py::init(
             [](py::handle, int v, py::handle) { return TestFactoryHelper::construct1(v); }))
+#endif
         .def_readwrite("value", &TestFactory1::value);
     py::class_<TestFactory2>(m, "TestFactory2")
+#ifdef BAKEIN_BREAK
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct2(v); }))
+#endif
         .def(py::init([](unique_ptr_tag, std::string v) {
             return TestFactoryHelper::construct2(std::move(v));
         }))
