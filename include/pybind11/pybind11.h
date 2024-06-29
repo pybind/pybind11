@@ -1967,6 +1967,31 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
+    template <typename WrappedType>
+    static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
+        return false;
+    }
+
+    // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
+    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already,
+    // it is reused, irrespective of the return_value_policy in effect.
+    // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
+    // direct base of WrappedType.
+    template <typename WrappedType, typename SomeBaseOfWrappedType>
+    static bool try_initialization_using_shared_from_this(
+        holder_type *uninitialized_location,
+        WrappedType *value_ptr_w_t,
+        const std::enable_shared_from_this<SomeBaseOfWrappedType> *) {
+        auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
+            detail::try_get_shared_from_this(value_ptr_w_t));
+        if (!shd_ptr) {
+            return false;
+        }
+        // Note: inst->owned ignored.
+        new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
+        return true;
+    }
+
     template <typename H = holder_type,
               detail::enable_if_t<std::is_same<H, pybindit::memory::smart_holder>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
