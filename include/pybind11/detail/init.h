@@ -129,7 +129,6 @@ void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
         // the holder and destruction happens when we leave the C++ scope, and the holder
         // class gets to handle the destruction however it likes.
         v_h.value_ptr() = ptr;
-        v_h.set_instance_registered(true); // To prevent init_instance from registering it
         v_h.set_instance_registered(true); // SHORTCUT To prevent init_instance from registering it
         // DANGER ZONE BEGIN: exceptions will leave v_h in an invalid state.
         v_h.type->init_instance(v_h.inst, nullptr);                        // Set up the holder
