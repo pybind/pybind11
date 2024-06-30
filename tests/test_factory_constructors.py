@@ -19,7 +19,6 @@ def test_init_factory_basic():
     cstats[0].alive()  # force gc
     n_inst = ConstructorStats.detail_reg_inst()
 
-    pytest.skip("BAKEIN_BREAK: TypeError")
     x1 = m.TestFactory1(tag.unique_ptr, 3)
     assert x1.value == "3"
     y1 = m.TestFactory1(tag.pointer)
@@ -73,7 +72,6 @@ def test_init_factory_basic():
 def test_init_factory_signature(msg):
     with pytest.raises(TypeError) as excinfo:
         m.TestFactory1("invalid", "constructor", "arguments")
-    pytest.skip("BAKEIN_BREAK: AssertionError")
     assert (
         msg(excinfo.value)
         == """
@@ -336,7 +334,6 @@ def test_multiple_inheritance():
             m.TestFactory1.__init__(self, tag.unique_ptr, 33)
             m.TestFactory2.__init__(self, tag.move)
 
-    pytest.skip("BAKEIN_BREAK: TypeError")
     a = MITest()
     assert m.TestFactory1.value.fget(a) == "33"
     assert m.TestFactory2.value.fget(a) == "(empty2)"
@@ -504,7 +501,6 @@ def test_invalid_self():
                     NotPybindDerived.__new__(NotPybindDerived), tag.alias, 1
                 )
 
-    pytest.skip("BAKEIN_BREAK: AssertionError")
     for arg in (1, 2):
         with pytest.raises(TypeError) as excinfo:
             BrokenTF1(arg)
