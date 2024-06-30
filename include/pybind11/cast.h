@@ -746,6 +746,7 @@ public:
     // PEP 484 specifies this syntax for an empty tuple
     static constexpr auto name = const_name("tuple[()]");
 };
+
 /// Helper class which abstracts away certain actions. Users can provide specializations for
 /// custom holders, but it's only necessary if the type has a non-standard interface.
 template <typename T>
