@@ -201,6 +201,20 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     v_h.value_ptr() = new Alias<Class>(std::move(result));
 }
 
+namespace originally_smart_holder_type_casters_h {
+template <typename T, typename D>
+pybindit::memory::smart_holder smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
+                                                            bool void_cast_raw_ptr) {
+    void *void_ptr = void_cast_raw_ptr ? static_cast<void *>(unq_ptr.get()) : nullptr;
+    return pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr), void_ptr);
+}
+
+template <typename T>
+pybindit::memory::smart_holder smart_holder_from_shared_ptr(std::shared_ptr<T> shd_ptr) {
+    return pybindit::memory::smart_holder::from_shared_ptr(shd_ptr);
+}
+} // namespace originally_smart_holder_type_casters_h
+
 template <
     typename Class,
     typename D = std::default_delete<Cpp<Class>>,
@@ -219,7 +233,7 @@ void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, 
     // trampoline Python object alive. For types that don't inherit from enable_shared_from_this
     // it does not matter if void_cast_raw_ptr is true or false, therefore it's not necessary
     // to also inspect the type.
-    auto smhldr = type_caster<Cpp<Class>>::smart_holder_from_unique_ptr(
+    auto smhldr = originally_smart_holder_type_casters_h::smart_holder_from_unique_ptr(
         std::move(unq_ptr), /*void_cast_raw_ptr*/ Class::has_alias && is_alias<Class>(ptr));
     v_h.value_ptr() = ptr;
     v_h.type->init_instance(v_h.inst, &smhldr);
@@ -235,7 +249,7 @@ void construct(value_and_holder &v_h,
                bool /*need_alias*/) {
     auto *ptr = unq_ptr.get();
     no_nullptr(ptr);
-    auto smhldr = type_caster<Alias<Class>>::smart_holder_from_unique_ptr(
+    auto smhldr = originally_smart_holder_type_casters_h::smart_holder_from_unique_ptr(
         std::move(unq_ptr), /*void_cast_raw_ptr*/ true);
     v_h.value_ptr() = ptr;
     v_h.type->init_instance(v_h.inst, &smhldr);
@@ -253,7 +267,7 @@ void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, boo
         throw type_error("pybind11::init(): construction failed: returned std::shared_ptr pointee "
                          "is not an alias instance");
     }
-    auto smhldr = type_caster<Cpp<Class>>::smart_holder_from_shared_ptr(shd_ptr);
+    auto smhldr = originally_smart_holder_type_casters_h::smart_holder_from_shared_ptr(shd_ptr);
     v_h.value_ptr() = ptr;
     v_h.type->init_instance(v_h.inst, &smhldr);
 }
@@ -267,7 +281,7 @@ void construct(value_and_holder &v_h,
                bool /*need_alias*/) {
     auto *ptr = shd_ptr.get();
     no_nullptr(ptr);
-    auto smhldr = type_caster<Alias<Class>>::smart_holder_from_shared_ptr(shd_ptr);
+    auto smhldr = originally_smart_holder_type_casters_h::smart_holder_from_shared_ptr(shd_ptr);
     v_h.value_ptr() = ptr;
     v_h.type->init_instance(v_h.inst, &smhldr);
 }
