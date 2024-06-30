@@ -16,4 +16,6 @@ TEST_SUBMODULE(wip, m) {
     py::class_<SomeType>(m, "SomeType").def(py::init([]() {
         return std::unique_ptr<SomeType>(new SomeType);
     }));
+
+    m.def("make_some_type", []() { return std::unique_ptr<SomeType>(new SomeType); });
 }

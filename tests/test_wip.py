@@ -10,3 +10,8 @@ def test_doc():
 def test_some_type_ctor():
     obj = m.SomeType()
     assert isinstance(obj, m.SomeType)
+
+
+def test_make_some_type():
+    obj = m.make_some_type()
+    assert isinstance(obj, m.SomeType)
