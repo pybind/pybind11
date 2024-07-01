@@ -14,6 +14,8 @@
 #include "cast.h"
 #include "pytypes.h"
 
+#include <algorithm>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(typing)
 
@@ -98,7 +100,10 @@ class Never : public none {
     using none::none;
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
+#if defined(__cpp_nontype_template_parameter_class)                                               \
+    && (/* See #5201 */ !defined(__GNUC__)                                                        \
+        || (__GNUC__ > 10 || (__GNUC__ == 10 && __GNUC_MINOR__ >= 3)))
+#    define PYBIND11_TYPING_H_HAS_STRING_LITERAL
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
@@ -222,7 +227,7 @@ struct handle_type_name<typing::Never> {
     static constexpr auto name = const_name("Never");
 };
 
-#if defined(__cpp_nontype_template_parameter_class)
+#if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
 template <typing::StringLiteral... Literals>
 struct handle_type_name<typing::Literal<Literals...>> {
     static constexpr auto name = const_name("Literal[")
