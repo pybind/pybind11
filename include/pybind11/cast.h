@@ -12,6 +12,7 @@
 
 #include "detail/common.h"
 #include "detail/descr.h"
+#include "detail/smart_holder_type_caster_support.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
 #include "pytypes.h"
@@ -931,8 +932,10 @@ struct move_only_holder_caster<type, std::unique_ptr<type, deleter>> {
     static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
                   "Holder classes are only supported for custom types");
 
-    static handle cast(std::unique_ptr<type, deleter> &&src, return_value_policy, handle) {
-        return type_caster_base<type>::unique_ptr_to_python(std::move(src));
+    static handle
+    cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
+        return smart_holder_type_caster_support::unique_ptr_to_python(
+            std::move(src), policy, parent);
     }
     static constexpr auto name = type_caster_base<type>::name;
 };
