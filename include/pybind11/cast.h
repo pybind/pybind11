@@ -878,9 +878,6 @@ struct always_construct_holder {
 template <typename base, typename holder>
 struct is_holder_type
     : std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>> {};
-// Specialization for always-supported unique_ptr holders:
-template <typename base, typename deleter>
-struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
 
 #ifdef PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION // See PR #4888
 
