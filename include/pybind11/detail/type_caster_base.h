@@ -1160,6 +1160,22 @@ public:
                                          holder);
     }
 
+    template <typename T, typename D>
+    static handle unique_ptr_to_python(std::unique_ptr<T, D> &&unq_ptr) {
+        auto *src = unq_ptr.get();
+        auto st = src_and_type(src);
+        if (st.second->default_holder) {
+            throw std::runtime_error("BAKEIN_WIP");
+        }
+        return type_caster_generic::cast(st.first,
+                                         return_value_policy::take_ownership,
+                                         {},
+                                         st.second,
+                                         nullptr,
+                                         nullptr,
+                                         std::addressof(unq_ptr));
+    }
+
     template <typename T>
     using cast_op_type = detail::cast_op_type<T>;
 

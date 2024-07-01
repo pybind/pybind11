@@ -932,8 +932,7 @@ struct move_only_holder_caster<type, std::unique_ptr<type, deleter>> {
                   "Holder classes are only supported for custom types");
 
     static handle cast(std::unique_ptr<type, deleter> &&src, return_value_policy, handle) {
-        auto *ptr = src.get();
-        return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
+        return type_caster_base<type>::unique_ptr_to_python(std::move(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
 };
