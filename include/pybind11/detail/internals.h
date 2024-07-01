@@ -152,6 +152,7 @@ using instance_map = std::unordered_multimap<const void *, instance *>;
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
     PyMutex mutex;
+
 public:
     pymutex() : mutex({}) {}
     void lock() { PyMutex_Lock(&mutex); }
