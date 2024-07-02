@@ -53,7 +53,6 @@ def test_roundtrip_with_dict(cls_name):
 
 
 def test_enum_pickle():
-    pytest.skip("BAKEIN_BREAK: ImportError")
     from pybind11_tests import enums as e
 
     data = pickle.dumps(e.EOne, 2)
@@ -71,7 +70,6 @@ def test_roundtrip_simple_py_derived():
     p = SimplePyDerived()
     p.num = 202
     p.stored_in_dict = 303
-    pytest.skip("BAKEIN_BREAK: TypeError: cannot pickle 'SimplePyDerived' object")
     data = pickle.dumps(p, pickle.HIGHEST_PROTOCOL)
     p2 = pickle.loads(data)
     assert isinstance(p2, SimplePyDerived)
@@ -80,7 +78,6 @@ def test_roundtrip_simple_py_derived():
 
 
 def test_roundtrip_simple_cpp_derived():
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     p = m.make_SimpleCppDerivedAsBase()
     assert m.check_dynamic_cast_SimpleCppDerived(p)
     p.num = 404
