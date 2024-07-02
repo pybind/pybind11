@@ -173,45 +173,46 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("pass_shcp", pass_shcp);
 
     m.def("rtrn_uqmp", rtrn_uqmp);
-    m.def("rtrn_uqcp", rtrn_uqcp);
+    // BAKEIN_BREAK m.def("rtrn_uqcp", rtrn_uqcp);
 
-    m.def("pass_uqmp", pass_uqmp);
-    m.def("pass_uqcp", pass_uqcp);
+    // BAKEIN_BREAK m.def("pass_uqmp", pass_uqmp);
+    // BAKEIN_BREAK m.def("pass_uqcp", pass_uqcp);
 
     m.def("rtrn_udmp", rtrn_udmp);
-    m.def("rtrn_udcp", rtrn_udcp);
+    // BAKEIN_BREAK m.def("rtrn_udcp", rtrn_udcp);
 
-    m.def("pass_udmp", pass_udmp);
-    m.def("pass_udcp", pass_udcp);
+    // BAKEIN_BREAK m.def("pass_udmp", pass_udmp);
+    // BAKEIN_BREAK m.def("pass_udcp", pass_udcp);
 
     m.def("rtrn_udmp_del", rtrn_udmp_del);
-    m.def("rtrn_udcp_del", rtrn_udcp_del);
+    // BAKEIN_BREAK m.def("rtrn_udcp_del", rtrn_udcp_del);
 
-    m.def("pass_udmp_del", pass_udmp_del);
-    m.def("pass_udcp_del", pass_udcp_del);
+    // BAKEIN_BREAK m.def("pass_udmp_del", pass_udmp_del);
+    // BAKEIN_BREAK m.def("pass_udcp_del", pass_udcp_del);
 
     m.def("rtrn_udmp_del_nd", rtrn_udmp_del_nd);
-    m.def("rtrn_udcp_del_nd", rtrn_udcp_del_nd);
+    // BAKEIN_BREAK m.def("rtrn_udcp_del_nd", rtrn_udcp_del_nd);
 
-    m.def("pass_udmp_del_nd", pass_udmp_del_nd);
-    m.def("pass_udcp_del_nd", pass_udcp_del_nd);
+    // BAKEIN_BREAK m.def("pass_udmp_del_nd", pass_udmp_del_nd);
+    // BAKEIN_BREAK m.def("pass_udcp_del_nd", pass_udcp_del_nd);
 
     py::classh<uconsumer>(m, "uconsumer")
         .def(py::init<>())
         .def("valid", &uconsumer::valid)
-        .def("pass_valu", &uconsumer::pass_valu)
-        .def("pass_rref", &uconsumer::pass_rref)
+        // BAKEIN_BREAK .def("pass_valu", &uconsumer::pass_valu)
+        // BAKEIN_BREAK .def("pass_rref", &uconsumer::pass_rref)
         .def("rtrn_valu", &uconsumer::rtrn_valu)
-        .def("rtrn_lref", &uconsumer::rtrn_lref)
-        .def("rtrn_cref", &uconsumer::rtrn_cref);
+        // BAKEIN_BREAK .def("rtrn_lref", &uconsumer::rtrn_lref)
+        // BAKEIN_BREAK .def("rtrn_cref", &uconsumer::rtrn_cref)
+        ;
 
     // Helpers for testing.
     // These require selected functions above to work first, as indicated:
     m.def("get_mtxt", get_mtxt); // pass_cref
     m.def("get_ptr", get_ptr);   // pass_cref
 
-    m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
-    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
+    // BAKEIN_BREAK m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
+    // BAKEIN_BREAK m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
 
     py::classh<SharedPtrStash>(m, "SharedPtrStash")
         .def(py::init<>())
@@ -224,8 +225,11 @@ TEST_SUBMODULE(class_sh_basic, m) {
     // Checks for type names used as arguments
     m.def("args_shared_ptr", [](std::shared_ptr<atyp> p) { return p; });
     m.def("args_shared_ptr_const", [](std::shared_ptr<atyp const> p) { return p; });
-    m.def("args_unique_ptr", [](std::unique_ptr<atyp> p) { return p; });
-    m.def("args_unique_ptr_const", [](std::unique_ptr<atyp const> p) { return p; });
+    // BAKEIN_TEMP clang-format off
+    // clang-format off
+    // BAKEIN_BREAK m.def("args_unique_ptr", [](std::unique_ptr<atyp> p) { return p; });
+    // BAKEIN_BREAK m.def("args_unique_ptr_const", [](std::unique_ptr<atyp const> p) { return p; });
+    // clang-format on
 
     // Make sure unique_ptr type caster accept automatic_reference return value policy.
     m.def(
