@@ -261,7 +261,6 @@ def test_mismatched_holder():
 
 def test_override_static():
     """#511: problem with inheritance + overwritten def_static"""
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     b = m.MyBase.make()
     d1 = m.MyDerived.make2()
     d2 = m.MyDerived.make()
