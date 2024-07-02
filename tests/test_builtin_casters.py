@@ -368,6 +368,8 @@ def test_tuple(doc):
     """
     )
 
+    assert doc(m.empty_tuple) == """empty_tuple() -> tuple[()]"""
+
     assert m.rvalue_pair() == ("rvalue", "rvalue")
     assert m.lvalue_pair() == ("lvalue", "lvalue")
     assert m.rvalue_tuple() == ("rvalue", "rvalue", "rvalue")
