@@ -164,8 +164,11 @@ struct instance_map_shard {
     instance_map registered_instances;
     pymutex mutex;
     // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
-    char padding[64 - (sizeof(instance_map) + sizeof(std::mutex)) % 64];
+    char padding[64 - (sizeof(instance_map) + sizeof(pymutex)) % 64];
 };
+
+static_assert(sizeof(instance_map_shard) % 64 == 0,
+              "instance_map_shard size is not a multiple of 64 bytes");
 #endif
 
 /// Internal data structure used to track registered instances and types.
