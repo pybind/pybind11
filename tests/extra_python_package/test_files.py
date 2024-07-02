@@ -44,11 +44,12 @@ main_headers = {
     "include/pybind11/options.h",
     "include/pybind11/pybind11.h",
     "include/pybind11/pytypes.h",
+    "include/pybind11/smart_holder.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/trampoline_self_life_support.h",
     "include/pybind11/type_caster_pyobject_ptr.h",
     "include/pybind11/typing.h",
-    "include/pybind11/trampoline_self_life_support.h",
 }
 
 detail_headers = {
