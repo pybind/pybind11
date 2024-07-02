@@ -138,15 +138,30 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
            || rtti_deleter == typeid(std::default_delete<T const>);
 }
 
+#ifndef NDEBUG
+#    define PYBIND11_SMART_HOLDER_PADDING(N) int PADDING_##N##_[11]
+#else
+#    define PYBIND11_SMART_HOLDER_PADDING(N)
+#endif
+
 struct smart_holder {
+    PYBIND11_SMART_HOLDER_PADDING(1);
     const std::type_info *rtti_uqp_del = nullptr;
+    PYBIND11_SMART_HOLDER_PADDING(2);
     std::shared_ptr<void> vptr;
+    PYBIND11_SMART_HOLDER_PADDING(3);
     bool vptr_is_using_noop_deleter : 1;
+    PYBIND11_SMART_HOLDER_PADDING(4);
     bool vptr_is_using_builtin_delete : 1;
+    PYBIND11_SMART_HOLDER_PADDING(5);
     bool vptr_is_external_shared_ptr : 1;
+    PYBIND11_SMART_HOLDER_PADDING(6);
     bool is_populated : 1;
+    PYBIND11_SMART_HOLDER_PADDING(7);
     bool is_disowned : 1;
+    PYBIND11_SMART_HOLDER_PADDING(8);
     bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
+    PYBIND11_SMART_HOLDER_PADDING(9);
 
     // Design choice: smart_holder is movable but not copyable.
     smart_holder(smart_holder &&) = default;
