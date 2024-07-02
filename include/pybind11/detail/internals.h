@@ -148,20 +148,35 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
+#ifdef Py_GIL_DISABLED
+// Wrapper around PyMutex to provide BasicLockable semantics
+class pymutex {
+    PyMutex mutex;
+
+public:
+    pymutex() : mutex({}) {}
+    void lock() { PyMutex_Lock(&mutex); }
+    void unlock() { PyMutex_Unlock(&mutex); }
+};
+
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct instance_map_shard {
-    std::mutex mutex;
     instance_map registered_instances;
+    pymutex mutex;
     // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
-    char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
+    char padding[64 - (sizeof(instance_map) + sizeof(pymutex)) % 64];
 };
+
+static_assert(sizeof(instance_map_shard) % 64 == 0,
+              "instance_map_shard size is not a multiple of 64 bytes");
+#endif
 
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
 #ifdef Py_GIL_DISABLED
-    std::mutex mutex;
+    pymutex mutex;
 #endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
@@ -614,7 +629,7 @@ inline local_internals &get_local_internals() {
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<std::mutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
@@ -651,7 +666,7 @@ inline auto with_instance_map(const void *ptr,
     auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
 
     auto &shard = internals.instance_shards[idx];
-    std::unique_lock<std::mutex> lock(shard.mutex);
+    std::unique_lock<pymutex> lock(shard.mutex);
     return cb(shard.registered_instances);
 #else
     (void) ptr;
@@ -667,7 +682,7 @@ inline size_t num_registered_instances() {
     size_t count = 0;
     for (size_t i = 0; i <= internals.instance_shards_mask; ++i) {
         auto &shard = internals.instance_shards[i];
-        std::unique_lock<std::mutex> lock(shard.mutex);
+        std::unique_lock<pymutex> lock(shard.mutex);
         count += shard.registered_instances.size();
     }
     return count;
