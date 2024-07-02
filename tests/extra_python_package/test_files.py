@@ -48,14 +48,18 @@ main_headers = {
     "include/pybind11/stl_bind.h",
     "include/pybind11/type_caster_pyobject_ptr.h",
     "include/pybind11/typing.h",
+    "include/pybind11/trampoline_self_life_support.h",
 }
 
 detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/descr.h",
+    "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/smart_holder_poc.h",
+    "include/pybind11/detail/smart_holder_type_caster_support.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
 }
