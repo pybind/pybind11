@@ -33,6 +33,7 @@ void wrap(py::module m) {
     py::class_<SimpleBase, SimpleBaseTrampoline>(m, "SimpleBase")
         .def(py::init<>())
         .def_readwrite("num", &SimpleBase::num)
+#ifdef BAKEIN_BREAK
         .def(py::pickle(
             [](const py::object &self) {
                 py::dict d;
@@ -49,7 +50,9 @@ void wrap(py::module m) {
                 cpp_state->num = t[0].cast<int>();
                 auto py_state = t[1].cast<py::dict>();
                 return std::make_pair(std::move(cpp_state), py_state);
-            }));
+            }))
+#endif
+        ;
 
     m.def("make_SimpleCppDerivedAsBase",
           []() { return std::unique_ptr<SimpleBase>(new SimpleCppDerived); });

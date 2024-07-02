@@ -11,7 +11,9 @@
 #pragma once
 
 #include "detail/class.h"
+#include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/init.h"
+#include "detail/smart_holder_poc.h"
 #include "attr.h"
 #include "gil.h"
 #include "gil_safe_call_once.h"
@@ -1600,7 +1602,8 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
+    using holder_type
+        = detail::exactly_one_t<is_holder, pybindit::memory::smart_holder, options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
                   "Unknown/invalid class_ template parameters provided");
@@ -1632,7 +1635,7 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
+        record.default_holder = std::is_same<holder_type, pybindit::memory::smart_holder>::value;
 
         set_operator_new<type>(&record);
 
@@ -1952,6 +1955,9 @@ private:
     /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes
     /// an optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
+    template <typename H = holder_type,
+              detail::enable_if_t<!std::is_same<H, pybindit::memory::smart_holder>::value, int>
+              = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -1959,6 +1965,66 @@ private:
             v_h.set_instance_registered();
         }
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
+    }
+
+    template <typename WrappedType>
+    static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
+        return false;
+    }
+
+    // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
+    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already,
+    // it is reused, irrespective of the return_value_policy in effect.
+    // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
+    // direct base of WrappedType.
+    template <typename WrappedType, typename SomeBaseOfWrappedType>
+    static bool try_initialization_using_shared_from_this(
+        holder_type *uninitialized_location,
+        WrappedType *value_ptr_w_t,
+        const std::enable_shared_from_this<SomeBaseOfWrappedType> *) {
+        auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
+            detail::try_get_shared_from_this(value_ptr_w_t));
+        if (!shd_ptr) {
+            return false;
+        }
+        // Note: inst->owned ignored.
+        new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
+        return true;
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<std::is_same<H, pybindit::memory::smart_holder>::value, int> = 0>
+    static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
+        // Need for const_cast is a consequence of the type_info::init_instance type:
+        // void (*init_instance)(instance *, const void *);
+        auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
+
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
+        if (!v_h.instance_registered()) {
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+            v_h.set_instance_registered();
+        }
+        auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
+        auto *value_ptr_w_t = v_h.value_ptr<type>();
+        bool pointee_depends_on_holder_owner
+            = detail::dynamic_raw_ptr_cast_if_possible<type_alias>(value_ptr_w_t) != nullptr;
+        if (holder_void_ptr) {
+            // Note: inst->owned ignored.
+            auto *holder_ptr = static_cast<holder_type *>(holder_void_ptr);
+            new (uninitialized_location) holder_type(std::move(*holder_ptr));
+        } else if (!try_initialization_using_shared_from_this(
+                       uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
+            if (inst->owned) {
+                new (uninitialized_location) holder_type(holder_type::from_raw_ptr_take_ownership(
+                    value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
+            } else {
+                new (uninitialized_location)
+                    holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
+            }
+        }
+        v_h.holder<holder_type>().pointee_depends_on_holder_owner
+            = pointee_depends_on_holder_owner;
+        v_h.set_holder_constructed();
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
