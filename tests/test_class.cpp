@@ -606,11 +606,15 @@ CHECK_NOALIAS(8);
     static_assert(std::is_same<typename DoesntBreak##N::holder_type,                              \
                                std::TYPE##_ptr<BreaksBase<(N)>>>::value,                          \
                   "DoesntBreak" #N " has wrong holder_type!")
+#define CHECK_SMART_HOLDER(N)                                                                     \
+    static_assert(std::is_same<typename DoesntBreak##N::holder_type,                              \
+                               pybindit::memory::smart_holder>::value,                            \
+                  "DoesntBreak" #N " has wrong holder_type!")
 CHECK_HOLDER(1, unique);
 CHECK_HOLDER(2, unique);
 CHECK_HOLDER(3, unique);
-// BAKEIN_BREAK CHECK_HOLDER(4, unique);
-// BAKEIN_BREAK CHECK_HOLDER(5, unique);
+CHECK_SMART_HOLDER(4);
+CHECK_SMART_HOLDER(5);
 CHECK_HOLDER(6, shared);
 CHECK_HOLDER(7, shared);
 CHECK_HOLDER(8, shared);
