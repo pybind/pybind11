@@ -853,12 +853,35 @@ public:
             src, convert);
     }
 
-    explicit operator type *() { return this->value; }
-    // static_cast works around compiler error with MSVC 17 and CUDA 10.2
-    // see issue #2180
-    explicit operator type &() { return *(static_cast<type *>(this->value)); }
-    explicit operator std::shared_ptr<type> *() { return std::addressof(shared_ptr_holder); }
-    explicit operator std::shared_ptr<type> &() { return shared_ptr_holder; }
+    explicit operator type *() {
+        if (typeinfo->default_holder) {
+            throw std::runtime_error("BAKEIN_WIP: operator type *()");
+        }
+        return this->value;
+    }
+
+    explicit operator type &() {
+        if (typeinfo->default_holder) {
+            throw std::runtime_error("BAKEIN_WIP: operator type &()");
+        }
+        // static_cast works around compiler error with MSVC 17 and CUDA 10.2
+        // see issue #2180
+        return *(static_cast<type *>(this->value));
+    }
+
+    explicit operator std::shared_ptr<type> *() {
+        if (typeinfo->default_holder) {
+            throw std::runtime_error("BAKEIN_WIP: operator std::shared_ptr<type> *()");
+        }
+        return std::addressof(shared_ptr_holder);
+    }
+
+    explicit operator std::shared_ptr<type> &() {
+        if (typeinfo->default_holder) {
+            throw std::runtime_error("BAKEIN_WIP: operator std::shared_ptr<type> &()");
+        }
+        return shared_ptr_holder;
+    }
 
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
@@ -885,8 +908,9 @@ protected:
 #endif
     }
 
-    bool load_value_smart_holder(value_and_holder && /*v_h*/) {
-        throw std::runtime_error("BAKEIN_WIP load_value_smart_holder");
+    bool load_value_smart_holder(value_and_holder &&v_h) {
+        loaded_v_h = v_h;
+        return true;
     }
 
     bool load_value(value_and_holder &&v_h) {
@@ -905,6 +929,9 @@ protected:
     template <typename T = std::shared_ptr<type>,
               detail::enable_if_t<std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
+        if (typeinfo->default_holder) {
+            throw std::runtime_error("BAKEIN_WIP: try_implicit_casts");
+        }
         for (auto &cast : typeinfo->implicit_casts) {
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
@@ -920,6 +947,7 @@ protected:
     static bool try_direct_conversions(handle) { return false; }
 
     std::shared_ptr<type> shared_ptr_holder;
+    value_and_holder loaded_v_h;
 };
 
 /// Specialize for the common std::shared_ptr, so users don't need to
