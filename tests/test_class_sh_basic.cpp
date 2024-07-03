@@ -175,7 +175,7 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("rtrn_uqmp", rtrn_uqmp);
     m.def("rtrn_uqcp", rtrn_uqcp);
 
-    // BAKEIN_BREAK m.def("pass_uqmp", pass_uqmp);
+    m.def("pass_uqmp", pass_uqmp);
     // BAKEIN_BREAK m.def("pass_uqcp", pass_uqcp);
 
     m.def("rtrn_udmp", rtrn_udmp);

@@ -855,14 +855,14 @@ public:
 
     explicit operator type *() {
         if (typeinfo->default_holder) {
-            throw std::runtime_error("BAKEIN_WIP: operator type *()");
+            throw std::runtime_error("BAKEIN_WIP: operator type *() shared_ptr");
         }
         return this->value;
     }
 
     explicit operator type &() {
         if (typeinfo->default_holder) {
-            throw std::runtime_error("BAKEIN_WIP: operator type &()");
+            throw std::runtime_error("BAKEIN_WIP: operator type &() shared_ptr");
         }
         // static_cast works around compiler error with MSVC 17 and CUDA 10.2
         // see issue #2180
@@ -971,16 +971,54 @@ struct move_only_holder_caster {
 
 // BAKEIN_WIP
 template <typename type, typename deleter>
-struct move_only_holder_caster<type, std::unique_ptr<type, deleter>> {
-    static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
+struct move_only_holder_caster<type, std::unique_ptr<type, deleter>>
+    : public type_caster_base<type> {
+public:
+    using base = type_caster_base<type>;
+    static_assert(std::is_base_of<base, type_caster<type>>::value,
                   "Holder classes are only supported for custom types");
+    using base::base;
+    using base::cast;
+    using base::typeinfo;
+    using base::value;
 
     static handle
     cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
         return smart_holder_type_caster_support::unique_ptr_to_python(
             std::move(src), policy, parent);
     }
-    static constexpr auto name = type_caster_base<type>::name;
+
+    bool load(handle src, bool convert) {
+        return base::template load_impl<
+            move_only_holder_caster<type, std::unique_ptr<type, deleter>>>(src, convert);
+    }
+
+    bool load_value(value_and_holder &&v_h) {
+        if (typeinfo->default_holder) {
+            sh_load_helper.loaded_v_h = v_h;
+            return true;
+        }
+        return false; // BAKEIN_WIP: What is the best behavior here?
+    }
+
+    explicit operator type *() {
+        throw std::runtime_error("BAKEIN_WIP: operator type *() unique_ptr");
+    }
+
+    explicit operator type &() {
+        throw std::runtime_error("BAKEIN_WIP: operator type &() unique_ptr");
+    }
+
+    template <typename>
+    using cast_op_type = std::unique_ptr<type, deleter>;
+
+    explicit operator std::unique_ptr<type, deleter>() {
+        throw std::runtime_error("WIP operator std::unique_ptr<type, deleter> ()");
+    }
+
+    static bool try_direct_conversions(handle) { return false; }
+
+    smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
 };
 
 template <typename type, typename deleter>
