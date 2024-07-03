@@ -892,7 +892,7 @@ protected:
     friend class type_caster_generic;
     void check_holder_compat() {}
 
-    bool load_value_shared_ptr(value_and_holder &&v_h) {
+    bool load_value_shared_ptr(const value_and_holder &v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             shared_ptr_holder = v_h.template holder<std::shared_ptr<type>>();
@@ -908,16 +908,16 @@ protected:
 #endif
     }
 
-    bool load_value_smart_holder(value_and_holder &&v_h) {
+    bool load_value_smart_holder(const value_and_holder &v_h) {
         loaded_v_h = v_h;
         return true;
     }
 
     bool load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
-            return load_value_smart_holder(std::move(v_h));
+            return load_value_smart_holder(v_h);
         }
-        return load_value_shared_ptr(std::move(v_h));
+        return load_value_shared_ptr(v_h);
     }
 
     template <typename T = std::shared_ptr<type>,
