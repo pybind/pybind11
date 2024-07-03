@@ -140,8 +140,7 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
 
     auto src_raw_ptr = src.get();
     assert(st.second != nullptr);
-    // BAKEIN_WIP: Better Const2Mutbl
-    void *src_raw_void_ptr = const_cast<void *>(static_cast<const void *>(src_raw_ptr));
+    void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
     const detail::type_info *tinfo = st.second;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
         // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
@@ -164,6 +163,17 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     }
 
     return inst.release();
+}
+
+template <typename T>
+handle smart_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    return smart_holder_from_shared_ptr(std::const_pointer_cast<T>(src), // Const2Mutbl
+                                        policy,
+                                        parent,
+                                        st);
 }
 
 template <typename T>
