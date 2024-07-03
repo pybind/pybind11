@@ -101,6 +101,71 @@ unique_ptr_to_python(std::unique_ptr<T, D> &&unq_ptr, return_value_policy policy
                                      nullptr,
                                      std::addressof(unq_ptr));
 }
+template <typename T>
+handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    switch (policy) {
+        case return_value_policy::automatic:
+        case return_value_policy::automatic_reference:
+            break;
+        case return_value_policy::take_ownership:
+            throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
+        case return_value_policy::copy:
+        case return_value_policy::move:
+            break;
+        case return_value_policy::reference:
+            throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
+        case return_value_policy::reference_internal:
+            break;
+    }
+    if (!src) {
+        return none().release();
+    }
+
+    auto src_raw_ptr = src.get();
+    assert(st.second != nullptr);
+    // BAKEIN_WIP: Better Const2Mutbl
+    void *src_raw_void_ptr = const_cast<void *>(static_cast<const void *>(src_raw_ptr));
+    const detail::type_info *tinfo = st.second;
+    if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
+        // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
+        // SMART_HOLDER_WIP: MISSING: keep_alive.
+        return existing_inst;
+    }
+
+    auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+    inst_raw_ptr->owned = true;
+    void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+    valueptr = src_raw_void_ptr;
+
+    auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(
+        std::shared_ptr<void>(src, const_cast<void *>(st.first)));
+    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+
+    if (policy == return_value_policy::reference_internal) {
+        keep_alive_impl(inst, parent);
+    }
+
+    return inst.release();
+}
+
+template <typename T>
+handle shared_ptr_to_python(const std::shared_ptr<T> &shd_ptr,
+                            return_value_policy policy,
+                            handle parent) {
+    const auto *ptr = shd_ptr.get();
+    auto st = type_caster_base<T>::src_and_type(ptr);
+    if (st.second == nullptr) {
+        return handle(); // no type info: error will be set already
+    }
+    if (st.second->default_holder) {
+        return smart_holder_from_shared_ptr(shd_ptr, policy, parent, st);
+    }
+    return type_caster_base<T>::cast_holder(ptr, &shd_ptr);
+}
 
 PYBIND11_NAMESPACE_END(smart_holder_type_caster_support)
 PYBIND11_NAMESPACE_END(detail)

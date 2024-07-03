@@ -860,9 +860,9 @@ public:
     explicit operator std::shared_ptr<type> *() { return std::addressof(holder); }
     explicit operator std::shared_ptr<type> &() { return holder; }
 
-    static handle cast(const std::shared_ptr<type> &src, return_value_policy, handle) {
-        const auto *ptr = holder_helper<std::shared_ptr<type>>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
+    static handle
+    cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
+        return smart_holder_type_caster_support::shared_ptr_to_python(src, policy, parent);
     }
 
 protected:
