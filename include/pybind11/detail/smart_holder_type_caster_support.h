@@ -83,6 +83,19 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
 }
 
 template <typename T, typename D>
+handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    return smart_holder_from_unique_ptr(
+        std::unique_ptr<T, D>(const_cast<T *>(src.release()),
+                              std::move(src.get_deleter())), // Const2Mutbl
+        policy,
+        parent,
+        st);
+}
+
+template <typename T, typename D>
 handle
 unique_ptr_to_python(std::unique_ptr<T, D> &&unq_ptr, return_value_policy policy, handle parent) {
     auto *src = unq_ptr.get();
@@ -101,6 +114,7 @@ unique_ptr_to_python(std::unique_ptr<T, D> &&unq_ptr, return_value_policy policy
                                      nullptr,
                                      std::addressof(unq_ptr));
 }
+
 template <typename T>
 handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                     return_value_policy policy,

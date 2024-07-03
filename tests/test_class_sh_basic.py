@@ -29,9 +29,9 @@ def test_atyp_constructors():
         (m.rtrn_shmp, "rtrn_shmp"),
         (m.rtrn_shcp, "rtrn_shcp"),
         (m.rtrn_uqmp, "rtrn_uqmp"),
-        # BAKEIN_BREAK (m.rtrn_uqcp, "rtrn_uqcp"),
+        (m.rtrn_uqcp, "rtrn_uqcp"),
         (m.rtrn_udmp, "rtrn_udmp"),
-        # BAKEIN_BREAK (m.rtrn_udcp, "rtrn_udcp"),
+        (m.rtrn_udcp, "rtrn_udcp"),
     ],
 )
 def test_cast(rtrn_f, expected):

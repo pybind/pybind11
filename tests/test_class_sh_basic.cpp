@@ -173,25 +173,25 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("pass_shcp", pass_shcp);
 
     m.def("rtrn_uqmp", rtrn_uqmp);
-    // BAKEIN_BREAK m.def("rtrn_uqcp", rtrn_uqcp);
+    m.def("rtrn_uqcp", rtrn_uqcp);
 
     // BAKEIN_BREAK m.def("pass_uqmp", pass_uqmp);
     // BAKEIN_BREAK m.def("pass_uqcp", pass_uqcp);
 
     m.def("rtrn_udmp", rtrn_udmp);
-    // BAKEIN_BREAK m.def("rtrn_udcp", rtrn_udcp);
+    m.def("rtrn_udcp", rtrn_udcp);
 
     // BAKEIN_BREAK m.def("pass_udmp", pass_udmp);
     // BAKEIN_BREAK m.def("pass_udcp", pass_udcp);
 
     m.def("rtrn_udmp_del", rtrn_udmp_del);
-    // BAKEIN_BREAK m.def("rtrn_udcp_del", rtrn_udcp_del);
+    m.def("rtrn_udcp_del", rtrn_udcp_del);
 
     // BAKEIN_BREAK m.def("pass_udmp_del", pass_udmp_del);
     // BAKEIN_BREAK m.def("pass_udcp_del", pass_udcp_del);
 
     m.def("rtrn_udmp_del_nd", rtrn_udmp_del_nd);
-    // BAKEIN_BREAK m.def("rtrn_udcp_del_nd", rtrn_udcp_del_nd);
+    m.def("rtrn_udcp_del_nd", rtrn_udcp_del_nd);
 
     // BAKEIN_BREAK m.def("pass_udmp_del_nd", pass_udmp_del_nd);
     // BAKEIN_BREAK m.def("pass_udcp_del_nd", pass_udcp_del_nd);
