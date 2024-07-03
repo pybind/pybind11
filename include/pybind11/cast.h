@@ -878,7 +878,7 @@ public:
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->default_holder) {
-            throw std::runtime_error("BAKEIN_WIP: operator std::shared_ptr<type> &()");
+            shared_ptr_holder = sh_load_helper.loaded_as_shared_ptr();
         }
         return shared_ptr_holder;
     }
@@ -909,7 +909,7 @@ protected:
     }
 
     bool load_value_smart_holder(const value_and_holder &v_h) {
-        loaded_v_h = v_h;
+        sh_load_helper.loaded_v_h = v_h;
         return true;
     }
 
@@ -947,7 +947,7 @@ protected:
     static bool try_direct_conversions(handle) { return false; }
 
     std::shared_ptr<type> shared_ptr_holder;
-    value_and_holder loaded_v_h;
+    smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
 };
 
 /// Specialize for the common std::shared_ptr, so users don't need to
