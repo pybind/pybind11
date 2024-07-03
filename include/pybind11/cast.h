@@ -857,8 +857,8 @@ public:
     // static_cast works around compiler error with MSVC 17 and CUDA 10.2
     // see issue #2180
     explicit operator type &() { return *(static_cast<type *>(this->value)); }
-    explicit operator std::shared_ptr<type> *() { return std::addressof(holder); }
-    explicit operator std::shared_ptr<type> &() { return holder; }
+    explicit operator std::shared_ptr<type> *() { return std::addressof(shared_ptr_holder); }
+    explicit operator std::shared_ptr<type> &() { return shared_ptr_holder; }
 
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
@@ -872,7 +872,7 @@ protected:
     bool load_value_shared_ptr(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            holder = v_h.template holder<std::shared_ptr<type>>();
+            shared_ptr_holder = v_h.template holder<std::shared_ptr<type>>();
             return true;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -909,7 +909,8 @@ protected:
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
-                holder = std::shared_ptr<type>(sub_caster.holder, (type *) value);
+                shared_ptr_holder
+                    = std::shared_ptr<type>(sub_caster.shared_ptr_holder, (type *) value);
                 return true;
             }
         }
@@ -918,7 +919,7 @@ protected:
 
     static bool try_direct_conversions(handle) { return false; }
 
-    std::shared_ptr<type> holder;
+    std::shared_ptr<type> shared_ptr_holder;
 };
 
 /// Specialize for the common std::shared_ptr, so users don't need to
