@@ -867,13 +867,9 @@ public:
 
 protected:
     friend class type_caster_generic;
-    void check_holder_compat() {
-        if (typeinfo->default_holder) {
-            throw cast_error("Unable to load a custom holder type from a default-holder instance");
-        }
-    }
+    void check_holder_compat() {}
 
-    bool load_value(value_and_holder &&v_h) {
+    bool load_value_shared_ptr(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             holder = v_h.template holder<std::shared_ptr<type>>();
@@ -887,6 +883,17 @@ protected:
                          "of type '"
                          + type_id<std::shared_ptr<type>>() + "''");
 #endif
+    }
+
+    bool load_value_smart_holder(value_and_holder && /*v_h*/) {
+        throw std::runtime_error("BAKEIN_WIP load_value_smart_holder");
+    }
+
+    bool load_value(value_and_holder &&v_h) {
+        if (typeinfo->default_holder) {
+            return load_value_smart_holder(std::move(v_h));
+        }
+        return load_value_shared_ptr(std::move(v_h));
     }
 
     template <typename T = std::shared_ptr<type>,
