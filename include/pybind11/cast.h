@@ -1001,14 +1001,6 @@ public:
         return false; // BAKEIN_WIP: What is the best behavior here?
     }
 
-    explicit operator type *() {
-        throw std::runtime_error("BAKEIN_WIP: operator type *() unique_ptr");
-    }
-
-    explicit operator type &() {
-        throw std::runtime_error("BAKEIN_WIP: operator type &() unique_ptr");
-    }
-
     template <typename>
     using cast_op_type = std::unique_ptr<type, deleter>;
 
