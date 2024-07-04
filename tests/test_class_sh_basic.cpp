@@ -202,9 +202,8 @@ TEST_SUBMODULE(class_sh_basic, m) {
         .def("pass_valu", &uconsumer::pass_valu)
         .def("pass_rref", &uconsumer::pass_rref)
         .def("rtrn_valu", &uconsumer::rtrn_valu)
-        // BAKEIN_BREAK .def("rtrn_lref", &uconsumer::rtrn_lref)
-        // BAKEIN_BREAK .def("rtrn_cref", &uconsumer::rtrn_cref)
-        ;
+        .def("rtrn_lref", &uconsumer::rtrn_lref)
+        .def("rtrn_cref", &uconsumer::rtrn_cref);
 
     // Helpers for testing.
     // These require selected functions above to work first, as indicated:
@@ -212,7 +211,7 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("get_ptr", get_ptr);   // pass_cref
 
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
-    // BAKEIN_BREAK m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
+    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
 
     py::classh<SharedPtrStash>(m, "SharedPtrStash")
         .def(py::init<>())

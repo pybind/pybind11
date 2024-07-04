@@ -988,6 +988,20 @@ public:
             std::move(src), policy, parent);
     }
 
+    static handle
+    cast(const std::unique_ptr<type, deleter> &src, return_value_policy policy, handle parent) {
+        if (!src) {
+            return none().release();
+        }
+        if (policy == return_value_policy::automatic) {
+            policy = return_value_policy::reference_internal;
+        }
+        if (policy != return_value_policy::reference_internal) {
+            throw cast_error("Invalid return_value_policy for unique_ptr&");
+        }
+        return type_caster_base<type>::cast(src.get(), policy, parent);
+    }
+
     bool load(handle src, bool convert) {
         return base::template load_impl<
             move_only_holder_caster<type, std::unique_ptr<type, deleter>>>(src, convert);
