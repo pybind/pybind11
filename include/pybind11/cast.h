@@ -996,6 +996,7 @@ public:
     bool load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
             sh_load_helper.loaded_v_h = v_h;
+            sh_load_helper.loaded_v_h.type = get_type_info(typeid(type));
             return true;
         }
         return false; // BAKEIN_WIP: What is the best behavior here?
@@ -1005,7 +1006,10 @@ public:
     using cast_op_type = std::unique_ptr<type, deleter>;
 
     explicit operator std::unique_ptr<type, deleter>() {
-        throw std::runtime_error("WIP operator std::unique_ptr<type, deleter> ()");
+        if (typeinfo->default_holder) {
+            return sh_load_helper.template loaded_as_unique_ptr<deleter>();
+        }
+        pybind11_fail("Passing std::unique_ptr from Python to C++ requires smart_holder.");
     }
 
     static bool try_direct_conversions(handle) { return false; }
