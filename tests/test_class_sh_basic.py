@@ -168,10 +168,10 @@ def test_unique_ptr_cref_roundtrip():
 @pytest.mark.parametrize(
     ("pass_f", "rtrn_f", "moved_out", "moved_in"),
     [
-        # BAKEIN_BREAK (m.uconsumer.pass_valu, m.uconsumer.rtrn_valu, True, True),
-        # BAKEIN_BREAK (m.uconsumer.pass_rref, m.uconsumer.rtrn_valu, True, True),
-        # BAKEIN_BREAK (m.uconsumer.pass_valu, m.uconsumer.rtrn_lref, True, False),
-        # BAKEIN_BREAK (m.uconsumer.pass_valu, m.uconsumer.rtrn_cref, True, False),
+        (m.uconsumer.pass_valu, m.uconsumer.rtrn_valu, True, True),
+        (m.uconsumer.pass_rref, m.uconsumer.rtrn_valu, True, True),
+        (m.uconsumer.pass_valu, m.uconsumer.rtrn_lref, True, False),
+        (m.uconsumer.pass_valu, m.uconsumer.rtrn_cref, True, False),
     ],
 )
 def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):

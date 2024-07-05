@@ -411,6 +411,7 @@ private:
 
     holder_type &holder() const { return loaded_v_h.holder<holder_type>(); }
 
+    // BAKEIN_WIP: This needs to be factored out: see type_caster_base.h
     // have_holder() must be true or this function will fail.
     void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
         static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
