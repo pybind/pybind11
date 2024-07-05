@@ -120,6 +120,7 @@ set(PYBIND11_TEST_FILES
     test_chrono
     test_class
     test_class_sh_basic
+    test_class_sh_factory_constructors
     test_const_name
     test_constants_and_functions
     test_copy_move
