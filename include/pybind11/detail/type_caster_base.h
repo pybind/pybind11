@@ -14,6 +14,7 @@
 #include "descr.h"
 #include "internals.h"
 #include "smart_holder_poc.h"
+#include "smart_holder_value_and_holder_support.h"
 #include "typeid.h"
 
 #include <cstdint>
@@ -634,21 +635,10 @@ public:
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
-            // BAKEIN_WIP: This needs to be factored out:
-            // throw_if_uninitialized_or_disowned_holder()
-            if (v_h.vh != nullptr && v_h.holder_constructed()) {
-                using h_t = pybindit::memory::smart_holder;
-                h_t &holder = v_h.holder<h_t>();
-                static const std::string missing_value_msg
-                    = "Missing value for wrapped C++ type `";
-                if (!holder.is_populated) {
-                    throw value_error(missing_value_msg + clean_type_id(typeid(cpptype).name())
-                                      + "`: Python instance is uninitialized.");
-                }
-                if (!holder.has_pointee()) {
-                    throw value_error(missing_value_msg + clean_type_id(typeid(cpptype).name())
-                                      + "`: Python instance was disowned.");
-                }
+            smart_holder_value_and_holder_support::value_and_holder_helper<value_and_holder>
+                vh_helper(&v_h);
+            if (vh_helper.have_holder()) {
+                vh_helper.throw_if_uninitialized_or_disowned_holder(typeid(cpptype));
             }
         }
         auto *&vptr = v_h.value_ptr();

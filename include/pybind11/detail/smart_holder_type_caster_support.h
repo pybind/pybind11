@@ -1,11 +1,13 @@
 #pragma once
 
+// BAKEIN_WIP: IWYU cleanup
 #include "../gil.h"
 #include "../pytypes.h"
 #include "../trampoline_self_life_support.h"
 #include "common.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
+#include "smart_holder_value_and_holder_support.h"
 #include "typeid.h"
 
 #include <cstdint>
@@ -204,10 +206,15 @@ inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> 
 }
 
 template <typename T>
-struct load_helper {
+struct load_helper
+    : smart_holder_value_and_holder_support::value_and_holder_helper<value_and_holder> {
     using holder_type = pybindit::memory::smart_holder;
 
     value_and_holder loaded_v_h;
+
+    load_helper()
+        : smart_holder_value_and_holder_support::value_and_holder_helper<value_and_holder>(
+              &loaded_v_h) {}
 
     T *loaded_as_raw_ptr_unowned() const {
         void *void_ptr = nullptr;
@@ -369,38 +376,6 @@ struct load_helper {
 #endif
 
 private:
-    bool have_holder() const {
-        return loaded_v_h.vh != nullptr && loaded_v_h.holder_constructed();
-    }
-
-    holder_type &holder() const { return loaded_v_h.holder<holder_type>(); }
-
-    // BAKEIN_WIP: This needs to be factored out: see type_caster_base.h
-    // have_holder() must be true or this function will fail.
-    void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
-        static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
-        if (!holder().is_populated) {
-            throw value_error(missing_value_msg + clean_type_id(typeid_name)
-                              + "`: Python instance is uninitialized.");
-        }
-        if (!holder().has_pointee()) {
-            throw value_error(missing_value_msg + clean_type_id(typeid_name)
-                              + "`: Python instance was disowned.");
-        }
-    }
-
-    void throw_if_uninitialized_or_disowned_holder(const std::type_info &type_info) const {
-        throw_if_uninitialized_or_disowned_holder(type_info.name());
-    }
-
-    // have_holder() must be true or this function will fail.
-    void throw_if_instance_is_currently_owned_by_shared_ptr() const {
-        auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
-        if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
-            throw value_error("Python instance is currently owned by a std::shared_ptr.");
-        }
-    }
-
     T *convert_type(void *void_ptr) const {
 #ifdef BAKEIN_WIP // Is this needed? implicit_casts
         if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr

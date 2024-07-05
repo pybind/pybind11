@@ -155,6 +155,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/internals.h
     include/pybind11/detail/smart_holder_poc.h
     include/pybind11/detail/smart_holder_type_caster_support.h
+    include/pybind11/detail/smart_holder_value_and_holder_support.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
     include/pybind11/attr.h
