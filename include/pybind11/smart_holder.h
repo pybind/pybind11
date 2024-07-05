@@ -6,6 +6,7 @@
 
 #include "pybind11.h"
 
+#define PYBIND11_TYPE_CASTER_BASE_HOLDER(...)
 #define PYBIND11_SMART_HOLDER_TYPE_CASTERS(...)
 #define PYBIND11_SH_AVL(...) // "Smart_Holder if AVaiLable"
 #define PYBIND11_SH_DEF(...) // "Smart_Holder if DEFault"
