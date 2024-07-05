@@ -177,21 +177,6 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
                                         st);
 }
 
-template <typename T>
-handle shared_ptr_to_python(const std::shared_ptr<T> &shd_ptr,
-                            return_value_policy policy,
-                            handle parent) {
-    const auto *ptr = shd_ptr.get();
-    auto st = type_caster_base<T>::src_and_type(ptr);
-    if (st.second == nullptr) {
-        return handle(); // no type info: error will be set already
-    }
-    if (st.second->default_holder) {
-        return smart_holder_from_shared_ptr(shd_ptr, policy, parent, st);
-    }
-    return type_caster_base<T>::cast_holder(ptr, &shd_ptr);
-}
-
 struct shared_ptr_parent_life_support {
     PyObject *parent;
     explicit shared_ptr_parent_life_support(PyObject *parent) : parent{parent} {

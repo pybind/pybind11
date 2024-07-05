@@ -885,7 +885,16 @@ public:
 
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
-        return smart_holder_type_caster_support::shared_ptr_to_python(src, policy, parent);
+        const auto *ptr = src.get();
+        auto st = type_caster_base<type>::src_and_type(ptr);
+        if (st.second == nullptr) {
+            return handle(); // no type info: error will be set already
+        }
+        if (st.second->default_holder) {
+            return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
+                src, policy, parent, st);
+        }
+        return type_caster_base<type>::cast_holder(ptr, &src);
     }
 
 protected:
