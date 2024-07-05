@@ -19,7 +19,7 @@ template <typename VHType>
 struct value_and_holder_helper {
     const VHType *loaded_v_h;
 
-    value_and_holder_helper(const VHType *loaded_v_h) : loaded_v_h{loaded_v_h} {}
+    explicit value_and_holder_helper(const VHType *loaded_v_h) : loaded_v_h{loaded_v_h} {}
 
     bool have_holder() const {
         return loaded_v_h->vh != nullptr && loaded_v_h->holder_constructed();
