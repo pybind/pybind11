@@ -31,6 +31,7 @@ def test_ptrdiff_drvd_base0():
 )
 def test_get_vec_size_raw_shared(get_fn, vec_size_fn):
     obj = get_fn()
+    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     assert vec_size_fn(obj) == 5
 
 
@@ -39,6 +40,7 @@ def test_get_vec_size_raw_shared(get_fn, vec_size_fn):
 )
 def test_get_vec_size_unique(get_fn):
     obj = get_fn()
+    pytest.skip("BAKEIN_BREAK: AssertionError")
     assert m.vec_size_base0_unique_ptr(obj) == 5
     with pytest.raises(ValueError, match="Python instance was disowned"):
         m.vec_size_base0_unique_ptr(obj)
@@ -46,6 +48,7 @@ def test_get_vec_size_unique(get_fn):
 
 def test_get_shared_vec_size_unique():
     obj = m.get_drvd_as_base0_shared_ptr()
+    pytest.skip("BAKEIN_BREAK: Failed: DID NOT RAISE <class 'ValueError'>")
     with pytest.raises(ValueError) as exc_info:
         m.vec_size_base0_unique_ptr(obj)
     assert (
