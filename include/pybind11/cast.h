@@ -1013,7 +1013,7 @@ public:
             sh_load_helper.loaded_v_h.type = get_type_info(typeid(type));
             return true;
         }
-        return false; // BAKEIN_WIP: What is the best behavior here?
+        throw std::runtime_error("BAKEIN_WIP: What is the best behavior here?");
     }
 
     template <typename>
