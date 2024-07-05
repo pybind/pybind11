@@ -993,8 +993,22 @@ public:
 
     static handle
     cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
-        return smart_holder_type_caster_support::unique_ptr_to_python(
-            std::move(src), policy, parent);
+        auto *ptr = src.get();
+        auto st = type_caster_base<type>::src_and_type(ptr);
+        if (st.second == nullptr) {
+            return handle(); // no type info: error will be set already
+        }
+        if (st.second->default_holder) {
+            return smart_holder_type_caster_support::smart_holder_from_unique_ptr(
+                std::move(src), policy, parent, st);
+        }
+        return type_caster_generic::cast(st.first,
+                                         return_value_policy::take_ownership,
+                                         {},
+                                         st.second,
+                                         nullptr,
+                                         nullptr,
+                                         std::addressof(src));
     }
 
     static handle

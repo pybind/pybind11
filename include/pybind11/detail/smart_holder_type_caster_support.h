@@ -6,7 +6,6 @@
 #include "common.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
-#include "type_caster_base.h"
 #include "typeid.h"
 
 #include <cstdint>
@@ -94,26 +93,6 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
         policy,
         parent,
         st);
-}
-
-template <typename T, typename D>
-handle
-unique_ptr_to_python(std::unique_ptr<T, D> &&unq_ptr, return_value_policy policy, handle parent) {
-    auto *src = unq_ptr.get();
-    auto st = type_caster_base<T>::src_and_type(src);
-    if (st.second == nullptr) {
-        return handle(); // no type info: error will be set already
-    }
-    if (st.second->default_holder) {
-        return smart_holder_from_unique_ptr(std::move(unq_ptr), policy, parent, st);
-    }
-    return type_caster_generic::cast(st.first,
-                                     return_value_policy::take_ownership,
-                                     {},
-                                     st.second,
-                                     nullptr,
-                                     nullptr,
-                                     std::addressof(unq_ptr));
 }
 
 template <typename T>
