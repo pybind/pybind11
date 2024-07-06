@@ -29,6 +29,10 @@ Bug fixes:
   versions before 10.14.
   `#5200 <https://github.com/pybind/pybind11/pull/5200>`_
 
+* A missing ``#include <algorithm>`` in pybind11/typing.h was added, to
+  fix a GCC 14 build error.
+  `#5200 <https://github.com/pybind/pybind11/pull/5208>`_
+
 Version 2.13.0 (June 25, 2024)
 ------------------------------
 
