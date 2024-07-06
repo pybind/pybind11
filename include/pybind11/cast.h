@@ -12,7 +12,6 @@
 
 #include "detail/common.h"
 #include "detail/descr.h"
-#include "detail/smart_holder_type_caster_support.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
 #include "pytypes.h"
