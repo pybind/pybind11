@@ -1089,6 +1089,8 @@ public:
             v_h_helper.loaded_v_h = v_h;
             if (v_h_helper.have_holder()) {
                 v_h_helper.throw_if_uninitialized_or_disowned_holder(typeid(cpptype));
+                value = v_h_helper.holder().template as_raw_ptr_unowned<void>();
+                return;
             }
         }
         auto *&vptr = v_h.value_ptr();
