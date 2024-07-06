@@ -965,16 +965,8 @@ struct load_helper : value_and_holder_helper {
 #endif
 
 private:
-    T *convert_type(void *void_ptr) const {
-#ifdef BAKEIN_WIP // Is this needed? implicit_casts
-        if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
-            && !load_impl.reinterpret_cast_deemed_ok && !load_impl.implicit_casts.empty()) {
-            for (auto implicit_cast : load_impl.implicit_casts) {
-                void_ptr = implicit_cast(void_ptr);
-            }
-        }
-#endif
-        return static_cast<T *>(void_ptr);
+    T *convert_type(void *) const {
+        throw std::runtime_error("BEAKIN_WIP: convert_type() called.");
     }
 };
 
