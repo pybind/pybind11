@@ -58,6 +58,8 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
         []() {
             auto *drvd = new Derived;
             auto *base0 = dynamic_cast<Base0 *>(drvd);
+printf("\nLOOOK get raw drvd %ld\n", (long) drvd); fflush(stdout);  // NOLINT
+printf("\nLOOOK get raw base %ld\n", (long) base0); fflush(stdout);  // NOLINT
             return base0;
         },
         py::return_value_policy::take_ownership);
@@ -65,6 +67,8 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
     m.def("get_drvd_as_base0_shared_ptr", []() {
         auto drvd = std::make_shared<Derived>();
         auto base0 = std::dynamic_pointer_cast<Base0>(drvd);
+printf("\nLOOOK get shd drvd %ld\n", (long) drvd.get()); fflush(stdout);  // NOLINT
+printf("\nLOOOK get shd base %ld\n", (long) base0.get()); fflush(stdout);  // NOLINT
         return base0;
     });
 
@@ -75,7 +79,9 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
     });
 
     m.def("vec_size_base0_raw_ptr", [](const Base0 *obj) {
+printf("\nLOOOK raw const Base0 *obj %ld\n", (long) obj); fflush(stdout);  // NOLINT
         const auto *obj_der = dynamic_cast<const Derived *>(obj);
+printf("\nLOOOK raw const auto *obj_der %ld\n", (long) obj_der); fflush(stdout);  // NOLINT
         if (obj_der == nullptr) {
             return std::size_t(0);
         }
@@ -83,7 +89,9 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
     });
 
     m.def("vec_size_base0_shared_ptr", [](const std::shared_ptr<Base0> &obj) -> std::size_t {
+printf("\nLOOOK shd const Base0 *obj %ld\n", (long) obj.get()); fflush(stdout);  // NOLINT
         const auto obj_der = std::dynamic_pointer_cast<Derived>(obj);
+printf("\nLOOOK shd const auto *obj_der %ld\n", (long) obj_der.get()); fflush(stdout);  // NOLINT
         if (!obj_der) {
             return std::size_t(0);
         }
