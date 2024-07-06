@@ -833,7 +833,8 @@ struct load_helper : value_and_holder_helper {
                                   shared_ptr_parent_life_support(parent.ptr()));
     }
 
-    std::shared_ptr<T> loaded_as_shared_ptr(handle responsible_parent = nullptr) const {
+    std::shared_ptr<T> loaded_as_shared_ptr(void *void_raw_ptr,
+                                            handle responsible_parent = nullptr) const {
         if (!have_holder()) {
             return nullptr;
         }
@@ -846,8 +847,7 @@ struct load_helper : value_and_holder_helper {
             }
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
-        auto *void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
-        auto *type_raw_ptr = convert_type(void_raw_ptr);
+        auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
         if (hld.pointee_depends_on_holder_owner) {
             auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {

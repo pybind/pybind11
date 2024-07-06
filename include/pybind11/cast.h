@@ -794,11 +794,11 @@ protected:
         }
     }
 
-    bool load_value(value_and_holder &&v_h) {
+    void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             holder = v_h.template holder<holder_type>();
-            return true;
+            return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -848,6 +848,9 @@ public:
     using base::value;
 
     bool load(handle src, bool convert) {
+        if (typeinfo->default_holder) {
+            return type_caster_generic::load(src, convert);
+        }
         return base::template load_impl<copyable_holder_caster<type, std::shared_ptr<type>>>(
             src, convert);
     }
@@ -877,7 +880,7 @@ public:
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->default_holder) {
-            shared_ptr_holder = sh_load_helper.loaded_as_shared_ptr();
+            shared_ptr_holder = sh_load_helper.loaded_as_shared_ptr(value);
         }
         return shared_ptr_holder;
     }
@@ -900,11 +903,11 @@ protected:
     friend class type_caster_generic;
     void check_holder_compat() {}
 
-    bool load_value_shared_ptr(const value_and_holder &v_h) {
+    void load_value_shared_ptr(const value_and_holder &v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             shared_ptr_holder = v_h.template holder<std::shared_ptr<type>>();
-            return true;
+            return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -916,16 +919,13 @@ protected:
 #endif
     }
 
-    bool load_value_smart_holder(const value_and_holder &v_h) {
-        sh_load_helper.loaded_v_h = v_h;
-        return true;
-    }
-
-    bool load_value(value_and_holder &&v_h) {
+    void load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
-            return load_value_smart_holder(v_h);
+            sh_load_helper.loaded_v_h = v_h;
+            type_caster_generic::load_value(std::move(v_h));
+            return;
         }
-        return load_value_shared_ptr(v_h);
+        load_value_shared_ptr(v_h);
     }
 
     template <typename T = std::shared_ptr<type>,
@@ -938,7 +938,7 @@ protected:
               detail::enable_if_t<std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
         if (typeinfo->default_holder) {
-            throw std::runtime_error("BAKEIN_WIP: try_implicit_casts");
+            return type_caster_generic::try_implicit_casts(src, convert);
         }
         for (auto &cast : typeinfo->implicit_casts) {
             copyable_holder_caster sub_caster(*cast.first);
@@ -1029,11 +1029,11 @@ public:
             move_only_holder_caster<type, std::unique_ptr<type, deleter>>>(src, convert);
     }
 
-    bool load_value(value_and_holder &&v_h) {
+    void load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
             sh_load_helper.loaded_v_h = v_h;
             sh_load_helper.loaded_v_h.type = get_type_info(typeid(type));
-            return true;
+            return;
         }
         throw std::runtime_error("BAKEIN_WIP: What is the best behavior here?");
     }
