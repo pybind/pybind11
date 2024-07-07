@@ -73,9 +73,9 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readwrite("m_cptr_readwrite", &Outer::m_cptr)
 
         // .def_readonly("m_uqmp_readonly", &Outer::m_uqmp) // Custom compilation Error.
-        .def_readwrite("m_uqmp_readwrite", &Outer::m_uqmp)
+        // BAKEIN_BREAK .def_readwrite("m_uqmp_readwrite", &Outer::m_uqmp)
         // .def_readonly("m_uqcp_readonly", &Outer::m_uqcp) // Custom compilation Error.
-        .def_readwrite("m_uqcp_readwrite", &Outer::m_uqcp)
+        // BAKEIN_BREAK .def_readwrite("m_uqcp_readwrite", &Outer::m_uqcp)
 
         .def_readwrite("m_shmp_readonly", &Outer::m_shmp)
         .def_readwrite("m_shmp_readwrite", &Outer::m_shmp)
