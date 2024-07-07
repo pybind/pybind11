@@ -835,11 +835,9 @@ struct load_helper : value_and_holder_helper {
 
     std::shared_ptr<T> loaded_as_shared_ptr(void *void_raw_ptr,
                                             handle responsible_parent = nullptr) const {
-printf("\nLOOOK %s:%d\n", __FILE__, __LINE__); fflush(stdout);  // NOLINT
         if (!have_holder()) {
             return nullptr;
         }
-printf("\nLOOOK %s:%d\n", __FILE__, __LINE__); fflush(stdout);  // NOLINT
         throw_if_uninitialized_or_disowned_holder(typeid(T));
         holder_type &hld = holder();
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
@@ -1112,7 +1110,6 @@ public:
             type_caster_generic sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
-                printf("\nLOOOK implicit from %ld to %ld\n", (long) sub_caster.value, (long) value); fflush(stdout);  // NOLINT
                 return true;
             }
         }

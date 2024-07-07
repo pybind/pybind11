@@ -848,19 +848,8 @@ public:
     using base::value;
 
     bool load(handle src, bool convert) {
-#ifdef JUNK
-        if (typeinfo->default_holder) {
-            printf("\nLOOOK shd load(src, convert) A\n"); fflush(stdout);  // NOLINT
-            bool retval = type_caster_generic::load(src, convert);
-            printf("\nLOOOK shd load(src, convert) B %ld\n", (long) value); fflush(stdout);  // NOLINT
-            return retval;
-        }
-#endif
-        printf("\nLOOOK shd load(src, convert) X\n"); fflush(stdout);  // NOLINT
-        bool retval = base::template load_impl<copyable_holder_caster<type, std::shared_ptr<type>>>(
+        return base::template load_impl<copyable_holder_caster<type, std::shared_ptr<type>>>(
             src, convert);
-        printf("\nLOOOK shd load(src, convert) Y %ld\n", (long) value); fflush(stdout);  // NOLINT
-        return retval;
     }
 
     explicit operator type *() {
@@ -888,9 +877,7 @@ public:
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->default_holder) {
-printf("\nLOOOK operator std::shared_ptr<type> & A %ld %s:%d\n", (long) value, __FILE__, __LINE__); fflush(stdout);  // NOLINT
             shared_ptr_holder = sh_load_helper.loaded_as_shared_ptr(value);
-printf("\nLOOOK operator std::shared_ptr<type> & B %ld %s:%d\n", (long) shared_ptr_holder.get(), __FILE__, __LINE__); fflush(stdout);  // NOLINT
         }
         return shared_ptr_holder;
     }
@@ -930,12 +917,9 @@ protected:
     }
 
     void load_value(value_and_holder &&v_h) {
-printf("\nLOOOK shd load_value(v_h) ENTRY\n"); fflush(stdout);  // NOLINT
         if (typeinfo->default_holder) {
-printf("\nLOOOK shd load_value(v_h) A\n"); fflush(stdout);  // NOLINT
             sh_load_helper.loaded_v_h = v_h;
             type_caster_generic::load_value(std::move(v_h));
-printf("\nLOOOK shd load_value(v_h) B\n"); fflush(stdout);  // NOLINT
             return;
         }
         load_value_shared_ptr(v_h);
@@ -951,19 +935,11 @@ printf("\nLOOOK shd load_value(v_h) B\n"); fflush(stdout);  // NOLINT
               detail::enable_if_t<std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
         if (typeinfo->default_holder) {
-#ifdef JUNK
-            printf("\nLOOOK shd try_implicit_casts(src, convert) E\n"); fflush(stdout);  // NOLINT
-            bool retval = type_caster_generic::try_implicit_casts(src, convert);
-            printf("\nLOOOK shd try_implicit_casts(src, convert) F\n"); fflush(stdout);  // NOLINT
-            return retval;
-#endif
-            printf("\nLOOOK shd try_implicit_casts(src, convert) Q\n"); fflush(stdout);  // NOLINT
             for (auto &cast : typeinfo->implicit_casts) {
-                printf("\nLOOOK shd try_implicit_casts(src, convert) R\n"); fflush(stdout);  // NOLINT
                 copyable_holder_caster sub_caster(*cast.first);
                 if (sub_caster.load(src, convert)) {
-                    printf("\nLOOOK shd try_implicit_casts(src, convert) S\n"); fflush(stdout);  // NOLINT
                     value = cast.second(sub_caster.value);
+                    // BAKEIN_WIP: Copy pointer only?
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                     return true;
                 }
