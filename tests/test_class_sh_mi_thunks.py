@@ -30,11 +30,8 @@ def test_ptrdiff_drvd_base0():
     ],
 )
 def test_get_vec_size_raw_shared(get_fn, vec_size_fn):
-    print(f"\nLOOOK A", flush=True)
     obj = get_fn()
-    print(f"\nLOOOK B", flush=True)
     assert vec_size_fn(obj) == 5
-    print(f"\nLOOOK C", flush=True)
 
 
 @pytest.mark.parametrize(
