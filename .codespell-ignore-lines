@@ -22,6 +22,7 @@ template <op_id id, op_type ot, typename L, typename R>
         (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor)*_CpCtor"),
 atyp_valu        rtrn_valu() { atyp_valu obj{"Valu"}; return obj; }
     assert m.atyp_valu().get_mtxt() == "Valu"
+// valu(e), ref(erence), ptr or p (pointer), r = rvalue, m = mutable, c = const,
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
 struct IntStruct {
     explicit IntStruct(int v) : value(v){};
