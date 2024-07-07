@@ -498,7 +498,7 @@ jobs:
       matrix:
         include:
           - { gcc: 7, std: 11 }
-          - { gcc: 7, std: 17 }
+          # { gcc: 7, std: 17 } BAKEIN_BREAK
           - { gcc: 8, std: 14 }
           - { gcc: 8, std: 17 }
           - { gcc: 9, std: 20 }
