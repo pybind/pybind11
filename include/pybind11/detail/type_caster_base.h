@@ -806,31 +806,8 @@ template <typename T>
 struct load_helper : value_and_holder_helper {
     using holder_type = pybindit::memory::smart_holder;
 
-    T *loaded_as_raw_ptr_unowned() const {
-        void *void_ptr = nullptr;
-        if (have_holder()) {
-            throw_if_uninitialized_or_disowned_holder(typeid(T));
-            void_ptr = holder().template as_raw_ptr_unowned<void>();
-        } else if (loaded_v_h.vh != nullptr) {
-            void_ptr = loaded_v_h.value_ptr();
-        }
-        if (void_ptr == nullptr) {
-            return nullptr;
-        }
-        return convert_type(void_ptr);
-    }
-
-    T &loaded_as_lvalue_ref() const {
-        T *raw_ptr = loaded_as_raw_ptr_unowned();
-        if (raw_ptr == nullptr) {
-            throw reference_cast_error();
-        }
-        return *raw_ptr;
-    }
-
-    std::shared_ptr<T> make_shared_ptr_with_responsible_parent(handle parent) const {
-        return std::shared_ptr<T>(loaded_as_raw_ptr_unowned(),
-                                  shared_ptr_parent_life_support(parent.ptr()));
+    static std::shared_ptr<T> make_shared_ptr_with_responsible_parent(T *raw_ptr, handle parent) {
+        return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr(void *void_raw_ptr,
@@ -843,7 +820,8 @@ struct load_helper : value_and_holder_helper {
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
             if (responsible_parent) {
-                return make_shared_ptr_with_responsible_parent(responsible_parent);
+                return make_shared_ptr_with_responsible_parent(static_cast<T *>(void_raw_ptr),
+                                                               responsible_parent);
             }
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
@@ -942,24 +920,6 @@ struct load_helper : value_and_holder_helper {
         // Critical section end.
 
         return result;
-    }
-
-#ifdef BAKEIN_WIP // Is this needed? shared_ptr_from_python(responsible_parent)
-    // This function will succeed even if the `responsible_parent` does not own the
-    // wrapped C++ object directly.
-    // It is the responsibility of the caller to ensure that the `responsible_parent`
-    // has a `keep_alive` relationship with the owner of the wrapped C++ object, or
-    // that the wrapped C++ object lives for the duration of the process.
-    static std::shared_ptr<T> shared_ptr_from_python(handle responsible_parent) {
-        smart_holder_type_caster_load<T> loader;
-        loader.load(responsible_parent, false);
-        return loader.loaded_as_shared_ptr(responsible_parent);
-    }
-#endif
-
-private:
-    T *convert_type(void *) const {
-        throw std::runtime_error("BEAKIN_WIP: convert_type() called.");
     }
 };
 
