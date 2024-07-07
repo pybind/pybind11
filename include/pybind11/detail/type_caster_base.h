@@ -1073,7 +1073,7 @@ public:
             smart_holder_type_caster_support::value_and_holder_helper v_h_helper;
             v_h_helper.loaded_v_h = v_h;
             if (v_h_helper.have_holder()) {
-                v_h_helper.throw_if_uninitialized_or_disowned_holder(typeid(cpptype));
+                v_h_helper.throw_if_uninitialized_or_disowned_holder(cpptype->name());
                 value = v_h_helper.holder().template as_raw_ptr_unowned<void>();
                 return;
             }
