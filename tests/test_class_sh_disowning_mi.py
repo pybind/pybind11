@@ -40,7 +40,6 @@ def test_disown_c0(var_to_disown):
     assert c0.get() == 1020
     b = c0.b()
     m.disown_b(locals()[var_to_disown])
-    pytest.skip("BAKEIN_BREAK: AssertionError")
     assert is_disowned(c0.get)
     assert is_disowned(b.get)
 
@@ -51,7 +50,6 @@ def test_disown_c1(var_to_disown):
     assert c1.get() == 1021
     b = c1.b()
     m.disown_b(locals()[var_to_disown])
-    pytest.skip("BAKEIN_BREAK: AssertionError")
     assert is_disowned(c1.get)
     assert is_disowned(b.get)
 
@@ -64,7 +62,6 @@ def test_disown_d(var_to_disown):
     c0 = d.c0()
     c1 = d.c1()
     m.disown_b(locals()[var_to_disown])
-    pytest.skip("BAKEIN_BREAK: AssertionError")
     assert is_disowned(d.get)
     assert is_disowned(c1.get)
     assert is_disowned(c0.get)
