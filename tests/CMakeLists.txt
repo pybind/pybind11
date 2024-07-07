@@ -126,6 +126,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_inheritance
     test_class_sh_mi_thunks
     test_class_sh_property
+    test_class_sh_property_non_owning
     test_class_sh_shared_ptr_copy_move
     test_class_sh_trampoline_basic
     test_class_sh_trampoline_self_life_support
