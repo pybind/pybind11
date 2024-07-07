@@ -611,7 +611,7 @@ struct value_and_holder_helper {
 
     // have_holder() must be true or this function will fail.
     void throw_if_instance_is_currently_owned_by_shared_ptr() const {
-        auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
+        auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
         if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
             throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
