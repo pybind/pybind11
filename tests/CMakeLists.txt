@@ -125,6 +125,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_factory_constructors
     test_class_sh_inheritance
     test_class_sh_mi_thunks
+    test_class_sh_module_local.py
     test_class_sh_property
     test_class_sh_property_non_owning
     test_class_sh_shared_ptr_copy_move
@@ -238,6 +239,8 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
+tests_extra_targets("test_class_sh_module_local.py"
+                    "class_sh_module_local_0;class_sh_module_local_1;class_sh_module_local_2")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
