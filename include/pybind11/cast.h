@@ -900,8 +900,12 @@ protected:
     friend class type_caster_generic;
     void check_holder_compat() {}
 
-    void load_value_shared_ptr(const value_and_holder &v_h) {
-        if (v_h.holder_constructed()) {
+    void load_value(value_and_holder &&v_h) {
+        if (typeinfo->default_holder) {
+            sh_load_helper.loaded_v_h = v_h;
+            type_caster_generic::load_value(std::move(v_h));
+            return;
+        } else if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             shared_ptr_holder = v_h.template holder<std::shared_ptr<type>>();
             return;
@@ -916,15 +920,6 @@ protected:
 #endif
     }
 
-    void load_value(value_and_holder &&v_h) {
-        if (typeinfo->default_holder) {
-            sh_load_helper.loaded_v_h = v_h;
-            type_caster_generic::load_value(std::move(v_h));
-            return;
-        }
-        load_value_shared_ptr(v_h);
-    }
-
     template <typename T = std::shared_ptr<type>,
               detail::enable_if_t<!std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle, bool) {
@@ -934,24 +929,17 @@ protected:
     template <typename T = std::shared_ptr<type>,
               detail::enable_if_t<std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
-        if (typeinfo->default_holder) {
-            for (auto &cast : typeinfo->implicit_casts) {
-                copyable_holder_caster sub_caster(*cast.first);
-                if (sub_caster.load(src, convert)) {
-                    value = cast.second(sub_caster.value);
-                    // BAKEIN_WIP: Copy pointer only?
-                    sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
-                    return true;
-                }
-            }
-            return false;
-        }
         for (auto &cast : typeinfo->implicit_casts) {
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
-                shared_ptr_holder
-                    = std::shared_ptr<type>(sub_caster.shared_ptr_holder, (type *) value);
+                if (typeinfo->default_holder) {
+                    // BAKEIN_WIP: Copy pointer only?
+                    sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                } else {
+                    shared_ptr_holder
+                        = std::shared_ptr<type>(sub_caster.shared_ptr_holder, (type *) value);
+                }
                 return true;
             }
         }
