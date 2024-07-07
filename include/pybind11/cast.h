@@ -1027,9 +1027,10 @@ public:
         if (typeinfo->default_holder) {
             sh_load_helper.loaded_v_h = v_h;
             sh_load_helper.loaded_v_h.type = get_type_info(typeid(type));
+            type_caster_generic::load_value(std::move(v_h));
             return;
         }
-        throw std::runtime_error("BAKEIN_WIP: What is the best behavior here?");
+        throw std::runtime_error("BAKEIN_WIP: What is the best behavior here (load_value)?");
     }
 
     template <typename>
@@ -1037,9 +1038,27 @@ public:
 
     explicit operator std::unique_ptr<type, deleter>() {
         if (typeinfo->default_holder) {
-            return sh_load_helper.template loaded_as_unique_ptr<deleter>();
+            return sh_load_helper.template loaded_as_unique_ptr<deleter>(value);
         }
         pybind11_fail("Passing std::unique_ptr from Python to C++ requires smart_holder.");
+    }
+
+    bool try_implicit_casts(handle src, bool convert) {
+        for (auto &cast : typeinfo->implicit_casts) {
+            move_only_holder_caster sub_caster(*cast.first);
+            if (sub_caster.load(src, convert)) {
+                value = cast.second(sub_caster.value);
+                if (typeinfo->default_holder) {
+                    // BAKEIN_WIP: Copy pointer only?
+                    sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                } else {
+                    throw std::runtime_error(
+                        "BAKEIN_WIP: What is the best behavior here (try_implicit_casts)?");
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     static bool try_direct_conversions(handle) { return false; }

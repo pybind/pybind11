@@ -887,7 +887,8 @@ struct load_helper : value_and_holder_helper {
     }
 
     template <typename D>
-    std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
+    std::unique_ptr<T, D> loaded_as_unique_ptr(void *raw_void_ptr,
+                                               const char *context = "loaded_as_unique_ptr") {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
@@ -896,17 +897,8 @@ struct load_helper : value_and_holder_helper {
         holder().ensure_is_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
-        auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
 
-        void *value_void_ptr = loaded_v_h.value_ptr();
-        if (value_void_ptr != raw_void_ptr) {
-            pybind11_fail("smart_holder_type_casters: loaded_as_unique_ptr failure:"
-                          " value_void_ptr != raw_void_ptr");
-        }
-
-        // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
-        // (T must be polymorphic or meet certain other conditions).
-        T *raw_type_ptr = convert_type(raw_void_ptr);
+        T *raw_type_ptr = static_cast<T *>(raw_void_ptr);
 
         auto *self_life_support
             = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
@@ -943,6 +935,7 @@ struct load_helper : value_and_holder_helper {
         if (self_life_support != nullptr) {
             self_life_support->activate_life_support(loaded_v_h);
         } else {
+            void *value_void_ptr = loaded_v_h.value_ptr();
             loaded_v_h.value_ptr() = nullptr;
             deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
         }
