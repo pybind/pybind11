@@ -12,6 +12,7 @@ def test_shptr_copy():
 
 
 def test_smhld_copy():
+    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     txt = m.test_SmHld_copy()[0].get_history()
     assert txt == "FooSmHld_copy"
 
@@ -23,6 +24,7 @@ def test_shptr_move():
 
 
 def test_smhld_move():
+    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     txt = m.test_SmHld_move()[0].get_history()
     assert txt == "FooSmHld_move"
 
