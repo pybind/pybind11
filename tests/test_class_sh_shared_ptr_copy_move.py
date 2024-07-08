@@ -4,10 +4,6 @@ import pytest
 
 from pybind11_tests import class_sh_shared_ptr_copy_move as m
 
-pytest.skip(
-    "BAKEIN_BREAK: Windows fatal exception: access violation", allow_module_level=True
-)
-
 
 def test_shptr_copy():
     txt = m.test_ShPtr_copy()[0].get_history()
@@ -41,6 +37,7 @@ def _check_property(foo_typ, prop_typ, policy):
 
 
 def test_properties():
+    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     for prop_typ in ("readonly", "readwrite", "property_readonly"):
         for foo_typ in ("ShPtr", "SmHld"):
             for policy in ("default", "copy", "move"):
