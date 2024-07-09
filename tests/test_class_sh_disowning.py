@@ -5,17 +5,26 @@ import pytest
 from pybind11_tests import class_sh_disowning as m
 
 
+def is_disowned(obj):
+    try:
+        obj.get()
+    except ValueError:
+        return True
+    return False
+
+
 def test_same_twice():
     while True:
         obj1a = m.Atype1(57)
         obj1b = m.Atype1(62)
         assert m.same_twice(obj1a, obj1b) == (57 * 10 + 1) * 100 + (62 * 10 + 1) * 10
+        assert is_disowned(obj1a)
+        assert is_disowned(obj1b)
         obj1c = m.Atype1(0)
         with pytest.raises(ValueError):
             # Disowning works for one argument, but not both.
             m.same_twice(obj1c, obj1c)
-        with pytest.raises(ValueError):
-            obj1c.get()
+        assert is_disowned(obj1c)
         return  # Comment out for manual leak checking (use `top` command).
 
 
@@ -25,6 +34,8 @@ def test_mixed():
         obj1a = m.Atype1(90)
         obj2a = m.Atype2(25)
         assert m.mixed(obj1a, obj2a) == (90 * 10 + 1) * 200 + (25 * 10 + 2) * 20
+        assert is_disowned(obj1a)
+        assert is_disowned(obj2a)
 
         # The C++ order of evaluation of function arguments is (unfortunately) unspecified:
         # https://en.cppreference.com/w/cpp/language/eval_order
@@ -39,13 +50,6 @@ def test_mixed():
             # If the 2nd argument is evaluated first, obj2b is disowned before the conversion for
             # the already disowned obj1a fails as expected.
             m.mixed(obj1a, obj2b)
-
-        def is_disowned(obj):
-            try:
-                obj.get()
-            except ValueError:
-                return True
-            return False
 
         # Either obj1b or obj2b was disowned in the expected failed m.mixed() calls above, but not
         # both.
