@@ -138,7 +138,7 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
            || rtti_deleter == typeid(std::default_delete<T const>);
 }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) || true // BAKEIN_WIP: Stress test.
 #    define PYBIND11_SMART_HOLDER_PADDING(N) int PADDING_##N##_[11]
 #else
 #    define PYBIND11_SMART_HOLDER_PADDING(N)
