@@ -1,35 +1,24 @@
 from __future__ import annotations
 
-import pytest
-
 from pybind11_tests import class_sh_shared_ptr_copy_move as m
 
 
 def test_shptr_copy():
-    lst = m.test_ShPtr_copy()
-    itm = lst[0]
-    del lst
-    mth = itm.get_history
-    del itm
-    txt = mth()
-    del mth
+    txt = m.test_ShPtr_copy()[0].get_history()
     assert txt == "FooShPtr_copy"
 
 
 def test_smhld_copy():
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     txt = m.test_SmHld_copy()[0].get_history()
     assert txt == "FooSmHld_copy"
 
 
 def test_shptr_move():
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     txt = m.test_ShPtr_move()[0].get_history()
     assert txt == "FooShPtr_move"
 
 
 def test_smhld_move():
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     txt = m.test_SmHld_move()[0].get_history()
     assert txt == "FooSmHld_move"
 
@@ -46,7 +35,6 @@ def _check_property(foo_typ, prop_typ, policy):
 
 
 def test_properties():
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
     for prop_typ in ("readonly", "readwrite", "property_readonly"):
         for foo_typ in ("ShPtr", "SmHld"):
             for policy in ("default", "copy", "move"):
