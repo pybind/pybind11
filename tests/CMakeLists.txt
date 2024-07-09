@@ -119,6 +119,7 @@ set(PYBIND11_TEST_FILES
     test_callbacks
     test_chrono
     test_class
+    test_class_sh_shared_ptr_copy_move
     test_const_name
     test_constants_and_functions
     test_copy_move
