@@ -8,19 +8,9 @@ def test_shptr_copy():
     assert txt == "FooShPtr_copy"
 
 
-def test_smhld_copy():
-    txt = m.test_SmHld_copy()[0].get_history()
-    assert txt == "FooSmHld_copy"
-
-
 def test_shptr_move():
     txt = m.test_ShPtr_move()[0].get_history()
     assert txt == "FooShPtr_move"
-
-
-def test_smhld_move():
-    txt = m.test_SmHld_move()[0].get_history()
-    assert txt == "FooSmHld_move"
 
 
 def _check_property(foo_typ, prop_typ, policy):
@@ -36,6 +26,6 @@ def _check_property(foo_typ, prop_typ, policy):
 
 def test_properties():
     for prop_typ in ("readonly", "readwrite", "property_readonly"):
-        for foo_typ in ("ShPtr", "SmHld"):
+        for foo_typ in ("ShPtr",):
             for policy in ("default", "copy", "move"):
                 _check_property(foo_typ, prop_typ, policy)
