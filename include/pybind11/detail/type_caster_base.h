@@ -600,7 +600,6 @@ struct value_and_holder_helper {
                               + "`: Python instance is uninitialized.");
         }
         if (!holder().has_pointee()) {
-printf("\nLOOOK throw(Python instance was disowned.)\n"); fflush(stdout);  // NOLINT
             throw value_error(missing_value_msg + clean_type_id(typeid_name)
                               + "`: Python instance was disowned.");
         }
@@ -878,8 +877,6 @@ struct load_helper : value_and_holder_helper {
     template <typename D>
     std::unique_ptr<T, D> loaded_as_unique_ptr(void *raw_void_ptr,
                                                const char *context = "loaded_as_unique_ptr") {
-printf("\nLOOOK %s:%d\n", __FILE__, __LINE__); fflush(stdout);  // NOLINT
-printf("\nLOOOK T=%s\n", clean_type_id(typeid(T).name()).c_str()); fflush(stdout);  // NOLINT
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
@@ -917,25 +914,19 @@ printf("\nLOOOK T=%s\n", clean_type_id(typeid(T).name()).c_str()); fflush(stdout
         }
 
         // Critical transfer-of-ownership section. This must stay together.
-printf("\nLOOOK CRITICAL SECTION BEGIN.\n"); fflush(stdout);  // NOLINT
         if (self_life_support != nullptr) {
-printf("\nLOOOK holder().disown()\n"); fflush(stdout);  // NOLINT
             holder().disown();
         } else {
-printf("\nLOOOK holder().release_ownership()\n"); fflush(stdout);  // NOLINT
             holder().release_ownership();
         }
         auto result = unique_with_deleter<T, D>(raw_type_ptr, std::move(extracted_deleter));
         if (self_life_support != nullptr) {
-printf("\nLOOOK activate_life_support\n"); fflush(stdout);  // NOLINT
             self_life_support->activate_life_support(loaded_v_h);
         } else {
             void *value_void_ptr = loaded_v_h.value_ptr();
             loaded_v_h.value_ptr() = nullptr;
-printf("\nLOOOK deregister_instance\n"); fflush(stdout);  // NOLINT
             deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
         }
-printf("\nLOOOK CRITICAL SECTION END.\n"); fflush(stdout);  // NOLINT
         // Critical section end.
 
         return result;
