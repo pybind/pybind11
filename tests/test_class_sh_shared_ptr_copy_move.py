@@ -6,8 +6,13 @@ from pybind11_tests import class_sh_shared_ptr_copy_move as m
 
 
 def test_shptr_copy():
-    pytest.skip("BAKEIN_BREAK: Segmentation fault")
-    txt = m.test_ShPtr_copy()[0].get_history()
+    lst = m.test_ShPtr_copy()
+    itm = lst[0]
+    del lst
+    mth = itm.get_history
+    del itm
+    txt = mth()
+    del mth
     assert txt == "FooShPtr_copy"
 
 
