@@ -617,6 +617,16 @@ printf("\nLOOOK throw(Python instance was disowned.)\n"); fflush(stdout);  // NO
             throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
     }
+
+    void *get_void_ptr_or_nullptr() const {
+        if (have_holder()) {
+            auto &hld = holder();
+            if (hld.is_populated && hld.has_pointee()) {
+                return hld.template as_raw_ptr_unowned<void>();
+            }
+        }
+        return nullptr;
+    }
 };
 
 template <typename T, typename D>

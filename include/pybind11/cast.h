@@ -903,7 +903,7 @@ protected:
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
             sh_load_helper.loaded_v_h = v_h;
-            type_caster_generic::load_value(std::move(v_h)); // NOLINT(performance-move-const-arg)
+            value = sh_load_helper.get_void_ptr_or_nullptr();
             return;
         }
         if (v_h.holder_constructed()) {
@@ -1028,7 +1028,7 @@ public:
         if (typeinfo->default_holder) {
             sh_load_helper.loaded_v_h = v_h;
             sh_load_helper.loaded_v_h.type = get_type_info(typeid(type));
-            type_caster_generic::load_value(std::move(v_h)); // NOLINT(performance-move-const-arg)
+            value = sh_load_helper.get_void_ptr_or_nullptr();
             return;
         }
         throw std::runtime_error("BAKEIN_WIP: What is the best behavior here (load_value)?");
