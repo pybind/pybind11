@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace class_sh_disowning_mi {
+namespace wip {
 
 // Diamond inheritance (copied from test_multiple_inheritance.cpp).
 struct B {
@@ -50,19 +50,19 @@ struct Foo {
 
 using FooShPtr = Foo<0>;
 
-} // namespace class_sh_disowning_mi
+} // namespace wip
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::B)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C0)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::D)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::wip::B)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::wip::C0)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::wip::C1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::wip::D)
 
-PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::class_sh_disowning_mi::FooShPtr,
-                                 std::shared_ptr<pybind11_tests::class_sh_disowning_mi::FooShPtr>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::wip::FooShPtr,
+                                 std::shared_ptr<pybind11_tests::wip::FooShPtr>)
 
 TEST_SUBMODULE(class_sh_disowning_mi, m) {
-    using namespace pybind11_tests::class_sh_disowning_mi;
+    using namespace pybind11_tests::wip;
 
     py::class_<FooShPtr, std::shared_ptr<FooShPtr>>(m, "FooShPtr")
         .def("get_history", &FooShPtr::get_history);
