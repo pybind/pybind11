@@ -1586,6 +1586,161 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+// Helper for the property_cpp_function static member functions below.
+// The only purpose of these functions is to support .def_readonly & .def_readwrite.
+// In this context, the PM template parameter is certain to be a Pointer to a Member.
+// The main purpose of must_be_member_function_pointer is to make this obvious, and to guard
+// against accidents. As a side-effect, it also explains why the syntactical overhead for
+// perfect forwarding is not needed.
+template <typename PM>
+using must_be_member_function_pointer
+    = detail::enable_if_t<std::is_member_pointer<PM>::value, int>;
+
+// Note that property_cpp_function is intentionally in the main pybind11 namespace,
+// because user-defined specializations could be useful.
+
+// Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
+// getter and setter functions.
+// WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
+// See test_ptr() in tests/test_class_sh_property.py
+// This implementation works as-is (and safely) for smart_holder std::shared_ptr members.
+template <typename T, typename D, typename SFINAE = void>
+struct property_cpp_function {
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM pm, const handle &hdl) {
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+    }
+};
+
+#ifdef BAKEIN_WIP
+// smart_holder specializations for raw pointer members.
+// WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
+// See test_ptr() in tests/test_class_sh_property.py
+// However, the read functions return a shared_ptr to the member, emulating the PyCLIF approach:
+// https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
+// This prevents disowning of the Python object owning the raw pointer member.
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
+                                       detail::type_uses_smart_holder_type_caster<D>,
+                                       std::is_pointer<D>>::value>> {
+
+    using drp = typename std::remove_pointer<D>::type;
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM pm, const handle &hdl) {
+        return cpp_function(
+            [pm](handle c_hdl) -> std::shared_ptr<drp> {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
+                D ptr = (*c_sp).*pm;
+                return std::shared_ptr<drp>(c_sp, ptr);
+            },
+            is_method(hdl));
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
+                            is_method(hdl));
+    }
+};
+
+// smart_holder specializations for members held by-value.
+// The read functions return a shared_ptr to the member, emulating the PyCLIF approach:
+// https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
+// This prevents disowning of the Python object owning the member.
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
+                                       detail::type_uses_smart_holder_type_caster<D>,
+                                       detail::none_of<std::is_pointer<D>,
+                                                       detail::is_std_unique_ptr<D>,
+                                                       detail::is_std_shared_ptr<D>>>::value>> {
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM pm, const handle &hdl) {
+        return cpp_function(
+            [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
+                return std::shared_ptr<typename std::add_const<D>::type>(c_sp, &(c_sp.get()->*pm));
+            },
+            is_method(hdl));
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return cpp_function(
+            [pm](handle c_hdl) -> std::shared_ptr<D> {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
+                return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
+            },
+            is_method(hdl));
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+    }
+};
+
+// smart_holder specializations for std::unique_ptr members.
+// read disowns the member unique_ptr.
+// write disowns the passed Python object.
+// readonly is disabled (static_assert) because there is no safe & intuitive way to make the member
+// accessible as a Python object without disowning the member unique_ptr. A .def_readonly disowning
+// the unique_ptr member is deemed highly prone to misunderstandings.
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<
+        detail::type_uses_smart_holder_type_caster<T>,
+        detail::is_std_unique_ptr<D>,
+        detail::type_uses_smart_holder_type_caster<typename D::element_type>>::value>> {
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM, const handle &) {
+        static_assert(!detail::is_std_unique_ptr<D>::value,
+                      "def_readonly cannot be used for std::unique_ptr members.");
+        return cpp_function{}; // Unreachable.
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return cpp_function(
+            [pm](handle c_hdl) -> D {
+                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
+                return D{std::move(c_sp.get()->*pm)};
+            },
+            is_method(hdl));
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
+    }
+};
+#endif
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T>
@@ -1767,9 +1922,11 @@ public:
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readwrite() requires a class member (or base class member)");
-        cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this)),
-            fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
-        def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
+        def_property(name,
+                     property_cpp_function<type, D>::read(pm, *this),
+                     property_cpp_function<type, D>::write(pm, *this),
+                     return_value_policy::reference_internal,
+                     extra...);
         return *this;
     }
 
@@ -1777,8 +1934,10 @@ public:
     class_ &def_readonly(const char *name, const D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readonly() requires a class member (or base class member)");
-        cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this));
-        def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
+        def_property_readonly(name,
+                              property_cpp_function<type, D>::readonly(pm, *this),
+                              return_value_policy::reference_internal,
+                              extra...);
         return *this;
     }
 
