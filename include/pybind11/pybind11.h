@@ -1599,6 +1599,7 @@ using must_be_member_function_pointer
 // Note that property_cpp_function is intentionally in the main pybind11 namespace,
 // because user-defined specializations could be useful.
 
+// BAKEIN_WIP: Rewrite comment.
 // Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
 // getter and setter functions.
 // WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
@@ -1622,7 +1623,7 @@ struct property_cpp_function {
     }
 };
 
-#ifdef BAKEIN_WIP
+// BAKEIN_WIP: Rewrite comment.
 // smart_holder specializations for raw pointer members.
 // WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
 // See test_ptr() in tests/test_class_sh_property.py
@@ -1633,21 +1634,26 @@ template <typename T, typename D>
 struct property_cpp_function<
     T,
     D,
-    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
-                                       detail::type_uses_smart_holder_type_caster<D>,
-                                       std::is_pointer<D>>::value>> {
+    detail::enable_if_t<
+        detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
+                       std::is_base_of<detail::type_caster_base<D>, detail::type_caster<D>>,
+                       std::is_pointer<D>>::value>> {
 
     using drp = typename std::remove_pointer<D>::type;
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> std::shared_ptr<drp> {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                D ptr = (*c_sp).*pm;
-                return std::shared_ptr<drp>(c_sp, ptr);
-            },
-            is_method(hdl));
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<drp> {
+                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    D ptr = (*c_sp).*pm;
+                    return std::shared_ptr<drp>(c_sp, ptr);
+                },
+                is_method(hdl));
+        }
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1657,11 +1663,16 @@ struct property_cpp_function<
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
-        return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
-                            is_method(hdl));
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
+                                is_method(hdl));
+        }
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
 };
 
+// BAKEIN_WIP: Rewrite comment.
 // smart_holder specializations for members held by-value.
 // The read functions return a shared_ptr to the member, emulating the PyCLIF approach:
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
@@ -1670,38 +1681,53 @@ template <typename T, typename D>
 struct property_cpp_function<
     T,
     D,
-    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
-                                       detail::type_uses_smart_holder_type_caster<D>,
-                                       detail::none_of<std::is_pointer<D>,
-                                                       detail::is_std_unique_ptr<D>,
-                                                       detail::is_std_shared_ptr<D>>>::value>> {
+    detail::enable_if_t<
+        detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
+                       std::is_base_of<detail::type_caster_base<D>, detail::type_caster<D>>,
+                       detail::none_of<std::is_pointer<D>,
+                                       detail::is_instantiation<std::unique_ptr, D>,
+                                       detail::is_instantiation<std::shared_ptr, D>>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                return std::shared_ptr<typename std::add_const<D>::type>(c_sp, &(c_sp.get()->*pm));
-            },
-            is_method(hdl));
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
+                                                                             &(c_sp.get()->*pm));
+                },
+                is_method(hdl));
+        }
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> std::shared_ptr<D> {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
-            },
-            is_method(hdl));
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<D> {
+                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
+                },
+                is_method(hdl));
+        }
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        }
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
 };
 
+// BAKEIN_WIP: Rewrite comment.
 // smart_holder specializations for std::unique_ptr members.
 // read disowns the member unique_ptr.
 // write disowns the passed Python object.
@@ -1712,34 +1738,43 @@ template <typename T, typename D>
 struct property_cpp_function<
     T,
     D,
-    detail::enable_if_t<detail::all_of<
-        detail::type_uses_smart_holder_type_caster<T>,
-        detail::is_std_unique_ptr<D>,
-        detail::type_uses_smart_holder_type_caster<typename D::element_type>>::value>> {
+    detail::enable_if_t<
+        detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
+                       detail::is_instantiation<std::unique_ptr, D>,
+                       std::is_base_of<detail::type_caster_base<typename D::element_type>,
+                                       detail::type_caster<typename D::element_type>>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
-        static_assert(!detail::is_std_unique_ptr<D>::value,
+        static_assert(!detail::is_instantiation<std::unique_ptr, D>::value,
                       "def_readonly cannot be used for std::unique_ptr members.");
         return cpp_function{}; // Unreachable.
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> D {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                return D{std::move(c_sp.get()->*pm)};
-            },
-            is_method(hdl));
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> D {
+                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    return D{std::move(c_sp.get()->*pm)};
+                },
+                is_method(hdl));
+        }
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
-        return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
+        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->default_holder) {
+            return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); },
+                                is_method(hdl));
+        }
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
 };
-#endif
 
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
