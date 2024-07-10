@@ -1027,7 +1027,7 @@ public:
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
             sh_load_helper.loaded_v_h = v_h;
-            sh_load_helper.loaded_v_h.type = get_type_info(typeid(type));
+            sh_load_helper.loaded_v_h.type = typeinfo;
             value = sh_load_helper.get_void_ptr_or_nullptr();
             return;
         }
