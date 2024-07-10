@@ -29,21 +29,26 @@ struct D : public C0, public C1 {
 
 void disown_b(std::unique_ptr<B>) {}
 
-// test_multiple_inheritance_python
-struct Base1 {
-    explicit Base1(int i) : i(i) {}
-    int foo() const { return i; }
-    int i;
+const std::string fooNames[] = {"ShPtr_"};
+
+template <int SerNo>
+struct Foo {
+    std::string history;
+    explicit Foo(const std::string &history_) : history(history_) {}
+    Foo(const Foo &other) : history(other.history + "_CpCtor") {}
+    Foo(Foo &&other) noexcept : history(other.history + "_MvCtor") {}
+    Foo &operator=(const Foo &other) {
+        history = other.history + "_OpEqLv";
+        return *this;
+    }
+    Foo &operator=(Foo &&other) noexcept {
+        history = other.history + "_OpEqRv";
+        return *this;
+    }
+    std::string get_history() const { return "Foo" + fooNames[SerNo] + history; }
 };
 
-struct Base2 {
-    explicit Base2(int j) : j(j) {}
-    int bar() const { return j; }
-    int j;
-};
-
-int disown_base1(std::unique_ptr<Base1> b1) { return b1->i * 2000 + 1; }
-int disown_base2(std::unique_ptr<Base2> b2) { return b2->j * 2000 + 2; }
+using FooShPtr = Foo<0>;
 
 } // namespace class_sh_disowning_mi
 } // namespace pybind11_tests
@@ -53,11 +58,21 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C0)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C1)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::D)
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base2)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::class_sh_disowning_mi::FooShPtr,
+                                 std::shared_ptr<pybind11_tests::class_sh_disowning_mi::FooShPtr>)
 
 TEST_SUBMODULE(class_sh_disowning_mi, m) {
     using namespace pybind11_tests::class_sh_disowning_mi;
+
+    py::class_<FooShPtr, std::shared_ptr<FooShPtr>>(m, "FooShPtr")
+        .def("get_history", &FooShPtr::get_history);
+
+    m.def("test_ShPtr_copy", []() {
+        auto o = std::make_shared<FooShPtr>("copy");
+        auto l = py::list();
+        l.append(o);
+        return l;
+    });
 
     py::classh<B>(m, "B")
         .def(py::init<>())
@@ -86,10 +101,4 @@ TEST_SUBMODULE(class_sh_disowning_mi, m) {
         });
 
     m.def("disown_b", disown_b);
-
-    // test_multiple_inheritance_python
-    py::classh<Base1>(m, "Base1").def(py::init<int>()).def("foo", &Base1::foo);
-    py::classh<Base2>(m, "Base2").def(py::init<int>()).def("bar", &Base2::bar);
-    m.def("disown_base1", disown_base1);
-    m.def("disown_base2", disown_base2);
 }
