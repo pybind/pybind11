@@ -486,3 +486,12 @@ TEST_CASE("make_iterator can be called before then after finalizing an interpret
 
     py::initialize_interpreter();
 }
+
+TEST_CASE("scoped_interpreter multiprocessing.Process can be created with spawn context") {
+    py::finalize_interpreter();
+    REQUIRE_NOTHROW([&]() {
+        py::scoped_interpreter default_scope;
+        py::module_::import("test_multiprocessing").attr("main")();
+    }());
+    py::initialize_interpreter();
+}
