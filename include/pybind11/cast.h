@@ -910,7 +910,6 @@ public:
 
 protected:
     friend class type_caster_generic;
-    void check_holder_compat() {}
 
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->default_holder) {
