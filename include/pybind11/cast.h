@@ -1111,6 +1111,12 @@ template <typename base, typename holder>
 struct is_holder_type
     : std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>> {};
 
+// Specializations for always-supported holders:
+template <typename base, typename deleter>
+struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
+template <typename base>
+struct is_holder_type<base, pybindit::memory::smart_holder> : std::true_type {};
+
 #ifdef PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION // See PR #4888
 
 // This leads to compilation errors if a specialization is missing.

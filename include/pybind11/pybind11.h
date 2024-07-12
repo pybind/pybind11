@@ -1775,6 +1775,9 @@ struct property_cpp_function<
     }
 };
 
+template <typename>
+using default_holder_type = pybindit::memory::smart_holder;
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T>
