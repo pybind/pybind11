@@ -16,7 +16,6 @@ def test_valu_getter(m_attr):
     outer = m.Outer()
     field = getattr(outer, m_attr)
     assert field.num == -99
-    pytest.skip("BAKEIN_BREAK: Failed: DID NOT RAISE <class 'ValueError'>")
     with pytest.raises(ValueError) as excinfo:
         m.DisownOuter(outer)
     assert str(excinfo.value) == "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
