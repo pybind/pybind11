@@ -1771,12 +1771,7 @@ struct property_cpp_function<
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
-        detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
-            return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); },
-                                is_method(hdl));
-        }
-        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
     }
 };
 
