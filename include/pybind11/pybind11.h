@@ -1647,7 +1647,8 @@ struct property_cpp_function<
         if (tinfo->default_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<drp> {
-                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    std::shared_ptr<T> c_sp = detail::type_caster<
+                        std::shared_ptr<T>>::shared_ptr_with_responsible_parent(c_hdl);
                     D ptr = (*c_sp).*pm;
                     return std::shared_ptr<drp>(c_sp, ptr);
                 },
@@ -1694,7 +1695,8 @@ struct property_cpp_function<
         if (tinfo->default_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
-                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    std::shared_ptr<T> c_sp = detail::type_caster<
+                        std::shared_ptr<T>>::shared_ptr_with_responsible_parent(c_hdl);
                     return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
                                                                              &(c_sp.get()->*pm));
                 },
@@ -1709,7 +1711,8 @@ struct property_cpp_function<
         if (tinfo->default_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<D> {
-                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    std::shared_ptr<T> c_sp = detail::type_caster<
+                        std::shared_ptr<T>>::shared_ptr_with_responsible_parent(c_hdl);
                     return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
                 },
                 is_method(hdl));
@@ -1757,7 +1760,8 @@ struct property_cpp_function<
         if (tinfo->default_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> D {
-                    auto c_sp = cast<std::shared_ptr<T>>(c_hdl);
+                    std::shared_ptr<T> c_sp = detail::type_caster<
+                        std::shared_ptr<T>>::shared_ptr_with_responsible_parent(c_hdl);
                     return D{std::move(c_sp.get()->*pm)};
                 },
                 is_method(hdl));

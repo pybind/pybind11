@@ -896,6 +896,18 @@ public:
         return type_caster_base<type>::cast_holder(ptr, &src);
     }
 
+    // This function will succeed even if the `responsible_parent` does not own the
+    // wrapped C++ object directly.
+    // It is the responsibility of the caller to ensure that the `responsible_parent`
+    // has a `keep_alive` relationship with the owner of the wrapped C++ object, or
+    // that the wrapped C++ object lives for the duration of the process.
+    static std::shared_ptr<type> shared_ptr_with_responsible_parent(handle responsible_parent) {
+        copyable_holder_caster loader;
+        loader.load(responsible_parent, /*convert=*/false);
+        assert(loader.typeinfo->default_holder);
+        return loader.sh_load_helper.loaded_as_shared_ptr(loader.value, responsible_parent);
+    }
+
 protected:
     friend class type_caster_generic;
     void check_holder_compat() {}
