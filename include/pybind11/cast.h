@@ -835,9 +835,18 @@ protected:
     holder_type holder;
 };
 
+#define PYBIND11_HAVE_HOLDER_CASTER_WITH_SMART_HOLDER_SUPPORT
+
+template <typename, typename SFINAE = void>
+struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled : std::true_type {};
+
 // BAKEIN_WIP
 template <typename type>
-struct copyable_holder_caster<type, std::shared_ptr<type>> : public type_caster_base<type> {
+struct copyable_holder_caster<
+    type,
+    std::shared_ptr<type>,
+    enable_if_t<copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled<type>::value>>
+    : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
     static_assert(std::is_base_of<base, type_caster<type>>::value,
@@ -983,9 +992,15 @@ struct move_only_holder_caster {
     static constexpr auto name = type_caster_base<type>::name;
 };
 
+template <typename, typename SFINAE = void>
+struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled : std::true_type {};
+
 // BAKEIN_WIP
 template <typename type, typename deleter>
-struct move_only_holder_caster<type, std::unique_ptr<type, deleter>>
+struct move_only_holder_caster<
+    type,
+    std::unique_ptr<type, deleter>,
+    enable_if_t<move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled<type>::value>>
     : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
