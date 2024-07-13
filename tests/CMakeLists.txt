@@ -117,7 +117,6 @@ set(PYBIND11_TEST_FILES
     test_builtin_casters
     test_call_policies
     test_callbacks
-    test_ccccccccccccccccccccc
     test_chrono
     test_class
     test_class_sh_basic
