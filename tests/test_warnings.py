@@ -43,7 +43,7 @@ def test_warning_register():
     assert issubclass(m.CustomWarning, DeprecationWarning)
 
     with pytest.warns(m.CustomWarning) as excinfo:
-        warnings.warn("This is warning from Python!", m.CustomWarning)
+        warnings.warn("This is warning from Python!", m.CustomWarning, stacklevel=1)
 
     assert issubclass(excinfo[0].category, DeprecationWarning)
     assert issubclass(excinfo[0].category, m.CustomWarning)
