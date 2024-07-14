@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import ConstructorStats, UserType
@@ -16,8 +18,8 @@ def test_vector(doc):
     assert m.load_bool_vector([True, False])
     assert m.load_bool_vector((True, False))
 
-    assert doc(m.cast_vector) == "cast_vector() -> List[int]"
-    assert doc(m.load_vector) == "load_vector(arg0: List[int]) -> bool"
+    assert doc(m.cast_vector) == "cast_vector() -> list[int]"
+    assert doc(m.load_vector) == "load_vector(arg0: list[int]) -> bool"
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
@@ -39,8 +41,11 @@ def test_array(doc):
     assert m.load_array(lst)
     assert m.load_array(tuple(lst))
 
-    assert doc(m.cast_array) == "cast_array() -> List[int[2]]"
-    assert doc(m.load_array) == "load_array(arg0: List[int[2]]) -> bool"
+    assert doc(m.cast_array) == "cast_array() -> Annotated[list[int], FixedSize(2)]"
+    assert (
+        doc(m.load_array)
+        == "load_array(arg0: Annotated[list[int], FixedSize(2)]) -> bool"
+    )
 
 
 def test_valarray(doc):
@@ -50,8 +55,8 @@ def test_valarray(doc):
     assert m.load_valarray(lst)
     assert m.load_valarray(tuple(lst))
 
-    assert doc(m.cast_valarray) == "cast_valarray() -> List[int]"
-    assert doc(m.load_valarray) == "load_valarray(arg0: List[int]) -> bool"
+    assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
+    assert doc(m.load_valarray) == "load_valarray(arg0: list[int]) -> bool"
 
 
 def test_map(doc):
@@ -63,8 +68,8 @@ def test_map(doc):
     assert "key2" in d
     assert m.load_map(d)
 
-    assert doc(m.cast_map) == "cast_map() -> Dict[str, str]"
-    assert doc(m.load_map) == "load_map(arg0: Dict[str, str]) -> bool"
+    assert doc(m.cast_map) == "cast_map() -> dict[str, str]"
+    assert doc(m.load_map) == "load_map(arg0: dict[str, str]) -> bool"
 
 
 def test_set(doc):
@@ -75,8 +80,8 @@ def test_set(doc):
     assert m.load_set(s)
     assert m.load_set(frozenset(s))
 
-    assert doc(m.cast_set) == "cast_set() -> Set[str]"
-    assert doc(m.load_set) == "load_set(arg0: Set[str]) -> bool"
+    assert doc(m.cast_set) == "cast_set() -> set[str]"
+    assert doc(m.load_set) == "load_set(arg0: set[str]) -> bool"
 
 
 def test_recursive_casting():
@@ -300,7 +305,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: List[int] = None) -> List[int]
+            1. (v: list[int] = None) -> list[int]
 
         Invoked with:
     """
@@ -312,7 +317,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: List[int] = None) -> List[int]
+            1. (v: list[int] = None) -> list[int]
 
         Invoked with: None
     """
@@ -367,7 +372,7 @@ def test_issue_1561():
     """check fix for issue #1561"""
     bar = m.Issue1561Outer()
     bar.list = [m.Issue1561Inner("bar")]
-    bar.list
+    assert bar.list
     assert bar.list[0].data == "bar"
 
 

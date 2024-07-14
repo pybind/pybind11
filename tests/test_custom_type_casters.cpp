@@ -134,6 +134,16 @@ struct type_caster<other_lib::MyType> : public other_lib::my_caster {};
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+// This simply is required to compile
+namespace ADL_issue {
+template <typename OutStringType = std::string, typename... Args>
+OutStringType concat(Args &&...) {
+    return OutStringType();
+}
+
+struct test {};
+} // namespace ADL_issue
+
 TEST_SUBMODULE(custom_type_casters, m) {
     // test_custom_type_casters
 
@@ -175,14 +185,10 @@ TEST_SUBMODULE(custom_type_casters, m) {
         py::arg_v(nullptr, ArgInspector1()).noconvert(true),
         py::arg() = ArgAlwaysConverts());
 
-    m.def(
-        "floats_preferred", [](double f) { return 0.5 * f; }, "f"_a);
-    m.def(
-        "floats_only", [](double f) { return 0.5 * f; }, "f"_a.noconvert());
-    m.def(
-        "ints_preferred", [](int i) { return i / 2; }, "i"_a);
-    m.def(
-        "ints_only", [](int i) { return i / 2; }, "i"_a.noconvert());
+    m.def("floats_preferred", [](double f) { return 0.5 * f; }, "f"_a);
+    m.def("floats_only", [](double f) { return 0.5 * f; }, "f"_a.noconvert());
+    m.def("ints_preferred", [](int i) { return i / 2; }, "i"_a);
+    m.def("ints_only", [](int i) { return i / 2; }, "i"_a.noconvert());
 
     // test_custom_caster_destruction
     // Test that `take_ownership` works on types with a custom type caster when given a pointer
@@ -206,4 +212,6 @@ TEST_SUBMODULE(custom_type_casters, m) {
           py::return_value_policy::reference);
 
     m.def("other_lib_type", [](other_lib::MyType x) { return x; });
+
+    m.def("_adl_issue", [](const ADL_issue::test &) {});
 }

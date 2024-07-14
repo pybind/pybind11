@@ -157,7 +157,7 @@ py::array mkarray_via_buffer(size_t n) {
     do {                                                                                          \
         (s).bool_ = (i) % 2 != 0;                                                                 \
         (s).uint_ = (uint32_t) (i);                                                               \
-        (s).float_ = (float) (i) *1.5f;                                                           \
+        (s).float_ = (float) (i) * 1.5f;                                                          \
         (s).ldbl_ = (long double) (i) * -2.5L;                                                    \
     } while (0)
 
@@ -348,7 +348,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // is not a POD type
     struct NotPOD {
         std::string v;
-        NotPOD() : v("hi"){};
+        NotPOD() : v("hi") {};
     };
     PYBIND11_NUMPY_DTYPE(NotPOD, v);
 #endif
@@ -405,10 +405,35 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     });
 
     // test_dtype
+    // Below we use `L` for unsigned long as unfortunately the only name that
+    // works reliably on Both NumPy 2.x and old NumPy 1.x.
     std::vector<const char *> dtype_names{
-        "byte",    "short",   "intc",        "int_",  "longlong",   "ubyte",       "ushort",
-        "uintc",   "uint",    "ulonglong",   "half",  "single",     "double",      "longdouble",
-        "csingle", "cdouble", "clongdouble", "bool_", "datetime64", "timedelta64", "object_"};
+        "byte",
+        "short",
+        "intc",
+        "long",
+        "longlong",
+        "ubyte",
+        "ushort",
+        "uintc",
+        "L",
+        "ulonglong",
+        "half",
+        "single",
+        "double",
+        "longdouble",
+        "csingle",
+        "cdouble",
+        "clongdouble",
+        "bool_",
+        "datetime64",
+        "timedelta64",
+        "object_",
+        // platform dependent aliases (int_ and uint are also NumPy version dependent on windows)
+        "int_",
+        "uint",
+        "intp",
+        "uintp"};
 
     m.def("print_dtypes", []() {
         py::list l;

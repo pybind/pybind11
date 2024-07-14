@@ -86,16 +86,15 @@ inline PyTypeObject *make_static_property_type() {
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
 
-    if (PyType_Ready(type) < 0) {
-        pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
-    }
-
 #    if PY_VERSION_HEX >= 0x030C0000
-    // PRE 3.12 FEATURE FREEZE. PLEASE REVIEW AFTER FREEZE.
     // Since Python-3.12 property-derived types are required to
     // have dynamic attributes (to set `__doc__`)
     enable_dynamic_attributes(heap_type);
 #    endif
+
+    if (PyType_Ready(type) < 0) {
+        pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
+    }
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
@@ -189,12 +188,10 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
         return nullptr;
     }
 
-    // This must be a pybind11 instance
-    auto *instance = reinterpret_cast<detail::instance *>(self);
-
     // Ensure that the base __init__ function(s) were called
-    for (const auto &vh : values_and_holders(instance)) {
-        if (!vh.holder_constructed()) {
+    values_and_holders vhs(self);
+    for (const auto &vh : vhs) {
+        if (!vh.holder_constructed() && !vhs.is_redundant_value_and_holder(vh)) {
             PyErr_Format(PyExc_TypeError,
                          "%.200s.__init__() must be called when overriding __init__",
                          get_fully_qualified_tp_name(vh.type->type).c_str());
@@ -208,39 +205,40 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
 
 /// Cleanup the type-info for a pybind11-registered type.
 extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
-    auto *type = (PyTypeObject *) obj;
-    auto &internals = get_internals();
+    with_internals([obj](internals &internals) {
+        auto *type = (PyTypeObject *) obj;
 
-    // A pybind11-registered type will:
-    // 1) be found in internals.registered_types_py
-    // 2) have exactly one associated `detail::type_info`
-    auto found_type = internals.registered_types_py.find(type);
-    if (found_type != internals.registered_types_py.end() && found_type->second.size() == 1
-        && found_type->second[0]->type == type) {
+        // A pybind11-registered type will:
+        // 1) be found in internals.registered_types_py
+        // 2) have exactly one associated `detail::type_info`
+        auto found_type = internals.registered_types_py.find(type);
+        if (found_type != internals.registered_types_py.end() && found_type->second.size() == 1
+            && found_type->second[0]->type == type) {
 
-        auto *tinfo = found_type->second[0];
-        auto tindex = std::type_index(*tinfo->cpptype);
-        internals.direct_conversions.erase(tindex);
+            auto *tinfo = found_type->second[0];
+            auto tindex = std::type_index(*tinfo->cpptype);
+            internals.direct_conversions.erase(tindex);
 
-        if (tinfo->module_local) {
-            get_local_internals().registered_types_cpp.erase(tindex);
-        } else {
-            internals.registered_types_cpp.erase(tindex);
-        }
-        internals.registered_types_py.erase(tinfo->type);
-
-        // Actually just `std::erase_if`, but that's only available in C++20
-        auto &cache = internals.inactive_override_cache;
-        for (auto it = cache.begin(), last = cache.end(); it != last;) {
-            if (it->first == (PyObject *) tinfo->type) {
-                it = cache.erase(it);
+            if (tinfo->module_local) {
+                get_local_internals().registered_types_cpp.erase(tindex);
             } else {
-                ++it;
+                internals.registered_types_cpp.erase(tindex);
             }
-        }
+            internals.registered_types_py.erase(tinfo->type);
 
-        delete tinfo;
-    }
+            // Actually just `std::erase_if`, but that's only available in C++20
+            auto &cache = internals.inactive_override_cache;
+            for (auto it = cache.begin(), last = cache.end(); it != last;) {
+                if (it->first == (PyObject *) tinfo->type) {
+                    it = cache.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            delete tinfo;
+        }
+    });
 
     PyType_Type.tp_dealloc(obj);
 }
@@ -313,19 +311,20 @@ inline void traverse_offset_bases(void *valueptr,
 }
 
 inline bool register_instance_impl(void *ptr, instance *self) {
-    get_internals().registered_instances.emplace(ptr, self);
+    with_instance_map(ptr, [&](instance_map &instances) { instances.emplace(ptr, self); });
     return true; // unused, but gives the same signature as the deregister func
 }
 inline bool deregister_instance_impl(void *ptr, instance *self) {
-    auto &registered_instances = get_internals().registered_instances;
-    auto range = registered_instances.equal_range(ptr);
-    for (auto it = range.first; it != range.second; ++it) {
-        if (self == it->second) {
-            registered_instances.erase(it);
-            return true;
+    return with_instance_map(ptr, [&](instance_map &instances) {
+        auto range = instances.equal_range(ptr);
+        for (auto it = range.first; it != range.second; ++it) {
+            if (self == it->second) {
+                instances.erase(it);
+                return true;
+            }
         }
-    }
-    return false;
+        return false;
+    });
 }
 
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo) {
@@ -375,28 +374,37 @@ extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, 
 extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
     PyTypeObject *type = Py_TYPE(self);
     std::string msg = get_fully_qualified_tp_name(type) + ": No constructor defined!";
-    PyErr_SetString(PyExc_TypeError, msg.c_str());
+    set_error(PyExc_TypeError, msg.c_str());
     return -1;
 }
 
 inline void add_patient(PyObject *nurse, PyObject *patient) {
-    auto &internals = get_internals();
     auto *instance = reinterpret_cast<detail::instance *>(nurse);
     instance->has_patients = true;
     Py_INCREF(patient);
-    internals.patients[nurse].push_back(patient);
+
+    with_internals([&](internals &internals) { internals.patients[nurse].push_back(patient); });
 }
 
 inline void clear_patients(PyObject *self) {
     auto *instance = reinterpret_cast<detail::instance *>(self);
-    auto &internals = get_internals();
-    auto pos = internals.patients.find(self);
-    assert(pos != internals.patients.end());
-    // Clearing the patients can cause more Python code to run, which
-    // can invalidate the iterator. Extract the vector of patients
-    // from the unordered_map first.
-    auto patients = std::move(pos->second);
-    internals.patients.erase(pos);
+    std::vector<PyObject *> patients;
+
+    with_internals([&](internals &internals) {
+        auto pos = internals.patients.find(self);
+
+        if (pos == internals.patients.end()) {
+            pybind11_fail(
+                "FATAL: Internal consistency check failed: Invalid clear_patients() call.");
+        }
+
+        // Clearing the patients can cause more Python code to run, which
+        // can invalidate the iterator. Extract the vector of patients
+        // from the unordered_map first.
+        patients = std::move(pos->second);
+        internals.patients.erase(pos);
+    });
+
     instance->has_patients = false;
     for (PyObject *&patient : patients) {
         Py_CLEAR(patient);
@@ -522,8 +530,12 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
 
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
 extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_VisitManagedDict(self, visit, arg);
+#else
     PyObject *&dict = *_PyObject_GetDictPtr(self);
     Py_VISIT(dict);
+#endif
 // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
 #if PY_VERSION_HEX >= 0x03090000
     Py_VISIT(Py_TYPE(self));
@@ -533,8 +545,12 @@ extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *a
 
 /// dynamic_attr: Allow the GC to clear the dictionary.
 extern "C" inline int pybind11_clear(PyObject *self) {
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_ClearManagedDict(self);
+#else
     PyObject *&dict = *_PyObject_GetDictPtr(self);
     Py_CLEAR(dict);
+#endif
     return 0;
 }
 
@@ -551,17 +567,9 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
 
-    static PyGetSetDef getset[] = {{
-#if PY_VERSION_HEX < 0x03070000
-                                       const_cast<char *>("__dict__"),
-#else
-                                       "__dict__",
-#endif
-                                       PyObject_GenericGetDict,
-                                       PyObject_GenericSetDict,
-                                       nullptr,
-                                       nullptr},
-                                   {nullptr, nullptr, nullptr, nullptr, nullptr}};
+    static PyGetSetDef getset[]
+        = {{"__dict__", PyObject_GenericGetDict, PyObject_GenericSetDict, nullptr, nullptr},
+           {nullptr, nullptr, nullptr, nullptr, nullptr}};
     type->tp_getset = getset;
 }
 
@@ -579,7 +587,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         if (view) {
             view->obj = nullptr;
         }
-        PyErr_SetString(PyExc_BufferError, "pybind11_getbuffer(): Internal error");
+        set_error(PyExc_BufferError, "pybind11_getbuffer(): Internal error");
         return -1;
     }
     std::memset(view, 0, sizeof(Py_buffer));
@@ -587,7 +595,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
         delete info;
         // view->obj = nullptr;  // Was just memset to 0, so not necessary
-        PyErr_SetString(PyExc_BufferError, "Writable buffer requested for readonly storage");
+        set_error(PyExc_BufferError, "Writable buffer requested for readonly storage");
         return -1;
     }
     view->obj = obj;
@@ -653,10 +661,13 @@ inline PyObject *make_new_python_type(const type_record &rec) {
 
     char *tp_doc = nullptr;
     if (rec.doc && options::show_user_defined_docstrings()) {
-        /* Allocate memory for docstring (using PyObject_MALLOC, since
-           Python will free this later on) */
+        /* Allocate memory for docstring (Python will free this later on) */
         size_t size = std::strlen(rec.doc) + 1;
+#if PY_VERSION_HEX >= 0x030D0000
+        tp_doc = (char *) PyMem_MALLOC(size);
+#else
         tp_doc = (char *) PyObject_MALLOC(size);
+#endif
         std::memcpy((void *) tp_doc, rec.doc, size);
     }
 

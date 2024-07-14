@@ -95,7 +95,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     } // 𝐀, utf16
     else {
         wstr.push_back((wchar_t) mathbfA32);
-    }                     // 𝐀, utf32
+    } // 𝐀, utf32
     wstr.push_back(0x7a); // z
 
     m.def("good_utf8_string", []() {
@@ -104,10 +104,9 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("good_utf16_string", [=]() {
         return std::u16string({b16, ib16, cake16_1, cake16_2, mathbfA16_1, mathbfA16_2, z16});
     }); // b‽🎂𝐀z
-    m.def("good_utf32_string", [=]() {
-        return std::u32string({a32, mathbfA32, cake32, ib32, z32});
-    });                                                 // a𝐀🎂‽z
-    m.def("good_wchar_string", [=]() { return wstr; }); // a‽𝐀z
+    m.def("good_utf32_string",
+          [=]() { return std::u32string({a32, mathbfA32, cake32, ib32, z32}); }); // a𝐀🎂‽z
+    m.def("good_wchar_string", [=]() { return wstr; });                           // a‽𝐀z
     m.def("bad_utf8_string", []() {
         return std::string("abc\xd0"
                            "def");
@@ -117,9 +116,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     // UnicodeDecodeError
     m.def("bad_utf32_string", [=]() { return std::u32string({a32, char32_t(0xd800), z32}); });
     if (sizeof(wchar_t) == 2) {
-        m.def("bad_wchar_string", [=]() {
-            return std::wstring({wchar_t(0x61), wchar_t(0xd800)});
-        });
+        m.def("bad_wchar_string",
+              [=]() { return std::wstring({wchar_t(0x61), wchar_t(0xd800)}); });
     }
     m.def("u8_Z", []() -> char { return 'Z'; });
     m.def("u8_eacute", []() -> char { return '\xe9'; });
@@ -236,8 +234,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_int_convert
     m.def("int_passthrough", [](int arg) { return arg; });
-    m.def(
-        "int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
+    m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
 
     // test_tuple
     m.def(
@@ -302,8 +299,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_bool_caster
     m.def("bool_passthrough", [](bool arg) { return arg; });
-    m.def(
-        "bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg{}.noconvert());
+    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg{}.noconvert());
 
     // TODO: This should be disabled and fixed in future Intel compilers
 #if !defined(__INTEL_COMPILER)
@@ -311,8 +307,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     // When compiled with the Intel compiler, this results in segmentation faults when importing
     // the module. Tested with icc (ICC) 2021.1 Beta 20200827, this should be tested again when
     // a newer version of icc is available.
-    m.def(
-        "bool_passthrough_noconvert2", [](bool arg) { return arg; }, py::arg().noconvert());
+    m.def("bool_passthrough_noconvert2", [](bool arg) { return arg; }, py::arg().noconvert());
 #endif
 
     // test_reference_wrapper

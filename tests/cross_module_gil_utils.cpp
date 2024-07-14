@@ -92,6 +92,9 @@ extern "C" PYBIND11_EXPORT PyObject *PyInit_cross_module_gil_utils() {
     if (m != nullptr) {
         static_assert(sizeof(&gil_acquire) == sizeof(void *),
                       "Function pointer must have the same size as void*");
+#ifdef Py_GIL_DISABLED
+        PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
+#endif
         ADD_FUNCTION("gil_acquire_funcaddr", gil_acquire)
         ADD_FUNCTION("gil_multi_acquire_release_funcaddr", gil_multi_acquire_release)
         ADD_FUNCTION("gil_acquire_inner_custom_funcaddr",

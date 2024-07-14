@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import kwargs_and_defaults as m
@@ -8,7 +10,7 @@ def test_function_signatures(doc):
     assert doc(m.kw_func1) == "kw_func1(x: int, y: int) -> str"
     assert doc(m.kw_func2) == "kw_func2(x: int = 100, y: int = 200) -> str"
     assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
-    assert doc(m.kw_func4) == "kw_func4(myList: List[int] = [13, 17]) -> str"
+    assert doc(m.kw_func4) == "kw_func4(myList: list[int] = [13, 17]) -> str"
     assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int = 300) -> str"
     assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int = 0) -> str"
     assert doc(m.args_function) == "args_function(*args) -> tuple"
@@ -22,6 +24,42 @@ def test_function_signatures(doc):
     assert (
         doc(m.KWClass.foo1)
         == "foo1(self: m.kwargs_and_defaults.KWClass, x: int, y: float) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func0)
+        == "kw_lb_func0(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func1)
+        == "kw_lb_func1(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func2)
+        == "kw_lb_func2(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func3)
+        == "kw_lb_func3(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func4)
+        == "kw_lb_func4(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func5)
+        == "kw_lb_func5(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func6)
+        == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
+    )
+    assert (
+        doc(m.kw_lb_func7)
+        == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
+    )
+    assert (
+        doc(m.kw_lb_func8)
+        == "kw_lb_func8(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
     )
 
 
@@ -345,7 +383,7 @@ def test_args_refcount():
     arguments"""
     refcount = m.arg_refcount_h
 
-    myval = 54321
+    myval = object()
     expected = refcount(myval)
     assert m.arg_refcount_h(myval) == expected
     assert m.arg_refcount_o(myval) == expected + 1
@@ -384,6 +422,7 @@ def test_args_refcount():
     # for the `py::args`; in the previous case, we could simply inc_ref and pass on Python's input
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
-    assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
+    exp3_3 = exp3 + 3
+    assert m.mixed_args_refcount(myval, myval, myval) == (exp3_3, exp3_3, exp3_3)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"

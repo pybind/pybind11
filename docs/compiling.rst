@@ -3,15 +3,123 @@
 Build systems
 #############
 
+For an overview of Python packaging including compiled packaging with a pybind11
+example, along with a cookiecutter that includes several pybind11 options, see
+the `Scientific Python Development Guide`_.
+
+.. _Scientific Python Development Guide: https://learn.scientific-python.org/development/guides/packaging-compiled/
+
+.. scikit-build-core:
+
+Modules with CMake
+==================
+
+A Python extension module can be created with just a few lines of code:
+
+.. code-block:: cmake
+
+    cmake_minimum_required(VERSION 3.15...3.29)
+    project(example LANGUAGES CXX)
+
+    set(PYBIND11_FINDPYTHON ON)
+    find_package(pybind11 CONFIG REQUIRED)
+
+    pybind11_add_module(example example.cpp)
+    install(TARGET example DESTINATION .)
+
+(You use the ``add_subdirectory`` instead, see the example in :ref:`cmake`.) In
+this example, the code is located in a file named :file:`example.cpp`.  Either
+method will import the pybind11 project which provides the
+``pybind11_add_module`` function. It will take care of all the details needed
+to build a Python extension module on any platform.
+
+To build with pip, build, cibuildwheel, uv, or other Python tools, you can
+add a ``pyproject.toml`` file like this:
+
+.. code-block:: toml
+
+    [build-system]
+    requires = ["scikit-build-core", "pybind11"]
+    build-backend = "scikit_build_core.build"
+
+    [project]
+    name = "example"
+    version = "0.1.0"
+
+You don't need setuptools files like ``MANIFEST.in``, ``setup.py``, or
+``setup.cfg``, as this is not setuptools. See `scikit-build-core`_ for details.
+For projects you plan to upload to PyPI, be sure to fill out the ``[project]``
+table with other important metadata as well (see `Writing pyproject.toml`_).
+
+A working sample project can be found in the [scikit_build_example]_
+repository. An older and harder-to-maintain method is in [cmake_example]_. More
+details about our cmake support can be found below in :ref:`cmake`.
+
+.. _scikit-build-core: https://scikit-build-core.readthedocs.io
+
+.. [scikit_build_example] https://github.com/pybind/scikit_build_example
+
+.. [cmake_example] https://github.com/pybind/cmake_example
+
+.. _modules-meson-python:
+
+Modules with meson-python
+=========================
+
+You can also build a package with `Meson`_ using `meson-python`_, if you prefer
+that. Your ``meson.build`` file would look something like this:
+
+.. _meson-example:
+
+.. code-block:: meson
+
+   project(
+       'example',
+       'cpp',
+       version: '0.1.0',
+       default_options: [
+           'cpp_std=c++11',
+       ],
+   )
+
+   py = import('python').find_installation(pure: false)
+   pybind11_dep = dependency('pybind11')
+
+   py.extension_module('example',
+       'example.cpp',
+       install: true,
+       dependencies : [pybind11_dep],
+   )
+
+
+And you would need a ``pyproject.toml`` file like this:
+
+.. code-block:: toml
+
+   [build-system]
+   requires = ["meson-python", "pybind11"]
+   build-backend = "mesonpy"
+
+Meson-python *requires* your project to be in git (or mercurial) as it uses it
+for the SDist creation. For projects you plan to upload to PyPI, be sure to fill out the
+``[project]`` table as well (see `Writing pyproject.toml`_).
+
+
+.. _Writing pyproject.toml: https://packaging.python.org/en/latest/guides/writing-pyproject-toml
+
+.. _meson: https://mesonbuild.com
+
+.. _meson-python: https://meson-python.readthedocs.io/en/latest
+
 .. _build-setuptools:
 
-Building with setuptools
-========================
+Modules with setuptools
+=======================
 
-For projects on PyPI, building with setuptools is the way to go. Sylvain Corlay
-has kindly provided an example project which shows how to set up everything,
-including automatic generation of documentation using Sphinx. Please refer to
-the [python_example]_ repository.
+For projects on PyPI, a historically popular option is setuptools. Sylvain
+Corlay has kindly provided an example project which shows how to set up
+everything, including automatic generation of documentation using Sphinx.
+Please refer to the [python_example]_ repository.
 
 .. [python_example] https://github.com/pybind/python_example
 
@@ -21,11 +129,11 @@ To use pybind11 inside your ``setup.py``, you have to have some system to
 ensure that ``pybind11`` is installed when you build your package. There are
 four possible ways to do this, and pybind11 supports all four: You can ask all
 users to install pybind11 beforehand (bad), you can use
-:ref:`setup_helpers-pep518` (good, but very new and requires Pip 10),
-:ref:`setup_helpers-setup_requires` (discouraged by Python packagers now that
-PEP 518 is available, but it still works everywhere), or you can
-:ref:`setup_helpers-copy-manually` (always works but you have to manually sync
-your copy to get updates).
+:ref:`setup_helpers-pep518` (good), ``setup_requires=`` (discouraged), or you
+can :ref:`setup_helpers-copy-manually` (works but you have to manually sync
+your copy to get updates). Third party packagers like conda-forge generally
+strongly prefer the ``pyproject.toml`` method, as it gives them control over
+the ``pybind11`` version, and they may apply patches, etc.
 
 An example of a ``setup.py`` using pybind11's helpers:
 
@@ -122,70 +230,41 @@ version number that includes the number of commits since your last tag and a
 hash for a dirty directory. Another way to force a rebuild is purge your cache
 or use Pip's ``--no-cache-dir`` option.
 
+You also need a ``MANIFEST.in`` file to include all relevant files so that you
+can make an SDist. If you use `pypa-build`_, that will build an SDist then a
+wheel from that SDist by default, so you can look inside those files (wheels
+are just zip files with a ``.whl`` extension) to make sure you aren't missing
+files.  `check-manifest`_ (setuptools specific) or `check-sdist`_ (general) are
+CLI tools that can compare the SDist contents with your source control.
+
 .. [Ccache] https://ccache.dev
 
 .. [setuptools_scm] https://github.com/pypa/setuptools_scm
 
 .. _setup_helpers-pep518:
 
-PEP 518 requirements (Pip 10+ required)
----------------------------------------
+Build requirements
+------------------
 
-If you use `PEP 518's <https://www.python.org/dev/peps/pep-0518/>`_
-``pyproject.toml`` file, you can ensure that ``pybind11`` is available during
-the compilation of your project.  When this file exists, Pip will make a new
-virtual environment, download just the packages listed here in ``requires=``,
-and build a wheel (binary Python package). It will then throw away the
-environment, and install your wheel.
+With a ``pyproject.toml`` file, you can ensure that ``pybind11`` is available
+during the compilation of your project.  When this file exists, Pip will make a
+new virtual environment, download just the packages listed here in
+``requires=``, and build a wheel (binary Python package). It will then throw
+away the environment, and install your wheel.
 
 Your ``pyproject.toml`` file will likely look something like this:
 
 .. code-block:: toml
 
     [build-system]
-    requires = ["setuptools>=42", "wheel", "pybind11~=2.6.1"]
+    requires = ["setuptools", "pybind11"]
     build-backend = "setuptools.build_meta"
 
-.. note::
-
-    The main drawback to this method is that a `PEP 517`_ compliant build tool,
-    such as Pip 10+, is required for this approach to work; older versions of
-    Pip completely ignore this file. If you distribute binaries (called wheels
-    in Python) using something like `cibuildwheel`_, remember that ``setup.py``
-    and ``pyproject.toml`` are not even contained in the wheel, so this high
-    Pip requirement is only for source builds, and will not affect users of
-    your binary wheels. If you are building SDists and wheels, then
-    `pypa-build`_ is the recommended official tool.
-
 .. _PEP 517: https://www.python.org/dev/peps/pep-0517/
-.. _cibuildwheel: https://cibuildwheel.readthedocs.io
-.. _pypa-build: https://pypa-build.readthedocs.io/en/latest/
-
-.. _setup_helpers-setup_requires:
-
-Classic ``setup_requires``
---------------------------
-
-If you want to support old versions of Pip with the classic
-``setup_requires=["pybind11"]`` keyword argument to setup, which triggers a
-two-phase ``setup.py`` run, then you will need to use something like this to
-ensure the first pass works (which has not yet installed the ``setup_requires``
-packages, since it can't install something it does not know about):
-
-.. code-block:: python
-
-    try:
-        from pybind11.setup_helpers import Pybind11Extension
-    except ImportError:
-        from setuptools import Extension as Pybind11Extension
-
-
-It doesn't matter that the Extension class is not the enhanced subclass for the
-first pass run; and the second pass will have the ``setup_requires``
-requirements.
-
-This is obviously more of a hack than the PEP 518 method, but it supports
-ancient versions of Pip.
+.. _cibuildwheel: https://cibuildwheel.pypa.io
+.. _pypa-build: https://build.pypa.io/en/latest/
+.. _check-manifest: https://pypi.io/project/check-manifest
+.. _check-sdist: https://pypi.io/project/check-sdist
 
 .. _setup_helpers-copy-manually:
 
@@ -231,35 +310,29 @@ the C++ source file. Python is then able to find the module and load it.
 
 .. [cppimport] https://github.com/tbenthompson/cppimport
 
+
+
 .. _cmake:
 
 Building with CMake
 ===================
 
 For C++ codebases that have an existing CMake-based build system, a Python
-extension module can be created with just a few lines of code:
+extension module can be created with just a few lines of code, as seen above in
+the module section. Pybind11 currently supports a lower minimum if you don't
+use the modern FindPython, though be aware that CMake 3.27 removed the old
+mechanism, so pybind11 will automatically switch if the old mechanism is not
+available. Please opt into the new mechanism if at all possible. Our default
+may change in future versions. This is the minimum required:
 
-.. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4...3.18)
-    project(example LANGUAGES CXX)
-
-    add_subdirectory(pybind11)
-    pybind11_add_module(example example.cpp)
-
-This assumes that the pybind11 repository is located in a subdirectory named
-:file:`pybind11` and that the code is located in a file named :file:`example.cpp`.
-The CMake command ``add_subdirectory`` will import the pybind11 project which
-provides the ``pybind11_add_module`` function. It will take care of all the
-details needed to build a Python extension module on any platform.
-
-A working sample project, including a way to invoke CMake from :file:`setup.py` for
-PyPI integration, can be found in the [cmake_example]_  repository.
-
-.. [cmake_example] https://github.com/pybind/cmake_example
 
 .. versionchanged:: 2.6
    CMake 3.4+ is required.
+
+.. versionchanged:: 2.11
+   CMake 3.5+ is required.
+
 
 Further information can be found at :doc:`cmake/index`.
 
@@ -353,7 +426,7 @@ with ``PYTHON_EXECUTABLE``.  For example:
 
 .. code-block:: bash
 
-    cmake -DPYBIND11_PYTHON_VERSION=3.6 ..
+    cmake -DPYBIND11_PYTHON_VERSION=3.7 ..
 
     # Another method:
     cmake -DPYTHON_EXECUTABLE=/path/to/python ..
@@ -420,7 +493,7 @@ existing targets instead:
     cmake_minimum_required(VERSION 3.15...3.22)
     project(example LANGUAGES CXX)
 
-    find_package(Python 3.6 COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
@@ -495,7 +568,7 @@ You can use these targets to build complex applications. For example, the
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4)
+    cmake_minimum_required(VERSION 3.5...3.29)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -553,7 +626,7 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4...3.18)
+    cmake_minimum_required(VERSION 3.5...3.29)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -613,6 +686,13 @@ Building with Bazel
 You can build with the Bazel build system using the `pybind11_bazel
 <https://github.com/pybind/pybind11_bazel>`_ repository.
 
+Building with Meson
+===================
+
+You can use Meson, which has support for ``pybind11`` as a dependency (internally
+relying on our ``pkg-config`` support). See the :ref:`module example above <meson-example>`.
+
+
 Generating binding code automatically
 =====================================
 
@@ -636,3 +716,11 @@ cross-project dependency management. Additionally, it is able to autogenerate
 customizable pybind11-based wrappers by parsing C++ header files.
 
 .. [robotpy-build] https://robotpy-build.readthedocs.io
+
+[litgen]_ is an automatic python bindings generator with a focus on generating
+documented and discoverable bindings: bindings will nicely reproduce the documentation
+found in headers. It is is based on srcML (srcml.org), a highly scalable, multi-language
+parsing tool with a developer centric approach. The API that you want to expose to python
+must be C++14 compatible (but your implementation can use more modern constructs).
+
+.. [litgen] https://pthom.github.io/litgen

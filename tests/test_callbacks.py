@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from threading import Thread
 
@@ -216,3 +218,10 @@ def test_custom_func():
 def test_custom_func2():
     assert m.custom_function2(3) == 27
     assert m.roundtrip(m.custom_function2)(3) == 27
+
+
+def test_callback_docstring():
+    assert (
+        m.test_tuple_unpacking.__doc__.strip()
+        == "test_tuple_unpacking(arg0: Callable) -> object"
+    )

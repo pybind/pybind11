@@ -63,7 +63,9 @@ Modes
 
 There are two modes provided; classic, which is built on the old Python
 discovery packages in CMake, or the new FindPython mode, which uses FindPython
-from 3.12+ forward (3.15+ _highly_ recommended).
+from 3.12+ forward (3.15+ _highly_ recommended). If you set the minimum or
+maximum version of CMake to 3.27+, then FindPython is the default (since
+FindPythonInterp/FindPythonLibs has been removed via policy `CMP0148`).
 
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^
@@ -147,7 +149,7 @@ default is ``MODULE``. There are several options:
 ``OPT_SIZE``
   Optimize for size, even if the ``CMAKE_BUILD_TYPE`` is not ``MinSizeRel``.
 ``THIN_LTO``
-  Use thin TLO instead of regular if there's a choice (pybind11's selection
+  Use thin LTO instead of regular if there's a choice (pybind11's selection
   is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
 ``WITHOUT_SOABI``
   Disable the SOABI component (``PYBIND11_NEWPYTHON`` mode only).

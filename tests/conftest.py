@@ -4,12 +4,14 @@ Extends output capture as needed by pybind11: ignore constructors, optional unor
 Adds docstring and exceptions message sanitizers.
 """
 
+from __future__ import annotations
+
 import contextlib
 import difflib
 import gc
 import multiprocessing
-import os
 import re
+import sys
 import textwrap
 import traceback
 
@@ -25,8 +27,9 @@ except Exception:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def always_forkserver_on_unix():
-    if os.name == "nt":
+def use_multiprocessing_forkserver_on_linux():
+    if sys.platform != "linux":
+        # The default on Windows and macOS is "spawn": If it's not broken, don't fix it.
         return
 
     # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
@@ -34,8 +37,6 @@ def always_forkserver_on_unix():
     # It is actually a well-known pitfall, unfortunately without guard rails.
     # "forkserver" is more performant than "spawn" (~9s vs ~13s for tests/test_gil_scoped.py,
     # visit the issuecomment link above for details).
-    # Windows does not have fork() and the associated pitfall, therefore it is best left
-    # running with defaults.
     multiprocessing.set_start_method("forkserver")
 
 
@@ -219,4 +220,5 @@ def pytest_report_header(config):
         f" {pybind11_tests.cpp_std}"
         f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
         f" PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}"
+        f" PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}"
     )

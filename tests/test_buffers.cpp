@@ -7,12 +7,47 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
 TEST_SUBMODULE(buffers, m) {
+    m.attr("long_double_and_double_have_same_size") = (sizeof(long double) == sizeof(double));
+
+    m.def("format_descriptor_format_buffer_info_equiv",
+          [](const std::string &cpp_name, const py::buffer &buffer) {
+              // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+              static auto *format_table = new std::map<std::string, std::string>;
+              static auto *equiv_table
+                  = new std::map<std::string, bool (py::buffer_info::*)() const>;
+              if (format_table->empty()) {
+#define PYBIND11_ASSIGN_HELPER(...)                                                               \
+    (*format_table)[#__VA_ARGS__] = py::format_descriptor<__VA_ARGS__>::format();                 \
+    (*equiv_table)[#__VA_ARGS__] = &py::buffer_info::item_type_is_equivalent_to<__VA_ARGS__>;
+                  PYBIND11_ASSIGN_HELPER(PyObject *)
+                  PYBIND11_ASSIGN_HELPER(bool)
+                  PYBIND11_ASSIGN_HELPER(std::int8_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint8_t)
+                  PYBIND11_ASSIGN_HELPER(std::int16_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint16_t)
+                  PYBIND11_ASSIGN_HELPER(std::int32_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint32_t)
+                  PYBIND11_ASSIGN_HELPER(std::int64_t)
+                  PYBIND11_ASSIGN_HELPER(std::uint64_t)
+                  PYBIND11_ASSIGN_HELPER(float)
+                  PYBIND11_ASSIGN_HELPER(double)
+                  PYBIND11_ASSIGN_HELPER(long double)
+                  PYBIND11_ASSIGN_HELPER(std::complex<float>)
+                  PYBIND11_ASSIGN_HELPER(std::complex<double>)
+                  PYBIND11_ASSIGN_HELPER(std::complex<long double>)
+#undef PYBIND11_ASSIGN_HELPER
+              }
+              return std::pair<std::string, bool>(
+                  (*format_table)[cpp_name], (buffer.request().*((*equiv_table)[cpp_name]))());
+          });
+
     // test_from_python / test_to_python:
     class Matrix {
     public:

@@ -63,10 +63,8 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
         .def_static("staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
 
-    m.def(
-        "free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
-    m.def(
-        "invalid_arg_index", [] {}, py::keep_alive<0, 1>());
+    m.def("free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
+    m.def("invalid_arg_index", [] {}, py::keep_alive<0, 1>());
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc
@@ -97,7 +95,7 @@ TEST_SUBMODULE(call_policies, m) {
         },
         py::call_guard<DependentGuard, CustomGuard>());
 
-#if defined(WITH_THREAD) && !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION)
     // `py::call_guard<py::gil_scoped_release>()` should work in PyPy as well,
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
     auto report_gil_status = []() {

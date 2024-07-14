@@ -1,9 +1,11 @@
 # pylint: disable=missing-function-docstring
+from __future__ import annotations
 
 import argparse
 import sys
 import sysconfig
 
+from ._version import __version__
 from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
 
 
@@ -25,6 +27,12 @@ def print_includes() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=__version__,
+        help="Print the version and exit.",
+    )
     parser.add_argument(
         "--includes",
         action="store_true",

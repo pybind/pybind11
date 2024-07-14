@@ -34,12 +34,12 @@ dependency.
 Think of this library as a tiny self-contained version of Boost.Python
 with everything stripped away that isn't relevant for binding
 generation. Without comments, the core header files only require ~4K
-lines of code and depend on Python (3.6+, or PyPy) and the C++
+lines of code and depend on Python (3.7+, or PyPy) and the C++
 standard library. This compact implementation was possible thanks to
-some of the new C++11 language features (specifically: tuples, lambda
-functions and variadic templates). Since its creation, this library has
-grown beyond Boost.Python in many ways, leading to dramatically simpler
-binding code in many common situations.
+some C++11 language features (specifically: tuples, lambda functions and
+variadic templates). Since its creation, this library has grown beyond
+Boost.Python in many ways, leading to dramatically simpler binding code in many
+common situations.
 
 Tutorial and reference documentation is provided at
 `pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_.
@@ -71,6 +71,7 @@ pybind11 can map the following core C++ features to Python:
 - Internal references with correct reference counting
 - C++ classes with virtual (and pure virtual) methods can be extended
   in Python
+- Integrated NumPy support (NumPy 2 requires pybind11 2.12+)
 
 Goodies
 -------
@@ -78,7 +79,7 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- Python 3.6+, and PyPy3 7.3 are supported with an implementation-agnostic
+- Python 3.7+, and PyPy3 7.3 are supported with an implementation-agnostic
   interface (pybind11 2.9 was the last version to support Python 2 and 3.5).
 
 - It is possible to bind C++11 lambda functions with captured
@@ -135,7 +136,7 @@ This project was created by `Wenzel
 Jakob <http://rgl.epfl.ch/people/wjakob>`_. Significant features and/or
 improvements to the code were contributed by Jonas Adler, Lori A. Burns,
 Sylvain Corlay, Eric Cousineau, Aaron Gokaslan, Ralf Grosse-Kunstleve, Trent Houliston, Axel
-Huebl, @hulucc, Yannick Jadoul, Sergey Lyskov Johan Mabille, Tomasz Miąsko,
+Huebl, @hulucc, Yannick Jadoul, Sergey Lyskov, Johan Mabille, Tomasz Miąsko,
 Dean Moldovan, Ben Pritchard, Jason Rhinelander, Boris Schäling, Pim
 Schellart, Henry Schreiner, Ivan Smirnov, Boris Staletic, and Patrick Stewart.
 
