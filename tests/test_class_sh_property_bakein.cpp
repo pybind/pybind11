@@ -1,9 +1,11 @@
 #include "pybind11_tests.h"
 
+#include <cstring>
+
 namespace test_class_sh_property_bakein {
 
 struct WithCharArrayMember {
-    WithCharArrayMember() { std::strcpy(char6_member, "Char6"); }
+    WithCharArrayMember() { std::memcpy(char6_member, "Char6", 6); }
     char char6_member[6];
 };
 
