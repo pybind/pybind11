@@ -1636,7 +1636,7 @@ struct property_cpp_function<
     D,
     detail::enable_if_t<
         detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
-                       std::is_base_of<detail::type_caster_base<D>, detail::type_caster<D>>,
+                       std::is_base_of<detail::type_caster_base<D>, detail::make_caster<D>>,
                        std::is_pointer<D>>::value>> {
 
     using drp = typename std::remove_pointer<D>::type;
@@ -1686,6 +1686,7 @@ struct property_cpp_function<
         detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
                        std::is_base_of<detail::type_caster_base<D>, detail::type_caster<D>>,
                        detail::none_of<std::is_pointer<D>,
+                                       std::is_array<D>,
                                        detail::is_instantiation<std::unique_ptr, D>,
                                        detail::is_instantiation<std::shared_ptr, D>>>::value>> {
 
