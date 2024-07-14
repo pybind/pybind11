@@ -1635,8 +1635,8 @@ struct property_cpp_function<
     T,
     D,
     detail::enable_if_t<
-        detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
-                       std::is_base_of<detail::type_caster_base<D>, detail::make_caster<D>>,
+        detail::all_of<std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>,
+                       std::is_base_of<detail::type_caster_generic, detail::make_caster<D>>,
                        std::is_pointer<D>>::value>> {
 
     using drp = typename std::remove_pointer<D>::type;
@@ -1683,8 +1683,8 @@ struct property_cpp_function<
     T,
     D,
     detail::enable_if_t<
-        detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
-                       std::is_base_of<detail::type_caster_base<D>, detail::type_caster<D>>,
+        detail::all_of<std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>,
+                       std::is_base_of<detail::type_caster_generic, detail::make_caster<D>>,
                        detail::none_of<std::is_pointer<D>,
                                        std::is_array<D>,
                                        detail::is_instantiation<std::unique_ptr, D>,
@@ -1743,10 +1743,10 @@ struct property_cpp_function<
     T,
     D,
     detail::enable_if_t<
-        detail::all_of<std::is_base_of<detail::type_caster_base<T>, detail::type_caster<T>>,
+        detail::all_of<std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>,
                        detail::is_instantiation<std::unique_ptr, D>,
-                       std::is_base_of<detail::type_caster_base<typename D::element_type>,
-                                       detail::type_caster<typename D::element_type>>>::value>> {
+                       std::is_base_of<detail::type_caster_generic,
+                                       detail::make_caster<typename D::element_type>>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
