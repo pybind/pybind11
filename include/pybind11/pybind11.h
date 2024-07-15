@@ -1623,6 +1623,23 @@ struct property_cpp_function {
     }
 };
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T, typename D, typename SFINAE = void>
+struct both_t_and_d_use_type_caster_base : std::false_type {};
+
+// `T` is assumed to be equivalent to `intrinsic_t<T>`.
+// `D` is not.
+template <typename T, typename D>
+struct both_t_and_d_use_type_caster_base<
+    T,
+    D,
+    enable_if_t<all_of<std::is_base_of<type_caster_base<T>, type_caster<T>>,
+                       std::is_base_of<type_caster_base<intrinsic_t<D>>, make_caster<D>>>::value>>
+    : std::true_type {};
+
+PYBIND11_NAMESPACE_END(detail)
+
 // BAKEIN_WIP: Rewrite comment.
 // smart_holder specializations for raw pointer members.
 // WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
@@ -1634,10 +1651,8 @@ template <typename T, typename D>
 struct property_cpp_function<
     T,
     D,
-    detail::enable_if_t<
-        detail::all_of<std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>,
-                       std::is_base_of<detail::type_caster_generic, detail::make_caster<D>>,
-                       std::is_pointer<D>>::value>> {
+    detail::enable_if_t<detail::all_of<std::is_pointer<D>,
+                                       detail::both_t_and_d_use_type_caster_base<T, D>>::value>> {
 
     using drp = typename std::remove_pointer<D>::type;
 
@@ -1679,16 +1694,14 @@ struct property_cpp_function<
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
 // This prevents disowning of the Python object owning the member.
 template <typename T, typename D>
-struct property_cpp_function<
-    T,
-    D,
-    detail::enable_if_t<
-        detail::all_of<std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>,
-                       std::is_base_of<detail::type_caster_generic, detail::make_caster<D>>,
-                       detail::none_of<std::is_pointer<D>,
-                                       std::is_array<D>,
-                                       detail::is_instantiation<std::unique_ptr, D>,
-                                       detail::is_instantiation<std::shared_ptr, D>>>::value>> {
+struct property_cpp_function<T,
+                             D,
+                             detail::enable_if_t<detail::all_of<
+                                 detail::none_of<std::is_pointer<D>,
+                                                 std::is_array<D>,
+                                                 detail::is_instantiation<std::unique_ptr, D>,
+                                                 detail::is_instantiation<std::shared_ptr, D>>,
+                                 detail::both_t_and_d_use_type_caster_base<T, D>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
@@ -1742,11 +1755,9 @@ template <typename T, typename D>
 struct property_cpp_function<
     T,
     D,
-    detail::enable_if_t<
-        detail::all_of<std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>,
-                       detail::is_instantiation<std::unique_ptr, D>,
-                       std::is_base_of<detail::type_caster_generic,
-                                       detail::make_caster<typename D::element_type>>>::value>> {
+    detail::enable_if_t<detail::all_of<
+        detail::is_instantiation<std::unique_ptr, D>,
+        detail::both_t_and_d_use_type_caster_base<T, typename D::element_type>>::value>> {
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
