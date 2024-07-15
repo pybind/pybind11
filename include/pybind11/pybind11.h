@@ -1586,6 +1586,8 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
 // Helper for the property_cpp_function static member functions below.
 // The only purpose of these functions is to support .def_readonly & .def_readwrite.
 // In this context, the PM template parameter is certain to be a Pointer to a Member.
@@ -1593,8 +1595,9 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
 // against accidents. As a side-effect, it also explains why the syntactical overhead for
 // perfect forwarding is not needed.
 template <typename PM>
-using must_be_member_function_pointer
-    = detail::enable_if_t<std::is_member_pointer<PM>::value, int>;
+using must_be_member_function_pointer = enable_if_t<std::is_member_pointer<PM>::value, int>;
+
+PYBIND11_NAMESPACE_END(detail)
 
 // Note that property_cpp_function is intentionally in the main pybind11 namespace,
 // because user-defined specializations could be useful.
@@ -1607,17 +1610,17 @@ using must_be_member_function_pointer
 // This implementation works as-is (and safely) for smart_holder std::shared_ptr members.
 template <typename T, typename D, typename SFINAE = void>
 struct property_cpp_function {
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return readonly(pm, hdl);
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
     }
@@ -1656,7 +1659,7 @@ struct property_cpp_function<
 
     using drp = typename std::remove_pointer<D>::type;
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->default_holder) {
@@ -1672,12 +1675,12 @@ struct property_cpp_function<
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         return readonly(pm, hdl);
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->default_holder) {
@@ -1703,7 +1706,7 @@ struct property_cpp_function<T,
                                                  detail::is_instantiation<std::shared_ptr, D>>,
                                  detail::both_t_and_d_use_type_caster_base<T, D>>::value>> {
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->default_holder) {
@@ -1719,7 +1722,7 @@ struct property_cpp_function<T,
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->default_holder) {
@@ -1734,7 +1737,7 @@ struct property_cpp_function<T,
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->default_holder) {
@@ -1759,14 +1762,14 @@ struct property_cpp_function<
         detail::is_instantiation<std::unique_ptr, D>,
         detail::both_t_and_d_use_type_caster_base<T, typename D::element_type>>::value>> {
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
         static_assert(!detail::is_instantiation<std::unique_ptr, D>::value,
                       "def_readonly cannot be used for std::unique_ptr members.");
         return cpp_function{}; // Unreachable.
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->default_holder) {
@@ -1781,7 +1784,7 @@ struct property_cpp_function<
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
     }
 
-    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
     }
