@@ -635,7 +635,8 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
                                     const std::pair<const void *, const type_info *> &st) {
     if (policy != return_value_policy::automatic
         && policy != return_value_policy::automatic_reference
-        && policy != return_value_policy::move && policy != return_value_policy::reference
+        && policy != return_value_policy::take_ownership && policy != return_value_policy::move
+        && policy != return_value_policy::reference
         && policy != return_value_policy::reference_internal) {
         // SMART_HOLDER_WIP: IMPROVABLE: Error message.
         throw cast_error("Invalid return_value_policy for unique_ptr.");
