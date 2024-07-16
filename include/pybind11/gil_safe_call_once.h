@@ -7,6 +7,9 @@
 
 #include <cassert>
 #include <mutex>
+#ifdef Py_GIL_DISABLED
+#include <atomic>
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -82,7 +85,11 @@ public:
 private:
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_ = {};
+#ifdef Py_GIL_DISABLED
+    std::atomic_bool is_initialized_{false};
+#else
     bool is_initialized_ = false;
+#endif
     // The `is_initialized_`-`storage_` pair is very similar to `std::optional`,
     // but the latter does not have the triviality properties of former,
     // therefore `std::optional` is not a viable alternative here.
