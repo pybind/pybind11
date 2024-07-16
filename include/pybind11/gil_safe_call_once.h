@@ -8,6 +8,10 @@
 #include <cassert>
 #include <mutex>
 
+#ifdef Py_GIL_DISABLED
+#    include <atomic>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 // Use the `gil_safe_call_once_and_store` class below instead of the naive
@@ -82,7 +86,12 @@ public:
 private:
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_ = {};
-    bool is_initialized_ = false;
+#ifdef Py_GIL_DISABLED
+    std::atomic_bool
+#else
+    bool
+#endif
+        is_initialized_{false};
     // The `is_initialized_`-`storage_` pair is very similar to `std::optional`,
     // but the latter does not have the triviality properties of former,
     // therefore `std::optional` is not a viable alternative here.
