@@ -8,7 +8,7 @@
 #include <cassert>
 #include <mutex>
 #ifdef Py_GIL_DISABLED
-#include <atomic>
+#    include <atomic>
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
