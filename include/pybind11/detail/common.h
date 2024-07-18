@@ -462,6 +462,22 @@ PYBIND11_WARNING_POP
                 return "Hello, World!";
             });
         }
+
+    The third macro argument is optional (available since 2.13.0), and can be used to
+    mark the extension module as safe to run without the GIL under a free-threaded CPython
+    interpreter. Passing this argument has no effect on other interpreters.
+
+    .. code-block:: cpp
+
+        PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
+            m.doc() = "pybind11 example module safe to run without the GIL";
+
+            // Add bindings here
+            m.def("foo", []() {
+                return "Hello, Free-threaded World!";
+            });
+        }
+
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
