@@ -154,6 +154,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/internals.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
+    include/pybind11/detail/value_and_holder.h
     include/pybind11/attr.h
     include/pybind11/buffer_info.h
     include/pybind11/cast.h
