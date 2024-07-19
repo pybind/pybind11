@@ -1,4 +1,16 @@
-name: CI
+# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
+#     ci.yml
+#     ci_sh_def.yml
+#     ci_sh_def.yml.patch
+# To import changes made to ci.yml *** ESPECIALLY AFTER `git merge master` ***:
+#     patch -i ci_sh_def.yml.patch -o ci_sh_def.yml
+# To update the patch file after making changes to ci_sh.yml:
+#     diff -u ci.yml ci_sh_def.yml > ci_sh_def.yml.patch
+#     git commit -a -m 'Tracking ci.yml changes from master.'
+#
+# Thanks a lot to @rhaschke for PR #2930!
+
+name: "CI-SH-DEF"
 
 on:
   workflow_dispatch:
@@ -13,7 +25,7 @@ on:
 permissions: read-all
 
 concurrency:
-  group: test-sh-avl${{ github.ref }}
+  group: test-sh-def-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -126,6 +138,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT ${{runner.os == 'Windows' && '/GR /EHsc' || ''}}"
         ${{ matrix.args }}
 
     - name: Build C++11
@@ -155,6 +168,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT ${{runner.os == 'Windows' && '/GR /EHsc' || ''}}"
         ${{ matrix.args }}
 
     - name: Build
@@ -174,6 +188,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT ${{runner.os == 'Windows' && '/GR /EHsc' || ''}}"
         -DPYBIND11_INTERNALS_VERSION=10000000
         ${{ matrix.args }}
 
@@ -217,6 +232,7 @@ jobs:
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
           -DPython_ROOT_DIR=.venv
+          -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
 
       - name: Build C++11
         run: cmake --build build -j2
@@ -290,6 +306,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
 
     - name: Build
       run: cmake --build build -j 2
@@ -358,6 +375,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -387,7 +405,7 @@ jobs:
       run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
 
     - name: Configure
-      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
 
     - name: Build
       run: cmake --build build -j2 --verbose
@@ -475,7 +493,7 @@ jobs:
         cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
-                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
+                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0 -DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT" \
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     - name: Build
@@ -531,6 +549,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -553,6 +572,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
@@ -602,6 +622,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=11             \
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"  \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
@@ -634,6 +655,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=17             \
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"  \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
@@ -705,6 +727,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -755,6 +778,7 @@ jobs:
         cmake ../pybind11-tests
         -DDOWNLOAD_CATCH=ON
         -DPYBIND11_WERROR=ON
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
 
@@ -858,6 +882,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_FLAGS="/GR /EHsc /DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build -j 2
@@ -912,6 +937,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_FLAGS="/GR /EHsc /DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build --config Debug -j 2
@@ -954,6 +980,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
+        -DCMAKE_CXX_FLAGS="/GR /EHsc /DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
 
     - name: Build C++20
       run: cmake --build build -j 2
@@ -974,6 +1001,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
+        -DCMAKE_CXX_FLAGS="/GR /EHsc /DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
     - name: Build C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
@@ -1026,6 +1054,7 @@ jobs:
       run: >-
         cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -S . -B build
 
     - name: Build C++11
@@ -1047,6 +1076,7 @@ jobs:
       run: >-
         cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -S . -B build2
 
     - name: Build C++14
@@ -1068,6 +1098,7 @@ jobs:
       run: >-
         cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
         -S . -B build3
 
     - name: Build C++17
@@ -1135,6 +1166,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
+          -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
 
       - name: Build
         run: cmake --build . -j 2
@@ -1200,6 +1232,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
+          -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
           -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
       - name: Build
@@ -1223,6 +1256,7 @@ jobs:
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
+          -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
           -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
           "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
