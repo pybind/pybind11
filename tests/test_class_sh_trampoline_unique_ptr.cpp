@@ -32,7 +32,6 @@ private:
 };
 
 #ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
-
 class PyClass : public Class, public py::trampoline_self_life_support {
 public:
     std::unique_ptr<Class> clone() const override {
@@ -41,7 +40,6 @@ public:
 
     int foo() const override { PYBIND11_OVERRIDE_PURE(int, Class, foo); }
 };
-
 #endif
 
 } // namespace class_sh_trampoline_basic

@@ -37,9 +37,11 @@ protected:
     Big5() : history{"DefaultConstructor"} {}
 };
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 struct Big5Trampoline : Big5, py::trampoline_self_life_support {
     using Big5::Big5;
 };
+#endif
 
 } // namespace
 

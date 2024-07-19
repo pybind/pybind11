@@ -71,9 +71,11 @@ struct SftSharedPtrStash {
     }
 };
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 struct SftTrampoline : Sft, py::trampoline_self_life_support {
     using Sft::Sft;
 };
+#endif
 
 long use_count(const std::shared_ptr<Sft> &obj) { return obj.use_count(); }
 

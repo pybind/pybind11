@@ -2194,7 +2194,7 @@ private:
     /// an optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
     template <typename H = holder_type,
-              detail::enable_if_t<!std::is_same<H, smart_holder>::value, int> = 0>
+              detail::enable_if_t<!detail::is_smart_holder<H>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -2229,8 +2229,9 @@ private:
         return true;
     }
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     template <typename H = holder_type,
-              detail::enable_if_t<std::is_same<H, smart_holder>::value, int> = 0>
+              detail::enable_if_t<detail::is_smart_holder<H>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
         // void (*init_instance)(instance *, const void *);
@@ -2263,6 +2264,7 @@ private:
             = pointee_depends_on_holder_owner;
         v_h.set_holder_constructed();
     }
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
     static void dealloc(detail::value_and_holder &v_h) {

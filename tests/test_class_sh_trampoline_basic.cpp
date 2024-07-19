@@ -34,6 +34,7 @@ struct AbaseAlias : Abase<SerNo> {
     }
 };
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 template <>
 struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
     using Abase<1>::Abase;
@@ -45,6 +46,7 @@ struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
                                other_val);
     }
 };
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 template <int SerNo>
 int AddInCppRawPtr(const Abase<SerNo> *obj, int other_val) {
