@@ -919,6 +919,11 @@ public:
 
 protected:
     friend class type_caster_generic;
+    void check_holder_compat() {
+        if (typeinfo->default_holder) {
+            throw cast_error("Unable to load a custom holder type from a default-holder instance");
+        }
+    }
 
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
