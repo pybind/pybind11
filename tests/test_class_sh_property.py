@@ -7,6 +7,9 @@ import pytest
 import env  # noqa: F401
 from pybind11_tests import class_sh_property as m
 
+if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+    pytest.skip("smart_holder not available.", allow_module_level=True)
+
 
 @pytest.mark.xfail("env.PYPY", reason="gc after `del field` is apparently deferred")
 @pytest.mark.parametrize("m_attr", ["m_valu_readonly", "m_valu_readwrite"])

@@ -73,6 +73,12 @@ namespace pybind11_tests {
 namespace class_sh_inheritance {
 
 TEST_SUBMODULE(class_sh_inheritance, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     py::classh<base>(m, "base");
     py::classh<drvd, base>(m, "drvd");
 
@@ -99,6 +105,7 @@ TEST_SUBMODULE(class_sh_inheritance, m) {
     m.def("pass_cptr_base1", pass_cptr_base1);
     m.def("pass_cptr_base2", pass_cptr_base2);
     m.def("pass_cptr_drvd2", pass_cptr_drvd2);
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
 
 } // namespace class_sh_inheritance

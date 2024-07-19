@@ -16,6 +16,12 @@ struct WithConstCharPtrMember {
 } // namespace test_class_sh_property_bakein
 
 TEST_SUBMODULE(class_sh_property_bakein, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     using namespace test_class_sh_property_bakein;
 
     py::class_<WithCharArrayMember>(m, "WithCharArrayMember")
@@ -25,4 +31,5 @@ TEST_SUBMODULE(class_sh_property_bakein, m) {
     py::class_<WithConstCharPtrMember>(m, "WithConstCharPtrMember")
         .def(py::init<>())
         .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

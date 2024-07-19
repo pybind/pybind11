@@ -51,6 +51,12 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::CppDerived)
 
 TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     using namespace pybind11_tests::class_sh_virtual_py_cpp_mix;
 
     py::classh<Base, BaseVirtualOverrider>(m, "Base").def(py::init<>()).def("get", &Base::get);
@@ -61,4 +67,5 @@ TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
 
     m.def("get_from_cpp_plainc_ptr", get_from_cpp_plainc_ptr, py::arg("b"));
     m.def("get_from_cpp_unique_ptr", get_from_cpp_unique_ptr, py::arg("b"));
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

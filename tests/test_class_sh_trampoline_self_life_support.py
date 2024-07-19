@@ -4,6 +4,9 @@ import pytest
 
 import pybind11_tests.class_sh_trampoline_self_life_support as m
 
+if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+    pytest.skip("smart_holder not available.", allow_module_level=True)
+
 
 class PyBig5(m.Big5):
     pass

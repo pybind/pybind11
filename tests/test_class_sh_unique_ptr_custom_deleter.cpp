@@ -31,9 +31,16 @@ namespace pybind11_tests {
 namespace class_sh_unique_ptr_custom_deleter {
 
 TEST_SUBMODULE(class_sh_unique_ptr_custom_deleter, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     py::classh<Pet>(m, "Pet").def_readwrite("name", &Pet::name);
 
     m.def("create", &Pet::New);
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
 
 } // namespace class_sh_unique_ptr_custom_deleter

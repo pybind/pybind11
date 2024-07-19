@@ -8,7 +8,8 @@
 #include <memory>
 #include <string>
 
-namespace {
+namespace pybind11_tests {
+namespace class_sh_trampoline_shared_from_this {
 
 struct Sft : std::enable_shared_from_this<Sft> {
     std::string history;
@@ -98,12 +99,21 @@ std::shared_ptr<Sft> make_pure_cpp_sft_shd_ptr(const std::string &history_seed) 
 
 std::shared_ptr<Sft> pass_through_shd_ptr(const std::shared_ptr<Sft> &obj) { return obj; }
 
-} // namespace
+} // namespace class_sh_trampoline_shared_from_this
+} // namespace pybind11_tests
+
+using namespace pybind11_tests::class_sh_trampoline_shared_from_this;
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
 
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     py::classh<Sft, SftTrampoline>(m, "Sft")
         .def(py::init<const std::string &>())
         .def(py::init([](const std::string &history, int) {
@@ -128,4 +138,5 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     m.def("make_pure_cpp_sft_unq_ptr", make_pure_cpp_sft_unq_ptr);
     m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
     m.def("pass_through_shd_ptr", pass_through_shd_ptr);
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
