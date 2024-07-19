@@ -63,6 +63,7 @@ int AddInCppUniquePtr(std::unique_ptr<Abase<SerNo>> obj, int other_val) {
 
 template <int SerNo>
 void wrap(py::module_ m, const char *py_class_name) {
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     py::classh<Abase<SerNo>, AbaseAlias<SerNo>>(m, py_class_name)
         .def(py::init<int>(), py::arg("val"))
         .def("Get", &Abase<SerNo>::Get)
@@ -71,6 +72,7 @@ void wrap(py::module_ m, const char *py_class_name) {
     m.def("AddInCppRawPtr", AddInCppRawPtr<SerNo>, py::arg("obj"), py::arg("other_val"));
     m.def("AddInCppSharedPtr", AddInCppSharedPtr<SerNo>, py::arg("obj"), py::arg("other_val"));
     m.def("AddInCppUniquePtr", AddInCppUniquePtr<SerNo>, py::arg("obj"), py::arg("other_val"));
+#endif
 }
 
 } // namespace class_sh_trampoline_basic

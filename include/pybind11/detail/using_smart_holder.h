@@ -4,11 +4,17 @@
 
 #pragma once
 
-#include "common.h"
-#include "smart_holder_poc.h"
+#include "internals.h"
+
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+#    include "common.h"
+#    include "smart_holder_poc.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using pybindit::memory::smart_holder;
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#endif

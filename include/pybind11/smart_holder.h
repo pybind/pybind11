@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Pybind Development Team.
+// Copyright (c) 2021-2024 The Pybind Development Team.
 // All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -13,6 +13,8 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
 // Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
 // users can simply replace the `_` in `class_` with `h` or vice versa.
 template <typename type_, typename... options>
@@ -20,5 +22,7 @@ class classh : public class_<type_, smart_holder, options...> {
 public:
     using class_<type_, smart_holder, options...>::class_;
 };
+
+#endif
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
