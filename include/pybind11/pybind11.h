@@ -1849,7 +1849,10 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = std::is_same<holder_type, pybindit::memory::smart_holder>::value;
+
+        // A more fitting name would be uses_unique_ptr_holder.
+        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
+
 #ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
             record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;

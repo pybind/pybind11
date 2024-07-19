@@ -211,11 +211,12 @@ TEST_SUBMODULE(class_, m) {
     m.def("mismatched_holder_1", []() {
         auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
-        py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
+        py::class_<MismatchDerived1, std::unique_ptr<MismatchDerived1>, MismatchBase1>(
+            mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
         auto mod = py::module_::import("__main__");
-        py::class_<MismatchBase2>(mod, "MismatchBase2");
+        py::class_<MismatchBase2, std::unique_ptr<MismatchBase2>>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>, MismatchBase2>(
             mod, "MismatchDerived2");
     });
