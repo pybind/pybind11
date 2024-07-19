@@ -62,6 +62,7 @@ detail_headers = {
     "include/pybind11/detail/smart_holder_poc.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+    "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",
 }
 

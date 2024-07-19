@@ -1137,7 +1137,7 @@ struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
 
 #ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 template <typename base>
-struct is_holder_type<base, pybindit::memory::smart_holder> : std::true_type {};
+struct is_holder_type<base, smart_holder> : std::true_type {};
 #endif
 
 #ifdef PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION // See PR #4888

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "detail/common.h"
-#include "detail/smart_holder_poc.h"
+#include "detail/using_smart_holder.h"
 #include "detail/value_and_holder.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -40,7 +40,7 @@ struct trampoline_self_life_support {
             if (value_void_ptr != nullptr) {
                 PyGILState_STATE threadstate = PyGILState_Ensure();
                 v_h.value_ptr() = nullptr;
-                v_h.holder<pybindit::memory::smart_holder>().release_disowned();
+                v_h.holder<smart_holder>().release_disowned();
                 detail::deregister_instance(v_h.inst, value_void_ptr, v_h.type);
                 Py_DECREF((PyObject *) v_h.inst); // Must be after deregister.
                 PyGILState_Release(threadstate);

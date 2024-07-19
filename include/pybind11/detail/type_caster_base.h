@@ -16,8 +16,8 @@
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
-#include "smart_holder_poc.h"
 #include "typeid.h"
+#include "using_smart_holder.h"
 #include "value_and_holder.h"
 
 #include <cstdint>
@@ -484,9 +484,7 @@ struct value_and_holder_helper {
         return loaded_v_h.vh != nullptr && loaded_v_h.holder_constructed();
     }
 
-    pybindit::memory::smart_holder &holder() const {
-        return loaded_v_h.holder<pybindit::memory::smart_holder>();
-    }
+    smart_holder &holder() const { return loaded_v_h.holder<smart_holder>(); }
 
     void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
         static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
@@ -548,7 +546,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
         if (self_life_support != nullptr) {
             value_and_holder &v_h = self_life_support->v_h;
             if (v_h.inst != nullptr && v_h.vh != nullptr) {
-                auto &holder = v_h.holder<pybindit::memory::smart_holder>();
+                auto &holder = v_h.holder<smart_holder>();
                 if (!holder.is_disowned) {
                     pybind11_fail("smart_holder_from_unique_ptr: unexpected "
                                   "smart_holder.is_disowned failure.");
@@ -576,8 +574,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
         // SMART_HOLDER_WIP: IMPROVABLE: Is there a better solution?
         src_raw_void_ptr = nullptr;
     }
-    auto smhldr
-        = pybindit::memory::smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
+    auto smhldr = smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
     tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
     if (policy == return_value_policy::reference_internal) {
@@ -639,8 +636,8 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
     valueptr = src_raw_void_ptr;
 
-    auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(
-        std::shared_ptr<void>(src, const_cast<void *>(st.first)));
+    auto smhldr
+        = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, const_cast<void *>(st.first)));
     tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
     if (policy == return_value_policy::reference_internal) {
@@ -710,7 +707,7 @@ inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> 
 
 template <typename T>
 struct load_helper : value_and_holder_helper {
-    using holder_type = pybindit::memory::smart_holder;
+    using holder_type = smart_holder;
 
     static std::shared_ptr<T> make_shared_ptr_with_responsible_parent(T *raw_ptr, handle parent) {
         return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));

@@ -13,7 +13,7 @@
 #include "detail/class.h"
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/init.h"
-#include "detail/smart_holder_poc.h"
+#include "detail/using_smart_holder.h"
 #include "attr.h"
 #include "gil.h"
 #include "gil_safe_call_once.h"
@@ -1800,7 +1800,7 @@ struct property_cpp_function<
 #ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 // BAKEIN_WIP: Add comment to explain: This is meant for stress-testing only.
 template <typename>
-using default_holder_type = pybindit::memory::smart_holder;
+using default_holder_type = smart_holder;
 #else
 template <typename T>
 using default_holder_type = std::unique_ptr<T>;
@@ -1863,7 +1863,7 @@ public:
             record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
         } else if (detail::is_instantiation<std::shared_ptr, holder_type>::value) {
             record.holder_enum_v = detail::holder_enum_t::std_shared_ptr;
-        } else if (std::is_same<holder_type, pybindit::memory::smart_holder>::value) {
+        } else if (std::is_same<holder_type, smart_holder>::value) {
             record.holder_enum_v = detail::holder_enum_t::smart_holder;
         } else {
             record.holder_enum_v = detail::holder_enum_t::custom_holder;
@@ -2193,8 +2193,7 @@ private:
     /// an optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
     template <typename H = holder_type,
-              detail::enable_if_t<!std::is_same<H, pybindit::memory::smart_holder>::value, int>
-              = 0>
+              detail::enable_if_t<!std::is_same<H, smart_holder>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -2230,7 +2229,7 @@ private:
     }
 
     template <typename H = holder_type,
-              detail::enable_if_t<std::is_same<H, pybindit::memory::smart_holder>::value, int> = 0>
+              detail::enable_if_t<std::is_same<H, smart_holder>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
         // void (*init_instance)(instance *, const void *);
