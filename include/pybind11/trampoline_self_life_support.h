@@ -6,7 +6,7 @@
 
 #include "detail/common.h"
 #include "detail/smart_holder_poc.h"
-#include "detail/type_caster_base.h"
+#include "detail/value_and_holder.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
