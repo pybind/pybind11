@@ -13,10 +13,12 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+// Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
+// users can simply replace the `_` in `class_` with `h` or vice versa.
 template <typename type_, typename... options>
-class classh : public class_<type_, options...> {
+class classh : public class_<type_, pybindit::memory::smart_holder, options...> {
 public:
-    using class_<type_, options...>::class_;
+    using class_<type_, pybindit::memory::smart_holder, options...>::class_;
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

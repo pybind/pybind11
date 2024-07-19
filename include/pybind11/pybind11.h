@@ -1797,8 +1797,14 @@ struct property_cpp_function<
 
 #endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
+#ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+// BAKEIN_WIP: Add comment to explain: This is meant for stress-testing only.
 template <typename>
 using default_holder_type = pybindit::memory::smart_holder;
+#else
+template <typename T>
+using default_holder_type = std::unique_ptr<T>;
+#endif
 
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
@@ -1816,8 +1822,7 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type
-        = detail::exactly_one_t<is_holder, pybindit::memory::smart_holder, options...>;
+    using holder_type = detail::exactly_one_t<is_holder, default_holder_type<type>, options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
                   "Unknown/invalid class_ template parameters provided");
