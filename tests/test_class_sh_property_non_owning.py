@@ -15,7 +15,7 @@ from pybind11_tests import class_sh_property_non_owning as m
         ("core_fld_shared_ptr_rw", (14, 25)),
         ("core_fld_raw_ptr_ro", (14, 25)),
         ("core_fld_raw_ptr_rw", (14, 25)),
-        # BAKEIN_BREAK ("core_fld_unique_ptr_rw", (15, 26)),
+        ("core_fld_unique_ptr_rw", (15, 26)),
     ],
 )
 def test_core_fld_common(core_fld, expected, persistent_holder):

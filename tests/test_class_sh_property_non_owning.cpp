@@ -60,8 +60,7 @@ TEST_SUBMODULE(class_sh_property_non_owning, m) {
         .def_readwrite("core_fld_shared_ptr_rw", &DataField::core_fld_shared_ptr)
         .def_readonly("core_fld_raw_ptr_ro", &DataField::core_fld_raw_ptr)
         .def_readwrite("core_fld_raw_ptr_rw", &DataField::core_fld_raw_ptr)
-        // BAKEIN_BREAK .def_readwrite("core_fld_unique_ptr_rw", &DataField::core_fld_unique_ptr)
-        ;
+        .def_readwrite("core_fld_unique_ptr_rw", &DataField::core_fld_unique_ptr);
 
     py::classh<DataFieldsHolder>(m, "DataFieldsHolder")
         .def(py::init<std::size_t>())
