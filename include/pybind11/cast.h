@@ -835,7 +835,7 @@ protected:
     holder_type holder;
 };
 
-#define PYBIND11_HAVE_HOLDER_CASTER_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 template <typename, typename SFINAE = void>
 struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled : std::true_type {};
@@ -862,14 +862,14 @@ public:
     }
 
     explicit operator type *() {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             throw std::runtime_error("BAKEIN_WIP: operator type *() shared_ptr");
         }
         return this->value;
     }
 
     explicit operator type &() {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             throw std::runtime_error("BAKEIN_WIP: operator type &() shared_ptr");
         }
         // static_cast works around compiler error with MSVC 17 and CUDA 10.2
@@ -878,14 +878,14 @@ public:
     }
 
     explicit operator std::shared_ptr<type> *() {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             throw std::runtime_error("BAKEIN_WIP: operator std::shared_ptr<type> *()");
         }
         return std::addressof(shared_ptr_holder);
     }
 
     explicit operator std::shared_ptr<type> &() {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             shared_ptr_holder = sh_load_helper.loaded_as_shared_ptr(value);
         }
         return shared_ptr_holder;
@@ -898,7 +898,7 @@ public:
         if (st.second == nullptr) {
             return handle(); // no type info: error will be set already
         }
-        if (st.second->default_holder) {
+        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
                 src, policy, parent, st);
         }
@@ -913,7 +913,7 @@ public:
     static std::shared_ptr<type> shared_ptr_with_responsible_parent(handle responsible_parent) {
         copyable_holder_caster loader;
         loader.load(responsible_parent, /*convert=*/false);
-        assert(loader.typeinfo->default_holder);
+        assert(loader.typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder);
         return loader.sh_load_helper.loaded_as_shared_ptr(loader.value, responsible_parent);
     }
 
@@ -921,7 +921,7 @@ protected:
     friend class type_caster_generic;
 
     void load_value(value_and_holder &&v_h) {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             sh_load_helper.loaded_v_h = v_h;
             value = sh_load_helper.get_void_ptr_or_nullptr();
             return;
@@ -932,13 +932,13 @@ protected:
             return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                          "(#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for "
                          "type information)");
-#else
+#    else
                          "of type '"
                          + type_id<std::shared_ptr<type>>() + "''");
-#endif
+#    endif
     }
 
     template <typename T = std::shared_ptr<type>,
@@ -954,7 +954,7 @@ protected:
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
-                if (typeinfo->default_holder) {
+                if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     // BAKEIN_WIP: Copy pointer only?
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                 } else {
@@ -972,6 +972,8 @@ protected:
     std::shared_ptr<type> shared_ptr_holder;
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
 };
+
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 /// Specialize for the common std::shared_ptr, so users don't need to
 template <typename T>
@@ -991,6 +993,8 @@ struct move_only_holder_caster {
     }
     static constexpr auto name = type_caster_base<type>::name;
 };
+
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 template <typename, typename SFINAE = void>
 struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled : std::true_type {};
@@ -1018,7 +1022,7 @@ public:
         if (st.second == nullptr) {
             return handle(); // no type info: error will be set already
         }
-        if (st.second->default_holder) {
+        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return smart_holder_type_caster_support::smart_holder_from_unique_ptr(
                 std::move(src), policy, parent, st);
         }
@@ -1051,7 +1055,7 @@ public:
     }
 
     void load_value(value_and_holder &&v_h) {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             sh_load_helper.loaded_v_h = v_h;
             sh_load_helper.loaded_v_h.type = typeinfo;
             value = sh_load_helper.get_void_ptr_or_nullptr();
@@ -1064,7 +1068,7 @@ public:
     using cast_op_type = std::unique_ptr<type, deleter>;
 
     explicit operator std::unique_ptr<type, deleter>() {
-        if (typeinfo->default_holder) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return sh_load_helper.template loaded_as_unique_ptr<deleter>(value);
         }
         pybind11_fail("Passing std::unique_ptr from Python to C++ requires smart_holder.");
@@ -1075,7 +1079,7 @@ public:
             move_only_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
-                if (typeinfo->default_holder) {
+                if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     // BAKEIN_WIP: Copy pointer only?
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                 } else {
@@ -1092,6 +1096,8 @@ public:
 
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
 };
+
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 template <typename type, typename deleter>
 class type_caster<std::unique_ptr<type, deleter>>
@@ -1128,8 +1134,11 @@ struct is_holder_type
 // Specializations for always-supported holders:
 template <typename base, typename deleter>
 struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
+
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 template <typename base>
 struct is_holder_type<base, pybindit::memory::smart_holder> : std::true_type {};
+#endif
 
 #ifdef PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION // See PR #4888
 

@@ -935,7 +935,8 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
-        if (typeinfo->default_holder) {
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             smart_holder_type_caster_support::value_and_holder_helper v_h_helper;
             v_h_helper.loaded_v_h = v_h;
             if (v_h_helper.have_holder()) {
@@ -944,6 +945,7 @@ public:
                 return;
             }
         }
+#endif
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {

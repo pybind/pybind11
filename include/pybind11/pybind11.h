@@ -1424,6 +1424,9 @@ protected:
         tinfo->simple_ancestors = true;
         tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        tinfo->holder_enum_v = rec.holder_enum_v;
+#endif
 
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
@@ -1643,6 +1646,8 @@ struct both_t_and_d_use_type_caster_base<
 
 PYBIND11_NAMESPACE_END(detail)
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
 // BAKEIN_WIP: Rewrite comment.
 // smart_holder specializations for raw pointer members.
 // WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
@@ -1662,7 +1667,7 @@ struct property_cpp_function<
     template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
+        if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<drp> {
                     std::shared_ptr<T> c_sp = detail::type_caster<
@@ -1683,7 +1688,7 @@ struct property_cpp_function<
     template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
+        if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
                                 is_method(hdl));
         }
@@ -1709,7 +1714,7 @@ struct property_cpp_function<T,
     template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
+        if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
                     std::shared_ptr<T> c_sp = detail::type_caster<
@@ -1725,7 +1730,7 @@ struct property_cpp_function<T,
     template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
+        if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<D> {
                     std::shared_ptr<T> c_sp = detail::type_caster<
@@ -1740,7 +1745,7 @@ struct property_cpp_function<T,
     template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
+        if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
         }
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
@@ -1772,7 +1777,7 @@ struct property_cpp_function<
     template <typename PM, detail::must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->default_holder) {
+        if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return cpp_function(
                 [pm](handle c_hdl) -> D {
                     std::shared_ptr<T> c_sp = detail::type_caster<
@@ -1789,6 +1794,8 @@ struct property_cpp_function<
         return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
     }
 };
+
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 template <typename>
 using default_holder_type = pybindit::memory::smart_holder;
@@ -1843,6 +1850,17 @@ public:
         record.init_instance = init_instance;
         record.dealloc = dealloc;
         record.default_holder = std::is_same<holder_type, pybindit::memory::smart_holder>::value;
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
+            record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
+        } else if (detail::is_instantiation<std::shared_ptr, holder_type>::value) {
+            record.holder_enum_v = detail::holder_enum_t::std_shared_ptr;
+        } else if (std::is_same<holder_type, pybindit::memory::smart_holder>::value) {
+            record.holder_enum_v = detail::holder_enum_t::smart_holder;
+        } else {
+            record.holder_enum_v = detail::holder_enum_t::custom_holder;
+        }
+#endif
 
         set_operator_new<type>(&record);
 

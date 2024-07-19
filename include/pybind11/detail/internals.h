@@ -39,9 +39,9 @@
 #    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
-#        define PYBIND11_INTERNALS_VERSION 5
+#        define PYBIND11_INTERNALS_VERSION 6 // BAKEIN_WIP: Only do this for pybind11 v3.0.0
 #    else
-#        define PYBIND11_INTERNALS_VERSION 4
+#        define PYBIND11_INTERNALS_VERSION 6 // BAKEIN_WIP: Only do this for pybind11 v3.0.0
 #    endif
 #endif
 
@@ -236,6 +236,20 @@ struct internals {
     }
 };
 
+#if PYBIND11_INTERNALS_VERSION >= 6
+
+#    define PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+enum class holder_enum_t : uint8_t {
+    undefined,
+    std_unique_ptr, // Default, lacking interop with std::shared_ptr.
+    std_shared_ptr, // Lacking interop with std::unique_ptr.
+    smart_holder,   // Full std::unique_ptr / std::shared_ptr interop.
+    custom_holder,
+};
+
+#endif
+
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
@@ -262,6 +276,9 @@ struct type_info {
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
+#endif
 };
 
 /// On MSVC, debug and release builds are not ABI-compatible!
