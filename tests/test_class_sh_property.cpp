@@ -35,6 +35,15 @@ struct Outer {
 
 inline void DisownOuter(std::unique_ptr<Outer>) {}
 
+struct WithCharArrayMember {
+    WithCharArrayMember() { std::memcpy(char6_member, "Char6", 6); }
+    char char6_member[6];
+};
+
+struct WithConstCharPtrMember {
+    const char *const_char_ptr_member = "ConstChar*";
+};
+
 } // namespace test_class_sh_property
 
 PYBIND11_TYPE_CASTER_BASE_HOLDER(test_class_sh_property::ClassicField,
@@ -44,6 +53,9 @@ PYBIND11_TYPE_CASTER_BASE_HOLDER(test_class_sh_property::ClassicOuter,
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::Field)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::Outer)
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithCharArrayMember)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithConstCharPtrMember)
 
 TEST_SUBMODULE(class_sh_property, m) {
     m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
@@ -89,5 +101,13 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def_readwrite("m_shcp_readwrite", &Outer::m_shcp);
 
     m.def("DisownOuter", DisownOuter);
+
+    py::classh<WithCharArrayMember>(m, "WithCharArrayMember")
+        .def(py::init<>())
+        .def_readonly("char6_member", &WithCharArrayMember::char6_member);
+
+    py::classh<WithConstCharPtrMember>(m, "WithConstCharPtrMember")
+        .def(py::init<>())
+        .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
 #endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
