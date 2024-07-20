@@ -176,8 +176,6 @@ set(PYBIND11_TEST_FILES
     test_stl_binders
     test_tagbased_polymorphic
     test_thread
-    test_type_caster_odr_guard_1
-    test_type_caster_odr_guard_2
     test_type_caster_pyobject_ptr
     test_union
     test_unnamed_namespace_a
@@ -491,9 +489,6 @@ foreach(target ${test_targets})
   if(MSVC)
     target_compile_options(${target} PRIVATE /utf-8)
   endif()
-
-  target_compile_definitions(${target}
-                             PRIVATE -DPYBIND11_ENABLE_TYPE_CASTER_ODR_GUARD_IF_AVAILABLE)
 
   if(EIGEN3_FOUND)
     target_link_libraries(${target} PRIVATE Eigen3::Eigen)
