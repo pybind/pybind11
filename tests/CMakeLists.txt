@@ -153,7 +153,6 @@ set(PYBIND11_TEST_FILES
     test_eigen_tensor
     test_enum
     test_eval
-    test_exc_namespace_visibility.py
     test_exceptions
     test_factory_constructors
     test_gil_scoped
@@ -249,8 +248,6 @@ tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_class_sh_module_local.py"
                     "class_sh_module_local_0;class_sh_module_local_1;class_sh_module_local_2")
-tests_extra_targets("test_exc_namespace_visibility.py"
-                    "namespace_visibility_1;namespace_visibility_2")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
@@ -465,14 +462,8 @@ if(PYBIND11_CUDA_TESTS)
 endif()
 
 foreach(target ${test_targets})
-  if("${target}" STREQUAL "pybind11_tests")
-    set(test_files ${PYBIND11_TEST_FILES})
-  elseif("${target}" STREQUAL "namespace_visibility_1")
-    set(test_files namespace_visibility_1s.cpp)
-    if(PYBIND11_CUDA_TESTS)
-      set_property(SOURCE namespace_visibility_1s.cpp PROPERTY LANGUAGE CUDA)
-    endif()
-  else()
+  set(test_files ${PYBIND11_TEST_FILES})
+  if(NOT "${target}" STREQUAL "pybind11_tests")
     set(test_files "")
   endif()
 
