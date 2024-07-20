@@ -152,3 +152,13 @@ def test_unique_ptr_field_proxy_poc(m_attr):
     with pytest.raises(AttributeError):
         del field_proxy.num
     assert field_proxy.num == 82
+
+
+def test_readonly_char6_member():
+    obj = m.WithCharArrayMember()
+    assert obj.char6_member == "Char6"
+
+
+def test_readonly_const_char_ptr_member():
+    obj = m.WithConstCharPtrMember()
+    assert obj.const_char_ptr_member == "ConstChar*"
