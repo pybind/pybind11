@@ -2204,6 +2204,8 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
     template <typename WrappedType>
     static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
         return false;
@@ -2229,7 +2231,6 @@ private:
         return true;
     }
 
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     template <typename H = holder_type,
               detail::enable_if_t<detail::is_smart_holder<H>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
@@ -2264,6 +2265,7 @@ private:
             = pointee_depends_on_holder_owner;
         v_h.set_holder_constructed();
     }
+
 #endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
