@@ -4,6 +4,9 @@ import pytest
 
 import pybind11_tests.class_sh_trampoline_shared_ptr_cpp_arg as m
 
+if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+    pytest.skip("smart_holder not available.", allow_module_level=True)
+
 
 def test_shared_ptr_cpp_arg():
     import weakref

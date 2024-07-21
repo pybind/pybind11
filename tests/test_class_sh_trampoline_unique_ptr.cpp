@@ -8,7 +8,8 @@
 
 #include <cstdint>
 
-namespace {
+namespace pybind11_tests {
+namespace class_sh_trampoline_basic {
 
 class Class {
 public:
@@ -30,12 +31,7 @@ private:
     std::uint64_t val_ = 0;
 };
 
-} // namespace
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Class)
-
-namespace {
-
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 class PyClass : public Class, public py::trampoline_self_life_support {
 public:
     std::unique_ptr<Class> clone() const override {
@@ -44,10 +40,22 @@ public:
 
     int foo() const override { PYBIND11_OVERRIDE_PURE(int, Class, foo); }
 };
+#endif
 
-} // namespace
+} // namespace class_sh_trampoline_basic
+} // namespace pybind11_tests
+
+using namespace pybind11_tests::class_sh_trampoline_basic;
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Class)
 
 TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     py::classh<Class, PyClass>(m, "Class")
         .def(py::init<>())
         .def("set_val", &Class::setVal)
@@ -57,4 +65,5 @@ TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
 
     m.def("clone", [](const Class &obj) { return obj.clone(); });
     m.def("clone_and_foo", [](const Class &obj) { return obj.clone()->foo(); });
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

@@ -387,10 +387,12 @@ def test_accepts_none(msg):
     assert m.no_none1(a) == 42
     assert m.no_none2(a) == 42
     assert m.no_none3(a) == 42
+    assert m.no_none4(a) == 42
     assert m.no_none5(a) == 42
     assert m.ok_none1(a) == 42
     assert m.ok_none2(a) == 42
     assert m.ok_none3(a) == 42
+    assert m.ok_none4(a) == 42
     assert m.ok_none5(a) == 42
 
     with pytest.raises(TypeError) as excinfo:
@@ -401,6 +403,9 @@ def test_accepts_none(msg):
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.no_none3(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none4(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.no_none5(None)
@@ -422,6 +427,7 @@ def test_accepts_none(msg):
     # The rest take the argument as pointer or holder, and accept None:
     assert m.ok_none2(None) == -1
     assert m.ok_none3(None) == -1
+    assert m.ok_none4(None) == -1
     assert m.ok_none5(None) == -1
 
     with pytest.raises(TypeError) as excinfo:
@@ -436,14 +442,6 @@ def test_accepts_none(msg):
     with pytest.raises(TypeError) as excinfo:
         m.no_none_kwarg_kw_only(a=None)
     assert "incompatible function arguments" in str(excinfo.value)
-
-    if hasattr(m, "no_none4"):
-        assert m.no_none4(a) == 42
-        assert m.ok_none4(a) == 42
-        with pytest.raises(TypeError) as excinfo:
-            m.no_none4(None)
-        assert "incompatible function arguments" in str(excinfo.value)
-        assert m.ok_none4(None) == -1
 
 
 def test_casts_none():

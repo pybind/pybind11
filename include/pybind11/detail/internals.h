@@ -16,7 +16,6 @@
 #endif
 
 #include "../pytypes.h"
-#include "smart_holder_sfinae_hooks_only.h"
 
 #include <exception>
 #include <mutex>
@@ -37,7 +36,9 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
+#    if PYBIND11_VERSION_MAJOR >= 3
+#        define PYBIND11_INTERNALS_VERSION 6
+#    elif PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
 #        define PYBIND11_INTERNALS_VERSION 5
@@ -237,6 +238,20 @@ struct internals {
     }
 };
 
+#if PYBIND11_INTERNALS_VERSION >= 6
+
+#    define PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+enum class holder_enum_t : uint8_t {
+    undefined,
+    std_unique_ptr, // Default, lacking interop with std::shared_ptr.
+    std_shared_ptr, // Lacking interop with std::unique_ptr.
+    smart_holder,   // Full std::unique_ptr / std::shared_ptr interop.
+    custom_holder,
+};
+
+#endif
+
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
@@ -263,6 +278,9 @@ struct type_info {
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
+#endif
 };
 
 /// On MSVC, debug and release builds are not ABI-compatible!
@@ -322,25 +340,15 @@ struct type_info {
 #    define PYBIND11_INTERNALS_KIND ""
 #endif
 
-/// See README_smart_holder.rst:
-/// Classic / Conservative / Progressive cross-module compatibility
-#ifndef PYBIND11_INTERNALS_SH_DEF
-#    if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)
-#        define PYBIND11_INTERNALS_SH_DEF "_sh_def"
-#    else
-#        define PYBIND11_INTERNALS_SH_DEF ""
-#    endif
-#endif
-
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE PYBIND11_INTERNALS_SH_DEF "__"
+        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
+            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE PYBIND11_INTERNALS_SH_DEF "__"
+        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
+            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
