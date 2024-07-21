@@ -6,23 +6,9 @@
 
 #include "pybind11.h"
 
+// Legacy macros introduced with smart_holder_type_casters implementation in 2021.
+// Deprecated.
 #define PYBIND11_TYPE_CASTER_BASE_HOLDER(...)
 #define PYBIND11_SMART_HOLDER_TYPE_CASTERS(...)
 #define PYBIND11_SH_AVL(...) // "Smart_Holder if AVaiLable"
 #define PYBIND11_SH_DEF(...) // "Smart_Holder if DEFault"
-
-PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
-
-// Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
-// users can simply replace the `_` in `class_` with `h` or vice versa.
-template <typename type_, typename... options>
-class classh : public class_<type_, smart_holder, options...> {
-public:
-    using class_<type_, smart_holder, options...>::class_;
-};
-
-#endif
-
-PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
