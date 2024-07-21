@@ -1800,6 +1800,7 @@ struct property_cpp_function<
 #if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)                                                 \
     && defined(PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
 // BAKEIN_WIP: Add comment to explain: This is meant for stress-testing only.
+#    define PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
 template <typename>
 using default_holder_type = smart_holder;
 #else
