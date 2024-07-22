@@ -10,7 +10,8 @@
 #include <string>
 #include <utility>
 
-namespace {
+namespace pybind11_tests {
+namespace class_sh_trampoline_self_life_support {
 
 struct Big5 { // Also known as "rule of five".
     std::string history;
@@ -43,7 +44,10 @@ struct Big5Trampoline : Big5, py::trampoline_self_life_support {
 };
 #endif
 
-} // namespace
+} // namespace class_sh_trampoline_self_life_support
+} // namespace pybind11_tests
+
+using namespace pybind11_tests::class_sh_trampoline_self_life_support;
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Big5)
 
