@@ -8,7 +8,8 @@
 
 #include <cstdint>
 
-namespace {
+namespace pybind11_tests {
+namespace class_sh_trampoline_unique_ptr {
 
 class Class {
 public:
@@ -30,11 +31,13 @@ private:
     std::uint64_t val_ = 0;
 };
 
-} // namespace
+} // namespace class_sh_trampoline_unique_ptr
+} // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Class)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_unique_ptr::Class)
 
-namespace {
+namespace pybind11_tests {
+namespace class_sh_trampoline_unique_ptr {
 
 class PyClass : public Class, public py::trampoline_self_life_support {
 public:
@@ -45,9 +48,12 @@ public:
     int foo() const override { PYBIND11_OVERRIDE_PURE(int, Class, foo); }
 };
 
-} // namespace
+} // namespace class_sh_trampoline_unique_ptr
+} // namespace pybind11_tests
 
 TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
+    using namespace pybind11_tests::class_sh_trampoline_unique_ptr;
+
     py::classh<Class, PyClass>(m, "Class")
         .def(py::init<>())
         .def("set_val", &Class::setVal)

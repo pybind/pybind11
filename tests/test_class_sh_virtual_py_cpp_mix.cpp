@@ -46,13 +46,13 @@ struct CppDerivedVirtualOverrider : CppDerived, py::trampoline_self_life_support
 } // namespace class_sh_virtual_py_cpp_mix
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::Base)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::CppDerivedPlain)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::CppDerived)
+using namespace pybind11_tests::class_sh_virtual_py_cpp_mix;
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(Base)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(CppDerivedPlain)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(CppDerived)
 
 TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
-    using namespace pybind11_tests::class_sh_virtual_py_cpp_mix;
-
     py::classh<Base, BaseVirtualOverrider>(m, "Base").def(py::init<>()).def("get", &Base::get);
 
     py::classh<CppDerivedPlain, Base>(m, "CppDerivedPlain").def(py::init<>());
