@@ -8,7 +8,8 @@
 #include <memory>
 #include <string>
 
-namespace {
+namespace pybind11_tests {
+namespace class_sh_trampoline_shared_from_this {
 
 struct Sft : std::enable_shared_from_this<Sft> {
     std::string history;
@@ -98,7 +99,10 @@ std::shared_ptr<Sft> make_pure_cpp_sft_shd_ptr(const std::string &history_seed) 
 
 std::shared_ptr<Sft> pass_through_shd_ptr(const std::shared_ptr<Sft> &obj) { return obj; }
 
-} // namespace
+} // namespace class_sh_trampoline_shared_from_this
+} // namespace pybind11_tests
+
+using namespace pybind11_tests::class_sh_trampoline_shared_from_this;
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
