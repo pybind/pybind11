@@ -9,7 +9,7 @@
 #include <cstdint>
 
 namespace pybind11_tests {
-namespace class_sh_trampoline_basic {
+namespace class_sh_trampoline_unique_ptr {
 
 class Class {
 public:
@@ -31,6 +31,14 @@ private:
     std::uint64_t val_ = 0;
 };
 
+} // namespace class_sh_trampoline_unique_ptr
+} // namespace pybind11_tests
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_unique_ptr::Class)
+
+namespace pybind11_tests {
+namespace class_sh_trampoline_unique_ptr {
+
 #ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 class PyClass : public Class, public py::trampoline_self_life_support {
 public:
@@ -42,12 +50,8 @@ public:
 };
 #endif
 
-} // namespace class_sh_trampoline_basic
+} // namespace class_sh_trampoline_unique_ptr
 } // namespace pybind11_tests
-
-using namespace pybind11_tests::class_sh_trampoline_basic;
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Class)
 
 TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
     m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
@@ -55,6 +59,8 @@ TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
         false;
 #else
         true;
+
+    using namespace pybind11_tests::class_sh_trampoline_unique_ptr;
 
     py::classh<Class, PyClass>(m, "Class")
         .def(py::init<>())
