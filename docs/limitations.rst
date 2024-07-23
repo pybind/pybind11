@@ -52,7 +52,7 @@ clean, well written patch would likely be accepted to solve them.
 
 - The ``cpptest`` does not run on Windows with Python 3.8 or newer, due to DLL
   loader changes. User code that is correctly installed should not be affected.
-  `#2560 <https://github.com/pybind/pybind11/issue/2560>`_
+  `#2560 <https://github.com/pybind/pybind11/issues/2560>`_
 
 Python 3.9.0 warning
 ^^^^^^^^^^^^^^^^^^^^
