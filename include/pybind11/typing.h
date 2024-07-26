@@ -124,13 +124,21 @@ class TypeVar : public object {
 };
 #endif
 
+class NameWrapper : public object {
+    PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
+    using object::object;
+    NameWrapper(const char *name){
+        attr("__name__") = name;
+    }
+}
+
 template <typename T>
 class TypeVarObject : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
     using object::object;
     TypeVarObject(const char *name) {
         attr("__name__") = name;
-        attr("__bound__") = make_caster<T>;
+        attr("__bound__") = NameWrapper(make_caster<T>::name);
         attr("__constraints__") = pybind11::make_tuple();
     }
     // TypeVarObject(const char *name, py::typing::Tuple<pybind11::type, pybind11::ellipse> tuple){
