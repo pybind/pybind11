@@ -1674,7 +1674,7 @@ struct property_cpp_function_sh_raw_ptr_member {
                 },
                 is_method(hdl));
         }
-        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+        return property_cpp_function_classic<T, D>::readonly(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1689,7 +1689,7 @@ struct property_cpp_function_sh_raw_ptr_member {
             return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(std::move(value)); },
                                 is_method(hdl));
         }
-        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        return property_cpp_function_classic<T, D>::write(pm, hdl);
     }
 };
 
@@ -1714,7 +1714,7 @@ struct property_cpp_function_sh_member_held_by_value {
                 },
                 is_method(hdl));
         }
-        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+        return property_cpp_function_classic<T, D>::readonly(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1730,7 +1730,7 @@ struct property_cpp_function_sh_member_held_by_value {
                 },
                 is_method(hdl));
         }
-        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+        return property_cpp_function_classic<T, D>::read(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1739,7 +1739,7 @@ struct property_cpp_function_sh_member_held_by_value {
         if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
             return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
         }
-        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        return property_cpp_function_classic<T, D>::write(pm, hdl);
     }
 };
 
@@ -1772,7 +1772,7 @@ struct property_cpp_function_sh_unique_ptr_member {
                 },
                 is_method(hdl));
         }
-        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+        return property_cpp_function_classic<T, D>::read(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
