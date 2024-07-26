@@ -1057,7 +1057,6 @@ def test_typevar_object():
     assert type_var.__bound__ == None
     assert type_var.__constraints__ == ()
 
-
     assert len(m.TypeVarObjectBound.__type_params__) == 1
     type_var = m.TypeVarObjectBound.__type_params__[0]
     assert type_var.__name__ == "T"
