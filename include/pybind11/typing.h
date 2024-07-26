@@ -125,10 +125,10 @@ class TypeVar : public object {
 #endif
 
 class NameWrapper : public object {
-    PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
+    PYBIND11_OBJECT_DEFAULT(NameWrapper, object, PyObject_Type)
     using object::object;
     NameWrapper(const char *name) { attr("__name__") = name; }
-}
+};
 
 template <typename T>
 class TypeVarObject : public object {
