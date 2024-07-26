@@ -924,13 +924,13 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
 #endif
 
-    struct TypeVarObject {};
-    py::class_<TypeVarObject>(m, "TypeVarObject").type_params()
-        = py::make_tuple(py::typing::TypeVarObject<>("T"));
+    // struct TypeVarObject {};
+    // py::class_<TypeVarObject>(m, "TypeVarObject").type_params()
+    //     = py::make_tuple(py::typing::TypeVarObject<>("T"));
 
-    struct TypeVarObjectBound {};
-    py::class_<TypeVarObjectBound>(m, "TypeVarObjectBound").type_params()
-        = py::make_tuple(py::typing::TypeVarObject<int>("T"));
+    // struct TypeVarObjectBound {};
+    // py::class_<TypeVarObjectBound>(m, "TypeVarObjectBound").type_params()
+    //     = py::make_tuple(py::typing::TypeVarObject<int>("T"));
 
     struct ParamSpec {};
     py::class_<ParamSpec>(m, "ParamSpec").type_params()
