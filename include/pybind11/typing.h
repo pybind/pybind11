@@ -136,7 +136,7 @@ class TypeVarObject : public object {
     using object::object;
     TypeVarObject(const char *name) {
         attr("__name__") = name;
-        attr("__bound__") = NameWrapper(make_caster<T>::name);
+        attr("__bound__") = NameWrapper(pybind11::detail::make_caster<T>::name);
         attr("__constraints__") = pybind11::make_tuple();
     }
     // TypeVarObject(const char *name, py::typing::Tuple<pybind11::type, pybind11::ellipse> tuple){
