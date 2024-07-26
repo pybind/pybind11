@@ -130,33 +130,33 @@ class TypeVar : public object {
 //     NameWrapper(const char *name) { attr("__name__") = name; }
 // };
 
-template <typename T>
-class TypeVarObject : public object {
-    PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
-    using object::object;
-    TypeVarObject(const char *name) {
-        attr("__name__") = name;
-        attr("__bound__") = object();
-        attr("__bound__").attr("__name__") = pybind11::detail::make_caster<T>::name;
-        attr("__constraints__") = pybind11::make_tuple();
-    }
-    // TypeVarObject(const char *name, py::typing::Tuple<pybind11::type, pybind11::ellipse> tuple){
-    //     attr("__name__") = name;
-    //     attr("__bound__") = py::none();
-    //     attr("__constraints__") = tuple;
-    // }
-};
+// template <typename T>
+// class TypeVarObject : public object {
+//     PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
+//     using object::object;
+//     TypeVarObject(const char *name) {
+//         attr("__name__") = name;
+//         attr("__bound__") = object();
+//         attr("__bound__").attr("__name__") = pybind11::detail::make_caster<T>::name;
+//         attr("__constraints__") = pybind11::make_tuple();
+//     }
+//     // TypeVarObject(const char *name, py::typing::Tuple<pybind11::type, pybind11::ellipse> tuple){
+//     //     attr("__name__") = name;
+//     //     attr("__bound__") = py::none();
+//     //     attr("__constraints__") = tuple;
+//     // }
+// };
 
-template <>
-class TypeVarObject : public object {
-    PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
-    using object::object;
-    TypeVarObject(const char *name) {
-        attr("__name__") = name;
-        attr("__bound__") = py::none();
-        attr("__constraints__") = pybind11::make_tuple();
-    }
-};
+// template <>
+// class TypeVarObject : public object {
+//     PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
+//     using object::object;
+//     TypeVarObject(const char *name) {
+//         attr("__name__") = name;
+//         attr("__bound__") = py::none();
+//         attr("__constraints__") = pybind11::make_tuple();
+//     }
+// };
 
 class ParamSpec : public object {
     PYBIND11_OBJECT_DEFAULT(ParamSpec, object, PyObject_Type)
