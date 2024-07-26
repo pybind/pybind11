@@ -124,13 +124,11 @@ class TypeVar : public object {
 };
 #endif
 
-
-
 template <typename T>
 class TypeVarObject : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
     using object::object;
-    TypeVarObject(const char *name){
+    TypeVarObject(const char *name) {
         attr("__name__") = name;
         attr("__bound__") = make_caster<T>;
         attr("__constraints__") = pybind11::make_tuple();
@@ -145,7 +143,7 @@ class TypeVarObject : public object {
 class ParamSpec : public object {
     PYBIND11_OBJECT_DEFAULT(ParamSpec, object, PyObject_Type)
     using object::object;
-    ParamSpec(const char *name){
+    ParamSpec(const char *name) {
         attr("__name__") = name;
         attr("__bound__") = pybind11::none();
     }
@@ -154,9 +152,7 @@ class ParamSpec : public object {
 class TypeVarTuple : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVarTuple, object, PyObject_Type)
     using object::object;
-    TypeVarTuple(const char *name){
-        attr("__name__") = name;
-    }
+    TypeVarTuple(const char *name) { attr("__name__") = name; }
 };
 
 PYBIND11_NAMESPACE_END(typing)

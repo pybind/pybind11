@@ -185,7 +185,6 @@ public:
     /// Get or set the object's type_params, i.e. ``obj.__type_params__``.
     str_attr_accessor type_params() const;
 
-
     /// Return the object's current reference count
     ssize_t ref_count() const {
 #ifdef PYPY_VERSION
