@@ -4,7 +4,6 @@ import contextlib
 import sys
 import types
 
-from typing import TypeVar
 import pytest
 
 import env
