@@ -1689,7 +1689,7 @@ struct property_cpp_function<
     static cpp_function write(PM pm, const handle &hdl) {
         detail::type_info *tinfo = detail::get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
+            return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(std::move(value)); },
                                 is_method(hdl));
         }
         return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
