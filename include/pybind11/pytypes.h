@@ -182,6 +182,10 @@ public:
     /// Get or set the object's docstring, i.e. ``obj.__doc__``.
     str_attr_accessor doc() const;
 
+    /// Get or set the object's type_params, i.e. ``obj.__type_params__``.
+    str_attr_accessor type_params() const;
+
+
     /// Return the object's current reference count
     ssize_t ref_count() const {
 #ifdef PYPY_VERSION
@@ -2532,6 +2536,11 @@ pybind11::str object_api<D>::str() const {
 template <typename D>
 str_attr_accessor object_api<D>::doc() const {
     return attr("__doc__");
+}
+
+template <typename D>
+str_attr_accessor object_api<D>::type_params() const {
+    return attr("__type_params__");
 }
 
 template <typename D>

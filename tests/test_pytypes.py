@@ -4,6 +4,7 @@ import contextlib
 import sys
 import types
 
+from typing import TypeVar
 import pytest
 
 import env
@@ -1048,3 +1049,30 @@ def test_typevar(doc):
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+
+def test_typevar_object():
+    assert len(m.TypeVarObject.__type_params__) == 1
+    type_var = m.TypeVarObject.__type_params__[0]
+    assert type_var.__name__ == "T"
+    assert type_var.__bound__ == int
+    assert type_var.__constraints__ == ()
+
+def test_param_spec():
+    assert len(m.ParamSpec.__type_params__) == 1
+    param_spec = m.ParamSpec.__type_params__[0]
+
+    assert param_spec.__name__ == "P"
+    assert param_spec.__bound__ == None
+
+def test_type_var_tuple():
+    assert len(m.TypeVarTuple.__type_params__) == 1
+    type_var_tuple = m.TypeVarTuple.__type_params__[0]
+
+    assert type_var_tuple.__name__ == "T"
+    with pytest.raises(AttributeError):
+        param_spec.__bound__
+
+def test_type_params():
+    assert m.NoTypeParams.__type_params__ == ()
+    assert m.TypeParams.__type_params__ == ("foo", 3, None)
+    assert m.type_params.__type_params__ == ("foo", 3, None)

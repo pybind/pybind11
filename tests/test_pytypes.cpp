@@ -923,4 +923,21 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
 #endif
+
+    struct TypeVarObject {};
+    py::class_<TypeVarObject>(m, "TypeVarObject").type_params() = py::make_tuple(py::typing::TypeVarObject<int>("T"));
+    
+    struct ParamSpec {};
+    py::class_<ParamSpec>(m, "ParamSpec").type_params() = py::make_tuple(py::typing::ParamSpec("P"));
+
+    struct TypeVarTuple {};
+    py::class_<TypeVarTuple>(m, "TypeVarTuple").type_params() = py::make_tuple(py::typing::TypeVarTuple("T"));
+
+
+    struct NoTypeParams {};
+    struct TypeParams {};
+    py::class_<NoTypeParams>(m, "NoTypeParams");
+    // TODO: Use custom objects
+    py::class_<TypeParams>(m, "TypeParams").type_params() = py::make_tuple("foo", 3, py::none());
+    m.def("type_params", []() -> void {}).type_params() = py::make_tuple("foo", 3, py::none());
 }
