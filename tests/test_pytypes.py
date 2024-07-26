@@ -1063,7 +1063,7 @@ def test_param_spec():
     param_spec = m.ParamSpec.__type_params__[0]
 
     assert param_spec.__name__ == "P"
-    assert param_spec.__bound__ == None
+    assert param_spec.__bound__ is None
 
 
 def test_type_var_tuple():
@@ -1072,7 +1072,7 @@ def test_type_var_tuple():
 
     assert type_var_tuple.__name__ == "T"
     with pytest.raises(AttributeError):
-        param_spec.__bound__
+        print(type_var_tuple.__bound__)
 
 
 def test_type_params():
