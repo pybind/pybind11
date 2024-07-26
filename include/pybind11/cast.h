@@ -886,7 +886,7 @@ public:
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            shared_ptr_holder = sh_load_helper.loaded_as_shared_ptr(value);
+            shared_ptr_holder = sh_load_helper.load_as_shared_ptr(value);
         }
         return shared_ptr_holder;
     }
@@ -914,7 +914,7 @@ public:
         copyable_holder_caster loader;
         loader.load(responsible_parent, /*convert=*/false);
         assert(loader.typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder);
-        return loader.sh_load_helper.loaded_as_shared_ptr(loader.value, responsible_parent);
+        return loader.sh_load_helper.load_as_shared_ptr(loader.value, responsible_parent);
     }
 
 protected:
@@ -1074,7 +1074,7 @@ public:
 
     explicit operator std::unique_ptr<type, deleter>() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            return sh_load_helper.template loaded_as_unique_ptr<deleter>(value);
+            return sh_load_helper.template load_as_unique_ptr<deleter>(value);
         }
         pybind11_fail("Passing std::unique_ptr from Python to C++ requires smart_holder.");
     }

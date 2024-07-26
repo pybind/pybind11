@@ -21,7 +21,7 @@ def test_valu_getter(m_attr):
     assert field.num == -99
     with pytest.raises(ValueError) as excinfo:
         m.DisownOuter(outer)
-    assert str(excinfo.value) == "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
+    assert str(excinfo.value) == "Cannot disown use_count != 1 (load_as_unique_ptr)."
     del field
     m.DisownOuter(outer)
     with pytest.raises(ValueError, match="Python instance was disowned") as excinfo:

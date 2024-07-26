@@ -715,20 +715,20 @@ struct load_helper : value_and_holder_helper {
         return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
     }
 
-    std::shared_ptr<T> loaded_as_shared_ptr(void *void_raw_ptr,
-                                            handle responsible_parent = nullptr) const {
+    std::shared_ptr<T> load_as_shared_ptr(void *void_raw_ptr,
+                                          handle responsible_parent = nullptr) const {
         if (!have_holder()) {
             return nullptr;
         }
         throw_if_uninitialized_or_disowned_holder(typeid(T));
         holder_type &hld = holder();
-        hld.ensure_is_not_disowned("loaded_as_shared_ptr");
+        hld.ensure_is_not_disowned("load_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
             if (responsible_parent) {
                 return make_shared_ptr_with_responsible_parent(static_cast<T *>(void_raw_ptr),
                                                                responsible_parent);
             }
-            throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
+            throw std::runtime_error("Non-owning holder (load_as_shared_ptr).");
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
         if (hld.pointee_depends_on_holder_owner) {
@@ -748,7 +748,7 @@ struct load_helper : value_and_holder_helper {
                 // This code is reachable only if there are multiple registered_instances for the
                 // same pointee.
                 if (reinterpret_cast<PyObject *>(loaded_v_h.inst) == sptsls_ptr->self) {
-                    pybind11_fail("smart_holder_type_caster_support loaded_as_shared_ptr failure: "
+                    pybind11_fail("smart_holder_type_caster_support load_as_shared_ptr failure: "
                                   "loaded_v_h.inst == sptsls_ptr->self");
                 }
             }
@@ -758,20 +758,20 @@ struct load_helper : value_and_holder_helper {
                     type_raw_ptr, shared_ptr_trampoline_self_life_support(loaded_v_h.inst));
             }
             if (hld.vptr_is_external_shared_ptr) {
-                pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: not "
+                pybind11_fail("smart_holder_type_casters load_as_shared_ptr failure: not "
                               "implemented: trampoline-self-life-support for external shared_ptr "
                               "to type inheriting from std::enable_shared_from_this.");
             }
-            pybind11_fail("smart_holder_type_casters: loaded_as_shared_ptr failure: internal "
-                          "inconsistency.");
+            pybind11_fail(
+                "smart_holder_type_casters: load_as_shared_ptr failure: internal inconsistency.");
         }
         std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
 
     template <typename D>
-    std::unique_ptr<T, D> loaded_as_unique_ptr(void *raw_void_ptr,
-                                               const char *context = "loaded_as_unique_ptr") {
+    std::unique_ptr<T, D> load_as_unique_ptr(void *raw_void_ptr,
+                                             const char *context = "load_as_unique_ptr") {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }

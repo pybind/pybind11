@@ -241,7 +241,7 @@ def test_std_make_shared_factory():
         str_exc_info_value = str(exc_info.value)
     assert (
         str_exc_info_value
-        == "smart_holder_type_casters loaded_as_shared_ptr failure: not implemented:"
+        == "smart_holder_type_casters load_as_shared_ptr failure: not implemented:"
         " trampoline-self-life-support for external shared_ptr to type inheriting"
         " from std::enable_shared_from_this."
     )

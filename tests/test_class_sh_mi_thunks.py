@@ -52,6 +52,5 @@ def test_get_shared_vec_size_unique():
     with pytest.raises(ValueError) as exc_info:
         m.vec_size_base0_unique_ptr(obj)
     assert (
-        str(exc_info.value)
-        == "Cannot disown external shared_ptr (loaded_as_unique_ptr)."
+        str(exc_info.value) == "Cannot disown external shared_ptr (load_as_unique_ptr)."
     )

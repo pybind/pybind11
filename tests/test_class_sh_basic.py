@@ -135,9 +135,7 @@ def test_cannot_disown_use_count_ne_1(pass_f, rtrn_f):
     stash.Add(obj)
     with pytest.raises(ValueError) as exc_info:
         pass_f(obj)
-    assert str(exc_info.value) == (
-        "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
-    )
+    assert str(exc_info.value) == ("Cannot disown use_count != 1 (load_as_unique_ptr).")
 
 
 def test_unique_ptr_roundtrip(num_round_trips=1000):
