@@ -926,6 +926,10 @@ TEST_SUBMODULE(pytypes, m) {
 
     struct TypeVarObject {};
     py::class_<TypeVarObject>(m, "TypeVarObject").type_params()
+        = py::make_tuple(py::typing::TypeVarObject<>("T"));
+
+    struct TypeVarObjectBound {};
+    py::class_<TypeVarObjectBound>(m, "TypeVarObjectBound").type_params()
         = py::make_tuple(py::typing::TypeVarObject<int>("T"));
 
     struct ParamSpec {};
