@@ -754,6 +754,7 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+// SMART_HOLDER_BAKEIN_FOLLOW_ON: Rewrite comment, with reference to shared_ptr specialization.
 /// Type caster for holder types like std::shared_ptr, etc.
 /// The SFINAE hook is provided to help work around the current lack of support
 /// for smart-pointer interoperability. Please consider it an implementation
@@ -840,7 +841,7 @@ protected:
 template <typename, typename SFINAE = void>
 struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled : std::true_type {};
 
-// BAKEIN_WIP
+// SMART_HOLDER_BAKEIN_FOLLOW_ON: Refactor copyable_holder_caster to reduce code duplication.
 template <typename type>
 struct copyable_holder_caster<
     type,
@@ -861,25 +862,10 @@ public:
             src, convert);
     }
 
-    explicit operator type *() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            throw std::runtime_error("BAKEIN_WIP: operator type *() shared_ptr");
-        }
-        return this->value;
-    }
-
-    explicit operator type &() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            throw std::runtime_error("BAKEIN_WIP: operator type &() shared_ptr");
-        }
-        // static_cast works around compiler error with MSVC 17 and CUDA 10.2
-        // see issue #2180
-        return *(static_cast<type *>(this->value));
-    }
-
     explicit operator std::shared_ptr<type> *() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            throw std::runtime_error("BAKEIN_WIP: operator std::shared_ptr<type> *()");
+            pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
+                          "(inherently unsafe).");
         }
         return std::addressof(shared_ptr_holder);
     }
@@ -960,7 +946,6 @@ protected:
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-                    // BAKEIN_WIP: Copy pointer only?
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                 } else {
                     shared_ptr_holder
@@ -984,6 +969,7 @@ protected:
 template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> {};
 
+// SMART_HOLDER_BAKEIN_FOLLOW_ON: Rewrite comment, with reference to unique_ptr specialization.
 /// Type caster for holder types like std::unique_ptr.
 /// Please consider the SFINAE hook an implementation detail, as explained
 /// in the comment for the copyable_holder_caster.
@@ -1004,7 +990,7 @@ struct move_only_holder_caster {
 template <typename, typename SFINAE = void>
 struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled : std::true_type {};
 
-// BAKEIN_WIP
+// SMART_HOLDER_BAKEIN_FOLLOW_ON: Refactor move_only_holder_caster to reduce code duplication.
 template <typename type, typename deleter>
 struct move_only_holder_caster<
     type,
@@ -1066,7 +1052,9 @@ public:
             value = sh_load_helper.get_void_ptr_or_nullptr();
             return;
         }
-        throw std::runtime_error("BAKEIN_WIP: What is the best behavior here (load_value)?");
+        pybind11_fail(
+            "Passing `std::unique_ptr<T>` from Python to C++ requires `py::classh` (with T = "
+            + clean_type_id(typeinfo->cpptype->name()) + ")");
     }
 
     template <typename>
@@ -1076,7 +1064,7 @@ public:
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             return sh_load_helper.template load_as_unique_ptr<deleter>(value);
         }
-        pybind11_fail("Passing std::unique_ptr from Python to C++ requires smart_holder.");
+        pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }
 
     bool try_implicit_casts(handle src, bool convert) {
@@ -1085,11 +1073,10 @@ public:
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-                    // BAKEIN_WIP: Copy pointer only?
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                 } else {
-                    throw std::runtime_error(
-                        "BAKEIN_WIP: What is the best behavior here (try_implicit_casts)?");
+                    pybind11_fail("Expected to be UNREACHABLE: " __FILE__
+                                  ":" PYBIND11_TOSTRING(__LINE__));
                 }
                 return true;
             }

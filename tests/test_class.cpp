@@ -89,6 +89,16 @@ TEST_SUBMODULE(class_, m) {
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
 
+    // test_pass_unique_ptr
+    struct ToBeHeldByUniquePtr {};
+    py::class_<ToBeHeldByUniquePtr, std::unique_ptr<ToBeHeldByUniquePtr>>(m, "ToBeHeldByUniquePtr")
+        .def(py::init<>());
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.def("pass_unique_ptr", [](std::unique_ptr<ToBeHeldByUniquePtr> &&) {});
+#else
+    m.attr("pass_unique_ptr") = py::none();
+#endif
+
     // test_inheritance
     class Pet {
     public:

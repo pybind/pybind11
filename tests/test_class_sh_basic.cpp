@@ -239,6 +239,8 @@ TEST_SUBMODULE(class_sh_basic, m) {
         []() { return std::unique_ptr<atyp>(new atyp("rtrn_uq_automatic_reference")); },
         pybind11::return_value_policy::automatic_reference);
 
+    m.def("pass_shared_ptr_ptr", [](std::shared_ptr<atyp> *) {});
+
     py::classh<LocalUnusualOpRef>(m, "LocalUnusualOpRef");
     m.def("CallCastUnusualOpRefConstRef",
           []() { return CastUnusualOpRefConstRef(LocalUnusualOpRef()); });
