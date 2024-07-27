@@ -704,8 +704,6 @@ inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> 
 
 template <typename T>
 struct load_helper : value_and_holder_helper {
-    using holder_type = smart_holder;
-
     static std::shared_ptr<T> make_shared_ptr_with_responsible_parent(T *raw_ptr, handle parent) {
         return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
     }
@@ -716,7 +714,7 @@ struct load_helper : value_and_holder_helper {
             return nullptr;
         }
         throw_if_uninitialized_or_disowned_holder(typeid(T));
-        holder_type &hld = holder();
+        smart_holder &hld = holder();
         hld.ensure_is_not_disowned("load_as_shared_ptr");
         if (hld.vptr_is_using_noop_deleter) {
             if (responsible_parent) {
