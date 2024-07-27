@@ -275,6 +275,8 @@ struct type_info {
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
     /* for base vs derived holder_type checks */
+    // SMART_HOLDER_BAKEIN_FOLLOW_ON: Remove default_holder member here and
+    // produce better error messages in the places where it is currently used.
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
