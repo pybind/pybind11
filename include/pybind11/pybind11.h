@@ -1603,12 +1603,11 @@ using must_be_member_function_pointer = enable_if_t<std::is_member_pointer<PM>::
 // Note that property_cpp_function is intentionally in the main pybind11 namespace,
 // because user-defined specializations could be useful.
 
-// BAKEIN_WIP: Rewrite comment.
 // Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
 // getter and setter functions.
 // WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
 // See test_ptr() in tests/test_class_sh_property.py
-// This implementation works as-is (and safely) for smart_holder std::shared_ptr members.
+// However, this implementation works as-is (and safely) for smart_holder std::shared_ptr members.
 template <typename T, typename D>
 struct property_cpp_function_classic {
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1640,7 +1639,7 @@ template <typename T, typename D, typename SFINAE = void>
 struct both_t_and_d_use_type_caster_base : std::false_type {};
 
 // `T` is assumed to be equivalent to `intrinsic_t<T>`.
-// `D` is not.
+// `D` is may or may not be equivalent to `intrinsic_t<D>`.
 template <typename T, typename D>
 struct both_t_and_d_use_type_caster_base<
     T,
@@ -1649,8 +1648,8 @@ struct both_t_and_d_use_type_caster_base<
                        std::is_base_of<type_caster_base<intrinsic_t<D>>, make_caster<D>>>::value>>
     : std::true_type {};
 
-// BAKEIN_WIP: Rewrite comment.
-// smart_holder specializations for raw pointer members.
+// Specialization for raw pointer members, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
 // WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
 // See test_ptr() in tests/test_class_sh_property.py
 // However, the read functions return a shared_ptr to the member, emulating the PyCLIF approach:
@@ -1693,8 +1692,8 @@ struct property_cpp_function_sh_raw_ptr_member {
     }
 };
 
-// BAKEIN_WIP: Rewrite comment.
-// smart_holder specializations for members held by-value.
+// Specialization for members held by-value, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
 // The read functions return a shared_ptr to the member, emulating the PyCLIF approach:
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
 // This prevents disowning of the Python object owning the member.
@@ -1743,8 +1742,8 @@ struct property_cpp_function_sh_member_held_by_value {
     }
 };
 
-// BAKEIN_WIP: Rewrite comment.
-// smart_holder specializations for std::unique_ptr members.
+// Specialization for std::unique_ptr members, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
 // read disowns the member unique_ptr.
 // write disowns the passed Python object.
 // readonly is disabled (static_assert) because there is no safe & intuitive way to make the member
