@@ -1814,7 +1814,13 @@ struct property_cpp_function<
 
 #if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)                                                 \
     && defined(PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
-// BAKEIN_WIP: Add comment to explain: This is meant for stress-testing only.
+// NOTE: THIS IS MEANT FOR STRESS-TESTING ONLY!
+//       As of PR #5257, for production use, there is no longer a strong reason to make
+//       smart_holder the default holder:
+//           Simply use `py::classh` (see below) instead of `py::class_` as needed.
+//       Running the pybind11 unit tests with smart_holder as the default holder is to ensure
+//       that `py::smart_holder` / `py::classh` is backward-compatible with all pre-existing
+//       functionality.
 #    define PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
 template <typename>
 using default_holder_type = smart_holder;
