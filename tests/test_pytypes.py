@@ -959,8 +959,15 @@ def test_fn_annotations(doc):
     )
 
 
+def test_fn_return_only(doc):
+    assert (
+        doc(m.annotate_fn_only_return)
+        == "annotate_fn_only_return(arg0: Callable[..., int]) -> None"
+    )
+
+
 def test_type_annotation(doc):
-    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> None"
+    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> type"
 
 
 def test_union_annotations(doc):
@@ -977,8 +984,67 @@ def test_union_typing_only(doc):
     )
 
 
+def test_union_object_annotations(doc):
+    assert (
+        doc(m.annotate_union_to_object)
+        == "annotate_union_to_object(arg0: Union[int, str]) -> object"
+    )
+
+
 def test_optional_annotations(doc):
     assert (
         doc(m.annotate_optional)
         == "annotate_optional(arg0: list) -> list[Optional[str]]"
     )
+
+
+def test_type_guard_annotations(doc):
+    assert (
+        doc(m.annotate_type_guard)
+        == "annotate_type_guard(arg0: object) -> TypeGuard[str]"
+    )
+
+
+def test_type_is_annotations(doc):
+    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> TypeIs[str]"
+
+
+def test_no_return_annotation(doc):
+    assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
+
+
+def test_never_annotation(doc):
+    assert doc(m.annotate_never) == "annotate_never() -> Never"
+
+
+def test_optional_object_annotations(doc):
+    assert (
+        doc(m.annotate_optional_to_object)
+        == "annotate_optional_to_object(arg0: Optional[int]) -> object"
+    )
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
+    reason="C++20 feature not available.",
+)
+def test_literal(doc):
+    assert (
+        doc(m.annotate_literal)
+        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
+    )
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
+    reason="C++20 feature not available.",
+)
+def test_typevar(doc):
+    assert (
+        doc(m.annotate_generic_containers)
+        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+    )
+
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"

@@ -335,7 +335,7 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       set(PYBIND11_LTO_LINKER_FLAGS "-flto${thin}${linker_append}")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
       _pybind11_return_if_cxx_and_linker_flags_work(
-        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto=${thin}${linker_append}"
+        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto${thin}${linker_append}"
         PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
     if(NOT HAS_FLTO_THIN)

@@ -15,6 +15,121 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+Version 2.13.1 (June 26, 2024)
+------------------------------
+
+New Features:
+
+* Add support for ``Typing.Callable[..., T]``.
+  `#5202 <https://github.com/pybind/pybind11/pull/5202>`_
+
+Bug fixes:
+
+* Avoid aligned allocation in free-threaded build in order to support macOS
+  versions before 10.14.
+  `#5200 <https://github.com/pybind/pybind11/pull/5200>`_
+
+Version 2.13.0 (June 25, 2024)
+------------------------------
+
+New Features:
+
+* Support free-threaded CPython (3.13t). Add ``py::mod_gil_not_used()`` tag to
+  indicate if a module supports running with the GIL disabled.
+  `#5148 <https://github.com/pybind/pybind11/pull/5148>`_
+
+* Support for Python 3.6 was removed. (Official end-of-life: 2021-12-23).
+  `#5177 <https://github.com/pybind/pybind11/pull/5177>`_
+
+* ``py::list`` gained a ``.clear()`` method.
+  `#5153 <https://github.com/pybind/pybind11/pull/5153>`_
+
+
+.. feat(types)
+
+* Support for ``Union``, ``Optional``, ``type[T]``, ``typing.TypeGuard``,
+  ``typing.TypeIs``, ``typing.Never``, ``typing.NoReturn`` and
+  ``typing.Literal`` was added to ``pybind11/typing.h``.
+  `#5166 <https://github.com/pybind/pybind11/pull/5166>`_
+  `#5165 <https://github.com/pybind/pybind11/pull/5165>`_
+  `#5194 <https://github.com/pybind/pybind11/pull/5194>`_
+  `#5193 <https://github.com/pybind/pybind11/pull/5193>`_
+  `#5192 <https://github.com/pybind/pybind11/pull/5192>`_
+
+
+.. feat(cmake)
+
+* In CMake, if ``PYBIND11_USE_CROSSCOMPILING`` is enabled, then
+  ``CMAKE_CROSSCOMPILING`` will be respected and will keep pybind11 from
+  accessing the interpreter during configuration. Several CMake variables will
+  be required in this case, but can be deduced from the environment variable
+  ``SETUPTOOLS_EXT_SUFFIX``. The default (currently ``OFF``) may be changed in
+  the future.
+  `#5083 <https://github.com/pybind/pybind11/pull/5083>`_
+
+
+Bug fixes:
+
+* A refcount bug (leading to heap-use-after-free) involving trampoline
+  functions with ``PyObject *`` return type was fixed.
+  `#5156 <https://github.com/pybind/pybind11/pull/5156>`_
+
+* Return ``py::ssize_t`` from ``.ref_count()`` instead of ``int``.
+  `#5139 <https://github.com/pybind/pybind11/pull/5139>`_
+
+* A subtle bug involving C++ types with unusual ``operator&`` overrides
+  was fixed.
+  `#5189 <https://github.com/pybind/pybind11/pull/5189>`_
+
+* Support Python 3.13 with minor fix, add to CI.
+  `#5127 <https://github.com/pybind/pybind11/pull/5127>`_
+
+
+.. fix(cmake)
+
+* Fix mistake affecting old cmake and old boost.
+  `#5149 <https://github.com/pybind/pybind11/pull/5149>`_
+
+
+Documentation:
+
+* Build docs updated to feature scikit-build-core and meson-python, and updated
+  setuptools instructions.
+  `#5168 <https://github.com/pybind/pybind11/pull/5168>`_
+
+
+Tests:
+
+* Avoid immortal objects in tests.
+  `#5150 <https://github.com/pybind/pybind11/pull/5150>`_
+
+
+CI:
+
+* Compile against Python 3.13t in CI.
+
+* Use ``macos-13`` (Intel) for CI jobs for now (will drop Python 3.7 soon).
+  `#5109 <https://github.com/pybind/pybind11/pull/5109>`_
+
+* Releases now have artifact attestations, visible at
+  https://github.com/pybind/pybind11/attestations.
+  `#5196 <https://github.com/pybind/pybind11/pull/5196>`_
+
+Other:
+
+* Some cleanup in preparation for 3.13 support.
+  `#5137 <https://github.com/pybind/pybind11/pull/5137>`_
+
+* Avoid a warning by ensuring an iterator end check is included in release mode.
+  `#5129 <https://github.com/pybind/pybind11/pull/5129>`_
+
+* Bump max cmake to 3.29.
+  `#5075 <https://github.com/pybind/pybind11/pull/5075>`_
+
+* Update docs and noxfile.
+  `#5071 <https://github.com/pybind/pybind11/pull/5071>`_
+
+
 Version 2.12.0 (March 27, 2024)
 -------------------------------
 

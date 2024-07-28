@@ -740,6 +740,13 @@ class type_caster<std::pair<T1, T2>> : public tuple_caster<std::pair, T1, T2> {}
 template <typename... Ts>
 class type_caster<std::tuple<Ts...>> : public tuple_caster<std::tuple, Ts...> {};
 
+template <>
+class type_caster<std::tuple<>> : public tuple_caster<std::tuple> {
+public:
+    // PEP 484 specifies this syntax for an empty tuple
+    static constexpr auto name = const_name("tuple[()]");
+};
+
 /// Helper class which abstracts away certain actions. Users can provide specializations for
 /// custom holders, but it's only necessary if the type has a non-standard interface.
 template <typename T>
@@ -787,11 +794,11 @@ protected:
         }
     }
 
-    bool load_value(value_and_holder &&v_h) {
+    void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             holder = v_h.template holder<holder_type>();
-            return true;
+            return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
