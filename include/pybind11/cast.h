@@ -1503,7 +1503,7 @@ struct kw_only {};
 
 /// \ingroup annotations
 /// Annotation indicating that all previous arguments are positional-only; the is the equivalent of
-/// an unnamed '/' argument (in Python 3.8)
+/// an unnamed '/' argument
 struct pos_only {};
 
 template <typename T>

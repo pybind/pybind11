@@ -368,8 +368,7 @@ Should they throw or fail to catch any exceptions in their call graph,
 the C++ runtime calls ``std::terminate()`` to abort immediately.
 
 Similarly, Python exceptions raised in a class's ``__del__`` method do not
-propagate, but are logged by Python as an unraisable error. In Python 3.8+, a
-`system hook is triggered
+propagate, but ``sys.unraisablehook()`` `is triggered
 <https://docs.python.org/3/library/sys.html#sys.unraisablehook>`_
 and an auditing event is logged.
 
