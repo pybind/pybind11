@@ -57,7 +57,6 @@ Checks: |
   readability-string-compare,
   readability-suspicious-call-argument,
   readability-uniqueptr-delete-release,
-  -bugprone-empty-catch,
   -bugprone-multi-level-implicit-pointer-conversion,
   -bugprone-chained-comparison,
   -bugprone-easily-swappable-parameters,
