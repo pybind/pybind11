@@ -340,6 +340,12 @@ jobs:
           - clang: 16
             std: 20
             container_suffix: "-bullseye"
+          - clang: 17
+            std: 20
+            container_suffix: "-bookworm"
+          - clang: 18
+            std: 20
+            container_suffix: "-bookworm"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
