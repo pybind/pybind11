@@ -33,6 +33,13 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+#ifdef PYPY_VERSION
+#    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...) (__VA_ARGS__)
+#else
+#    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...)                                   \
+        (reinterpret_cast<void *>(__VA_ARGS__))
+#endif
+
 #if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
 template <typename T>
 struct path_caster {
@@ -72,7 +79,8 @@ public:
         }
         PyObject *native = nullptr;
         if constexpr (std::is_same_v<typename T::value_type, char>) {
-            if (PyUnicode_FSConverter(buf, &native) != 0) {
+            if (PyUnicode_FSConverter(buf, PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(&native))
+                != 0) {
                 if (auto *c_str = PyBytes_AsString(native)) {
                     // AsString returns a pointer to the internal buffer, which
                     // must not be free'd.
@@ -80,7 +88,8 @@ public:
                 }
             }
         } else if constexpr (std::is_same_v<typename T::value_type, wchar_t>) {
-            if (PyUnicode_FSDecoder(buf, &native) != 0) {
+            if (PyUnicode_FSDecoder(buf, PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(&native))
+                != 0) {
                 if (auto *c_str = PyUnicode_AsWideCharString(native, nullptr)) {
                     // AsWideCharString returns a new string that must be free'd.
                     value = c_str; // Copies the string.
