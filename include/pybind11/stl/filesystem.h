@@ -34,7 +34,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 #ifdef PYPY_VERSION
-#    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...)
+#    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...) (__VA_ARGS__)
 #else
 #    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...)                                   \
         (reinterpret_cast<void *>(__VA_ARGS__))
