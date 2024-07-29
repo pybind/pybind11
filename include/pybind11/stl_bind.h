@@ -180,7 +180,7 @@ void vector_modifiers(
                         v.end());
                 try {
                     v.shrink_to_fit();
-                } catch (const std::exception &) {
+                } catch (const std::exception &) { // NOLINT(bugprone-empty-catch)
                     // Do nothing
                 }
                 throw;
