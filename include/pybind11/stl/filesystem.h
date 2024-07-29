@@ -37,7 +37,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...)
 #else
 #    define PYBIND11_REINTERPRET_CAST_VOID_PTR_IF_NOT_PYPY(...)                                   \
-        reinterpret_cast<void *>(__VA_ARGS__)
+        (reinterpret_cast<void *>(__VA_ARGS__))
 #endif
 
 #if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
