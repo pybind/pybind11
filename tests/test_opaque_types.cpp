@@ -65,7 +65,7 @@ TEST_SUBMODULE(opaque_types, m) {
 
     m.def("return_unique_ptr", []() -> std::unique_ptr<StringList> {
         auto *result = new StringList();
-        result->push_back("some value");
+        result->emplace_back("some value");
         return std::unique_ptr<StringList>(result);
     });
 
