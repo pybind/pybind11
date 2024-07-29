@@ -266,6 +266,8 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
             return fill(arr_t(buf_ndim1_null));
         case 44:
             return fill(py::array(buf_ndim1_null));
+        default:
+            break;
     }
     return arr_t();
 }
