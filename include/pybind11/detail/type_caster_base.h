@@ -428,7 +428,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
 // NOLINTNEXTLINE(readability-make-member-function-const)
 PYBIND11_NOINLINE void instance::deallocate_layout() {
     if (!simple_layout) {
-        PyMem_Free(nonsimple.values_and_holders);
+        PyMem_Free(reinterpret_cast<void *>(nonsimple.values_and_holders));
     }
 }
 
