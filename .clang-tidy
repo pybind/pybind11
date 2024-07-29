@@ -61,6 +61,7 @@ Checks: |
   -bugprone-exception-escape,
   -bugprone-reserved-identifier,
   -bugprone-unused-raii,
+  -performance-enum-size,
 
 CheckOptions:
 - key:             modernize-use-equals-default.IgnoreMacros
