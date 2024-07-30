@@ -56,7 +56,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   find_package(
-    Python 3.7 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+    Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
                                    ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
