@@ -7,6 +7,9 @@ import pytest
 import env  # noqa: F401
 from pybind11_tests import class_sh_property as m
 
+if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+    pytest.skip("smart_holder not available.", allow_module_level=True)
+
 
 @pytest.mark.xfail("env.PYPY", reason="gc after `del field` is apparently deferred")
 @pytest.mark.parametrize("m_attr", ["m_valu_readonly", "m_valu_readwrite"])
@@ -18,7 +21,7 @@ def test_valu_getter(m_attr):
     assert field.num == -99
     with pytest.raises(ValueError) as excinfo:
         m.DisownOuter(outer)
-    assert str(excinfo.value) == "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
+    assert str(excinfo.value) == "Cannot disown use_count != 1 (load_as_unique_ptr)."
     del field
     m.DisownOuter(outer)
     with pytest.raises(ValueError, match="Python instance was disowned") as excinfo:

@@ -280,11 +280,10 @@ def test_init_factory_dual():
     assert not g1.has_alias()
     with pytest.raises(TypeError) as excinfo:
         PythFactory7(tag.shared_ptr, tag.invalid_base, 14)
-    assert str(excinfo.value) in (
-        "pybind11::init(): construction failed: returned holder-wrapped instance is not an "
-        "alias instance",
-        "pybind11::init(): construction failed: returned std::shared_ptr pointee is not an "
-        "alias instance",
+    assert (
+        str(excinfo.value)
+        == "pybind11::init(): construction failed: returned holder-wrapped instance is not an "
+        "alias instance"
     )
 
     assert [i.alive() for i in cstats] == [13, 7]

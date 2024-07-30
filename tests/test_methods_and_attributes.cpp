@@ -121,7 +121,7 @@ public:
 };
 int none1(const NoneTester &obj) { return obj.answer; }
 int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
-int none3(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
+int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 
@@ -417,21 +417,17 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // test_accepts_none
-    py::class_<NoneTester, PYBIND11_SH_DEF(NoneTester)>(m, "NoneTester").def(py::init<>());
+    py::class_<NoneTester, std::shared_ptr<NoneTester>>(m, "NoneTester").def(py::init<>());
     m.def("no_none1", &none1, py::arg{}.none(false));
     m.def("no_none2", &none2, py::arg{}.none(false));
     m.def("no_none3", &none3, py::arg{}.none(false));
+    m.def("no_none4", &none4, py::arg{}.none(false));
     m.def("no_none5", &none5, py::arg{}.none(false));
     m.def("ok_none1", &none1);
     m.def("ok_none2", &none2, py::arg{}.none(true));
     m.def("ok_none3", &none3);
-    m.def("ok_none5", &none5);
-
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-    // smart_holder_type_caster does not support conversion to `const shared_ptr<T> *`.
-    m.def("no_none4", &none4, py::arg{}.none(false));
     m.def("ok_none4", &none4, py::arg{}.none(true));
-#endif
+    m.def("ok_none5", &none5);
 
     m.def("no_none_kwarg", &none2, "a"_a.none(false));
     m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));
