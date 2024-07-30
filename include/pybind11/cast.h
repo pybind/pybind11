@@ -158,7 +158,7 @@ public:
         } else {
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
-#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+#if defined(PYPY_VERSION)
             object index;
             if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: index_check(src.ptr())
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
@@ -1503,7 +1503,7 @@ struct kw_only {};
 
 /// \ingroup annotations
 /// Annotation indicating that all previous arguments are positional-only; the is the equivalent of
-/// an unnamed '/' argument (in Python 3.8)
+/// an unnamed '/' argument
 struct pos_only {};
 
 template <typename T>
