@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # noqa: UP036
     msg = "pybind11 does not support Python < 3.8. v2.13 was the last release supporting Python 3.7."
     raise ImportError(msg)
 

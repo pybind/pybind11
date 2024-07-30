@@ -45,7 +45,7 @@ messages_control.disable = [
 ]
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"
 src = ["src"]
 
 [tool.ruff.lint]
