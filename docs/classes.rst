@@ -553,3 +553,8 @@ The ``name`` property returns the name of the enum value as a unicode string.
 .. warning::
 
     Contrary to Python customs, enum values from the wrappers should not be compared using ``is``, but with ``==`` (see `#1177 <https://github.com/pybind/pybind11/issues/1177>`_ for background).
+
+.. note::
+
+    ``py::native_enum`` was added as an alternative to ``py::enum_``
+    with http://github.com/pybind/pybind11/pull/9999
