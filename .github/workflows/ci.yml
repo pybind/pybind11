@@ -311,11 +311,6 @@ jobs:
       fail-fast: false
       matrix:
         clang:
-          - 3.6
-          - 3.7
-          - 3.9
-          - 7
-          - 9
           - dev
         std:
           - 11
@@ -324,8 +319,6 @@ jobs:
         include:
           - clang: 5
             std: 14
-          - clang: 10
-            std: 17
           - clang: 11
             std: 20
           - clang: 12
@@ -503,10 +496,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { gcc: 7, std: 11 }
-          - { gcc: 7, std: 17 }
-          - { gcc: 8, std: 14 }
-          - { gcc: 8, std: 17 }
           - { gcc: 9, std: 20 }
           - { gcc: 10, std: 17 }
           - { gcc: 10, std: 20 }
@@ -727,9 +716,9 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
-    name: "🐍 3.7 • Debian • x86 •  Install"
+    name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
-    container: i386/debian:buster
+    container: i386/debian:bullseye
 
     steps:
     - uses: actions/checkout@v1  # v1 is required to run inside docker
@@ -809,7 +798,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - '3.7'
         - '3.8'
         - '3.9'
         - '3.10'
@@ -827,8 +815,6 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=20
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: '3.7'
-            args: -DCMAKE_CXX_STANDARD=14
 
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"

@@ -249,7 +249,7 @@ def has_flag(compiler: Any, flag: str) -> bool:
 cpp_flag_cache = None
 
 
-@lru_cache()
+@lru_cache
 def auto_cpp_level(compiler: Any) -> str | int:
     """
     Return the max supported C++ std level (17, 14, or 11). Returns latest on Windows.

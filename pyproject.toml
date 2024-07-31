@@ -30,7 +30,7 @@ ignore_missing_imports = true
 
 
 [tool.pylint]
-master.py-version = "3.7"
+master.py-version = "3.8"
 reports.output-format = "colorized"
 messages_control.disable = [
   "design",
@@ -45,7 +45,7 @@ messages_control.disable = [
 ]
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"
 src = ["src"]
 
 [tool.ruff.lint]

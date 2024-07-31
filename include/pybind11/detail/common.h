@@ -272,8 +272,8 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #endif
 
 #include <Python.h>
-#if PY_VERSION_HEX < 0x03070000
-#    error "PYTHON < 3.7 IS UNSUPPORTED. pybind11 v2.12 was the last to support Python 3.6."
+#if PY_VERSION_HEX < 0x03080000
+#    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
 #endif
 #include <frameobject.h>
 #include <pythread.h>
