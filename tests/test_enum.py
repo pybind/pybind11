@@ -268,3 +268,12 @@ def test_docstring_signatures():
 def test_str_signature():
     for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
         assert enum_type.__str__.__doc__.startswith("__str__")
+
+
+@pytest.mark.skipif(
+    isinstance(m.obj_cast_UnscopedEnum_ptr, str), reason=m.obj_cast_UnscopedEnum_ptr
+)
+def test_obj_cast_unscoped_enum_ptr():
+    assert m.obj_cast_UnscopedEnum_ptr(m.UnscopedEnum.ETwo) == 2
+    assert m.obj_cast_UnscopedEnum_ptr(m.UnscopedEnum.EOne) == 1
+    assert m.obj_cast_UnscopedEnum_ptr(None) == 0

@@ -219,6 +219,10 @@ struct internals {
     std::string function_record_capsule_name = internals_function_record_capsule_name;
 #endif
 
+#if PYBIND11_INTERNALS_VERSION >= 6
+    type_map<PyObject *> native_enum_type_map;
+#endif
+
     internals() = default;
     internals(const internals &other) = delete;
     internals &operator=(const internals &other) = delete;
