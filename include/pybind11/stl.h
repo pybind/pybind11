@@ -151,7 +151,7 @@ private:
     void reserve_maybe(const anyset &, void *) {}
 
     bool convert_iterable(const iterable &itbl, bool convert) {
-        for (auto it : itbl) {
+        for (const auto &it : itbl) {
             key_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -218,7 +218,7 @@ private:
     bool convert_elements(const dict &d, bool convert) {
         value.clear();
         reserve_maybe(d, &value);
-        for (auto it : d) {
+        for (const auto &it : d) {
             key_conv kconv;
             value_conv vconv;
             if (!kconv.load(it.first.ptr(), convert) || !vconv.load(it.second.ptr(), convert)) {
@@ -308,7 +308,7 @@ private:
         auto s = reinterpret_borrow<sequence>(seq);
         value.clear();
         reserve_maybe(s, &value);
-        for (auto it : seq) {
+        for (const auto &it : seq) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -372,7 +372,7 @@ private:
             return false;
         }
         size_t ctr = 0;
-        for (auto it : l) {
+        for (const auto &it : l) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -565,7 +565,8 @@ struct variant_caster<V<Ts...>> {
 
     using Type = V<Ts...>;
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Union[") + detail::concat(make_caster<Ts>::name...)
+                         const_name("Union[")
+                             + ::pybind11::detail::concat(make_caster<Ts>::name...)
                              + const_name("]"));
 };
 

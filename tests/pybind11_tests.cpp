@@ -58,7 +58,7 @@ void bind_ConstructorStats(py::module_ &m) {
         // registered instances to allow instance cleanup checks (invokes a GC first)
         .def_static("detail_reg_inst", []() {
             ConstructorStats::gc();
-            return py::detail::get_internals().registered_instances.size();
+            return py::detail::num_registered_instances();
         });
 }
 
@@ -75,22 +75,30 @@ const char *cpp_std() {
 #endif
 }
 
-PYBIND11_MODULE(pybind11_tests, m) {
+PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 test module";
 
     // Intentionally kept minimal to not create a maintenance chore
     // ("just enough" to be conclusive).
-#if defined(_MSC_FULL_VER)
-    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
-#elif defined(__VERSION__)
+#if defined(__VERSION__)
     m.attr("compiler_info") = __VERSION__;
+#elif defined(_MSC_FULL_VER)
+    m.attr("compiler_info") = "MSVC " PYBIND11_TOSTRING(_MSC_FULL_VER);
 #else
     m.attr("compiler_info") = py::none();
 #endif
     m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+    // Free threaded Python uses UINT32_MAX for immortal objects.
+    m.attr("PYBIND11_REFCNT_IMMORTAL") = UINT32_MAX;
     m.attr("PYBIND11_SIMPLE_GIL_MANAGEMENT") =
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+        true;
+#else
+        false;
+#endif
+    m.attr("PYBIND11_NUMPY_1_ONLY") =
+#if defined(PYBIND11_NUMPY_1_ONLY)
         true;
 #else
         false;

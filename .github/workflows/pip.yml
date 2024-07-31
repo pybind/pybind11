@@ -21,19 +21,18 @@ env:
 
 jobs:
   # This builds the sdists and wheels and makes sure the files are exactly as
-  # expected. Using Windows and Python 3.6, since that is often the most
-  # challenging matrix element.
+  # expected.
   test-packaging:
-    name: 🐍 3.6 • 📦 tests • windows-latest
+    name: 🐍 3.8 • 📦 tests • windows-latest
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup 🐍 3.6
-      uses: actions/setup-python@v4
+    - name: Setup 🐍 3.8
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.6
+        python-version: 3.8
 
     - name: Prepare env
       run: |
@@ -53,7 +52,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup 🐍 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.8
 
@@ -73,13 +72,13 @@ jobs:
       run: twine check dist/*
 
     - name: Save standard package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: standard
         path: dist/pybind11-*
 
     - name: Save global package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: global
         path: dist/pybind11_global-*
@@ -92,23 +91,27 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: [packaging]
+    environment: pypi
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
 
     steps:
-    - uses: actions/setup-python@v4
-      with:
-        python-version: "3.x"
-
     # Downloads all to directories matching the artifact names
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
+
+    - name: Generate artifact attestation for sdist and wheel
+      uses: actions/attest-build-provenance@5e9cb68e95676991667494a6a4e59b8a2f13e1d0 # v1.3.3
+      with:
+        subject-path: "*/pybind11*"
 
     - name: Publish standard package
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        password: ${{ secrets.pypi_password }}
         packages-dir: standard/
 
     - name: Publish global package
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        password: ${{ secrets.pypi_password_global }}
         packages-dir: global/

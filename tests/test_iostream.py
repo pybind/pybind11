@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+import sys
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+
+import pytest
 
 from pybind11_tests import iostream as m
 
@@ -34,7 +39,7 @@ def test_captured_large_string(capsys):
 
 
 def test_captured_utf8_2byte_offset0(capsys):
-    msg = "\u07FF"
+    msg = "\u07ff"
     msg = "" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -44,7 +49,7 @@ def test_captured_utf8_2byte_offset0(capsys):
 
 
 def test_captured_utf8_2byte_offset1(capsys):
-    msg = "\u07FF"
+    msg = "\u07ff"
     msg = "1" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -54,7 +59,7 @@ def test_captured_utf8_2byte_offset1(capsys):
 
 
 def test_captured_utf8_3byte_offset0(capsys):
-    msg = "\uFFFF"
+    msg = "\uffff"
     msg = "" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -64,7 +69,7 @@ def test_captured_utf8_3byte_offset0(capsys):
 
 
 def test_captured_utf8_3byte_offset1(capsys):
-    msg = "\uFFFF"
+    msg = "\uffff"
     msg = "1" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -74,7 +79,7 @@ def test_captured_utf8_3byte_offset1(capsys):
 
 
 def test_captured_utf8_3byte_offset2(capsys):
-    msg = "\uFFFF"
+    msg = "\uffff"
     msg = "12" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -84,7 +89,7 @@ def test_captured_utf8_3byte_offset2(capsys):
 
 
 def test_captured_utf8_4byte_offset0(capsys):
-    msg = "\U0010FFFF"
+    msg = "\U0010ffff"
     msg = "" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -94,7 +99,7 @@ def test_captured_utf8_4byte_offset0(capsys):
 
 
 def test_captured_utf8_4byte_offset1(capsys):
-    msg = "\U0010FFFF"
+    msg = "\U0010ffff"
     msg = "1" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -104,7 +109,7 @@ def test_captured_utf8_4byte_offset1(capsys):
 
 
 def test_captured_utf8_4byte_offset2(capsys):
-    msg = "\U0010FFFF"
+    msg = "\U0010ffff"
     msg = "12" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -114,7 +119,7 @@ def test_captured_utf8_4byte_offset2(capsys):
 
 
 def test_captured_utf8_4byte_offset3(capsys):
-    msg = "\U0010FFFF"
+    msg = "\U0010ffff"
     msg = "123" + msg * (1024 // len(msg) + 1)
 
     m.captured_output_default(msg)
@@ -268,6 +273,7 @@ def test_redirect_both(capfd):
     assert stream2.getvalue() == msg2
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_threading():
     with m.ostream_redirect(stdout=True, stderr=False):
         # start some threads

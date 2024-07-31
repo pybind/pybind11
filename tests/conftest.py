@@ -4,6 +4,8 @@ Extends output capture as needed by pybind11: ignore constructors, optional unor
 Adds docstring and exceptions message sanitizers.
 """
 
+from __future__ import annotations
+
 import contextlib
 import difflib
 import gc
@@ -218,4 +220,5 @@ def pytest_report_header(config):
         f" {pybind11_tests.cpp_std}"
         f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
         f" PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}"
+        f" PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}"
     )

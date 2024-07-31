@@ -121,8 +121,7 @@ void init_tensor_module(pybind11::module &m) {
         []() { return &get_fixed_tensor<Options>(); },
         py::return_value_policy::copy);
 
-    m.def(
-        "copy_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::copy);
+    m.def("copy_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::copy);
 
     m.def(
         "copy_const_tensor",
@@ -148,33 +147,39 @@ void init_tensor_module(pybind11::module &m) {
 
     m.def(
         "take_fixed_tensor",
-
         []() {
             Eigen::aligned_allocator<
                 Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>>
                 allocator;
-            return new (allocator.allocate(1))
+            static auto *obj = new (allocator.allocate(1))
                 Eigen::TensorFixedSize<double, Eigen::Sizes<3, 5, 2>, Options>(
                     get_fixed_tensor<Options>());
+            return obj; // take_ownership will fail.
         },
         py::return_value_policy::take_ownership);
 
     m.def(
         "take_tensor",
-        []() { return new Eigen::Tensor<double, 3, Options>(get_tensor<Options>()); },
+        []() {
+            static auto *obj = new Eigen::Tensor<double, 3, Options>(get_tensor<Options>());
+            return obj; // take_ownership will fail.
+        },
         py::return_value_policy::take_ownership);
 
     m.def(
         "take_const_tensor",
         []() -> const Eigen::Tensor<double, 3, Options> * {
-            return new Eigen::Tensor<double, 3, Options>(get_tensor<Options>());
+            static auto *obj = new Eigen::Tensor<double, 3, Options>(get_tensor<Options>());
+            return obj; // take_ownership will fail.
         },
         py::return_value_policy::take_ownership);
 
     m.def(
         "take_view_tensor",
         []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> * {
-            return new Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>(get_tensor<Options>());
+            static auto *obj
+                = new Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>(get_tensor<Options>());
+            return obj; // take_ownership will fail.
         },
         py::return_value_policy::take_ownership);
 

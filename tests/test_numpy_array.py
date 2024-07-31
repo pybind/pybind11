@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 import env  # noqa: F401
@@ -198,11 +200,7 @@ def test_wrap():
         assert a.flags.f_contiguous == b.flags.f_contiguous
         assert a.flags.writeable == b.flags.writeable
         assert a.flags.aligned == b.flags.aligned
-        # 1.13 supported Python 3.6
-        if tuple(int(x) for x in np.__version__.split(".")[:2]) >= (1, 14):
-            assert a.flags.writebackifcopy == b.flags.writebackifcopy
-        else:
-            assert a.flags.updateifcopy == b.flags.updateifcopy
+        assert a.flags.writebackifcopy == b.flags.writebackifcopy
         assert np.all(a == b)
         assert not b.flags.owndata
         assert b.base is base
@@ -536,7 +534,12 @@ def test_format_descriptors_for_floating_point_types(test_func):
 @pytest.mark.parametrize("contiguity", [None, "C", "F"])
 @pytest.mark.parametrize("noconvert", [False, True])
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values to real discards the imaginary part:numpy.ComplexWarning"
+    "ignore:Casting complex values to real discards the imaginary part:"
+    + (
+        "numpy.exceptions.ComplexWarning"
+        if hasattr(np, "exceptions")
+        else "numpy.ComplexWarning"
+    )
 )
 def test_argument_conversions(forcecast, contiguity, noconvert):
     function_name = "accept_double"
@@ -583,7 +586,8 @@ def test_argument_conversions(forcecast, contiguity, noconvert):
 def test_dtype_refcount_leak():
     from sys import getrefcount
 
-    dtype = np.dtype(np.float_)
+    # Was np.float_ but that alias for float64 was removed in NumPy 2.
+    dtype = np.dtype(np.float64)
     a = np.array([1], dtype=dtype)
     before = getrefcount(dtype)
     m.ndim(a)

@@ -103,19 +103,6 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
                                                 bool add_program_dir_to_path) {
     detail::precheck_interpreter();
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
-#    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
-    PyEval_InitThreads();
-#    endif
-
-    // Before it was special-cased in python 3.8, passing an empty or null argv
-    // caused a segfault, so we have to reimplement the special case ourselves.
-    bool special_case = (argv == nullptr || argc <= 0);
-
-    const char *const empty_argv[]{"\0"};
-    const char *const *safe_argv = special_case ? empty_argv : argv;
-    if (special_case) {
-        argc = 1;
-    }
 
     auto argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
@@ -123,7 +110,7 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
     std::vector<std::unique_ptr<wchar_t[], detail::wide_char_arg_deleter>> widened_argv_entries;
     widened_argv_entries.reserve(argv_size);
     for (size_t ii = 0; ii < argv_size; ++ii) {
-        widened_argv_entries.emplace_back(detail::widen_chars(safe_argv[ii]));
+        widened_argv_entries.emplace_back(detail::widen_chars(argv[ii]));
         if (!widened_argv_entries.back()) {
             // A null here indicates a character-encoding failure or the python
             // interpreter out of memory. Give up.

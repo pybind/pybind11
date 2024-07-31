@@ -42,6 +42,16 @@ set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}"
     CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
 
+if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_CROSSCOMPILING
+      ON
+      CACHE INTERNAL "")
+else()
+  set(_PYBIND11_CROSSCOMPILING
+      OFF
+      CACHE INTERNAL "")
+endif()
+
 # --------------------- Shared targets ----------------------------
 
 # Build an interface library target:
@@ -173,12 +183,16 @@ endif()
 # Check to see which Python mode we are in, new, old, or no python
 if(PYBIND11_NOPYTHON)
   set(_pybind11_nopython ON)
+  # We won't use new FindPython if PYBIND11_FINDPYTHON is defined and falselike
+  # Otherwise, we use if FindPythonLibs is missing or if FindPython was already used
 elseif(
-  _pybind11_missing_old_python STREQUAL "NEW"
-  OR PYBIND11_FINDPYTHON
-  OR Python_FOUND
-  OR Python2_FOUND
-  OR Python3_FOUND)
+  (NOT DEFINED PYBIND11_FINDPYTHON OR PYBIND11_FINDPYTHON)
+  AND (_pybind11_missing_old_python STREQUAL "NEW"
+       OR PYBIND11_FINDPYTHON
+       OR Python_FOUND
+       OR Python3_FOUND
+      ))
+
   # New mode
   include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
 
@@ -191,7 +205,7 @@ endif()
 
 # --------------------- pybind11_find_import -------------------------------
 
-if(NOT _pybind11_nopython)
+if(NOT _pybind11_nopython AND NOT _PYBIND11_CROSSCOMPILING)
   # Check to see if modules are importable. Use REQUIRED to force an error if
   # one of the modules is not found. <package_name>_FOUND will be set if the
   # package was found (underscores replace dashes if present). QUIET will hide
@@ -321,7 +335,7 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       set(PYBIND11_LTO_LINKER_FLAGS "-flto${thin}${linker_append}")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
       _pybind11_return_if_cxx_and_linker_flags_work(
-        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto=${thin}${linker_append}"
+        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto${thin}${linker_append}"
         PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
     if(NOT HAS_FLTO_THIN)

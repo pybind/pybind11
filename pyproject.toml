@@ -19,9 +19,8 @@ ignore = [
 
 [tool.mypy]
 files = ["pybind11"]
-python_version = "3.7"
+python_version = "3.8"
 strict = true
-show_error_codes = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 
@@ -30,20 +29,8 @@ module = ["ghapi.*"]
 ignore_missing_imports = true
 
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
-xfail_strict = true
-filterwarnings = ["error"]
-log_cli_level = "info"
-testpaths = [
-    "tests",
-]
-timeout=300
-
-
 [tool.pylint]
-master.py-version = "3.6"
+master.py-version = "3.8"
 reports.output-format = "colorized"
 messages_control.disable = [
   "design",
@@ -58,7 +45,7 @@ messages_control.disable = [
 ]
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"
 src = ["src"]
 
 [tool.ruff.lint]
@@ -89,7 +76,12 @@ ignore = [
 ]
 unfixable = ["T20"]
 isort.known-first-party = ["env", "pybind11_cross_module_tests", "pybind11_tests"]
+isort.required-imports = ["from __future__ import annotations"]
+
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["EM", "N", "E721"]
 "tests/test_call_policies.py" = ["PLC1901"]
+
+[tool.repo-review]
+ignore = ["PP"]

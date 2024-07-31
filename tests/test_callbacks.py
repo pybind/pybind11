@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import sys
 import time
 from threading import Thread
 
@@ -151,6 +154,7 @@ def test_python_builtins():
     assert m.test_sum_builtin(sum, []) == 0
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_async_callbacks():
     # serves as state for async callback
     class Item:
@@ -174,6 +178,7 @@ def test_async_callbacks():
     assert sum(res) == sum(x + 3 for x in work)
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_async_async_callbacks():
     t = Thread(target=test_async_callbacks)
     t.start()

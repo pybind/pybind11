@@ -70,7 +70,7 @@ struct eigen_tensor_helper<Eigen::Tensor<Scalar_, NumIndices_, Options_, IndexTy
 
     template <size_t... Is>
     struct helper<index_sequence<Is...>> {
-        static constexpr auto value = concat(const_name(((void) Is, "?"))...);
+        static constexpr auto value = ::pybind11::detail::concat(const_name(((void) Is, "?"))...);
     };
 
     static constexpr auto dimensions_descriptor
@@ -104,7 +104,8 @@ struct eigen_tensor_helper<
         return get_shape() == shape;
     }
 
-    static constexpr auto dimensions_descriptor = concat(const_name<Indices>()...);
+    static constexpr auto dimensions_descriptor
+        = ::pybind11::detail::concat(const_name<Indices>()...);
 
     template <typename... Args>
     static Type *alloc(Args &&...args) {
@@ -468,9 +469,6 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
                 parent_object = reinterpret_borrow<object>(parent);
                 break;
 
-            case return_value_policy::take_ownership:
-                delete src;
-                // fallthrough
             default:
                 // move, take_ownership don't make any sense for a ref/map:
                 pybind11_fail("Invalid return_value_policy for Eigen Map type, must be either "

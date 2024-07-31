@@ -378,8 +378,6 @@ uses of ``py::array``:
 
 - ``.itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
 
-- ``.ndim()`` returns the number of dimensions.
-
 - ``.shape(n)`` returns the size of dimension ``n``
 
 - ``.size()`` returns the total number of elements (i.e. the product of the shapes).

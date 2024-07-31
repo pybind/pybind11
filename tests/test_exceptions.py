@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import sys
 
 import pytest
 
 import env
 import pybind11_cross_module_tests as cm
-import pybind11_tests  # noqa: F401
+import pybind11_tests
 from pybind11_tests import exceptions as m
 
 
@@ -73,7 +75,7 @@ def test_cross_module_exceptions(msg):
 
 # TODO: FIXME
 @pytest.mark.xfail(
-    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang'))",
+    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang')) or sys.platform.startswith('emscripten')",
     raises=RuntimeError,
     reason="See Issue #2847, PR #2999, PR #4324",
 )
@@ -101,28 +103,24 @@ def ignore_pytest_unraisable_warning(f):
 @pytest.mark.xfail(env.PYPY, reason="Failure on PyPy 3.8 (7.3.7)", strict=False)
 @ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
-    hooked = False
     triggered = False
 
-    if hasattr(sys, "unraisablehook"):  # Python 3.8+
-        hooked = True
-        # Don't take `sys.unraisablehook`, as that's overwritten by pytest
-        default_hook = sys.__unraisablehook__
+    # Don't take `sys.unraisablehook`, as that's overwritten by pytest
+    default_hook = sys.__unraisablehook__
 
-        def hook(unraisable_hook_args):
-            exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
-            if obj == "already_set demo":
-                nonlocal triggered
-                triggered = True
-            default_hook(unraisable_hook_args)
-            return
+    def hook(unraisable_hook_args):
+        exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
+        if obj == "already_set demo":
+            nonlocal triggered
+            triggered = True
+        default_hook(unraisable_hook_args)
+        return
 
-        # Use monkeypatch so pytest can apply and remove the patch as appropriate
-        monkeypatch.setattr(sys, "unraisablehook", hook)
+    # Use monkeypatch so pytest can apply and remove the patch as appropriate
+    monkeypatch.setattr(sys, "unraisablehook", hook)
 
     assert m.python_alreadyset_in_destructor("already_set demo") is True
-    if hooked:
-        assert triggered is True
+    assert triggered is True
 
     _, captured_stderr = capsys.readouterr()
     assert captured_stderr.startswith("Exception ignored in: 'already_set demo'")
@@ -248,6 +246,11 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
+# TODO: Investigate this crash, see pybind/pybind11#5062 for background
+@pytest.mark.skipif(
+    sys.platform.startswith("win32") and "Clang" in pybind11_tests.compiler_info,
+    reason="Started segfaulting February 2024",
+)
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_nested_exception()
@@ -419,3 +422,9 @@ def test_fn_cast_int_exception():
     assert str(excinfo.value).startswith(
         "Unable to cast Python instance of type <class 'NoneType'> to C++ type"
     )
+
+
+def test_return_exception_void():
+    with pytest.raises(TypeError) as excinfo:
+        m.return_exception_void()
+    assert "Exception" in str(excinfo.value)

@@ -340,12 +340,10 @@ TEST_SUBMODULE(eigen_matrix, m) {
     if (have_numpy) {
         py::module_::import("numpy");
         Eigen::Matrix<double, 3, 3> defaultMatrix = Eigen::Matrix3d::Identity();
-        m.def(
-            "defaults_mat", [](const Eigen::Matrix3d &) {}, py::arg("mat") = defaultMatrix);
+        m.def("defaults_mat", [](const Eigen::Matrix3d &) {}, py::arg("mat") = defaultMatrix);
 
         Eigen::VectorXd defaultVector = Eigen::VectorXd::Ones(32);
-        m.def(
-            "defaults_vec", [](const Eigen::VectorXd &) {}, py::arg("vec") = defaultMatrix);
+        m.def("defaults_vec", [](const Eigen::VectorXd &) {}, py::arg("vec") = defaultMatrix);
     }
     // test_sparse, test_sparse_signature
     m.def("sparse_r", [mat]() -> SparseMatrixR {

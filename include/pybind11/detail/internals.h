@@ -11,13 +11,15 @@
 
 #include "common.h"
 
-#if defined(WITH_THREAD) && defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    include "../gil.h"
 #endif
 
 #include "../pytypes.h"
 
 #include <exception>
+#include <mutex>
+#include <thread>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
@@ -62,60 +64,41 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
-#if PY_VERSION_HEX >= 0x03070000
 // Avoid unnecessary allocation of `Py_tss_t`, since we cannot use
 // `Py_LIMITED_API` anyway.
-#    if PYBIND11_INTERNALS_VERSION > 4
-#        define PYBIND11_TLS_KEY_REF Py_tss_t &
-#        if defined(__GNUC__) && !defined(__INTEL_COMPILER)
-// Clang on macOS warns due to `Py_tss_NEEDS_INIT` not specifying an initializer
-// for every field.
-#            define PYBIND11_TLS_KEY_INIT(var)                                                    \
-                _Pragma("GCC diagnostic push")                                         /**/       \
-                    _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/       \
-                    Py_tss_t var                                                                  \
-                    = Py_tss_NEEDS_INIT;                                                          \
-                _Pragma("GCC diagnostic pop")
-#        else
-#            define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
-#        endif
-#        define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
-#        define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
-#        define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
+#if PYBIND11_INTERNALS_VERSION > 4
+#    define PYBIND11_TLS_KEY_REF Py_tss_t &
+#    if defined(__clang__)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("clang diagnostic push")                                         /**/         \
+                _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/         \
+                Py_tss_t var                                                                      \
+                = Py_tss_NEEDS_INIT;                                                              \
+            _Pragma("clang diagnostic pop")
+#    elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("GCC diagnostic push")                                         /**/           \
+                _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/           \
+                Py_tss_t var                                                                      \
+                = Py_tss_NEEDS_INIT;                                                              \
+            _Pragma("GCC diagnostic pop")
 #    else
-#        define PYBIND11_TLS_KEY_REF Py_tss_t *
-#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
-#        define PYBIND11_TLS_KEY_CREATE(var)                                                      \
-            (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
-#        define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
-#        define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
+#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
 #    endif
+#    define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 #else
-// Usually an int but a long on Cygwin64 with Python 3.x
-#    define PYBIND11_TLS_KEY_REF decltype(PyThread_create_key())
-#    define PYBIND11_TLS_KEY_INIT(var) PYBIND11_TLS_KEY_REF var = 0;
-#    define PYBIND11_TLS_KEY_CREATE(var) (((var) = PyThread_create_key()) != -1)
-#    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
-#    if defined(PYPY_VERSION)
-// On CPython < 3.4 and on PyPy, `PyThread_set_key_value` strangely does not set
-// the value if it has already been set.  Instead, it must first be deleted and
-// then set again.
-inline void tls_replace_value(PYBIND11_TLS_KEY_REF key, void *value) {
-    PyThread_delete_key_value(key);
-    PyThread_set_key_value(key, value);
-}
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_delete_key_value(key)
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                                            \
-            ::pybind11::detail::tls_replace_value((key), (value))
-#    else
-#        define PYBIND11_TLS_DELETE_VALUE(key) PyThread_set_key_value((key), nullptr)
-#        define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_set_key_value((key), (value))
-#    endif
-#    define PYBIND11_TLS_FREE(key) (void) key
+#    define PYBIND11_TLS_KEY_REF Py_tss_t *
+#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
+#    define PYBIND11_TLS_KEY_CREATE(var)                                                          \
+        (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 #endif
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
@@ -163,15 +146,48 @@ struct override_hash {
     }
 };
 
+using instance_map = std::unordered_multimap<const void *, instance *>;
+
+#ifdef Py_GIL_DISABLED
+// Wrapper around PyMutex to provide BasicLockable semantics
+class pymutex {
+    PyMutex mutex;
+
+public:
+    pymutex() : mutex({}) {}
+    void lock() { PyMutex_Lock(&mutex); }
+    void unlock() { PyMutex_Unlock(&mutex); }
+};
+
+// Instance map shards are used to reduce mutex contention in free-threaded Python.
+struct instance_map_shard {
+    instance_map registered_instances;
+    pymutex mutex;
+    // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
+    char padding[64 - (sizeof(instance_map) + sizeof(pymutex)) % 64];
+};
+
+static_assert(sizeof(instance_map_shard) % 64 == 0,
+              "instance_map_shard size is not a multiple of 64 bytes");
+#endif
+
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
+#ifdef Py_GIL_DISABLED
+    pymutex mutex;
+#endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py;
-    std::unordered_multimap<const void *, instance *> registered_instances; // void * -> instance*
+#ifdef Py_GIL_DISABLED
+    std::unique_ptr<instance_map_shard[]> instance_shards; // void * -> instance*
+    size_t instance_shards_mask;
+#else
+    instance_map registered_instances; // void * -> instance*
+#endif
     std::unordered_set<std::pair<const PyObject *, const char *>, override_hash>
         inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
@@ -187,28 +203,27 @@ struct internals {
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
-#if defined(WITH_THREAD)
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
-#    endif // PYBIND11_INTERNALS_VERSION > 4
+#endif // PYBIND11_INTERNALS_VERSION > 4
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
     // Note that we have to use a std::string to allocate memory to ensure a unique address
     // We want unique addresses since we use pointer equality to compare function records
     std::string function_record_capsule_name = internals_function_record_capsule_name;
-#    endif
+#endif
 
     internals() = default;
     internals(const internals &other) = delete;
     internals &operator=(const internals &other) = delete;
     ~internals() {
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
         PYBIND11_TLS_FREE(loader_life_support_tls_key);
-#    endif // PYBIND11_INTERNALS_VERSION > 4
+#endif // PYBIND11_INTERNALS_VERSION > 4
 
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
         // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is
@@ -219,7 +234,6 @@ struct internals {
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
     }
-#endif
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
@@ -304,22 +318,18 @@ struct type_info {
 #endif
 
 #ifndef PYBIND11_INTERNALS_KIND
-#    if defined(WITH_THREAD)
-#        define PYBIND11_INTERNALS_KIND ""
-#    else
-#        define PYBIND11_INTERNALS_KIND "_without_thread"
-#    endif
+#    define PYBIND11_INTERNALS_KIND ""
 #endif
 
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE "__"
+        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
+            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI         \
-            PYBIND11_BUILD_TYPE "__"
+        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
+            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -437,7 +447,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 inline object get_python_state_dict() {
     object state_dict;
-#if PYBIND11_INTERNALS_VERSION <= 4 || PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
 #    if PY_VERSION_HEX < 0x03090000
@@ -457,7 +467,8 @@ inline object get_python_state_dict() {
 }
 
 inline object get_internals_obj_from_state_dict(handle state_dict) {
-    return reinterpret_borrow<object>(dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID));
+    return reinterpret_steal<object>(
+        dict_getitemstringref(state_dict.ptr(), PYBIND11_INTERNALS_ID));
 }
 
 inline internals **get_internals_pp_from_capsule(handle obj) {
@@ -469,6 +480,20 @@ inline internals **get_internals_pp_from_capsule(handle obj) {
     return static_cast<internals **>(raw_ptr);
 }
 
+inline uint64_t round_up_to_next_pow2(uint64_t x) {
+    // Round-up to the next power of two.
+    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    x--;
+    x |= (x >> 1);
+    x |= (x >> 2);
+    x |= (x >> 4);
+    x |= (x >> 8);
+    x |= (x >> 16);
+    x |= (x >> 32);
+    x++;
+    return x;
+}
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
@@ -476,10 +501,9 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
-#if defined(WITH_THREAD)
-#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
     gil_scoped_acquire gil;
-#    else
+#else
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
     struct gil_scoped_acquire_local {
@@ -489,7 +513,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
-#    endif
 #endif
     error_scope err_scope;
 
@@ -514,7 +537,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
-#if defined(WITH_THREAD)
 
         PyThreadState *tstate = PyThreadState_Get();
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
@@ -523,20 +545,29 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
         PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
 
-#    if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
             pybind11_fail("get_internals: could not successfully initialize the "
                           "loader_life_support TSS key!");
         }
-#    endif
-        internals_ptr->istate = tstate->interp;
 #endif
-        state_dict[PYBIND11_INTERNALS_ID] = capsule(internals_pp);
+        internals_ptr->istate = tstate->interp;
+        state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
+#ifdef Py_GIL_DISABLED
+        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
+        auto num_shards
+            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        if (num_shards == 0) {
+            num_shards = 1;
+        }
+        internals_ptr->instance_shards.reset(new instance_map_shard[num_shards]);
+        internals_ptr->instance_shards_mask = num_shards - 1;
+#endif // Py_GIL_DISABLED
     }
     return **internals_pp;
 }
@@ -550,7 +581,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
-#if defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+#if PYBIND11_INTERNALS_VERSION == 4
 
     // For ABI compatibility, we can't store the loader_life_support TLS key in
     // the `internals` struct directly.  Instead, we store it in `shared_data` and
@@ -583,7 +614,7 @@ struct local_internals {
         loader_life_support_tls_key
             = static_cast<shared_loader_life_support_data *>(ptr)->loader_life_support_tls_key;
     }
-#endif //  defined(WITH_THREAD) && PYBIND11_INTERNALS_VERSION == 4
+#endif //  PYBIND11_INTERNALS_VERSION == 4
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
@@ -597,13 +628,80 @@ inline local_internals &get_local_internals() {
     return *locals;
 }
 
+#ifdef Py_GIL_DISABLED
+#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
+#else
+#    define PYBIND11_LOCK_INTERNALS(internals)
+#endif
+
+template <typename F>
+inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
+    auto &internals = get_internals();
+    PYBIND11_LOCK_INTERNALS(internals);
+    return cb(internals);
+}
+
+inline std::uint64_t mix64(std::uint64_t z) {
+    // David Stafford's variant 13 of the MurmurHash3 finalizer popularized
+    // by the SplitMix PRNG.
+    // https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+    return z ^ (z >> 31);
+}
+
+template <typename F>
+inline auto with_instance_map(const void *ptr,
+                              const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
+    auto &internals = get_internals();
+
+#ifdef Py_GIL_DISABLED
+    // Hash address to compute shard, but ignore low bits. We'd like allocations
+    // from the same thread/core to map to the same shard and allocations from
+    // other threads/cores to map to other shards. Using the high bits is a good
+    // heuristic because memory allocators often have a per-thread
+    // arena/superblock/segment from which smaller allocations are served.
+    auto addr = reinterpret_cast<std::uintptr_t>(ptr);
+    auto hash = mix64(static_cast<std::uint64_t>(addr >> 20));
+    auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
+
+    auto &shard = internals.instance_shards[idx];
+    std::unique_lock<pymutex> lock(shard.mutex);
+    return cb(shard.registered_instances);
+#else
+    (void) ptr;
+    return cb(internals.registered_instances);
+#endif
+}
+
+// Returns the number of registered instances for testing purposes.  The result may not be
+// consistent if other threads are registering or unregistering instances concurrently.
+inline size_t num_registered_instances() {
+    auto &internals = get_internals();
+#ifdef Py_GIL_DISABLED
+    size_t count = 0;
+    for (size_t i = 0; i <= internals.instance_shards_mask; ++i) {
+        auto &shard = internals.instance_shards[i];
+        std::unique_lock<pymutex> lock(shard.mutex);
+        count += shard.registered_instances.size();
+    }
+    return count;
+#else
+    return internals.registered_instances.size();
+#endif
+}
+
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only
 /// cleared when the program exits or after interpreter shutdown (when embedding), and so are
 /// suitable for c-style strings needed by Python internals (such as PyTypeObject's tp_name).
 template <typename... Args>
 const char *c_str(Args &&...args) {
-    auto &strings = get_internals().static_strings;
+    // GCC 4.8 doesn't like parameter unpack within lambda capture, so use
+    // PYBIND11_LOCK_INTERNALS.
+    auto &internals = get_internals();
+    PYBIND11_LOCK_INTERNALS(internals);
+    auto &strings = internals.static_strings;
     strings.emplace_front(std::forward<Args>(args)...);
     return strings.front().c_str();
 }
@@ -633,15 +731,18 @@ PYBIND11_NAMESPACE_END(detail)
 /// pybind11 version) running in the current interpreter. Names starting with underscores
 /// are reserved for internal usage. Returns `nullptr` if no matching entry was found.
 PYBIND11_NOINLINE void *get_shared_data(const std::string &name) {
-    auto &internals = detail::get_internals();
-    auto it = internals.shared_data.find(name);
-    return it != internals.shared_data.end() ? it->second : nullptr;
+    return detail::with_internals([&](detail::internals &internals) {
+        auto it = internals.shared_data.find(name);
+        return it != internals.shared_data.end() ? it->second : nullptr;
+    });
 }
 
 /// Set the shared data that can be later recovered by `get_shared_data()`.
 PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
-    detail::get_internals().shared_data[name] = data;
-    return data;
+    return detail::with_internals([&](detail::internals &internals) {
+        internals.shared_data[name] = data;
+        return data;
+    });
 }
 
 /// Returns a typed reference to a shared data entry (by using `get_shared_data()`) if
@@ -649,14 +750,15 @@ PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
 /// added to the shared data under the given name and a reference to it is returned.
 template <typename T>
 T &get_or_create_shared_data(const std::string &name) {
-    auto &internals = detail::get_internals();
-    auto it = internals.shared_data.find(name);
-    T *ptr = (T *) (it != internals.shared_data.end() ? it->second : nullptr);
-    if (!ptr) {
-        ptr = new T();
-        internals.shared_data[name] = ptr;
-    }
-    return *ptr;
+    return *detail::with_internals([&](detail::internals &internals) {
+        auto it = internals.shared_data.find(name);
+        T *ptr = (T *) (it != internals.shared_data.end() ? it->second : nullptr);
+        if (!ptr) {
+            ptr = new T();
+            internals.shared_data[name] = ptr;
+        }
+        return ptr;
+    });
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

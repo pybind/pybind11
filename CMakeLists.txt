@@ -12,13 +12,13 @@ endif()
 
 cmake_minimum_required(VERSION 3.5)
 
-# The `cmake_minimum_required(VERSION 3.5...3.26)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.5...3.29)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.26)
+if(${CMAKE_VERSION} VERSION_LESS 3.29)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.26)
+  cmake_policy(VERSION 3.29)
 endif()
 
 if(_pybind11_cmp0148)
@@ -92,23 +92,40 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(pybind11_system "")
 
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+  if(CMAKE_VERSION VERSION_LESS "3.18")
+    set(_pybind11_findpython_default OFF)
+  else()
+    set(_pybind11_findpython_default ON)
+  endif()
 else()
   set(PYBIND11_MASTER_PROJECT OFF)
   set(pybind11_system SYSTEM)
+  set(_pybind11_findpython_default OFF)
 endif()
 
 # Options
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
+option(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
+       "To enforce that a handle_type_name<> specialization exists" OFF)
 option(PYBIND11_SIMPLE_GIL_MANAGEMENT
        "Use simpler GIL management logic that does not support disassociation" OFF)
+option(PYBIND11_NUMPY_1_ONLY
+       "Disable NumPy 2 support to avoid changes to previous pybind11 versions." OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
+option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
 
+if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+  add_compile_definitions(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+endif()
 if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
   add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+endif()
+if(PYBIND11_NUMPY_1_ONLY)
+  add_compile_definitions(PYBIND11_NUMPY_1_ONLY)
 endif()
 
 cmake_dependent_option(
@@ -116,8 +133,17 @@ cmake_dependent_option(
   "Install pybind11 headers in Python include directory instead of default installation prefix"
   OFF "PYBIND11_INSTALL" OFF)
 
-cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" OFF
+cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" ${_pybind11_findpython_default}
                        "NOT CMAKE_VERSION VERSION_LESS 3.12" OFF)
+
+# Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
+# (makes transition easier while we support both modes).
+if(PYBIND11_MASTER_PROJECT
+   AND PYBIND11_FINDPYTHON
+   AND DEFINED PYTHON_EXECUTABLE
+   AND NOT DEFINED Python_EXECUTABLE)
+  set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
+endif()
 
 # NB: when adding a header don't forget to also add it to setup.py
 set(PYBIND11_HEADERS
@@ -128,6 +154,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/internals.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
+    include/pybind11/detail/value_and_holder.h
     include/pybind11/attr.h
     include/pybind11/buffer_info.h
     include/pybind11/cast.h
@@ -274,6 +301,7 @@ if(PYBIND11_INSTALL)
           tools/pybind11Common.cmake
           tools/pybind11Tools.cmake
           tools/pybind11NewTools.cmake
+          tools/pybind11GuessPythonExtSuffix.cmake
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
   if(NOT PYBIND11_EXPORT_NAME)

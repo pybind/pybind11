@@ -30,13 +30,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, windows-2022, macos-latest]
+        runs-on: [ubuntu-20.04, windows-2022, macos-13]
         python:
-        - '3.6'
+        - '3.8'
         - '3.9'
-        - '3.10'
-        - '3.11'
         - '3.12'
+        - '3.13'
         - 'pypy-3.8'
         - 'pypy-3.9'
         - 'pypy-3.10'
@@ -49,21 +48,26 @@ jobs:
         include:
           # Just add a key
           - runs-on: ubuntu-20.04
-            python: '3.6'
+            python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
               -DCMAKE_CXX_FLAGS="-D_=1"
+            exercise_D_: 1
           - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-2019
-            python: '3.6'
+            python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=ON
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
+          # Extra ubuntu latest job
+          - runs-on: ubuntu-latest
+            python: '3.11'
+
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -72,14 +76,14 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
         allow-prereleases: true
 
     - name: Setup Boost (Linux)
       # Can't use boost + define _
-      if: runner.os == 'Linux' && matrix.python != '3.6'
+      if: runner.os == 'Linux' && matrix.exercise_D_ != 1
       run: sudo apt-get install libboost-dev
 
     - name: Setup Boost (macOS)
@@ -87,11 +91,11 @@ jobs:
       run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Cache wheels
       if: runner.os == 'macOS'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         # This path is specific to macOS - we really only need it for PyPy NumPy wheels
         # See https://github.com/actions/cache/blob/master/examples.md#python---pip
@@ -109,12 +113,15 @@ jobs:
       run: python -m pip install pytest-github-actions-annotate-failures
 
     # First build - C++11 mode and inplace
-    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here.
+    # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here
+    # (same for PYBIND11_NUMPY_1_ONLY, but requires a NumPy 1.x at runtime).
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
+        -DPYBIND11_NUMPY_1_ONLY=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
@@ -127,9 +134,7 @@ jobs:
       run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
-      # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
-      run: cmake --build .  --target cpptest -j 2
+      run: cmake --build . --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build . --target test_cmake_build
@@ -139,11 +144,13 @@ jobs:
 
     # Second build - C++17 mode and in a build directory
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
+    # (same for PYBIND11_NUMPY_1_ONLY, but requires a NumPy 1.x at runtime).
     - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+        -DPYBIND11_NUMPY_1_ONLY=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
@@ -156,8 +163,6 @@ jobs:
       run: cmake --build build2 --target pytest
 
     - name: C++ tests
-      # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10' || matrix.python == '3.11' || matrix.python == 'pypy-3.8'))"
       run: cmake --build build2 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -188,6 +193,35 @@ jobs:
         pytest tests/extra_setuptools
       if: "!(matrix.runs-on == 'windows-2022')"
 
+  manylinux:
+    name: Manylinux on 🐍 3.13t • GIL
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container: quay.io/pypa/musllinux_1_2_x86_64:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare venv
+        run: python3.13t -m venv .venv
+
+      - name: Install Python deps
+        run: .venv/bin/pip install -r tests/requirements.txt
+
+      - name: Configure C++11
+        run: >
+          cmake -S. -Bbuild
+          -DPYBIND11_WERROR=ON
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DPython_ROOT_DIR=.venv
+
+      - name: Build C++11
+        run: cmake --build build -j2
+
+      - name: Python tests C++11
+        run: cmake --build build --target pytest -j2
 
   deadsnakes:
     strategy:
@@ -209,17 +243,17 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
-      uses: deadsnakes/action@v3.0.1
+      uses: deadsnakes/action@v3.1.0
       with:
         python-version: ${{ matrix.python-version }}
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Valgrind cache
       if: matrix.valgrind
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-valgrind
       with:
         path: valgrind
@@ -277,11 +311,6 @@ jobs:
       fail-fast: false
       matrix:
         clang:
-          - 3.6
-          - 3.7
-          - 3.9
-          - 7
-          - 9
           - dev
         std:
           - 11
@@ -290,8 +319,6 @@ jobs:
         include:
           - clang: 5
             std: 14
-          - clang: 10
-            std: 17
           - clang: 11
             std: 20
           - clang: 12
@@ -306,6 +333,12 @@ jobs:
           - clang: 16
             std: 20
             container_suffix: "-bullseye"
+          - clang: 17
+            std: 20
+            container_suffix: "-bookworm"
+          - clang: 18
+            std: 20
+            container_suffix: "-bookworm"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
@@ -463,11 +496,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { gcc: 7, std: 11 }
-          - { gcc: 7, std: 17 }
-          - { gcc: 8, std: 14 }
-          - { gcc: 8, std: 17 }
+          - { gcc: 9, std: 20 }
           - { gcc: 10, std: 17 }
+          - { gcc: 10, std: 20 }
           - { gcc: 11, std: 20 }
           - { gcc: 12, std: 20 }
           - { gcc: 13, std: 20 }
@@ -485,7 +516,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Configure
       shell: bash
@@ -530,8 +561,6 @@ jobs:
   # Testing on ICC using the oneAPI apt repo
   icc:
     runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
 
     name: "🐍 3 • ICC latest • x64"
 
@@ -624,15 +653,13 @@ jobs:
         cmake --build build-17 --target test_cmake_build
 
 
-  # Testing on CentOS (manylinux uses a centos base, and this is an easy way
-  # to get GCC 4.8, which is the manylinux1 compiler).
+  # Testing on CentOS (manylinux uses a centos base).
   centos:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         container:
-          - "centos:7"  # GCC 4.8
           - "almalinux:8"
           - "almalinux:9"
 
@@ -642,18 +669,13 @@ jobs:
     steps:
     - name: Latest actions/checkout
       uses: actions/checkout@v4
-      if: matrix.container != 'centos:7'
 
-    - name: Pin actions/checkout as required for centos:7
-      uses: actions/checkout@v3
-      if: matrix.container == 'centos:7'
+    - name: Add Python 3.8
+      if: matrix.container == 'almalinux:8'
+      run: dnf update -y && dnf install -y python38-devel gcc-c++ make git
 
-    - name: Add Python 3 (RHEL 7)
-      if: matrix.container == 'centos:7'
-      run: yum update -y && yum install -y python3-devel gcc-c++ make git
-
-    - name: Add Python 3 (RHEL 8+)
-      if: matrix.container != 'centos:7'
+    - name: Add Python 3 (default)
+      if: matrix.container != 'almalinux:8'
       run: dnf update -y && dnf install -y python3-devel gcc-c++ make git
 
     - name: Update pip
@@ -662,6 +684,11 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install cmake -r tests/requirements.txt
+
+    - name: Ensure NumPy 2 is used (required Python >= 3.9)
+      if: matrix.container == 'almalinux:9'
+      run: |
+        python3 -m pip install 'numpy>=2.0.0b1' 'scipy>=1.13.0rc1'
 
     - name: Configure
       shell: bash
@@ -689,9 +716,9 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
-    name: "🐍 3.7 • Debian • x86 •  Install"
+    name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
-    container: i386/debian:buster
+    container: i386/debian:bullseye
 
     steps:
     - uses: actions/checkout@v1  # v1 is required to run inside docker
@@ -739,7 +766,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.x"
 
@@ -771,18 +798,23 @@ jobs:
       fail-fast: false
       matrix:
         python:
-        - 3.6
-        - 3.7
-        - 3.8
-        - 3.9
+        - '3.8'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+        - '3.12'
 
         include:
-          - python: 3.9
+          - python: '3.12'
             args: -DCMAKE_CXX_STANDARD=20
-          - python: 3.8
+          - python: '3.11'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.10'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.9'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: 3.7
-            args: -DCMAKE_CXX_STANDARD=14
 
 
     name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
@@ -792,16 +824,16 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.12.1
+      uses: ilammy/msvc-dev-cmd@v1.13.0
       with:
         arch: x86
 
@@ -845,16 +877,16 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.12.1
+      uses: ilammy/msvc-dev-cmd@v1.13.0
       with:
         arch: x86
 
@@ -893,16 +925,18 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
 
     - name: Prepare env
+      # Ensure use of NumPy 2 (via NumPy nightlies but can be changed soon)
       run: |
         python3 -m pip install -r tests/requirements.txt
+        python3 -m pip install 'numpy>=2.0.0b1' 'scipy>=1.13.0rc1'
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.14
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Configure C++20
       run: >
@@ -960,20 +994,30 @@ jobs:
           mingw-w64-${{matrix.env}}-gcc
           mingw-w64-${{matrix.env}}-python-pip
           mingw-w64-${{matrix.env}}-python-numpy
-          mingw-w64-${{matrix.env}}-python-scipy
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-eigen3
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
+
+    - uses: msys2/setup-msys2@v2
+      if: matrix.sys == 'mingw64'
+      with:
+        msystem: ${{matrix.sys}}
+        install: >-
+          git
+          mingw-w64-${{matrix.env}}-python-scipy
+          mingw-w64-${{matrix.env}}-eigen3
 
     - uses: actions/checkout@v4
 
     - name: Configure C++11
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build
+      run: >-
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -S . -B build
 
     - name: Build C++11
       run: cmake --build build -j 2
@@ -991,7 +1035,10 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++14
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build2
+      run: >-
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -S . -B build2
 
     - name: Build C++14
       run: cmake --build build2 -j 2
@@ -1009,7 +1056,10 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++17
-      run: cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -S . -B build3
+      run: >-
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -S . -B build3
 
     - name: Build C++17
       run: cmake --build build3 -j 2
@@ -1045,15 +1095,15 @@ jobs:
         uses: egor-tensin/setup-clang@v1
 
       - name: Setup Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v1.14
+        uses: jwlawson/actions-setup-cmake@v2.0
 
       - name: Install ninja-build tool
-        uses: seanmiddleditch/gha-setup-ninja@v4
+        uses: seanmiddleditch/gha-setup-ninja@v5
 
       - name: Run pip installs
         run: |
@@ -1093,8 +1143,8 @@ jobs:
         run: git clean -fdx
 
   macos_brew_install_llvm:
-    name: "macos-latest • brew install llvm"
-    runs-on: macos-latest
+    name: "macos-13 • brew install llvm"
+    runs-on: macos-13
 
     env:
       # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
@@ -1120,7 +1170,7 @@ jobs:
         run: clang++ --version
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v1.14
+        uses: jwlawson/actions-setup-cmake@v2.0
 
       - name: Run pip installs
         run: |

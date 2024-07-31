@@ -32,6 +32,8 @@ issues = (issue for page in issues_pages for issue in page)
 missing = []
 cats_descr = {
     "feat": "New Features",
+    "feat(types)": "",
+    "feat(cmake)": "",
     "fix": "Bug fixes",
     "fix(types)": "",
     "fix(cmake)": "",
@@ -67,9 +69,11 @@ for issue in issues:
 for cat, msgs in cats.items():
     if msgs:
         desc = cats_descr[cat]
-        print(f"[bold]{desc}:\n" if desc else "")
+        print(f"[bold]{desc}:" if desc else f".. {cat}")
+        print()
         for msg in msgs:
             print(Syntax(msg, "rst", theme="ansi_light", word_wrap=True))
+            print()
         print()
 
 if missing:

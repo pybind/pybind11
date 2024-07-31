@@ -22,8 +22,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("kw_func0", kw_func);
     m.def("kw_func1", kw_func, py::arg("x"), py::arg("y"));
     m.def("kw_func2", kw_func, py::arg("x") = 100, py::arg("y") = 200);
-    m.def(
-        "kw_func3", [](const char *) {}, py::arg("data") = std::string("Hello world!"));
+    m.def("kw_func3", [](const char *) {}, py::arg("data") = std::string("Hello world!"));
 
     /* A fancier default argument */
     std::vector<int> list{{13, 17}};
@@ -79,14 +78,12 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         "kw_lb_func5",
         [](const CustomRepr &) {},
         py::arg("custom") = CustomRepr("array([[A, B],\r  [C, D]])"));
-    m.def(
-        "kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \v\t "));
+    m.def("kw_lb_func6", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(" \v\t "));
     m.def(
         "kw_lb_func7",
         [](const std::string &) {},
         py::arg("str_arg") = "First line.\n  Second line.");
-    m.def(
-        "kw_lb_func8", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(""));
+    m.def("kw_lb_func8", [](const CustomRepr &) {}, py::arg("custom") = CustomRepr(""));
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
@@ -153,10 +150,13 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
 // test_args_refcount
 // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
+// PyPy uses the top few bits for REFCNT_FROM_PYPY & REFCNT_FROM_PYPY_LIGHT, so truncate
 #ifdef PYPY_VERSION
 #    define GC_IF_NEEDED ConstructorStats::gc()
+#    define REFCNT(x) (int) Py_REFCNT(x)
 #else
 #    define GC_IF_NEEDED
+#    define REFCNT(x) Py_REFCNT(x)
 #endif
     m.def("arg_refcount_h", [](py::handle h) {
         GC_IF_NEEDED;
@@ -175,7 +175,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         py::tuple t(a.size());
         for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+            t[i] = REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         }
         return t;
     });
@@ -185,7 +185,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         t[0] = o.ref_count();
         for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+            t[i + 1] = REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         }
         return t;
     });
@@ -279,11 +279,9 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     // These should fail to compile:
 #ifdef PYBIND11_NEVER_DEFINED_EVER
     // argument annotations are required when using kw_only
-    m.def(
-        "bad_kw_only1", [](int) {}, py::kw_only());
+    m.def("bad_kw_only1", [](int) {}, py::kw_only());
     // can't specify both `py::kw_only` and a `py::args` argument
-    m.def(
-        "bad_kw_only2", [](int i, py::args) {}, py::kw_only(), "i"_a);
+    m.def("bad_kw_only2", [](int i, py::args) {}, py::kw_only(), "i"_a);
 #endif
 
     // test_function_signatures (along with most of the above)
