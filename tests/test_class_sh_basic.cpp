@@ -145,6 +145,12 @@ namespace pybind11_tests {
 namespace class_sh_basic {
 
 TEST_SUBMODULE(class_sh_basic, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     namespace py = pybind11;
 
     py::classh<atyp>(m, "atyp").def(py::init<>()).def(py::init([](const std::string &mtxt) {
@@ -233,11 +239,14 @@ TEST_SUBMODULE(class_sh_basic, m) {
         []() { return std::unique_ptr<atyp>(new atyp("rtrn_uq_automatic_reference")); },
         pybind11::return_value_policy::automatic_reference);
 
+    m.def("pass_shared_ptr_ptr", [](std::shared_ptr<atyp> *) {});
+
     py::classh<LocalUnusualOpRef>(m, "LocalUnusualOpRef");
     m.def("CallCastUnusualOpRefConstRef",
           []() { return CastUnusualOpRefConstRef(LocalUnusualOpRef()); });
     m.def("CallCastUnusualOpRefMovable",
           []() { return CastUnusualOpRefMovable(LocalUnusualOpRef()); });
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
 
 } // namespace class_sh_basic

@@ -57,6 +57,12 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base1)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base2)
 
 TEST_SUBMODULE(class_sh_disowning_mi, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     using namespace pybind11_tests::class_sh_disowning_mi;
 
     py::classh<B>(m, "B")
@@ -92,4 +98,5 @@ TEST_SUBMODULE(class_sh_disowning_mi, m) {
     py::classh<Base2>(m, "Base2").def(py::init<int>()).def("bar", &Base2::bar);
     m.def("disown_base1", disown_base1);
     m.def("disown_base2", disown_base2);
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

@@ -406,7 +406,7 @@ TEST_SUBMODULE(virtual_functions, m) {
 
     py::class_<test_override_cache_helper,
                test_override_cache_helper_trampoline,
-               PYBIND11_SH_DEF(test_override_cache_helper)>(m, "test_override_cache_helper")
+               std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
         .def(py::init_alias<>())
         .def("func", &test_override_cache_helper::func);
 

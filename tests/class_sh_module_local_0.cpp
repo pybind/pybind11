@@ -19,9 +19,16 @@ atyp rtrn_valu_atyp() { return atyp(); }
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_module_local::atyp)
 
 PYBIND11_MODULE(class_sh_module_local_0, m) {
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     using namespace pybind11_tests::class_sh_module_local;
 
     m.def("get_mtxt", get_mtxt);
 
     m.def("rtrn_valu_atyp", rtrn_valu_atyp);
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

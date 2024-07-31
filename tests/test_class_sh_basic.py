@@ -7,6 +7,9 @@ import pytest
 
 from pybind11_tests import class_sh_basic as m
 
+if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+    pytest.skip("smart_holder not available.", allow_module_level=True)
+
 
 def test_atyp_constructors():
     obj = m.atyp()
@@ -132,9 +135,7 @@ def test_cannot_disown_use_count_ne_1(pass_f, rtrn_f):
     stash.Add(obj)
     with pytest.raises(ValueError) as exc_info:
         pass_f(obj)
-    assert str(exc_info.value) == (
-        "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
-    )
+    assert str(exc_info.value) == ("Cannot disown use_count != 1 (load_as_unique_ptr).")
 
 
 def test_unique_ptr_roundtrip(num_round_trips=1000):
@@ -218,6 +219,16 @@ def test_function_signatures(doc):
 
 def test_unique_ptr_return_value_policy_automatic_reference():
     assert m.get_mtxt(m.rtrn_uq_automatic_reference()) == "rtrn_uq_automatic_reference"
+
+
+def test_pass_shared_ptr_ptr():
+    obj = m.atyp()
+    with pytest.raises(RuntimeError) as excinfo:
+        m.pass_shared_ptr_ptr(obj)
+    assert str(excinfo.value) == (
+        "Passing `std::shared_ptr<T> *` from Python to C++ is not supported"
+        " (inherently unsafe)."
+    )
 
 
 def test_unusual_op_ref():

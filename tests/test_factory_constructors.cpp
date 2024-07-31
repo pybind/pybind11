@@ -250,7 +250,7 @@ TEST_SUBMODULE(factory_constructors, m) {
     };
 
     // test_init_factory_basic, test_init_factory_casting
-    py::class_<TestFactory3, PYBIND11_SH_DEF(TestFactory3)> pyTestFactory3(m, "TestFactory3");
+    py::class_<TestFactory3, std::shared_ptr<TestFactory3>> pyTestFactory3(m, "TestFactory3");
     pyTestFactory3
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct3(v); }))
         .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }));
@@ -277,12 +277,12 @@ TEST_SUBMODULE(factory_constructors, m) {
         .def_readwrite("value", &TestFactory3::value);
 
     // test_init_factory_casting
-    py::class_<TestFactory4, TestFactory3, PYBIND11_SH_DEF(TestFactory4)>(m, "TestFactory4")
+    py::class_<TestFactory4, TestFactory3, std::shared_ptr<TestFactory4>>(m, "TestFactory4")
         .def(py::init(c4a)) // pointer
         ;
 
     // Doesn't need to be registered, but registering makes getting ConstructorStats easier:
-    py::class_<TestFactory5, TestFactory3, PYBIND11_SH_DEF(TestFactory5)>(m, "TestFactory5");
+    py::class_<TestFactory5, TestFactory3, std::shared_ptr<TestFactory5>>(m, "TestFactory5");
 
     // test_init_factory_alias
     // Alias testing
@@ -305,7 +305,7 @@ TEST_SUBMODULE(factory_constructors, m) {
 
     // test_init_factory_dual
     // Separate alias constructor testing
-    py::class_<TestFactory7, PyTF7, PYBIND11_SH_DEF(TestFactory7)>(m, "TestFactory7")
+    py::class_<TestFactory7, PyTF7, std::shared_ptr<TestFactory7>>(m, "TestFactory7")
         .def(py::init([](int i) { return TestFactory7(i); }, [](int i) { return PyTF7(i); }))
         .def(py::init([](pointer_tag, int i) { return new TestFactory7(i); },
                       [](pointer_tag, int i) { return new PyTF7(i); }))

@@ -50,7 +50,12 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::FooSmHld)
 namespace pybind11_tests {
 
 TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
-#if true // Trick to avoid clang-format changes, in support of PR #5213.
+    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        false;
+#else
+        true;
+
     namespace py = pybind11;
 
     py::class_<FooShPtr, std::shared_ptr<FooShPtr>>(m, "FooShPtr")
@@ -108,7 +113,7 @@ TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
         l.append(std::move(o));
         return l;
     });
-#endif
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
 
 } // namespace pybind11_tests

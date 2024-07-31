@@ -1,18 +1,20 @@
 #include "pybind11_tests.h"
 
-// The main purpose of this test is to ensure the suggested BOILERPLATE code block below is
-// correct.
+// The main purpose of this test was to ensure that the suggested
+// BOILERPLATE code block (NOW DEPRECATED!) block below is correct.
 
 // Copy this block of code into your project.
 // Replace FOOEXT with the name of your project.
-// BOILERPLATE BEGIN
+// BOILERPLATE BEGIN DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
 #ifdef FOOEXT_USING_PYBIND11_SMART_HOLDER
 #    include <pybind11/smart_holder.h>
 #else
 #    include <pybind11/pybind11.h>
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+#    ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 template <typename type_, typename... options>
 using classh = class_<type_, options...>;
+#    endif
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #    ifndef PYBIND11_SH_AVL
 #        define PYBIND11_SH_AVL(...) std::shared_ptr<__VA_ARGS__> // "Smart_Holder if AVaiLable"
@@ -27,7 +29,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #        define PYBIND11_TYPE_CASTER_BASE_HOLDER(...)
 #    endif
 #endif
-// BOILERPLATE END
+// BOILERPLATE END DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
 
 namespace {
 struct FooUc {};
@@ -37,8 +39,8 @@ struct FooSc {};
 struct FooSp {};
 } // namespace
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(FooUp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(FooSp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(FooUp) // DEPRECATED
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(FooSp) // DEPRECATED
 
 PYBIND11_TYPE_CASTER_BASE_HOLDER(FooSa, std::shared_ptr<FooSa>)
 

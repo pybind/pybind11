@@ -11,8 +11,9 @@
 #pragma once
 
 #include "detail/class.h"
+#include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/init.h"
-#include "detail/smart_holder_sfinae_hooks_only.h"
+#include "detail/using_smart_holder.h"
 #include "attr.h"
 #include "gil.h"
 #include "gil_safe_call_once.h"
@@ -1394,8 +1395,7 @@ class generic_type : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
-    void initialize(const type_record &rec,
-                    void *(*type_caster_module_local_load)(PyObject *, const type_info *) ) {
+    void initialize(const type_record &rec) {
         if (rec.scope && hasattr(rec.scope, "__dict__")
             && rec.scope.attr("__dict__").contains(rec.name)) {
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name)
@@ -1424,6 +1424,9 @@ protected:
         tinfo->simple_ancestors = true;
         tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        tinfo->holder_enum_v = rec.holder_enum_v;
+#endif
 
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
@@ -1450,7 +1453,7 @@ protected:
 
         if (rec.module_local) {
             // Stash the local typeinfo and loader so that external modules can access it.
-            tinfo->module_local_load = type_caster_module_local_load;
+            tinfo->module_local_load = &type_caster_generic::local_load;
             setattr(m_ptr, PYBIND11_MODULE_LOCAL_ID, capsule(tinfo));
         }
     }
@@ -1586,49 +1589,7 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-
-template <typename T>
-using default_holder_type = std::unique_ptr<T>;
-
-#    ifndef PYBIND11_SH_AVL
-#        define PYBIND11_SH_AVL(...) std::shared_ptr<__VA_ARGS__> // "Smart_Holder if AVaiLable"
-// -------- std::shared_ptr(...) -- same length by design, to not disturb the indentation
-// of existing code.
-#    endif
-
-#    define PYBIND11_SH_DEF(...) std::shared_ptr<__VA_ARGS__> // "Smart_Holder if DEFault"
-// -------- std::shared_ptr(...) -- same length by design, to not disturb the indentation
-// of existing code.
-
-#    define PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)
-
-#else
-
-template <typename>
-using default_holder_type = smart_holder;
-
-#    ifndef PYBIND11_SH_AVL
-#        define PYBIND11_SH_AVL(...) ::pybind11::smart_holder // "Smart_Holder if AVaiLable"
-// -------- std::shared_ptr(...) -- same length by design, to not disturb the indentation
-// of existing code.
-#    endif
-
-#    define PYBIND11_SH_DEF(...) ::pybind11::smart_holder // "Smart_Holder if DEFault"
-
-// This define could be hidden away inside detail/smart_holder_type_casters.h, but is kept here
-// for clarity.
-#    define PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)                                              \
-        namespace pybind11 {                                                                      \
-        namespace detail {                                                                        \
-        template <>                                                                               \
-        class type_caster<T> : public type_caster_base<T> {};                                     \
-        template <>                                                                               \
-        class type_caster<__VA_ARGS__> : public type_caster_holder<T, __VA_ARGS__> {};            \
-        }                                                                                         \
-        }
-
-#endif
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Helper for the property_cpp_function static member functions below.
 // The only purpose of these functions is to support .def_readonly & .def_readwrite.
@@ -1637,8 +1598,7 @@ using default_holder_type = smart_holder;
 // against accidents. As a side-effect, it also explains why the syntactical overhead for
 // perfect forwarding is not needed.
 template <typename PM>
-using must_be_member_function_pointer
-    = detail::enable_if_t<std::is_member_pointer<PM>::value, int>;
+using must_be_member_function_pointer = enable_if_t<std::is_member_pointer<PM>::value, int>;
 
 // Note that property_cpp_function is intentionally in the main pybind11 namespace,
 // because user-defined specializations could be useful.
@@ -1647,9 +1607,9 @@ using must_be_member_function_pointer
 // getter and setter functions.
 // WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
 // See test_ptr() in tests/test_class_sh_property.py
-// This implementation works as-is (and safely) for smart_holder std::shared_ptr members.
-template <typename T, typename D, typename SFINAE = void>
-struct property_cpp_function {
+// However, this implementation works as-is (and safely) for smart_holder std::shared_ptr members.
+template <typename T, typename D>
+struct property_cpp_function_classic {
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
@@ -1666,31 +1626,54 @@ struct property_cpp_function {
     }
 };
 
-// smart_holder specializations for raw pointer members.
+PYBIND11_NAMESPACE_END(detail)
+
+template <typename T, typename D, typename SFINAE = void>
+struct property_cpp_function : detail::property_cpp_function_classic<T, D> {};
+
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T, typename D, typename SFINAE = void>
+struct both_t_and_d_use_type_caster_base : std::false_type {};
+
+// `T` is assumed to be equivalent to `intrinsic_t<T>`.
+// `D` is may or may not be equivalent to `intrinsic_t<D>`.
+template <typename T, typename D>
+struct both_t_and_d_use_type_caster_base<
+    T,
+    D,
+    enable_if_t<all_of<std::is_base_of<type_caster_base<T>, type_caster<T>>,
+                       std::is_base_of<type_caster_base<intrinsic_t<D>>, make_caster<D>>>::value>>
+    : std::true_type {};
+
+// Specialization for raw pointer members, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
 // WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
 // See test_ptr() in tests/test_class_sh_property.py
 // However, the read functions return a shared_ptr to the member, emulating the PyCLIF approach:
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
 // This prevents disowning of the Python object owning the raw pointer member.
 template <typename T, typename D>
-struct property_cpp_function<
-    T,
-    D,
-    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
-                                       detail::type_uses_smart_holder_type_caster<D>,
-                                       std::is_pointer<D>>::value>> {
-
+struct property_cpp_function_sh_raw_ptr_member {
     using drp = typename std::remove_pointer<D>::type;
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> std::shared_ptr<drp> {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                D ptr = (*c_sp).*pm;
-                return std::shared_ptr<drp>(c_sp, ptr);
-            },
-            is_method(hdl));
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<drp> {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    D ptr = (*c_sp).*pm;
+                    return std::shared_ptr<drp>(c_sp, ptr);
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::readonly(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1700,81 +1683,95 @@ struct property_cpp_function<
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
-        return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(value); },
-                            is_method(hdl));
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(std::move(value)); },
+                                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::write(pm, hdl);
     }
 };
 
-// smart_holder specializations for members held by-value.
+// Specialization for members held by-value, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
 // The read functions return a shared_ptr to the member, emulating the PyCLIF approach:
 // https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
 // This prevents disowning of the Python object owning the member.
 template <typename T, typename D>
-struct property_cpp_function<
-    T,
-    D,
-    detail::enable_if_t<detail::all_of<detail::type_uses_smart_holder_type_caster<T>,
-                                       detail::type_uses_smart_holder_type_caster<D>,
-                                       detail::none_of<std::is_pointer<D>,
-                                                       detail::is_std_unique_ptr<D>,
-                                                       detail::is_std_shared_ptr<D>>>::value>> {
-
+struct property_cpp_function_sh_member_held_by_value {
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                return std::shared_ptr<typename std::add_const<D>::type>(c_sp, &(c_sp.get()->*pm));
-            },
-            is_method(hdl));
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
+                                                                             &(c_sp.get()->*pm));
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::readonly(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> std::shared_ptr<D> {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
-            },
-            is_method(hdl));
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<D> {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::read(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function write(PM pm, const handle &hdl) {
-        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::write(pm, hdl);
     }
 };
 
-// smart_holder specializations for std::unique_ptr members.
+// Specialization for std::unique_ptr members, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
 // read disowns the member unique_ptr.
 // write disowns the passed Python object.
 // readonly is disabled (static_assert) because there is no safe & intuitive way to make the member
 // accessible as a Python object without disowning the member unique_ptr. A .def_readonly disowning
 // the unique_ptr member is deemed highly prone to misunderstandings.
 template <typename T, typename D>
-struct property_cpp_function<
-    T,
-    D,
-    detail::enable_if_t<detail::all_of<
-        detail::type_uses_smart_holder_type_caster<T>,
-        detail::is_std_unique_ptr<D>,
-        detail::type_uses_smart_holder_type_caster<typename D::element_type>>::value>> {
-
+struct property_cpp_function_sh_unique_ptr_member {
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM, const handle &) {
-        static_assert(!detail::is_std_unique_ptr<D>::value,
+        static_assert(!is_instantiation<std::unique_ptr, D>::value,
                       "def_readonly cannot be used for std::unique_ptr members.");
         return cpp_function{}; // Unreachable.
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
-        return cpp_function(
-            [pm](handle c_hdl) -> D {
-                std::shared_ptr<T> c_sp = detail::type_caster<T>::shared_ptr_from_python(c_hdl);
-                return D{std::move(c_sp.get()->*pm)};
-            },
-            is_method(hdl));
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> D {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    return D{std::move(c_sp.get()->*pm)};
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::read(pm, hdl);
     }
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
@@ -1783,18 +1780,63 @@ struct property_cpp_function<
     }
 };
 
+PYBIND11_NAMESPACE_END(detail)
+
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<std::is_pointer<D>,
+                                       detail::both_t_and_d_use_type_caster_base<T, D>>::value>>
+    : detail::property_cpp_function_sh_raw_ptr_member<T, D> {};
+
+template <typename T, typename D>
+struct property_cpp_function<T,
+                             D,
+                             detail::enable_if_t<detail::all_of<
+                                 detail::none_of<std::is_pointer<D>,
+                                                 std::is_array<D>,
+                                                 detail::is_instantiation<std::unique_ptr, D>,
+                                                 detail::is_instantiation<std::shared_ptr, D>>,
+                                 detail::both_t_and_d_use_type_caster_base<T, D>>::value>>
+    : detail::property_cpp_function_sh_member_held_by_value<T, D> {};
+
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<
+        detail::is_instantiation<std::unique_ptr, D>,
+        detail::both_t_and_d_use_type_caster_base<T, typename D::element_type>>::value>>
+    : detail::property_cpp_function_sh_unique_ptr_member<T, D> {};
+
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+#if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)                                                 \
+    && defined(PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+// NOTE: THIS IS MEANT FOR STRESS-TESTING ONLY!
+//       As of PR #5257, for production use, there is no longer a strong reason to make
+//       smart_holder the default holder:
+//           Simply use `py::classh` (see below) instead of `py::class_` as needed.
+//       Running the pybind11 unit tests with smart_holder as the default holder is to ensure
+//       that `py::smart_holder` / `py::classh` is backward-compatible with all pre-existing
+//       functionality.
+#    define PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
+template <typename>
+using default_holder_type = smart_holder;
+#else
+template <typename T>
+using default_holder_type = std::unique_ptr<T>;
+#endif
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
+    template <typename T>
+    using is_holder = detail::is_holder_type<type_, T>;
     template <typename T>
     using is_subtype = detail::is_strict_base_of<type_, T>;
     template <typename T>
     using is_base = detail::is_strict_base_of<T, type_>;
-    template <typename T>
-    using is_holder
-        = detail::any_of<detail::is_holder_type<type_, T>,
-                         detail::all_of<detail::negation<is_base<T>>,
-                                        detail::negation<is_subtype<T>>,
-                                        detail::type_uses_smart_holder_type_caster<type_>>>;
     // struct instead of using here to help MSVC:
     template <typename T>
     struct is_valid_class_option : detail::any_of<is_holder<T>, is_subtype<T>, is_base<T>> {};
@@ -1826,36 +1868,6 @@ public:
                  none_of<std::is_same<multiple_inheritance, Extra>...>::value),
             "Error: multiple inheritance bases must be specified via class_ template options");
 
-        static constexpr bool holder_is_smart_holder
-            = detail::is_smart_holder_type<holder_type>::value;
-        static constexpr bool wrapped_type_uses_smart_holder_type_caster
-            = detail::type_uses_smart_holder_type_caster<type>::value;
-        static constexpr bool type_caster_type_is_type_caster_base_subtype
-            = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
-        // Necessary conditions, but not strict.
-        static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value
-                        && wrapped_type_uses_smart_holder_type_caster),
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, std::unique_ptr<T>)?");
-        static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value
-                        && wrapped_type_uses_smart_holder_type_caster),
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, std::shared_ptr<T>)?");
-        static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype),
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)?");
-#ifdef PYBIND11_STRICT_ASSERTS_CLASS_HOLDER_VS_TYPE_CASTER_MIX
-        // Strict conditions cannot be enforced universally at the moment (PR #2836).
-        static_assert(holder_is_smart_holder == wrapped_type_uses_smart_holder_type_caster,
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)"
-                      " or collision with custom py::detail::type_caster<T>?");
-        static_assert(!holder_is_smart_holder == type_caster_type_is_type_caster_base_subtype,
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)"
-                      " or collision with custom py::detail::type_caster<T>?");
-#endif
-
         type_record record;
         record.scope = scope;
         record.name = name;
@@ -1869,6 +1881,18 @@ public:
         // A more fitting name would be uses_unique_ptr_holder.
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+        if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
+            record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
+        } else if (detail::is_instantiation<std::shared_ptr, holder_type>::value) {
+            record.holder_enum_v = detail::holder_enum_t::std_shared_ptr;
+        } else if (std::is_same<holder_type, smart_holder>::value) {
+            record.holder_enum_v = detail::holder_enum_t::smart_holder;
+        } else {
+            record.holder_enum_v = detail::holder_enum_t::custom_holder;
+        }
+#endif
+
         set_operator_new<type>(&record);
 
         /* Register base classes specified via template arguments to class_, if any */
@@ -1877,7 +1901,7 @@ public:
         /* Process optional arguments, if any */
         process_attributes<Extra...>::init(extra..., &record);
 
-        generic_type_initialize(record);
+        generic_type::initialize(record);
 
         if (has_alias) {
             with_internals([&](internals &internals) {
@@ -2138,18 +2162,6 @@ public:
     }
 
 private:
-    template <typename T = type,
-              detail::enable_if_t<!detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
-    void generic_type_initialize(const detail::type_record &record) {
-        generic_type::initialize(record, &detail::type_caster_generic::local_load);
-    }
-
-    template <typename T = type,
-              detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
-    void generic_type_initialize(const detail::type_record &record) {
-        generic_type::initialize(record, detail::type_caster<T>::get_local_load_function_ptr());
-    }
-
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
     static void init_holder(detail::instance *inst,
@@ -2203,8 +2215,8 @@ private:
     /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes
     /// an optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
-    template <typename T = type,
-              detail::enable_if_t<!detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
+    template <typename H = holder_type,
+              detail::enable_if_t<!detail::is_smart_holder<H>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -2214,12 +2226,69 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
-    template <typename T = type,
-              typename A = type_alias,
-              detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
-    static void init_instance(detail::instance *inst, const void *holder_ptr) {
-        detail::type_caster<T>::template init_instance_for_type<T, A>(inst, holder_ptr);
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+    template <typename WrappedType>
+    static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
+        return false;
     }
+
+    // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
+    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already,
+    // it is reused, irrespective of the return_value_policy in effect.
+    // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
+    // direct base of WrappedType.
+    template <typename WrappedType, typename SomeBaseOfWrappedType>
+    static bool try_initialization_using_shared_from_this(
+        holder_type *uninitialized_location,
+        WrappedType *value_ptr_w_t,
+        const std::enable_shared_from_this<SomeBaseOfWrappedType> *) {
+        auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
+            detail::try_get_shared_from_this(value_ptr_w_t));
+        if (!shd_ptr) {
+            return false;
+        }
+        // Note: inst->owned ignored.
+        new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
+        return true;
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<detail::is_smart_holder<H>::value, int> = 0>
+    static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
+        // Need for const_cast is a consequence of the type_info::init_instance type:
+        // void (*init_instance)(instance *, const void *);
+        auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
+
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
+        if (!v_h.instance_registered()) {
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+            v_h.set_instance_registered();
+        }
+        auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
+        auto *value_ptr_w_t = v_h.value_ptr<type>();
+        bool pointee_depends_on_holder_owner
+            = detail::dynamic_raw_ptr_cast_if_possible<type_alias>(value_ptr_w_t) != nullptr;
+        if (holder_void_ptr) {
+            // Note: inst->owned ignored.
+            auto *holder_ptr = static_cast<holder_type *>(holder_void_ptr);
+            new (uninitialized_location) holder_type(std::move(*holder_ptr));
+        } else if (!try_initialization_using_shared_from_this(
+                       uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
+            if (inst->owned) {
+                new (uninitialized_location) holder_type(holder_type::from_raw_ptr_take_ownership(
+                    value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
+            } else {
+                new (uninitialized_location)
+                    holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
+            }
+        }
+        v_h.holder<holder_type>().pointee_depends_on_holder_owner
+            = pointee_depends_on_holder_owner;
+        v_h.set_holder_constructed();
+    }
+
+#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
     static void dealloc(detail::value_and_holder &v_h) {
@@ -2260,6 +2329,18 @@ private:
         return cap.get_pointer<detail::function_record>();
     }
 };
+
+#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+// Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
+// users can simply replace the `_` in `class_` with `h` or vice versa.
+template <typename type_, typename... options>
+class classh : public class_<type_, smart_holder, options...> {
+public:
+    using class_<type_, smart_holder, options...>::class_;
+};
+
+#endif
 
 /// Binds an existing constructor taking arguments Args...
 template <typename... Args>

@@ -8,6 +8,9 @@ import pytest
 import env
 import pybind11_tests.class_sh_trampoline_shared_from_this as m
 
+if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+    pytest.skip("smart_holder not available.", allow_module_level=True)
+
 
 class PySft(m.Sft):
     pass
@@ -238,7 +241,7 @@ def test_std_make_shared_factory():
         str_exc_info_value = str(exc_info.value)
     assert (
         str_exc_info_value
-        == "smart_holder_type_casters loaded_as_shared_ptr failure: not implemented:"
+        == "smart_holder_type_casters load_as_shared_ptr failure: not implemented:"
         " trampoline-self-life-support for external shared_ptr to type inheriting"
         " from std::enable_shared_from_this."
     )
