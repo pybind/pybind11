@@ -115,7 +115,7 @@ class Literal : public object {
     PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
 };
 
-// Example syntax for creating a TypeVar.
+// Example syntax for creating a type annotation of a TypeVar, ParamSpec, and TypeVarTuple.
 // typedef typing::TypeVar<"T"> TypeVarT;
 template <StringLiteral>
 class TypeVar : public object {
@@ -123,6 +123,56 @@ class TypeVar : public object {
     using object::object;
 };
 #endif
+
+// class NameWrapper : public object {
+//     PYBIND11_OBJECT_DEFAULT(NameWrapper, object, PyObject_Type)
+//     using object::object;
+//     NameWrapper(const char *name) { attr("__name__") = name; }
+// };
+
+// template <typename T>
+// class TypeVarObject : public object {
+//     PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
+//     using object::object;
+//     TypeVarObject(const char *name) {
+//         attr("__name__") = name;
+//         attr("__bound__") = object();
+//         attr("__bound__").attr("__name__") = pybind11::detail::make_caster<T>::name;
+//         attr("__constraints__") = pybind11::make_tuple();
+//     }
+//     // TypeVarObject(const char *name, py::typing::Tuple<pybind11::type, pybind11::ellipse>
+//     tuple){
+//     //     attr("__name__") = name;
+//     //     attr("__bound__") = py::none();
+//     //     attr("__constraints__") = tuple;
+//     // }
+// };
+
+// template <>
+// class TypeVarObject : public object {
+//     PYBIND11_OBJECT_DEFAULT(TypeVarObject, object, PyObject_Type)
+//     using object::object;
+//     TypeVarObject(const char *name) {
+//         attr("__name__") = name;
+//         attr("__bound__") = py::none();
+//         attr("__constraints__") = pybind11::make_tuple();
+//     }
+// };
+
+class ParamSpec : public object {
+    PYBIND11_OBJECT_DEFAULT(ParamSpec, object, PyObject_Type)
+    using object::object;
+    ParamSpec(const char *name) {
+        attr("__name__") = name;
+        attr("__bound__") = pybind11::none();
+    }
+};
+
+class TypeVarTuple : public object {
+    PYBIND11_OBJECT_DEFAULT(TypeVarTuple, object, PyObject_Type)
+    using object::object;
+    TypeVarTuple(const char *name) { attr("__name__") = name; }
+};
 
 PYBIND11_NAMESPACE_END(typing)
 
