@@ -101,8 +101,17 @@ public:
                 if (detail::is_function_record_capsule(c)) {
                     rec = c.get_pointer<function_record>();
                 }
-
                 while (rec != nullptr) {
+                    const int correctingSelfArgument = rec->is_method ? 1 : 0;
+                    if (rec->nargs - correctingSelfArgument != sizeof...(Args)) {
+                        rec = rec->next;
+                        // if the overload is not feasible in terms of number of arguments, we
+                        // continue to the next one. If there is no next one, we return false.
+                        if (rec == nullptr) {
+                            return false;
+                        }
+                        continue;
+                    }
                     if (rec->is_stateless
                         && same_type(typeid(function_type),
                                      *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
@@ -118,6 +127,36 @@ public:
             // PYPY segfaults here when passing builtin function like sum.
             // Raising an fail exception here works to prevent the segfault, but only on gcc.
             // See PR #1413 for full details
+        } else {
+            // Check number of arguments of Python function
+            auto getArgCount = [&](PyObject *obj) {
+                // This is faster then doing import inspect and inspect.signature(obj).parameters
+                auto *t = PyObject_GetAttrString(obj, "__code__");
+                auto *argCount = PyObject_GetAttrString(t, "co_argcount");
+                return PyLong_AsLong(argCount);
+            };
+            long argCount = -1;
+
+            if (static_cast<bool>(PyObject_HasAttrString(src.ptr(), "__code__"))) {
+                argCount = getArgCount(src.ptr());
+            } else {
+                if (static_cast<bool>(PyObject_HasAttrString(src.ptr(), "__call__"))) {
+                    auto *t2 = PyObject_GetAttrString(src.ptr(), "__call__");
+                    argCount = getArgCount(t2) - 1; // we have to remove the self argument
+                } else {
+                    // No __code__ or __call__ attribute, this is not a proper Python function
+                    return false;
+                }
+            }
+            // if we are a method, we have to correct the argument count since we are not counting
+            // the self argument
+            const int correctingSelfArgument
+                = static_cast<bool>(PyMethod_Check(src.ptr())) ? 1 : 0;
+
+            argCount -= correctingSelfArgument;
+            if (argCount != sizeof...(Args)) {
+                return false;
+            }
         }
 
         value = type_caster_std_function_specializations::func_wrapper<Return, Args...>(
