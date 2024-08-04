@@ -240,7 +240,7 @@ struct internals {
 
 #if PYBIND11_INTERNALS_VERSION >= 6
 
-#    define PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#    define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 enum class holder_enum_t : uint8_t {
     undefined,
@@ -280,7 +280,7 @@ struct type_info {
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
 #endif
 };

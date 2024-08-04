@@ -6,7 +6,7 @@
 
 #include "detail/internals.h"
 
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 #    include "detail/common.h"
 #    include "detail/using_smart_holder.h"
@@ -64,4 +64,4 @@ struct trampoline_self_life_support {
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT

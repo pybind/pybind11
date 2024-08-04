@@ -93,7 +93,7 @@ TEST_SUBMODULE(class_, m) {
     struct ToBeHeldByUniquePtr {};
     py::class_<ToBeHeldByUniquePtr, std::unique_ptr<ToBeHeldByUniquePtr>>(m, "ToBeHeldByUniquePtr")
         .def(py::init<>());
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     m.def("pass_unique_ptr", [](std::unique_ptr<ToBeHeldByUniquePtr> &&) {});
 #else
     m.attr("pass_unique_ptr") = py::none();

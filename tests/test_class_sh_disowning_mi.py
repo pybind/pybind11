@@ -5,7 +5,7 @@ import pytest
 import env  # noqa: F401
 from pybind11_tests import class_sh_disowning_mi as m
 
-if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+if not m.defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
     pytest.skip("smart_holder not available.", allow_module_level=True)
 
 

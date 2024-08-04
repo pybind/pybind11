@@ -8,7 +8,7 @@ import pytest
 import env
 import pybind11_tests.class_sh_trampoline_shared_from_this as m
 
-if not m.defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+if not m.defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
     pytest.skip("smart_holder not available.", allow_module_level=True)
 
 
