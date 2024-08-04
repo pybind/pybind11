@@ -18,8 +18,8 @@ std::string get_mtxt(const atyp &obj) { return obj.mtxt; }
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_module_local::atyp)
 
 PYBIND11_MODULE(class_sh_module_local_2, m) {
-    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         false;
 #else
         true;
@@ -36,5 +36,5 @@ PYBIND11_MODULE(class_sh_module_local_2, m) {
         .def("tag", [](const atyp &) { return 2; });
 
     m.def("get_mtxt", get_mtxt);
-#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

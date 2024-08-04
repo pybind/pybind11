@@ -45,8 +45,8 @@ namespace pybind11_tests {
 namespace class_sh_unique_ptr_member {
 
 TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
-    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         false;
 #else
         true;
@@ -60,7 +60,7 @@ TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
         .def("is_owner", &ptr_owner::is_owner)
         .def("give_up_ownership_via_unique_ptr", &ptr_owner::give_up_ownership_via_unique_ptr)
         .def("give_up_ownership_via_shared_ptr", &ptr_owner::give_up_ownership_via_shared_ptr);
-#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
 
 } // namespace class_sh_unique_ptr_member

@@ -58,8 +58,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithCharArrayMember)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithConstCharPtrMember)
 
 TEST_SUBMODULE(class_sh_property, m) {
-    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         false;
 #else
         true;
@@ -109,5 +109,5 @@ TEST_SUBMODULE(class_sh_property, m) {
     py::classh<WithConstCharPtrMember>(m, "WithConstCharPtrMember")
         .def(py::init<>())
         .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
-#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }

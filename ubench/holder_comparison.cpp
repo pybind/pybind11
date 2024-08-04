@@ -22,7 +22,7 @@ void wrap_number_bucket(py::module m, const char *class_name) {
         .def("add", &WrappedType::add, py::arg("other"));
 }
 
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 template <typename T>
 class padded_unique_ptr {
@@ -41,7 +41,7 @@ static_assert(sizeof(padded_unique_ptr<nb_pu>) == sizeof(py::smart_holder),
 
 } // namespace hc
 
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 PYBIND11_DECLARE_HOLDER_TYPE(T, hc::padded_unique_ptr<T>);
 #endif
 
@@ -49,7 +49,7 @@ PYBIND11_MODULE(pybind11_ubench_holder_comparison, m) {
     using namespace hc;
     wrap_number_bucket<nb_up, std::unique_ptr<nb_up>>(m, "number_bucket_up");
     wrap_number_bucket<nb_sp, std::shared_ptr<nb_sp>>(m, "number_bucket_sp");
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     m.def("sizeof_smart_holder", []() { return sizeof(py::smart_holder); });
     wrap_number_bucket<nb_pu, padded_unique_ptr<nb_pu>>(m, "number_bucket_pu");
     wrap_number_bucket<nb_sh, py::smart_holder>(m, "number_bucket_sh");
