@@ -85,7 +85,8 @@ if(CMAKE_VERSION VERSION_LESS 3.13)
   set_property(
     TARGET pybind11::python_link_helper
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+    PROPERTY INTERFACE_LINK_LIBRARIES
+             "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup -no_fixup_chains>")
 else()
   # link_options was added in 3.13+
   # This is safer, because you are ensured the deduplication pass in CMake will not consider
@@ -93,7 +94,8 @@ else()
   set_property(
     TARGET pybind11::python_link_helper
     APPEND
-    PROPERTY INTERFACE_LINK_OPTIONS "$<$<PLATFORM_ID:Darwin>:LINKER:-undefined,dynamic_lookup>")
+    PROPERTY INTERFACE_LINK_OPTIONS
+             "$<$<PLATFORM_ID:Darwin>:LINKER:-undefined,dynamic_lookup,-no_fixup_chains>")
 endif()
 
 # ------------------------ Windows extras -------------------------
