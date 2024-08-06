@@ -103,6 +103,20 @@ def test_cpp_callable_cleanup():
     assert alive_counts == [0, 1, 2, 1, 2, 1, 0]
 
 
+def test_cpp_correct_overload_resolution():
+    def f(a):
+        return a
+
+    assert m.dummy_function_overloaded_std_func_arg(f) == 9
+    assert m.dummy_function_overloaded_std_func_arg(lambda i: i) == 9
+
+    def f2(a, b):
+        return a + b
+
+    assert m.dummy_function_overloaded_std_func_arg(f2) == 14
+    assert m.dummy_function_overloaded_std_func_arg(lambda i, j: i + j) == 14
+
+
 def test_cpp_function_roundtrip():
     """Test if passing a function pointer from C++ -> Python -> C++ yields the original pointer"""
 
@@ -131,7 +145,10 @@ def test_cpp_function_roundtrip():
         m.test_dummy_function(lambda x, y: x + y)
     assert any(
         s in str(excinfo.value)
-        for s in ("missing 1 required positional argument", "takes exactly 2 arguments")
+        for s in (
+            "incompatible function arguments. The following argument types are",
+            "function test_cpp_function_roundtrip.<locals>.<lambda>",
+        )
     )
 
 

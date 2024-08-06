@@ -170,6 +170,12 @@ TEST_SUBMODULE(callbacks, m) {
         return "argument does NOT match dummy_function. This should never happen!";
     });
 
+    // test_cpp_correct_overload_resolution
+    m.def("dummy_function_overloaded_std_func_arg",
+          [](const std::function<int(int)> &f) { return 3 * f(3); });
+    m.def("dummy_function_overloaded_std_func_arg",
+          [](const std::function<int(int, int)> &f) { return 2 * f(3, 4); });
+
     class AbstractBase {
     public:
         // [workaround(intel)] = default does not work here
