@@ -9,12 +9,55 @@
 
 #pragma once
 
+#define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS
+
 #include "pybind11.h"
 
 #include <functional>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(type_caster_std_function_specializations)
+
+// ensure GIL is held during functor destruction
+struct func_handle {
+    function f;
+#if !(defined(_MSC_VER) && _MSC_VER == 1916 && defined(PYBIND11_CPP17))
+    // This triggers a syntax error under very special conditions (very weird indeed).
+    explicit
+#endif
+        func_handle(function &&f_) noexcept
+        : f(std::move(f_)) {
+    }
+    func_handle(const func_handle &f_) { operator=(f_); }
+    func_handle &operator=(const func_handle &f_) {
+        gil_scoped_acquire acq;
+        f = f_.f;
+        return *this;
+    }
+    ~func_handle() {
+        gil_scoped_acquire acq;
+        function kill_f(std::move(f));
+    }
+};
+
+// to emulate 'move initialization capture' in C++11
+struct func_wrapper_base {
+    func_handle hfunc;
+    explicit func_wrapper_base(func_handle &&hf) noexcept : hfunc(hf) {}
+};
+
+template <typename Return, typename... Args>
+struct func_wrapper : func_wrapper_base {
+    using func_wrapper_base::func_wrapper_base;
+    Return operator()(Args... args) const {
+        gil_scoped_acquire acq;
+        // casts the returned object as a rvalue to the return type
+        return hfunc.f(std::forward<Args>(args)...).template cast<Return>();
+    }
+};
+
+PYBIND11_NAMESPACE_END(type_caster_std_function_specializations)
 
 template <typename Return, typename... Args>
 struct type_caster<std::function<Return(Args...)>> {
@@ -77,40 +120,8 @@ public:
             // See PR #1413 for full details
         }
 
-        // ensure GIL is held during functor destruction
-        struct func_handle {
-            function f;
-#if !(defined(_MSC_VER) && _MSC_VER == 1916 && defined(PYBIND11_CPP17))
-            // This triggers a syntax error under very special conditions (very weird indeed).
-            explicit
-#endif
-                func_handle(function &&f_) noexcept
-                : f(std::move(f_)) {
-            }
-            func_handle(const func_handle &f_) { operator=(f_); }
-            func_handle &operator=(const func_handle &f_) {
-                gil_scoped_acquire acq;
-                f = f_.f;
-                return *this;
-            }
-            ~func_handle() {
-                gil_scoped_acquire acq;
-                function kill_f(std::move(f));
-            }
-        };
-
-        // to emulate 'move initialization capture' in C++11
-        struct func_wrapper {
-            func_handle hfunc;
-            explicit func_wrapper(func_handle &&hf) noexcept : hfunc(std::move(hf)) {}
-            Return operator()(Args... args) const {
-                gil_scoped_acquire acq;
-                // casts the returned object as a rvalue to the return type
-                return hfunc.f(std::forward<Args>(args)...).template cast<Return>();
-            }
-        };
-
-        value = func_wrapper(func_handle(std::move(func)));
+        value = type_caster_std_function_specializations::func_wrapper<Return, Args...>(
+            type_caster_std_function_specializations::func_handle(std::move(func)));
         return true;
     }
 
