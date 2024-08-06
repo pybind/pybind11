@@ -472,7 +472,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 // SMART_HOLDER_WIP: Needs refactoring of existing pybind11 code.
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
@@ -823,7 +823,7 @@ struct load_helper : value_and_holder_helper {
 
 PYBIND11_NAMESPACE_END(smart_holder_type_caster_support)
 
-#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
 class type_caster_generic {
 public:
@@ -929,7 +929,7 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
-#ifdef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             smart_holder_type_caster_support::value_and_holder_helper v_h_helper;
             v_h_helper.loaded_v_h = v_h;

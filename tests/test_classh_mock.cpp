@@ -11,7 +11,7 @@
 #else
 #    include <pybind11/pybind11.h>
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-#    ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#    ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 template <typename type_, typename... options>
 using classh = class_<type_, options...>;
 #    endif

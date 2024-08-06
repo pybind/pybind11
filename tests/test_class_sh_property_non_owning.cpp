@@ -51,8 +51,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(DataField)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(DataFieldsHolder)
 
 TEST_SUBMODULE(class_sh_property_non_owning, m) {
-    m.attr("defined_PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
+#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         false;
 #else
         true;
@@ -71,5 +71,5 @@ TEST_SUBMODULE(class_sh_property_non_owning, m) {
     py::classh<DataFieldsHolder>(m, "DataFieldsHolder")
         .def(py::init<std::size_t>())
         .def("vec_at", &DataFieldsHolder::vec_at, py::return_value_policy::reference_internal);
-#endif // PYBIND11_HAVE_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 }
