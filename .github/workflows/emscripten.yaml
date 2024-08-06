@@ -20,7 +20,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: pypa/cibuildwheel@v2.19
+    - uses: pypa/cibuildwheel@v2.20
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
         CFLAGS: -fexceptions
