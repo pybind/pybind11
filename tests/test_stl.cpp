@@ -167,6 +167,14 @@ struct type_caster<ReferenceSensitiveOptional<T>>
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+int pass_std_vector_int(const std::vector<int> &v) {
+    int zum = 100;
+    for (const int i : v) {
+        zum += 2 * i;
+    }
+    return zum;
+}
+
 TEST_SUBMODULE(stl, m) {
     // test_vector
     m.def("cast_vector", []() { return std::vector<int>{1}; });
@@ -546,4 +554,30 @@ TEST_SUBMODULE(stl, m) {
         []() { return new std::vector<bool>(4513); },
         // Without explicitly specifying `take_ownership`, this function leaks.
         py::return_value_policy::take_ownership);
+
+    m.def("pass_std_vector_int", pass_std_vector_int);
+    m.def("pass_std_vector_pair_int", [](const std::vector<std::pair<int, int>> &v) {
+        int zum = 0;
+        for (const auto &ij : v) {
+            zum += ij.first * 100 + ij.second;
+        }
+        return zum;
+    });
+    m.def("pass_std_array_int_2", [](const std::array<int, 2> &a) {
+        return pass_std_vector_int(std::vector<int>(a.begin(), a.end())) + 1;
+    });
+    m.def("pass_std_set_int", [](const std::set<int> &s) {
+        int zum = 200;
+        for (const int i : s) {
+            zum += 3 * i;
+        }
+        return zum;
+    });
+    m.def("pass_std_map_int", [](const std::map<int, int> &m) {
+        int zum = 500;
+        for (const auto &p : m) {
+            zum += p.first * 1000 + p.second;
+        }
+        return zum;
+    });
 }
