@@ -25,7 +25,7 @@ A Python extension module can be created with just a few lines of code:
     find_package(pybind11 CONFIG REQUIRED)
 
     pybind11_add_module(example example.cpp)
-    install(TARGET example DESTINATION .)
+    install(TARGETS example DESTINATION .)
 
 (You use the ``add_subdirectory`` instead, see the example in :ref:`cmake`.) In
 this example, the code is located in a file named :file:`example.cpp`.  Either
