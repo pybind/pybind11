@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pybind11_tests import ConstructorStats
@@ -608,7 +610,9 @@ def test_both_ref_mutators():
 def test_nocopy_wrapper():
     # get_elem requires a column-contiguous matrix reference, but should be
     # callable with other types of matrix (via copying):
-    int_matrix_colmajor = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], order="F")
+    int_matrix_colmajor = np.array(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype="l", order="F"
+    )
     dbl_matrix_colmajor = np.array(
         int_matrix_colmajor, dtype="double", order="F", copy=True
     )
@@ -714,6 +718,11 @@ def test_dense_signature(doc):
         """ -> numpy.ndarray[numpy.float32[m, n]]
     """
     )
+
+
+def test_defaults(doc):
+    assert "\n" not in str(doc(m.defaults_mat))
+    assert "\n" not in str(doc(m.defaults_vec))
 
 
 def test_named_arguments():

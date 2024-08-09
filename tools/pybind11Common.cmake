@@ -5,8 +5,8 @@ Adds the following targets::
     pybind11::pybind11 - link to headers and pybind11
     pybind11::module - Adds module links
     pybind11::embed - Adds embed links
-    pybind11::lto - Link time optimizations (manual selection)
-    pybind11::thin_lto - Link time optimizations (manual selection)
+    pybind11::lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
+    pybind11::thin_lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
     pybind11::python_link_helper - Adds link to Python libraries
     pybind11::windows_extras - MSVC bigobj and mp for building multithreaded
     pybind11::opt_size - avoid optimizations that increase code size
@@ -20,7 +20,7 @@ Adds the following functions::
 
 # CMake 3.10 has an include_guard command, but we can't use that yet
 # include_guard(global) (pre-CMake 3.10)
-if(TARGET pybind11::lto)
+if(TARGET pybind11::pybind11)
   return()
 endif()
 
@@ -41,6 +41,16 @@ endif()
 set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}"
     CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
+
+if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_CROSSCOMPILING
+      ON
+      CACHE INTERNAL "")
+else()
+  set(_PYBIND11_CROSSCOMPILING
+      OFF
+      CACHE INTERNAL "")
+endif()
 
 # --------------------- Shared targets ----------------------------
 
@@ -163,14 +173,26 @@ endif()
 
 # --------------------- Python specifics -------------------------
 
+# CMake 3.27 removes the classic FindPythonInterp if CMP0148 is NEW
+if(CMAKE_VERSION VERSION_LESS "3.27")
+  set(_pybind11_missing_old_python "OLD")
+else()
+  cmake_policy(GET CMP0148 _pybind11_missing_old_python)
+endif()
+
 # Check to see which Python mode we are in, new, old, or no python
 if(PYBIND11_NOPYTHON)
   set(_pybind11_nopython ON)
+  # We won't use new FindPython if PYBIND11_FINDPYTHON is defined and falselike
+  # Otherwise, we use if FindPythonLibs is missing or if FindPython was already used
 elseif(
-  PYBIND11_FINDPYTHON
-  OR Python_FOUND
-  OR Python2_FOUND
-  OR Python3_FOUND)
+  (NOT DEFINED PYBIND11_FINDPYTHON OR PYBIND11_FINDPYTHON)
+  AND (_pybind11_missing_old_python STREQUAL "NEW"
+       OR PYBIND11_FINDPYTHON
+       OR Python_FOUND
+       OR Python3_FOUND
+      ))
+
   # New mode
   include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
 
@@ -183,7 +205,7 @@ endif()
 
 # --------------------- pybind11_find_import -------------------------------
 
-if(NOT _pybind11_nopython)
+if(NOT _pybind11_nopython AND NOT _PYBIND11_CROSSCOMPILING)
   # Check to see if modules are importable. Use REQUIRED to force an error if
   # one of the modules is not found. <package_name>_FOUND will be set if the
   # package was found (underscores replace dashes if present). QUIET will hide
@@ -210,8 +232,15 @@ if(NOT _pybind11_nopython)
 
     execute_process(
       COMMAND
-        ${${_Python}_EXECUTABLE} -c
-        "from pkg_resources import get_distribution; print(get_distribution('${PYPI_NAME}').version)"
+        ${${_Python}_EXECUTABLE} -c "
+try:
+    from importlib.metadata import version
+except ImportError:
+    from pkg_resources import get_distribution
+    def version(s):
+        return get_distribution(s).version
+print(version('${PYPI_NAME}'))
+        "
       RESULT_VARIABLE RESULT_PRESENT
       OUTPUT_VARIABLE PKG_VERSION
       ERROR_QUIET)
@@ -292,21 +321,24 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       set(cxx_append ";-fno-fat-lto-objects")
     endif()
 
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le" OR CMAKE_SYSTEM_PROCESSOR MATCHES "mips64")
-      set(NO_FLTO_ARCH TRUE)
+    if(prefer_thin_lto)
+      set(thin "=thin")
     else()
-      set(NO_FLTO_ARCH FALSE)
+      set(thin "")
     endif()
 
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"
-       AND prefer_thin_lto
-       AND NOT NO_FLTO_ARCH)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le" OR CMAKE_SYSTEM_PROCESSOR MATCHES "mips64")
+      # Do nothing
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES emscripten)
+      # This compile is very costly when cross-compiling, so set this without checking
+      set(PYBIND11_LTO_CXX_FLAGS "-flto${thin}${cxx_append}")
+      set(PYBIND11_LTO_LINKER_FLAGS "-flto${thin}${linker_append}")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
       _pybind11_return_if_cxx_and_linker_flags_work(
-        HAS_FLTO_THIN "-flto=thin${cxx_append}" "-flto=thin${linker_append}"
+        HAS_FLTO_THIN "-flto${thin}${cxx_append}" "-flto${thin}${linker_append}"
         PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
-
-    if(NOT HAS_FLTO_THIN AND NOT NO_FLTO_ARCH)
+    if(NOT HAS_FLTO_THIN)
       _pybind11_return_if_cxx_and_linker_flags_work(
         HAS_FLTO "-flto${cxx_append}" "-flto${linker_append}" PYBIND11_LTO_CXX_FLAGS
         PYBIND11_LTO_LINKER_FLAGS)
@@ -372,11 +404,13 @@ function(_pybind11_generate_lto target prefer_thin_lto)
   endif()
 endfunction()
 
-add_library(pybind11::lto IMPORTED INTERFACE ${optional_global})
-_pybind11_generate_lto(pybind11::lto FALSE)
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  add_library(pybind11::lto IMPORTED INTERFACE ${optional_global})
+  _pybind11_generate_lto(pybind11::lto FALSE)
 
-add_library(pybind11::thin_lto IMPORTED INTERFACE ${optional_global})
-_pybind11_generate_lto(pybind11::thin_lto TRUE)
+  add_library(pybind11::thin_lto IMPORTED INTERFACE ${optional_global})
+  _pybind11_generate_lto(pybind11::thin_lto TRUE)
+endif()
 
 # ---------------------- pybind11_strip -----------------------------
 

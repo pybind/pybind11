@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from unittest import mock
+
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats, UserType
+from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
 
@@ -203,6 +207,18 @@ def test_inheritance_init(msg):
     assert msg(exc_info.value) == expected
 
 
+@pytest.mark.parametrize(
+    "mock_return_value", [None, (1, 2, 3), m.Pet("Polly", "parrot"), m.Dog("Molly")]
+)
+def test_mock_new(mock_return_value):
+    with mock.patch.object(
+        m.Pet, "__new__", return_value=mock_return_value
+    ) as mock_new:
+        obj = m.Pet("Noname", "Nospecies")
+    assert obj is mock_return_value
+    mock_new.assert_called_once_with(m.Pet, "Noname", "Nospecies")
+
+
 def test_automatic_upcasting():
     assert type(m.return_class_1()).__name__ == "DerivedClass1"
     assert type(m.return_class_2()).__name__ == "DerivedClass2"
@@ -363,7 +379,9 @@ def test_class_refcount():
         refcount_3 = getrefcount(cls)
 
         assert refcount_1 == refcount_3
-        assert refcount_2 > refcount_1
+        assert (refcount_2 > refcount_1) or (
+            refcount_2 == refcount_1 == PYBIND11_REFCNT_IMMORTAL
+        )
 
 
 def test_reentrant_implicit_conversion_failure(msg):

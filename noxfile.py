@@ -1,24 +1,12 @@
-import os
+from __future__ import annotations
+
+import argparse
 
 import nox
 
-nox.needs_version = ">=2022.1.7"
+nox.needs_version = ">=2024.3.2"
 nox.options.sessions = ["lint", "tests", "tests_packaging"]
-
-PYTHON_VERSIONS = [
-    "3.6",
-    "3.7",
-    "3.8",
-    "3.9",
-    "3.10",
-    "3.11",
-    "pypy3.7",
-    "pypy3.8",
-    "pypy3.9",
-]
-
-if os.environ.get("CI", None):
-    nox.options.error_on_missing_interpreters = True
+nox.options.default_venv_backend = "uv|virtualenv"
 
 
 @nox.session(reuse_venv=True)
@@ -30,7 +18,7 @@ def lint(session: nox.Session) -> None:
     session.run("pre-commit", "run", "-a", *session.posargs)
 
 
-@nox.session(python=PYTHON_VERSIONS)
+@nox.session
 def tests(session: nox.Session) -> None:
     """
     Run the tests (requires a compiler).
@@ -57,30 +45,42 @@ def tests_packaging(session: nox.Session) -> None:
     Run the packaging tests.
     """
 
-    session.install("-r", "tests/requirements.txt", "--prefer-binary")
+    session.install("-r", "tests/requirements.txt", "pip")
     session.run("pytest", "tests/extra_python_package", *session.posargs)
 
 
 @nox.session(reuse_venv=True)
 def docs(session: nox.Session) -> None:
     """
-    Build the docs. Pass "serve" to serve.
+    Build the docs. Pass --non-interactive to avoid serving.
     """
 
-    session.install("-r", "docs/requirements.txt")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-b", dest="builder", default="html", help="Build target (default: html)"
+    )
+    args, posargs = parser.parse_known_args(session.posargs)
+    serve = args.builder == "html" and session.interactive
+
+    extra_installs = ["sphinx-autobuild"] if serve else []
+    session.install("-r", "docs/requirements.txt", *extra_installs)
     session.chdir("docs")
 
-    if "pdf" in session.posargs:
-        session.run("sphinx-build", "-M", "latexpdf", ".", "_build")
-        return
+    shared_args = (
+        "-n",  # nitpicky mode
+        "-T",  # full tracebacks
+        f"-b={args.builder}",
+        ".",
+        f"_build/{args.builder}",
+        *posargs,
+    )
 
-    session.run("sphinx-build", "-M", "html", ".", "_build")
-
-    if "serve" in session.posargs:
-        session.log("Launching docs at http://localhost:8000/ - use Ctrl-C to quit")
-        session.run("python", "-m", "http.server", "8000", "-d", "_build/html")
-    elif session.posargs:
-        session.error("Unsupported argument to docs")
+    if serve:
+        session.run(
+            "sphinx-autobuild", "--open-browser", "--ignore=.build", *shared_args
+        )
+    else:
+        session.run("sphinx-build", "--keep-going", *shared_args)
 
 
 @nox.session(reuse_venv=True)

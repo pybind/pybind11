@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import sys
 
 import pytest
 
 import env
 import pybind11_cross_module_tests as cm
-import pybind11_tests  # noqa: F401
+import pybind11_tests
 from pybind11_tests import exceptions as m
 
 
@@ -73,7 +75,7 @@ def test_cross_module_exceptions(msg):
 
 # TODO: FIXME
 @pytest.mark.xfail(
-    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang'))",
+    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang')) or sys.platform.startswith('emscripten')",
     raises=RuntimeError,
     reason="See Issue #2847, PR #2999, PR #4324",
 )
@@ -101,28 +103,24 @@ def ignore_pytest_unraisable_warning(f):
 @pytest.mark.xfail(env.PYPY, reason="Failure on PyPy 3.8 (7.3.7)", strict=False)
 @ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
-    hooked = False
     triggered = False
 
-    if hasattr(sys, "unraisablehook"):  # Python 3.8+
-        hooked = True
-        # Don't take `sys.unraisablehook`, as that's overwritten by pytest
-        default_hook = sys.__unraisablehook__
+    # Don't take `sys.unraisablehook`, as that's overwritten by pytest
+    default_hook = sys.__unraisablehook__
 
-        def hook(unraisable_hook_args):
-            exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
-            if obj == "already_set demo":
-                nonlocal triggered
-                triggered = True
-            default_hook(unraisable_hook_args)
-            return
+    def hook(unraisable_hook_args):
+        exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
+        if obj == "already_set demo":
+            nonlocal triggered
+            triggered = True
+        default_hook(unraisable_hook_args)
+        return
 
-        # Use monkeypatch so pytest can apply and remove the patch as appropriate
-        monkeypatch.setattr(sys, "unraisablehook", hook)
+    # Use monkeypatch so pytest can apply and remove the patch as appropriate
+    monkeypatch.setattr(sys, "unraisablehook", hook)
 
     assert m.python_alreadyset_in_destructor("already_set demo") is True
-    if hooked:
-        assert triggered is True
+    assert triggered is True
 
     _, captured_stderr = capsys.readouterr()
     assert captured_stderr.startswith("Exception ignored in: 'already_set demo'")
@@ -139,7 +137,15 @@ def test_custom(msg):
     # Can we catch a MyException?
     with pytest.raises(m.MyException) as excinfo:
         m.throws1()
-    assert msg(excinfo.value) == "this error should go to a custom type"
+    assert msg(excinfo.value) == "this error should go to py::exception<MyException>"
+
+    # Can we catch a MyExceptionUseDeprecatedOperatorCall?
+    with pytest.raises(m.MyExceptionUseDeprecatedOperatorCall) as excinfo:
+        m.throws1d()
+    assert (
+        msg(excinfo.value)
+        == "this error should go to py::exception<MyExceptionUseDeprecatedOperatorCall>"
+    )
 
     # Can we translate to standard Python exceptions?
     with pytest.raises(RuntimeError) as excinfo:
@@ -240,6 +246,11 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
+# TODO: Investigate this crash, see pybind/pybind11#5062 for background
+@pytest.mark.skipif(
+    sys.platform.startswith("win32") and "Clang" in pybind11_tests.compiler_info,
+    reason="Started segfaulting February 2024",
+)
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_nested_exception()
@@ -317,13 +328,7 @@ def test_error_already_set_what_with_happy_exceptions(
     assert what == expected_what
 
 
-@pytest.mark.skipif(
-    # Intentionally very specific:
-    "sys.version_info == (3, 12, 0, 'alpha', 6)",
-    reason="WIP: https://github.com/python/cpython/issues/102594",
-)
-@pytest.mark.skipif("env.PYPY", reason="PyErr_NormalizeException Segmentation fault")
-def test_flaky_exception_failure_point_init():
+def _test_flaky_exception_failure_point_init_before_py_3_12():
     with pytest.raises(RuntimeError) as excinfo:
         m.error_already_set_what(FlakyException, ("failure_point_init",))
     lines = str(excinfo.value).splitlines()
@@ -337,7 +342,33 @@ def test_flaky_exception_failure_point_init():
     # Checking the first two lines of the traceback as formatted in error_string():
     assert "test_exceptions.py(" in lines[3]
     assert lines[3].endswith("): __init__")
-    assert lines[4].endswith("): test_flaky_exception_failure_point_init")
+    assert lines[4].endswith(
+        "): _test_flaky_exception_failure_point_init_before_py_3_12"
+    )
+
+
+def _test_flaky_exception_failure_point_init_py_3_12():
+    # Behavior change in Python 3.12: https://github.com/python/cpython/issues/102594
+    what, py_err_set_after_what = m.error_already_set_what(
+        FlakyException, ("failure_point_init",)
+    )
+    assert not py_err_set_after_what
+    lines = what.splitlines()
+    assert lines[0].endswith("ValueError[WITH __notes__]: triggered_failure_point_init")
+    assert lines[1] == "__notes__ (len=1):"
+    assert "Normalization failed:" in lines[2]
+    assert "FlakyException" in lines[2]
+
+
+@pytest.mark.skipif(
+    "env.PYPY and sys.version_info[:2] < (3, 12)",
+    reason="PyErr_NormalizeException Segmentation fault",
+)
+def test_flaky_exception_failure_point_init():
+    if sys.version_info[:2] < (3, 12):
+        _test_flaky_exception_failure_point_init_before_py_3_12()
+    else:
+        _test_flaky_exception_failure_point_init_py_3_12()
 
 
 def test_flaky_exception_failure_point_str():
@@ -391,3 +422,9 @@ def test_fn_cast_int_exception():
     assert str(excinfo.value).startswith(
         "Unable to cast Python instance of type <class 'NoneType'> to C++ type"
     )
+
+
+def test_return_exception_void():
+    with pytest.raises(TypeError) as excinfo:
+        m.return_exception_void()
+    assert "Exception" in str(excinfo.value)

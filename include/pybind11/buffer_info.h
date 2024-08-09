@@ -37,6 +37,9 @@ inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t
     return strides;
 }
 
+template <typename T, typename SFINAE = void>
+struct compare_buffer_info;
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Information record describing a Python buffer object
@@ -99,22 +102,22 @@ struct buffer_info {
     template <typename T>
     buffer_info(const T *ptr, ssize_t size, bool readonly = true)
         : buffer_info(
-            const_cast<T *>(ptr), sizeof(T), format_descriptor<T>::format(), size, readonly) {}
+              const_cast<T *>(ptr), sizeof(T), format_descriptor<T>::format(), size, readonly) {}
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
         : buffer_info(
-            view->buf,
-            view->itemsize,
-            view->format,
-            view->ndim,
-            {view->shape, view->shape + view->ndim},
-            /* Though buffer::request() requests PyBUF_STRIDES, ctypes objects
-             * ignore this flag and return a view with NULL strides.
-             * When strides are NULL, build them manually.  */
-            view->strides
-                ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
-                : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
-            (view->readonly != 0)) {
+              view->buf,
+              view->itemsize,
+              view->format,
+              view->ndim,
+              {view->shape, view->shape + view->ndim},
+              /* Though buffer::request() requests PyBUF_STRIDES, ctypes objects
+               * ignore this flag and return a view with NULL strides.
+               * When strides are NULL, build them manually.  */
+              view->strides
+                  ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
+                  : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
+              (view->readonly != 0)) {
         // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         this->m_view = view;
         // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
@@ -150,6 +153,17 @@ struct buffer_info {
     Py_buffer *view() const { return m_view; }
     Py_buffer *&view() { return m_view; }
 
+    /* True if the buffer item type is equivalent to `T`. */
+    // To define "equivalent" by example:
+    // `buffer_info::item_type_is_equivalent_to<int>(b)` and
+    // `buffer_info::item_type_is_equivalent_to<long>(b)` may both be true
+    // on some platforms, but `int` and `unsigned` will never be equivalent.
+    // For the ground truth, please inspect `detail::compare_buffer_info<>`.
+    template <typename T>
+    bool item_type_is_equivalent_to() const {
+        return detail::compare_buffer_info<T>::compare(*this);
+    }
+
 private:
     struct private_ctr_tag {};
 
@@ -162,7 +176,7 @@ private:
                 detail::any_container<ssize_t> &&strides_in,
                 bool readonly)
         : buffer_info(
-            ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in), readonly) {}
+              ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in), readonly) {}
 
     Py_buffer *m_view = nullptr;
     bool ownview = false;
@@ -170,9 +184,10 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename T, typename SFINAE = void>
+template <typename T, typename SFINAE>
 struct compare_buffer_info {
     static bool compare(const buffer_info &b) {
+        // NOLINTNEXTLINE(bugprone-sizeof-expression) Needed for `PyObject *`
         return b.format == format_descriptor<T>::format() && b.itemsize == (ssize_t) sizeof(T);
     }
 };

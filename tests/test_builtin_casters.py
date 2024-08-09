@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 
 import pytest
@@ -295,7 +297,7 @@ def test_int_convert():
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
     # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON:
         with env.deprecated_call():
             assert convert(Int()) == 42
     else:
@@ -352,7 +354,7 @@ def test_tuple(doc):
     assert (
         doc(m.pair_passthrough)
         == """
-        pair_passthrough(arg0: Tuple[bool, str]) -> Tuple[str, bool]
+        pair_passthrough(arg0: tuple[bool, str]) -> tuple[str, bool]
 
         Return a pair in reversed order
     """
@@ -360,11 +362,13 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: Tuple[bool, str, int]) -> Tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, int]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
     )
+
+    assert doc(m.empty_tuple) == """empty_tuple() -> tuple[()]"""
 
     assert m.rvalue_pair() == ("rvalue", "rvalue")
     assert m.lvalue_pair() == ("lvalue", "lvalue")

@@ -101,8 +101,11 @@ conversion has the same overhead as implicit conversion.
     m.def("str_output",
         []() {
             std::string s = "Send your r\xe9sum\xe9 to Alice in HR"; // Latin-1
-            py::str py_s = PyUnicode_DecodeLatin1(s.data(), s.length());
-            return py_s;
+            py::handle py_s = PyUnicode_DecodeLatin1(s.data(), s.length(), nullptr);
+            if (!py_s) {
+                throw py::error_already_set();
+            }
+            return py::reinterpret_steal<py::str>(py_s);
         }
     );
 
@@ -113,7 +116,8 @@ conversion has the same overhead as implicit conversion.
 
 The `Python C API
 <https://docs.python.org/3/c-api/unicode.html#built-in-codecs>`_ provides
-several built-in codecs.
+several built-in codecs. Note that these all return *new* references, so
+use :cpp:func:`reinterpret_steal` when converting them to a :cpp:class:`str`.
 
 
 One could also use a third party encoding library such as libiconv to transcode

@@ -398,3 +398,32 @@ before they are used as a parameter or return type of a function:
         pyFoo.def(py::init<const ns::Bar&>());
         pyBar.def(py::init<const ns::Foo&>());
     }
+
+Setting inner type hints in docstrings
+======================================
+
+When you use pybind11 wrappers for ``list``, ``dict``, and other generic python
+types, the docstring will just display the generic type. You can convey the
+inner types in the docstring by using a special 'typed' version of the generic
+type.
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        m.def("pass_list_of_str", [](py::typing::List<py::str> arg) {
+            // arg can be used just like py::list
+        ));
+    }
+
+The resulting docstring will be ``pass_list_of_str(arg0: list[str]) -> None``.
+
+The following special types are available in ``pybind11/typing.h``:
+
+* ``py::Tuple<Args...>``
+* ``py::Dict<K, V>``
+* ``py::List<V>``
+* ``py::Set<V>``
+* ``py::Callable<Signature>``
+
+.. warning:: Just like in python, these are merely hints. They don't actually
+             enforce the types of their contents at runtime or compile time.

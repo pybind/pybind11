@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pybind11_tests import type_caster_std_function_specializations as m
 
 

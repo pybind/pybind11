@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import os
 import string
@@ -35,6 +37,7 @@ main_headers = {
     "include/pybind11/eval.h",
     "include/pybind11/functional.h",
     "include/pybind11/gil.h",
+    "include/pybind11/gil_safe_call_once.h",
     "include/pybind11/iostream.h",
     "include/pybind11/numpy.h",
     "include/pybind11/operators.h",
@@ -43,6 +46,8 @@ main_headers = {
     "include/pybind11/pytypes.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/type_caster_pyobject_ptr.h",
+    "include/pybind11/typing.h",
 }
 
 detail_headers = {
@@ -53,9 +58,11 @@ detail_headers = {
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+    "include/pybind11/detail/value_and_holder.h",
 }
 
 eigen_headers = {
+    "include/pybind11/eigen/common.h",
     "include/pybind11/eigen/matrix.h",
     "include/pybind11/eigen/tensor.h",
 }
@@ -69,6 +76,7 @@ cmake_files = {
     "share/cmake/pybind11/pybind11Common.cmake",
     "share/cmake/pybind11/pybind11Config.cmake",
     "share/cmake/pybind11/pybind11ConfigVersion.cmake",
+    "share/cmake/pybind11/pybind11GuessPythonExtSuffix.cmake",
     "share/cmake/pybind11/pybind11NewTools.cmake",
     "share/cmake/pybind11/pybind11Targets.cmake",
     "share/cmake/pybind11/pybind11Tools.cmake",
@@ -110,6 +118,7 @@ sdist_files = {
     "MANIFEST.in",
     "README.rst",
     "PKG-INFO",
+    "SECURITY.md",
 }
 
 local_sdist_files = {

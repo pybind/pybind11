@@ -7,6 +7,8 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/typing.h>
+
 #include "pybind11_tests.h"
 
 #include <utility>
@@ -23,7 +25,7 @@ PyObject *conv(PyObject *o) {
             ret = PyFloat_FromDouble(v);
         }
     } else {
-        PyErr_SetString(PyExc_TypeError, "Unexpected type");
+        py::set_error(PyExc_TypeError, "Unexpected type");
     }
     return ret;
 }
@@ -38,6 +40,15 @@ class float_ : public py::object {
     double get_value() const { return PyFloat_AsDouble(this->ptr()); }
 };
 } // namespace external
+
+namespace pybind11 {
+namespace detail {
+template <>
+struct handle_type_name<external::float_> {
+    static constexpr auto name = const_name("float");
+};
+} // namespace detail
+} // namespace pybind11
 
 namespace implicit_conversion_from_0_to_handle {
 // Uncomment to trigger compiler error. Note: Before PR #4008 this used to compile successfully.
@@ -98,6 +109,26 @@ void m_defs(py::module_ &m) {
 
 } // namespace handle_from_move_only_type_with_operator_PyObject
 
+#if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
+namespace literals {
+enum Color { RED = 0, BLUE = 1 };
+
+typedef py::typing::Literal<"26",
+                            "0x1A",
+                            "\"hello world\"",
+                            "b\"hello world\"",
+                            "u\"hello world\"",
+                            "True",
+                            "Color.RED",
+                            "None">
+    LiteralFoo;
+} // namespace literals
+namespace typevar {
+typedef py::typing::TypeVar<"T"> TypeVarT;
+typedef py::typing::TypeVar<"V"> TypeVarV;
+} // namespace typevar
+#endif
+
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -124,6 +155,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("list_size_t", []() { return py::list{(py::size_t) 0}; });
     m.def("list_insert_ssize_t", [](py::list *l) { return l->insert((py::ssize_t) 1, 83); });
     m.def("list_insert_size_t", [](py::list *l) { return l->insert((py::size_t) 3, 57); });
+    m.def("list_clear", [](py::list *l) { l->clear(); });
     m.def("get_list", []() {
         py::list list;
         list.append("value");
@@ -258,6 +290,15 @@ TEST_SUBMODULE(pytypes, m) {
         return py::capsule((void *) 1234, [](void *ptr) {
             py::print("destructing capsule: {}"_s.format((size_t) ptr));
         });
+    });
+
+    m.def("return_capsule_with_destructor_3", []() {
+        py::print("creating capsule");
+        auto cap = py::capsule((void *) 1233, "oname", [](void *ptr) {
+            py::print("destructing capsule: {}"_s.format((size_t) ptr));
+        });
+        py::print("original name: {}"_s.format(cap.name()));
+        return cap;
     });
 
     m.def("return_renamed_capsule_with_destructor_2", []() {
@@ -651,8 +692,8 @@ TEST_SUBMODULE(pytypes, m) {
 // This is "most correct" and enforced on these platforms.
 #    define PYBIND11_AUTO_IT auto it
 #else
-// This works on many platforms and is (unfortunately) reflective of existing user code.
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
+    // This works on many platforms and is (unfortunately) reflective of existing user code.
+    // NOLINTNEXTLINE(bugprone-macro-parentheses)
 #    define PYBIND11_AUTO_IT auto &it
 #endif
 
@@ -811,4 +852,75 @@ TEST_SUBMODULE(pytypes, m) {
         a >>= b;
         return a;
     });
+
+    m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
+    m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
+    m.def("annotate_tuple_variable_length",
+          [](const py::typing::Tuple<py::float_, py::ellipsis> &) {});
+    m.def("annotate_dict_str_int", [](const py::typing::Dict<py::str, int> &) {});
+    m.def("annotate_list_int", [](const py::typing::List<int> &) {});
+    m.def("annotate_set_str", [](const py::typing::Set<std::string> &) {});
+    m.def("annotate_iterable_str", [](const py::typing::Iterable<std::string> &) {});
+    m.def("annotate_iterator_int", [](const py::typing::Iterator<int> &) {});
+    m.def("annotate_fn",
+          [](const py::typing::Callable<int(py::typing::List<py::str>, py::str)> &) {});
+
+    m.def("annotate_fn_only_return", [](const py::typing::Callable<int(py::ellipsis)> &) {});
+    m.def("annotate_type", [](const py::typing::Type<int> &t) -> py::type { return t; });
+
+    m.def("annotate_union",
+          [](py::typing::List<py::typing::Union<py::str, py::int_, py::object>> l,
+             py::str a,
+             py::int_ b,
+             py::object c) -> py::typing::List<py::typing::Union<py::str, py::int_, py::object>> {
+              l.append(a);
+              l.append(b);
+              l.append(c);
+              return l;
+          });
+
+    m.def("union_typing_only",
+          [](py::typing::List<py::typing::Union<py::str>> &l)
+              -> py::typing::List<py::typing::Union<py::int_>> { return l; });
+
+    m.def("annotate_union_to_object",
+          [](py::typing::Union<int, py::str> &o) -> py::object { return o; });
+
+    m.def("annotate_optional",
+          [](py::list &list) -> py::typing::List<py::typing::Optional<py::str>> {
+              list.append(py::str("hi"));
+              list.append(py::none());
+              return list;
+          });
+
+    m.def("annotate_type_guard", [](py::object &o) -> py::typing::TypeGuard<py::str> {
+        return py::isinstance<py::str>(o);
+    });
+    m.def("annotate_type_is",
+          [](py::object &o) -> py::typing::TypeIs<py::str> { return py::isinstance<py::str>(o); });
+
+    m.def("annotate_no_return", []() -> py::typing::NoReturn { throw 0; });
+    m.def("annotate_never", []() -> py::typing::Never { throw 0; });
+
+    m.def("annotate_optional_to_object",
+          [](py::typing::Optional<int> &o) -> py::object { return o; });
+
+#if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
+    py::enum_<literals::Color>(m, "Color")
+        .value("RED", literals::Color::RED)
+        .value("BLUE", literals::Color::BLUE);
+
+    m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
+    m.def("annotate_generic_containers",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
+              return l;
+          });
+
+    m.def("annotate_listT_to_T",
+          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
+    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+    m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = true;
+#else
+    m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
+#endif
 }

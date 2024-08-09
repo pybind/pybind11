@@ -1,39 +1,42 @@
-
 name: Upstream
 
 on:
   workflow_dispatch:
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: upstream-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  PIP_ONLY_BINARY: ":all:"
+  PIP_BREAK_SYSTEM_PACKAGES: 1
   # For cmake:
   VERBOSE: 1
 
 jobs:
   standard:
-    name: "🐍 3.12 latest • ubuntu-latest • x64"
+    name: "🐍 3.13 latest • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     # Only runs when the  'python dev' label is selected
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Setup Python 3.12
-      uses: actions/setup-python@v4
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.12-dev"
+        python-version: "3.13"
+        allow-prereleases: true
 
     - name: Setup Boost
       run: sudo apt-get install libboost-dev
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      uses: jwlawson/actions-setup-cmake@v2.0
 
     - name: Run pip installs
       run: |
@@ -62,8 +65,8 @@ jobs:
     - name: Python tests C++11
       run: cmake --build build11 --target pytest -j 2
 
-    # - name: C++11 tests
-    #   run: cmake --build build11  --target cpptest -j 2
+    - name: C++11 tests
+      run: cmake --build build11  --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build build11 --target test_cmake_build
@@ -77,14 +80,14 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
 
-    - name: Build
+    - name: Build C++17
       run: cmake --build build17 -j 2
 
-    - name: Python tests
+    - name: Python tests C++17
       run: cmake --build build17 --target pytest
 
-    # - name: C++ tests
-    #   run: cmake --build build17 --target cpptest
+    - name: C++17 tests
+      run: cmake --build build17 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
     - name: Configure (unstable ABI)
@@ -95,7 +98,6 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
     - name: Build (unstable ABI)
       run: cmake --build build17max -j 2
@@ -103,10 +105,12 @@ jobs:
     - name: Python tests (unstable ABI)
       run: cmake --build build17max --target pytest
 
-    - name: Interface test
+    - name: Interface test (unstable ABI)
       run: cmake --build build17max --target test_cmake_build
 
     # This makes sure the setup_helpers module can build packages using
     # setuptools
     - name: Setuptools helpers test
-      run: pytest tests/extra_setuptools
+      run: |
+        pip install setuptools
+        pytest tests/extra_setuptools

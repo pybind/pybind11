@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import sys
+
 import pytest
 
 import env  # noqa: F401
@@ -433,6 +437,7 @@ def test_inherited_virtuals():
     assert obj.say_everything() == "BT -7"
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_issue_1454():
     # Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.test_gil()

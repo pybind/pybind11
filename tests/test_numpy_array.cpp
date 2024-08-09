@@ -287,8 +287,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // Only accept the exact types:
-    sm.def(
-        "overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
+    sm.def("overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
     sm.def(
         "overloaded3",
         [](const py::array_t<double> &) { return "double"; },
@@ -444,9 +443,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     });
 
     // resize to 3D array with each dimension = N
-    sm.def("array_resize3", [](py::array_t<double> a, size_t N, bool refcheck) {
-        a.resize({N, N, N}, refcheck);
-    });
+    sm.def("array_resize3",
+           [](py::array_t<double> a, size_t N, bool refcheck) { a.resize({N, N, N}, refcheck); });
 
     // test_array_create_and_resize
     // return 2D array with Nrows = Ncols = N
@@ -460,9 +458,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("array_view",
            [](py::array_t<uint8_t> a, const std::string &dtype) { return a.view(dtype); });
 
-    sm.def("reshape_initializer_list", [](py::array_t<int> a, size_t N, size_t M, size_t O) {
-        return a.reshape({N, M, O});
-    });
+    sm.def("reshape_initializer_list",
+           [](py::array_t<int> a, size_t N, size_t M, size_t O) { return a.reshape({N, M, O}); });
     sm.def("reshape_tuple", [](py::array_t<int> a, const std::vector<int> &new_shape) {
         return a.reshape(new_shape);
     });
@@ -471,8 +468,7 @@ TEST_SUBMODULE(numpy_array, sm) {
            [](const py::array &a) { return a[py::make_tuple(0, py::ellipsis(), 0)]; });
 
     // test_argument_conversions
-    sm.def(
-        "accept_double", [](const py::array_t<double, 0> &) {}, py::arg("a"));
+    sm.def("accept_double", [](const py::array_t<double, 0> &) {}, py::arg("a"));
     sm.def(
         "accept_double_forcecast",
         [](const py::array_t<double, py::array::forcecast> &) {},
@@ -493,8 +489,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         "accept_double_f_style_forcecast",
         [](const py::array_t<double, py::array::forcecast | py::array::f_style> &) {},
         py::arg("a"));
-    sm.def(
-        "accept_double_noconvert", [](const py::array_t<double, 0> &) {}, "a"_a.noconvert());
+    sm.def("accept_double_noconvert", [](const py::array_t<double, 0> &) {}, "a"_a.noconvert());
     sm.def(
         "accept_double_forcecast_noconvert",
         [](const py::array_t<double, py::array::forcecast> &) {},
@@ -523,4 +518,30 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("test_fmt_desc_const_double", [](const py::array_t<const double> &) {});
 
     sm.def("round_trip_float", [](double d) { return d; });
+
+    sm.def("pass_array_pyobject_ptr_return_sum_str_values",
+           [](const py::array_t<PyObject *> &objs) {
+               std::string sum_str_values;
+               for (const auto &obj : objs) {
+                   sum_str_values += py::str(obj.attr("value"));
+               }
+               return sum_str_values;
+           });
+
+    sm.def("pass_array_pyobject_ptr_return_as_list",
+           [](const py::array_t<PyObject *> &objs) -> py::list { return objs; });
+
+    sm.def("return_array_pyobject_ptr_cpp_loop", [](const py::list &objs) {
+        py::size_t arr_size = py::len(objs);
+        py::array_t<PyObject *> arr_from_list(static_cast<py::ssize_t>(arr_size));
+        PyObject **data = arr_from_list.mutable_data();
+        for (py::size_t i = 0; i < arr_size; i++) {
+            assert(data[i] == nullptr);
+            data[i] = py::cast<PyObject *>(objs[i].attr("value"));
+        }
+        return arr_from_list;
+    });
+
+    sm.def("return_array_pyobject_ptr_from_list",
+           [](const py::list &objs) -> py::array_t<PyObject *> { return objs; });
 }
