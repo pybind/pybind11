@@ -158,6 +158,7 @@ set(PYBIND11_TEST_FILES
     test_tagbased_polymorphic
     test_thread
     test_type_caster_pyobject_ptr
+    test_type_caster_std_function_specializations
     test_union
     test_unnamed_namespace_a
     test_unnamed_namespace_b
