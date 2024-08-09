@@ -9,6 +9,8 @@
 
 #pragma once
 
+#define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS
+
 #include "pybind11.h"
 
 #include <functional>
