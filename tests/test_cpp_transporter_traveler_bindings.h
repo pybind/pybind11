@@ -16,9 +16,9 @@ inline void wrap_traveler(py::module_ m) {
         .def(py::init<std::string>())
         .def("__cpp_transporter__",
              [](py::handle self,
-                py::str /*cpp_abi_code*/,
-                py::str /*cpp_typeid_name*/,
-                py::str pointer_kind) {
+                const py::str & /*cpp_abi_code*/,
+                const py::str & /*cpp_typeid_name*/,
+                const py::str &pointer_kind) {
                  auto pointer_kind_cpp = pointer_kind.cast<std::string>();
                  if (pointer_kind_cpp != "raw_pointer_ephemeral") {
                      throw std::runtime_error("Unknown pointer_kind: \"" + pointer_kind_cpp
