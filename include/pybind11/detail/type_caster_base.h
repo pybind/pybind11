@@ -11,6 +11,7 @@
 
 #include "../pytypes.h"
 #include "common.h"
+#include "cpp_transporter.h"
 #include "descr.h"
 #include "internals.h"
 #include "typeid.h"
@@ -610,6 +611,13 @@ public:
         }
         return false;
     }
+    bool try_cpp_transporter(handle src) {
+        value = try_raw_pointer_ephemeral_from_cpp_transporter(src, cpptype->name());
+        if (value != nullptr) {
+            return true;
+        }
+        return false;
+    }
     void check_holder_compat() {}
 
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
@@ -738,6 +746,10 @@ public:
                 return false;
             }
             value = nullptr;
+            return true;
+        }
+
+        if (convert && cpptype && this_.try_cpp_transporter(src)) {
             return true;
         }
 

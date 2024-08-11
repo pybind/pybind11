@@ -149,6 +149,7 @@ endif()
 set(PYBIND11_HEADERS
     include/pybind11/detail/class.h
     include/pybind11/detail/common.h
+    include/pybind11/detail/cpp_transporter.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
