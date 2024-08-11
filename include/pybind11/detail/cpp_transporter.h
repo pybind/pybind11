@@ -4,9 +4,7 @@
 
 #include "../pytypes.h"
 #include "common.h"
-#include "typeid.h"
-
-#include <string>
+#include "internals.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
