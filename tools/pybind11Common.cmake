@@ -84,24 +84,20 @@ if(CMAKE_SYSTEM_NAME MATCHES Emscripten AND NOT _pybind11_no_exceptions)
     message(WARNING "CMake 3.13+ is required to build for Emscripten. Some flags will be missing")
   else()
     if(_is_config)
-      set_property(
-        TARGET pybind11::pybind11_headers
-        APPEND
-        PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
-      set_property(
-        TARGET pybind11::pybind11_headers
-        APPEND
-        PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
+      set(_tmp_config_target pybind11::pybind11_headers)
     else()
-      set_property(
-        TARGET pybind11_headers
-        APPEND
-        PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
-      set_property(
-        TARGET pybind11_headers
-        APPEND
-        PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
+      set(_tmp_config_target pybind11_headers)
     endif()
+
+    set_property(
+      TARGET ${_tmp_config_target}
+      APPEND
+      PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
+    set_property(
+      TARGET ${_tmp_config_target}
+      APPEND
+      PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
+    unset(_tmp_config_target)
   endif()
 endif()
 
