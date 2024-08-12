@@ -84,7 +84,7 @@ you can either use the basic targets, or use the FindPython tools:
 
   # Python method:
   Python_add_library(MyModule2 src2.cpp)
-  target_link_libraries(MyModule2 pybind11::headers)
+  target_link_libraries(MyModule2 PUBLIC pybind11::headers)
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
                                   CXX_VISIBILITY_PRESET ON
