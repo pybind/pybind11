@@ -229,8 +229,7 @@ if(NOT TARGET pybind11_headers)
   # (long name used here to keep this from clashing in subdirectory mode)
   add_library(pybind11_headers INTERFACE)
   add_library(pybind11::pybind11_headers ALIAS pybind11_headers) # to match exported target
-  add_library(pybind11::headers IMPORTED INTERFACE)
-  set_target_properties(pybind11::headers PROPERTIES INTERFACE_LINK_LIBRARIES pybind11_headers)
+  add_library(pybind11::headers ALIAS pybind11_headers)
 
   target_include_directories(
     pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
