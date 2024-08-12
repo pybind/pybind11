@@ -247,6 +247,7 @@ else()
   set(PYBIND11_INSTALL OFF)
 endif()
 
+set(_pybind11_is_config OFF)
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 # https://github.com/jtojnar/cmake-snips/#concatenating-paths-when-building-pkg-config-files
 # TODO: cmake 3.20 adds the cmake_path() function, which obsoletes this snippet

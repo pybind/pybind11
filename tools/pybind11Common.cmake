@@ -28,11 +28,7 @@ endif()
 # are in CONFIG mode, they should be "normal" targets instead.
 # In CMake 3.11+ you can promote a target to global after you create it,
 # which might be simpler than this check.
-get_property(
-  is_config
-  TARGET pybind11::pybind11_headers
-  PROPERTY IMPORTED)
-if(NOT is_config)
+if(NOT _pybind11_is_config)
   set(optional_global GLOBAL)
 endif()
 
