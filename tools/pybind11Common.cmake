@@ -75,6 +75,26 @@ set_property(
   APPEND
   PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11)
 
+# -------------- emscripten requires exceptions enabled -------------
+# _pybind11_no_exceptions is a private mechanism to disable this addition.
+# Please open an issue if you need to use it; it will be removed if no one
+# needs it.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES emscripten AND NOT _pybind11_no_exceptions)
+  if(CMAKE_VERSION VERSION_LESS 3.13)
+    message(WARNING "CMake 3.13+ is required to build for Emscripten. Some flags will be missing")
+  else()
+    set_property(
+      TARGET pybind11::pybind11
+      APPEND
+      PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
+    set_property(
+      TARGET pybind11::pybind11
+      APPEND
+      PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
+  endif()
+
+endif()
+
 # --------------------------- link helper ---------------------------
 
 add_library(pybind11::python_link_helper IMPORTED INTERFACE ${optional_global})
