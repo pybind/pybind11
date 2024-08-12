@@ -30,7 +30,7 @@ endif()
 # which might be simpler than this check.
 get_property(
   is_config
-  TARGET pybind11::headers
+  TARGET pybind11::pybind11_headers
   PROPERTY IMPORTED)
 if(NOT is_config)
   set(optional_global GLOBAL)
