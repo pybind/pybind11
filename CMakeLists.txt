@@ -229,7 +229,7 @@ if(NOT TARGET pybind11_headers)
   # (long name used here to keep this from clashing in subdirectory mode)
   add_library(pybind11_headers INTERFACE)
   add_library(pybind11::pybind11_headers ALIAS pybind11_headers) # to match exported target
-  add_library(pybind11::headers ALIAS pybind11_headers)
+  add_library(pybind11::headers ALIAS pybind11_headers) # easier to use/remember
 
   target_include_directories(
     pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
@@ -246,7 +246,6 @@ else()
   set(PYBIND11_INSTALL OFF)
 endif()
 
-set(_pybind11_is_config OFF)
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 # https://github.com/jtojnar/cmake-snips/#concatenating-paths-when-building-pkg-config-files
 # TODO: cmake 3.20 adds the cmake_path() function, which obsoletes this snippet
