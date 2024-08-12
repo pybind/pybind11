@@ -2,7 +2,7 @@
 
 Adds the following targets::
 
-    pybind11::pybind11 - link to headers and pybind11
+    pybind11::pybind11 - link to Python headers and pybind11::headers
     pybind11::module - Adds module links
     pybind11::embed - Adds embed links
     pybind11::lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
@@ -84,15 +84,14 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES emscripten AND NOT _pybind11_no_exceptions)
     message(WARNING "CMake 3.13+ is required to build for Emscripten. Some flags will be missing")
   else()
     set_property(
-      TARGET pybind11::pybind11
+      TARGET pybind11::headers
       APPEND
       PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
     set_property(
-      TARGET pybind11::pybind11
+      TARGET pybind11::headers
       APPEND
       PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
   endif()
-
 endif()
 
 # --------------------------- link helper ---------------------------
