@@ -28,7 +28,11 @@ endif()
 # are in CONFIG mode, they should be "normal" targets instead.
 # In CMake 3.11+ you can promote a target to global after you create it,
 # which might be simpler than this check.
-if(NOT _pybind11_is_config)
+get_property(
+  is_config
+  TARGET pybind11::headers
+  PROPERTY IMPORTED)
+if(NOT is_config)
   set(optional_global GLOBAL)
 endif()
 
@@ -79,7 +83,7 @@ if(CMAKE_SYSTEM_NAME MATCHES Emscripten AND NOT _pybind11_no_exceptions)
   if(CMAKE_VERSION VERSION_LESS 3.13)
     message(WARNING "CMake 3.13+ is required to build for Emscripten. Some flags will be missing")
   else()
-    if(_pybind11_is_config)
+    if(_is_config)
       set_property(
         TARGET pybind11::pybind11_headers
         APPEND
