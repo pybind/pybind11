@@ -181,7 +181,8 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-list(TRANSFORM PYBIND11_HEADERS PREPEND "include/")
+list(TRANSFORM PYBIND11_HEADERS PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+FetchContent_MakeAvailable ```
 
 # Cache variable so this can be used in parent projects
 set(pybind11_INCLUDE_DIR
