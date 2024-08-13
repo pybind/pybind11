@@ -22,6 +22,19 @@ New Features:
 
 Support for CMake older than 3.15 and some older compilers will also be removed.
 
+Version 2.13.3 (August 13, 2024)
+--------------------------------
+
+Bug fixes:
+
+* Quote paths from pybind11-config
+  `#5302 <https://github.com/pybind/pybind11/pull/5302>`_
+
+
+* Fix typo in Emscripten support when in config mode (CMake)
+  `#5301 <https://github.com/pybind/pybind11/pull/5301>`_
+
+
 Version 2.13.2 (August 13, 2024)
 --------------------------------
 

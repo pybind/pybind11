@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import sys
 import sysconfig
 
@@ -22,7 +23,7 @@ def print_includes() -> None:
         if d and d not in unique_dirs:
             unique_dirs.append(d)
 
-    print(" ".join("-I" + d for d in unique_dirs))
+    print(" ".join(shlex.quote(f"-I{d}") for d in unique_dirs))
 
 
 def main() -> None:
@@ -54,9 +55,9 @@ def main() -> None:
     if args.includes:
         print_includes()
     if args.cmakedir:
-        print(get_cmake_dir())
+        print(shlex.quote(get_cmake_dir()))
     if args.pkgconfigdir:
-        print(get_pkgconfig_dir())
+        print(shlex.quote(get_pkgconfig_dir()))
 
 
 if __name__ == "__main__":
