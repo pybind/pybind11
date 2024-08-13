@@ -2,7 +2,7 @@
 
 Adds the following targets::
 
-    pybind11::pybind11 - link to headers and pybind11
+    pybind11::pybind11 - link to Python headers and pybind11::headers
     pybind11::module - Adds module links
     pybind11::embed - Adds embed links
     pybind11::lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
@@ -74,6 +74,32 @@ set_property(
   TARGET pybind11::embed
   APPEND
   PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11)
+
+# -------------- emscripten requires exceptions enabled -------------
+# _pybind11_no_exceptions is a private mechanism to disable this addition.
+# Please open an issue if you need to use it; it will be removed if no one
+# needs it.
+if(CMAKE_SYSTEM_NAME MATCHES Emscripten AND NOT _pybind11_no_exceptions)
+  if(CMAKE_VERSION VERSION_LESS 3.13)
+    message(WARNING "CMake 3.13+ is required to build for Emscripten. Some flags will be missing")
+  else()
+    if(is_config)
+      set(_tmp_config_target pybind11::pybind11_headers)
+    else()
+      set(_tmp_config_target pybind11_headers)
+    endif()
+
+    set_property(
+      TARGET ${_tmp_config_target}
+      APPEND
+      PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
+    set_property(
+      TARGET ${_tmp_config_target}
+      APPEND
+      PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
+    unset(_tmp_config_target)
+  endif()
+endif()
 
 # --------------------------- link helper ---------------------------
 
@@ -329,7 +355,7 @@ function(_pybind11_generate_lto target prefer_thin_lto)
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le" OR CMAKE_SYSTEM_PROCESSOR MATCHES "mips64")
       # Do nothing
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES emscripten)
+    elseif(CMAKE_SYSTEM_NAME MATCHES Emscripten)
       # This compile is very costly when cross-compiling, so set this without checking
       set(PYBIND11_LTO_CXX_FLAGS "-flto${thin}${cxx_append}")
       set(PYBIND11_LTO_LINKER_FLAGS "-flto${thin}${linker_append}")
