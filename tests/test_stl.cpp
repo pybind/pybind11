@@ -201,6 +201,23 @@ TEST_SUBMODULE(stl, m) {
     m.def("cast_array", []() { return std::array<int, 2>{{1, 2}}; });
     m.def("load_array", [](const std::array<int, 2> &a) { return a[0] == 1 && a[1] == 2; });
 
+    struct NoDefaultCtor {
+        explicit constexpr NoDefaultCtor(int val) : val{val} {}
+        int val;
+    };
+
+    struct NoDefaultCtorArray {
+        explicit constexpr NoDefaultCtorArray(int i)
+            : arr{{NoDefaultCtor(10 + i), NoDefaultCtor(20 + i)}} {}
+        std::array<NoDefaultCtor, 2> arr;
+    };
+
+    // test_array_no_default_ctor
+    py::class_<NoDefaultCtor>(m, "NoDefaultCtor").def_readonly("val", &NoDefaultCtor::val);
+    py::class_<NoDefaultCtorArray>(m, "NoDefaultCtorArray")
+        .def(py::init<int>())
+        .def_readwrite("arr", &NoDefaultCtorArray::arr);
+
     // test_valarray
     m.def("cast_valarray", []() { return std::valarray<int>{1, 4, 9}; });
     m.def("load_valarray", [](const std::valarray<int> &v) {
