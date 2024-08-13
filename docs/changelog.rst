@@ -33,19 +33,22 @@ New Features:
   `#4597 <https://github.com/pybind/pybind11/pull/4597>`_
 
 
-.. feat(types)
+Changes:
+
+
+* Use ``PyMutex`` instead of ``std::mutex`` for internal locking in the free-threaded build.
+  `#5219 <https://github.com/pybind/pybind11/pull/5219>`_
 
 * Add a special type annotation for C++ empty tuple.
   `#5214 <https://github.com/pybind/pybind11/pull/5214>`_
 
+* When compiling for WebAssembly, add the required exception flags (CMake 3.13+).
+  `#5298 <https://github.com/pybind/pybind11/pull/5298>`_
 
 Bug fixes:
 
 * Make ``gil_safe_call_once_and_store`` thread-safe in free-threaded CPython.
   `#5246 <https://github.com/pybind/pybind11/pull/5246>`_
-
-* Use ``PyMutex`` instead of ``std::mutex`` in the free-threaded build for internal locking.
-  `#5219 <https://github.com/pybind/pybind11/pull/5219>`_
 
 * A missing ``#include <algorithm>`` in pybind11/typing.h was added to fix build errors (in case user code does not already depend
   on that include).
@@ -57,9 +60,6 @@ Bug fixes:
 
 .. fix(cmake)
 
-* When compiling for WebAssembly, add the required exception flags (CMake 3.13+).
-  `#5298 <https://github.com/pybind/pybind11/pull/5298>`_
-
 * Remove extra = when assigning flto value in the case for Clang in CMake.
   `#5207 <https://github.com/pybind/pybind11/pull/5207>`_
 
@@ -68,9 +68,6 @@ Tests:
 
 * Adding WASM testing to our CI (Pyodide / Emscripten via scikit-build-core).
   `#4745 <https://github.com/pybind/pybind11/pull/4745>`_
-
-
-Other:
 
 * clang-tidy (in GitHub Actions) was updated from clang 15 to clang 18.
   `#5272 <https://github.com/pybind/pybind11/pull/5272>`_
