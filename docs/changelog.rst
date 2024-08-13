@@ -28,8 +28,8 @@ Version 2.13.2 (August 13, 2024)
 New Features:
 
 * A ``pybind11::detail::type_caster_std_function_specializations`` feature was added, to support specializations for
-``std::function``'s with return types that require custom to-Python conversion behavior (to primary use case is to catch and
-convert exceptions).
+  ``std::function``'s with return types that require custom to-Python conversion behavior (to primary use case is to catch and
+  convert exceptions).
   `#4597 <https://github.com/pybind/pybind11/pull/4597>`_
 
 
@@ -48,7 +48,7 @@ Bug fixes:
   `#5219 <https://github.com/pybind/pybind11/pull/5219>`_
 
 * A missing ``#include <algorithm>`` in pybind11/typing.h was added to fix build errors (in case user code does not already depend
-on that include).
+  on that include).
   `#5208 <https://github.com/pybind/pybind11/pull/5208>`_
 
 * Fix regression introduced in #5201 for GCC<10.3 in C++20 mode.
@@ -60,13 +60,13 @@ on that include).
 * When compiling for WebAssembly, add the required exception flags (CMake 3.13+).
   `#5298 <https://github.com/pybind/pybind11/pull/5298>`_
 
-* Remove extra = when assigning flto value in the case for Clang.
+* Remove extra = when assigning flto value in the case for Clang in CMake.
   `#5207 <https://github.com/pybind/pybind11/pull/5207>`_
 
 
 Tests:
 
-* Adding WASM testing.
+* Adding WASM testing to our CI (Pyodide / Emscripten via scikit-build-core).
   `#4745 <https://github.com/pybind/pybind11/pull/4745>`_
 
 
