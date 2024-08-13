@@ -9,7 +9,6 @@ import tarfile
 import zipfile
 
 # These tests must be run explicitly
-# They require CMake 3.15+ (--install)
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(DIR))

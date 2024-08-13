@@ -18,7 +18,7 @@ A Python extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.29)
+    cmake_minimum_required(VERSION 3.15...3.30)
     project(example LANGUAGES CXX)
 
     set(PYBIND11_FINDPYTHON ON)
@@ -319,11 +319,11 @@ Building with CMake
 
 For C++ codebases that have an existing CMake-based build system, a Python
 extension module can be created with just a few lines of code, as seen above in
-the module section. Pybind11 currently supports a lower minimum if you don't
-use the modern FindPython, though be aware that CMake 3.27 removed the old
-mechanism, so pybind11 will automatically switch if the old mechanism is not
-available. Please opt into the new mechanism if at all possible. Our default
-may change in future versions. This is the minimum required:
+the module section. Pybind11 currently defaults to the old mechanism, though be
+aware that CMake 3.27 removed the old mechanism, so pybind11 will automatically
+switch if the old mechanism is not available. Please opt into the new mechanism
+if at all possible. Our default may change in future versions. This is the
+minimum required:
 
 
 
@@ -332,6 +332,9 @@ may change in future versions. This is the minimum required:
 
 .. versionchanged:: 2.11
    CMake 3.5+ is required.
+
+.. versionchanged:: 2.14
+   CMake 3.15+ is required.
 
 
 Further information can be found at :doc:`cmake/index`.
@@ -444,7 +447,7 @@ See the `Config file`_ docstring for details of relevant CMake variables.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.4...3.18)
+    cmake_minimum_required(VERSION 3.15...3.30)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)
@@ -483,14 +486,13 @@ can refer to the same [cmake_example]_ repository for a full sample project
 FindPython mode
 ---------------
 
-CMake 3.12+ (3.15+ recommended, 3.18.2+ ideal) added a new module called
-FindPython that had a highly improved search algorithm and modern targets
-and tools. If you use FindPython, pybind11 will detect this and use the
-existing targets instead:
+Modern CMake (3.18.2+ ideal) added a new module called FindPython that had a
+highly improved search algorithm and modern targets and tools. If you use
+FindPython, pybind11 will detect this and use the existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.22)
+    cmake_minimum_required(VERSION 3.15...3.30)
     project(example LANGUAGES CXX)
 
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
@@ -541,7 +543,7 @@ available in all modes. The targets provided are:
      Just the "linking" part of pybind11:module
 
    ``pybind11::module``
-     Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython CMake 3.15+) or ``pybind11::python_link_helper``
+     Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython) or ``pybind11::python_link_helper``
 
    ``pybind11::embed``
      Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Python`` (FindPython) or Python libs
@@ -568,7 +570,7 @@ You can use these targets to build complex applications. For example, the
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.5...3.29)
+    cmake_minimum_required(VERSION 3.15...3.30)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -626,7 +628,7 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.5...3.29)
+    cmake_minimum_required(VERSION 3.15...3.30)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
