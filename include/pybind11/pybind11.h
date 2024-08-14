@@ -1824,6 +1824,7 @@ struct property_cpp_function<
 #    define PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
 template <typename>
 using default_holder_type = smart_holder;
+#    error "Intentional Breakage"
 #else
 template <typename T>
 using default_holder_type = std::unique_ptr<T>;
