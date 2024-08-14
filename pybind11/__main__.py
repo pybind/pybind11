@@ -25,7 +25,7 @@ elif "nt" in sys.builtin_module_names:
 
         # Paths cannot contain a '"' on Windows, so we don't need to worry
         # about nuanced counting here.
-        return f'"{s}"'
+        return f'"{s}\\"' if s.endswith("\\") else f'"{s}"'
 else:
 
     def quote(s: str) -> str:
