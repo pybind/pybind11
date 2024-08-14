@@ -25,7 +25,7 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["ghapi.*", "oslex"]
+module = ["ghapi.*"]
 ignore_missing_imports = true
 
 

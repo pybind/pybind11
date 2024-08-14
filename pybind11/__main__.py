@@ -2,23 +2,34 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import sysconfig
 
 from ._version import __version__
 from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
 
-try:
-    from oslex import quote
-except ImportError:
-    import os
+# This is the conditional used for os.path being posixpath
+if "posix" in sys.builtin_module_names:
+    from shlex import quote
+elif "nt" in sys.builtin_module_names:
+    # See https://github.com/mesonbuild/meson/blob/db22551ed9d2dd7889abea01cc1c7bba02bf1c75/mesonbuild/utils/universal.py#L1092-L1121
+    # and the original documents:
+    # https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments and
+    # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+    UNSAFE = re.compile("[ \t\n\r]")
 
-    if os.name != "nt":
-        from shlex import quote
-    else:
-        # minimal attempt, handling only the most common case (spaces in path)
-        def quote(s: str) -> str:
-            return f'"{s}"' if " " in s else s
+    def quote(s: str) -> str:
+        if s and not UNSAFE.search(s):
+            return s
+
+        # Paths cannot contain a '"' on Windows, so we don't need to worry
+        # about nuanced counting here.
+        return f'"{s}"'
+else:
+
+    def quote(s: str) -> str:
+        return s
 
 
 def print_includes() -> None:
@@ -66,9 +77,9 @@ def main() -> None:
     if args.includes:
         print_includes()
     if args.cmakedir:
-        print(get_cmake_dir())
+        print(quote(get_cmake_dir()))
     if args.pkgconfigdir:
-        print(get_pkgconfig_dir())
+        print(quote(get_pkgconfig_dir()))
 
 
 if __name__ == "__main__":
