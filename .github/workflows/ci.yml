@@ -68,7 +68,18 @@ jobs:
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
-
+          - runs-on: ubuntu-latest
+            python: '3.12'
+            args: >
+              -DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+          - runs-on: macos-13
+            python: '3.12'
+            args: >
+              -DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+          - runs-on: windows-2022
+            python: '3.12'
+            args: >
+              -DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
