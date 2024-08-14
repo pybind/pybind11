@@ -5,10 +5,6 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-if(CMAKE_VERSION VERSION_LESS 3.12)
-  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
-endif()
-
 include_guard(DIRECTORY)
 
 get_property(
@@ -236,7 +232,6 @@ if(TARGET ${_Python}::Python)
     PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
 endif()
 
-# CMake 3.15+ has this
 if(TARGET ${_Python}::Module)
   set_property(
     TARGET pybind11::module

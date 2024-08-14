@@ -10,16 +10,7 @@ if(NOT CMAKE_VERSION VERSION_LESS "3.27")
   cmake_policy(GET CMP0148 _pybind11_cmp0148)
 endif()
 
-cmake_minimum_required(VERSION 3.5)
-
-# The `cmake_minimum_required(VERSION 3.5...3.29)` syntax does not work with
-# some versions of VS that have a patched CMake 3.11. This forces us to emulate
-# the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.29)
-  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-else()
-  cmake_policy(VERSION 3.29)
-endif()
+cmake_minimum_required(VERSION 3.15...3.30)
 
 if(_pybind11_cmp0148)
   cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
@@ -27,9 +18,7 @@ if(_pybind11_cmp0148)
 endif()
 
 # Avoid infinite recursion if tests include this as a subdirectory
-if(DEFINED PYBIND11_MASTER_PROJECT)
-  return()
-endif()
+include_guard(GLOBAL)
 
 # Extract project version from source
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/include/pybind11/detail/common.h"
@@ -73,14 +62,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   endif()
 
   set(PYBIND11_MASTER_PROJECT ON)
-
-  if(OSX AND CMAKE_VERSION VERSION_LESS 3.7)
-    # Bug in macOS CMake < 3.7 is unable to download catch
-    message(WARNING "CMAKE 3.7+ needed on macOS to download catch, and newer HIGHLY recommended")
-  elseif(WINDOWS AND CMAKE_VERSION VERSION_LESS 3.8)
-    # Only tested with 3.8+ in CI.
-    message(WARNING "CMAKE 3.8+ tested on Windows, previous versions untested")
-  endif()
 
   message(STATUS "CMake ${CMAKE_VERSION}")
 
@@ -133,8 +114,7 @@ cmake_dependent_option(
   "Install pybind11 headers in Python include directory instead of default installation prefix"
   OFF "PYBIND11_INSTALL" OFF)
 
-cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" ${_pybind11_findpython_default}
-                       "NOT CMAKE_VERSION VERSION_LESS 3.12" OFF)
+option(PYBIND11_FINDPYTHON "Force new FindPython" ${_pybind11_findpython_default})
 
 # Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
 # (makes transition easier while we support both modes).
@@ -183,7 +163,7 @@ set(PYBIND11_HEADERS
     include/pybind11/typing.h)
 
 # Compare with grep and warn if mismatched
-if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)
+if(PYBIND11_MASTER_PROJECT)
   file(
     GLOB_RECURSE _pybind11_header_check
     LIST_DIRECTORIES false
@@ -201,10 +181,7 @@ if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)
   endif()
 endif()
 
-# CMake 3.12 added list(TRANSFORM <list> PREPEND
-# But we can't use it yet
-string(REPLACE "include/" "${CMAKE_CURRENT_SOURCE_DIR}/include/" PYBIND11_HEADERS
-               "${PYBIND11_HEADERS}")
+list(TRANSFORM PYBIND11_HEADERS PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
 # Cache variable so this can be used in parent projects
 set(pybind11_INCLUDE_DIR
@@ -274,25 +251,11 @@ if(PYBIND11_INSTALL)
     tools/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     INSTALL_DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
-  if(CMAKE_VERSION VERSION_LESS 3.14)
-    # Remove CMAKE_SIZEOF_VOID_P from ConfigVersion.cmake since the library does
-    # not depend on architecture specific settings or libraries.
-    set(_PYBIND11_CMAKE_SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
-    unset(CMAKE_SIZEOF_VOID_P)
-
-    write_basic_package_version_file(
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-      VERSION ${PROJECT_VERSION}
-      COMPATIBILITY AnyNewerVersion)
-
-    set(CMAKE_SIZEOF_VOID_P ${_PYBIND11_CMAKE_SIZEOF_VOID_P})
-  else()
-    # CMake 3.14+ natively supports header-only libraries
-    write_basic_package_version_file(
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-      VERSION ${PROJECT_VERSION}
-      COMPATIBILITY AnyNewerVersion ARCH_INDEPENDENT)
-  endif()
+  # CMake natively supports header-only libraries
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion ARCH_INDEPENDENT)
 
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake

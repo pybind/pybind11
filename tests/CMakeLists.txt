@@ -5,16 +5,7 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.5)
-
-# The `cmake_minimum_required(VERSION 3.5...3.29)` syntax does not work with
-# some versions of VS that have a patched CMake 3.11. This forces us to emulate
-# the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.29)
-  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-else()
-  cmake_policy(VERSION 3.29)
-endif()
+cmake_minimum_required(VERSION 3.15...3.30)
 
 # Filter out items; print an optional message if any items filtered. This ignores extensions.
 #
@@ -76,8 +67,8 @@ project(pybind11_tests CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
-option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
-option(PYBIND11_CUDA_TESTS "Enable building CUDA tests (requires CMake 3.12+)" OFF)
+option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
+option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
@@ -249,25 +240,21 @@ endif()
 if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
   # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
-  # produces a fatal error if loaded from a pre-3.0 cmake.
   if(DOWNLOAD_EIGEN)
-    if(CMAKE_VERSION VERSION_LESS 3.11)
-      message(FATAL_ERROR "CMake 3.11+ required when using DOWNLOAD_EIGEN")
+    if(CMAKE_VERSION VERSION_LESS 3.18)
+      set(_opts)
+    else()
+      set(_opts SOURCE_SUBDIR no-cmake-build)
     endif()
-
     include(FetchContent)
     FetchContent_Declare(
       eigen
       GIT_REPOSITORY "${PYBIND11_EIGEN_REPO}"
-      GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}")
-
-    FetchContent_GetProperties(eigen)
-    if(NOT eigen_POPULATED)
-      message(
-        STATUS
-          "Downloading Eigen ${PYBIND11_EIGEN_VERSION_STRING} (${PYBIND11_EIGEN_VERSION_HASH}) from ${PYBIND11_EIGEN_REPO}"
-      )
-      FetchContent_Populate(eigen)
+      GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}"
+      ${_opts})
+    FetchContent_MakeAvailable(eigen)
+    if(NOT CMAKE_VERSION VERSION_LESS 3.18)
+      set(EIGEN3_INCLUDE_DIR "${eigen_SOURCE_DIR}")
     endif()
 
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
@@ -315,8 +302,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
-    message(
-      STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN=ON on CMake 3.11+ to download")
+    message(STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN=ON to download")
   endif()
 endif()
 
@@ -501,12 +487,10 @@ foreach(target ${test_targets})
 endforeach()
 
 # Provide nice organisation in IDEs
-if(NOT CMAKE_VERSION VERSION_LESS 3.8)
-  source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
-    PREFIX "Header Files"
-    FILES ${PYBIND11_HEADERS})
-endif()
+source_group(
+  TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+  PREFIX "Header Files"
+  FILES ${PYBIND11_HEADERS})
 
 # Make sure pytest is found or produce a warning
 pybind11_find_import(pytest VERSION 3.1)
