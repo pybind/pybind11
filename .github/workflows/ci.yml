@@ -79,7 +79,7 @@ jobs:
           - runs-on: windows-2022
             python: '3.12'
             args: >
-              -DCMAKE_CXX_FLAGS="/DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+              -DCMAKE_CXX_FLAGS="/DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT /GR /EHsc"
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
