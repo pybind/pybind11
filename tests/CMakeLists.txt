@@ -241,12 +241,21 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
   # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
   if(DOWNLOAD_EIGEN)
+    if(CMAKE_VERSION VERSION_LESS 3.18)
+      set(_opts)
+    else()
+      set(_opts SOURCE_SUBDIR no-cmake-build)
+    endif()
     include(FetchContent)
     FetchContent_Declare(
       eigen
       GIT_REPOSITORY "${PYBIND11_EIGEN_REPO}"
-      GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}")
+      GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}"
+      ${_opts})
     FetchContent_MakeAvailable(eigen)
+    if(NOT CMAKE_VERSION VERSION_LESS 3.18)
+      set(EIGEN3_INCLUDE_DIR "${eigen_SOURCE_DIR}")
+    endif()
 
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
