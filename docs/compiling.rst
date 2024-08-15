@@ -25,7 +25,7 @@ A Python extension module can be created with just a few lines of code:
     find_package(pybind11 CONFIG REQUIRED)
 
     pybind11_add_module(example example.cpp)
-    install(TARGET example DESTINATION .)
+    install(TARGETS example DESTINATION .)
 
 (You use the ``add_subdirectory`` instead, see the example in :ref:`cmake`.) In
 this example, the code is located in a file named :file:`example.cpp`.  Either
@@ -388,7 +388,7 @@ that will be respected instead of the built-in flag search.
 
 The ``OPT_SIZE`` flag enables size-based optimization equivalent to the
 standard ``/Os`` or ``-Os`` compiler flags and the ``MinSizeRel`` build type,
-which avoid optimizations that that can substantially increase the size of the
+which avoid optimizations that can substantially increase the size of the
 resulting binary. This flag is particularly useful in projects that are split
 into performance-critical parts and associated bindings. In this case, we can
 compile the project in release mode (and hence, optimize performance globally),
@@ -719,7 +719,7 @@ customizable pybind11-based wrappers by parsing C++ header files.
 
 [litgen]_ is an automatic python bindings generator with a focus on generating
 documented and discoverable bindings: bindings will nicely reproduce the documentation
-found in headers. It is is based on srcML (srcml.org), a highly scalable, multi-language
+found in headers. It is based on srcML (srcml.org), a highly scalable, multi-language
 parsing tool with a developer centric approach. The API that you want to expose to python
 must be C++14 compatible (but your implementation can use more modern constructs).
 

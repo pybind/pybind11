@@ -128,11 +128,13 @@ void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
         // the holder and destruction happens when we leave the C++ scope, and the holder
         // class gets to handle the destruction however it likes.
         v_h.value_ptr() = ptr;
-        v_h.set_instance_registered(true);          // To prevent init_instance from registering it
-        v_h.type->init_instance(v_h.inst, nullptr); // Set up the holder
+        v_h.set_instance_registered(true); // Trick to prevent init_instance from registering it
+        // DANGER ZONE BEGIN: exceptions will leave v_h in an invalid state.
+        v_h.type->init_instance(v_h.inst, nullptr);                        // Set up the holder
         Holder<Class> temp_holder(std::move(v_h.holder<Holder<Class>>())); // Steal the holder
         v_h.type->dealloc(v_h); // Destroys the moved-out holder remains, resets value ptr to null
         v_h.set_instance_registered(false);
+        // DANGER ZONE END.
 
         construct_alias_from_cpp<Class>(is_alias_constructible<Class>{}, v_h, std::move(*ptr));
     } else {

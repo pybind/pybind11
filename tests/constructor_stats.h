@@ -190,7 +190,7 @@ public:
                     t1 = &p.first;
                 }
             }
-        } catch (const std::out_of_range &) {
+        } catch (const std::out_of_range &) { // NOLINT(bugprone-empty-catch)
         }
         if (!t1) {
             throw std::runtime_error("Unknown class passed to ConstructorStats::get()");
