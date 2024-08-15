@@ -258,9 +258,9 @@ CMake configure line. (Replace ``$(which python)`` with a path to python if
 your prefer.)
 
 You can alternatively try ``-DPYBIND11_FINDPYTHON=ON``, which will activate the
-new CMake FindPython support instead of pybind11's custom search. Requires
-CMake 3.12+, and 3.15+ or 3.18.2+ are even better. You can set this in your
-``CMakeLists.txt`` before adding or finding pybind11, as well.
+new CMake FindPython support instead of pybind11's custom search. Newer CMake,
+like, 3.18.2+, is recommended. You can set this in your ``CMakeLists.txt``
+before adding or finding pybind11, as well.
 
 Inconsistent detection of Python version in CMake and pybind11
 ==============================================================
@@ -281,11 +281,11 @@ There are three possible solutions:
    from CMake and rely on pybind11 in detecting Python version. If this is not
    possible, the CMake machinery should be called *before* including pybind11.
 2. Set ``PYBIND11_FINDPYTHON`` to ``True`` or use ``find_package(Python
-   COMPONENTS Interpreter Development)`` on modern CMake (3.12+, 3.15+ better,
-   3.18.2+ best). Pybind11 in these cases uses the new CMake FindPython instead
-   of the old, deprecated search tools, and these modules are much better at
-   finding the correct Python. If FindPythonLibs/Interp are not available
-   (CMake 3.27+), then this will be ignored and FindPython will be used.
+   COMPONENTS Interpreter Development)`` on modern CMake ( 3.18.2+ best).
+   Pybind11 in these cases uses the new CMake FindPython instead of the old,
+   deprecated search tools, and these modules are much better at finding the
+   correct Python. If FindPythonLibs/Interp are not available (CMake 3.27+),
+   then this will be ignored and FindPython will be used.
 3. Set ``PYBIND11_NOPYTHON`` to ``TRUE``. Pybind11 will not search for Python.
    However, you will have to use the target-based system, and do more setup
    yourself, because it does not know about or include things that depend on

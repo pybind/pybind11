@@ -11,11 +11,14 @@
 
 #include "pybind11.h"
 #include "detail/common.h"
+#include "detail/descr.h"
+#include "detail/type_caster_base.h"
 
 #include <deque>
 #include <initializer_list>
 #include <list>
 #include <map>
+#include <memory>
 #include <ostream>
 #include <set>
 #include <unordered_map>
@@ -349,36 +352,65 @@ struct type_caster<std::deque<Type, Alloc>> : list_caster<std::deque<Type, Alloc
 template <typename Type, typename Alloc>
 struct type_caster<std::list<Type, Alloc>> : list_caster<std::list<Type, Alloc>, Type> {};
 
+template <typename ArrayType, typename V, size_t... I>
+ArrayType vector_to_array_impl(V &&v, index_sequence<I...>) {
+    return {{std::move(v[I])...}};
+}
+
+// Based on https://en.cppreference.com/w/cpp/container/array/to_array
+template <typename ArrayType, size_t N, typename V>
+ArrayType vector_to_array(V &&v) {
+    return vector_to_array_impl<ArrayType, V>(std::forward<V>(v), make_index_sequence<N>{});
+}
+
 template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0>
 struct array_caster {
     using value_conv = make_caster<Value>;
 
 private:
-    template <bool R = Resizable>
-    bool require_size(enable_if_t<R, size_t> size) {
-        if (value.size() != size) {
-            value.resize(size);
-        }
-        return true;
-    }
-    template <bool R = Resizable>
-    bool require_size(enable_if_t<!R, size_t> size) {
-        return size == Size;
-    }
+    std::unique_ptr<ArrayType> value;
 
+    template <bool R = Resizable, enable_if_t<R, int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
-        if (!require_size(l.size())) {
-            return false;
-        }
+        value.reset(new ArrayType{});
+        // Using `resize` to preserve the behavior exactly as it was before PR #5305
+        // For the `resize` to work, `Value` must be default constructible.
+        // For `std::valarray`, this is a requirement:
+        // https://en.cppreference.com/w/cpp/named_req/NumericType
+        value->resize(l.size());
         size_t ctr = 0;
         for (const auto &it : l) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
             }
-            value[ctr++] = cast_op<Value &&>(std::move(conv));
+            (*value)[ctr++] = cast_op<Value &&>(std::move(conv));
         }
+        return true;
+    }
+
+    template <bool R = Resizable, enable_if_t<!R, int> = 0>
+    bool convert_elements(handle seq, bool convert) {
+        auto l = reinterpret_borrow<sequence>(seq);
+        if (l.size() != Size) {
+            return false;
+        }
+        // The `temp` storage is needed to support `Value` types that are not
+        // default-constructible.
+        // Deliberate choice: no template specializations, for simplicity, and
+        // because the compile time overhead for the specializations is deemed
+        // more significant than the runtime overhead for the `temp` storage.
+        std::vector<Value> temp;
+        temp.reserve(l.size());
+        for (auto it : l) {
+            value_conv conv;
+            if (!conv.load(it, convert)) {
+                return false;
+            }
+            temp.emplace_back(cast_op<Value &&>(std::move(conv)));
+        }
+        value.reset(new ArrayType(vector_to_array<ArrayType, Size>(std::move(temp))));
         return true;
     }
 
@@ -416,12 +448,36 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(ArrayType,
-                         const_name<Resizable>(const_name(""), const_name("Annotated["))
-                             + const_name("list[") + value_conv::name + const_name("]")
-                             + const_name<Resizable>(const_name(""),
-                                                     const_name(", FixedSize(")
-                                                         + const_name<Size>() + const_name(")]")));
+    // Code copied from PYBIND11_TYPE_CASTER macro.
+    // Intentionally preserving the behavior exactly as it was before PR #5305
+    template <typename T_, enable_if_t<std::is_same<ArrayType, remove_cv_t<T_>>::value, int> = 0>
+    static handle cast(T_ *src, return_value_policy policy, handle parent) {
+        if (!src) {
+            return none().release();
+        }
+        if (policy == return_value_policy::take_ownership) {
+            auto h = cast(std::move(*src), policy, parent);
+            delete src; // WARNING: Assumes `src` was allocated with `new`.
+            return h;
+        }
+        return cast(*src, policy, parent);
+    }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator ArrayType *() { return &(*value); }
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator ArrayType &() { return *value; }
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator ArrayType &&() && { return std::move(*value); }
+
+    template <typename T_>
+    using cast_op_type = movable_cast_op_type<T_>;
+
+    static constexpr auto name
+        = const_name<Resizable>(const_name(""), const_name("Annotated[")) + const_name("list[")
+          + value_conv::name + const_name("]")
+          + const_name<Resizable>(
+              const_name(""), const_name(", FixedSize(") + const_name<Size>() + const_name(")]"));
 };
 
 template <typename Type, size_t Size>

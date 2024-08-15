@@ -48,6 +48,13 @@ def test_array(doc):
     )
 
 
+def test_array_no_default_ctor():
+    lst = m.NoDefaultCtorArray(3)
+    assert [e.val for e in lst.arr] == [13, 23]
+    lst.arr = m.NoDefaultCtorArray(4).arr
+    assert [e.val for e in lst.arr] == [14, 24]
+
+
 def test_valarray(doc):
     """std::valarray <-> list"""
     lst = m.cast_valarray()
