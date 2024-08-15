@@ -49,6 +49,9 @@ TEST_SUBMODULE(warnings_, m) {
         return 37;
     });
 
+    m.def("register_duplicate_warning",
+          [m]() { py::warnings::new_warning_type(m, "CustomWarning", PyExc_RuntimeWarning); });
+
     // Bind warning categories
     warning_helpers::warn_function(m, "raise_base_warning", PyExc_Warning, "This is Warning!");
     warning_helpers::warn_function(

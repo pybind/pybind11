@@ -27,14 +27,25 @@ def test_warning_simple(
     assert value == expected_value
 
 
-def test_warning_fail():
+def test_warning_wrong_subclass_fail():
     with pytest.raises(Exception) as excinfo:
         m.raise_and_fail()
 
     assert issubclass(excinfo.type, RuntimeError)
     assert (
         str(excinfo.value)
-        == "raise_warning(): cannot raise warning, category must be a subclass of PyExc_Warning!"
+        == "pybind11::warnings::warn(): cannot raise warning, category must be a subclass of PyExc_Warning!"
+    )
+
+
+def test_warning_double_register_fail():
+    with pytest.raises(Exception) as excinfo:
+        m.register_duplicate_warning()
+
+    assert issubclass(excinfo.type, RuntimeError)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::warnings::new_warning_type(): an attribute with name "CustomWarning" exists already.'
     )
 
 
