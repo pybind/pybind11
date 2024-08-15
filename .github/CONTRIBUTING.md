@@ -81,7 +81,7 @@ nox -s build
 ### Full setup
 
 To setup an ideal development environment, run the following commands on a
-system with CMake 3.14+:
+system with CMake 3.15+:
 
 ```bash
 python3 -m venv venv
@@ -96,8 +96,8 @@ Tips:
 * You can use `virtualenv` (faster, from PyPI) instead of `venv`.
 * You can select any name for your environment folder; if it contains "env" it
   will be ignored by git.
-* If you don't have CMake 3.14+, just add "cmake" to the pip install command.
-* You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython on CMake 3.12+
+* If you don't have CMake 3.15+, just add "cmake" to the pip install command.
+* You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython.
 * In classic mode, you may need to set `-DPYTHON_EXECUTABLE=/path/to/python`.
   FindPython uses `-DPython_ROOT_DIR=/path/to` or
   `-DPython_EXECUTABLE=/path/to/python`.
@@ -149,8 +149,8 @@ To run the tests, you can "build" the check target:
 cmake --build build --target check
 ```
 
-`--target` can be spelled `-t` in CMake 3.15+. You can also run individual
-tests with these targets:
+`--target` can be spelled `-t`. You can also run individual tests with these
+targets:
 
 * `pytest`: Python tests only, using the
 [pytest](https://docs.pytest.org/en/stable/) framework
