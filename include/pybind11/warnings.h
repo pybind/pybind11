@@ -45,7 +45,7 @@ new_warning_type(handle scope, const char *name, handle base = PyExc_RuntimeWarn
                       + std::string(name) + "\" exists already.");
     }
     std::string full_name = scope.attr("__name__").cast<std::string>() + std::string(".") + name;
-    auto new_ex = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), nullptr);
+    auto *new_ex = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), nullptr);
     if (!new_ex) {
         raise_from(PyExc_SystemError,
                    "pybind11::warnings::new_warning_type(): PyErr_NewException() call failed.");
