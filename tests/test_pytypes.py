@@ -1048,3 +1048,45 @@ def test_typevar(doc):
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_HAS_RANGES, 
+    reason="C++20 <ranges> not available."
+)
+def test_ranges(capture):
+    assert m.iterator_default_initialization
+
+    with capture:
+        m.transform_tuple_plus_one((1, 2, 3))
+
+    assert (
+        capture.unordered 
+        == """
+        2
+        3
+        4
+    """)
+
+    with capture:
+        m.transform_list_plus_one([1, 2, 3])
+
+    assert (
+        capture.unordered
+        == """
+        2
+        3
+        4
+    """)
+
+    with capture:
+        m.transform_dict_plus_one({1: 2, 3: 4, 5: 6})
+
+    assert (
+        capture.unordered
+        == """
+        2 : 3
+        4 : 5
+        6 : 7
+    """)
+
+
