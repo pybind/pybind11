@@ -272,9 +272,9 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #endif
 
 #if defined(PYBIND11_CPP20)
-#   if __has_include(<ranges>)  // __has_include has been part of C++17, no need to check it
-#       define PYBIND11_HAS_RANGES
-#   endif
+#    if __has_include(<ranges>) // __has_include has been part of C++17, no need to check it
+#        define PYBIND11_HAS_RANGES
+#    endif
 #endif
 
 #include <Python.h>

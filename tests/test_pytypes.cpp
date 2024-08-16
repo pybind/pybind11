@@ -13,7 +13,7 @@
 
 #include <utility>
 #if defined(PYBIND11_HAS_RANGES)
-#   include <ranges>
+#    include <ranges>
 #endif
 
 namespace external {
@@ -933,32 +933,32 @@ TEST_SUBMODULE(pytypes, m) {
         using TupleIterator = decltype(py::tuple{}.begin());
         using ListIterator = decltype(py::list{}.begin());
         using DictIterator = decltype(py::dict{}.begin());
-        return py::bool_(TupleIterator{} == TupleIterator{} && 
-            ListIterator{} == ListIterator{} && 
-            DictIterator{} == DictIterator{}); // value initialization result must compared as true
+        return py::bool_(
+            TupleIterator{} == TupleIterator{} && ListIterator{} == ListIterator{}
+            && DictIterator{}
+                   == DictIterator{}); // value initialization result must compared as true
     });
 
-    m.def("transform_tuple_plus_one", [](py::tuple& tpl) {
+    m.def("transform_tuple_plus_one", [](py::tuple &tpl) {
         static_assert(std::ranges::random_access_range<py::tuple>);
-        for (auto it : tpl | std::views::transform(
-            [](auto& o) { return py::cast<int>(o) + 1; })) {
+        for (auto it : tpl | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
             py::print(it);
         }
     });
-    m.def("transform_list_plus_one", [](py::list& lst) {
+    m.def("transform_list_plus_one", [](py::list &lst) {
         static_assert(std::ranges::random_access_range<py::list>);
-        for (auto it : lst | std::views::transform(
-            [](auto& o) { return py::cast<int>(o) + 1; })) {
+        for (auto it : lst | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
             py::print(it);
         }
     });
-    m.def("transform_dict_plus_one", [](py::dict& dct) {
+    m.def("transform_dict_plus_one", [](py::dict &dct) {
         static_assert(std::ranges::forward_range<py::dict>);
-        for (auto it : dct | std::views::transform([](auto& o) {
-                return std::pair{py::cast<int>(o.first) + 1, py::cast<int>(o.second) + 1};
-            })) {
-                py::print("{} : {}"_s.format(it.first, it.second));
-            }
+        for (auto it : dct | std::views::transform([](auto &o) {
+                           return std::pair{py::cast<int>(o.first) + 1,
+                                            py::cast<int>(o.second) + 1};
+                       })) {
+            py::print("{} : {}"_s.format(it.first, it.second));
+        }
     });
 #else
     m.attr("defined_PYBIND11_HAS_RANGES") = false;
