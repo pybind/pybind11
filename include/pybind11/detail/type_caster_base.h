@@ -789,7 +789,7 @@ struct load_helper : value_and_holder_helper {
 
         auto *gd = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
         if (gd && gd->use_del_fun) { // Note the ensure_compatible_rtti_uqp_del<T, D>() call above.
-            // In smart_holder_poc, a custom  deleter is always stored in a guarded delete.
+            // In struct_smart_holder, a custom  deleter is always stored in a guarded delete.
             // The guarded delete's std::function<void(void*)> actually points at the
             // custom_deleter type, so we can verify it is of the custom deleter type and
             // finally extract its deleter.
