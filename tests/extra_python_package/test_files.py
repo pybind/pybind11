@@ -58,7 +58,7 @@ detail_headers = {
     "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
-    "include/pybind11/detail/smart_holder_poc.h",
+    "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/using_smart_holder.h",
