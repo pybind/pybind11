@@ -1,5 +1,3 @@
-#define PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP
-
 #include "smart_holder_poc.h"
 
 #include <functional>
@@ -16,6 +14,7 @@
 #include "catch.hpp"
 
 using pybindit::memory::smart_holder;
+namespace poc = pybindit::memory::smart_holder_poc;
 
 namespace helpers {
 
@@ -70,14 +69,14 @@ TEST_CASE("from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
 TEST_CASE("from_raw_ptr_unowned+as_lvalue_ref", "[S]") {
     static int value = 19;
     auto hld = smart_holder::from_raw_ptr_unowned(&value);
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_rvalue_ref", "[S]") {
     helpers::movable_int orig(19);
     {
         auto hld = smart_holder::from_raw_ptr_unowned(&orig);
-        helpers::movable_int othr(hld.as_rvalue_ref<helpers::movable_int>());
+        helpers::movable_int othr(poc::as_rvalue_ref<helpers::movable_int>(hld));
         REQUIRE(othr.valu == 19);
         REQUIRE(orig.valu == 91);
     }
@@ -86,21 +85,21 @@ TEST_CASE("from_raw_ptr_unowned+as_rvalue_ref", "[S]") {
 TEST_CASE("from_raw_ptr_unowned+as_raw_ptr_release_ownership", "[E]") {
     static int value = 19;
     auto hld = smart_holder::from_raw_ptr_unowned(&value);
-    REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
+    REQUIRE_THROWS_WITH(poc::as_raw_ptr_release_ownership<int>(hld),
                         "Cannot disown non-owning holder (as_raw_ptr_release_ownership).");
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_unique_ptr", "[E]") {
     static int value = 19;
     auto hld = smart_holder::from_raw_ptr_unowned(&value);
-    REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(),
+    REQUIRE_THROWS_WITH(poc::as_unique_ptr<int>(hld),
                         "Cannot disown non-owning holder (as_unique_ptr).");
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_unique_ptr_with_deleter", "[E]") {
     static int value = 19;
     auto hld = smart_holder::from_raw_ptr_unowned(&value);
-    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
+    REQUIRE_THROWS_WITH((poc::as_unique_ptr<int, helpers::functor_builtin_delete<int>>(hld)),
                         "Missing unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -113,12 +112,12 @@ TEST_CASE("from_raw_ptr_unowned+as_shared_ptr", "[S]") {
 TEST_CASE("from_raw_ptr_take_ownership+as_lvalue_ref", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     REQUIRE(hld.has_pointee());
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_release_ownership1", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
-    auto new_owner = std::unique_ptr<int>(hld.as_raw_ptr_release_ownership<int>());
+    auto new_owner = std::unique_ptr<int>(poc::as_raw_ptr_release_ownership<int>(hld));
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
@@ -126,13 +125,13 @@ TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_release_ownership1", "[S]") {
 TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_release_ownership2", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     auto shd_ptr = hld.as_shared_ptr<int>();
-    REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
+    REQUIRE_THROWS_WITH(poc::as_raw_ptr_release_ownership<int>(hld),
                         "Cannot disown use_count != 1 (as_raw_ptr_release_ownership).");
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr1", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
-    std::unique_ptr<int> new_owner = hld.as_unique_ptr<int>();
+    std::unique_ptr<int> new_owner = poc::as_unique_ptr<int>(hld);
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
@@ -140,12 +139,13 @@ TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr1", "[S]") {
 TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr2", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     auto shd_ptr = hld.as_shared_ptr<int>();
-    REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(), "Cannot disown use_count != 1 (as_unique_ptr).");
+    REQUIRE_THROWS_WITH(poc::as_unique_ptr<int>(hld),
+                        "Cannot disown use_count != 1 (as_unique_ptr).");
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr_with_deleter", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
-    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
+    REQUIRE_THROWS_WITH((poc::as_unique_ptr<int, helpers::functor_builtin_delete<int>>(hld)),
                         "Missing unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -160,14 +160,14 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+reclaim_disowned", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
     hld.disown();
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
     REQUIRE(*new_owner == 19);
     hld.reclaim_disowned(); // Manually veriified: without this, clang++ -fsanitize=address reports
                             // "detected memory leaks".
     // NOLINTNEXTLINE(bugprone-unused-return-value)
     (void) new_owner.release(); // Manually verified: without this, clang++ -fsanitize=address
                                 // reports "attempting double-free".
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
     REQUIRE(new_owner.get() == nullptr);
 }
 
@@ -175,7 +175,7 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+release_disowned", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
     hld.disown();
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
     REQUIRE(*new_owner == 19);
     hld.release_disowned();
     REQUIRE(!hld.has_pointee());
@@ -195,14 +195,14 @@ TEST_CASE("from_unique_ptr+as_lvalue_ref", "[S]") {
     std::unique_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
 }
 
 TEST_CASE("from_unique_ptr+as_raw_ptr_release_ownership1", "[S]") {
     std::unique_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    auto new_owner = std::unique_ptr<int>(hld.as_raw_ptr_release_ownership<int>());
+    auto new_owner = std::unique_ptr<int>(poc::as_raw_ptr_release_ownership<int>(hld));
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
@@ -212,7 +212,7 @@ TEST_CASE("from_unique_ptr+as_raw_ptr_release_ownership2", "[E]") {
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
     auto shd_ptr = hld.as_shared_ptr<int>();
-    REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
+    REQUIRE_THROWS_WITH(poc::as_raw_ptr_release_ownership<int>(hld),
                         "Cannot disown use_count != 1 (as_raw_ptr_release_ownership).");
 }
 
@@ -220,7 +220,7 @@ TEST_CASE("from_unique_ptr+as_unique_ptr1", "[S]") {
     std::unique_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    std::unique_ptr<int> new_owner = hld.as_unique_ptr<int>();
+    std::unique_ptr<int> new_owner = poc::as_unique_ptr<int>(hld);
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
@@ -230,14 +230,15 @@ TEST_CASE("from_unique_ptr+as_unique_ptr2", "[E]") {
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
     auto shd_ptr = hld.as_shared_ptr<int>();
-    REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(), "Cannot disown use_count != 1 (as_unique_ptr).");
+    REQUIRE_THROWS_WITH(poc::as_unique_ptr<int>(hld),
+                        "Cannot disown use_count != 1 (as_unique_ptr).");
 }
 
 TEST_CASE("from_unique_ptr+as_unique_ptr_with_deleter", "[E]") {
     std::unique_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
+    REQUIRE_THROWS_WITH((poc::as_unique_ptr<int, helpers::functor_builtin_delete<int>>(hld)),
                         "Incompatible unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -254,7 +255,7 @@ TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base", "[S]") {
     std::unique_ptr<helpers::derived> orig_owner(new helpers::derived());
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    std::unique_ptr<helpers::base> new_owner = hld.as_unique_ptr<helpers::base>();
+    std::unique_ptr<helpers::base> new_owner = poc::as_unique_ptr<helpers::base>(hld);
     REQUIRE(!hld.has_pointee());
     REQUIRE(new_owner->get() == 100);
 }
@@ -265,7 +266,7 @@ TEST_CASE("from_unique_ptr_derived+as_unique_ptr_base2", "[E]") {
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
     REQUIRE_THROWS_WITH(
-        (hld.as_unique_ptr<helpers::base, helpers::functor_builtin_delete<helpers::base>>()),
+        (poc::as_unique_ptr<helpers::base, helpers::functor_builtin_delete<helpers::base>>(hld)),
         "Incompatible unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -273,7 +274,7 @@ TEST_CASE("from_unique_ptr_with_deleter+as_lvalue_ref", "[S]") {
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
 }
 
 TEST_CASE("from_unique_ptr_with_std_function_deleter+as_lvalue_ref", "[S]") {
@@ -281,14 +282,14 @@ TEST_CASE("from_unique_ptr_with_std_function_deleter+as_lvalue_ref", "[S]") {
         new int(19), [](const int *raw_ptr) { delete raw_ptr; });
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
 }
 
 TEST_CASE("from_unique_ptr_with_deleter+as_raw_ptr_release_ownership", "[E]") {
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
+    REQUIRE_THROWS_WITH(poc::as_raw_ptr_release_ownership<int>(hld),
                         "Cannot disown custom deleter (as_raw_ptr_release_ownership).");
 }
 
@@ -296,7 +297,7 @@ TEST_CASE("from_unique_ptr_with_deleter+as_unique_ptr", "[E]") {
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(),
+    REQUIRE_THROWS_WITH(poc::as_unique_ptr<int>(hld),
                         "Incompatible unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -305,7 +306,7 @@ TEST_CASE("from_unique_ptr_with_deleter+as_unique_ptr_with_deleter1", "[S]") {
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> new_owner
-        = hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>();
+        = poc::as_unique_ptr<int, helpers::functor_builtin_delete<int>>(hld);
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
@@ -314,7 +315,7 @@ TEST_CASE("from_unique_ptr_with_deleter+as_unique_ptr_with_deleter2", "[E]") {
     std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
     auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
     REQUIRE(orig_owner.get() == nullptr);
-    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_other_delete<int>>()),
+    REQUIRE_THROWS_WITH((poc::as_unique_ptr<int, helpers::functor_other_delete<int>>(hld)),
                         "Incompatible unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -330,27 +331,27 @@ TEST_CASE("from_unique_ptr_with_deleter+as_shared_ptr", "[S]") {
 TEST_CASE("from_shared_ptr+as_lvalue_ref", "[S]") {
     std::shared_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_shared_ptr(orig_owner);
-    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
 }
 
 TEST_CASE("from_shared_ptr+as_raw_ptr_release_ownership", "[E]") {
     std::shared_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_shared_ptr(orig_owner);
-    REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
+    REQUIRE_THROWS_WITH(poc::as_raw_ptr_release_ownership<int>(hld),
                         "Cannot disown external shared_ptr (as_raw_ptr_release_ownership).");
 }
 
 TEST_CASE("from_shared_ptr+as_unique_ptr", "[E]") {
     std::shared_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_shared_ptr(orig_owner);
-    REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(),
+    REQUIRE_THROWS_WITH(poc::as_unique_ptr<int>(hld),
                         "Cannot disown external shared_ptr (as_unique_ptr).");
 }
 
 TEST_CASE("from_shared_ptr+as_unique_ptr_with_deleter", "[E]") {
     std::shared_ptr<int> orig_owner(new int(19));
     auto hld = smart_holder::from_shared_ptr(orig_owner);
-    REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
+    REQUIRE_THROWS_WITH((poc::as_unique_ptr<int, helpers::functor_builtin_delete<int>>(hld)),
                         "Missing unique_ptr deleter (as_unique_ptr).");
 }
 
@@ -362,19 +363,19 @@ TEST_CASE("from_shared_ptr+as_shared_ptr", "[S]") {
 
 TEST_CASE("error_unpopulated_holder", "[E]") {
     smart_holder hld;
-    REQUIRE_THROWS_WITH(hld.as_lvalue_ref<int>(), "Unpopulated holder (as_lvalue_ref).");
+    REQUIRE_THROWS_WITH(poc::as_lvalue_ref<int>(hld), "Unpopulated holder (as_lvalue_ref).");
 }
 
 TEST_CASE("error_disowned_holder", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
-    hld.as_unique_ptr<int>();
-    REQUIRE_THROWS_WITH(hld.as_lvalue_ref<int>(), "Disowned holder (as_lvalue_ref).");
+    poc::as_unique_ptr<int>(hld);
+    REQUIRE_THROWS_WITH(poc::as_lvalue_ref<int>(hld), "Disowned holder (as_lvalue_ref).");
 }
 
 TEST_CASE("error_cannot_disown_nullptr", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
-    hld.as_unique_ptr<int>();
-    REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(), "Cannot disown nullptr (as_unique_ptr).");
+    poc::as_unique_ptr<int>(hld);
+    REQUIRE_THROWS_WITH(poc::as_unique_ptr<int>(hld), "Cannot disown nullptr (as_unique_ptr).");
 }
 
 TEST_CASE("indestructible_int-from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
