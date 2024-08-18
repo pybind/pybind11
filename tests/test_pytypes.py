@@ -1051,7 +1051,8 @@ def test_typevar(doc):
 
 
 @pytest.mark.skipif(
-    not m.defined_PYBIND11_HAS_RANGES, reason="C++20 <ranges> not available."
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
 )
 def test_ranges(capture):
     assert m.iterator_default_initialization

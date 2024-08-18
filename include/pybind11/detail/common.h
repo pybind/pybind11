@@ -271,18 +271,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #    endif
 #endif
 
-#if defined(PYBIND11_CPP20)
-#    if __has_include(<ranges>) // __has_include has been part of C++17, no need to check it
-#        if !defined(PYBIND11_COMPILER_CLANG)
-#            define PYBIND11_HAS_RANGES
-#        else
-#            if __clang_major__ >= 16 // llvm/llvm-project#52696
-#                define PYBIND11_HAS_RANGES
-#            endif
-#        endif
-#    endif
-#endif
-
 #include <Python.h>
 #if PY_VERSION_HEX < 0x03080000
 #    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
