@@ -704,6 +704,15 @@ inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> 
 
 template <typename T>
 struct load_helper : value_and_holder_helper {
+    bool was_populated = false;
+    bool python_instance_is_alias = false;
+
+    void maybe_set_python_instance_is_alias(handle src) {
+        if (was_populated) {
+            python_instance_is_alias = reinterpret_cast<instance *>(src.ptr())->is_alias;
+        }
+    }
+
     static std::shared_ptr<T> make_shared_ptr_with_responsible_parent(T *raw_ptr, handle parent) {
         return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
     }
@@ -724,7 +733,7 @@ struct load_helper : value_and_holder_helper {
             throw std::runtime_error("Non-owning holder (load_as_shared_ptr).");
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
-        if (hld.pointee_depends_on_holder_owner) {
+        if (python_instance_is_alias) {
             auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
@@ -778,7 +787,7 @@ struct load_helper : value_and_holder_helper {
 
         auto *self_life_support
             = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
-        if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
+        if (self_life_support == nullptr && python_instance_is_alias) {
             throw value_error("Alias class (also known as trampoline) does not inherit from "
                               "py::trampoline_self_life_support, therefore the ownership of this "
                               "instance cannot safely be transferred to C++.");

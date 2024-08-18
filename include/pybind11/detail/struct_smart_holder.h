@@ -136,7 +136,6 @@ struct smart_holder {
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
     bool is_disowned : 1;
-    bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
     smart_holder(smart_holder &&) = default;
@@ -146,8 +145,7 @@ struct smart_holder {
 
     smart_holder()
         : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
-          vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
-          pointee_depends_on_holder_owner{false} {}
+          vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false} {}
 
     bool has_pointee() const { return vptr != nullptr; }
 
