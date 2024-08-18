@@ -940,40 +940,58 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
 #endif
 
-#if defined(PYBIND11_TEST_PYTYPES_HAS_RANGES) // test_ranges
-    m.def("iterator_default_initialization", []() {
-        using TupleIterator = decltype(py::tuple{}.begin());
-        using ListIterator = decltype(py::list{}.begin());
-        using DictIterator = decltype(py::dict{}.begin());
-        return py::bool_(
-            TupleIterator{} == TupleIterator{} && ListIterator{} == ListIterator{}
-            && DictIterator{}
-                   == DictIterator{}); // value initialization result must compared as true
+#if defined(PYBIND11_TEST_PYTYPES_HAS_RANGES)
+
+    // test_tuple_ranges
+    m.def("tuple_iterator_default_initialization", []() {
+        using TupleIterator = decltype(std::declval<py::tuple>().begin());
+        static_assert(std::random_access_iterator<TupleIterator>);
+        return TupleIterator{} == TupleIterator{};
     });
 
     m.def("transform_tuple_plus_one", [](py::tuple &tpl) {
-        static_assert(std::ranges::random_access_range<py::tuple>);
+        py::list ret{};
         for (auto it : tpl | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
-            py::print(it);
+            ret.append(py::int_(it));
         }
+        return ret;
     });
+
+    // test_list_ranges
+    m.def("list_iterator_default_initialization", []() {
+        using ListIterator = decltype(std::declval<py::list>().begin());
+        static_assert(std::random_access_iterator<ListIterator>);
+        return ListIterator{} == ListIterator{};
+    });
+
     m.def("transform_list_plus_one", [](py::list &lst) {
-        static_assert(std::ranges::random_access_range<py::list>);
+        py::list ret{};
         for (auto it : lst | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
-            py::print(it);
+            ret.append(py::int_(it));
         }
+        return ret;
     });
+
+    // test_dict_ranges
+    m.def("dict_iterator_default_initialization", []() {
+        using DictIterator = decltype(std::declval<py::dict>().begin());
+        static_assert(std::forward_iterator<DictIterator>);
+        return DictIterator{} == DictIterator{};
+    });
+
     m.def("transform_dict_plus_one", [](py::dict &dct) {
-        static_assert(std::ranges::forward_range<py::dict>);
+        py::list ret{};
         for (auto it : dct | std::views::transform([](auto &o) {
                            return std::pair{py::cast<int>(o.first) + 1,
                                             py::cast<int>(o.second) + 1};
                        })) {
-            py::print("{} : {}"_s.format(it.first, it.second));
+            ret.append(py::make_tuple(py::int_(it.first), py::int_(it.second)));
         }
+        return ret;
     });
+
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = true;
 #else
-    m.attr("defined_PYBIND11_HAS_RANGES") = false;
+    m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
 }

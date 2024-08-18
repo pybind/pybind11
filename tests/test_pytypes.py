@@ -1054,41 +1054,39 @@ def test_typevar(doc):
     not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
     reason="<ranges> not available.",
 )
-def test_ranges(capture):
-    assert m.iterator_default_initialization
+@pytest.mark.parametrize(
+    ("tested_tuple", "expected"),
+    [((1,), [2]), ((3, 4), [4, 5]), ((7, 8, 9), [8, 9, 10])],
+)
+def test_tuple_ranges(tested_tuple, expected):
+    assert m.tuple_iterator_default_initialization()
+    assert m.transform_tuple_plus_one(tested_tuple) == expected
 
-    with capture:
-        m.transform_tuple_plus_one((1, 2, 3))
 
-    assert (
-        capture.unordered
-        == """
-        2
-        3
-        4
-    """
-    )
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_list", "expected"), [([1], [2]), ([3, 4], [4, 5]), ([7, 8, 9], [8, 9, 10])]
+)
+def test_list_ranges(tested_list, expected):
+    assert m.list_iterator_default_initialization()
+    assert m.transform_list_plus_one(tested_list) == expected
 
-    with capture:
-        m.transform_list_plus_one([1, 2, 3])
 
-    assert (
-        capture.unordered
-        == """
-        2
-        3
-        4
-    """
-    )
-
-    with capture:
-        m.transform_dict_plus_one({1: 2, 3: 4, 5: 6})
-
-    assert (
-        capture.unordered
-        == """
-        2 : 3
-        4 : 5
-        6 : 7
-    """
-    )
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_dict", "expected"),
+    [
+        ({1: 2}, [(2, 3)]),
+        ({3: 4, 5: 6}, [(4, 5), (6, 7)]),
+        ({7: 8, 9: 10, 11: 12}, [(8, 9), (10, 11), (12, 13)]),
+    ],
+)
+def test_dict_ranges(tested_dict, expected):
+    assert m.dict_iterator_default_initialization()
+    assert m.transform_dict_plus_one(tested_dict) == expected
