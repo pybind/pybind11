@@ -365,6 +365,77 @@ Note that changes to the settings affect only function bindings created during t
 lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function,
 the default settings are restored to prevent unwanted side effects.
 
+Overloaded functions
+--------------------
+
+The docstring of an overloaded function is prepended with the signature of each overload.
+All overload docstrings are then concatenated together
+into sections that are separated by each function signature.
+The prepended signatures can be read by tools like Sphinx.
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        m.def("add", [](int a, int b)->int { return a + b; },
+          "Add two integers together.");
+        m.def("add", [](float a, float b)->float { return a + b; },
+          "Add two floating point numbers together.");
+    }
+
+The above example would produce the following docstring:
+
+.. code-block:: pycon
+
+    >>> help(example.add)
+
+    add(...)
+     |      add(arg0: int, arg1: int) -> int
+     |      add(arg0: float, arg1: float) -> float
+     |      Overloaded function.
+     |
+     |      1. add(arg0: int, arg1: int) -> int
+     |
+     |      Add two integers together.
+     |
+     |      2. add(arg0: float, arg1: float) -> float
+     |
+     |      Add two floating point numbers together.
+
+Calling ``options.disable_function_signatures()`` as shown previously
+will cause the docstrings of overloaded functions to be generated without the section headings.
+The prepended overload signatures will remain:
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        py::options options;
+        options.disable_function_signatures();
+
+        m.def("add", [](int a, int b)->int { return a + b; },
+          "A function which adds two numbers.\n");  // Note the additional newline here.
+        m.def("add", [](float a, float b)->float { return a + b; },
+          "Internally, a simple addition is performed.");
+        m.def("add", [](const py::none&, const py::none&)->py::none { return py::none(); },
+          "Both numbers can be None, and None will be returned.");
+    }
+
+The above example would produce the following docstring:
+
+.. code-block:: pycon
+
+    >>> help(example.add)
+    add(...)
+     |      add(arg0: int, arg1: int) -> int
+     |      add(arg0: float, arg1: float) -> float
+     |      add(arg0: None, arg1: None) -> None
+     |      A function which adds two numbers.
+     |
+     |      Internally, a simple addition is performed.
+     |      Both numbers can be None, and None will be returned.
+
+Not every overload must supply a docstring.
+You may find it easier for a single overload to supply the entire docstring.
+
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
 
