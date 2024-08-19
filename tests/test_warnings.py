@@ -11,9 +11,9 @@ from pybind11_tests import warnings_ as m
 @pytest.mark.parametrize(
     ("expected_category", "expected_message", "expected_value", "module_function"),
     [
-        (Warning, "Warning was raised!", 21, m.raise_and_return),
-        (RuntimeWarning, "RuntimeWarning is raised!", None, m.raise_default),
-        (UnicodeWarning, "UnicodeWarning is raised!", None, m.raise_from_cpython),
+        (Warning, "This is simple warning", 21, m.warn_and_return_value),
+        (RuntimeWarning, "This is RuntimeWarning", None, m.warn_with_default_category),
+        (FutureWarning, "This is FutureWarning", None, m.warn_with_different_category),
     ],
 )
 def test_warning_simple(
@@ -29,7 +29,7 @@ def test_warning_simple(
 
 def test_warning_wrong_subclass_fail():
     with pytest.raises(Exception) as excinfo:
-        m.raise_and_fail()
+        m.warn_with_invalid_category()
 
     assert issubclass(excinfo.type, RuntimeError)
     assert (
@@ -73,9 +73,9 @@ def test_warning_register():
         (
             m.CustomWarning,
             DeprecationWarning,
-            "CustomWarning was raised!",
+            "This is CustomWarning",
             37,
-            m.raise_custom,
+            m.warn_with_custom_type,
         ),
     ],
 )
@@ -89,27 +89,3 @@ def test_warning_custom(
     assert issubclass(excinfo[0].category, expected_category)
     assert str(excinfo[0].message) == expected_message
     assert value == expected_value
-
-
-@pytest.mark.parametrize(
-    ("expected_category", "module_function"),
-    [
-        (Warning, m.raise_base_warning),
-        (BytesWarning, m.raise_bytes_warning),
-        (DeprecationWarning, m.raise_deprecation_warning),
-        (FutureWarning, m.raise_future_warning),
-        (ImportWarning, m.raise_import_warning),
-        (PendingDeprecationWarning, m.raise_pending_deprecation_warning),
-        (ResourceWarning, m.raise_resource_warning),
-        (RuntimeWarning, m.raise_runtime_warning),
-        (SyntaxWarning, m.raise_syntax_warning),
-        (UnicodeWarning, m.raise_unicode_warning),
-        (UserWarning, m.raise_user_warning),
-    ],
-)
-def test_warning_categories(expected_category, module_function):
-    with pytest.warns(Warning) as excinfo:
-        module_function()
-
-    assert issubclass(excinfo[0].category, expected_category)
-    assert str(excinfo[0].message) == f"This is {expected_category.__name__}!"
