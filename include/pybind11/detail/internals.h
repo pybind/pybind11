@@ -15,7 +15,7 @@
 #    include "../gil.h"
 #endif
 
-#include "../pytypes.h"
+#include <pybind11/pytypes.h>
 
 #include <exception>
 #include <mutex>
