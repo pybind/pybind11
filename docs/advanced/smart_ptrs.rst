@@ -124,7 +124,7 @@ top namespace level before any binding code:
 
 .. code-block:: cpp
 
-    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>);
+    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>)
 
 The first argument of :func:`PYBIND11_DECLARE_HOLDER_TYPE` should be a
 placeholder name that is used as a template parameter of the second argument.
@@ -136,7 +136,7 @@ by default. Specify
 
 .. code-block:: cpp
 
-    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>, true);
+    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>, true)
 
 if ``SmartPtr<T>`` can always be initialized from a ``T*`` pointer without the
 risk of inconsistencies (such as multiple independent ``SmartPtr`` instances
@@ -154,7 +154,7 @@ specialized:
 .. code-block:: cpp
 
     // Always needed for custom holder types
-    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>);
+    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>)
 
     // Only needed if the type's `.get()` goes by another name
     namespace PYBIND11_NAMESPACE { namespace detail {

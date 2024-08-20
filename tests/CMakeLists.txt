@@ -377,6 +377,7 @@ function(pybind11_enable_warnings target_name)
       ${target_name}
       PRIVATE -Wall
               -Wextra
+              -Wpedantic
               -Wconversion
               -Wcast-qual
               -Wdeprecated

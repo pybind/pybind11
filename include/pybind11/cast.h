@@ -868,6 +868,9 @@ struct always_construct_holder {
     static constexpr bool value = Value;
 };
 
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wpedantic")
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
     PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
@@ -880,6 +883,7 @@ struct always_construct_holder {
         : public type_caster_holder<type, holder_type> {};                                        \
     }                                                                                             \
     PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_WARNING_POP
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder>
