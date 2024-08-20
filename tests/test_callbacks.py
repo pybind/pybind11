@@ -107,13 +107,23 @@ def test_cpp_correct_overload_resolution():
     def f(a):
         return a
 
+    class A:
+        def __call__(self, a):
+            return a
+
     assert m.dummy_function_overloaded_std_func_arg(f) == 9
+    assert m.dummy_function_overloaded_std_func_arg(A()) == 9
     assert m.dummy_function_overloaded_std_func_arg(lambda i: i) == 9
 
     def f2(a, b):
         return a + b
 
+    class B:
+        def __call__(self, a, b):
+            return a + b
+
     assert m.dummy_function_overloaded_std_func_arg(f2) == 14
+    assert m.dummy_function_overloaded_std_func_arg(B()) == 14
     assert m.dummy_function_overloaded_std_func_arg(lambda i, j: i + j) == 14
 
 
