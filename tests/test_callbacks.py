@@ -112,7 +112,8 @@ def test_cpp_correct_overload_resolution():
             return a
 
     assert m.dummy_function_overloaded_std_func_arg(f) == 9
-    assert m.dummy_function_overloaded_std_func_arg(A()) == 9
+    a = A()
+    assert m.dummy_function_overloaded_std_func_arg(a) == 9
     assert m.dummy_function_overloaded_std_func_arg(lambda i: i) == 9
 
     def f2(a, b):

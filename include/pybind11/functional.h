@@ -14,6 +14,7 @@
 #include "pybind11.h"
 
 #include <functional>
+#include <iostream>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -129,24 +130,23 @@ public:
             // See PR #1413 for full details
         } else {
             // Check number of arguments of Python function
-            auto argCountFromFuncCode = [&](handle &obj) {
-                // This is faster then doing import inspect and
-                // inspect.signature(obj).parameters
-
-                object argCount = obj.attr("co_argcount");
-                return argCount.template cast<size_t>();
+            auto get_argument_count = [](const handle &obj) -> size_t {
+                // Faster then `import inspect` and `inspect.signature(obj).parameters`
+                return obj.attr("co_argcount").cast<size_t>();
             };
             size_t argCount = 0;
 
-            handle codeAttr = PyObject_GetAttrString(src.ptr(), "__code__");
+            handle empty;
+            object codeAttr = getattr(src, "__code__", empty);
+
             if (codeAttr) {
-                argCount = argCountFromFuncCode(codeAttr);
+                argCount = get_argument_count(codeAttr);
             } else {
-                handle callAttr = PyObject_GetAttrString(src.ptr(), "__call__");
+                object callAttr = getattr(src, "__call__", empty);
+
                 if (callAttr) {
-                    handle codeAttr2 = PyObject_GetAttrString(callAttr.ptr(), "__code__");
-                    argCount = argCountFromFuncCode(codeAttr2)
-                               - 1; // we have to remove the self argument
+                    object codeAttr2 = getattr(callAttr, "__code__");
+                    argCount = get_argument_count(codeAttr2) - 1; // removing the self argument
                 } else {
                     // No __code__ or __call__ attribute, this is not a proper Python function
                     return false;
