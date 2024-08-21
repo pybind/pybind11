@@ -581,7 +581,15 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         return -1;
     }
     std::memset(view, 0, sizeof(Py_buffer));
-    buffer_info *info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
+    buffer_info *info = nullptr;
+    try {
+        info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
+    } catch (...) {
+        try_translate_exceptions();
+        raise_from(PyExc_BufferError, "Error getting buffer");
+        return -1;
+    }
+
     if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
         delete info;
         // view->obj = nullptr;  // Was just memset to 0, so not necessary
