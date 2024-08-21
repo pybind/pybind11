@@ -12,7 +12,7 @@
 #include "common.h"
 
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-#    include "../gil.h"
+#    include <pybind11/gil.h>
 #endif
 
 #include <pybind11/pytypes.h>
