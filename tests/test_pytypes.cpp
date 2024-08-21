@@ -13,7 +13,8 @@
 
 #include <utility>
 
-#if defined(PYBIND11_CPP20) && __has_include(<ranges>) // __has_include has been part of C++17, no need to check it
+#if defined(PYBIND11_CPP20)                                                                       \
+    && __has_include(<ranges>) // __has_include has been part of C++17, no need to check it
 #    if !defined(PYBIND11_COMPILER_CLANG) || __clang_major__ >= 16 // llvm/llvm-project#52696
 #        define PYBIND11_TEST_PYTYPES_HAS_RANGES
 #        include <ranges>
