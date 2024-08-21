@@ -80,7 +80,7 @@ For brevity, all code examples assume that the following two lines are present:
 
 .. note::
 
-    ``pybind11/pybind11.h`` includes ``Python.h``, as such it must be the first file 
+    ``pybind11/pybind11.h`` includes ``Python.h``, as such it must be the first file
     included in any source file or header for `the same reasons as Python.h`_.
 
 .. _`the same reasons as Python.h`: https://docs.python.org/3/extending/extending.html#a-simple-example
