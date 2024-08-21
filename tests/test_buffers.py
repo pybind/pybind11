@@ -229,6 +229,7 @@ def test_buffer_docstring():
         == "get_buffer_info(arg0: Buffer) -> pybind11_tests.buffers.buffer_info"
     )
 
+
 def test_buffer_exception():
     with pytest.raises(BufferError, match="Error getting buffer") as excinfo:
         memoryview(m.BrokenMatrix(1, 1))

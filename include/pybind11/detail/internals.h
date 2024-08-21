@@ -761,8 +761,7 @@ inline void try_translate_exceptions() {
         */
 
     bool handled = with_internals([&](internals &internals) {
-        auto &local_exception_translators
-            = get_local_internals().registered_exception_translators;
+        auto &local_exception_translators = get_local_internals().registered_exception_translators;
         if (detail::apply_exception_translators(local_exception_translators)) {
             return true;
         }
