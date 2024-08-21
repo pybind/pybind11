@@ -9,9 +9,10 @@
 
 #pragma once
 
-#include "../gil.h"
-#include "../pytypes.h"
-#include "../trampoline_self_life_support.h"
+#include <pybind11/gil.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/trampoline_self_life_support.h>
+
 #include "common.h"
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"

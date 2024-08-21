@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "../numpy.h"
+#include <pybind11/numpy.h>
+
 #include "common.h"
 
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
