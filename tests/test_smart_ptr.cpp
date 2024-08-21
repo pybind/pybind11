@@ -281,11 +281,15 @@ struct holder_helper<ref<T>> {
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wpedantic")
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>)
+PYBIND11_WARNING_POP
 
 TEST_SUBMODULE(smart_ptr, m) {
     // Please do not interleave `struct` and `class` definitions with bindings code,
