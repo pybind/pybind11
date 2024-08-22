@@ -78,6 +78,13 @@ For brevity, all code examples assume that the following two lines are present:
 
     namespace py = pybind11;
 
+.. note::
+
+    ``pybind11/pybind11.h`` includes ``Python.h``, as such it must be the first file
+    included in any source file or header for `the same reasons as Python.h`_.
+
+.. _`the same reasons as Python.h`: https://docs.python.org/3/extending/extending.html#a-simple-example
+
 Some features may require additional headers, but those will be specified as needed.
 
 .. _simple_example:
