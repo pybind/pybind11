@@ -11,11 +11,11 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 13
-#define PYBIND11_VERSION_PATCH 4
+#define PYBIND11_VERSION_PATCH 5
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020D0400
+#define PYBIND11_VERSION_HEX 0x020D0500
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -479,6 +479,8 @@ PYBIND11_WARNING_POP
         }
 
 \endrst */
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
@@ -499,6 +501,7 @@ PYBIND11_WARNING_POP
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
