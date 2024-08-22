@@ -34,7 +34,6 @@ New Features:
 Version 2.13.5 (August 22, 2024)
 --------------------------------
 
-
 Bug fixes:
 
 * Fix includes when using Windows long paths (``\\?\`` prefix).
