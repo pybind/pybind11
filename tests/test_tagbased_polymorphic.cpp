@@ -145,4 +145,4 @@ TEST_SUBMODULE(tagbased_polymorphic, m) {
         .def(py::init<std::string>())
         .def("purr", &Panther::purr);
     m.def("create_zoo", &create_zoo);
-};
+}

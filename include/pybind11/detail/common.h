@@ -479,6 +479,8 @@ PYBIND11_WARNING_POP
         }
 
 \endrst */
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
@@ -499,6 +501,7 @@ PYBIND11_WARNING_POP
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
