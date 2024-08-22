@@ -59,7 +59,7 @@ struct visit_helper<boost::variant> {
 } // namespace PYBIND11_NAMESPACE
 #endif
 
-PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
