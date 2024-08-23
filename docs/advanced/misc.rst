@@ -389,9 +389,7 @@ The above example would produce the following docstring:
     >>> help(example.add)
 
     add(...)
-     |      add(arg0: int, arg1: int) -> int
-     |      add(arg0: float, arg1: float) -> float
-     |      Overloaded function.
+     |      Overloaded function:
      |
      |      1. add(arg0: int, arg1: int) -> int
      |
@@ -403,7 +401,6 @@ The above example would produce the following docstring:
 
 Calling ``options.disable_function_signatures()`` as shown previously
 will cause the docstrings of overloaded functions to be generated without the section headings.
-The prepended overload signatures will remain:
 
 .. code-block:: cpp
 
@@ -425,9 +422,6 @@ The above example would produce the following docstring:
 
     >>> help(example.add)
     add(...)
-     |      add(arg0: int, arg1: int) -> int
-     |      add(arg0: float, arg1: float) -> float
-     |      add(arg0: None, arg1: None) -> None
      |      A function which adds two numbers.
      |
      |      Internally, a simple addition is performed.

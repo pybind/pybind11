@@ -10,41 +10,23 @@ def test_docstring_options():
     assert m.test_function2.__doc__ == "A custom docstring"
 
     # docstring specified on just the first overload definition:
-    assert m.test_overloaded1.__doc__ == (
-        "test_overloaded1(i: int) -> None\n"
-        "test_overloaded1(d: float) -> None\n"
-        "Overload docstring"
-    )
+    assert m.test_overloaded1.__doc__ == "Overload docstring"
 
     # docstring on both overloads:
-    assert m.test_overloaded2.__doc__ == (
-        "test_overloaded2(i: int) -> None\n"
-        "test_overloaded2(d: float) -> None\n"
-        "overload docstring 1\n"
-        "overload docstring 2"
-    )
+    assert m.test_overloaded2.__doc__ == "overload docstring 1\noverload docstring 2"
 
     # docstring on only second overload:
-    assert m.test_overloaded3.__doc__ == (
-        "test_overloaded3(i: int) -> None\n"
-        "test_overloaded3(d: float) -> None\n"
-        "Overload docstr"
-    )
+    assert m.test_overloaded3.__doc__ == "Overload docstr"
 
     # Check overload configuration behaviour matches the documentation
     assert m.test_overloaded4.__doc__ == (
-        "test_overloaded4(arg0: int, arg1: int) -> int\n"
-        "test_overloaded4(arg0: float, arg1: float) -> float\n"
-        "test_overloaded4(arg0: None, arg1: None) -> None\n"
         "A function which adds two numbers.\n\n"
         "Internally, a simple addition is performed.\n"
         "Both numbers can be None, and None will be returned."
     )
 
     assert m.test_overloaded5.__doc__ == (
-        "test_overloaded5(arg0: int, arg1: int) -> int\n"
-        "test_overloaded5(arg0: float, arg1: float) -> float\n"
-        "Overloaded function.\n"
+        "Overloaded function:\n"
         "\n"
         "1. test_overloaded5(arg0: int, arg1: int) -> int\n"
         "\n"

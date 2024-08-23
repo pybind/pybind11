@@ -88,11 +88,7 @@ def test_init_factory_signature(msg):
     assert (
         msg(m.TestFactory1.__init__.__doc__)
         == """
-        __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: int) -> None
-        __init__(self: m.factory_constructors.TestFactory1, arg0: str) -> None
-        __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.pointer_tag) -> None
-        __init__(self: m.factory_constructors.TestFactory1, arg0: object, arg1: int, arg2: object) -> None
-        Overloaded function.
+        Overloaded function:
 
         1. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: int) -> None
 
