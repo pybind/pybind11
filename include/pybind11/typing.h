@@ -100,7 +100,7 @@ class Never : public none {
     using none::none;
 };
 
-#if defined(__cpp_nontype_template_args)
+#if defined(__cpp_nontype_template_args) && __cpp_nontype_template_args >= 201911L
 #    define PYBIND11_TYPING_H_HAS_STRING_LITERAL
 template <size_t N>
 struct StringLiteral {
