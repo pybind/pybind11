@@ -1259,6 +1259,7 @@ protected:
     using pointer = arrow_proxy<const handle>;
 
     sequence_fast_readonly(handle obj, ssize_t n) : ptr(PySequence_Fast_ITEMS(obj.ptr()) + n) {}
+    sequence_fast_readonly() = default;
 
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference dereference() const { return *ptr; }
@@ -1281,6 +1282,7 @@ protected:
     using pointer = arrow_proxy<const sequence_accessor>;
 
     sequence_slow_readwrite(handle obj, ssize_t index) : obj(obj), index(index) {}
+    sequence_slow_readwrite() = default;
 
     reference dereference() const { return {obj, static_cast<size_t>(index)}; }
     void increment() { ++index; }

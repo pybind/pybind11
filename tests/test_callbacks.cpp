@@ -148,7 +148,7 @@ TEST_SUBMODULE(callbacks, m) {
     m.def("dummy_function2", [](int i, int j) { return i + j; });
     m.def(
         "roundtrip",
-        [](std::function<int(int)> f, bool expect_none = false) {
+        [](std::function<int(int)> f, bool expect_none) {
             if (expect_none && f) {
                 throw std::runtime_error("Expected None to be converted to empty std::function");
             }

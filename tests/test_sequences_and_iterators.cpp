@@ -86,8 +86,8 @@ private:
 };
 using NonCopyableIntPair = std::pair<NonCopyableInt, NonCopyableInt>;
 
-PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableInt>);
-PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>);
+PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableInt>)
+PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>)
 
 template <typename PythonType>
 py::list test_random_access_iterator(PythonType x) {
