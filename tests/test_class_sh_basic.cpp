@@ -120,7 +120,14 @@ std::string get_mtxt(atyp const &obj) { return obj.mtxt; }
 std::ptrdiff_t get_ptr(atyp const &obj) { return reinterpret_cast<std::ptrdiff_t>(&obj); }
 
 std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return obj; }
-const std::unique_ptr<atyp> &unique_ptr_cref_roundtrip(const std::unique_ptr<atyp> &obj) {
+
+std::string pass_unique_ptr_cref(const std::unique_ptr<atyp> &obj) { return obj->mtxt; }
+
+const std::unique_ptr<atyp> &rtrn_unique_ptr_cref(const std::string &mtxt) {
+    static std::unique_ptr<atyp> obj{new atyp{"static_ctor_arg"}};
+    if (!mtxt.empty()) {
+        obj->mtxt = mtxt;
+    }
     return obj;
 }
 
@@ -217,7 +224,9 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("get_ptr", get_ptr);   // pass_cref
 
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
-    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
+
+    m.def("pass_unique_ptr_cref", pass_unique_ptr_cref);
+    m.def("rtrn_unique_ptr_cref", rtrn_unique_ptr_cref);
 
     py::classh<SharedPtrStash>(m, "SharedPtrStash")
         .def(py::init<>())

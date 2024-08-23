@@ -1040,7 +1040,7 @@ public:
             policy = return_value_policy::reference_internal;
         }
         if (policy != return_value_policy::reference_internal) {
-            throw cast_error("Invalid return_value_policy for unique_ptr&");
+            throw cast_error("Invalid return_value_policy for const unique_ptr&");
         }
         return type_caster_base<type>::cast(src.get(), policy, parent);
     }
