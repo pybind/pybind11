@@ -1088,7 +1088,8 @@ public:
             shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
             unique_ptr_storage = std::shared_ptr<std::unique_ptr<type, deleter>>(
                 new std::unique_ptr<type, deleter>{
-                    sh_load_helper.template load_as_unique_ptr<deleter>(value)},
+                    sh_load_helper.template load_as_const_unique_ptr<deleter>(
+                        shared_ptr_storage.get())},
                 unique_ptr_storage_deleter());
             return *unique_ptr_storage;
         }
