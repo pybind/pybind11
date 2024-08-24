@@ -1085,35 +1085,27 @@ public:
 
     explicit operator const std::unique_ptr<type, deleter> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
             unique_ptr_storage = std::shared_ptr<std::unique_ptr<type, deleter>>(
                 new std::unique_ptr<type, deleter>{
                     sh_load_helper.template load_as_unique_ptr<deleter>(value)},
-                unique_ptr_storage_deleter(&sh_load_helper.holder()));
+                unique_ptr_storage_deleter());
             return *unique_ptr_storage;
         }
         pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }
 
     struct unique_ptr_storage_deleter {
-        unique_ptr_storage_deleter(smart_holder *hld) : hld{hld} {}
+        unique_ptr_storage_deleter() {}
 
         void operator()(std::unique_ptr<type, deleter> *ptr) {
-            if (*ptr) {
-                if (hld->is_disowned) {
-                    hld->reclaim_disowned();
-                    ptr->release();
-                } else if (hld->is_populated) {
-                    hld->populate_from_unique_ptr(std::move(*ptr));
-                    ptr->release();
-                } else {
-                    pybind11_fail("Expected to be UNREACHABLE: " __FILE__
-                                  ":" PYBIND11_TOSTRING(__LINE__));
-                }
+            if (!ptr) {
+                pybind11_fail("Expected to be UNREACHABLE: " __FILE__
+                              ":" PYBIND11_TOSTRING(__LINE__));
             }
+            ptr->release();
             delete ptr;
         }
-
-        smart_holder *hld;
     };
 
     bool try_implicit_casts(handle src, bool convert) {
@@ -1136,6 +1128,7 @@ public:
     static bool try_direct_conversions(handle) { return false; }
 
     std::shared_ptr<std::unique_ptr<type, deleter>> unique_ptr_storage;
+    std::shared_ptr<type> shared_ptr_storage;
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
 };
 
