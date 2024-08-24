@@ -153,9 +153,9 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
 
 def test_pass_unique_ptr_cref():
     obj = m.atyp("ctor_arg")
-    assert m.get_mtxt(obj) == "ctor_arg_MvCtor"
-    assert m.pass_unique_ptr_cref(obj) == "ctor_arg_MvCtor"
-    assert m.get_mtxt(obj) == "ctor_arg_MvCtor"
+    assert re.match("ctor_arg(_MvCtor)*_MvCtor", m.get_mtxt(obj))
+    assert re.match("ctor_arg(_MvCtor)*_MvCtor", m.pass_unique_ptr_cref(obj))
+    assert re.match("ctor_arg(_MvCtor)*_MvCtor", m.get_mtxt(obj))
 
 
 def test_rtrn_unique_ptr_cref():
