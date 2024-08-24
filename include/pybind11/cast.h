@@ -1104,7 +1104,7 @@ public:
                 pybind11_fail("Expected to be UNREACHABLE: " __FILE__
                               ":" PYBIND11_TOSTRING(__LINE__));
             }
-            ptr->release();
+            (void) ptr->release();
             delete ptr;
         }
     };
