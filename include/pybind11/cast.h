@@ -1067,8 +1067,14 @@ public:
             + clean_type_id(typeinfo->cpptype->name()) + ")");
     }
 
-    template <typename>
-    using cast_op_type = std::unique_ptr<type, deleter>;
+    template <typename T_>
+    using cast_op_type
+        = conditional_t<std::is_same<typename std::remove_volatile<T_>::type,
+                                     const std::unique_ptr<type, deleter> &>::value
+                            || std::is_same<typename std::remove_volatile<T_>::type,
+                                            const std::unique_ptr<const type, deleter> &>::value,
+                        const std::unique_ptr<type, deleter> &,
+                        std::unique_ptr<type, deleter>>;
 
     explicit operator std::unique_ptr<type, deleter>() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
@@ -1076,6 +1082,39 @@ public:
         }
         pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }
+
+    explicit operator const std::unique_ptr<type, deleter> &() {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+            unique_ptr_storage = std::shared_ptr<std::unique_ptr<type, deleter>>(
+                new std::unique_ptr<type, deleter>{
+                    sh_load_helper.template load_as_unique_ptr<deleter>(value)},
+                unique_ptr_storage_deleter(&sh_load_helper.holder()));
+            return *unique_ptr_storage;
+        }
+        pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
+    }
+
+    struct unique_ptr_storage_deleter {
+        unique_ptr_storage_deleter(smart_holder *hld) : hld{hld} {}
+
+        void operator()(std::unique_ptr<type, deleter> *ptr) {
+            if (*ptr) {
+                if (hld->is_disowned) {
+                    hld->reclaim_disowned();
+                    ptr->release();
+                } else if (hld->is_populated) {
+                    hld->populate_from_unique_ptr(std::move(*ptr));
+                    ptr->release();
+                } else {
+                    pybind11_fail("Expected to be UNREACHABLE: " __FILE__
+                                  ":" PYBIND11_TOSTRING(__LINE__));
+                }
+            }
+            delete ptr;
+        }
+
+        smart_holder *hld;
+    };
 
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
@@ -1096,6 +1135,7 @@ public:
 
     static bool try_direct_conversions(handle) { return false; }
 
+    std::shared_ptr<std::unique_ptr<type, deleter>> unique_ptr_storage;
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
 };
 

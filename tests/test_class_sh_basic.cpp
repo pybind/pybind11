@@ -131,6 +131,10 @@ const std::unique_ptr<atyp> &rtrn_unique_ptr_cref(const std::string &mtxt) {
     return obj;
 }
 
+const std::unique_ptr<atyp> &unique_ptr_cref_roundtrip(const std::unique_ptr<atyp> &obj) {
+    return obj;
+}
+
 struct SharedPtrStash {
     std::vector<std::shared_ptr<const atyp>> stash;
     void Add(const std::shared_ptr<const atyp> &obj) { stash.push_back(obj); }
@@ -227,6 +231,7 @@ TEST_SUBMODULE(class_sh_basic, m) {
 
     m.def("pass_unique_ptr_cref", pass_unique_ptr_cref);
     m.def("rtrn_unique_ptr_cref", rtrn_unique_ptr_cref);
+    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
 
     py::classh<SharedPtrStash>(m, "SharedPtrStash")
         .def(py::init<>())

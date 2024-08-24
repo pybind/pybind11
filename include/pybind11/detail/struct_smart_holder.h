@@ -287,24 +287,30 @@ struct smart_holder {
         release_disowned();
     }
 
+    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     template <typename T, typename D>
-    static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
-                                        void *void_ptr = nullptr) {
-        smart_holder hld;
-        hld.rtti_uqp_del = &typeid(D);
-        hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
+    void populate_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr, void *void_ptr = nullptr) {
+        rtti_uqp_del = &typeid(D);
+        vptr_is_using_builtin_delete = is_std_default_delete<T>(*rtti_uqp_del);
         guarded_delete gd{nullptr, false};
-        if (hld.vptr_is_using_builtin_delete) {
+        if (vptr_is_using_builtin_delete) {
             gd = make_guarded_builtin_delete<T>(true);
         } else {
             gd = make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
         }
         if (void_ptr != nullptr) {
-            hld.vptr.reset(void_ptr, std::move(gd));
+            vptr.reset(void_ptr, std::move(gd));
         } else {
-            hld.vptr.reset(unq_ptr.get(), std::move(gd));
+            vptr.reset(unq_ptr.get(), std::move(gd));
         }
         (void) unq_ptr.release();
+    }
+
+    template <typename T, typename D>
+    static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
+                                        void *void_ptr = nullptr) {
+        smart_holder hld;
+        hld.populate_from_unique_ptr(std::move(unq_ptr), void_ptr);
         hld.is_populated = true;
         return hld;
     }

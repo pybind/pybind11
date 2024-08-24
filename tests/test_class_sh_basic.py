@@ -155,8 +155,7 @@ def test_pass_unique_ptr_cref():
     obj = m.atyp("ctor_arg")
     assert m.get_mtxt(obj) == "ctor_arg_MvCtor"
     assert m.pass_unique_ptr_cref(obj) == "ctor_arg_MvCtor"
-    with pytest.raises(ValueError, match="Python instance was disowned"):
-        m.get_mtxt(obj)
+    assert m.get_mtxt(obj) == "ctor_arg_MvCtor"
 
 
 def test_rtrn_unique_ptr_cref():
@@ -166,6 +165,17 @@ def test_rtrn_unique_ptr_cref():
     assert m.get_mtxt(obj1) == "passed_mtxt_1"
     assert m.get_mtxt(obj0) == "passed_mtxt_1"
     assert obj0 is obj1
+
+
+def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
+    # Multiple roundtrips to stress-test implementation.
+    orig = m.atyp("passenger")
+    mtxt_orig = m.get_mtxt(orig)
+    recycled = orig
+    for _ in range(num_round_trips):
+        recycled = m.unique_ptr_cref_roundtrip(recycled)
+        assert recycled is orig
+        assert m.get_mtxt(recycled) == mtxt_orig
 
 
 @pytest.mark.parametrize(
