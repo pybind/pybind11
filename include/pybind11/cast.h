@@ -871,14 +871,14 @@ public:
             pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
                           "(inherently unsafe).");
         }
-        return std::addressof(shared_ptr_holder);
+        return std::addressof(shared_ptr_storage);
     }
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            shared_ptr_holder = sh_load_helper.load_as_shared_ptr(value);
+            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
         }
-        return shared_ptr_holder;
+        return shared_ptr_storage;
     }
 
     static handle
@@ -924,7 +924,7 @@ protected:
         }
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            shared_ptr_holder = v_h.template holder<std::shared_ptr<type>>();
+            shared_ptr_storage = v_h.template holder<std::shared_ptr<type>>();
             return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -953,8 +953,8 @@ protected:
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                 } else {
-                    shared_ptr_holder
-                        = std::shared_ptr<type>(sub_caster.shared_ptr_holder, (type *) value);
+                    shared_ptr_storage
+                        = std::shared_ptr<type>(sub_caster.shared_ptr_storage, (type *) value);
                 }
                 return true;
             }
@@ -964,8 +964,8 @@ protected:
 
     static bool try_direct_conversions(handle) { return false; }
 
-    std::shared_ptr<type> shared_ptr_holder;
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
+    std::shared_ptr<type> shared_ptr_storage;
 };
 
 #endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
@@ -1090,24 +1090,18 @@ public:
                 new std::unique_ptr<type, deleter>{
                     sh_load_helper.template load_as_const_unique_ptr<deleter>(
                         shared_ptr_storage.get())},
-                unique_ptr_storage_deleter());
+                [](std::unique_ptr<type, deleter> *ptr) {
+                    if (!ptr) {
+                        pybind11_fail("FATAL: `const std::unique_ptr<T, D> &` was disowned "
+                                      "(EXPECT UNDEFINED BEHAVIOR).");
+                    }
+                    (void) ptr->release();
+                    delete ptr;
+                });
             return *unique_ptr_storage;
         }
         pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }
-
-    struct unique_ptr_storage_deleter {
-        unique_ptr_storage_deleter() {}
-
-        void operator()(std::unique_ptr<type, deleter> *ptr) {
-            if (!ptr) {
-                pybind11_fail("FATAL: `const std::unique_ptr<T, D> &` was disowned (EXPECT "
-                              "UNDEFINED BEHAVIOR).");
-            }
-            (void) ptr->release();
-            delete ptr;
-        }
-    };
 
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
@@ -1128,9 +1122,9 @@ public:
 
     static bool try_direct_conversions(handle) { return false; }
 
-    std::shared_ptr<std::unique_ptr<type, deleter>> unique_ptr_storage;
-    std::shared_ptr<type> shared_ptr_storage;
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
+    std::shared_ptr<type> shared_ptr_storage;
+    std::shared_ptr<std::unique_ptr<type, deleter>> unique_ptr_storage;
 };
 
 #endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT

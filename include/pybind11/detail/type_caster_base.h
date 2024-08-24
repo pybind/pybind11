@@ -794,7 +794,7 @@ struct load_helper : value_and_holder_helper {
                               "instance cannot safely be transferred to C++.");
         }
 
-        std::unique_ptr<D> extracted_deleter = holder().extract_deleter<T, D>(context);
+        std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(context);
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
@@ -824,8 +824,8 @@ struct load_helper : value_and_holder_helper {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
-        return unique_with_deleter<T, D>(raw_type_ptr,
-                                         std::move(holder().extract_deleter<T, D>(context)));
+        return unique_with_deleter<T, D>(
+            raw_type_ptr, std::move(holder().template extract_deleter<T, D>(context)));
     }
 };
 
