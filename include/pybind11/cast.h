@@ -1101,8 +1101,8 @@ public:
 
         void operator()(std::unique_ptr<type, deleter> *ptr) {
             if (!ptr) {
-                pybind11_fail("Expected to be UNREACHABLE: " __FILE__
-                              ":" PYBIND11_TOSTRING(__LINE__));
+                pybind11_fail("FATAL: `const std::unique_ptr<T, D> &` was disowned (EXPECT "
+                              "UNDEFINED BEHAVIOR).");
             }
             (void) ptr->release();
             delete ptr;
