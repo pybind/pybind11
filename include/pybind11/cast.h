@@ -1085,7 +1085,9 @@ public:
 
     explicit operator const std::unique_ptr<type, deleter> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+            // Get shared_ptr to ensure that the Python object is not disowned elsewhere.
             shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
+            // Build a temporary unique_ptr that is meant to never expire.
             unique_ptr_storage = std::shared_ptr<std::unique_ptr<type, deleter>>(
                 new std::unique_ptr<type, deleter>{
                     sh_load_helper.template load_as_const_unique_ptr<deleter>(
@@ -1123,7 +1125,7 @@ public:
     static bool try_direct_conversions(handle) { return false; }
 
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
-    std::shared_ptr<type> shared_ptr_storage;
+    std::shared_ptr<type> shared_ptr_storage; // Serves as a pseudo lock.
     std::shared_ptr<std::unique_ptr<type, deleter>> unique_ptr_storage;
 };
 
