@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Pybind Development Team.
+// Copyright (c) 2020-2024 The Pybind Development Team.
 // All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -44,16 +44,6 @@ Details:
 * The `void_cast_raw_ptr` option is needed to make the `smart_holder` `vptr`
   member invisible to the `shared_from_this` mechanism, in case the lifetime
   of a `PyObject` is tied to the pointee.
-
-* Regarding `PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP` below:
-  This define serves as a marker for code that is NOT used
-  from smart_holder_type_casters.h, but is exercised only from
-  tests/pure_cpp/smart_holder_poc_test.cpp. The marked code was useful
-  mainly for bootstrapping the smart_holder work. At this stage, with
-  smart_holder_type_casters.h in production use (at Google) since around
-  February 2021, it could be moved from here to tests/pure_cpp/ (help welcome).
-  It will probably be best in most cases to add tests for new functionality
-  under test/test_class_sh_*.
 */
 
 #pragma once
@@ -146,7 +136,6 @@ struct smart_holder {
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
     bool is_disowned : 1;
-    bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
     smart_holder(smart_holder &&) = default;
@@ -156,8 +145,7 @@ struct smart_holder {
 
     smart_holder()
         : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
-          vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
-          pointee_depends_on_holder_owner{false} {}
+          vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false} {}
 
     bool has_pointee() const { return vptr != nullptr; }
 
@@ -243,6 +231,24 @@ struct smart_holder {
         vptr_del_ptr->armed_flag = armed_flag;
     }
 
+    // Caller is responsible for precondition: ensure_compatible_rtti_uqp_del<T, D>() must succeed.
+    template <typename T, typename D>
+    std::unique_ptr<D> extract_deleter(const char *context) const {
+        const auto *gd = std::get_deleter<guarded_delete>(vptr);
+        if (gd && gd->use_del_fun) {
+            const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter<T, D>>();
+            if (custom_deleter_ptr == nullptr) {
+                throw std::runtime_error(
+                    std::string("smart_holder::extract_deleter() precondition failure (") + context
+                    + ").");
+            }
+            static_assert(std::is_copy_constructible<D>::value,
+                          "Required for compatibility with smart_holder functionality.");
+            return std::unique_ptr<D>(new D(custom_deleter_ptr->deleter));
+        }
+        return nullptr;
+    }
+
     static smart_holder from_raw_ptr_unowned(void *raw_ptr) {
         smart_holder hld;
         hld.vptr.reset(raw_ptr, [](void *) {});
@@ -255,26 +261,6 @@ struct smart_holder {
     T *as_raw_ptr_unowned() const {
         return static_cast<T *>(vptr.get());
     }
-
-#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
-    template <typename T>
-    T &as_lvalue_ref() const {
-        static const char *context = "as_lvalue_ref";
-        ensure_is_populated(context);
-        ensure_has_pointee(context);
-        return *as_raw_ptr_unowned<T>();
-    }
-#endif
-
-#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
-    template <typename T>
-    T &&as_rvalue_ref() const {
-        static const char *context = "as_rvalue_ref";
-        ensure_is_populated(context);
-        ensure_has_pointee(context);
-        return std::move(*as_raw_ptr_unowned<T>());
-    }
-#endif
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
@@ -319,16 +305,6 @@ struct smart_holder {
         release_disowned();
     }
 
-#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
-    template <typename T>
-    T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
-        ensure_can_release_ownership(context);
-        T *raw_ptr = as_raw_ptr_unowned<T>();
-        release_ownership();
-        return raw_ptr;
-    }
-#endif
-
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                         void *void_ptr = nullptr) {
@@ -350,19 +326,6 @@ struct smart_holder {
         hld.is_populated = true;
         return hld;
     }
-
-#ifdef PYBIND11_TESTS_PURE_CPP_SMART_HOLDER_POC_TEST_CPP // See comment near top.
-    template <typename T, typename D = std::default_delete<T>>
-    std::unique_ptr<T, D> as_unique_ptr() {
-        static const char *context = "as_unique_ptr";
-        ensure_compatible_rtti_uqp_del<T, D>(context);
-        ensure_use_count_1(context);
-        T *raw_ptr = as_raw_ptr_unowned<T>();
-        release_ownership();
-        // KNOWN DEFECT (see PR #4850): Does not copy the deleter.
-        return std::unique_ptr<T, D>(raw_ptr);
-    }
-#endif
 
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {

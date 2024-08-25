@@ -9,9 +9,10 @@
 
 #pragma once
 
-#include "../gil.h"
-#include "../pytypes.h"
-#include "../trampoline_self_life_support.h"
+#include <pybind11/gil.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/trampoline_self_life_support.h>
+
 #include "common.h"
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
@@ -704,6 +705,15 @@ inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> 
 
 template <typename T>
 struct load_helper : value_and_holder_helper {
+    bool was_populated = false;
+    bool python_instance_is_alias = false;
+
+    void maybe_set_python_instance_is_alias(handle src) {
+        if (was_populated) {
+            python_instance_is_alias = reinterpret_cast<instance *>(src.ptr())->is_alias;
+        }
+    }
+
     static std::shared_ptr<T> make_shared_ptr_with_responsible_parent(T *raw_ptr, handle parent) {
         return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
     }
@@ -724,7 +734,7 @@ struct load_helper : value_and_holder_helper {
             throw std::runtime_error("Non-owning holder (load_as_shared_ptr).");
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
-        if (hld.pointee_depends_on_holder_owner) {
+        if (python_instance_is_alias) {
             auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
@@ -778,28 +788,13 @@ struct load_helper : value_and_holder_helper {
 
         auto *self_life_support
             = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
-        if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
+        if (self_life_support == nullptr && python_instance_is_alias) {
             throw value_error("Alias class (also known as trampoline) does not inherit from "
                               "py::trampoline_self_life_support, therefore the ownership of this "
                               "instance cannot safely be transferred to C++.");
         }
 
-        // Temporary variable to store the extracted deleter in.
-        std::unique_ptr<D> extracted_deleter;
-
-        auto *gd = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
-        if (gd && gd->use_del_fun) { // Note the ensure_compatible_rtti_uqp_del<T, D>() call above.
-            // In smart_holder_poc, a custom  deleter is always stored in a guarded delete.
-            // The guarded delete's std::function<void(void*)> actually points at the
-            // custom_deleter type, so we can verify it is of the custom deleter type and
-            // finally extract its deleter.
-            using custom_deleter_D = pybindit::memory::custom_deleter<T, D>;
-            const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter_D>();
-            assert(custom_deleter_ptr != nullptr);
-            // Now that we have confirmed the type of the deleter matches the desired return
-            // value we can extract the function.
-            extracted_deleter = std::unique_ptr<D>(new D(std::move(custom_deleter_ptr->deleter)));
-        }
+        std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(context);
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
@@ -818,6 +813,19 @@ struct load_helper : value_and_holder_helper {
         // Critical section end.
 
         return result;
+    }
+
+    // This assumes load_as_shared_ptr succeeded(), and the returned shared_ptr is still alive.
+    // The returned unique_ptr is meant to never expire (the behavior is undefined otherwise).
+    template <typename D>
+    std::unique_ptr<T, D>
+    load_as_const_unique_ptr(T *raw_type_ptr, const char *context = "load_as_const_unique_ptr") {
+        if (!have_holder()) {
+            return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
+        }
+        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
+        return unique_with_deleter<T, D>(
+            raw_type_ptr, std::move(holder().template extract_deleter<T, D>(context)));
     }
 };
 

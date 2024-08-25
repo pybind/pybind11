@@ -18,7 +18,7 @@
 // This also deliberately doesn't use the below StringList type alias to test
 // that MAKE_OPAQUE can handle a type containing a `,`.  (The `std::allocator`
 // bit is just the default `std::vector` allocator).
-PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
 
 using StringList = std::vector<std::string, std::allocator<std::string>>;
 

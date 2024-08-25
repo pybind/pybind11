@@ -9,7 +9,6 @@ import tarfile
 import zipfile
 
 # These tests must be run explicitly
-# They require CMake 3.15+ (--install)
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(DIR))
@@ -61,7 +60,7 @@ detail_headers = {
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/native_enum_data.h",
-    "include/pybind11/detail/smart_holder_poc.h",
+    "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/using_smart_holder.h",

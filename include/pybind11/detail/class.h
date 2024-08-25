@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "../attr.h"
-#include "../options.h"
+#include <pybind11/attr.h>
+#include <pybind11/options.h>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

@@ -10,7 +10,7 @@
 #include <type_traits>
 
 #ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
-#    include "smart_holder_poc.h"
+#    include "struct_smart_holder.h"
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

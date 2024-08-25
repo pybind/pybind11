@@ -2278,7 +2278,8 @@ private:
         }
         auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
         auto *value_ptr_w_t = v_h.value_ptr<type>();
-        bool pointee_depends_on_holder_owner
+        // Try downcast from `type` to `type_alias`:
+        inst->is_alias
             = detail::dynamic_raw_ptr_cast_if_possible<type_alias>(value_ptr_w_t) != nullptr;
         if (holder_void_ptr) {
             // Note: inst->owned ignored.
@@ -2288,14 +2289,12 @@ private:
                        uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
             if (inst->owned) {
                 new (uninitialized_location) holder_type(holder_type::from_raw_ptr_take_ownership(
-                    value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
+                    value_ptr_w_t, /*void_cast_raw_ptr*/ inst->is_alias));
             } else {
                 new (uninitialized_location)
                     holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
             }
         }
-        v_h.holder<holder_type>().pointee_depends_on_holder_owner
-            = pointee_depends_on_holder_owner;
         v_h.set_holder_constructed();
     }
 
