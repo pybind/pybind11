@@ -90,7 +90,7 @@ long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
 std::string pass_unique_ptr_cref(const std::unique_ptr<Sft> &obj) {
     return obj ? obj->history : "<NULLPTR>";
 }
-std::string pass_unique_ptr_rref(std::unique_ptr<Sft> &&) {
+void pass_unique_ptr_rref(std::unique_ptr<Sft> &&) {
     throw std::runtime_error("Expected to not be reached.");
 }
 
