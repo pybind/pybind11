@@ -30,7 +30,7 @@ inline void wrap_traveler(py::module_ m) {
         .def_readwrite("luggage", &Traveler::luggage);
 
     m.def("get_luggage", [](const Traveler &person) { return person.luggage; });
-};
+}
 
 } // namespace test_cpp_transporter
 } // namespace pybind11_tests
