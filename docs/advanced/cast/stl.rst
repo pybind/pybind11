@@ -162,7 +162,7 @@ the declaration
 
 .. code-block:: cpp
 
-    PYBIND11_MAKE_OPAQUE(std::vector<int>);
+    PYBIND11_MAKE_OPAQUE(std::vector<int>)
 
 before any binding code (e.g. invocations to ``class_::def()``, etc.). This
 macro must be specified at the top level (and outside of any namespaces), since
@@ -207,8 +207,8 @@ The following example showcases usage of :file:`pybind11/stl_bind.h`:
     // Don't forget this
     #include <pybind11/stl_bind.h>
 
-    PYBIND11_MAKE_OPAQUE(std::vector<int>);
-    PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
+    PYBIND11_MAKE_OPAQUE(std::vector<int>)
+    PYBIND11_MAKE_OPAQUE(std::map<std::string, double>)
 
     // ...
 
