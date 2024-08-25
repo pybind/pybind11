@@ -51,41 +51,18 @@ def test_warning_double_register_fail():
 
 def test_warning_register():
     assert m.CustomWarning is not None
-    assert issubclass(m.CustomWarning, DeprecationWarning)
 
     with pytest.warns(m.CustomWarning) as excinfo:
         warnings.warn("This is warning from Python!", m.CustomWarning, stacklevel=1)
 
     assert issubclass(excinfo[0].category, DeprecationWarning)
-    assert issubclass(excinfo[0].category, m.CustomWarning)
     assert str(excinfo[0].message) == "This is warning from Python!"
 
 
-@pytest.mark.parametrize(
-    (
-        "expected_category",
-        "expected_base",
-        "expected_message",
-        "expected_value",
-        "module_function",
-    ),
-    [
-        (
-            m.CustomWarning,
-            DeprecationWarning,
-            "This is CustomWarning",
-            37,
-            m.warn_with_custom_type,
-        ),
-    ],
-)
-def test_warning_custom(
-    expected_category, expected_base, expected_message, expected_value, module_function
-):
-    with pytest.warns(expected_category) as excinfo:
-        value = module_function()
+def test_warning_custom():
+    with pytest.warns(m.CustomWarning) as excinfo:
+        value = m.warn_with_custom_type()
 
-    assert issubclass(excinfo[0].category, expected_base)
-    assert issubclass(excinfo[0].category, expected_category)
-    assert str(excinfo[0].message) == expected_message
-    assert value == expected_value
+    assert issubclass(excinfo[0].category, DeprecationWarning)
+    assert str(excinfo[0].message) == "This is CustomWarning"
+    assert value == 37
