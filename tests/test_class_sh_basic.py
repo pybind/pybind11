@@ -151,19 +151,31 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
         id_orig = id_rtrn
 
 
-# This currently fails, because a unique_ptr is always loaded by value
-# due to pybind11/detail/smart_holder_type_casters.h:689
-# I think, we need to provide more cast operators.
-@pytest.mark.skip()
-def test_unique_ptr_cref_roundtrip():
-    orig = m.atyp("passenger")
-    id_orig = id(orig)
-    mtxt_orig = m.get_mtxt(orig)
+def test_pass_unique_ptr_cref():
+    obj = m.atyp("ctor_arg")
+    assert re.match("ctor_arg(_MvCtor)*_MvCtor", m.get_mtxt(obj))
+    assert re.match("ctor_arg(_MvCtor)*_MvCtor", m.pass_unique_ptr_cref(obj))
+    assert re.match("ctor_arg(_MvCtor)*_MvCtor", m.get_mtxt(obj))
 
-    recycled = m.unique_ptr_cref_roundtrip(orig)
-    assert m.get_mtxt(orig) == mtxt_orig
-    assert m.get_mtxt(recycled) == mtxt_orig
-    assert id(recycled) == id_orig
+
+def test_rtrn_unique_ptr_cref():
+    obj0 = m.rtrn_unique_ptr_cref("")
+    assert m.get_mtxt(obj0) == "static_ctor_arg"
+    obj1 = m.rtrn_unique_ptr_cref("passed_mtxt_1")
+    assert m.get_mtxt(obj1) == "passed_mtxt_1"
+    assert m.get_mtxt(obj0) == "passed_mtxt_1"
+    assert obj0 is obj1
+
+
+def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
+    # Multiple roundtrips to stress-test implementation.
+    orig = m.atyp("passenger")
+    mtxt_orig = m.get_mtxt(orig)
+    recycled = orig
+    for _ in range(num_round_trips):
+        recycled = m.unique_ptr_cref_roundtrip(recycled)
+        assert recycled is orig
+        assert m.get_mtxt(recycled) == mtxt_orig
 
 
 @pytest.mark.parametrize(

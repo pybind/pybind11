@@ -814,6 +814,19 @@ struct load_helper : value_and_holder_helper {
 
         return result;
     }
+
+    // This assumes load_as_shared_ptr succeeded(), and the returned shared_ptr is still alive.
+    // The returned unique_ptr is meant to never expire (the behavior is undefined otherwise).
+    template <typename D>
+    std::unique_ptr<T, D>
+    load_as_const_unique_ptr(T *raw_type_ptr, const char *context = "load_as_const_unique_ptr") {
+        if (!have_holder()) {
+            return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
+        }
+        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
+        return unique_with_deleter<T, D>(
+            raw_type_ptr, std::move(holder().template extract_deleter<T, D>(context)));
+    }
 };
 
 PYBIND11_NAMESPACE_END(smart_holder_type_caster_support)

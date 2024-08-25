@@ -234,7 +234,7 @@ struct smart_holder {
     // Caller is responsible for precondition: ensure_compatible_rtti_uqp_del<T, D>() must succeed.
     template <typename T, typename D>
     std::unique_ptr<D> extract_deleter(const char *context) const {
-        auto *gd = std::get_deleter<guarded_delete>(vptr);
+        const auto *gd = std::get_deleter<guarded_delete>(vptr);
         if (gd && gd->use_del_fun) {
             const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter<T, D>>();
             if (custom_deleter_ptr == nullptr) {
@@ -242,7 +242,9 @@ struct smart_holder {
                     std::string("smart_holder::extract_deleter() precondition failure (") + context
                     + ").");
             }
-            return std::unique_ptr<D>(new D(std::move(custom_deleter_ptr->deleter)));
+            static_assert(std::is_copy_constructible<D>::value,
+                          "Required for compatibility with smart_holder functionality.");
+            return std::unique_ptr<D>(new D(custom_deleter_ptr->deleter));
         }
         return nullptr;
     }
