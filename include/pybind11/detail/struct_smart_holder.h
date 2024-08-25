@@ -242,7 +242,9 @@ struct smart_holder {
                     std::string("smart_holder::extract_deleter() precondition failure (") + context
                     + ").");
             }
-            return std::unique_ptr<D>(new D(custom_deleter_ptr->deleter)); // D must be copyable.
+            static_assert(std::is_copy_constructible<D>::value,
+                          "Required for compatibility with smart_holder functionality.");
+            return std::unique_ptr<D>(new D(custom_deleter_ptr->deleter));
         }
         return nullptr;
     }
