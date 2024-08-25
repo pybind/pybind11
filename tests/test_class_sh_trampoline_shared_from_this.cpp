@@ -87,7 +87,9 @@ long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
     return sft.use_count();
 }
 
-void pass_unique_ptr(const std::unique_ptr<Sft> &) {}
+void pass_unique_ptr_cref(const std::unique_ptr<Sft> &) {
+    throw std::runtime_error("Expected to not be reached.");
+}
 
 Sft *make_pure_cpp_sft_raw_ptr(const std::string &history_seed) { return new Sft{history_seed}; }
 
@@ -135,7 +137,7 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
 
     m.def("use_count", use_count);
     m.def("pass_shared_ptr", pass_shared_ptr);
-    m.def("pass_unique_ptr", pass_unique_ptr);
+    m.def("pass_unique_ptr_cref", pass_unique_ptr_cref);
     m.def("make_pure_cpp_sft_raw_ptr", make_pure_cpp_sft_raw_ptr);
     m.def("make_pure_cpp_sft_unq_ptr", make_pure_cpp_sft_unq_ptr);
     m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
