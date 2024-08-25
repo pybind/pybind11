@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include "../pytypes.h"
+#include <pybind11/pytypes.h>
+
 #include "common.h"
 #include "cpp_transporter.h"
 #include "descr.h"

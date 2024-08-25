@@ -2,7 +2,7 @@
 
 Adds the following targets::
 
-    pybind11::pybind11 - link to headers and pybind11
+    pybind11::pybind11 - link to Python headers and pybind11::headers
     pybind11::module - Adds module links
     pybind11::embed - Adds embed links
     pybind11::lto - Link time optimizations (only if CMAKE_INTERPROCEDURAL_OPTIMIZATION is not set)
@@ -18,11 +18,7 @@ Adds the following functions::
 
 #]======================================================]
 
-# CMake 3.10 has an include_guard command, but we can't use that yet
-# include_guard(global) (pre-CMake 3.10)
-if(TARGET pybind11::pybind11)
-  return()
-endif()
+include_guard(GLOBAL)
 
 # If we are in subdirectory mode, all IMPORTED targets must be GLOBAL. If we
 # are in CONFIG mode, they should be "normal" targets instead.
@@ -75,26 +71,36 @@ set_property(
   APPEND
   PROPERTY INTERFACE_LINK_LIBRARIES pybind11::pybind11)
 
+# -------------- emscripten requires exceptions enabled -------------
+# _pybind11_no_exceptions is a private mechanism to disable this addition.
+# Please open an issue if you need to use it; it will be removed if no one
+# needs it.
+if(CMAKE_SYSTEM_NAME MATCHES Emscripten AND NOT _pybind11_no_exceptions)
+  if(is_config)
+    set(_tmp_config_target pybind11::pybind11_headers)
+  else()
+    set(_tmp_config_target pybind11_headers)
+  endif()
+
+  set_property(
+    TARGET ${_tmp_config_target}
+    APPEND
+    PROPERTY INTERFACE_LINK_OPTIONS -fexceptions)
+  set_property(
+    TARGET ${_tmp_config_target}
+    APPEND
+    PROPERTY INTERFACE_COMPILE_OPTIONS -fexceptions)
+  unset(_tmp_config_target)
+endif()
+
 # --------------------------- link helper ---------------------------
 
 add_library(pybind11::python_link_helper IMPORTED INTERFACE ${optional_global})
 
-if(CMAKE_VERSION VERSION_LESS 3.13)
-  # In CMake 3.11+, you can set INTERFACE properties via the normal methods, and
-  # this would be simpler.
-  set_property(
-    TARGET pybind11::python_link_helper
-    APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
-else()
-  # link_options was added in 3.13+
-  # This is safer, because you are ensured the deduplication pass in CMake will not consider
-  # these separate and remove one but not the other.
-  set_property(
-    TARGET pybind11::python_link_helper
-    APPEND
-    PROPERTY INTERFACE_LINK_OPTIONS "$<$<PLATFORM_ID:Darwin>:LINKER:-undefined,dynamic_lookup>")
-endif()
+set_property(
+  TARGET pybind11::python_link_helper
+  APPEND
+  PROPERTY INTERFACE_LINK_OPTIONS "$<$<PLATFORM_ID:Darwin>:LINKER:-undefined,dynamic_lookup>")
 
 # ------------------------ Windows extras -------------------------
 
@@ -110,22 +116,14 @@ if(MSVC) # That's also clang-cl
 
   # /MP enables multithreaded builds (relevant when there are many files) for MSVC
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") # no Clang no Intel
-    if(CMAKE_VERSION VERSION_LESS 3.11)
-      set_property(
-        TARGET pybind11::windows_extras
-        APPEND
-        PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:/MP>)
-    else()
-      # Only set these options for C++ files.  This is important so that, for
-      # instance, projects that include other types of source files like CUDA
-      # .cu files don't get these options propagated to nvcc since that would
-      # cause the build to fail.
-      set_property(
-        TARGET pybind11::windows_extras
-        APPEND
-        PROPERTY INTERFACE_COMPILE_OPTIONS
-                 $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
-    endif()
+    # Only set these options for C++ files.  This is important so that, for
+    # instance, projects that include other types of source files like CUDA
+    # .cu files don't get these options propagated to nvcc since that would
+    # cause the build to fail.
+    set_property(
+      TARGET pybind11::windows_extras
+      APPEND
+      PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
   endif()
 endif()
 
@@ -329,7 +327,7 @@ function(_pybind11_generate_lto target prefer_thin_lto)
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le" OR CMAKE_SYSTEM_PROCESSOR MATCHES "mips64")
       # Do nothing
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES emscripten)
+    elseif(CMAKE_SYSTEM_NAME MATCHES Emscripten)
       # This compile is very costly when cross-compiling, so set this without checking
       set(PYBIND11_LTO_CXX_FLAGS "-flto${thin}${cxx_append}")
       set(PYBIND11_LTO_LINKER_FLAGS "-flto${thin}${linker_append}")
@@ -371,11 +369,7 @@ function(_pybind11_generate_lto target prefer_thin_lto)
     set(is_debug "$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>")
     set(not_debug "$<NOT:${is_debug}>")
     set(cxx_lang "$<COMPILE_LANGUAGE:CXX>")
-    if(MSVC AND CMAKE_VERSION VERSION_LESS 3.11)
-      set(genex "${not_debug}")
-    else()
-      set(genex "$<AND:${not_debug},${cxx_lang}>")
-    endif()
+    set(genex "$<AND:${not_debug},${cxx_lang}>")
     set_property(
       TARGET ${target}
       APPEND
@@ -390,17 +384,10 @@ function(_pybind11_generate_lto target prefer_thin_lto)
   endif()
 
   if(PYBIND11_LTO_LINKER_FLAGS)
-    if(CMAKE_VERSION VERSION_LESS 3.11)
-      set_property(
-        TARGET ${target}
-        APPEND
-        PROPERTY INTERFACE_LINK_LIBRARIES "$<${not_debug}:${PYBIND11_LTO_LINKER_FLAGS}>")
-    else()
-      set_property(
-        TARGET ${target}
-        APPEND
-        PROPERTY INTERFACE_LINK_OPTIONS "$<${not_debug}:${PYBIND11_LTO_LINKER_FLAGS}>")
-    endif()
+    set_property(
+      TARGET ${target}
+      APPEND
+      PROPERTY INTERFACE_LINK_OPTIONS "$<${not_debug}:${PYBIND11_LTO_LINKER_FLAGS}>")
   endif()
 endfunction()
 

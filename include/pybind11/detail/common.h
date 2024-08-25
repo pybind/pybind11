@@ -479,6 +479,8 @@ PYBIND11_WARNING_POP
         }
 
 \endrst */
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
@@ -499,6 +501,7 @@ PYBIND11_WARNING_POP
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -554,7 +557,7 @@ enum class return_value_policy : uint8_t {
         object without taking ownership similar to the above
         return_value_policy::reference policy. In contrast to that policy, the
         function or property's implicit this argument (called the parent) is
-        considered to be the the owner of the return value (the child).
+        considered to be the owner of the return value (the child).
         pybind11 then couples the lifetime of the parent to the child via a
         reference relationship that ensures that the parent cannot be garbage
         collected while Python is still using the child. More advanced

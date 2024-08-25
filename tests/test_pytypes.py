@@ -1048,3 +1048,45 @@ def test_typevar(doc):
     assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
 
     assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_tuple", "expected"),
+    [((1,), [2]), ((3, 4), [4, 5]), ((7, 8, 9), [8, 9, 10])],
+)
+def test_tuple_ranges(tested_tuple, expected):
+    assert m.tuple_iterator_default_initialization()
+    assert m.transform_tuple_plus_one(tested_tuple) == expected
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_list", "expected"), [([1], [2]), ([3, 4], [4, 5]), ([7, 8, 9], [8, 9, 10])]
+)
+def test_list_ranges(tested_list, expected):
+    assert m.list_iterator_default_initialization()
+    assert m.transform_list_plus_one(tested_list) == expected
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_dict", "expected"),
+    [
+        ({1: 2}, [(2, 3)]),
+        ({3: 4, 5: 6}, [(4, 5), (6, 7)]),
+        ({7: 8, 9: 10, 11: 12}, [(8, 9), (10, 11), (12, 13)]),
+    ],
+)
+def test_dict_ranges(tested_dict, expected):
+    assert m.dict_iterator_default_initialization()
+    assert m.transform_dict_plus_one(tested_dict) == expected
