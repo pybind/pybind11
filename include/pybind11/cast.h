@@ -871,14 +871,14 @@ public:
             pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
                           "(inherently unsafe).");
         }
-        return std::addressof(shared_ptr_holder);
+        return std::addressof(shared_ptr_storage);
     }
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            shared_ptr_holder = sh_load_helper.load_as_shared_ptr(value);
+            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
         }
-        return shared_ptr_holder;
+        return shared_ptr_storage;
     }
 
     static handle
@@ -924,7 +924,7 @@ protected:
         }
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            shared_ptr_holder = v_h.template holder<std::shared_ptr<type>>();
+            shared_ptr_storage = v_h.template holder<std::shared_ptr<type>>();
             return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -953,8 +953,8 @@ protected:
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
                 } else {
-                    shared_ptr_holder
-                        = std::shared_ptr<type>(sub_caster.shared_ptr_holder, (type *) value);
+                    shared_ptr_storage
+                        = std::shared_ptr<type>(sub_caster.shared_ptr_storage, (type *) value);
                 }
                 return true;
             }
@@ -964,8 +964,8 @@ protected:
 
     static bool try_direct_conversions(handle) { return false; }
 
-    std::shared_ptr<type> shared_ptr_holder;
     smart_holder_type_caster_support::load_helper<remove_cv_t<type>> sh_load_helper; // Const2Mutbl
+    std::shared_ptr<type> shared_ptr_storage;
 };
 
 #endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
@@ -1040,7 +1040,7 @@ public:
             policy = return_value_policy::reference_internal;
         }
         if (policy != return_value_policy::reference_internal) {
-            throw cast_error("Invalid return_value_policy for unique_ptr&");
+            throw cast_error("Invalid return_value_policy for const unique_ptr&");
         }
         return type_caster_base<type>::cast(src.get(), policy, parent);
     }

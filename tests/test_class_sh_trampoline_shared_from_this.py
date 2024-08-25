@@ -138,10 +138,11 @@ def test_pass_released_shared_ptr_as_unique_ptr():
     stash1 = m.SftSharedPtrStash(1)
     stash1.Add(obj)  # Releases shared_ptr to C++.
     with pytest.raises(ValueError) as exc_info:
-        m.pass_unique_ptr(obj)
+        m.pass_unique_ptr_cref(obj)
     assert str(exc_info.value) == (
         "Python instance is currently owned by a std::shared_ptr."
     )
+    assert obj.history == "PySft_Stash1Add"
 
 
 @pytest.mark.parametrize(
