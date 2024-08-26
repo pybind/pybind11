@@ -215,7 +215,7 @@ struct smart_holder {
         // race conditions, but in the context of Python it is a bug (elsewhere)
         // if the Global Interpreter Lock (GIL) is not being held when this code
         // is reached.
-        // SMART_HOLDER_WIP: IMPROVABLE: assert(GIL is held).
+        // PYBIND11:REMINDER: This may need to be protected by a mutex in free-threaded Python.
         if (vptr.use_count() != 1) {
             throw std::invalid_argument(std::string("Cannot disown use_count != 1 (") + context
                                         + ").");
@@ -277,29 +277,32 @@ struct smart_holder {
         return hld;
     }
 
-    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
+    // Caller is responsible for ensuring the complex preconditions
+    // (see `smart_holder_type_caster_support::load_helper`).
     void disown() {
         reset_vptr_deleter_armed_flag(false);
         is_disowned = true;
     }
 
-    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
+    // Caller is responsible for ensuring the complex preconditions
+    // (see `smart_holder_type_caster_support::load_helper`).
     void reclaim_disowned() {
         reset_vptr_deleter_armed_flag(true);
         is_disowned = false;
     }
 
-    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
+    // Caller is responsible for ensuring the complex preconditions
+    // (see `smart_holder_type_caster_support::load_helper`).
     void release_disowned() { vptr.reset(); }
 
-    // SMART_HOLDER_WIP: review this function.
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") const {
         ensure_is_not_disowned(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
     }
 
-    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
+    // Caller is responsible for ensuring the complex preconditions
+    // (see `smart_holder_type_caster_support::load_helper`).
     void release_ownership() {
         reset_vptr_deleter_armed_flag(false);
         release_disowned();

@@ -475,7 +475,7 @@ inline PyObject *make_new_instance(PyTypeObject *type);
 
 #ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
-// SMART_HOLDER_WIP: Needs refactoring of existing pybind11 code.
+// PYBIND11:REMINDER: Needs refactoring of existing pybind11 code.
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
 PYBIND11_NAMESPACE_BEGIN(smart_holder_type_caster_support)
@@ -568,8 +568,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
 
     if (static_cast<void *>(src.get()) == src_raw_void_ptr) {
         // This is a multiple-inheritance situation that is incompatible with the current
-        // shared_from_this handling (see PR #3023).
-        // SMART_HOLDER_WIP: IMPROVABLE: Is there a better solution?
+        // shared_from_this handling (see PR #3023). Is there a better solution?
         src_raw_void_ptr = nullptr;
     }
     auto smhldr = smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
@@ -623,8 +622,8 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
     const detail::type_info *tinfo = st.second;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
-        // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
-        // SMART_HOLDER_WIP: MISSING: keep_alive.
+        // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing smart_holder.
+        // PYBIND11:REMINDER: MISSING: keep_alive.
         return existing_inst;
     }
 

@@ -15,14 +15,13 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-// SMART_HOLDER_WIP: Needs refactoring of existing pybind11 code.
+// PYBIND11:REMINDER: Needs refactoring of existing pybind11 code.
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 PYBIND11_NAMESPACE_END(detail)
 
 // The original core idea for this struct goes back to PyCLIF:
 // https://github.com/google/clif/blob/07f95d7e69dca2fcf7022978a55ef3acff506c19/clif/python/runtime.cc#L37
-// URL provided here mainly to give proper credit. To fully explain the `HoldPyObj` feature, more
-// context is needed (SMART_HOLDER_WIP).
+// URL provided here mainly to give proper credit.
 struct trampoline_self_life_support {
     detail::value_and_holder v_h;
 
