@@ -36,7 +36,9 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
+#    if PYBIND11_VERSION_MAJOR >= 3
+#        define PYBIND11_INTERNALS_VERSION 6
+#    elif PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
 #        define PYBIND11_INTERNALS_VERSION 5
@@ -236,6 +238,20 @@ struct internals {
     }
 };
 
+#if PYBIND11_INTERNALS_VERSION >= 6
+
+#    define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+enum class holder_enum_t : uint8_t {
+    undefined,
+    std_unique_ptr, // Default, lacking interop with std::shared_ptr.
+    std_shared_ptr, // Lacking interop with std::unique_ptr.
+    smart_holder,   // Full std::unique_ptr / std::shared_ptr interop.
+    custom_holder,
+};
+
+#endif
+
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
@@ -259,9 +275,14 @@ struct type_info {
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
     /* for base vs derived holder_type checks */
+    // SMART_HOLDER_BAKEIN_FOLLOW_ON: Remove default_holder member here and
+    // produce better error messages in the places where it is currently used.
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
+#endif
 };
 
 /// On MSVC, debug and release builds are not ABI-compatible!

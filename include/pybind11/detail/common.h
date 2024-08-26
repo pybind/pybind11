@@ -9,13 +9,13 @@
 
 #pragma once
 
-#define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 14
+#define PYBIND11_VERSION_MAJOR 3
+#define PYBIND11_VERSION_MINOR 0
 #define PYBIND11_VERSION_PATCH 0.dev1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020E00D1
+#define PYBIND11_VERSION_HEX 0x030000D1
 
 // Define some generic pybind11 helper macros for warning management.
 //
@@ -640,6 +640,11 @@ struct instance {
     bool simple_instance_registered : 1;
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
+// Cannot use PYBIND11_INTERNALS_VERSION >= 6 here without refactoring.
+#if PYBIND11_VERSION_MAJOR >= 3
+    /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
+    bool is_alias : 1;
+#endif
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)

@@ -7,12 +7,13 @@ on:
     branches:
       - master
       - stable
+      - smart_holder
       - v*
 
 permissions: read-all
 
 concurrency:
-  group: test-${{ github.ref }}
+  group: test-sh-avl${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -67,7 +68,18 @@ jobs:
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
-
+          - runs-on: ubuntu-latest
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+          - runs-on: macos-13
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+          - runs-on: windows-2022
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="/DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT /GR /EHsc"
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}

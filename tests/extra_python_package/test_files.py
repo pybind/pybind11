@@ -43,8 +43,10 @@ main_headers = {
     "include/pybind11/options.h",
     "include/pybind11/pybind11.h",
     "include/pybind11/pytypes.h",
+    "include/pybind11/smart_holder.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/trampoline_self_life_support.h",
     "include/pybind11/type_caster_pyobject_ptr.h",
     "include/pybind11/typing.h",
 }
@@ -53,10 +55,13 @@ detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/descr.h",
+    "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+    "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",
 }
 
@@ -116,6 +121,7 @@ sdist_files = {
     "LICENSE",
     "MANIFEST.in",
     "README.rst",
+    "README_smart_holder.rst",
     "PKG-INFO",
     "SECURITY.md",
 }
