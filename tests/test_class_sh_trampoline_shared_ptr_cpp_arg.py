@@ -62,7 +62,7 @@ def test_shared_ptr_arg_identity():
     del obj
     pytest.gc_collect()
 
-    # SMART_HOLDER_WIP: the behavior below is DIFFERENT from PR #2839
+    # NOTE: the behavior below is DIFFERENT from PR #2839
     # python reference is gone because it is not an Alias instance
     assert objref() is None
     assert tester.has_python_instance() is False
