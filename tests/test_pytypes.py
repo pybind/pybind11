@@ -1026,7 +1026,7 @@ def test_optional_object_annotations(doc):
 
 @pytest.mark.skipif(
     not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
-    reason="C++20 feature not available.",
+    reason="C++20 non-type template args feature not available.",
 )
 def test_literal(doc):
     assert (
@@ -1037,7 +1037,7 @@ def test_literal(doc):
 
 @pytest.mark.skipif(
     not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
-    reason="C++20 feature not available.",
+    reason="C++20 non-type template args feature not available.",
 )
 def test_typevar(doc):
     assert (
