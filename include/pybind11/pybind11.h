@@ -9,6 +9,7 @@
 */
 
 #pragma once
+#include "detail/exception_translation.h"
 
 #include "detail/class.h"
 #include "detail/init.h"

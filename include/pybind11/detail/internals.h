@@ -338,24 +338,6 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-// Apply all the extensions translators from a list
-// Return true if one of the translators completed without raising an exception
-// itself. Return of false indicates that if there are other translators
-// available, they should be tried.
-inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &translators) {
-    auto last_exception = std::current_exception();
-
-    for (auto &translator : translators) {
-        try {
-            translator(last_exception);
-            return true;
-        } catch (...) {
-            last_exception = std::current_exception();
-        }
-    }
-    return false;
-}
-
 // forward decl
 inline void translate_exception(std::exception_ptr);
 
@@ -741,40 +723,6 @@ inline const char *get_function_record_capsule_name() {
 inline bool is_function_record_capsule(const capsule &cap) {
     // Pointer equality as we rely on internals() to ensure unique pointers
     return cap.name() == get_function_record_capsule_name();
-}
-
-inline void try_translate_exceptions() {
-    /* When an exception is caught, give each registered exception
-        translator a chance to translate it to a Python exception. First
-        all module-local translators will be tried in reverse order of
-        registration. If none of the module-locale translators handle
-        the exception (or there are no module-locale translators) then
-        the global translators will be tried, also in reverse order of
-        registration.
-
-        A translator may choose to do one of the following:
-
-        - catch the exception and call py::set_error()
-            to set a standard (or custom) Python exception, or
-        - do nothing and let the exception fall through to the next translator, or
-        - delegate translation to the next translator by throwing a new type of exception.
-        */
-
-    bool handled = with_internals([&](internals &internals) {
-        auto &local_exception_translators = get_local_internals().registered_exception_translators;
-        if (detail::apply_exception_translators(local_exception_translators)) {
-            return true;
-        }
-        auto &exception_translators = internals.registered_exception_translators;
-        if (detail::apply_exception_translators(exception_translators)) {
-            return true;
-        }
-        return false;
-    });
-
-    if (!handled) {
-        set_error(PyExc_SystemError, "Exception escaped from default exception translator!");
-    }
 }
 
 PYBIND11_NAMESPACE_END(detail)
