@@ -9,9 +9,8 @@
 */
 
 #pragma once
-#include "detail/exception_translation.h"
-
 #include "detail/class.h"
+#include "detail/exception_translation.h"
 #include "detail/init.h"
 #include "attr.h"
 #include "gil.h"

@@ -33,7 +33,6 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator> &
     return false;
 }
 
-
 inline void try_translate_exceptions() {
     /* When an exception is caught, give each registered exception
         translator a chance to translate it to a Python exception. First
