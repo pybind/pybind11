@@ -46,6 +46,10 @@ inline void wrap_traveler(py::module_ m) {
         .def_readwrite("luggage", &Traveler::luggage);
 
     m.def("get_luggage", [](const Traveler &person) { return person.luggage; });
+
+    py::class_<PremiumTraveler, Traveler>(m, "PremiumTraveler")
+        .def(py::init<std::string, int>())
+        .def_readwrite("points", &PremiumTraveler::points);
 }
 
 } // namespace test_cpp_transporter

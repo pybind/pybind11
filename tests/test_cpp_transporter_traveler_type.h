@@ -10,5 +10,11 @@ struct Traveler {
     std::string luggage;
 };
 
+struct PremiumTraveler : Traveler {
+    explicit PremiumTraveler(const std::string &luggage, int points)
+        : Traveler(luggage), points(points) {}
+    int points;
+};
+
 } // namespace test_cpp_transporter
 } // namespace pybind11_tests
