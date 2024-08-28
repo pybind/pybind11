@@ -5,6 +5,48 @@ import exo_planet
 from pybind11_tests import cpp_transporter as home_planet
 
 
+def test_call_cpp_transporter_success():
+    t_h = home_planet.Traveler("home")
+    cap = t_h.__cpp_transporter__(
+        home_planet.PYBIND11_PLATFORM_ABI_ID,
+        home_planet.typeid_Traveler_name,
+        "raw_pointer_ephemeral",
+    )
+    assert cap.__class__.__name__ == "PyCapsule"
+
+
+def test_call_cpp_transporter_platform_abi_id_mismatch():
+    t_h = home_planet.Traveler("home")
+    cap = t_h.__cpp_transporter__(
+        home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
+        home_planet.typeid_Traveler_name,
+        "raw_pointer_ephemeral",
+    )
+    assert cap is None
+    diag = t_h.__cpp_transporter__(
+        home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
+        home_planet.typeid_Traveler_name,
+        "query_mismatch",
+    )
+    assert diag == "pybind11_platform_abi_id_mismatch"
+
+
+def test_call_cpp_transporter_type_id_name_mismatch():
+    t_h = home_planet.Traveler("home")
+    cap = t_h.__cpp_transporter__(
+        home_planet.PYBIND11_PLATFORM_ABI_ID,
+        home_planet.typeid_Traveler_name + "MISMATCH",
+        "raw_pointer_ephemeral",
+    )
+    assert cap is None
+    diag = t_h.__cpp_transporter__(
+        home_planet.PYBIND11_PLATFORM_ABI_ID,
+        home_planet.typeid_Traveler_name + "MISMATCH",
+        "query_mismatch",
+    )
+    assert diag == "cpp_typeid_name_mismatch"
+
+
 def test_home_only_basic():
     t_h = home_planet.Traveler("home")
     assert t_h.luggage == "home"
@@ -51,45 +93,3 @@ def test_exo_passed_to_home_premium():
     p_e = exo_planet.PremiumTraveler("exo", 3)
     assert home_planet.get_luggage(p_e) == "exo"
     # FAILS assert home_planet.get_points(p_e) == 3
-
-
-def test_call_cpp_transporter_success():
-    t_h = home_planet.Traveler("home")
-    cap = t_h.__cpp_transporter__(
-        home_planet.PYBIND11_PLATFORM_ABI_ID,
-        home_planet.typeid_Traveler_name,
-        "raw_pointer_ephemeral",
-    )
-    assert cap.__class__.__name__ == "PyCapsule"
-
-
-def test_call_cpp_transporter_platform_abi_id_mismatch():
-    t_h = home_planet.Traveler("home")
-    cap = t_h.__cpp_transporter__(
-        home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
-        home_planet.typeid_Traveler_name,
-        "raw_pointer_ephemeral",
-    )
-    assert cap is None
-    diag = t_h.__cpp_transporter__(
-        home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
-        home_planet.typeid_Traveler_name,
-        "query_mismatch",
-    )
-    assert diag == "pybind11_platform_abi_id_mismatch"
-
-
-def test_call_cpp_transporter_type_id_name_mismatch():
-    t_h = home_planet.Traveler("home")
-    cap = t_h.__cpp_transporter__(
-        home_planet.PYBIND11_PLATFORM_ABI_ID,
-        home_planet.typeid_Traveler_name + "MISMATCH",
-        "raw_pointer_ephemeral",
-    )
-    assert cap is None
-    diag = t_h.__cpp_transporter__(
-        home_planet.PYBIND11_PLATFORM_ABI_ID,
-        home_planet.typeid_Traveler_name + "MISMATCH",
-        "query_mismatch",
-    )
-    assert diag == "cpp_typeid_name_mismatch"
