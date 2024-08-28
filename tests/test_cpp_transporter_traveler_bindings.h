@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 
-#include "test_cpp_transporter_traveler_type.h"
+#include "test_cpp_transporter_traveler_types.h"
 
 #include <cstring>
 #include <string>
