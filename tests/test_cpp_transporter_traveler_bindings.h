@@ -4,6 +4,7 @@
 
 #include "test_cpp_transporter_traveler_type.h"
 
+#include <cstring>
 #include <string>
 
 namespace pybind11_tests {
@@ -12,14 +13,29 @@ namespace test_cpp_transporter {
 namespace py = pybind11;
 
 inline void wrap_traveler(py::module_ m) {
+    m.attr("PYBIND11_PLATFORM_ABI_ID") = PYBIND11_PLATFORM_ABI_ID;
+    m.attr("typeid_Traveler_name") = typeid(Traveler).name();
+
     py::class_<Traveler>(m, "Traveler")
         .def(py::init<std::string>())
         .def("__cpp_transporter__",
              [](py::handle self,
-                const py::str & /*cpp_abi_code*/,
-                const py::str & /*cpp_typeid_name*/,
-                const py::str &pointer_kind) {
+                const py::str &pybind11_platform_abi_id,
+                const py::str &cpp_typeid_name,
+                const py::str &pointer_kind) -> py::object {
                  auto pointer_kind_cpp = pointer_kind.cast<std::string>();
+                 if (pybind11_platform_abi_id.cast<std::string>() != PYBIND11_PLATFORM_ABI_ID) {
+                     if (pointer_kind_cpp == "query_mismatch") {
+                         return py::cast("pybind11_platform_abi_id_mismatch");
+                     }
+                     return py::none();
+                 }
+                 if (cpp_typeid_name.cast<std::string>() != typeid(Traveler).name()) {
+                     if (pointer_kind_cpp == "query_mismatch") {
+                         return py::cast("cpp_typeid_name_mismatch");
+                     }
+                     return py::none();
+                 }
                  if (pointer_kind_cpp != "raw_pointer_ephemeral") {
                      throw std::runtime_error("Unknown pointer_kind: \"" + pointer_kind_cpp
                                               + "\"");

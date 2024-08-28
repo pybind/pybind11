@@ -5,6 +5,7 @@
 #include "../pytypes.h"
 #include "common.h"
 #include "internals.h"
+#include "platform_abi_id.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -55,7 +56,8 @@ inline object try_get_cpp_transporter_method(PyObject *obj) {
 inline void *try_raw_pointer_ephemeral_from_cpp_transporter(handle src, const char *typeid_name) {
     object method = try_get_cpp_transporter_method(src.ptr());
     if (method) {
-        object cpp_transporter = method("cpp_abi_code", typeid_name, "raw_pointer_ephemeral");
+        object cpp_transporter
+            = method(PYBIND11_PLATFORM_ABI_ID, typeid_name, "raw_pointer_ephemeral");
         if (isinstance<capsule>(cpp_transporter)) {
             return reinterpret_borrow<capsule>(cpp_transporter).get_pointer();
         }
