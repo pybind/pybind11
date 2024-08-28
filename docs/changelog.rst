@@ -28,6 +28,23 @@ New Features:
 * Support for CMake older than 3.15 removed. CMake 3.15-3.30 supported.
   `#5304 <https://github.com/pybind/pybind11/pull/5304>`_
 
+* The ``array_caster`` in pybind11/stl.h was enhanced to support value types that are not default-constructible.
+  `#5305 <https://github.com/pybind/pybind11/pull/5305>`_
+
+Version 2.13.5 (August 22, 2024)
+--------------------------------
+
+Bug fixes:
+
+* Fix includes when using Windows long paths (``\\?\`` prefix).
+  `#5321 <https://github.com/pybind/pybind11/pull/5321>`_
+
+* Support ``-Wpedantic`` in C++20 mode.
+  `#5322 <https://github.com/pybind/pybind11/pull/5322>`_
+
+* Fix and test ``<ranges>`` support for ``py::tuple`` and ``py::list``.
+  `#5314 <https://github.com/pybind/pybind11/pull/5314>`_
+
 Version 2.13.4 (August 14, 2024)
 --------------------------------
 
