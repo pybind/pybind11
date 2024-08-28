@@ -11,6 +11,7 @@
 
 #include "../attr.h"
 #include "../options.h"
+#include "exception_translation.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
