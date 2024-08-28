@@ -9,8 +9,8 @@
 
 PYBIND11_NAMESPACE_BEGIN(pybind11)
 
-template <typename T>
 object cpp_transporter(handle self,
+                       const std::type_info &self_cpp_type_info,
                        const str &pybind11_platform_abi_id,
                        const str &cpp_typeid_name,
                        const str &pointer_kind) {
@@ -21,7 +21,7 @@ object cpp_transporter(handle self,
         }
         return none();
     }
-    if (cpp_typeid_name.cast<std::string>() != typeid(T).name()) {
+    if (cpp_typeid_name.cast<std::string>() != self_cpp_type_info.name()) {
         if (pointer_kind_cpp == "query_mismatch") {
             return cast("cpp_typeid_name_mismatch");
         }
@@ -30,8 +30,20 @@ object cpp_transporter(handle self,
     if (pointer_kind_cpp != "raw_pointer_ephemeral") {
         throw std::runtime_error("Unknown pointer_kind: \"" + pointer_kind_cpp + "\"");
     }
-    auto *self_cpp_ptr = cast<T *>(self);
-    return capsule(static_cast<void *>(self_cpp_ptr), typeid(T).name());
+    detail::type_caster_generic caster(self_cpp_type_info);
+    if (!caster.load(self, false)) {
+        return none();
+    }
+    return capsule(caster.value, self_cpp_type_info.name());
+}
+
+template <typename T>
+object cpp_transporter(handle self,
+                       const str &pybind11_platform_abi_id,
+                       const str &cpp_typeid_name,
+                       const str &pointer_kind) {
+    return cpp_transporter(
+        self, typeid(T), pybind11_platform_abi_id, cpp_typeid_name, pointer_kind);
 }
 
 PYBIND11_NAMESPACE_END(pybind11)
