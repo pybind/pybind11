@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "common.h"
+// **************************************
+// DO NOT #include ANY HEADER FILES HERE!
+// **************************************
+// This is to make this file easily reusable in all environments, so that
+// other bindings systems can easily and safely interoperate with pybind11.
+
+#define PYBIND11_STRINGIFY(x) #x
+#define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
