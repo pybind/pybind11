@@ -5,4 +5,4 @@
 
 #include "test_cpp_transporter_traveler_bindings.h"
 
-PYBIND11_MODULE(exo_planet, m) { pybind11_tests::test_cpp_transporter::wrap_traveler(m); }
+PYBIND11_MODULE(exo_planet_pybind11, m) { pybind11_tests::test_cpp_transporter::wrap_traveler(m); }

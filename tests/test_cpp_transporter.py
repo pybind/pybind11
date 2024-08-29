@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import exo_planet
+import exo_planet_pybind11 as ex11_planet
 
 from pybind11_tests import cpp_transporter as home_planet
 
@@ -61,35 +61,35 @@ def test_home_only_premium():
 
 
 def test_exo_only_basic():
-    t_e = exo_planet.Traveler("exo")
+    t_e = ex11_planet.Traveler("exo")
     assert t_e.luggage == "exo"
-    assert exo_planet.get_luggage(t_e) == "exo"
+    assert ex11_planet.get_luggage(t_e) == "exo"
 
 
 def test_exo_only_premium():
-    p_e = exo_planet.PremiumTraveler("exo", 3)
+    p_e = ex11_planet.PremiumTraveler("exo", 3)
     assert p_e.luggage == "exo"
-    assert exo_planet.get_luggage(p_e) == "exo"
-    assert exo_planet.get_points(p_e) == 3
+    assert ex11_planet.get_luggage(p_e) == "exo"
+    assert ex11_planet.get_points(p_e) == 3
 
 
 def test_home_passed_to_exo_basic():
     t_h = home_planet.Traveler("home")
-    assert exo_planet.get_luggage(t_h) == "home"
+    assert ex11_planet.get_luggage(t_h) == "home"
 
 
 def test_exo_passed_to_home_basic():
-    t_e = exo_planet.Traveler("exo")
+    t_e = ex11_planet.Traveler("exo")
     assert home_planet.get_luggage(t_e) == "exo"
 
 
 def test_home_passed_to_exo_premium():
     p_h = home_planet.PremiumTraveler("home", 2)
-    assert exo_planet.get_luggage(p_h) == "home"
-    assert exo_planet.get_points(p_h) == 2
+    assert ex11_planet.get_luggage(p_h) == "home"
+    assert ex11_planet.get_points(p_h) == 2
 
 
 def test_exo_passed_to_home_premium():
-    p_e = exo_planet.PremiumTraveler("exo", 3)
+    p_e = ex11_planet.PremiumTraveler("exo", 3)
     assert home_planet.get_luggage(p_e) == "exo"
     assert home_planet.get_points(p_e) == 3
