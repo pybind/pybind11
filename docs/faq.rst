@@ -247,6 +247,50 @@ been received, you must either explicitly interrupt execution by throwing
         });
     }
 
+What is a highly conclusive and simple way to find memory leaks (e.g. in pybind11 bindings)?
+============================================================================================
+
+Use ``while True`` & ``top`` (Linux, macOS).
+
+For example, locally change tests/test_type_caster_pyobject_ptr.py like this:
+
+.. code-block:: diff
+
+     def test_return_list_pyobject_ptr_reference():
+    +  while True:
+         vec_obj = m.return_list_pyobject_ptr_reference(ValueHolder)
+         assert [e.value for e in vec_obj] == [93, 186]
+         # Commenting out the next `assert` will leak the Python references.
+         # An easy way to see evidence of the leaks:
+         # Insert `while True:` as the first line of this function and monitor the
+         # process RES (Resident Memory Size) with the Unix top command.
+    -    assert m.dec_ref_each_pyobject_ptr(vec_obj) == 2
+    +    # assert m.dec_ref_each_pyobject_ptr(vec_obj) == 2
+
+Then run the test as you would normally do, which will go into the infinite loop.
+
+**In another shell, but on the same machine** run:
+
+.. code-block:: bash
+
+    top
+
+This will show:
+
+.. code-block::
+
+        PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+    1266095 rwgk      20   0 5207496 611372  45696 R 100.0   0.3   0:08.01 test_type_caste
+
+Look for the number under ``RES`` there. You'll see it going up very quickly.
+
+**Don't forget to Ctrl-C the test command** before your machine becomes
+unresponsive due to swapping.
+
+This method only takes a couple minutes of effort and is very conclusive.
+What you want to see is that the ``RES`` number is stable after a couple
+seconds.
+
 CMake doesn't detect the right Python version
 =============================================
 
