@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import exo_planet_c_api as exca_planet
 import exo_planet_pybind11 as ex11_planet
 
 from pybind11_tests import cpp_transporter as home_planet
@@ -93,3 +94,9 @@ def test_exo_passed_to_home_premium():
     p_e = ex11_planet.PremiumTraveler("exo", 3)
     assert home_planet.get_luggage(p_e) == "exo"
     assert home_planet.get_points(p_e) == 3
+
+
+def test_exca_planet():
+    assert exca_planet.__doc__ == "Uses only the plain CPython API."
+    t_h = home_planet.Traveler("home")
+    assert exca_planet.GetLuggage(t_h) == "TODO"
