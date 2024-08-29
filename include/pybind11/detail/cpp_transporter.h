@@ -53,11 +53,14 @@ inline object try_get_cpp_transporter_method(PyObject *obj) {
     return reinterpret_steal<object>(method);
 }
 
-inline void *try_raw_pointer_ephemeral_from_cpp_transporter(handle src, const char *typeid_name) {
+inline void *try_raw_pointer_ephemeral_from_cpp_transporter(handle src,
+                                                            const std::type_info *cpp_type_info) {
     object method = try_get_cpp_transporter_method(src.ptr());
     if (method) {
+        capsule cap_cpp_type_info(const_cast<void *>(static_cast<const void *>(cpp_type_info)),
+                                  "const std::type_info *");
         object cpp_transporter
-            = method(PYBIND11_PLATFORM_ABI_ID, typeid_name, "raw_pointer_ephemeral");
+            = method(PYBIND11_PLATFORM_ABI_ID, cap_cpp_type_info, "raw_pointer_ephemeral");
         if (isinstance<capsule>(cpp_transporter)) {
             return reinterpret_borrow<capsule>(cpp_transporter).get_pointer();
         }

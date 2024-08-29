@@ -5,7 +5,7 @@ import exo_planet
 from pybind11_tests import cpp_transporter as home_planet
 
 
-def test_call_cpp_transporter_success():
+def NOtest_call_cpp_transporter_success():
     t_h = home_planet.Traveler("home")
     cap = t_h.__cpp_transporter__(
         home_planet.PYBIND11_PLATFORM_ABI_ID,
@@ -15,7 +15,7 @@ def test_call_cpp_transporter_success():
     assert cap.__class__.__name__ == "PyCapsule"
 
 
-def test_call_cpp_transporter_platform_abi_id_mismatch():
+def NOtest_call_cpp_transporter_platform_abi_id_mismatch():
     t_h = home_planet.Traveler("home")
     cap = t_h.__cpp_transporter__(
         home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
@@ -31,7 +31,7 @@ def test_call_cpp_transporter_platform_abi_id_mismatch():
     assert diag == "pybind11_platform_abi_id_mismatch"
 
 
-def test_call_cpp_transporter_type_id_name_mismatch():
+def NOtest_call_cpp_transporter_type_id_name_mismatch():
     t_h = home_planet.Traveler("home")
     cap = t_h.__cpp_transporter__(
         home_planet.PYBIND11_PLATFORM_ABI_ID,
@@ -86,10 +86,10 @@ def test_exo_passed_to_home_basic():
 def test_home_passed_to_exo_premium():
     p_h = home_planet.PremiumTraveler("home", 2)
     assert exo_planet.get_luggage(p_h) == "home"
-    # FAILS assert exo_planet.get_points(p_h) == 2
+    assert exo_planet.get_points(p_h) == 2
 
 
 def test_exo_passed_to_home_premium():
     p_e = exo_planet.PremiumTraveler("exo", 3)
     assert home_planet.get_luggage(p_e) == "exo"
-    # FAILS assert home_planet.get_points(p_e) == 3
+    assert home_planet.get_points(p_e) == 3

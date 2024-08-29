@@ -613,7 +613,7 @@ public:
         return false;
     }
     bool try_cpp_transporter(handle src) {
-        value = try_raw_pointer_ephemeral_from_cpp_transporter(src, cpptype->name());
+        value = try_raw_pointer_ephemeral_from_cpp_transporter(src, cpptype);
         if (value != nullptr) {
             return true;
         }
