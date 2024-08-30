@@ -7,6 +7,16 @@ import pytest
 from pybind11_tests import cpp_transporter as home_planet
 
 
+def test_traveler_getattr_actually_exists():
+    t_h = home_planet.Traveler("home")
+    assert t_h.any_name == "Traveler GetAttr: any_name luggage: home"
+
+
+def test_premium_traveler_getattr_actually_exists():
+    t_h = home_planet.PremiumTraveler("home", 7)
+    assert t_h.secret_name == "PremiumTraveler GetAttr: secret_name points: 7"
+
+
 def test_call_cpp_transporter_success():
     t_h = home_planet.Traveler("home")
     cap = t_h.__cpp_transporter__(

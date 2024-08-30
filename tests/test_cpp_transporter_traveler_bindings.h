@@ -14,13 +14,21 @@ namespace py = pybind11;
 inline void wrap_traveler(py::module_ m) {
     py::class_<Traveler>(m, "Traveler")
         .def(py::init<std::string>())
-        .def_readwrite("luggage", &Traveler::luggage);
+        .def_readwrite("luggage", &Traveler::luggage)
+        // See issue #3788:
+        .def("__getattr__", [](const Traveler &self, const std::string &key) {
+            return "Traveler GetAttr: " + key + " luggage: " + self.luggage;
+        });
 
     m.def("get_luggage", [](const Traveler &person) { return person.luggage; });
 
     py::class_<PremiumTraveler, Traveler>(m, "PremiumTraveler")
         .def(py::init<std::string, int>())
-        .def_readwrite("points", &PremiumTraveler::points);
+        .def_readwrite("points", &PremiumTraveler::points)
+        // See issue #3788:
+        .def("__getattr__", [](const PremiumTraveler &self, const std::string &key) {
+            return "PremiumTraveler GetAttr: " + key + " points: " + std::to_string(self.points);
+        });
 
     m.def("get_points", [](const PremiumTraveler &person) { return person.points; });
 }
