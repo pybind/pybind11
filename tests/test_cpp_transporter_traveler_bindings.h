@@ -17,7 +17,6 @@ inline void wrap_traveler(py::module_ m) {
     m.attr("typeid_Traveler_name") = typeid(Traveler).name();
 
     py::class_<Traveler>(m, "Traveler")
-        .def("__cpp_transporter__", py::detail::class_dunder_cpp_transporter)
         .def(py::init<std::string>())
         .def_readwrite("luggage", &Traveler::luggage);
 
