@@ -795,7 +795,7 @@ inline object class_dunder_cpp_transporter(handle self,
         return none();
     }
     if (pointer_kind_cpp != "raw_pointer_ephemeral") {
-        throw std::runtime_error("Unknown pointer_kind: \"" + pointer_kind_cpp + "\"");
+        throw std::runtime_error("Invalid pointer_kind: \"" + pointer_kind_cpp + "\"");
     }
     const auto *cpp_type_info = cap_cpp_type_info.get_pointer<const std::type_info>();
     type_caster_generic caster(*cpp_type_info);
