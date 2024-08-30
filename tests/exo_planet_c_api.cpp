@@ -47,6 +47,9 @@ T *get_cpp_transporter_type_ptr(PyObject *py_obj) {
 extern "C" PyObject *wrapGetLuggage(PyObject * /*self*/, PyObject *traveler) {
     const auto *cpp_traveler
         = get_cpp_transporter_type_ptr<pybind11_tests::test_cpp_transporter::Traveler>(traveler);
+    if (cpp_traveler == nullptr) {
+        return nullptr;
+    }
     return PyUnicode_FromString(cpp_traveler->luggage.c_str());
 }
 
@@ -54,6 +57,9 @@ extern "C" PyObject *wrapGetPoints(PyObject * /*self*/, PyObject *premium_travel
     const auto *cpp_premium_traveler
         = get_cpp_transporter_type_ptr<pybind11_tests::test_cpp_transporter::PremiumTraveler>(
             premium_traveler);
+    if (cpp_premium_traveler == nullptr) {
+        return nullptr;
+    }
     return PyLong_FromLong(static_cast<long>(cpp_premium_traveler->points));
 }
 
