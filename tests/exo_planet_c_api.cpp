@@ -3,7 +3,7 @@
 // DO NOT USE ANY OTHER pybind11 HEADERS HERE!
 #include <pybind11/detail/platform_abi_id.h>
 
-#include "test_cpp_transporter_traveler_bindings.h"
+#include "test_cpp_transporter_traveler_types.h"
 
 namespace {
 
