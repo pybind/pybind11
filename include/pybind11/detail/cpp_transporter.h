@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "../pytypes.h"
+#include <pybind11/pytypes.h>
+
 #include "common.h"
 #include "internals.h"
 #include "platform_abi_id.h"
