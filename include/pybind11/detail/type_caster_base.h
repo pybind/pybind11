@@ -787,13 +787,13 @@ inline object class_dunder_cpp_transporter(handle self,
                                            const str &pybind11_platform_abi_id,
                                            const capsule &cap_cpp_type_info,
                                            const str &pointer_kind) {
-    auto pointer_kind_cpp = pointer_kind.cast<std::string>();
-    if (pybind11_platform_abi_id.cast<std::string>() != PYBIND11_PLATFORM_ABI_ID) {
+    if (std::string(pybind11_platform_abi_id) != PYBIND11_PLATFORM_ABI_ID) {
         return none();
     }
     if (std::strcmp(cap_cpp_type_info.name(), "const std::type_info *") != 0) {
         return none();
     }
+    std::string pointer_kind_cpp(pointer_kind);
     if (pointer_kind_cpp != "raw_pointer_ephemeral") {
         throw std::runtime_error("Invalid pointer_kind: \"" + pointer_kind_cpp + "\"");
     }
