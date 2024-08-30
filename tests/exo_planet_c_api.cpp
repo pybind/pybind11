@@ -7,14 +7,16 @@
 
 namespace {
 
-static PyObject *wrapGetLuggage(PyObject *, PyObject *) { return PyUnicode_FromString("TODO"); }
+extern "C" PyObject *wrapGetLuggage(PyObject *, PyObject *) {
+    return PyUnicode_FromString("TODO");
+}
 
 PyDoc_STRVAR(ThisModuleDoc, "Uses only the plain CPython API.");
 
-static PyMethodDef ThisMethodDef[]
+PyMethodDef ThisMethodDef[]
     = {{"GetLuggage", wrapGetLuggage, METH_VARARGS, nullptr}, {nullptr, nullptr, 0, nullptr}};
 
-static struct PyModuleDef ThisModuleDef = {
+struct PyModuleDef ThisModuleDef = {
     PyModuleDef_HEAD_INIT, // m_base
     "exo_planet_c_api",    // m_name
     ThisModuleDoc,         // m_doc
