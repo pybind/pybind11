@@ -9,8 +9,6 @@
 
 #pragma once
 
-#include "platform_abi_id.h"
-
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 14
 #define PYBIND11_VERSION_PATCH 0.dev1
@@ -384,6 +382,8 @@ PYBIND11_WARNING_POP
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
+#define PYBIND11_STRINGIFY(x) #x
+#define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
 
