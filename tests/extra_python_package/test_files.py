@@ -47,6 +47,7 @@ main_headers = {
     "include/pybind11/stl_bind.h",
     "include/pybind11/type_caster_pyobject_ptr.h",
     "include/pybind11/typing.h",
+    "include/pybind11/warnings.h",
 }
 
 detail_headers = {
