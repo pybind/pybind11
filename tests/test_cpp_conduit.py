@@ -6,7 +6,7 @@ import exo_planet_c_api
 import exo_planet_pybind11
 import pytest
 
-from pybind11_tests import cpp_transporter as home_planet
+from pybind11_tests import cpp_conduit as home_planet
 
 
 def test_traveler_getattr_actually_exists():
@@ -19,9 +19,9 @@ def test_premium_traveler_getattr_actually_exists():
     assert t_h.secret_name == "PremiumTraveler GetAttr: secret_name points: 7"
 
 
-def test_call_cpp_transporter_success():
+def test_call_cpp_conduit_success():
     t_h = home_planet.Traveler("home")
-    cap = t_h.__cpp_transporter__(
+    cap = t_h.__cpp_conduit__(
         home_planet.PYBIND11_PLATFORM_ABI_ID,
         home_planet.cap_cpp_type_info_Traveler,
         "raw_pointer_ephemeral",
@@ -29,9 +29,9 @@ def test_call_cpp_transporter_success():
     assert cap.__class__.__name__ == "PyCapsule"
 
 
-def test_call_cpp_transporter_platform_abi_id_mismatch():
+def test_call_cpp_conduit_platform_abi_id_mismatch():
     t_h = home_planet.Traveler("home")
-    cap = t_h.__cpp_transporter__(
+    cap = t_h.__cpp_conduit__(
         home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
         home_planet.cap_cpp_type_info_Traveler,
         "raw_pointer_ephemeral",
@@ -39,9 +39,9 @@ def test_call_cpp_transporter_platform_abi_id_mismatch():
     assert cap is None
 
 
-def test_call_cpp_transporter_cap_cpp_type_info_mismatch():
+def test_call_cpp_conduit_cap_cpp_type_info_mismatch():
     t_h = home_planet.Traveler("home")
-    cap = t_h.__cpp_transporter__(
+    cap = t_h.__cpp_conduit__(
         home_planet.PYBIND11_PLATFORM_ABI_ID,
         home_planet.cap_cpp_type_info_int,
         "raw_pointer_ephemeral",
@@ -49,12 +49,12 @@ def test_call_cpp_transporter_cap_cpp_type_info_mismatch():
     assert cap is None
 
 
-def test_call_cpp_transporter_pointer_kind_invalid():
+def test_call_cpp_conduit_pointer_kind_invalid():
     t_h = home_planet.Traveler("home")
     with pytest.raises(
         RuntimeError, match='^Invalid pointer_kind: "raw_pointer_ephemreal"$'
     ):
-        t_h.__cpp_transporter__(
+        t_h.__cpp_conduit__(
             home_planet.PYBIND11_PLATFORM_ABI_ID,
             home_planet.cap_cpp_type_info_Traveler,
             "raw_pointer_ephemreal",

@@ -1,14 +1,14 @@
 // Copyright (c) 2024 The pybind Community.
 
 #include "pybind11_tests.h"
-#include "test_cpp_transporter_traveler_bindings.h"
+#include "test_cpp_conduit_traveler_bindings.h"
 
 #include <typeinfo>
 
 namespace pybind11_tests {
-namespace test_cpp_transporter {
+namespace test_cpp_conduit {
 
-TEST_SUBMODULE(cpp_transporter, m) {
+TEST_SUBMODULE(cpp_conduit, m) {
     m.attr("PYBIND11_PLATFORM_ABI_ID") = PYBIND11_PLATFORM_ABI_ID;
     m.attr("cap_cpp_type_info_Traveler")
         = py::capsule(&typeid(Traveler), "const std::type_info *");
@@ -17,5 +17,5 @@ TEST_SUBMODULE(cpp_transporter, m) {
     wrap_traveler(m);
 }
 
-} // namespace test_cpp_transporter
+} // namespace test_cpp_conduit
 } // namespace pybind11_tests

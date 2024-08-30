@@ -5,7 +5,7 @@
 #include <string>
 
 namespace pybind11_tests {
-namespace test_cpp_transporter {
+namespace test_cpp_conduit {
 
 struct Traveler {
     explicit Traveler(const std::string &luggage) : luggage(luggage) {}
@@ -18,5 +18,5 @@ struct PremiumTraveler : Traveler {
     int points;
 };
 
-} // namespace test_cpp_transporter
+} // namespace test_cpp_conduit
 } // namespace pybind11_tests

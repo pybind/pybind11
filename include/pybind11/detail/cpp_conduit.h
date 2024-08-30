@@ -28,12 +28,12 @@ inline bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_na
     return bool((descr != nullptr) && PyInstanceMethod_Check(descr));
 }
 
-inline object try_get_cpp_transporter_method(PyObject *obj) {
+inline object try_get_cpp_conduit_method(PyObject *obj) {
     if (PyType_Check(obj)) {
         return object();
     }
     PyTypeObject *type_obj = Py_TYPE(obj);
-    str attr_name("__cpp_transporter__");
+    str attr_name("__cpp_conduit__");
     bool assumed_to_be_callable = false;
     if (type_is_managed_by_our_internals(type_obj)) {
         if (!is_instance_method_of_type(type_obj, attr_name.ptr())) {
@@ -53,22 +53,19 @@ inline object try_get_cpp_transporter_method(PyObject *obj) {
     return reinterpret_steal<object>(method);
 }
 
-inline void *try_raw_pointer_ephemeral_from_cpp_transporter(handle src,
-                                                            const std::type_info *cpp_type_info) {
-    object method = try_get_cpp_transporter_method(src.ptr());
+inline void *try_raw_pointer_ephemeral_from_cpp_conduit(handle src, const std::type_info *cpp_type_info) {
+    object method = try_get_cpp_conduit_method(src.ptr());
     if (method) {
-        capsule cap_cpp_type_info(const_cast<void *>(static_cast<const void *>(cpp_type_info)),
-                                  "const std::type_info *");
-        object cpp_transporter
-            = method(PYBIND11_PLATFORM_ABI_ID, cap_cpp_type_info, "raw_pointer_ephemeral");
-        if (isinstance<capsule>(cpp_transporter)) {
-            return reinterpret_borrow<capsule>(cpp_transporter).get_pointer();
+        capsule cap_cpp_type_info(const_cast<void *>(static_cast<const void *>(cpp_type_info)), "const std::type_info *");
+        object cpp_conduit = method(PYBIND11_PLATFORM_ABI_ID, cap_cpp_type_info, "raw_pointer_ephemeral");
+        if (isinstance<capsule>(cpp_conduit)) {
+            return reinterpret_borrow<capsule>(cpp_conduit).get_pointer();
         }
     }
     return nullptr;
 }
 
-#define PYBIND11_HAS_CPP_TRANSPORTER
+#define PYBIND11_HAS_CPP_CONDUIT
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

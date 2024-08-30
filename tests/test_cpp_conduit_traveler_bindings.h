@@ -4,12 +4,12 @@
 
 #include <pybind11/pybind11.h>
 
-#include "test_cpp_transporter_traveler_types.h"
+#include "test_cpp_conduit_traveler_types.h"
 
 #include <string>
 
 namespace pybind11_tests {
-namespace test_cpp_transporter {
+namespace test_cpp_conduit {
 
 namespace py = pybind11;
 
@@ -35,5 +35,5 @@ inline void wrap_traveler(py::module_ m) {
     m.def("get_points", [](const PremiumTraveler &person) { return person.points; });
 }
 
-} // namespace test_cpp_transporter
+} // namespace test_cpp_conduit
 } // namespace pybind11_tests

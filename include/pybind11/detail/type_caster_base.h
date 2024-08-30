@@ -12,7 +12,7 @@
 #include <pybind11/pytypes.h>
 
 #include "common.h"
-#include "cpp_transporter.h"
+#include "cpp_conduit.h"
 #include "descr.h"
 #include "internals.h"
 #include "typeid.h"
@@ -614,8 +614,8 @@ public:
         }
         return false;
     }
-    bool try_cpp_transporter(handle src) {
-        value = try_raw_pointer_ephemeral_from_cpp_transporter(src, cpptype);
+    bool try_cpp_conduit(handle src) {
+        value = try_raw_pointer_ephemeral_from_cpp_conduit(src, cpptype);
         if (value != nullptr) {
             return true;
         }
@@ -752,7 +752,7 @@ public:
             return true;
         }
 
-        if (convert && cpptype && this_.try_cpp_transporter(src)) {
+        if (convert && cpptype && this_.try_cpp_conduit(src)) {
             return true;
         }
 
@@ -783,10 +783,10 @@ public:
     void *value = nullptr;
 };
 
-inline object class_dunder_cpp_transporter(handle self,
-                                           const str &pybind11_platform_abi_id,
-                                           const capsule &cap_cpp_type_info,
-                                           const str &pointer_kind) {
+inline object class_dunder_cpp_conduit(handle self,
+                                       const str &pybind11_platform_abi_id,
+                                       const capsule &cap_cpp_type_info,
+                                       const str &pointer_kind) {
     if (std::string(pybind11_platform_abi_id) != PYBIND11_PLATFORM_ABI_ID) {
         return none();
     }

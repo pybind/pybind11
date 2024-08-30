@@ -9,14 +9,14 @@
 //     1. A C++ compiler, WITHOUT requiring -fexceptions.
 //     2. Python.h
 
-#include "test_cpp_transporter_traveler_types.h"
+#include "test_cpp_conduit_traveler_types.h"
 
 #include <Python.h>
 #include <typeinfo>
 
 namespace {
 
-void *get_cpp_transporter_void_ptr(PyObject *py_obj, const std::type_info *cpp_type_info) {
+void *get_cpp_conduit_void_ptr(PyObject *py_obj, const std::type_info *cpp_type_info) {
     PyObject *cap_cpp_type_info
         = PyCapsule_New(const_cast<void *>(static_cast<const void *>(cpp_type_info)),
                         "const std::type_info *",
@@ -24,18 +24,13 @@ void *get_cpp_transporter_void_ptr(PyObject *py_obj, const std::type_info *cpp_t
     if (cap_cpp_type_info == nullptr) {
         return nullptr;
     }
-    PyObject *cpp_transporter = PyObject_CallMethod(py_obj,
-                                                    "__cpp_transporter__",
-                                                    "sOs",
-                                                    PYBIND11_PLATFORM_ABI_ID,
-                                                    cap_cpp_type_info,
-                                                    "raw_pointer_ephemeral");
+    PyObject *cpp_conduit = PyObject_CallMethod(py_obj, "__cpp_conduit__", "sOs", PYBIND11_PLATFORM_ABI_ID, cap_cpp_type_info, "raw_pointer_ephemeral");
     Py_DECREF(cap_cpp_type_info);
-    if (cpp_transporter == nullptr) {
+    if (cpp_conduit == nullptr) {
         return nullptr;
     }
-    void *void_ptr = PyCapsule_GetPointer(cpp_transporter, cpp_type_info->name());
-    Py_DECREF(cpp_transporter);
+    void *void_ptr = PyCapsule_GetPointer(cpp_conduit, cpp_type_info->name());
+    Py_DECREF(cpp_conduit);
     if (PyErr_Occurred()) {
         return nullptr;
     }
@@ -43,8 +38,8 @@ void *get_cpp_transporter_void_ptr(PyObject *py_obj, const std::type_info *cpp_t
 }
 
 template <typename T>
-T *get_cpp_transporter_type_ptr(PyObject *py_obj) {
-    void *void_ptr = get_cpp_transporter_void_ptr(py_obj, &typeid(T));
+T *get_cpp_conduit_type_ptr(PyObject *py_obj) {
+    void *void_ptr = get_cpp_conduit_void_ptr(py_obj, &typeid(T));
     if (void_ptr == nullptr) {
         return nullptr;
     }
@@ -52,8 +47,7 @@ T *get_cpp_transporter_type_ptr(PyObject *py_obj) {
 }
 
 extern "C" PyObject *wrapGetLuggage(PyObject * /*self*/, PyObject *traveler) {
-    const auto *cpp_traveler
-        = get_cpp_transporter_type_ptr<pybind11_tests::test_cpp_transporter::Traveler>(traveler);
+    const auto *cpp_traveler = get_cpp_conduit_type_ptr<pybind11_tests::test_cpp_conduit::Traveler>(traveler);
     if (cpp_traveler == nullptr) {
         return nullptr;
     }
@@ -61,9 +55,7 @@ extern "C" PyObject *wrapGetLuggage(PyObject * /*self*/, PyObject *traveler) {
 }
 
 extern "C" PyObject *wrapGetPoints(PyObject * /*self*/, PyObject *premium_traveler) {
-    const auto *cpp_premium_traveler
-        = get_cpp_transporter_type_ptr<pybind11_tests::test_cpp_transporter::PremiumTraveler>(
-            premium_traveler);
+    const auto *cpp_premium_traveler = get_cpp_conduit_type_ptr<pybind11_tests::test_cpp_conduit::PremiumTraveler>(premium_traveler);
     if (cpp_premium_traveler == nullptr) {
         return nullptr;
     }
