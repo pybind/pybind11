@@ -1,3 +1,5 @@
+// Copyright (c) 2024 The pybind Community.
+
 // THIS MUST STAY AT THE TOP!
 #include <pybind11/pybind11.h> // EXCLUSIVELY for PYBIND11_PLATFORM_ABI_ID
 // Potential future direction to maximize reusability:

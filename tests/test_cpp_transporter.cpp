@@ -1,3 +1,5 @@
+// Copyright (c) 2024 The pybind Community.
+
 #include "pybind11_tests.h"
 #include "test_cpp_transporter_traveler_bindings.h"
 

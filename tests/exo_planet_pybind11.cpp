@@ -1,3 +1,5 @@
+// Copyright (c) 2024 The pybind Community.
+
 #if defined(PYBIND11_INTERNALS_VERSION)
 #    undef PYBIND11_INTERNALS_VERSION
 #endif

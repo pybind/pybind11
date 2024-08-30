@@ -1,3 +1,5 @@
+// Copyright (c) 2024 The pybind Community.
+
 #pragma once
 
 #include <string>

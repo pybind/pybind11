@@ -1,3 +1,5 @@
+# Copyright (c) 2024 The pybind Community.
+
 from __future__ import annotations
 
 import exo_planet_c_api
