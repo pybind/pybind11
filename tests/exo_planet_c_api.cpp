@@ -1,6 +1,11 @@
 // THIS MUST STAY AT THE TOP!
-// DO NOT USE ANY OTHER pybind11 HEADERS HERE!
-#include <pybind11/detail/platform_abi_id.h>
+#include <pybind11/pybind11.h> // EXCLUSIVELY for PYBIND11_PLATFORM_ABI_ID
+// Potential future direction to maximize reusability:
+// (e.g. for use from SWIG, Cython, PyCLIF, nanobind):
+//     #include <pybind11/compat/platform_abi_id.h>
+// This would only depend on:
+//     1. A C++ compiler, WITHOUT requiring -fexceptions.
+//     2. Python.h
 
 #include "test_cpp_transporter_traveler_types.h"
 

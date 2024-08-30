@@ -57,7 +57,6 @@ detail_headers = {
     "include/pybind11/detail/descr.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
-    "include/pybind11/detail/platform_abi_id.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/value_and_holder.h",

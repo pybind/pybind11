@@ -6,7 +6,6 @@
 
 #include "common.h"
 #include "internals.h"
-#include "platform_abi_id.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
