@@ -19,6 +19,8 @@
 #include "value_and_holder.h"
 
 #include <cstdint>
+#include <cstring>
+#include <exception>
 #include <iterator>
 #include <new>
 #include <string>

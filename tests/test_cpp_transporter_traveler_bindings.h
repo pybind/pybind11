@@ -4,7 +4,6 @@
 
 #include "test_cpp_transporter_traveler_types.h"
 
-#include <cstring>
 #include <string>
 
 namespace pybind11_tests {
@@ -13,9 +12,6 @@ namespace test_cpp_transporter {
 namespace py = pybind11;
 
 inline void wrap_traveler(py::module_ m) {
-    m.attr("PYBIND11_PLATFORM_ABI_ID") = PYBIND11_PLATFORM_ABI_ID;
-    m.attr("typeid_Traveler_name") = typeid(Traveler).name();
-
     py::class_<Traveler>(m, "Traveler")
         .def(py::init<std::string>())
         .def_readwrite("luggage", &Traveler::luggage);
