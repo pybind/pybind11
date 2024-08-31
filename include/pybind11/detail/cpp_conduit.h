@@ -7,6 +7,8 @@
 #include "common.h"
 #include "internals.h"
 
+#include <typeinfo>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
