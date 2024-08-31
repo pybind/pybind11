@@ -1653,7 +1653,7 @@ public:
                     = instances[std::type_index(typeid(type))];
             });
         }
-        def("__cpp_conduit__", class_dunder_cpp_conduit);
+        def("__cpp_conduit__", cpp_conduit_method);
     }
 
     template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>

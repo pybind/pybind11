@@ -783,10 +783,10 @@ public:
     void *value = nullptr;
 };
 
-inline object class_dunder_cpp_conduit(handle self,
-                                       const str &pybind11_platform_abi_id,
-                                       const capsule &cap_cpp_type_info,
-                                       const str &pointer_kind) {
+inline object cpp_conduit_method(handle self,
+                                 const str &pybind11_platform_abi_id,
+                                 const capsule &cap_cpp_type_info,
+                                 const str &pointer_kind) {
     if (std::string(pybind11_platform_abi_id) != PYBIND11_PLATFORM_ABI_ID) {
         return none();
     }
