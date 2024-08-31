@@ -61,8 +61,8 @@ inline void *try_raw_pointer_ephemeral_from_cpp_conduit(handle src,
     if (method) {
         capsule cap_cpp_type_info(const_cast<void *>(static_cast<const void *>(cpp_type_info)),
                                   "const std::type_info *");
-        object cpp_conduit
-            = method(PYBIND11_PLATFORM_ABI_ID, cap_cpp_type_info, "raw_pointer_ephemeral");
+        object cpp_conduit = method(
+            bytes(PYBIND11_PLATFORM_ABI_ID), cap_cpp_type_info, bytes("raw_pointer_ephemeral"));
         if (isinstance<capsule>(cpp_conduit)) {
             return reinterpret_borrow<capsule>(cpp_conduit).get_pointer();
         }

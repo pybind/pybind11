@@ -24,7 +24,7 @@ def test_call_cpp_conduit_success():
     cap = t_h.__cpp_conduit__(
         home_planet.PYBIND11_PLATFORM_ABI_ID,
         home_planet.cap_cpp_type_info_Traveler,
-        "raw_pointer_ephemeral",
+        b"raw_pointer_ephemeral",
     )
     assert cap.__class__.__name__ == "PyCapsule"
 
@@ -32,9 +32,9 @@ def test_call_cpp_conduit_success():
 def test_call_cpp_conduit_platform_abi_id_mismatch():
     t_h = home_planet.Traveler("home")
     cap = t_h.__cpp_conduit__(
-        home_planet.PYBIND11_PLATFORM_ABI_ID + "MISMATCH",
+        home_planet.PYBIND11_PLATFORM_ABI_ID + b"MISMATCH",
         home_planet.cap_cpp_type_info_Traveler,
-        "raw_pointer_ephemeral",
+        b"raw_pointer_ephemeral",
     )
     assert cap is None
 
@@ -44,7 +44,7 @@ def test_call_cpp_conduit_cap_cpp_type_info_mismatch():
     cap = t_h.__cpp_conduit__(
         home_planet.PYBIND11_PLATFORM_ABI_ID,
         home_planet.cap_cpp_type_info_int,
-        "raw_pointer_ephemeral",
+        b"raw_pointer_ephemeral",
     )
     assert cap is None
 
@@ -57,7 +57,7 @@ def test_call_cpp_conduit_pointer_kind_invalid():
         t_h.__cpp_conduit__(
             home_planet.PYBIND11_PLATFORM_ABI_ID,
             home_planet.cap_cpp_type_info_Traveler,
-            "raw_pointer_ephemreal",
+            b"raw_pointer_ephemreal",
         )
 
 

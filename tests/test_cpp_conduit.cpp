@@ -9,7 +9,7 @@ namespace pybind11_tests {
 namespace test_cpp_conduit {
 
 TEST_SUBMODULE(cpp_conduit, m) {
-    m.attr("PYBIND11_PLATFORM_ABI_ID") = PYBIND11_PLATFORM_ABI_ID;
+    m.attr("PYBIND11_PLATFORM_ABI_ID") = py::bytes(PYBIND11_PLATFORM_ABI_ID);
     m.attr("cap_cpp_type_info_Traveler")
         = py::capsule(&typeid(Traveler), "const std::type_info *");
     m.attr("cap_cpp_type_info_int") = py::capsule(&typeid(int), "const std::type_info *");
