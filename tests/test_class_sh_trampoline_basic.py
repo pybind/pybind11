@@ -4,7 +4,7 @@ import pytest
 
 from pybind11_tests import class_sh_trampoline_basic as m
 
-if not m.defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT:
+if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
     pytest.skip("smart_holder not available.", allow_module_level=True)
 
 
