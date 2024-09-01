@@ -252,7 +252,8 @@ enum class holder_enum_t : uint8_t {
 
 #endif
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)                                     \
+    && !defined(PYBIND11_SMART_HOLDER_DISABLE)
 #    define PYBIND11_SMART_HOLDER_ENABLED
 #endif
 
