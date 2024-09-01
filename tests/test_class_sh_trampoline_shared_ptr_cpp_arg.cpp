@@ -63,8 +63,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(SpGoAway)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(SpGoAwayTester)
 
 TEST_SUBMODULE(class_sh_trampoline_shared_ptr_cpp_arg, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
@@ -101,5 +101,5 @@ TEST_SUBMODULE(class_sh_trampoline_shared_ptr_cpp_arg, m) {
     py::classh<SpGoAwayTester>(m, "SpGoAwayTester")
         .def(py::init<>())
         .def_readwrite("obj", &SpGoAwayTester::m_obj);
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

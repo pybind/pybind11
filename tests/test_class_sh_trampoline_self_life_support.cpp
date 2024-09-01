@@ -38,7 +38,7 @@ protected:
     Big5() : history{"DefaultConstructor"} {}
 };
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 struct Big5Trampoline : Big5, py::trampoline_self_life_support {
     using Big5::Big5;
 };
@@ -52,8 +52,8 @@ using namespace pybind11_tests::class_sh_trampoline_self_life_support;
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Big5)
 
 TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
@@ -94,5 +94,5 @@ TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
         py::object o1 = py::cast(std::move(obj));
         return py::make_tuple(o1, o2);
     });
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

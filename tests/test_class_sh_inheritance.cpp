@@ -73,8 +73,8 @@ namespace pybind11_tests {
 namespace class_sh_inheritance {
 
 TEST_SUBMODULE(class_sh_inheritance, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
@@ -105,7 +105,7 @@ TEST_SUBMODULE(class_sh_inheritance, m) {
     m.def("pass_cptr_base1", pass_cptr_base1);
     m.def("pass_cptr_base2", pass_cptr_base2);
     m.def("pass_cptr_drvd2", pass_cptr_drvd2);
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
 
 } // namespace class_sh_inheritance

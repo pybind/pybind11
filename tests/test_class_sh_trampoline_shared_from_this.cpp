@@ -71,7 +71,7 @@ struct SftSharedPtrStash {
     }
 };
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 struct SftTrampoline : Sft, py::trampoline_self_life_support {
     using Sft::Sft;
 };
@@ -115,8 +115,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
 
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
@@ -146,5 +146,5 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     m.def("make_pure_cpp_sft_unq_ptr", make_pure_cpp_sft_unq_ptr);
     m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
     m.def("pass_through_shd_ptr", pass_through_shd_ptr);
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
