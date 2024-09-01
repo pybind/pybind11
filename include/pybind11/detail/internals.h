@@ -252,6 +252,10 @@ enum class holder_enum_t : uint8_t {
 
 #endif
 
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#    define PYBIND11_SMART_HOLDER_ENABLED
+#endif
+
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {

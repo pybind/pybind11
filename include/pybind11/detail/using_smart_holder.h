@@ -9,19 +9,19 @@
 
 #include <type_traits>
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 #    include "struct_smart_holder.h"
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 using pybindit::memory::smart_holder;
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 template <typename H>
 using is_smart_holder = std::is_same<H, smart_holder>;
 #else
