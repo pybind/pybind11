@@ -32,8 +32,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning::Atype<1>)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning::Atype<2>)
 
 TEST_SUBMODULE(class_sh_disowning, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
@@ -49,5 +49,5 @@ TEST_SUBMODULE(class_sh_disowning, m) {
 
     m.def("overloaded", (int (*)(std::unique_ptr<Atype<1>>, int)) & overloaded);
     m.def("overloaded", (int (*)(std::unique_ptr<Atype<2>>, int)) & overloaded);
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

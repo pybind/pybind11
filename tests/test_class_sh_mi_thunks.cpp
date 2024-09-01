@@ -40,8 +40,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base1)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Derived)
 
 TEST_SUBMODULE(class_sh_mi_thunks, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
@@ -103,5 +103,5 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
         }
         return obj_der->vec.size();
     });
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

@@ -34,7 +34,7 @@ struct AbaseAlias : Abase<SerNo> {
     }
 };
 
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 template <>
 struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
     using Abase<1>::Abase;
@@ -46,7 +46,7 @@ struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
                                other_val);
     }
 };
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 
 template <int SerNo>
 int AddInCppRawPtr(const Abase<SerNo> *obj, int other_val) {
@@ -63,9 +63,9 @@ int AddInCppUniquePtr(std::unique_ptr<Abase<SerNo>> obj, int other_val) {
     return obj->Add(other_val) * 100 + 13;
 }
 
+#ifdef PYBIND11_SMART_HOLDER_ENABLED
 template <int SerNo>
 void wrap(py::module_ m, const char *py_class_name) {
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     py::classh<Abase<SerNo>, AbaseAlias<SerNo>>(m, py_class_name)
         .def(py::init<int>(), py::arg("val"))
         .def("Get", &Abase<SerNo>::Get)
@@ -74,8 +74,8 @@ void wrap(py::module_ m, const char *py_class_name) {
     m.def("AddInCppRawPtr", AddInCppRawPtr<SerNo>, py::arg("obj"), py::arg("other_val"));
     m.def("AddInCppSharedPtr", AddInCppSharedPtr<SerNo>, py::arg("obj"), py::arg("other_val"));
     m.def("AddInCppUniquePtr", AddInCppUniquePtr<SerNo>, py::arg("obj"), py::arg("other_val"));
-#endif
 }
+#endif
 
 } // namespace class_sh_trampoline_basic
 } // namespace pybind11_tests
@@ -86,13 +86,13 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(Abase<0>)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Abase<1>)
 
 TEST_SUBMODULE(class_sh_trampoline_basic, m) {
-    m.attr("defined_PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT") =
-#ifndef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
+#ifndef PYBIND11_SMART_HOLDER_ENABLED
         false;
 #else
         true;
 
     wrap<0>(m, "Abase0");
     wrap<1>(m, "Abase1");
-#endif // PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
