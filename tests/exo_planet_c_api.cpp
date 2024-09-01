@@ -19,7 +19,7 @@ namespace {
 void *get_cpp_conduit_void_ptr(PyObject *py_obj, const std::type_info *cpp_type_info) {
     PyObject *cpp_type_info_capsule
         = PyCapsule_New(const_cast<void *>(static_cast<const void *>(cpp_type_info)),
-                        "const std::type_info *",
+                        typeid(std::type_info).name(),
                         nullptr);
     if (cpp_type_info_capsule == nullptr) {
         return nullptr;

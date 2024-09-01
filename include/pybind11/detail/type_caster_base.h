@@ -795,7 +795,7 @@ inline object cpp_conduit_method(handle self,
     if (cpp_str(pybind11_platform_abi_id) != PYBIND11_PLATFORM_ABI_ID) {
         return none();
     }
-    if (std::strcmp(cpp_type_info_capsule.name(), "const std::type_info *") != 0) {
+    if (std::strcmp(cpp_type_info_capsule.name(), typeid(std::type_info).name()) != 0) {
         return none();
     }
     if (cpp_str(pointer_kind) != "raw_pointer_ephemeral") {
