@@ -785,7 +785,7 @@ public:
 
 inline object cpp_conduit_method(handle self,
                                  const bytes &pybind11_platform_abi_id,
-                                 const capsule &cap_cpp_type_info,
+                                 const capsule &cpp_type_info_capsule,
                                  const bytes &pointer_kind) {
 #ifdef PYBIND11_HAS_STRING_VIEW
     using cpp_str = std::string_view;
@@ -795,13 +795,13 @@ inline object cpp_conduit_method(handle self,
     if (cpp_str(pybind11_platform_abi_id) != PYBIND11_PLATFORM_ABI_ID) {
         return none();
     }
-    if (std::strcmp(cap_cpp_type_info.name(), "const std::type_info *") != 0) {
+    if (std::strcmp(cpp_type_info_capsule.name(), "const std::type_info *") != 0) {
         return none();
     }
     if (cpp_str(pointer_kind) != "raw_pointer_ephemeral") {
         throw std::runtime_error("Invalid pointer_kind: \"" + std::string(pointer_kind) + "\"");
     }
-    const auto *cpp_type_info = cap_cpp_type_info.get_pointer<const std::type_info>();
+    const auto *cpp_type_info = cpp_type_info_capsule.get_pointer<const std::type_info>();
     type_caster_generic caster(*cpp_type_info);
     if (!caster.load(self, false)) {
         return none();

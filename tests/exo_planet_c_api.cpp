@@ -17,20 +17,20 @@
 namespace {
 
 void *get_cpp_conduit_void_ptr(PyObject *py_obj, const std::type_info *cpp_type_info) {
-    PyObject *cap_cpp_type_info
+    PyObject *cpp_type_info_capsule
         = PyCapsule_New(const_cast<void *>(static_cast<const void *>(cpp_type_info)),
                         "const std::type_info *",
                         nullptr);
-    if (cap_cpp_type_info == nullptr) {
+    if (cpp_type_info_capsule == nullptr) {
         return nullptr;
     }
     PyObject *cpp_conduit = PyObject_CallMethod(py_obj,
                                                 "__cpp_conduit__",
                                                 "yOy",
                                                 PYBIND11_PLATFORM_ABI_ID,
-                                                cap_cpp_type_info,
+                                                cpp_type_info_capsule,
                                                 "raw_pointer_ephemeral");
-    Py_DECREF(cap_cpp_type_info);
+    Py_DECREF(cpp_type_info_capsule);
     if (cpp_conduit == nullptr) {
         return nullptr;
     }
