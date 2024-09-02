@@ -1,7 +1,7 @@
 /*
-    pybind11/detail/exception_translation.h: means to translate C++ exceptions to Python exception
+    pybind11/detail/exception_translation.h: means to translate C++ exceptions to Python exceptions
 
-    Copyright (c) 2024-2024 The Pybind Development Team.
+    Copyright (c) 2024 The Pybind Development Team.
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.

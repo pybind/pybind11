@@ -591,6 +591,9 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         raise_from(PyExc_BufferError, "Error getting buffer");
         return -1;
     }
+    if (info == nullptr) {
+        pybind11_fail("FATAL UNEXPECTED SITUATION: tinfo->get_buffer() returned nullptr.");
+    }
 
     if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
         delete info;
