@@ -18,6 +18,25 @@ def test_docstring_options():
     # docstring on only second overload:
     assert m.test_overloaded3.__doc__ == "Overload docstr"
 
+    # Check overload configuration behaviour matches the documentation
+    assert m.test_overloaded4.__doc__ == (
+        "A function which adds two numbers.\n\n"
+        "Internally, a simple addition is performed.\n"
+        "Both numbers can be None, and None will be returned."
+    )
+
+    assert m.test_overloaded5.__doc__ == (
+        "Overloaded function:\n"
+        "\n"
+        "1. test_overloaded5(arg0: int, arg1: int) -> int\n"
+        "\n"
+        "Add two integers together.\n"
+        "\n"
+        "2. test_overloaded5(arg0: float, arg1: float) -> float\n"
+        "\n"
+        "Add two floating point numbers together.\n"
+    )
+
     # options.enable_function_signatures()
     assert m.test_function3.__doc__.startswith("test_function3(a: int, b: int) -> None")
 
