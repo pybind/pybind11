@@ -165,7 +165,8 @@ set(PYBIND11_HEADERS
     include/pybind11/stl/filesystem.h
     include/pybind11/trampoline_self_life_support.h
     include/pybind11/type_caster_pyobject_ptr.h
-    include/pybind11/typing.h)
+    include/pybind11/typing.h
+    include/pybind11/warnings.h)
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT)
