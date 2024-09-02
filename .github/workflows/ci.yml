@@ -13,7 +13,6 @@ on:
 permissions: read-all
 
 concurrency:
-  group: test-sh-avl${{ github.ref }}
   cancel-in-progress: true
 
 env:
