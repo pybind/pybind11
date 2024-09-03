@@ -136,7 +136,7 @@ class Capture:
         return Output(self.err)
 
 
-@pytest.fixture()
+@pytest.fixture
 def capture(capsys):
     """Extended `capsys` with context manager and custom equality operators"""
     return Capture(capsys)
@@ -172,7 +172,7 @@ def _sanitize_docstring(thing):
     return _sanitize_general(s)
 
 
-@pytest.fixture()
+@pytest.fixture
 def doc():
     """Sanitize docstrings and add custom failure explanation"""
     return SanitizedString(_sanitize_docstring)
@@ -184,7 +184,7 @@ def _sanitize_message(thing):
     return _hexadecimal.sub("0", s)
 
 
-@pytest.fixture()
+@pytest.fixture
 def msg():
     """Sanitize messages and add custom failure explanation"""
     return SanitizedString(_sanitize_message)

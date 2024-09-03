@@ -24,7 +24,7 @@ def test_dtypes():
             )
 
 
-@pytest.fixture()
+@pytest.fixture
 def arr():
     return np.array([[1, 2, 3], [4, 5, 6]], "=u2")
 
