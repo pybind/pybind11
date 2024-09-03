@@ -167,6 +167,18 @@ TEST_SUBMODULE(buffers, m) {
                  sizeof(float)});
         });
 
+    class BrokenMatrix : public Matrix {
+    public:
+        BrokenMatrix(py::ssize_t rows, py::ssize_t cols) : Matrix(rows, cols) {}
+        void throw_runtime_error() { throw std::runtime_error("See PR #5324 for context."); }
+    };
+    py::class_<BrokenMatrix>(m, "BrokenMatrix", py::buffer_protocol())
+        .def(py::init<py::ssize_t, py::ssize_t>())
+        .def_buffer([](BrokenMatrix &m) {
+            m.throw_runtime_error();
+            return py::buffer_info();
+        });
+
     // test_inherited_protocol
     class SquareMatrix : public Matrix {
     public:
