@@ -118,6 +118,7 @@ set(PYBIND11_TEST_FILES
     test_const_name
     test_constants_and_functions
     test_copy_move
+    test_custom_base
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
