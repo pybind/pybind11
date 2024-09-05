@@ -333,9 +333,9 @@ Handling warnings from the Python C API
 
 Where possible, use :ref:`pybind11 warnings <warnings>` instead of calling
 the Python C API directly. The motivation is similar to previously mentioned errors.
-All warnings categories are required to be a subclass of `PyExc_Warning` from Python C API.
+All warnings categories are required to be a subclass of ``PyExc_Warning`` from Python C API.
 
-Warnings can be raised with `warn` function:
+Warnings can be raised with ``warn`` function:
 
 .. code-block:: cpp
 
@@ -344,7 +344,7 @@ Warnings can be raised with `warn` function:
     // When calling `stack_level` can be specified as well.
     py::warnings::warn("Another one!", PyExc_DeprecationWarning, 3);
 
-New warning types can be registered on the module level with `new_warning_type`:
+New warning types can be registered on the module level with ``new_warning_type``:
 
 .. code-block:: cpp
 
