@@ -328,6 +328,30 @@ Alternately, to ignore the error, call `PyErr_Clear
 Any Python error must be thrown or cleared, or Python/pybind11 will be left in
 an invalid state.
 
+Handling warnings from the Python C API
+=====================================
+
+Where possible, use :ref:`pybind11 warnings <warnings>` instead of calling
+the Python C API directly. The motivation is similar to previously mentioned errors.
+All warnings categories are required to be a subclass of `PyExc_Warning` from Python C API.
+
+Warnings can be raised with `warn` function:
+
+.. code-block:: cpp
+
+    py::warnings::warn("This is warning!", PyExc_Warning);
+
+    // When calling `stack_level` can be specified as well.
+    py::warnings::warn("Another one!", PyExc_DeprecationWarning, 3);
+
+New warning types can be registered on the module level with `new_warning_type`:
+
+.. code-block:: cpp
+
+    py::warnings::new_warning_type(m, "CustomWarning", PyExc_RuntimeWarning);
+
+.. versionadded:: 2.14
+
 Chaining exceptions ('raise from')
 ==================================
 
