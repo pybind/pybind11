@@ -1010,7 +1010,7 @@ struct handle_type_name<weakref> {
 };
 template <>
 struct handle_type_name<args> {
-    static constexpr auto name = const_name("*args: ") + make_caster<object>::name;
+    static constexpr auto name = const_name("*args: typing.Any");
 };
 template <typename T>
 struct handle_type_name<Args<T>> {
@@ -1018,7 +1018,7 @@ struct handle_type_name<Args<T>> {
 };
 template <>
 struct handle_type_name<kwargs> {
-    static constexpr auto name = const_name("**kwargs: ") + make_caster<object>::name;
+    static constexpr auto name = const_name("**kwargs: typing.Any");
 };
 template <typename T>
 struct handle_type_name<KWArgs<T>> {
