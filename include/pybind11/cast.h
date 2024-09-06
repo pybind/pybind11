@@ -1010,11 +1010,13 @@ struct handle_type_name<weakref> {
 };
 template <>
 struct handle_type_name<args> {
-    static constexpr auto name = const_name("*args");
+    static constexpr auto name = const_name("*args: ") + make_caster<object>::name;
+};
 };
 template <>
 struct handle_type_name<kwargs> {
-    static constexpr auto name = const_name("**kwargs");
+    static constexpr auto name = const_name("**kwargs: ") + make_caster<object>::name;
+};
 };
 template <>
 struct handle_type_name<obj_attr_accessor> {
