@@ -120,7 +120,8 @@ struct as_return_type {
 };
 
 template <typename T>
-struct as_return_type<T, typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
+struct as_return_type<T,
+                      typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
     static constexpr auto name = T::return_name;
 };
 
