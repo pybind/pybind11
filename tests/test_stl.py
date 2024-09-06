@@ -245,7 +245,7 @@ def test_reference_sensitive_optional():
 
 
 @pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
-def test_fs_path():
+def test_fs_path(doc):
     from pathlib import Path
 
     class PseudoStrPath:
@@ -261,6 +261,7 @@ def test_fs_path():
     assert m.parent_path(b"foo/bar") == Path("foo")
     assert m.parent_path(PseudoStrPath()) == Path("foo")
     assert m.parent_path(PseudoBytesPath()) == Path("foo")
+    assert doc(m.parent_path) == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> Path"
 
 
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
