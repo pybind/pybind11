@@ -454,6 +454,13 @@ TEST_SUBMODULE(stl, m) {
     // test_fs_path
     m.attr("has_filesystem") = true;
     m.def("parent_path", [](const std::filesystem::path &p) { return p.parent_path(); });
+    m.def("parent_paths", [](const std::vector<std::filesystem::path> &p) {
+        std::vector<std::filesystem::path> result;
+        for (const auto &i : p) {
+            result.push_back(i.parent_path());
+        }
+        return result;
+    });
 #endif
 
 #ifdef PYBIND11_TEST_VARIANT

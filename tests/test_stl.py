@@ -265,6 +265,11 @@ def test_fs_path(doc):
         doc(m.parent_path)
         == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> Path"
     )
+    assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
+    assert (
+        doc(m.parent_paths)
+        == "parent_paths(arg0: list[Union[os.PathLike, str, bytes]]) -> list[Path]"
+    )
 
 
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
