@@ -102,27 +102,25 @@ inline std::string replace_newlines_and_squash(const char *text) {
 #endif
 
 /// Type trait checker for `descr`.
-template<typename>
+template <typename>
 struct is_descr : std::false_type {};
 
-template<size_t N, typename... Ts>
+template <size_t N, typename... Ts>
 struct is_descr<descr<N, Ts...>> : std::true_type {};
 
-template<size_t N, typename... Ts>
+template <size_t N, typename... Ts>
 struct is_descr<const descr<N, Ts...>> : std::true_type {};
 
 /// Checks for `return_name` in `type_caster` to replace `name` for return type hints.
 /// this is useful for having a different python type hint for args vs return value,
 /// e.g., `std::filesystem::path` -> Arg: `Union[os.PathLike, str, bytes]`, return: `Path`.
-template<typename T, typename Enable = void>
-struct as_return_type
-{
+template <typename T, typename Enable = void>
+struct as_return_type {
     static constexpr auto name = T::name;
 };
 
 template <typename T>
-struct as_return_type<T, typename std::enable_if_t<is_descr<decltype(T::return_name)>::value>>
-{
+struct as_return_type<T, typename std::enable_if_t<is_descr<decltype(T::return_name)>::value>> {
     static constexpr auto name = T::return_name;
 };
 
@@ -344,9 +342,8 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature
-            = const_name("(") + cast_in::arg_names + const_name(") -> ")
-            + as_return_type<cast_out>::name;
+        static constexpr auto signature = const_name("(") + cast_in::arg_names
+                                          + const_name(") -> ") + as_return_type<cast_out>::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
