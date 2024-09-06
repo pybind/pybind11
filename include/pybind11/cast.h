@@ -1012,11 +1012,17 @@ template <>
 struct handle_type_name<args> {
     static constexpr auto name = const_name("*args: ") + make_caster<object>::name;
 };
+template <typename T>
+struct handle_type_name<Args<T>> {
+    static constexpr auto name = const_name("*args: ") + make_caster<T>::name;
 };
 template <>
 struct handle_type_name<kwargs> {
     static constexpr auto name = const_name("**kwargs: ") + make_caster<object>::name;
 };
+template <typename T>
+struct handle_type_name<KWArgs<T>> {
+    static constexpr auto name = const_name("**kwargs: ") + make_caster<T>::name;
 };
 template <>
 struct handle_type_name<obj_attr_accessor> {
