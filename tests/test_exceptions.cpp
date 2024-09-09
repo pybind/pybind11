@@ -111,6 +111,16 @@ struct PythonAlreadySetInDestructor {
     py::str s;
 };
 
+struct CustomData {
+    CustomData(const std::string &a) : a(a) {}
+    std::string a;
+};
+
+struct MyException7 {
+    MyException7(const CustomData &message) : message(message) {}
+    CustomData message;
+};
+
 TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception",
           []() { throw std::runtime_error("This exception was intentionally thrown."); });
@@ -385,4 +395,32 @@ TEST_SUBMODULE(exceptions, m) {
 
     // m.def("pass_exception_void", [](const py::exception<void>&) {}); // Does not compile.
     m.def("return_exception_void", []() { return py::exception<void>(); });
+
+    m.def("throws7", []() {
+        auto data = CustomData("abc");
+        throw MyException7(data);
+    });
+
+    py::class_<CustomData>(m, "CustomData", py::module_local())
+        .def(py::init<const std::string &>())
+        .def_readwrite("a", &CustomData::a);
+
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    storage.call_once_and_store_result([&]() {
+        auto mod = py::module_::import("custom_exceptions");
+        py::object obj = mod.attr("PythonMyException7");
+        return obj;
+    });
+
+    py::register_local_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) {
+                std::rethrow_exception(p);
+            }
+        } catch (const MyException7 &e) {
+            auto obj = storage.get_stored();
+            py::object obj2 = obj(e.message);
+            PyErr_SetObject(PyExc_Exception, obj2.ptr());
+        }
+    });
 }
