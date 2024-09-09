@@ -177,6 +177,7 @@ static_assert(sizeof(instance_map_shard) % 64 == 0,
 struct internals {
 #ifdef Py_GIL_DISABLED
     pymutex mutex;
+    pymutex exception_translator_mutex;
 #endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
@@ -640,6 +641,15 @@ template <typename F>
 inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     auto &internals = get_internals();
     PYBIND11_LOCK_INTERNALS(internals);
+    return cb(internals);
+}
+
+template <typename F>
+inline auto with_internals_for_exception_translator(const F &cb) -> decltype(cb(get_internals())) {
+    auto &internals = get_internals();
+#ifdef Py_GIL_DISABLED
+    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+#endif
     return cb(internals);
 }
 

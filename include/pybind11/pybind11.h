@@ -2586,7 +2586,7 @@ void implicitly_convertible() {
 }
 
 inline void register_exception_translator(ExceptionTranslator &&translator) {
-    detail::with_internals([&](detail::internals &internals) {
+    detail::with_internals_for_exception_translator([&](detail::internals &internals) {
         internals.registered_exception_translators.push_front(
             std::forward<ExceptionTranslator>(translator));
     });
@@ -2599,7 +2599,7 @@ inline void register_exception_translator(ExceptionTranslator &&translator) {
  * the exception.
  */
 inline void register_local_exception_translator(ExceptionTranslator &&translator) {
-    detail::with_internals([&](detail::internals &internals) {
+    detail::with_internals_for_exception_translator([&](detail::internals &internals) {
         (void) internals;
         detail::get_local_internals().registered_exception_translators.push_front(
             std::forward<ExceptionTranslator>(translator));

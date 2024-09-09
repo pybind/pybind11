@@ -50,7 +50,7 @@ inline void try_translate_exceptions() {
         - delegate translation to the next translator by throwing a new type of exception.
         */
 
-    bool handled = with_internals([&](internals &internals) {
+    bool handled = with_internals_for_exception_translator([&](internals &internals) {
         auto &local_exception_translators = get_local_internals().registered_exception_translators;
         if (detail::apply_exception_translators(local_exception_translators)) {
             return true;
