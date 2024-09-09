@@ -112,12 +112,12 @@ struct PythonAlreadySetInDestructor {
 };
 
 struct CustomData {
-    CustomData(const std::string &a) : a(a) {}
+    explicit CustomData(const std::string &a) : a(a) {}
     std::string a;
 };
 
 struct MyException7 {
-    MyException7(const CustomData &message) : message(message) {}
+    explicit MyException7(const CustomData &message) : message(message) {}
     CustomData message;
 };
 
