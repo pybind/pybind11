@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 
 class PythonMyException7(Exception):
     def __init__(self, message):
