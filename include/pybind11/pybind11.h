@@ -620,7 +620,8 @@ protected:
         // Then specific overload signatures
         bool first_user_def = true;
         for (auto *it = chain_start; it != nullptr; it = it->next) {
-            if (options::show_function_signatures() && std::strcmp(rec->name, "__cpp_conduit__") != 0) {
+            if (options::show_function_signatures()
+                && std::strcmp(rec->name, "__cpp_conduit__") != 0) {
                 if (index > 0) {
                     signatures += '\n';
                 }
