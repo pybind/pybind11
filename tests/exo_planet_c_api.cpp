@@ -25,7 +25,7 @@ void *get_cpp_conduit_void_ptr(PyObject *py_obj, const std::type_info *cpp_type_
         return nullptr;
     }
     PyObject *cpp_conduit = PyObject_CallMethod(py_obj,
-                                                "__cpp_conduit__",
+                                                "_pybind11_conduit_v1_",
                                                 "yOy",
                                                 PYBIND11_PLATFORM_ABI_ID,
                                                 cpp_type_info_capsule,

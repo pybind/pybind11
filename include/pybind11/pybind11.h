@@ -611,7 +611,7 @@ protected:
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
         if (chain && options::show_function_signatures()
-            && std::strcmp(rec->name, "__cpp_conduit__") != 0) {
+            && std::strcmp(rec->name, "_pybind11_conduit_v1_") != 0) {
             // First a generic signature
             signatures += rec->name;
             signatures += "(*args, **kwargs)\n";
@@ -621,7 +621,7 @@ protected:
         bool first_user_def = true;
         for (auto *it = chain_start; it != nullptr; it = it->next) {
             if (options::show_function_signatures()
-                && std::strcmp(rec->name, "__cpp_conduit__") != 0) {
+                && std::strcmp(rec->name, "_pybind11_conduit_v1_") != 0) {
                 if (index > 0) {
                     signatures += '\n';
                 }
@@ -1654,7 +1654,7 @@ public:
                     = instances[std::type_index(typeid(type))];
             });
         }
-        def("__cpp_conduit__", cpp_conduit_method);
+        def("_pybind11_conduit_v1_", cpp_conduit_method);
     }
 
     template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>

@@ -35,7 +35,7 @@ inline object try_get_cpp_conduit_method(PyObject *obj) {
         return object();
     }
     PyTypeObject *type_obj = Py_TYPE(obj);
-    str attr_name("__cpp_conduit__");
+    str attr_name("_pybind11_conduit_v1_");
     bool assumed_to_be_callable = false;
     if (type_is_managed_by_our_internals(type_obj)) {
         if (!is_instance_method_of_type(type_obj, attr_name.ptr())) {
@@ -71,7 +71,7 @@ inline void *try_raw_pointer_ephemeral_from_cpp_conduit(handle src,
     return nullptr;
 }
 
-#define PYBIND11_HAS_CPP_CONDUIT
+#define PYBIND11_HAS_CPP_CONDUIT 1
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
