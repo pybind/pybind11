@@ -15,18 +15,7 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
-Version 2.12.1 (September 13, 2024)
------------------------------------
-
-New Features:
-
-* Backport of PR #5296: The pybind11 v2.12 series now interoperates with other
-  pybind11 versions that include PR #5296. (See the description of PR #5296 for
-  limitations.)
-  `#5368 <https://github.com/pybind/pybind11/pull/5368>`_
-
-
-Version 2.12.0 (March 27, 2024)
+Version 2.12.0 (March 27, 2025)
 -------------------------------
 
 New Features:
