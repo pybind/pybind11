@@ -15,6 +15,7 @@ TEST_SUBMODULE(cpp_conduit, m) {
     m.attr("cpp_type_info_capsule_int") = py::capsule(&typeid(int), typeid(std::type_info).name());
 
     wrap_traveler(m);
+    wrap_lonely_traveler(m);
 }
 
 } // namespace test_cpp_conduit

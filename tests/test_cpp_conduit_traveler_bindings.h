@@ -35,5 +35,13 @@ inline void wrap_traveler(py::module_ m) {
     m.def("get_points", [](const PremiumTraveler &person) { return person.points; });
 }
 
+inline void wrap_lonely_traveler(py::module_ m) {
+    py::class_<LonelyTraveler>(m, "LonelyTraveler");
+}
+
+inline void wrap_very_lonely_traveler(py::module_ m) {
+    py::class_<VeryLonelyTraveler, LonelyTraveler>(m, "VeryLonelyTraveler");
+}
+
 } // namespace test_cpp_conduit
 } // namespace pybind11_tests

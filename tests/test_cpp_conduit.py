@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import exo_planet_c_api
 import exo_planet_pybind11
+import home_planet_very_lonely_traveler
 import pytest
 
 from pybind11_tests import cpp_conduit as home_planet
@@ -125,3 +126,37 @@ def test_exo_planet_c_api_premium_traveler(premium_traveler_type):
     pt = premium_traveler_type("gucci", 5)
     assert exo_planet_c_api.GetLuggage(pt) == "gucci"
     assert exo_planet_c_api.GetPoints(pt) == 5
+
+
+def test_home_planet_wrap_very_lonely_traveler():
+    # This does not exercise the cpp_conduit feature, but is here to
+    # demonstrate that the cpp_conduit feature does not solve all
+    # cross-extension interoperability issues.
+    # Here is the proof that the following works for extensions with
+    # matching `PYBIND11_INTERNALS_ID`s:
+    #     test_cpp_conduit.cpp:
+    #         py::class_<LonelyTraveler>
+    #     home_planet_very_lonely_traveler.cpp:
+    #         py::class_<VeryLonelyTraveler, LonelyTraveler>
+    # See test_exo_planet_pybind11_wrap_very_lonely_traveler() for the negative
+    # test.
+    assert home_planet.LonelyTraveler is not None  # Verify that the base class exists.
+    home_planet_very_lonely_traveler.wrap_very_lonely_traveler()
+    # Ensure that the derived class exists.
+    assert home_planet_very_lonely_traveler.VeryLonelyTraveler is not None
+
+
+def test_exo_planet_pybind11_wrap_very_lonely_traveler():
+    # See comment under test_home_planet_wrap_very_lonely_traveler() first.
+    # Here the `PYBIND11_INTERNALS_ID`s don't match between:
+    #     test_cpp_conduit.cpp:
+    #         py::class_<LonelyTraveler>
+    #     exo_planet_pybind11.cpp:
+    #         py::class_<VeryLonelyTraveler, LonelyTraveler>
+    assert home_planet.LonelyTraveler is not None  # Verify that the base class exists.
+    with pytest.raises(
+        RuntimeError,
+        match='^generic_type: type "VeryLonelyTraveler" referenced unknown base type '
+        '"pybind11_tests::test_cpp_conduit::LonelyTraveler"$',
+    ):
+        exo_planet_pybind11.wrap_very_lonely_traveler()

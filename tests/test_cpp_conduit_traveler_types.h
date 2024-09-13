@@ -18,5 +18,8 @@ struct PremiumTraveler : Traveler {
     int points;
 };
 
+struct LonelyTraveler {};
+struct VeryLonelyTraveler : LonelyTraveler {};
+
 } // namespace test_cpp_conduit
 } // namespace pybind11_tests

@@ -219,7 +219,8 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
-tests_extra_targets("test_cpp_conduit.py" "exo_planet_pybind11;exo_planet_c_api")
+tests_extra_targets("test_cpp_conduit.py"
+                    "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
