@@ -11,11 +11,11 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 11
-#define PYBIND11_VERSION_PATCH 1
+#define PYBIND11_VERSION_PATCH 2
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x020B0100
+#define PYBIND11_VERSION_HEX 0x020B0200
 
 // Define some generic pybind11 helper macros for warning management.
 //
