@@ -36,11 +36,11 @@ inline void wrap_traveler(py::module_ m) {
 }
 
 inline void wrap_lonely_traveler(py::module_ m) {
-    py::class_<LonelyTraveler>(m, "LonelyTraveler");
+    py::class_<LonelyTraveler>(std::move(m), "LonelyTraveler");
 }
 
 inline void wrap_very_lonely_traveler(py::module_ m) {
-    py::class_<VeryLonelyTraveler, LonelyTraveler>(m, "VeryLonelyTraveler");
+    py::class_<VeryLonelyTraveler, LonelyTraveler>(std::move(m), "VeryLonelyTraveler");
 }
 
 } // namespace test_cpp_conduit
