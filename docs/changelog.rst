@@ -31,6 +31,37 @@ New Features:
 * The ``array_caster`` in pybind11/stl.h was enhanced to support value types that are not default-constructible.
   `#5305 <https://github.com/pybind/pybind11/pull/5305>`_
 
+* Added ``py::warnings`` namespace with ``py::warnings::warn`` and ``py::warnings::new_warning_type`` that provides the interface for Python warnings.
+  `#5291 <https://github.com/pybind/pybind11/pull/5291>`_
+
+Version 2.13.6 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
+  ``py::class_``-wrapped types, to enable type-safe interoperability between
+  different independent Python/C++ bindings systems, including pybind11
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
+
+
+Bug fixes:
+
+* Using ``__cpp_nontype_template_args`` instead of ``__cpp_nontype_template_parameter_class``.
+  `#5330 <https://github.com/pybind/pybind11/pull/5330>`_
+
+* Properly translate C++ exception to Python exception when creating Python buffer from wrapped object.
+  `#5324 <https://github.com/pybind/pybind11/pull/5324>`_
+
+
+Documentation:
+
+* Adds an answer (FAQ) for "What is a highly conclusive and simple way to find memory leaks?".
+  `#5340 <https://github.com/pybind/pybind11/pull/5340>`_
+
+
 Version 2.13.5 (August 22, 2024)
 --------------------------------
 
@@ -238,6 +269,18 @@ Other:
 * Update docs and noxfile.
   `#5071 <https://github.com/pybind/pybind11/pull/5071>`_
 
+Version 2.12.1 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
+  ``py::class_``-wrapped types, to enable type-safe interoperability between
+  different independent Python/C++ bindings systems, including pybind11
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
+
 
 Version 2.12.0 (March 27, 2024)
 -------------------------------
@@ -412,6 +455,18 @@ Other:
 
 * An ``assert()`` was added to help Coverty avoid generating a false positive.
   `#4817 <https://github.com/pybind/pybind11/pull/4817>`_
+
+Version 2.11.2 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
+  ``py::class_``-wrapped types, to enable type-safe interoperability between
+  different independent Python/C++ bindings systems, including pybind11
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
 
 
 Version 2.11.1 (July 17, 2023)
