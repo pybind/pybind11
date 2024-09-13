@@ -42,7 +42,8 @@ New Features:
 * A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
   ``py::class_``-wrapped types, to enable type-safe interoperability between
   different independent Python/C++ bindings systems, including pybind11
-  versions with different ``PYBIND11_INTERNALS_VERSION``'s.
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
   `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
 
 
@@ -276,7 +277,8 @@ New Features:
 * A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
   ``py::class_``-wrapped types, to enable type-safe interoperability between
   different independent Python/C++ bindings systems, including pybind11
-  versions with different ``PYBIND11_INTERNALS_VERSION``'s.
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
   `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
 
 
@@ -462,7 +464,8 @@ New Features:
 * A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
   ``py::class_``-wrapped types, to enable type-safe interoperability between
   different independent Python/C++ bindings systems, including pybind11
-  versions with different ``PYBIND11_INTERNALS_VERSION``'s.
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
   `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
 
 
