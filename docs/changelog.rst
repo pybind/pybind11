@@ -31,6 +31,29 @@ New Features:
 * The ``array_caster`` in pybind11/stl.h was enhanced to support value types that are not default-constructible.
   `#5305 <https://github.com/pybind/pybind11/pull/5305>`_
 
+
+Version 2.12.1 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* Backport of PR #5296: The pybind11 v2.12 series now interoperates with other
+  pybind11 versions that include PR #5296. (See the description of PR #5296 for
+  limitations.)
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
+
+
+Version 2.11.2 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* Backport of PR #5296: The pybind11 v2.11 series now interoperates with other
+  pybind11 versions that include PR #5296. (See the description of PR #5296 for
+  limitations.)
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
+
+
 Version 2.13.5 (August 22, 2024)
 --------------------------------
 
