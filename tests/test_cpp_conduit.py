@@ -1,7 +1,5 @@
 # Copyright (c) 2024 The pybind Community.
 
-from __future__ import annotations
-
 import exo_planet_c_api
 import exo_planet_pybind11
 import home_planet_very_lonely_traveler
