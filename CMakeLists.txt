@@ -113,6 +113,7 @@ cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" OFF
 set(PYBIND11_HEADERS
     include/pybind11/detail/class.h
     include/pybind11/detail/common.h
+    include/pybind11/detail/cpp_conduit.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
