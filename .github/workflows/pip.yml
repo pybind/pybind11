@@ -91,11 +91,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: [packaging]
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pybind11
     permissions:
       id-token: write
       attestations: write
-      contents: read
 
     steps:
     # Downloads all to directories matching the artifact names
@@ -110,8 +111,10 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: standard/
+        attestations: true
 
     - name: Publish global package
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: global/
+        attestations: true
