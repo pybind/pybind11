@@ -321,15 +321,17 @@ struct type_info {
 #    define PYBIND11_INTERNALS_KIND ""
 #endif
 
+#define PYBIND11_PLATFORM_ABI_ID                                                                  \
+    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
+        PYBIND11_BUILD_TYPE
+
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
-            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+        PYBIND11_PLATFORM_ABI_ID "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
-            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+        PYBIND11_PLATFORM_ABI_ID "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
