@@ -12,7 +12,7 @@
 //   the standard headers on some systems, you must include Python.h before
 //   any standard headers are included.
 
-// To maximize portability:
+// To maximize reusability:
 // DO NOT ADD CODE THAT REQUIRES C++ EXCEPTION HANDLING.
 
 // Disable linking to pythonX_d.lib on Windows in debug mode.

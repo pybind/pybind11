@@ -2,12 +2,12 @@
 
 // Copyright (c) 2024 The pybind Community.
 
-// To maximize portability:
+// To maximize reusability:
 // DO NOT ADD CODE THAT REQUIRES C++ EXCEPTION HANDLING.
 
 #include "wrap_include_python_h.h"
 
-// Implementation detail. DO NOT USE ELSEWHERE.
+// Implementation details. DO NOT USE ELSEWHERE. (Unfortunately we cannot #undef them.)
 // This is duplicated here to maximize portability.
 #define PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x) #x
 #define PYBIND11_PLATFORM_ABI_ID_TOSTRING(x) PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x)
