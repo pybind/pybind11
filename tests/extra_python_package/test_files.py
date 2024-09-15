@@ -110,6 +110,7 @@ sdist_files = {
     "pybind11",
     "pybind11/include",
     "pybind11/include/pybind11",
+    "pybind11/include/pybind11/compat",
     "pybind11/include/pybind11/detail",
     "pybind11/include/pybind11/eigen",
     "pybind11/include/pybind11/stl",
