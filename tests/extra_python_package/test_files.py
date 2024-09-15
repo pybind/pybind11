@@ -51,6 +51,7 @@ main_headers = {
 }
 
 compat_headers = {
+    "include/pybind11/compat/README.txt",
     "include/pybind11/compat/pybind11_conduit_v1.h",
     "include/pybind11/compat/pybind11_platform_abi_id.h",
     "include/pybind11/compat/wrap_include_python_h.h",

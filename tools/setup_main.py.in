@@ -24,7 +24,7 @@ setup(
     package_data={
         "pybind11": ["py.typed"],
         "pybind11.include.pybind11": ["*.h"],
-        "pybind11.include.pybind11.compat": ["*.h"],
+        "pybind11.include.pybind11.compat": ["*.h", "*.txt"],
         "pybind11.include.pybind11.detail": ["*.h"],
         "pybind11.include.pybind11.eigen": ["*.h"],
         "pybind11.include.pybind11.stl": ["*.h"],

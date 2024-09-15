@@ -26,7 +26,8 @@ class InstallHeadersNested(install_headers):
 
 
 main_headers = glob.glob("pybind11/include/pybind11/*.h")
-compat_headers = glob.glob("pybind11/include/pybind11/compat/*.h")
+compat_headers = sum([glob.glob(f"pybind11/include/pybind11/compat/*.{ext}")
+                      for ext in ("h", "txt")], [])
 detail_headers = glob.glob("pybind11/include/pybind11/detail/*.h")
 eigen_headers = glob.glob("pybind11/include/pybind11/eigen/*.h")
 stl_headers = glob.glob("pybind11/include/pybind11/stl/*.h")
