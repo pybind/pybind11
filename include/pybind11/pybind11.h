@@ -1382,7 +1382,17 @@ protected:
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
             }
+
+            PYBIND11_WARNING_PUSH
+#if defined(__GNUC__) && __GNUC__ == 12
+            // When using GCC 12 these warnings are disabled as they trigger
+            // false positive warnings.  Discussed here:
+            // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115824.
+            PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
+            PYBIND11_WARNING_DISABLE_GCC("-Wstringop-overread")
+#endif
             internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
+            PYBIND11_WARNING_POP
         });
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
