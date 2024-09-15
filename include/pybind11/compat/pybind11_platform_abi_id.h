@@ -2,6 +2,9 @@
 
 // Copyright (c) 2024 The pybind Community.
 
+// To maximize portability:
+// DO NOT ADD CODE THAT REQUIRES C++ EXCEPTION HANDLING.
+
 #include "wrap_include_python_h.h"
 
 // Implementation detail. DO NOT USE ELSEWHERE.

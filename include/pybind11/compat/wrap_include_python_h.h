@@ -12,6 +12,9 @@
 //   the standard headers on some systems, you must include Python.h before
 //   any standard headers are included.
 
+// To maximize portability:
+// DO NOT ADD CODE THAT REQUIRES C++ EXCEPTION HANDLING.
+
 // Disable linking to pythonX_d.lib on Windows in debug mode.
 #if defined(_MSC_VER) && defined(_DEBUG) && !defined(Py_DEBUG)
 // Workaround for a VS 2022 issue.
