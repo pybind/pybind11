@@ -1,13 +1,7 @@
 // Copyright (c) 2024 The pybind Community.
 
 // THIS MUST STAY AT THE TOP!
-#include <pybind11/pybind11.h> // EXCLUSIVELY for PYBIND11_PLATFORM_ABI_ID
-// Potential future direction to maximize reusability:
-// (e.g. for use from SWIG, Cython, PyCLIF, nanobind):
-//     #include <pybind11/compat/platform_abi_id.h>
-// This would only depend on:
-//     1. A C++ compiler, WITHOUT requiring -fexceptions.
-//     2. Python.h
+#include <pybind11/compat/pybind11_platform_abi_id.h>
 
 #include "test_cpp_conduit_traveler_types.h"
 
