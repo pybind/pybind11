@@ -1,5 +1,12 @@
 // Copyright (c) 2024 The pybind Community.
 
+#ifdef __EXCEPTIONS
+#    error This test is meant to be built with C++ Exception Handling disabled.
+// In production situations it is totally fine to build with
+// C++ Exception Handling enabled. Here we just want to ensure that
+// C++ Exception Handling is not required.
+#endif
+
 // THIS MUST STAY AT THE TOP!
 #include <pybind11/compat/pybind11_conduit_v1.h> // VERY light-weight dependency.
 

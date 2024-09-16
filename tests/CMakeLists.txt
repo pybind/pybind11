@@ -493,6 +493,12 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
+if(MSVC)
+  target_compile_options("exo_planet_c_api" PRIVATE /EHs-c-)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
+  target_compile_options("exo_planet_c_api" PRIVATE -fno-exceptions)
+endif()
+
 # Provide nice organisation in IDEs
 source_group(
   TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
