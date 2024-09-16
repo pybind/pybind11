@@ -405,8 +405,9 @@ TEST_SUBMODULE(exceptions, m) {
         .def(py::init<const std::string &>())
         .def_readwrite("a", &CustomData::a);
 
-    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
-    storage.call_once_and_store_result([&]() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object>
+        PythonMyException7_storage;
+    PythonMyException7_storage.call_once_and_store_result([&]() {
         auto mod = py::module_::import("custom_exceptions");
         py::object obj = mod.attr("PythonMyException7");
         return obj;
@@ -418,9 +419,9 @@ TEST_SUBMODULE(exceptions, m) {
                 std::rethrow_exception(p);
             }
         } catch (const MyException7 &e) {
-            auto obj = storage.get_stored();
-            py::object obj2 = obj(e.message);
-            PyErr_SetObject(PyExc_Exception, obj2.ptr());
+            auto exc_type = PythonMyException7_storage.get_stored();
+            py::object exc_inst = exc_type(e.message);
+            PyErr_SetObject(PyExc_Exception, exc_inst.ptr());
         }
     });
 }
