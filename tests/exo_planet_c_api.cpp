@@ -3,13 +3,17 @@
 // In production situations it is totally fine to build with
 // C++ Exception Handling enabled. However, here we want to ensure that
 // C++ Exception Handling is not required.
-#ifdef __cpp_exceptions
+#ifdef __EMSCRIPTEN__
+// Too much trouble making the required cmake changes.
+#else
+#    ifdef __cpp_exceptions
 // https://isocpp.org/std/standing-documents/sd-6-sg10-feature-test-recommendations#__cpp_exceptions
 #    error This test is meant to be built with C++ Exception Handling disabled, but __cpp_exceptions is defined.
-#endif
-#ifndef __EXCEPTIONS
+#    endif
+#    ifdef __EXCEPTIONS
 // https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
 #    error This test is meant to be built with C++ Exception Handling disabled, but __EXCEPTIONS is defined.
+#    endif
 #endif
 
 // THIS MUST STAY AT THE TOP!
