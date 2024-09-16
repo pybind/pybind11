@@ -3,8 +3,8 @@
 // In production situations it is totally fine to build with
 // C++ Exception Handling enabled. However, here we want to ensure that
 // C++ Exception Handling is not required.
-#ifdef __EMSCRIPTEN__
-// Too much trouble making the required cmake changes.
+#if defined(_MSC_VER) || defined(__EMSCRIPTEN__)
+// Too much trouble making the required cmake changes (see PR #5375).
 #else
 #    ifdef __cpp_exceptions
 // https://isocpp.org/std/standing-documents/sd-6-sg10-feature-test-recommendations#__cpp_exceptions
