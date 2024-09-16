@@ -491,13 +491,15 @@ foreach(target ${test_targets})
   if(SKBUILD)
     install(TARGETS ${target} LIBRARY DESTINATION .)
   endif()
-endforeach()
 
-if(MSVC)
-  target_compile_options("exo_planet_c_api" PRIVATE /EHs-c-)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
-  target_compile_options("exo_planet_c_api" PRIVATE -fno-exceptions)
-endif()
+  if("${target}" STREQUAL "exo_planet_c_api")
+    if(MSVC)
+      target_compile_options(${target} PRIVATE /EHs-c-)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang|NVHPC)")
+      target_compile_options(${target} PRIVATE -fno-exceptions)
+    endif()
+  endif()
+endforeach()
 
 # Provide nice organisation in IDEs
 source_group(

@@ -1,10 +1,15 @@
 // Copyright (c) 2024 The pybind Community.
 
-#ifdef __EXCEPTIONS
-#    error This test is meant to be built with C++ Exception Handling disabled.
 // In production situations it is totally fine to build with
-// C++ Exception Handling enabled. Here we just want to ensure that
+// C++ Exception Handling enabled. However, here we want to ensure that
 // C++ Exception Handling is not required.
+#ifdef __cpp_exceptions
+// https://isocpp.org/std/standing-documents/sd-6-sg10-feature-test-recommendations#__cpp_exceptions
+#    error This test is meant to be built with C++ Exception Handling disabled, but __cpp_exceptions is defined.
+#endif
+#ifndef __EXCEPTIONS
+// https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
+#    error This test is meant to be built with C++ Exception Handling disabled, but __EXCEPTIONS is defined.
 #endif
 
 // THIS MUST STAY AT THE TOP!
