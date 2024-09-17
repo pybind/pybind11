@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import pytest
+from custom_exceptions import PythonMyException7
 
 import env
 import pybind11_cross_module_tests as cm
@@ -194,6 +195,10 @@ def test_custom(msg):
         except m.MyException5_1 as err:
             raise RuntimeError("Exception error: caught child from parent") from err
     assert msg(excinfo.value) == "this is a helper-defined translated exception"
+
+    with pytest.raises(PythonMyException7) as excinfo:
+        m.throws7()
+    assert msg(excinfo.value) == "[PythonMyException7]: abc"
 
 
 def test_nested_throws(capture):
