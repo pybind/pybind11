@@ -262,6 +262,7 @@ def test_str(doc):
         m.str_from_std_string_input,
     ],
 )
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_surrogate_pairs_unicode_error(func):
     input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
     with pytest.raises(UnicodeDecodeError):
@@ -420,6 +421,7 @@ def test_accessor_moves():
         pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
