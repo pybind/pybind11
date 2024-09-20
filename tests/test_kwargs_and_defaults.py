@@ -426,3 +426,8 @@ def test_args_refcount():
     assert m.mixed_args_refcount(myval, myval, myval) == (exp3_3, exp3_3, exp3_3)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"
+    
+    assert m.args_kwargs_subclass_function(7, 8, myval, a=1, b=myval) == (
+        (7, 8, myval),
+        {"a": 1, "b": myval},
+    )
