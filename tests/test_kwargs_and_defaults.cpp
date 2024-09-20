@@ -22,18 +22,17 @@ class KWArgsSubclass : public py::kwargs {
     using py::kwargs::kwargs;
 };
 namespace pybind11 {
-    namespace detail {
-        template <>
-        struct handle_type_name<ArgsSubclass> {
-            static constexpr auto name = const_name("*args");
-        };
-        template <>
-        struct handle_type_name<KWArgsSubclass> {
-            static constexpr auto name = const_name("**kwargs");
-        };
-    }
-}
-
+namespace detail {
+template <>
+struct handle_type_name<ArgsSubclass> {
+    static constexpr auto name = const_name("*args");
+};
+template <>
+struct handle_type_name<KWArgsSubclass> {
+    static constexpr auto name = const_name("**kwargs");
+};
+} // namespace detail
+} // namespace pybind11
 
 TEST_SUBMODULE(kwargs_and_defaults, m) {
     auto kw_func
