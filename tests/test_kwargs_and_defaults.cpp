@@ -14,6 +14,22 @@
 
 #include <utility>
 
+// Classes needed for subclass test.
+class ArgsSubclass : public py::args {
+    using py::args::args;
+};
+class KWArgsSubclass : public py::kwargs {
+    using py::kwargs::kwargs;
+};
+template <>
+struct handle_type_name<ArgsSubclass> {
+    static constexpr auto name = const_name("*args");
+};
+template <>
+struct handle_type_name<KWArgsSubclass> {
+    static constexpr auto name = const_name("**kwargs");
+};
+
 TEST_SUBMODULE(kwargs_and_defaults, m) {
     auto kw_func
         = [](int x, int y) { return "x=" + std::to_string(x) + ", y=" + std::to_string(y); };
@@ -324,20 +340,6 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             py::arg("j"));
 
     // Test support for args and kwargs subclasses
-    class ArgsSubclass : public py::args {
-        using py::args::args;
-    };
-    class KWArgsSubclass : public py::kwargs {
-        using py::kwargs::kwargs;
-    };
-    template <>
-    struct handle_type_name<ArgsSubclass> {
-        static constexpr auto name = const_name("*args");
-    };
-    template <>
-    struct handle_type_name<KWArgsSubclass> {
-        static constexpr auto name = const_name("**kwargs");
-    };
     m.def("args_kwargs_subclass_function",
           [](const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
               return py::make_tuple(args, kwargs);
