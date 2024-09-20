@@ -330,6 +330,14 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     class KWArgsSubclass : public py::kwargs {
         using py::kwargs::kwargs;
     };
+    template <>
+    struct handle_type_name<ArgsSubclass> {
+        static constexpr auto name = const_name("*args");
+    };
+    template <>
+    struct handle_type_name<KWArgsSubclass> {
+        static constexpr auto name = const_name("**kwargs");
+    };
     m.def("args_kwargs_subclass_function",
           [](const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
               return py::make_tuple(args, kwargs);
