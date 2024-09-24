@@ -18,7 +18,8 @@ def test_function_signatures(doc):
         doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
     )
     assert (
-        doc(m.args_kwargs_subclass_function) == "args_kwargs_subclass_function(*Args, **KWArgs) -> tuple"
+        doc(m.args_kwargs_subclass_function)
+        == "args_kwargs_subclass_function(*Args, **KWArgs) -> tuple"
     )
     assert (
         doc(m.KWClass.foo0)
@@ -416,7 +417,7 @@ def test_args_refcount():
         {"a": 1, "b": myval},
     )
     assert refcount(myval) == expected
-    
+
     assert m.args_kwargs_subclass_function(7, 8, myval, a=1, b=myval) == (
         (7, 8, myval),
         {"a": 1, "b": myval},
