@@ -25,11 +25,11 @@ namespace pybind11 {
 namespace detail {
 template <>
 struct handle_type_name<ArgsSubclass> {
-    static constexpr auto name = const_name("*args");
+    static constexpr auto name = const_name("*Args");
 };
 template <>
 struct handle_type_name<KWArgsSubclass> {
-    static constexpr auto name = const_name("**kwargs");
+    static constexpr auto name = const_name("**KWArgs");
 };
 } // namespace detail
 } // namespace pybind11
