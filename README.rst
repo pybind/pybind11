@@ -13,6 +13,10 @@
 
 .. start
 
+.. Note::
+
+   This is the pybind11 **smart_holder** branch. Please refer to
+   ``README_smart_holder.rst`` for branch-specific information.
 
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing

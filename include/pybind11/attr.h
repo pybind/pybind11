@@ -331,6 +331,10 @@ struct type_record {
     /// Is the class inheritable from python classes?
     bool is_final : 1;
 
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
+#endif
+
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
         auto *base_info = detail::get_type_info(base, false);
         if (!base_info) {

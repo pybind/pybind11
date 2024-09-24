@@ -76,6 +76,7 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
+    exclude: \.patch?$
 
 # Also code format the docs
 - repo: https://github.com/adamchainz/blacken-docs
@@ -90,6 +91,7 @@ repos:
   rev: "v1.5.5"
   hooks:
   - id: remove-tabs
+    exclude: (^docs/.*|\.patch)?$
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
