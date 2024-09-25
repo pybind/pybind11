@@ -41,7 +41,11 @@
 #    elif PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
-#        define PYBIND11_INTERNALS_VERSION 5
+#        ifdef Py_GIL_DISABLED
+#            define PYBIND11_INTERNALS_VERSION 6
+#        else
+#            define PYBIND11_INTERNALS_VERSION 5
+#        endif
 #    else
 #        define PYBIND11_INTERNALS_VERSION 4
 #    endif
@@ -179,6 +183,7 @@ static_assert(sizeof(instance_map_shard) % 64 == 0,
 struct internals {
 #ifdef Py_GIL_DISABLED
     pymutex mutex;
+    pymutex exception_translator_mutex;
 #endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
@@ -667,6 +672,19 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     auto &internals = get_internals();
     PYBIND11_LOCK_INTERNALS(internals);
     return cb(internals);
+}
+
+template <typename F>
+inline auto with_exception_translators(const F &cb)
+    -> decltype(cb(get_internals().registered_exception_translators,
+                   get_local_internals().registered_exception_translators)) {
+    auto &internals = get_internals();
+#ifdef Py_GIL_DISABLED
+    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+#endif
+    auto &local_internals = get_local_internals();
+    return cb(internals.registered_exception_translators,
+              local_internals.registered_exception_translators);
 }
 
 inline std::uint64_t mix64(std::uint64_t z) {

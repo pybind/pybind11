@@ -1387,7 +1387,17 @@ protected:
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
             }
+
+            PYBIND11_WARNING_PUSH
+#if defined(__GNUC__) && __GNUC__ == 12
+            // When using GCC 12 these warnings are disabled as they trigger
+            // false positive warnings.  Discussed here:
+            // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115824.
+            PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
+            PYBIND11_WARNING_DISABLE_GCC("-Wstringop-overread")
+#endif
             internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
+            PYBIND11_WARNING_POP
         });
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -2915,10 +2925,12 @@ void implicitly_convertible() {
 }
 
 inline void register_exception_translator(ExceptionTranslator &&translator) {
-    detail::with_internals([&](detail::internals &internals) {
-        internals.registered_exception_translators.push_front(
-            std::forward<ExceptionTranslator>(translator));
-    });
+    detail::with_exception_translators(
+        [&](std::forward_list<ExceptionTranslator> &exception_translators,
+            std::forward_list<ExceptionTranslator> &local_exception_translators) {
+            (void) local_exception_translators;
+            exception_translators.push_front(std::forward<ExceptionTranslator>(translator));
+        });
 }
 
 /**
@@ -2928,11 +2940,12 @@ inline void register_exception_translator(ExceptionTranslator &&translator) {
  * the exception.
  */
 inline void register_local_exception_translator(ExceptionTranslator &&translator) {
-    detail::with_internals([&](detail::internals &internals) {
-        (void) internals;
-        detail::get_local_internals().registered_exception_translators.push_front(
-            std::forward<ExceptionTranslator>(translator));
-    });
+    detail::with_exception_translators(
+        [&](std::forward_list<ExceptionTranslator> &exception_translators,
+            std::forward_list<ExceptionTranslator> &local_exception_translators) {
+            (void) exception_translators;
+            local_exception_translators.push_front(std::forward<ExceptionTranslator>(translator));
+        });
 }
 
 /**
