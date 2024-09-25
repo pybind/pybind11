@@ -1570,9 +1570,9 @@ class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
 
     template <typename Arg>
-    using argument_is_args = std::is_same<intrinsic_t<Arg>, args>;
+    using argument_is_args = std::is_base_of<args, intrinsic_t<Arg>>;
     template <typename Arg>
-    using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
+    using argument_is_kwargs = std::is_base_of<kwargs, intrinsic_t<Arg>>;
     // Get kwargs argument position, or -1 if not present:
     static constexpr auto kwargs_pos = constexpr_last<argument_is_kwargs, Args...>();
 
