@@ -68,7 +68,9 @@ if(PYBIND11_INSTALL)
     mock_install ${CMAKE_COMMAND} "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install" -P
                  "${pybind11_BINARY_DIR}/cmake_install.cmake")
 
-  pybind11_add_build_test(installed_function INSTALL)
+  if(NOT "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
+    pybind11_add_build_test(installed_function INSTALL)
+  endif()
   pybind11_add_build_test(installed_target INSTALL)
   if(NOT
      ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
