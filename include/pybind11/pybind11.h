@@ -1651,6 +1651,18 @@ public:
         return *this;
     }
 
+    template <typename Func, typename... Extra>
+    class_ &def_classmethod(const char *name_, Func &&f, const Extra &...extra) {
+        cpp_function cf(std::forward<Func>(f),
+                        name(name_),
+                        is_method(*this),
+                        sibling(getattr(*this, name_, none())),
+                        extra...);
+        auto cf_name = cf.name();
+        attr(std::move(cf_name)) = classmethod(std::move(cf));
+        return *this;
+    }
+
     template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
     class_ &def(const T &op, const Extra &...extra) {
         op.execute(*this, extra...);

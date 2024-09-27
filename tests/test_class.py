@@ -41,6 +41,13 @@ def test_instance_new():
     assert cstats.alive() == 0
 
 
+def test_classmethod(num_instances=10):
+    assert not hasattr(m.NoConstructor, "seq_id")
+    for i in range(num_instances):
+        m.NoConstructor.new_instance_seq_id()
+        assert m.NoConstructor.seq_id == i + 1
+
+
 def test_type():
     assert m.check_type(1) == m.DerivedClass1
     with pytest.raises(RuntimeError) as execinfo:
