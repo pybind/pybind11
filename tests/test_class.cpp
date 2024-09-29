@@ -20,6 +20,7 @@
 #include "local_bindings.h"
 #include "pybind11_tests.h"
 
+#include <memory>
 #include <utility>
 
 PYBIND11_WARNING_DISABLE_MSVC(4324)
@@ -92,8 +93,8 @@ TEST_SUBMODULE(class_, m) {
     // test_inheritance
     class Pet {
     public:
-        Pet(const std::string &name, const std::string &species)
-            : m_name(name), m_species(species) {}
+        Pet(std::string name, std::string species)
+            : m_name(std::move(name)), m_species(std::move(species)) {}
         std::string name() const { return m_name; }
         std::string species() const { return m_species; }
 

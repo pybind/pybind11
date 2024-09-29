@@ -13,6 +13,7 @@
 #include "pybind11_tests.h"
 
 #include <thread>
+#include <utility>
 
 /* This is an example class that we'll want to be able to extend from Python */
 class ExampleVirt {
@@ -357,7 +358,7 @@ TEST_SUBMODULE(virtual_functions, m) {
         };
         std::string v;
         A a;
-        explicit OverrideTest(const std::string &v) : v{v} {}
+        explicit OverrideTest(std::string v) : v{std::move(v)} {}
         OverrideTest() = default;
         OverrideTest(const OverrideTest &) = delete;
         virtual std::string str_value() { return v; }

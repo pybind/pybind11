@@ -65,7 +65,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     struct CustomRepr {
         std::string repr_string;
 
-        explicit CustomRepr(const std::string &repr) : repr_string(repr) {}
+        explicit CustomRepr(std::string repr) : repr_string(std::move(repr)) {}
 
         std::string __repr__() const { return repr_string; }
     };

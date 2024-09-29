@@ -90,14 +90,14 @@ private:
 };
 
 struct PythonCallInDestructor {
-    explicit PythonCallInDestructor(const py::dict &d) : d(d) {}
+    explicit PythonCallInDestructor(py::dict d) : d(std::move(d)) {}
     ~PythonCallInDestructor() { d["good"] = true; }
 
     py::dict d;
 };
 
 struct PythonAlreadySetInDestructor {
-    explicit PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
+    explicit PythonAlreadySetInDestructor(py::str s) : s(std::move(s)) {}
     ~PythonAlreadySetInDestructor() {
         py::dict foo;
         try {
@@ -112,12 +112,12 @@ struct PythonAlreadySetInDestructor {
 };
 
 struct CustomData {
-    explicit CustomData(const std::string &a) : a(a) {}
+    explicit CustomData(std::string a) : a(std::move(a)) {}
     std::string a;
 };
 
 struct MyException7 {
-    explicit MyException7(const CustomData &message) : message(message) {}
+    explicit MyException7(CustomData message) : message(std::move(message)) {}
     CustomData message;
 };
 

@@ -11,6 +11,8 @@
 
 #include "pybind11_tests.h"
 
+#include <utility>
+
 struct Animal {
     // Make this type also a "standard" polymorphic type, to confirm that
     // specializing polymorphic_type_hook using enable_if_t still works
@@ -35,7 +37,7 @@ struct Animal {
     const std::string name;
 
 protected:
-    Animal(const std::string &_name, Kind _kind) : kind(_kind), name(_name) {}
+    Animal(std::string _name, Kind _kind) : kind(_kind), name(std::move(_name)) {}
 };
 
 struct Dog : Animal {
