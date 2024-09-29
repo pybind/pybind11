@@ -1728,7 +1728,11 @@ public:
                       "def_readwrite() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this)),
             fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
-        def_property(name, fget, fset, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
+        def_property(name,
+                     fget,
+                     fset,
+                     return_value_policy::reference_internal,
+                     std::forward<Extra>(extra)...);
         return *this;
     }
 
@@ -1737,7 +1741,8 @@ public:
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readonly() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this));
-        def_property_readonly(name, fget, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
+        def_property_readonly(
+            name, fget, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
         return *this;
     }
 
@@ -1745,14 +1750,16 @@ public:
     class_ &def_readwrite_static(const char *name, D *pm, Extra &&...extra) {
         cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this)),
             fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
-        def_property_static(name, fget, fset, return_value_policy::reference, std::forward<Extra>(extra)...);
+        def_property_static(
+            name, fget, fset, return_value_policy::reference, std::forward<Extra>(extra)...);
         return *this;
     }
 
     template <typename D, typename... Extra>
     class_ &def_readonly_static(const char *name, const D *pm, Extra &&...extra) {
         cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this));
-        def_property_readonly_static(name, fget, return_value_policy::reference, std::forward<Extra>(extra)...);
+        def_property_readonly_static(
+            name, fget, return_value_policy::reference, std::forward<Extra>(extra)...);
         return *this;
     }
 
@@ -1767,24 +1774,23 @@ public:
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
-    class_ &
-    def_property_readonly(const char *name, const cpp_function &fget, Extra &&...extra) {
+    class_ &def_property_readonly(const char *name, const cpp_function &fget, Extra &&...extra) {
         return def_property(name, fget, nullptr, std::forward<Extra>(extra)...);
     }
 
     /// Uses return_value_policy::reference by default
     template <typename Getter, typename... Extra>
-    class_ &
-    def_property_readonly_static(const char *name, const Getter &fget, Extra &&...extra) {
-        return def_property_readonly_static(
-            name, cpp_function(fget), return_value_policy::reference, std::forward<Extra>(extra)...);
+    class_ &def_property_readonly_static(const char *name, const Getter &fget, Extra &&...extra) {
+        return def_property_readonly_static(name,
+                                            cpp_function(fget),
+                                            return_value_policy::reference,
+                                            std::forward<Extra>(extra)...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
-    class_ &def_property_readonly_static(const char *name,
-                                         const cpp_function &fget,
-                                         Extra &&...extra) {
+    class_ &
+    def_property_readonly_static(const char *name, const cpp_function &fget, Extra &&...extra) {
         return def_property_static(name, fget, nullptr, std::forward<Extra>(extra)...);
     }
 
@@ -1792,8 +1798,10 @@ public:
     template <typename Getter, typename Setter, typename... Extra>
     class_ &
     def_property(const char *name, const Getter &fget, const Setter &fset, Extra &&...extra) {
-        return def_property(
-            name, fget, cpp_function(method_adaptor<type>(fset), is_setter()), std::forward<Extra>(extra)...);
+        return def_property(name,
+                            fget,
+                            cpp_function(method_adaptor<type>(fset), is_setter()),
+                            std::forward<Extra>(extra)...);
     }
     template <typename Getter, typename... Extra>
     class_ &def_property(const char *name,
@@ -1813,7 +1821,8 @@ public:
                          const cpp_function &fget,
                          const cpp_function &fset,
                          Extra &&...extra) {
-        return def_property_static(name, fget, fset, is_method(*this), std::forward<Extra>(extra)...);
+        return def_property_static(
+            name, fget, fset, is_method(*this), std::forward<Extra>(extra)...);
     }
 
     /// Uses return_value_policy::reference by default
@@ -1822,8 +1831,11 @@ public:
                                 const Getter &fget,
                                 const cpp_function &fset,
                                 Extra &&...extra) {
-        return def_property_static(
-            name, cpp_function(fget), fset, return_value_policy::reference, std::forward<Extra>(extra)...);
+        return def_property_static(name,
+                                   cpp_function(fget),
+                                   fset,
+                                   return_value_policy::reference,
+                                   std::forward<Extra>(extra)...);
     }
 
     /// Uses cpp_function's return_value_policy by default
