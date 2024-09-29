@@ -399,7 +399,7 @@ protected:
         auto *rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
-        if (sizeof(capture) <= sizeof(rec->data)) {
+        if PYBIND11_IF_CONSTEXPR (sizeof(capture) <= sizeof(rec->data)) {
             /* Without these pragmas, GCC warns that there might not be
                enough space to use the placement new operator. However, the
                'if' statement above ensures that this is the case. */
@@ -417,7 +417,7 @@ protected:
 
             // UB without std::launder, but without breaking ABI and/or
             // a significant refactoring it's "impossible" to solve.
-            if (!std::is_trivially_destructible<capture>::value) {
+            if PYBIND11_IF_CONSTEXPR (!std::is_trivially_destructible<capture>::value) {
                 rec->free_data = [](function_record *r) {
                     auto data = capture::from_data(r->data);
                     (void) data; // suppress "unused variable" warnings
@@ -2189,7 +2189,7 @@ public:
 
         generic_type::initialize(record);
 
-        if (has_alias) {
+        if PYBIND11_IF_CONSTEXPR (has_alias) {
             with_internals([&](internals &internals) {
                 auto &local_internals = get_local_internals();
                 if (record.module_local) {
@@ -2696,7 +2696,8 @@ inline str enum_name(handle arg) {
 struct enum_base {
     enum_base(const handle &base, const handle &parent) : m_base(base), m_parent(parent) {}
 
-    PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
+    template <bool is_arithmetic, bool is_convertible>
+    PYBIND11_NOINLINE void init() {
         m_base.attr("__entries") = dict();
         auto property = handle((PyObject *) &PyProperty_Type);
         auto static_property = handle((PyObject *) get_internals().static_property_type);
@@ -2802,11 +2803,11 @@ struct enum_base {
         arg("other"),                                                                             \
         pos_only())
 
-        if (is_convertible) {
+        if PYBIND11_IF_CONSTEXPR (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
             PYBIND11_ENUM_OP_CONV_LHS("__ne__", b.is_none() || !a.equal(b));
 
-            if (is_arithmetic) {
+            if PYBIND11_IF_CONSTEXPR (is_arithmetic) {
                 PYBIND11_ENUM_OP_CONV("__lt__", a < b);
                 PYBIND11_ENUM_OP_CONV("__gt__", a > b);
                 PYBIND11_ENUM_OP_CONV("__le__", a <= b);
@@ -2827,7 +2828,7 @@ struct enum_base {
             PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
             PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
 
-            if (is_arithmetic) {
+            if PYBIND11_IF_CONSTEXPR (is_arithmetic) {
 #define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
                 PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) < int_(b), PYBIND11_THROW);
                 PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) > int_(b), PYBIND11_THROW);
@@ -2946,7 +2947,7 @@ public:
 
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
-        m_base.init(is_arithmetic, is_convertible);
+        m_base.init<is_arithmetic, is_convertible>();
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
         def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());

@@ -203,7 +203,7 @@ public:
 
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
-        if (!std::is_lvalue_reference<T>::value) {
+        if PYBIND11_IF_CONSTEXPR (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Key>::policy(policy);
         }
         pybind11::set s;
@@ -272,7 +272,7 @@ public:
         dict d;
         return_value_policy policy_key = policy;
         return_value_policy policy_value = policy;
-        if (!std::is_lvalue_reference<T>::value) {
+        if PYBIND11_IF_CONSTEXPR (!std::is_lvalue_reference<T>::value) {
             policy_key = return_value_policy_override<Key>::policy(policy_key);
             policy_value = return_value_policy_override<Value>::policy(policy_value);
         }
@@ -341,7 +341,7 @@ private:
 public:
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
-        if (!std::is_lvalue_reference<T>::value) {
+        if PYBIND11_IF_CONSTEXPR (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Value>::policy(policy);
         }
         list l(src.size());
@@ -534,7 +534,7 @@ struct optional_caster {
         if (!src) {
             return none().release();
         }
-        if (!std::is_lvalue_reference<T>::value) {
+        if PYBIND11_IF_CONSTEXPR (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Value>::policy(policy);
         }
         // NOLINTNEXTLINE(bugprone-unchecked-optional-access)

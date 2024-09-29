@@ -34,6 +34,9 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_WARNING_DISABLE_MSVC(4127)
+#if PYBIND11_HAS_IF_CONSTEXPR
+PYBIND11_WARNING_DISABLE_MSVC(4702)
+#endif
 
 /* A few forward declarations */
 class handle;
@@ -1859,7 +1862,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (sizeof(Unsigned) <= sizeof(unsigned long)) {
+    if PYBIND11_IF_CONSTEXPR (sizeof(Unsigned) <= sizeof(unsigned long)) {
         unsigned long v = PyLong_AsUnsignedLong(o);
         return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
@@ -1876,14 +1879,14 @@ public:
     template <typename T, detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     int_(T value) {
-        if (sizeof(T) <= sizeof(long)) {
-            if (std::is_signed<T>::value) {
+        if PYBIND11_IF_CONSTEXPR (sizeof(T) <= sizeof(long)) {
+            if PYBIND11_IF_CONSTEXPR (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLong((long) value);
             } else {
                 m_ptr = PyLong_FromUnsignedLong((unsigned long) value);
             }
         } else {
-            if (std::is_signed<T>::value) {
+            if PYBIND11_IF_CONSTEXPR (std::is_signed<T>::value) {
                 m_ptr = PyLong_FromLongLong((long long) value);
             } else {
                 m_ptr = PyLong_FromUnsignedLongLong((unsigned long long) value);

@@ -95,6 +95,14 @@
 #    define PYBIND11_HAS_STD_LAUNDER 0
 #endif
 
+#if defined(__cpp_if_constexpr)
+#    define PYBIND11_HAS_IF_CONSTEXPR 1
+#    define PYBIND11_IF_CONSTEXPR constexpr
+#else
+#    define PYBIND11_HAS_IF_CONSTEXPR 0
+#    define PYBIND11_IF_CONSTEXPR
+#endif
+
 #if defined(PYBIND11_CPP20)
 #    define PYBIND11_CONSTINIT constinit
 #    define PYBIND11_DTOR_CONSTEXPR constexpr

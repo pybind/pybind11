@@ -33,6 +33,9 @@ static_assert(EIGEN_VERSION_AT_LEAST(3, 3, 0),
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_WARNING_DISABLE_MSVC(4127)
+#if PYBIND11_HAS_IF_CONSTEXPR
+PYBIND11_WARNING_DISABLE_MSVC(4702)
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -274,10 +277,9 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
         bool writeable = false;
         switch (policy) {
             case return_value_policy::move:
-                if (std::is_const<C>::value) {
+                if PYBIND11_IF_CONSTEXPR (std::is_const<C>::value) {
                     pybind11_fail("Cannot move from a constant reference");
                 }
-
                 src = Helper::alloc(std::move(*src));
 
                 parent_object
@@ -286,13 +288,12 @@ struct type_caster<Type, typename eigen_tensor_helper<Type>::ValidType> {
                 break;
 
             case return_value_policy::take_ownership:
-                if (std::is_const<C>::value) {
+                if PYBIND11_IF_CONSTEXPR (std::is_const<C>::value) {
                     // This cast is ugly, and might be UB in some cases, but we don't have an
                     // alternative here as we must free that memory
                     Helper::free(const_cast<Type *>(src));
                     pybind11_fail("Cannot take ownership of a const reference");
                 }
-
                 parent_object
                     = capsule(src, [](void *ptr) { Helper::free(reinterpret_cast<Type *>(ptr)); });
                 writeable = true;
