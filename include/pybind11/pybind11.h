@@ -110,6 +110,7 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t) {}
     cpp_function(std::nullptr_t, const is_setter &) {}
+    cpp_function(std::nullptr_t, is_setter &&) {}
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
@@ -123,9 +124,9 @@ public:
               typename... Extra,
               typename = detail::enable_if_t<detail::is_lambda<Func>::value>>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(Func &&f, const Extra &...extra) {
+    cpp_function(Func &&f, Extra &&...extra) {
         initialize(
-            std::forward<Func>(f), (detail::function_signature_t<Func> *) nullptr, extra...);
+            std::forward<Func>(f), (detail::function_signature_t<Func> *) nullptr, std::forward<Extra>(extra)...);
     }
 
     /// Construct a cpp_function from a class method (non-const, no ref-qualifier)
