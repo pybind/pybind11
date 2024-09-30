@@ -331,17 +331,17 @@ an invalid state.
 Handling warnings from the Python C API
 =====================================
 
-Where possible, use :ref:`pybind11 warnings <warnings>` instead of calling
-the Python C API directly. The motivation is similar to previously mentioned errors.
-All warnings categories are required to be a subclass of ``PyExc_Warning`` from Python C API.
+Wrappers for handling Python warnings are implemented in ``pybind11/warnings.h``,
+which must be ``#include``ed explicitly (in other words, it is not transitively
+included with ``pybind11/pybind11.h``).
 
-Warnings can be raised with ``warn`` function:
+Warnings can be raised with the ``warn`` function:
 
 .. code-block:: cpp
 
     py::warnings::warn("This is warning!", PyExc_Warning);
 
-    // When calling `stack_level` can be specified as well.
+    // Optionally, `stack_level` can be specified.
     py::warnings::warn("Another one!", PyExc_DeprecationWarning, 3);
 
 New warning types can be registered on the module level with ``new_warning_type``:
@@ -349,8 +349,6 @@ New warning types can be registered on the module level with ``new_warning_type`
 .. code-block:: cpp
 
     py::warnings::new_warning_type(m, "CustomWarning", PyExc_RuntimeWarning);
-
-.. versionadded:: 2.14
 
 Chaining exceptions ('raise from')
 ==================================
