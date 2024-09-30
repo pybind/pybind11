@@ -125,8 +125,9 @@ public:
               typename = detail::enable_if_t<detail::is_lambda<Func>::value>>
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Func &&f, Extra &&...extra) {
-        initialize(
-            std::forward<Func>(f), (detail::function_signature_t<Func> *) nullptr, std::forward<Extra>(extra)...);
+        initialize(std::forward<Func>(f),
+                   (detail::function_signature_t<Func> *) nullptr,
+                   std::forward<Extra>(extra)...);
     }
 
     /// Construct a cpp_function from a class method (non-const, no ref-qualifier)
