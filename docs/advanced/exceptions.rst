@@ -332,8 +332,8 @@ Handling warnings from the Python C API
 =====================================
 
 Wrappers for handling Python warnings are implemented in ``pybind11/warnings.h``,
-which must be ``#include``ed explicitly (in other words, it is not transitively
-included with ``pybind11/pybind11.h``).
+which means that ``#include`` must be added explicitly (in other words, it is not
+transitively included with ``pybind11/pybind11.h``).
 
 Warnings can be raised with the ``warn`` function:
 
