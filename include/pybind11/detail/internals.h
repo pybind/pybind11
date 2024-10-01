@@ -317,10 +317,8 @@ struct type_info {
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
 #    elif defined(_MSC_VER) && defined(_MT)
 #        define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
-#    elif defined(_MSC_VER) && defined(_MD) && (_MSC_VER >= 1900) && (_MSC_VER < 2000)
-#        define PYBIND11_BUILD_ABI "_md_mscver14"
 #    elif defined(_MSC_VER) && defined(_MD)
-#        define PYBIND11_BUILD_ABI "_md_mscver" PYBIND11_TOSTRING(_MSC_VER)
+#        define PYBIND11_BUILD_ABI "_md_mscver" PYBIND11_TOSTRING(((int) (_MSC_VER) / 100))
 #    else
 #        define PYBIND11_BUILD_ABI ""
 #    endif
