@@ -387,6 +387,20 @@ PYBIND11_WARNING_POP
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
 
+#if !defined(GRAALVM_PYTHON)
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            (func)->m_ml->ml_doc = (doc);                                                         \
+        } while (0)
+#else
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) (GraalPyCFunction_GetDoc((PyObject *) (func)))
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            GraalPyCFunction_SetDoc((PyObject *) (func), (doc));                                  \
+        } while (0)
+#endif
+
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
     {                                                                                             \
         const char *compiled_ver                                                                  \

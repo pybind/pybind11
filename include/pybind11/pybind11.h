@@ -633,18 +633,11 @@ protected:
             }
         }
 
-        /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
-#if !defined(GRAALVM_PYTHON)
-        std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
-        func->m_ml->ml_doc
-            = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
-#else
-        std::free(const_cast<char *>(GraalPyCFunction_GetDoc(m_ptr)));
-        GraalPyCFunction_SetDoc(
-            m_ptr, signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str()));
-#endif
+        auto *doc = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+        std::free(const_cast<char *>(PYBIND11_PYCFUNCTION_GET_DOC(func)));
+        PYBIND11_PYCFUNCTION_SET_DOC(func, doc);
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
