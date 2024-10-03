@@ -17,13 +17,13 @@ A deadlock can occur when more than one thread attempts to lock more than one
 mutex, and two of the threads lock two of the mutexes in different orders. For
 example, consider mutexes `mu1` and `mu2`, and threads T1 and T2, executing:
 
-    | T1                  | T2
---- | ------------------- | -------------------
-1   | `mu1.lock()`{.good} | `mu2.lock()`{.good}
-2   | `mu2.lock()`{.bad}  | `mu1.lock()`{.bad}
-3   | `/* work */`        | `/* work */`
-4   | `mu2.unlock()`      | `mu1.unlock()`
-5   | `mu1.unlock()`      | `mu2.unlock()`
+|    | T1                  | T2                 |
+|--- | ------------------- | -------------------|
+|1   | `mu1.lock()`{.good} | `mu2.lock()`{.good}|
+|2   | `mu2.lock()`{.bad}  | `mu1.lock()`{.bad} |
+|3   | `/* work */`        | `/* work */`       |
+|4   | `mu2.unlock()`      | `mu1.unlock()`     |
+|5   | `mu1.unlock()`      | `mu2.unlock()`     |
 
 Now if T1 manages to lock `mu1` and T2 manages to lock `mu2` (as indicated in
 green), then both threads will block while trying to lock the respective other
@@ -37,17 +37,17 @@ point; what matters is only the order of any attempt to *lock* the mutexes. For
 example, the following, more complex series of operations is just as prone to
 deadlock:
 
-    | T1                  | T2
---- | ------------------- | -------------------
-1   | `mu1.lock()`{.good} | `mu1.lock()`{.good}
-2   | waiting for T2      | `mu2.lock()`{.good}
-3   | waiting for T2      | `/* work */`
-3   | waiting for T2      | `mu1.unlock()`
-3   | `mu2.lock()`{.bad}  | `/* work */`
-3   | `/* work */`        | `mu1.lock()`{.bad}
-3   | `/* work */`        | `/* work */`
-4   | `mu2.unlock()`      | `mu1.unlock()`
-5   | `mu1.unlock()`      | `mu2.unlock()`
+|    | T1                  | T2                 |
+|--- | ------------------- | -------------------|
+|1   | `mu1.lock()`{.good} | `mu1.lock()`{.good}|
+|2   | waiting for T2      | `mu2.lock()`{.good}|
+|3   | waiting for T2      | `/* work */`       |
+|3   | waiting for T2      | `mu1.unlock()`     |
+|3   | `mu2.lock()`{.bad}  | `/* work */`       |
+|3   | `/* work */`        | `mu1.lock()`{.bad} |
+|3   | `/* work */`        | `/* work */`       |
+|4   | `mu2.unlock()`      | `mu1.unlock()`     |
+|5   | `mu1.unlock()`      | `mu2.unlock()`     |
 
 When the mutexes involved in a locking sequence are known at compile-time, then
 avoiding deadlocks is &ldquo;merely&rdquo; a matter of arranging the lock
