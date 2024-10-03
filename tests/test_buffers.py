@@ -70,7 +70,6 @@ def test_format_descriptor_format_buffer_info_equiv(cpp_name, np_dtype):
             assert not np_array_is_matching
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_from_python():
     with pytest.raises(RuntimeError) as excinfo:
         m.Matrix(np.array([1, 2, 3]))  # trying to assign a 1D array
@@ -83,6 +82,8 @@ def test_from_python():
         for j in range(m4.cols()):
             assert m3[i, j] == m4[i, j]
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
     cstats = ConstructorStats.get(m.Matrix)
     assert cstats.alive() == 1
     del m3, m4
@@ -99,7 +100,6 @@ def test_from_python():
 @pytest.mark.xfail(
     env.PYPY, reason="PyPy 7.3.7 doesn't clear this anymore", strict=False
 )
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_to_python():
     mat = m.Matrix(5, 4)
     assert memoryview(mat).shape == (5, 4)
@@ -120,6 +120,8 @@ def test_to_python():
     mat2[2, 3] = 5
     assert mat2[2, 3] == 5
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
     cstats = ConstructorStats.get(m.Matrix)
     assert cstats.alive() == 1
     del mat

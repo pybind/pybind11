@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import methods_and_attributes as m
 
@@ -19,7 +19,6 @@ NO_DELETER_MSG = (
 )
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_methods_and_attributes():
     instance1 = m.ExampleMandA()
     instance2 = m.ExampleMandA(32)
@@ -68,6 +67,9 @@ def test_methods_and_attributes():
     assert instance1.value == 320
     instance1.value = 100
     assert str(instance1) == "ExampleMandA[value=100]"
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     cstats = ConstructorStats.get(m.ExampleMandA)
     assert cstats.alive() == 2
@@ -296,7 +298,6 @@ def test_property_rvalue_policy():
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_dynamic_attributes():
     instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
@@ -318,6 +319,8 @@ def test_dynamic_attributes():
         instance.__dict__ = []
     assert str(excinfo.value) == "__dict__ must be set to a dictionary, not a 'list'"
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
     cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance

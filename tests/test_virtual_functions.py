@@ -82,14 +82,16 @@ def test_override(capture, msg):
     """
     )
 
-    if not env.GRAALPY:
-        cstats = ConstructorStats.get(m.ExampleVirt)
-        assert cstats.alive() == 3
-        del ex12, ex12p, ex12p2
-        assert cstats.alive() == 0
-        assert cstats.values() == ["10", "11", "17"]
-        assert cstats.copy_constructions == 0
-        assert cstats.move_constructions >= 0
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
+    cstats = ConstructorStats.get(m.ExampleVirt)
+    assert cstats.alive() == 3
+    del ex12, ex12p, ex12p2
+    assert cstats.alive() == 0
+    assert cstats.values() == ["10", "11", "17"]
+    assert cstats.copy_constructions == 0
+    assert cstats.move_constructions >= 0
 
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")

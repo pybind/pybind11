@@ -7,7 +7,7 @@ import exo_planet_pybind11
 import home_planet_very_lonely_traveler
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import cpp_conduit as home_planet
 
 
@@ -21,7 +21,6 @@ def test_premium_traveler_getattr_actually_exists():
     assert t_h.secret_name == "PremiumTraveler GetAttr: secret_name points: 7"
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_call_cpp_conduit_success():
     t_h = home_planet.Traveler("home")
     cap = t_h._pybind11_conduit_v1_(
@@ -29,7 +28,10 @@ def test_call_cpp_conduit_success():
         home_planet.cpp_type_info_capsule_Traveler,
         b"raw_pointer_ephemeral",
     )
-    assert cap.__class__.__name__ == "PyCapsule"
+    assert cap.__class__.__name__ == "PyCapsule" or (
+        # Note: this will become unnecessary in the next GraalPy release
+        env.GRAALPY and cap.__class__.__name__ == "capsule"
+    )
 
 
 def test_call_cpp_conduit_platform_abi_id_mismatch():

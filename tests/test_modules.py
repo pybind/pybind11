@@ -25,7 +25,6 @@ def test_nested_modules():
     assert ms.submodule_func() == "submodule_func()"
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_reference_internal():
     b = ms.B()
     assert str(b.get_a1()) == "A[1]"
@@ -39,6 +38,9 @@ def test_reference_internal():
     assert str(b.a1) == "A[42]"
     assert str(b.get_a2()) == "A[43]"
     assert str(b.a2) == "A[43]"
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     astats, bstats = ConstructorStats.get(ms.A), ConstructorStats.get(ms.B)
     assert astats.alive() == 2
