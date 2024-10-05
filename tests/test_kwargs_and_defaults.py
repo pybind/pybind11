@@ -22,6 +22,10 @@ def test_function_signatures(doc):
         == "args_kwargs_subclass_function(*Args, **KWArgs) -> tuple"
     )
     assert (
+        doc(m.args_kwargs_subclass_function_with_pointer_arg)
+        == "args_kwargs_subclass_function_with_pointer_arg(arg0: NotArgsOrKWArgsClass, *Args, **KWArgs) -> tuple"
+    )
+    assert (
         doc(m.KWClass.foo0)
         == "foo0(self: m.kwargs_and_defaults.KWClass, arg0: int, arg1: float) -> None"
     )
@@ -103,6 +107,7 @@ def test_arg_and_kwargs():
     kwargs = {"arg3": "a3", "arg4": 4}
     assert m.args_kwargs_function(*args, **kwargs) == (args, kwargs)
     assert m.args_kwargs_subclass_function(*args, **kwargs) == (args, kwargs)
+    assert m.args_kwargs_subclass_function_with_pointer_arg(10, *args, **kwargs) == (10, args, kwargs)
 
 
 def test_mixed_args_and_kwargs(msg):
@@ -420,6 +425,13 @@ def test_args_refcount():
 
     assert m.args_kwargs_subclass_function(7, 8, myval, a=1, b=myval) == (
         (7, 8, myval),
+        {"a": 1, "b": myval},
+    )
+    assert refcount(myval) == expected
+
+    assert m.args_kwargs_subclass_function_with_pointer_arg(7, 8, myval, a=1, b=myval) == (
+        7,
+        (8, myval),
         {"a": 1, "b": myval},
     )
     assert refcount(myval) == expected

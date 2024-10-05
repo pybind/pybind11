@@ -21,6 +21,33 @@ class ArgsSubclass : public py::args {
 class KWArgsSubclass : public py::kwargs {
     using py::kwargs::kwargs;
 };
+class MoveOrCopyInt {
+public:
+    MoveOrCopyInt() { print_default_created(this); }
+    explicit MoveOrCopyInt(int v) : value{v} { print_created(this, value); }
+    MoveOrCopyInt(MoveOrCopyInt &&m) noexcept {
+        print_move_created(this, m.value);
+        std::swap(value, m.value);
+    }
+    MoveOrCopyInt &operator=(MoveOrCopyInt &&m) noexcept {
+        print_move_assigned(this, m.value);
+        std::swap(value, m.value);
+        return *this;
+    }
+    MoveOrCopyInt(const MoveOrCopyInt &c) {
+        print_copy_created(this, c.value);
+        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
+        value = c.value;
+    }
+    MoveOrCopyInt &operator=(const MoveOrCopyInt &c) {
+        print_copy_assigned(this, c.value);
+        value = c.value;
+        return *this;
+    }
+    ~MoveOrCopyInt() { print_destroyed(this); }
+
+    int value;
+};
 namespace pybind11 {
 namespace detail {
 template <>
@@ -30,6 +57,19 @@ struct handle_type_name<ArgsSubclass> {
 template <>
 struct handle_type_name<KWArgsSubclass> {
     static constexpr auto name = const_name("**KWArgs");
+};
+template <>
+struct type_caster<MoveOrCopyInt> {
+    PYBIND11_TYPE_CASTER(MoveOrCopyInt*, const_name("MoveOrCopyInt"));
+    bool load(handle src, bool) {
+        auto as_class = MoveOrCopyInt(src.cast<int>());
+        value = &as_class;
+        return true;
+    }
+    static handle cast(int v, return_value_policy r, handle p) {
+        auto as_class = MoveOrCopyInt(v);
+        return pybind11::handle(as_class, r, p);
+    }
 };
 } // namespace detail
 } // namespace pybind11
@@ -347,5 +387,11 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("args_kwargs_subclass_function",
           [](const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
               return py::make_tuple(args, kwargs);
+          });
+
+    // Test that support for args and kwargs subclasses skips checking arguments passed in as pointers
+    m.def("args_kwargs_subclass_function_with_pointer_arg",
+          [](MoveOrCopyInt* pointer, const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
+              return py::make_tuple(pointer->value, args, kwargs);
           });
 }
