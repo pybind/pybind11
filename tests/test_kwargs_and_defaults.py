@@ -107,11 +107,7 @@ def test_arg_and_kwargs():
     kwargs = {"arg3": "a3", "arg4": 4}
     assert m.args_kwargs_function(*args, **kwargs) == (args, kwargs)
     assert m.args_kwargs_subclass_function(*args, **kwargs) == (args, kwargs)
-    assert m.args_kwargs_subclass_function_with_pointer_arg(10, *args, **kwargs) == (
-        10,
-        args,
-        kwargs,
-    )
+    assert m.args_kwargs_subclass_function_with_pointer_arg(10, *args, **kwargs) == (10, args, kwargs)
 
 
 def test_mixed_args_and_kwargs(msg):
@@ -433,9 +429,7 @@ def test_args_refcount():
     )
     assert refcount(myval) == expected
 
-    assert m.args_kwargs_subclass_function_with_pointer_arg(
-        7, 8, myval, a=1, b=myval
-    ) == (
+    assert m.args_kwargs_subclass_function_with_pointer_arg(7, 8, myval, a=1, b=myval) == (
         7,
         (8, myval),
         {"a": 1, "b": myval},

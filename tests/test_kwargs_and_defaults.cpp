@@ -60,7 +60,7 @@ struct handle_type_name<KWArgsSubclass> {
 };
 template <>
 struct type_caster<MoveOrCopyInt> {
-    PYBIND11_TYPE_CASTER(MoveOrCopyInt *, const_name("MoveOrCopyInt"));
+    PYBIND11_TYPE_CASTER(MoveOrCopyInt*, const_name("MoveOrCopyInt"));
     bool load(handle src, bool) {
         auto as_class = MoveOrCopyInt(src.cast<int>());
         value = &as_class;
@@ -389,10 +389,9 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
               return py::make_tuple(args, kwargs);
           });
 
-    // Test that support for args and kwargs subclasses skips checking arguments passed in as
-    // pointers
+    // Test that support for args and kwargs subclasses skips checking arguments passed in as pointers
     m.def("args_kwargs_subclass_function_with_pointer_arg",
-          [](MoveOrCopyInt *pointer, const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
+          [](MoveOrCopyInt* pointer, const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
               return py::make_tuple(pointer->value, args, kwargs);
           });
 }
