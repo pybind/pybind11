@@ -310,6 +310,11 @@ def test_map_delitem():
         del mm["a_long_key"]
     assert "a_long_key" in str(excinfo.value)
 
+    k = "".join(map(str, range(1000)))
+    with pytest.raises(KeyError) as excinfo:
+        del mm[k]
+    assert (k[:80] + "...") in str(excinfo.value)
+
     um = m.UnorderedMapStringDouble()
     um["ua"] = 1.1
     um["ub"] = 2.6

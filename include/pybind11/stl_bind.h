@@ -694,6 +694,26 @@ struct ItemsViewImpl : public detail::items_view {
     Map &map;
 };
 
+template <typename KeyType>
+std::string format_message_key_error(const KeyType &k) {
+    std::string message;
+    try {
+        message = str(cast(k));
+    } catch (const std::exception &) {
+        try {
+            message = repr(cast(k));
+        } catch (const std::exception &) {
+            // Leave the message empty.
+        }
+    }
+    const size_t max_length = 80;
+    if (message.length() > max_length) {
+        message.resize(max_length);
+        return message + "...";
+    }
+    return message;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
@@ -785,7 +805,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m, const KeyType &k) -> MappedType & {
             auto it = m.find(k);
             if (it == m.end()) {
-                throw key_error(str(cast(k)).cast<std::string>());
+                throw key_error(detail::format_message_key_error(k));
             }
             return it->second;
         },
@@ -808,7 +828,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     cl.def("__delitem__", [](Map &m, const KeyType &k) {
         auto it = m.find(k);
         if (it == m.end()) {
-            throw key_error(str(cast(k)).cast<std::string>());
+            throw key_error(detail::format_message_key_error(k));
         }
         m.erase(it);
     });
