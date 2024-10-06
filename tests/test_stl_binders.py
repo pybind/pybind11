@@ -302,6 +302,14 @@ def test_map_delitem():
     assert list(mm) == ["b"]
     assert list(mm.items()) == [("b", 2.5)]
 
+    with pytest.raises(KeyError) as excinfo:
+        _ = mm["a_long_key"]
+    assert "a_long_key" in excinfo.value
+
+    with pytest.raises(KeyError) as excinfo:
+        del mm["a_long_key"]
+    assert "a_long_key" in excinfo.value
+
     um = m.UnorderedMapStringDouble()
     um["ua"] = 1.1
     um["ub"] = 2.6
