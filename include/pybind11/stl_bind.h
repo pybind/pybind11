@@ -785,7 +785,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m, const KeyType &k) -> MappedType & {
             auto it = m.find(k);
             if (it == m.end()) {
-                throw key_error();
+                throw key_error(str(cast(k)).cast<std::string>());
             }
             return it->second;
         },
@@ -808,7 +808,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     cl.def("__delitem__", [](Map &m, const KeyType &k) {
         auto it = m.find(k);
         if (it == m.end()) {
-            throw key_error();
+            throw key_error(str(cast(k)).cast<std::string>());
         }
         m.erase(it);
     });
