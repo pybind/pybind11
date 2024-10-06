@@ -703,7 +703,7 @@ std::string format_message_key_error(const KeyType &k) {
         try {
             message = repr(cast(k));
         } catch (const std::exception &) {
-            // Leave the message empty.
+            return message;
         }
     }
     const size_t max_length = 80;
