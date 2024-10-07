@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
 
@@ -362,6 +363,7 @@ def test_function_with_string_and_vector_string_arg():
     assert m.func_with_string_or_vector_string_arg_overload("A") == 3
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_stl_ownership():
     cstats = ConstructorStats.get(m.Placeholder)
     assert cstats.alive() == 0
