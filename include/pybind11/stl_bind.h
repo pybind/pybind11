@@ -694,13 +694,9 @@ struct ItemsViewImpl : public detail::items_view {
     Map &map;
 };
 
-template <typename KeyType>
-str format_message_key_error(const KeyType &key) {
+inline str format_message_key_error_key_object(handle py_key) {
     str message = "pybind11::bind_map key";
-    object py_key;
-    try {
-        py_key = cast(key);
-    } catch (const std::exception &) {
+    if (!py_key) {
         return message;
     }
     try {
@@ -718,6 +714,18 @@ str format_message_key_error(const KeyType &key) {
                + str(message[slice(-half_max_length, static_cast<ssize_t>(len(message)), 1)]);
     }
     return message;
+}
+
+template <typename KeyType>
+str format_message_key_error(const KeyType &key) {
+    object py_key;
+    try {
+        py_key = cast(key);
+    } catch (const std::exception &) {
+        do { // Trick to avoid "empty catch" warning/error.
+        } while (false);
+    }
+    return format_message_key_error_key_object(py_key);
 }
 
 PYBIND11_NAMESPACE_END(detail)
