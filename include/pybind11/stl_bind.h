@@ -712,9 +712,10 @@ str format_message_key_error(const KeyType &key) {
             return message;
         }
     }
-    const size_t max_length = 80;
+    const size_t max_length = 200;
     if (len(message) > max_length) {
-        return str(message[slice(0, max_length, 1)]) + str("...");
+        return str(message[slice(0, max_length / 2, 1)]) + str("...")
+               + str(message[slice(len(message) - max_length / 2, len(message), 1)]);
     }
     return message;
 }
