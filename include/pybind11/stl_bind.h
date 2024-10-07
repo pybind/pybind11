@@ -695,21 +695,26 @@ struct ItemsViewImpl : public detail::items_view {
 };
 
 template <typename KeyType>
-std::string format_message_key_error(const KeyType &k) {
-    std::string message;
+str format_message_key_error(const KeyType &key) {
+    str message = "pybind11::bind_map key";
+    object py_key;
     try {
-        message = str(cast(k));
+        py_key = cast(key);
+    } catch (const std::exception &) {
+        return message;
+    }
+    try {
+        message = str(py_key);
     } catch (const std::exception &) {
         try {
-            message = repr(cast(k));
+            message = repr(py_key);
         } catch (const std::exception &) {
             return message;
         }
     }
     const size_t max_length = 80;
-    if (message.length() > max_length) {
-        message.resize(max_length);
-        return message + "...";
+    if (len(message) > max_length) {
+        return str(message[slice(0, max_length, 1)]) + str("...");
     }
     return message;
 }
@@ -805,7 +810,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m, const KeyType &k) -> MappedType & {
             auto it = m.find(k);
             if (it == m.end()) {
-                throw key_error(detail::format_message_key_error(k));
+                set_error(PyExc_KeyError, detail::format_message_key_error(k));
+                throw error_already_set();
             }
             return it->second;
         },
@@ -828,7 +834,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     cl.def("__delitem__", [](Map &m, const KeyType &k) {
         auto it = m.find(k);
         if (it == m.end()) {
-            throw key_error(detail::format_message_key_error(k));
+            set_error(PyExc_KeyError, detail::format_message_key_error(k));
+            throw error_already_set();
         }
         m.erase(it);
     });
