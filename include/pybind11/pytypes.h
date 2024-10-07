@@ -643,7 +643,7 @@ struct error_fetch_and_normalize {
 
         bool have_trace = false;
         if (m_trace) {
-#if !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
             auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
 
             // Get the deepest trace possible.
@@ -1356,7 +1356,7 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #    define PYBIND11_STR_CHECK_FUN PyUnicode_Check
 #endif
 
-inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
+inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
 
 class kwargs_proxy : public handle {
 public:

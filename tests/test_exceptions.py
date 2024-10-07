@@ -201,6 +201,7 @@ def test_custom(msg):
     assert msg(excinfo.value) == "[PythonMyException7]: abc"
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_nested_throws(capture):
     """Tests nested (e.g. C++ -> Python -> C++) exception handling"""
 
@@ -369,6 +370,7 @@ def _test_flaky_exception_failure_point_init_py_3_12():
     "env.PYPY and sys.version_info[:2] < (3, 12)",
     reason="PyErr_NormalizeException Segmentation fault",
 )
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_flaky_exception_failure_point_init():
     if sys.version_info[:2] < (3, 12):
         _test_flaky_exception_failure_point_init_before_py_3_12()
@@ -376,6 +378,7 @@ def test_flaky_exception_failure_point_init():
         _test_flaky_exception_failure_point_init_py_3_12()
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_flaky_exception_failure_point_str():
     what, py_err_set_after_what = m.error_already_set_what(
         FlakyException, ("failure_point_str",)
