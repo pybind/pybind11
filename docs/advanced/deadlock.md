@@ -1,3 +1,5 @@
+.. _deadlock-reference-label:
+
 # Double locking, deadlocking, GIL
 
 [TOC]
