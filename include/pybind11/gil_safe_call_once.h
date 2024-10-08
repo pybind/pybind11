@@ -46,6 +46,8 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 // get processed only when it is the main thread's turn again and it is running
 // normal Python code. However, this will be unnoticeable for quick call-once
 // functions, which is usually the case.
+//
+// For in-depth background, see docs/advanced/deadlock.md
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
