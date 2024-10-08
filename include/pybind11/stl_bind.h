@@ -708,10 +708,10 @@ inline str format_message_key_error_key_object(handle py_key) {
             return message;
         }
     }
-    const ssize_t half_max_length = 100;
-    if (len(message) > half_max_length * 2) {
-        return str(message[slice(0, half_max_length, 1)]) + str("...")
-               + str(message[slice(-half_max_length, static_cast<ssize_t>(len(message)), 1)]);
+    const ssize_t cut_length = 100;
+    if (len(message) > 2 * cut_length + 3) {
+        return str(message[slice(0, cut_length, 1)]) + str("✄✄✄")
+               + str(message[slice(-cut_length, static_cast<ssize_t>(len(message)), 1)]);
     }
     return message;
 }
