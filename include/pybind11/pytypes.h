@@ -1470,27 +1470,26 @@ public:
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
 
     iterator &operator++() {
+        init();
         advance();
         return *this;
     }
 
     iterator operator++(int) {
         auto rv = *this;
+        init();
         advance();
         return rv;
     }
 
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference operator*() const {
-        if (m_ptr && !value.ptr()) {
-            auto &self = const_cast<iterator &>(*this);
-            self.advance();
-        }
+        init();
         return value;
     }
 
     pointer operator->() const {
-        operator*();
+        init();
         return &value;
     }
 
@@ -1513,6 +1512,13 @@ public:
     friend bool operator!=(const iterator &a, const iterator &b) { return a->ptr() != b->ptr(); }
 
 private:
+    void init() const {
+        if (m_ptr && !value.ptr()) {
+            auto &self = const_cast<iterator &>(*this);
+            self.advance();
+        }
+    }
+
     void advance() {
         value = reinterpret_steal<object>(PyIter_Next(m_ptr));
         if (value.ptr() == nullptr && PyErr_Occurred()) {

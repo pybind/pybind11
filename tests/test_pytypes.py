@@ -54,6 +54,12 @@ def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
 
 
+def test_get_second_item_from_iterable():
+    lins = [1, 2]
+    i = m.get_second_item_from_iterable(lins)
+    assert i == 2
+
+
 def test_float(doc):
     assert doc(m.get_float) == "get_float() -> float"
 
