@@ -11,7 +11,9 @@ if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
     pytest.skip("smart_holder not available.", allow_module_level=True)
 
 
-@pytest.mark.xfail("env.PYPY", reason="gc after `del field` is apparently deferred")
+@pytest.mark.skipif(
+    "env.PYPY or env.GRAALPY", reason="gc after `del field` is apparently deferred"
+)
 @pytest.mark.parametrize("m_attr", ["m_valu_readonly", "m_valu_readwrite"])
 def test_valu_getter(m_attr):
     # Reduced from PyCLIF test:
