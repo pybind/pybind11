@@ -299,7 +299,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
 #endif
 
-#if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
@@ -386,6 +386,20 @@ PYBIND11_WARNING_POP
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
+
+#if !defined(GRAALVM_PYTHON)
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            (func)->m_ml->ml_doc = (doc);                                                         \
+        } while (0)
+#else
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) (GraalPyCFunction_GetDoc((PyObject *) (func)))
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            GraalPyCFunction_SetDoc((PyObject *) (func), (doc));                                  \
+        } while (0)
+#endif
 
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
     {                                                                                             \

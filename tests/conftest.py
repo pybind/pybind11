@@ -28,8 +28,8 @@ except Exception:
 
 @pytest.fixture(scope="session", autouse=True)
 def use_multiprocessing_forkserver_on_linux():
-    if sys.platform != "linux":
-        # The default on Windows and macOS is "spawn": If it's not broken, don't fix it.
+    if sys.platform != "linux" or sys.implementation.name == "graalpy":
+        # The default on Windows, macOS and GraalPy is "spawn": If it's not broken, don't fix it.
         return
 
     # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592

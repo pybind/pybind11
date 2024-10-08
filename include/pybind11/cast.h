@@ -343,7 +343,7 @@ public:
 #else
             // Alternate approach for CPython: this does the same as the above, but optimized
             // using the CPython API so as to avoid an unneeded attribute lookup.
-            else if (auto *tp_as_number = src.ptr()->ob_type->tp_as_number) {
+            else if (auto *tp_as_number = Py_TYPE(src.ptr())->tp_as_number) {
                 if (PYBIND11_NB_BOOL(tp_as_number)) {
                     res = (*PYBIND11_NB_BOOL(tp_as_number))(src.ptr());
                 }

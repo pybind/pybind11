@@ -4,6 +4,8 @@ import sys
 
 import pytest
 
+import env  # noqa: F401
+
 np = pytest.importorskip("numpy")
 eigen_tensor = pytest.importorskip("pybind11_tests.eigen_tensor")
 submodules = [eigen_tensor.c_style, eigen_tensor.f_style]
@@ -61,6 +63,7 @@ def assert_equal_tensor_ref(mat, writeable=True, modified=None):
 
 @pytest.mark.parametrize("m", submodules)
 @pytest.mark.parametrize("member_name", ["member", "member_view"])
+@pytest.mark.skipif("env.GRAALPY", reason="Different refcounting mechanism")
 def test_reference_internal(m, member_name):
     if not hasattr(sys, "getrefcount"):
         pytest.skip("No reference counting")

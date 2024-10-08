@@ -454,7 +454,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 inline object get_python_state_dict() {
     object state_dict;
-#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION)
+#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
 #    if PY_VERSION_HEX < 0x03090000
@@ -727,7 +727,8 @@ const char *c_str(Args &&...args) {
 }
 
 inline const char *get_function_record_capsule_name() {
-#if PYBIND11_INTERNALS_VERSION > 4
+    // On GraalPy, pointer equality of the names is currently not guaranteed
+#if PYBIND11_INTERNALS_VERSION > 4 && !defined(GRAALVM_PYTHON)
     return get_internals().function_record_capsule_name.c_str();
 #else
     return nullptr;

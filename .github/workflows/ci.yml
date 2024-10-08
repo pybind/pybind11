@@ -39,6 +39,7 @@ jobs:
         - 'pypy-3.8'
         - 'pypy-3.9'
         - 'pypy-3.10'
+        - 'graalpy-24.1'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -67,6 +68,10 @@ jobs:
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
+        exclude:
+          # The setup-python action currently doesn't have graalpy for windows
+          - python: 'graalpy-24.1'
+            runs-on: 'windows-2022'
 
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
