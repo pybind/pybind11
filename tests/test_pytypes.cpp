@@ -150,6 +150,18 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
     m.def("get_iterable", [] { return py::iterable(); });
+    m.def("get_first_item_from_iterable", [](const py::iterable &iter) {
+        // This tests the postfix increment operator
+        py::iterator it = iter.begin();
+        py::iterator it2 = it++;
+        return *it2;
+    });
+    m.def("get_second_item_from_iterable", [](const py::iterable &iter) {
+        // This tests the prefix increment operator
+        py::iterator it = iter.begin();
+        ++it;
+        return *it;
+    });
     m.def("get_frozenset_from_iterable",
           [](const py::iterable &iter) { return py::frozenset(iter); });
     m.def("get_list_from_iterable", [](const py::iterable &iter) { return py::list(iter); });
