@@ -212,10 +212,10 @@ def test_multiple_registered_instances_for_same_pointee_recursive():
             del obj_next
             assert obj.history == "PySft"
         del obj0
-        if not env.PYPY:
+        if not env.PYPY and not env.GRAALPY:
             assert obj0_wr() is not None
         del obj  # This releases the chain recursively.
-        if not env.PYPY:
+        if not env.PYPY and not env.GRAALPY:
             assert obj0_wr() is None
         break  # Comment out for manual leak checking (use `top` command).
 

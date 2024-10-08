@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 import pybind11_tests.class_sh_trampoline_shared_ptr_cpp_arg as m
 
 if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
     pytest.skip("smart_holder not available.", allow_module_level=True)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_cpp_arg():
     import weakref
 
@@ -32,6 +34,7 @@ def test_shared_ptr_cpp_arg():
     assert tester.get_object() is objref()
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_cpp_prop():
     class PyChild(m.SpBase):
         def is_base_used(self):
@@ -50,6 +53,7 @@ def test_shared_ptr_cpp_prop():
     assert tester.obj.has_python_instance() is True
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_arg_identity():
     import weakref
 
@@ -68,6 +72,7 @@ def test_shared_ptr_arg_identity():
     assert tester.has_python_instance() is False
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_alias_nonpython():
     tester = m.SpBaseTester()
 
@@ -110,6 +115,7 @@ def test_shared_ptr_alias_nonpython():
     assert new_tester.has_python_instance() is False
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_goaway():
     import weakref
 
