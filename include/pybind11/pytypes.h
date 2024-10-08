@@ -1476,8 +1476,12 @@ public:
     }
 
     iterator operator++(int) {
-        auto rv = *this;
+        // Note: We must call init() first so that rv.value is
+        // the same as this->value just before calling advance().
+        // Otherwise, dereferencing the returned iterator may call
+        // advance() again and return the 3rd item instead of the 1st.
         init();
+        auto rv = *this;
         advance();
         return rv;
     }
