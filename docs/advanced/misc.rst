@@ -63,8 +63,10 @@ back into Python.
 
 When writing C++ code that is called from other C++ code, if that code accesses
 Python state, it must explicitly acquire and release the GIL. A separate
-document on :ref:`deadlock-reference-label` elaborates on a particularly subtle
-interaction with C++'s block-scope static variable initializer guard mutexes.
+document on deadlocks [#f8]_ elaborates on a particularly subtle interaction
+with C++'s block-scope static variable initializer guard mutexes.
+
+.. [#f8] deadlock.md
 
 The classes :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be
 used to acquire and release the global interpreter lock in the body of a C++
@@ -145,7 +147,7 @@ following checklist.
   of exceptions.
 
 - C++ static block-scope variable initialization that calls back into Python can
-  cause deadlocks; see :ref:`deadlock-reference-label` for a detailed discussion.
+  cause deadlocks; see [#f8]_ for a detailed discussion.
 
 - You should try running your code in a debug build. That will enable additional assertions
   within pybind11 that will throw exceptions on certain GIL handling errors
