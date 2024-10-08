@@ -66,7 +66,7 @@ Python state, it must explicitly acquire and release the GIL. A separate
 document on deadlocks [#f8]_ elaborates on a particularly subtle interaction
 with C++'s block-scope static variable initializer guard mutexes.
 
-.. [#f8] deadlock.md
+.. [#f8] See docs/advanced/deadlock.md
 
 The classes :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be
 used to acquire and release the global interpreter lock in the body of a C++
