@@ -2024,9 +2024,11 @@ struct enum_base {
                     .format(std::move(type_name), enum_name(arg), int_(arg));
             },
             name("__repr__"),
-            is_method(m_base));
+            is_method(m_base),
+            pos_only());
 
-        m_base.attr("name") = property(cpp_function(&enum_name, name("name"), is_method(m_base)));
+        m_base.attr("name")
+            = property(cpp_function(&enum_name, name("name"), is_method(m_base), pos_only()));
 
         m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
@@ -2034,7 +2036,8 @@ struct enum_base {
                 return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
             name("__str__"),
-            is_method(m_base));
+            is_method(m_base),
+            pos_only());
 
         if (options::show_enum_members_docstring()) {
             m_base.attr("__doc__") = static_property(
@@ -2089,7 +2092,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV(op, expr)                                                           \
     m_base.attr(op) = cpp_function(                                                               \
@@ -2099,7 +2103,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                                       \
     m_base.attr(op) = cpp_function(                                                               \
@@ -2109,7 +2114,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
         if (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
@@ -2129,7 +2135,8 @@ struct enum_base {
                 m_base.attr("__invert__")
                     = cpp_function([](const object &arg) { return ~(int_(arg)); },
                                    name("__invert__"),
-                                   is_method(m_base));
+                                   is_method(m_base),
+                                   pos_only());
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
@@ -2149,11 +2156,15 @@ struct enum_base {
 #undef PYBIND11_ENUM_OP_CONV
 #undef PYBIND11_ENUM_OP_STRICT
 
-        m_base.attr("__getstate__") = cpp_function(
-            [](const object &arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
+        m_base.attr("__getstate__") = cpp_function([](const object &arg) { return int_(arg); },
+                                                   name("__getstate__"),
+                                                   is_method(m_base),
+                                                   pos_only());
 
-        m_base.attr("__hash__") = cpp_function(
-            [](const object &arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
+        m_base.attr("__hash__") = cpp_function([](const object &arg) { return int_(arg); },
+                                               name("__hash__"),
+                                               is_method(m_base),
+                                               pos_only());
     }
 
     PYBIND11_NOINLINE void value(char const *name_, object value, const char *doc = nullptr) {
@@ -2245,9 +2256,9 @@ public:
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
-        def_property_readonly("value", [](Type value) { return (Scalar) value; });
-        def("__int__", [](Type value) { return (Scalar) value; });
-        def("__index__", [](Type value) { return (Scalar) value; });
+        def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());
+        def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
+        def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(
@@ -2256,7 +2267,8 @@ public:
             detail::is_new_style_constructor(),
             pybind11::name("__setstate__"),
             is_method(*this),
-            arg("state"));
+            arg("state"),
+            pos_only());
     }
 
     /// Export enumeration entries into the parent scope
@@ -2435,7 +2447,8 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state & { return s; })
+            .def(
+                "__iter__", [](state &s) -> state & { return s; }, pos_only())
             .def(
                 "__next__",
                 [](state &s) -> ValueType {
