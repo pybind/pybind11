@@ -300,10 +300,12 @@ protected:
         {
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
-                           has_arg_annotations = any_of<is_keyword<Extra>...>::value;
+                           has_arg_annotations = any_of<is_keyword<Extra>...>::value,
+                           has_is_method = any_of<std::is_same<is_method, Extra>...>::value;
             static_assert(has_arg_annotations || !has_kw_only_args,
                           "py::kw_only requires the use of argument annotations");
-            static_assert(has_arg_annotations || !has_pos_only_args,
+            static_assert(has_arg_annotations || !has_pos_only_args
+                              || (has_is_method /* method has at least one argument `self` */),
                           "py::pos_only requires the use of argument annotations (for docstrings "
                           "and aligning the annotations to the argument)");
 
