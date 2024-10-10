@@ -1570,13 +1570,13 @@ struct is_complete : std::false_type {};
 template <typename T>
 struct is_complete<T, decltype(void(sizeof(T)))> : std::true_type {};
 
-template<typename Base, typename Derived>
-constexpr bool is_same_or_base_of(){
+template <typename Base, typename Derived>
+constexpr bool is_same_or_base_of() {
     // See PR #5396 for the discussion that led to this
-    if constexpr (std::is_same<Base, Derived>){
+    if constexpr (std::is_same<Base, Derived>) {
         return true;
     }
-    if constexpr (is_complete<Derived>::value){
+    if constexpr (is_complete<Derived>::value) {
         // Only evaluate is_base_of if Derived is complete.
         // It will raise a compiler error if Derived is not complete.
         return std::is_base_of<Base, Derived>::value;
@@ -1590,9 +1590,13 @@ template <typename... Args>
 class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
     template <typename Arg>
-    using argument_is_args = std::conditional_t<is_same_or_base_of<args, intrinsic_t<Arg>>(), std::true_type, std::false_type>;
+    using argument_is_args = std::conditional_t<is_same_or_base_of<args, intrinsic_t<Arg>>(),
+                                                std::true_type,
+                                                std::false_type>;
     template <typename Arg>
-    using argument_is_kwargs = std::conditional_t<is_same_or_base_of<kwargs, intrinsic_t<Arg>>(), std::true_type, std::false_type>;
+    using argument_is_kwargs = std::conditional_t<is_same_or_base_of<kwargs, intrinsic_t<Arg>>(),
+                                                  std::true_type,
+                                                  std::false_type>;
     // Get kwargs argument position, or -1 if not present:
     static constexpr auto kwargs_pos = constexpr_last<argument_is_kwargs, Args...>();
 
