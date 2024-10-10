@@ -504,4 +504,4 @@ def test_pr4220_tripped_over_this():
 
 
 def test_kw_only():
-    assert (m.KwOnlyMethod().test("x", y="y") == 0)
+    assert m.KwOnlyMethod().test("x", y="y") == 0

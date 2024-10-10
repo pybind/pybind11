@@ -566,8 +566,7 @@ TEST_SUBMODULE(class_, m) {
         py::arg("x"),
         py::kw_only(),
         py::arg("y"),
-        py::is_method(py::none())
-    );
+        py::is_method(py::none()));
 
     m.attr("KwOnlyMethod") = parent_metaclass("MwOnlyMethod", py::make_tuple(), attributes);
 }
