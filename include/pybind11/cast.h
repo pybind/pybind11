@@ -1565,16 +1565,14 @@ struct function_call {
 };
 
 // See PR #5396 for the discussion that led to this
-template<typename Base, typename Derived, typename = void>
+template <typename Base, typename Derived, typename = void>
 struct is_same_or_base_of : std::is_same<Base, Derived> {};
 
 // Only evaluate is_base_of if Derived is complete.
 // It will raise a compiler error if Derived is not complete.
-template<typename Base, typename Derived>
-struct is_same_or_base_of<Base, Derived, decltype(void(sizeof(Derived)))> : any_of<
-    std::is_same<Base, Derived>,
-    std::is_base_of<Base, Derived>
-> {};
+template <typename Base, typename Derived>
+struct is_same_or_base_of<Base, Derived, decltype(void(sizeof(Derived)))>
+    : any_of<std::is_same<Base, Derived>, std::is_base_of<Base, Derived>> {};
 
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
