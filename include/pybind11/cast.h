@@ -1569,7 +1569,7 @@ template <typename Base, typename Derived, typename = void>
 struct is_same_or_base_of : std::is_same<Base, Derived> {};
 
 // Only evaluate is_base_of if Derived is complete.
-// It will raise a compiler error if Derived is not complete.
+// is_base_of raises a compiler error if Derived is incomplete.
 template <typename Base, typename Derived>
 struct is_same_or_base_of<Base, Derived, decltype(void(sizeof(Derived)))>
     : any_of<std::is_same<Base, Derived>, std::is_base_of<Base, Derived>> {};
