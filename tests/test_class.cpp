@@ -554,6 +554,22 @@ TEST_SUBMODULE(class_, m) {
     });
 
     test_class::pr4220_tripped_over_this::bind_empty0(m);
+
+    py::object parent_metaclass = py::reinterpret_borrow<py::object>((PyObject *) &PyType_Type);
+    py::dict attributes;
+
+    attributes["test"] = py::cpp_function(
+        [](py::object self [[maybe_unused]], py::object x, py::object y) {
+            py::print(x, y);
+            return 0;
+        },
+        py::arg("x"),
+        py::kw_only(),
+        py::arg("y"),
+        py::is_method(py::none())
+    );
+
+    m.attr("KwOnlyMethod") = parent_metaclass("MwOnlyMethod", py::make_tuple(), attributes);
 }
 
 template <int N>
