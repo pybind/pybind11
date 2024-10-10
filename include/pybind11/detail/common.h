@@ -324,7 +324,7 @@ PYBIND11_WARNING_POP
 // For libc++, the exceptions should be exported,
 // otherwise, the exception translation would be incorrect.
 #if !defined(PYBIND11_EXPORT_EXCEPTION)
-#    if defined(__apple_build_version__) || defined(_LIBCPP_EXCEPTION)
+#    if defined(_LIBCPP_EXCEPTION)
 #        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
 #    else
 #        define PYBIND11_EXPORT_EXCEPTION
