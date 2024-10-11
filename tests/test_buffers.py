@@ -239,3 +239,40 @@ def test_buffer_exception():
         memoryview(m.BrokenMatrix(1, 1))
     assert isinstance(excinfo.value.__cause__, RuntimeError)
     assert "for context" in str(excinfo.value.__cause__)
+
+
+def test_to_pybuffer():
+    mat = m.Matrix(5, 4)
+
+    info = m.get_py_buffer(mat, m.PyBUF_SIMPLE)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape is None
+    assert info.strides is None
+    assert info.suboffsets is None
+    assert not info.readonly
+    info = m.get_py_buffer(mat, m.PyBUF_ND)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape == [5, 4]
+    assert info.strides is None
+    assert info.suboffsets is None
+    assert not info.readonly
+    info = m.get_py_buffer(mat, m.PyBUF_STRIDES)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape == [5, 4]
+    assert info.strides == [4 * info.itemsize, info.itemsize]
+    assert info.suboffsets is None
+    assert not info.readonly
+    info = m.get_py_buffer(mat, m.PyBUF_INDIRECT)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape == [5, 4]
+    assert info.strides == [4 * info.itemsize, info.itemsize]
+    assert info.suboffsets is None  # Should be filled in here, but we don't use it.
+    assert not info.readonly

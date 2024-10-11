@@ -268,4 +268,52 @@ TEST_SUBMODULE(buffers, m) {
         });
 
     m.def("get_buffer_info", [](const py::buffer &buffer) { return buffer.request(); });
+
+    // Expose Py_buffer for testing.
+    m.attr("PyBUF_SIMPLE") = PyBUF_SIMPLE;
+    m.attr("PyBUF_ND") = PyBUF_ND;
+    m.attr("PyBUF_STRIDES") = PyBUF_STRIDES;
+    m.attr("PyBUF_INDIRECT") = PyBUF_INDIRECT;
+
+    m.def("get_py_buffer", [](const py::object &object, int flags) {
+        Py_buffer buffer;
+        memset(&buffer, 0, sizeof(Py_buffer));
+        if (PyObject_GetBuffer(object.ptr(), &buffer, flags) == -1) {
+            throw py::error_already_set();
+        }
+
+        auto SimpleNamespace = py::module_::import("types").attr("SimpleNamespace");
+        py::object result = SimpleNamespace("len"_a = buffer.len,
+                                            "readonly"_a = buffer.readonly,
+                                            "itemsize"_a = buffer.itemsize,
+                                            "format"_a = buffer.format,
+                                            "ndim"_a = buffer.ndim,
+                                            "shape"_a = py::none(),
+                                            "strides"_a = py::none(),
+                                            "suboffsets"_a = py::none());
+        if (buffer.shape != nullptr) {
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.shape[i]);
+            }
+            py::setattr(result, "shape", l);
+        }
+        if (buffer.strides != nullptr) {
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.strides[i]);
+            }
+            py::setattr(result, "strides", l);
+        }
+        if (buffer.suboffsets != nullptr) {
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.suboffsets[i]);
+            }
+            py::setattr(result, "suboffsets", l);
+        }
+
+        PyBuffer_Release(&buffer);
+        return result;
+    });
 }
