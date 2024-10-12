@@ -62,14 +62,14 @@ class Args : public py::args {};
 } // namespace test_class
 
 static_assert(
-    !py::is_same_or_base_of<py::args,
+    !py::detail::is_same_or_base_of<py::args,
                             test_class::pr5396_forward_declared_class::ForwardClass>::value);
 static_assert(
-    !py::is_same_or_base_of<py::args,
+    !py::detail::is_same_or_base_of<py::args,
                             test_class::pr5396_forward_declared_class::ForwardClassPtr>::value);
-static_assert(py::is_same_or_base_of<py::args, py::args>::value);
+static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value);
 static_assert(
-    py::is_same_or_base_of<py::args, test_class::pr5396_forward_declared_class::Args>::value);
+    py::detail::is_same_or_base_of<py::args, test_class::pr5396_forward_declared_class::Args>::value);
 
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
