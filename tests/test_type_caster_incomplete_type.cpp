@@ -17,9 +17,8 @@ class type_caster<ForwardDeclaredType> {
 public:
     static constexpr auto name = const_name("object");
 
-    static handle cast(ForwardDeclaredType * /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle
+    cast(ForwardDeclaredType * /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return py::none().release(); // TODO: Build and return capsule with src pointer;
     }
 
@@ -43,7 +42,6 @@ private:
 } // namespace pybind11
 
 TEST_SUBMODULE(type_caster_incomplete_type, m) {
-    m.def("rtrn_fwd_decl_type_ptr",
-          []() { return reinterpret_cast<ForwardDeclaredType *>(0); });
+    m.def("rtrn_fwd_decl_type_ptr", []() { return reinterpret_cast<ForwardDeclaredType *>(0); });
     m.def("pass_fwd_decl_type_ptr", [](ForwardDeclaredType *) {});
 }
