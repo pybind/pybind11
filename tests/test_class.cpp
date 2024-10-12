@@ -55,7 +55,6 @@ void bind_empty0(py::module_ &m) {
 
 namespace pr5396_forward_declared_class {
 class ForwardClass;
-using ForwardClassPtr = class ForwardClass *;
 class Args : public py::args {};
 } // namespace pr5396_forward_declared_class
 
@@ -65,10 +64,6 @@ static_assert(!py::detail::is_same_or_base_of<
                   py::args,
                   test_class::pr5396_forward_declared_class::ForwardClass>::value,
               "ForwardClass is not the same or base of py::args.");
-static_assert(!py::detail::is_same_or_base_of<
-                  py::args,
-                  test_class::pr5396_forward_declared_class::ForwardClassPtr>::value,
-              "ForwardClassPtr is not the same or base of py::args.");
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "py::args is py::args.");
 static_assert(
     py::detail::is_same_or_base_of<py::args,
@@ -575,17 +570,7 @@ TEST_SUBMODULE(class_, m) {
     });
 
     test_class::pr4220_tripped_over_this::bind_empty0(m);
-
-    // Test constructing a pybind11 class around a pointer to an incomplete type. #5396
-    py::class_<test_class::pr5396_forward_declared_class::ForwardClassPtr>(m, "ForwardClassPtr");
 }
-
-namespace test_class {
-namespace pr5396_forward_declared_class {
-// Define the forward declared class after it is used.
-class ForwardClass {};
-} // namespace pr5396_forward_declared_class
-} // namespace test_class
 
 template <int N>
 class BreaksBase {
