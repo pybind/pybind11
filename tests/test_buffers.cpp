@@ -268,4 +268,58 @@ TEST_SUBMODULE(buffers, m) {
         });
 
     m.def("get_buffer_info", [](const py::buffer &buffer) { return buffer.request(); });
+
+    // Expose Py_buffer for testing.
+    py::class_<Py_buffer>(m, "Py_buffer")
+        .def_readonly("len", &Py_buffer::len)
+        .def_readonly("readonly", &Py_buffer::readonly)
+        .def_readonly("itemsize", &Py_buffer::itemsize)
+        .def_readonly("format", &Py_buffer::format)
+        .def_readonly("ndim", &Py_buffer::ndim)
+        .def_property_readonly("shape",
+                               [](const Py_buffer &buffer) -> py::object {
+                                   if (buffer.shape == nullptr) {
+                                       return py::none();
+                                   }
+                                   py::list l;
+                                   for (auto i = 0; i < buffer.ndim; i++) {
+                                       l.append(buffer.shape[i]);
+                                   }
+                                   return l;
+                               })
+        .def_property_readonly("strides",
+                               [](const Py_buffer &buffer) -> py::object {
+                                   if (buffer.strides == nullptr) {
+                                       return py::none();
+                                   }
+                                   py::list l;
+                                   for (auto i = 0; i < buffer.ndim; i++) {
+                                       l.append(buffer.strides[i]);
+                                   }
+                                   return l;
+                               })
+        .def_property_readonly("suboffsets", [](const Py_buffer &buffer) -> py::object {
+            if (buffer.suboffsets == nullptr) {
+                return py::none();
+            }
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.suboffsets[i]);
+            }
+            return l;
+        });
+    m.attr("PyBUF_SIMPLE") = PyBUF_SIMPLE;
+    m.attr("PyBUF_ND") = PyBUF_ND;
+    m.attr("PyBUF_STRIDES") = PyBUF_STRIDES;
+    m.attr("PyBUF_INDIRECT") = PyBUF_INDIRECT;
+
+    m.def("get_py_buffer", [](const py::object &object, int flags) {
+        Py_buffer buffer;
+        memset(&buffer, 0, sizeof(Py_buffer));
+        if (PyObject_GetBuffer(object.ptr(), &buffer, flags) == -1) {
+            throw py::error_already_set();
+        }
+        // TODO: This leaks...
+        return buffer;
+    });
 }
