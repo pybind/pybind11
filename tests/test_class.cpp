@@ -52,7 +52,19 @@ void bind_empty0(py::module_ &m) {
 }
 
 } // namespace pr4220_tripped_over_this
+
+namespace pr5396_forward_declared_class {
+    class ForwardClass;
+    typedef class ForwardClass* ForwardClassPtr;
+    class Args : public py::args {};
+}
+
 } // namespace test_class
+
+static_assert(!py::is_same_or_base_of<py::args, test_class::pr5396_forward_declared_class::ForwardClass>::value);
+static_assert(!py::is_same_or_base_of<py::args, test_class::pr5396_forward_declared_class::ForwardClassPtr>::value);
+static_assert(py::is_same_or_base_of<py::args, py::args>::value);
+static_assert(py::is_same_or_base_of<py::args, test_class::pr5396_forward_declared_class::Args>::value);
 
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
@@ -554,6 +566,16 @@ TEST_SUBMODULE(class_, m) {
     });
 
     test_class::pr4220_tripped_over_this::bind_empty0(m);
+    
+    // Test constructing a pybind11 class around a pointer to an incomplete type. #5396
+    py::class_<test_class::pr5396_forward_declared_class::ForwardClassPtr> (m, "ForwardClassPtr");
+}
+
+namespace test_class {
+namespace pr5396_forward_declared_class {
+    // Define the forward declared class after it is used.
+    class ForwardClass{};
+}
 }
 
 template <int N>
