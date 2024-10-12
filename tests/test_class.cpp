@@ -62,18 +62,18 @@ class Args : public py::args {};
 } // namespace test_class
 
 static_assert(!py::detail::is_same_or_base_of<
-              py::args,
-              test_class::pr5396_forward_declared_class::ForwardClass>::value,
+                  py::args,
+                  test_class::pr5396_forward_declared_class::ForwardClass>::value,
               "ForwardClass is not the same or base of py::args.");
 static_assert(!py::detail::is_same_or_base_of<
-              py::args,
-              test_class::pr5396_forward_declared_class::ForwardClassPtr>::value,
+                  py::args,
+                  test_class::pr5396_forward_declared_class::ForwardClassPtr>::value,
               "ForwardClassPtr is not the same or base of py::args.");
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "py::args is py::args.");
 static_assert(
     py::detail::is_same_or_base_of<py::args,
                                    test_class::pr5396_forward_declared_class::Args>::value,
-                                   "Args is subclass of py::args.");
+    "Args is subclass of py::args.");
 
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
