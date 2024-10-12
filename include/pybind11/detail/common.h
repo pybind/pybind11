@@ -164,14 +164,6 @@
 #    endif
 #endif
 
-#if !defined(PYBIND11_EXPORT_EXCEPTION)
-#    if defined(__apple_build_version__)
-#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
-#    else
-#        define PYBIND11_EXPORT_EXCEPTION
-#    endif
-#endif
-
 // For CUDA, GCC7, GCC8:
 // PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
 // When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
@@ -326,6 +318,17 @@ PYBIND11_WARNING_POP
 #if defined(__has_include)
 #    if __has_include(<version>)
 #        include <version>
+#    endif
+#endif
+
+// For libc++, the exceptions should be exported,
+// otherwise, the exception translation would be incorrect.
+// IMPORTANT: This code block must stay BELOW the #include <exception> above (see PR #5390).
+#if !defined(PYBIND11_EXPORT_EXCEPTION)
+#    if defined(_LIBCPP_EXCEPTION)
+#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
+#    else
+#        define PYBIND11_EXPORT_EXCEPTION
 #    endif
 #endif
 

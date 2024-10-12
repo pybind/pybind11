@@ -52,6 +52,11 @@ def test_from_iterable(pytype, from_iter_func):
 
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
+    lins = [1, 2, 3]
+    i = m.get_first_item_from_iterable(lins)
+    assert i == 1
+    i = m.get_second_item_from_iterable(lins)
+    assert i == 2
 
 
 def test_float(doc):
