@@ -55,7 +55,7 @@ void bind_empty0(py::module_ &m) {
 
 namespace pr5396_forward_declared_class {
 class ForwardClass;
-using ForwardClassPtr = class ForwardClass*;
+using ForwardClassPtr = class ForwardClass *;
 class Args : public py::args {};
 } // namespace pr5396_forward_declared_class
 
