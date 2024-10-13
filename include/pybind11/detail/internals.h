@@ -322,7 +322,7 @@ struct type_info {
 #            error "UNEXPECTED MSVC ENVIRONMENT: PLEASE REVISE THIS CODE."
 #        endif
 #    else
-#        define PYBIND11_BUILD_ABI ""
+#        error "INTENTIONAL BREAKAGE"
 #    endif
 #endif
 
