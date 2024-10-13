@@ -82,6 +82,8 @@ def test_from_python():
         for j in range(m4.cols()):
             assert m3[i, j] == m4[i, j]
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
     cstats = ConstructorStats.get(m.Matrix)
     assert cstats.alive() == 1
     del m3, m4
@@ -118,6 +120,8 @@ def test_to_python():
     mat2[2, 3] = 5
     assert mat2[2, 3] == 5
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
     cstats = ConstructorStats.get(m.Matrix)
     assert cstats.alive() == 1
     del mat
