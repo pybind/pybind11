@@ -31,6 +31,9 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_WARNING_DISABLE_MSVC(4127)
+#if PYBIND11_HAS_IF_CONSTEXPR
+PYBIND11_WARNING_DISABLE_MSVC(4702)
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -138,24 +141,25 @@ public:
             return false;
         }
 
-#if !defined(PYPY_VERSION)
-        auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
-#else
-        // In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
-        // while CPython only considers the existence of `nb_index`/`__index__`.
-        auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
-#endif
-
-        if (std::is_floating_point<T>::value) {
+        if PYBIND11_IF_CONSTEXPR (std::is_floating_point<T>::value) {
             if (convert || PyFloat_Check(src.ptr())) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             } else {
                 return false;
             }
-        } else if (PyFloat_Check(src.ptr())
-                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
-            return false;
         } else {
+#if !defined(PYPY_VERSION)
+            auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
+#else
+            // In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
+            // while CPython only considers the existence of `nb_index`/`__index__`.
+            auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
+#endif
+            if (PyFloat_Check(src.ptr())
+                || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
+                return false;
+            }
+
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
 #if defined(PYPY_VERSION)
@@ -171,7 +175,7 @@ public:
                 }
             }
 #endif
-            if (std::is_unsigned<py_type>::value) {
+            if PYBIND11_IF_CONSTEXPR (std::is_unsigned<py_type>::value) {
                 py_value = as_unsigned<py_type>(src_or_index.ptr());
             } else { // signed integer:
                 py_value = sizeof(T) <= sizeof(long)
@@ -405,7 +409,7 @@ struct string_caster {
 
         // For UTF-8 we avoid the need for a temporary `bytes` object by using
         // `PyUnicode_AsUTF8AndSize`.
-        if (UTF_N == 8) {
+        if PYBIND11_IF_CONSTEXPR (UTF_N == 8) {
             Py_ssize_t size = -1;
             const auto *buffer
                 = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
@@ -432,7 +436,7 @@ struct string_caster {
             = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
         // Skip BOM for UTF-16/32
-        if (UTF_N > 8) {
+        if PYBIND11_IF_CONSTEXPR (UTF_N > 8) {
             buffer++;
             length--;
         }
@@ -559,7 +563,7 @@ public:
     }
 
     static handle cast(CharT src, return_value_policy policy, handle parent) {
-        if (std::is_same<char, CharT>::value) {
+        if PYBIND11_IF_CONSTEXPR (std::is_same<char, CharT>::value) {
             handle s = PyUnicode_DecodeLatin1((const char *) &src, 1, nullptr);
             if (!s) {
                 throw error_already_set();
