@@ -1,0 +1,4 @@
+discover:
+  how: fmf
+  dist-git-source: true
+  dist-git-extract: scikit_build_core-*/
