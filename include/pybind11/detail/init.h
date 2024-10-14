@@ -410,7 +410,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
 
     template <typename Class, typename... Extra>
     void execute(Class &cl, const Extra &...extra) && {
-        cl.def("__getstate__", std::move(get));
+        cl.def("__getstate__", std::move(get), pos_only());
 
 #if defined(PYBIND11_CPP14)
         cl.def(
