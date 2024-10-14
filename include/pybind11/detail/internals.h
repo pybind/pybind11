@@ -310,15 +310,21 @@ struct type_info {
 #    endif
 #endif
 
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-/// On MSVC, changes in _MSC_VER may indicate ABI incompatibility (#2898).
 #ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
+#    if defined(__GXX_ABI_VERSION) // Linux/OSX.
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER)
-#        define PYBIND11_BUILD_ABI "_mscver" PYBIND11_TOSTRING(_MSC_VER)
+#    elif defined(_MSC_VER) // See PR #4953.
+#        if defined(_MT)
+#            define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
+#        elif defined(_MD)
+#            define PYBIND11_BUILD_ABI "_md_mscver" PYBIND11_TOSTRING(((int) (_MSC_VER) / 100))
+#        else
+#            error "UNEXPECTED PREPROCESSOR MACROS (MSVC): PLEASE REVISE THIS CODE."
+#        endif
+#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based, outdated).
+#        define PYBIND11_BUILD_ABI "" // This was never properly guarded.
 #    else
-#        define PYBIND11_BUILD_ABI ""
+#        error "UNEXPECTED PREPROCESSOR MACROS: PLEASE REVISE THIS CODE."
 #    endif
 #endif
 
