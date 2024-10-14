@@ -319,10 +319,12 @@ struct type_info {
 #        elif defined(_MD)
 #            define PYBIND11_BUILD_ABI "_md_mscver" PYBIND11_TOSTRING(((int) (_MSC_VER) / 100))
 #        else
-#            error "UNEXPECTED MSVC ENVIRONMENT: PLEASE REVISE THIS CODE."
+#            error "UNEXPECTED PREPROCESSOR MACROS (MSVC): PLEASE REVISE THIS CODE."
 #        endif
+#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based, outdated).
+#        define PYBIND11_BUILD_ABI "" // This was never properly guarded.
 #    else
-#        error "INTENTIONAL BREAKAGE"
+#        error "UNEXPECTED PREPROCESSOR MACROS: PLEASE REVISE THIS CODE."
 #    endif
 #endif
 
