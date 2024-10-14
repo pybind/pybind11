@@ -34,7 +34,7 @@ def gc_tester():
 
 
 # PyPy does not seem to reliably garbage collect.
-@pytest.mark.skipif("env.PYPY")
+@pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_self_cycle(gc_tester):
     obj = m.OwnsPythonObjects()
     obj.value = obj
@@ -42,7 +42,7 @@ def test_self_cycle(gc_tester):
 
 
 # PyPy does not seem to reliably garbage collect.
-@pytest.mark.skipif("env.PYPY")
+@pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_indirect_cycle(gc_tester):
     obj = m.OwnsPythonObjects()
     obj_list = [obj]

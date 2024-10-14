@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import pytest
+from custom_exceptions import PythonMyException7
 
 import env
 import pybind11_cross_module_tests as cm
@@ -75,7 +76,7 @@ def test_cross_module_exceptions(msg):
 
 # TODO: FIXME
 @pytest.mark.xfail(
-    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang')) or sys.platform.startswith('emscripten')",
+    "env.MACOS and env.PYPY",
     raises=RuntimeError,
     reason="See Issue #2847, PR #2999, PR #4324",
 )
@@ -195,7 +196,12 @@ def test_custom(msg):
             raise RuntimeError("Exception error: caught child from parent") from err
     assert msg(excinfo.value) == "this is a helper-defined translated exception"
 
+    with pytest.raises(PythonMyException7) as excinfo:
+        m.throws7()
+    assert msg(excinfo.value) == "[PythonMyException7]: abc"
 
+
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_nested_throws(capture):
     """Tests nested (e.g. C++ -> Python -> C++) exception handling"""
 
@@ -364,6 +370,7 @@ def _test_flaky_exception_failure_point_init_py_3_12():
     "env.PYPY and sys.version_info[:2] < (3, 12)",
     reason="PyErr_NormalizeException Segmentation fault",
 )
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_flaky_exception_failure_point_init():
     if sys.version_info[:2] < (3, 12):
         _test_flaky_exception_failure_point_init_before_py_3_12()
@@ -371,6 +378,7 @@ def test_flaky_exception_failure_point_init():
         _test_flaky_exception_failure_point_init_py_3_12()
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_flaky_exception_failure_point_str():
     what, py_err_set_after_what = m.error_already_set_what(
         FlakyException, ("failure_point_str",)

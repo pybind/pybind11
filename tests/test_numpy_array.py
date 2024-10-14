@@ -242,6 +242,7 @@ def test_wrap():
     assert_references(a1m, a2, a1)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_numpy_view(capture):
     with capture:
         ac = m.ArrayClass()
@@ -465,7 +466,7 @@ def test_array_resize():
     assert b.shape == (8, 8)
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY or env.GRAALPY")
 def test_array_create_and_resize():
     a = m.create_and_resize(2)
     assert a.size == 4

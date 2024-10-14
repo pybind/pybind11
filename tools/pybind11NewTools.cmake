@@ -274,10 +274,6 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
   endif()
 
-  if(MSVC)
-    target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
-  endif()
-
   # -fvisibility=hidden is required to allow multiple modules compiled against
   # different pybind versions to work properly, and for some features (e.g.
   # py::module_local).  We force it on everything inside the `pybind11`

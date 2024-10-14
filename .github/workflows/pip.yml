@@ -91,18 +91,19 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: [packaging]
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pybind11
     permissions:
       id-token: write
       attestations: write
-      contents: read
 
     steps:
     # Downloads all to directories matching the artifact names
     - uses: actions/download-artifact@v4
 
     - name: Generate artifact attestation for sdist and wheel
-      uses: actions/attest-build-provenance@6149ea5740be74af77f260b9db67e633f6b0a9a1 # v1.4.2
+      uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
       with:
         subject-path: "*/pybind11*"
 
@@ -110,8 +111,10 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: standard/
+        attestations: true
 
     - name: Publish global package
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: global/
+        attestations: true

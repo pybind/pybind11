@@ -573,8 +573,7 @@ protected:
                 // chain.
                 chain_start = rec;
                 rec->next = chain;
-                auto rec_capsule
-                    = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
+                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(m_ptr));
                 rec_capsule.set_pointer(unique_rec.release());
                 guarded_strdup.release();
             } else {
@@ -592,7 +591,8 @@ protected:
         int index = 0;
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
-        if (chain && options::show_function_signatures()) {
+        if (chain && options::show_function_signatures()
+            && std::strcmp(rec->name, "_pybind11_conduit_v1_") != 0) {
             // First a generic signature
             signatures += rec->name;
             signatures += "(*args, **kwargs)\n";
@@ -601,7 +601,8 @@ protected:
         // Then specific overload signatures
         bool first_user_def = true;
         for (auto *it = chain_start; it != nullptr; it = it->next) {
-            if (options::show_function_signatures()) {
+            if (options::show_function_signatures()
+                && std::strcmp(rec->name, "_pybind11_conduit_v1_") != 0) {
                 if (index > 0) {
                     signatures += '\n';
                 }
@@ -632,12 +633,11 @@ protected:
             }
         }
 
-        /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
-        std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
-        func->m_ml->ml_doc
-            = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+        auto *doc = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+        std::free(const_cast<char *>(PYBIND11_PYCFUNCTION_GET_DOC(func)));
+        PYBIND11_PYCFUNCTION_SET_DOC(func, doc);
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -1380,7 +1380,17 @@ protected:
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
             }
+
+            PYBIND11_WARNING_PUSH
+#if defined(__GNUC__) && __GNUC__ == 12
+            // When using GCC 12 these warnings are disabled as they trigger
+            // false positive warnings.  Discussed here:
+            // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115824.
+            PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
+            PYBIND11_WARNING_DISABLE_GCC("-Wstringop-overread")
+#endif
             internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
+            PYBIND11_WARNING_POP
         });
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -1601,6 +1611,7 @@ public:
                     = instances[std::type_index(typeid(type))];
             });
         }
+        def("_pybind11_conduit_v1_", cpp_conduit_method);
     }
 
     template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>
@@ -2573,10 +2584,12 @@ void implicitly_convertible() {
 }
 
 inline void register_exception_translator(ExceptionTranslator &&translator) {
-    detail::with_internals([&](detail::internals &internals) {
-        internals.registered_exception_translators.push_front(
-            std::forward<ExceptionTranslator>(translator));
-    });
+    detail::with_exception_translators(
+        [&](std::forward_list<ExceptionTranslator> &exception_translators,
+            std::forward_list<ExceptionTranslator> &local_exception_translators) {
+            (void) local_exception_translators;
+            exception_translators.push_front(std::forward<ExceptionTranslator>(translator));
+        });
 }
 
 /**
@@ -2586,11 +2599,12 @@ inline void register_exception_translator(ExceptionTranslator &&translator) {
  * the exception.
  */
 inline void register_local_exception_translator(ExceptionTranslator &&translator) {
-    detail::with_internals([&](detail::internals &internals) {
-        (void) internals;
-        detail::get_local_internals().registered_exception_translators.push_front(
-            std::forward<ExceptionTranslator>(translator));
-    });
+    detail::with_exception_translators(
+        [&](std::forward_list<ExceptionTranslator> &exception_translators,
+            std::forward_list<ExceptionTranslator> &local_exception_translators) {
+            (void) exception_translators;
+            local_exception_translators.push_front(std::forward<ExceptionTranslator>(translator));
+        });
 }
 
 /**
@@ -2764,8 +2778,8 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
     }
 
     /* Don't call dispatch code if invoked from overridden function.
-       Unfortunately this doesn't work on PyPy. */
-#if !defined(PYPY_VERSION)
+       Unfortunately this doesn't work on PyPy and GraalPy. */
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
 #    if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
