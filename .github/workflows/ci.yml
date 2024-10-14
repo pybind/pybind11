@@ -73,10 +73,11 @@ jobs:
             python: '3.10'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
-          - runs-on: windows-2022
-            python: '3.11'
-            args: >
-              -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
+          # This needs a python built with MTd
+          # - runs-on: windows-2022
+          #   python: '3.11'
+          #   args: >
+          #     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
           - runs-on: windows-2022
             python: '3.12'
             args: >
