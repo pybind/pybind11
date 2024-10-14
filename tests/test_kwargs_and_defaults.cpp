@@ -14,26 +14,6 @@
 
 #include <utility>
 
-// Classes needed for subclass test.
-class ArgsSubclass : public py::args {
-    using py::args::args;
-};
-class KWArgsSubclass : public py::kwargs {
-    using py::kwargs::kwargs;
-};
-namespace pybind11 {
-namespace detail {
-template <>
-struct handle_type_name<ArgsSubclass> {
-    static constexpr auto name = const_name("*Args");
-};
-template <>
-struct handle_type_name<KWArgsSubclass> {
-    static constexpr auto name = const_name("**KWArgs");
-};
-} // namespace detail
-} // namespace pybind11
-
 TEST_SUBMODULE(kwargs_and_defaults, m) {
     auto kw_func
         = [](int x, int y) { return "x=" + std::to_string(x) + ", y=" + std::to_string(y); };
@@ -345,7 +325,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     // Test support for args and kwargs subclasses
     m.def("args_kwargs_subclass_function",
-          [](const ArgsSubclass &args, const KWArgsSubclass &kwargs) {
+          [](const py::Args<std::string> &args, const py::KWArgs<std::string> &kwargs) {
               return py::make_tuple(args, kwargs);
           });
 }

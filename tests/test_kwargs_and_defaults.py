@@ -20,7 +20,7 @@ def test_function_signatures(doc):
     )
     assert (
         doc(m.args_kwargs_subclass_function)
-        == "args_kwargs_subclass_function(*Args, **KWArgs) -> tuple"
+        == "args_kwargs_subclass_function(*args: str, **kwargs: str) -> tuple"
     )
     assert (
         doc(m.KWClass.foo0)
