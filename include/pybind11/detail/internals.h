@@ -329,6 +329,7 @@ struct type_info {
 #            define PYBIND11_BUILD_ABI "_md_mscver22"
 #        else
 #            error "Unknown major version for MSC_VER"
+#        endif
 #    elif defined(_MSC_VER) && defined(_MT)
 #        define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
 #    else
