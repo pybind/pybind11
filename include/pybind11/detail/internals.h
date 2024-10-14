@@ -312,11 +312,22 @@ struct type_info {
 
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
 /// On MSVC, mixing /MT and /MD will result in crashes. See (#4953)
+/// There is no macro for major version for MSVC, so we check for major version
+/// 19, 20, 21, 22 for now as major version 19 is MSVC 2015-2022 and we future
+/// proof for 3 major versions in the future
 #ifndef PYBIND11_BUILD_ABI
 #    if defined(__GXX_ABI_VERSION)
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#    elif defined(_MSC_VER) && defined(_DLL) && defined(_MT) && ((_MSC_VER) / 100 == 19)
+#        define PYBIND11_BUILD_ABI "_md_mscver19"
+#    elif defined(_MSC_VER) && defined(_DLL) && defined(_MT) && ((_MSC_VER) / 100 == 20)
+#        define PYBIND11_BUILD_ABI "_md_mscver20"
+#    elif defined(_MSC_VER) && defined(_DLL) && defined(_MT) && ((_MSC_VER) / 100 == 21)
+#        define PYBIND11_BUILD_ABI "_md_mscver21"
+#    elif defined(_MSC_VER) && defined(_DLL) && defined(_MT) && ((_MSC_VER) / 100 == 22)
+#        define PYBIND11_BUILD_ABI "_md_mscver22"
 #    elif defined(_MSC_VER) && defined(_DLL) && defined(_MT)
-#        define PYBIND11_BUILD_ABI "_md_mscver" PYBIND11_TOSTRING(((int) (_MSC_VER) / 100))
+#        error "Unknown major version for MSC_VER"
 #    elif defined(_MSC_VER) && defined(_MT)
 #        define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
 #    else
