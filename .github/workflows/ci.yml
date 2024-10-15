@@ -65,6 +65,24 @@ jobs:
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
+          # Inject a few runs with different runtime libraries
+          - runs-on: windows-2022
+            python: '3.9'
+            args: >
+              -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+          - runs-on: windows-2022
+            python: '3.10'
+            args: >
+              -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+          # This needs a python built with MTd
+          # - runs-on: windows-2022
+          #   python: '3.11'
+          #   args: >
+          #     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
+          - runs-on: windows-2022
+            python: '3.12'
+            args: >
+              -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
