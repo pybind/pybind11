@@ -314,7 +314,7 @@ struct type_info {
 #    if defined(__GXX_ABI_VERSION) // Linux/OSX.
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
 #    elif defined(_MSC_VER) // See PR #4953.
-#        if defined(_MT) && defined(_DLL)
+#        if defined(_MT)
 #            define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
 #        elif defined(_MD)
 #            if (_MSC_VER) / 100 == 19
