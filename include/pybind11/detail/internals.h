@@ -310,21 +310,25 @@ struct type_info {
 #    endif
 #endif
 
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-/// On MSVC, mixing /MT and /MD will result in crashes. See (#4953)
 #ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
+#    if defined(__GXX_ABI_VERSION) // Linux/OSX.
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER) && defined(_DLL) && defined(_MT)
-#        if ((_MSC_VER) / 100 == 19)
-#            define PYBIND11_BUILD_ABI "_md_mscver19"
+#    elif defined(_MSC_VER) // See PR #4953.
+#        if defined(_MT) && defined(_DLL)
+#            define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
+#        elif defined(_MD)
+#            if (_MSC_VER) / 100 == 19
+#                define PYBIND11_BUILD_ABI "_md_mscver19"
+#            else
+#                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
+#            endif
 #        else
-#            error "Unknown major version for MSC_VER"
+#            error "Unknown combination of MSVC preprocessor macros: PLEASE REVISE THIS CODE."
 #        endif
-#    elif defined(_MSC_VER) && defined(_MT)
-#        define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
+#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based, outdated).
+#        define PYBIND11_BUILD_ABI "" // This was never properly guarded.
 #    else
-#        define PYBIND11_BUILD_ABI ""
+#        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
 #    endif
 #endif
 
