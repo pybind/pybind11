@@ -164,14 +164,6 @@
 #    endif
 #endif
 
-#if !defined(PYBIND11_EXPORT_EXCEPTION)
-#    if defined(__apple_build_version__)
-#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
-#    else
-#        define PYBIND11_EXPORT_EXCEPTION
-#    endif
-#endif
-
 // For CUDA, GCC7, GCC8:
 // PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
 // When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
@@ -299,7 +291,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
 #endif
 
-#if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
@@ -326,6 +318,17 @@ PYBIND11_WARNING_POP
 #if defined(__has_include)
 #    if __has_include(<version>)
 #        include <version>
+#    endif
+#endif
+
+// For libc++, the exceptions should be exported,
+// otherwise, the exception translation would be incorrect.
+// IMPORTANT: This code block must stay BELOW the #include <exception> above (see PR #5390).
+#if !defined(PYBIND11_EXPORT_EXCEPTION)
+#    if defined(_LIBCPP_EXCEPTION)
+#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
+#    else
+#        define PYBIND11_EXPORT_EXCEPTION
 #    endif
 #endif
 
@@ -386,6 +389,20 @@ PYBIND11_WARNING_POP
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
+
+#if !defined(GRAALVM_PYTHON)
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            (func)->m_ml->ml_doc = (doc);                                                         \
+        } while (0)
+#else
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) (GraalPyCFunction_GetDoc((PyObject *) (func)))
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            GraalPyCFunction_SetDoc((PyObject *) (func), (doc));                                  \
+        } while (0)
+#endif
 
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
     {                                                                                             \

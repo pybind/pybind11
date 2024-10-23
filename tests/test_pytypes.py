@@ -52,6 +52,11 @@ def test_from_iterable(pytype, from_iter_func):
 
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
+    lins = [1, 2, 3]
+    i = m.get_first_item_from_iterable(lins)
+    assert i == 1
+    i = m.get_second_item_from_iterable(lins)
+    assert i == 2
 
 
 def test_float(doc):
@@ -262,6 +267,7 @@ def test_str(doc):
         m.str_from_std_string_input,
     ],
 )
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_surrogate_pairs_unicode_error(func):
     input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
     with pytest.raises(UnicodeDecodeError):
@@ -420,6 +426,7 @@ def test_accessor_moves():
         pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
@@ -712,6 +719,7 @@ def test_pass_bytes_or_unicode_to_string_types():
             m.pass_to_pybind11_str(malformed_utf8)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 @pytest.mark.parametrize(
     ("create_weakref", "create_weakref_with_callback"),
     [
@@ -765,7 +773,10 @@ def test_weakref_err(create_weakref, has_callback):
 
     ob = C()
     # Should raise TypeError on CPython
-    with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
+    cm = pytest.raises(TypeError)
+    if env.PYPY or env.GRAALPY:
+        cm = contextlib.nullcontext()
+    with cm:
         _ = create_weakref(ob, callback) if has_callback else create_weakref(ob)
 
 

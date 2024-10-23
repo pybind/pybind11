@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import kwargs_and_defaults as m
 
 
@@ -383,6 +384,7 @@ def test_signatures():
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Different refcounting mechanism")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular
     arguments"""
