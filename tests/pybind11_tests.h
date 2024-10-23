@@ -96,3 +96,23 @@ void ignoreOldStyleInitWarnings(F &&body) {
     )",
              py::dict(py::arg("body") = py::cpp_function(body)));
 }
+
+class TestContext {
+public:
+    TestContext() = delete;
+    TestContext(const TestContext &) = delete;
+    TestContext(TestContext &&) = delete;
+    static TestContext *createNewContextForInit() { return new TestContext("new-context"); }
+
+    pybind11::object contextEnter() {
+        py::object contextObj = py::cast(*this);
+        return contextObj;
+    }
+    void contextExit(const pybind11::object & /*excType*/,
+                     const pybind11::object & /*excVal*/,
+                     const pybind11::object & /*excTb*/) {}
+
+private:
+    TestContext(std::string context) : context(context) {}
+    std::string context;
+};
