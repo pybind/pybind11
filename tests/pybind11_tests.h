@@ -113,6 +113,6 @@ public:
                      const pybind11::object & /*excTb*/) {}
 
 private:
-    TestContext(std::string context) : context(context) {}
+    explicit TestContext(const std::string &context) : context(context) {}
     std::string context;
 };
