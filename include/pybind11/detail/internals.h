@@ -313,14 +313,14 @@ struct type_info {
 #ifndef PYBIND11_BUILD_ABI
 #    if defined(__GXX_ABI_VERSION) // Linux/OSX.
 #        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER) // See PR #4953.
-#        if defined(_MT) && defined(_DLL)
+#    elif defined(_MSC_VER)               // See PR #4953.
+#        if defined(_MT) && defined(_DLL) // Corresponding to CL command line options /MD or /MDd.
 #            if (_MSC_VER) / 100 == 19
 #                define PYBIND11_BUILD_ABI "_md_mscver19"
 #            else
 #                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
 #            endif
-#        elif defined(_MT)
+#        elif defined(_MT) // Corresponding to CL command line options /MT or /MTd.
 #            define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
 #        else
 #            error "Unknown combination of MSVC preprocessor macros: PLEASE REVISE THIS CODE."
