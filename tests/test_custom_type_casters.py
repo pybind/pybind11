@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import custom_type_casters as m
 
 
@@ -94,6 +95,7 @@ def test_noconvert_args(msg):
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_custom_caster_destruction():
     """Tests that returning a pointer to a type that gets converted with a custom type caster gets
     destroyed when the function has py::return_value_policy::take_ownership policy applied.

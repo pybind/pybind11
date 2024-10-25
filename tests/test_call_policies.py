@@ -190,6 +190,7 @@ def test_alive_gc_multi_derived(capture):
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_return_none(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
@@ -217,6 +218,7 @@ def test_return_none(capture):
     assert capture == "Releasing parent."
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_keep_alive_constructor(capture):
     n_inst = ConstructorStats.detail_reg_inst()
 
