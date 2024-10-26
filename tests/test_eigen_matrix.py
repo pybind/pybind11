@@ -395,6 +395,7 @@ def test_eigen_return_references():
     np.testing.assert_array_equal(a_copy5, c5want)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def assert_keeps_alive(cl, method, *args):
     cstats = ConstructorStats.get(cl)
     start_with = cstats.alive()
