@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import operators as m
 
@@ -50,6 +50,9 @@ def test_operator_overloading():
     assert str(v1) == "[1.500000, -0.125000]"
     v2 /= v1
     assert str(v2) == "[2.000000, 8.000000]"
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     cstats = ConstructorStats.get(m.Vector2)
     assert cstats.alive() == 3
