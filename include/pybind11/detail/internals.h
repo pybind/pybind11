@@ -323,7 +323,11 @@ struct type_info {
 #        elif defined(_MT) // Corresponding to CL command line options /MT or /MTd.
 #            define PYBIND11_BUILD_ABI "_mt_mscver" PYBIND11_TOSTRING(_MSC_VER)
 #        else
-#            error "Unknown combination of MSVC preprocessor macros: PLEASE REVISE THIS CODE."
+#            if (_MSC_VER) / 100 == 19
+#                define PYBIND11_BUILD_ABI "_none_mscver19"
+#            else
+#                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
+#            endif
 #        endif
 #    elif defined(__NVCOMPILER)       // NVHPC (PGI-based).
 #        define PYBIND11_BUILD_ABI "" // TODO: What should be here, to prevent UB?
