@@ -325,8 +325,8 @@ struct type_info {
 #        else
 #            error "Unknown combination of MSVC preprocessor macros: PLEASE REVISE THIS CODE."
 #        endif
-#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based, outdated).
-#        define PYBIND11_BUILD_ABI "" // This was never properly guarded.
+#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based).
+#        define PYBIND11_BUILD_ABI "" // TODO: What should be here, to prevent UB?
 #    else
 #        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
 #    endif
