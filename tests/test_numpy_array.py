@@ -650,7 +650,8 @@ def test_pass_array_object_return_sum_str_values_ndarray(func):
         func(np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object))
         == "-3four5.0"
     )
-    assert PyValueHolder.counter == initial_counter
+    if not env.PYPY and not env.GRAALPY:
+        assert PyValueHolder.counter == initial_counter
 
 
 @pytest.mark.parametrize(
@@ -665,7 +666,8 @@ def test_pass_array_object_return_sum_str_values_list(func):
     initial_counter = PyValueHolder.counter
     # Intentionally all temporaries, do not change.
     assert func(WrapWithPyValueHolder(2, "three", -4.0)) == "2three-4.0"
-    assert PyValueHolder.counter == initial_counter
+    if not env.PYPY and not env.GRAALPY:
+        assert PyValueHolder.counter == initial_counter
 
 
 @pytest.mark.parametrize(
@@ -682,7 +684,8 @@ def test_pass_array_object_return_as_list(func):
     assert UnwrapPyValueHolder(
         func(np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object))
     ) == [-1, "two", 3.0]
-    assert PyValueHolder.counter == initial_counter
+    if not env.PYPY and not env.GRAALPY:
+        assert PyValueHolder.counter == initial_counter
 
 
 @pytest.mark.parametrize(
@@ -704,4 +707,5 @@ def test_return_array_object_cpp_loop(func):
     assert arr_from_list.dtype == np.dtype("O")
     assert UnwrapPyValueHolder(arr_from_list) == [6, "seven", -8.0]
     del arr_from_list
-    assert PyValueHolder.counter == initial_counter
+    if not env.PYPY and not env.GRAALPY:
+        assert PyValueHolder.counter == initial_counter
