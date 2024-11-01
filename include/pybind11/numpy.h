@@ -1437,7 +1437,7 @@ struct npy_format_descriptor<T, enable_if_t<is_same_ignoring_cvref<T, PyObject *
 };
 
 template <>
-struct npy_format_descriptor<handle, enable_if_t<sizeof(handle) == sizeof(PyObject*)>> {
+struct npy_format_descriptor<handle, enable_if_t<sizeof(handle) == sizeof(PyObject *)>> {
     static constexpr auto name = const_name("object");
 
     static constexpr int value = npy_api::NPY_OBJECT_;
@@ -1446,7 +1446,7 @@ struct npy_format_descriptor<handle, enable_if_t<sizeof(handle) == sizeof(PyObje
 };
 
 template <>
-struct npy_format_descriptor<object, enable_if_t<sizeof(object) == sizeof(PyObject*)>> {
+struct npy_format_descriptor<object, enable_if_t<sizeof(object) == sizeof(PyObject *)>> {
     static constexpr auto name = const_name("object");
 
     static constexpr int value = npy_api::NPY_OBJECT_;

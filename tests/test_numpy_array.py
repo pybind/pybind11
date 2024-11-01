@@ -618,9 +618,11 @@ def test_round_trip_float():
 #       other ref-count bugs.
 class PyValueHolder:
     counter = 0
+
     def __init__(self, value):
         self.value = value
         PyValueHolder.counter += 1
+
     def __del__(self):
         PyValueHolder.counter -= 1
 
@@ -646,9 +648,7 @@ def test_pass_array_object_return_sum_str_values_ndarray(func):
     for loop in range(100):
         # Intentionally all temporaries, do not change.
         assert (
-            func(
-                np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object)
-            )
+            func(np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object))
             == "-3four5.0"
         )
     assert PyValueHolder.counter == initial_counter
@@ -666,12 +666,7 @@ def test_pass_array_object_return_sum_str_values_list(func):
     initial_counter = PyValueHolder.counter
     for loop in range(100):
         # Intentionally all temporaries, do not change.
-        assert (
-            func(
-                WrapWithPyValueHolder(2, "three", -4.0)
-            )
-            == "2three-4.0"
-        )
+        assert func(WrapWithPyValueHolder(2, "three", -4.0)) == "2three-4.0"
     assert PyValueHolder.counter == initial_counter
 
 
@@ -688,9 +683,7 @@ def test_pass_array_object_return_as_list(func):
     for loop in range(100):
         # Intentionally all temporaries, do not change.
         assert UnwrapPyValueHolder(
-            func(
-                np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object)
-            )
+            func(np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object))
         ) == [-1, "two", 3.0]
     assert PyValueHolder.counter == initial_counter
 

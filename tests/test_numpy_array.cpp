@@ -528,23 +528,21 @@ TEST_SUBMODULE(numpy_array, sm) {
                return sum_str_values;
            });
 
-    sm.def("pass_array_handle_return_sum_str_values",
-           [](const py::array_t<py::handle> &objs) {
-               std::string sum_str_values;
-               for (const auto &obj : objs) {
-                   sum_str_values += py::str(obj.attr("value"));
-               }
-               return sum_str_values;
-           });
+    sm.def("pass_array_handle_return_sum_str_values", [](const py::array_t<py::handle> &objs) {
+        std::string sum_str_values;
+        for (const auto &obj : objs) {
+            sum_str_values += py::str(obj.attr("value"));
+        }
+        return sum_str_values;
+    });
 
-    sm.def("pass_array_object_return_sum_str_values",
-           [](const py::array_t<py::object> &objs) {
-               std::string sum_str_values;
-               for (const auto &obj : objs) {
-                   sum_str_values += py::str(obj.attr("value"));
-               }
-               return sum_str_values;
-           });
+    sm.def("pass_array_object_return_sum_str_values", [](const py::array_t<py::object> &objs) {
+        std::string sum_str_values;
+        for (const auto &obj : objs) {
+            sum_str_values += py::str(obj.attr("value"));
+        }
+        return sum_str_values;
+    });
 
     sm.def("pass_array_pyobject_ptr_return_as_list",
            [](const py::array_t<PyObject *> &objs) -> py::list { return objs; });
