@@ -1436,6 +1436,24 @@ struct npy_format_descriptor<T, enable_if_t<is_same_ignoring_cvref<T, PyObject *
     static pybind11::dtype dtype() { return pybind11::dtype(/*typenum*/ value); }
 };
 
+template <>
+struct npy_format_descriptor<handle, enable_if_t<sizeof(handle) == sizeof(PyObject*)>> {
+    static constexpr auto name = const_name("object");
+
+    static constexpr int value = npy_api::NPY_OBJECT_;
+
+    static pybind11::dtype dtype() { return pybind11::dtype(/*typenum*/ value); }
+};
+
+template <>
+struct npy_format_descriptor<object, enable_if_t<sizeof(object) == sizeof(PyObject*)>> {
+    static constexpr auto name = const_name("object");
+
+    static constexpr int value = npy_api::NPY_OBJECT_;
+
+    static pybind11::dtype dtype() { return pybind11::dtype(/*typenum*/ value); }
+};
+
 #define PYBIND11_DECL_CHAR_FMT                                                                    \
     static constexpr auto name = const_name("S") + const_name<N>();                               \
     static pybind11::dtype dtype() {                                                              \

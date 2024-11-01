@@ -528,8 +528,32 @@ TEST_SUBMODULE(numpy_array, sm) {
                return sum_str_values;
            });
 
+    sm.def("pass_array_handle_return_sum_str_values",
+           [](const py::array_t<py::handle> &objs) {
+               std::string sum_str_values;
+               for (const auto &obj : objs) {
+                   sum_str_values += py::str(obj.attr("value"));
+               }
+               return sum_str_values;
+           });
+
+    sm.def("pass_array_object_return_sum_str_values",
+           [](const py::array_t<py::object> &objs) {
+               std::string sum_str_values;
+               for (const auto &obj : objs) {
+                   sum_str_values += py::str(obj.attr("value"));
+               }
+               return sum_str_values;
+           });
+
     sm.def("pass_array_pyobject_ptr_return_as_list",
            [](const py::array_t<PyObject *> &objs) -> py::list { return objs; });
+
+    sm.def("pass_array_handle_return_as_list",
+           [](const py::array_t<py::handle> &objs) -> py::list { return objs; });
+
+    sm.def("pass_array_object_return_as_list",
+           [](const py::array_t<py::object> &objs) -> py::list { return objs; });
 
     sm.def("return_array_pyobject_ptr_cpp_loop", [](const py::list &objs) {
         py::size_t arr_size = py::len(objs);
@@ -537,11 +561,38 @@ TEST_SUBMODULE(numpy_array, sm) {
         PyObject **data = arr_from_list.mutable_data();
         for (py::size_t i = 0; i < arr_size; i++) {
             assert(data[i] == nullptr);
-            data[i] = py::cast<PyObject *>(objs[i].attr("value"));
+            data[i] = py::cast<PyObject *>(objs[i]);
+        }
+        return arr_from_list;
+    });
+
+    sm.def("return_array_handle_cpp_loop", [](const py::list &objs) {
+        py::size_t arr_size = py::len(objs);
+        py::array_t<py::handle> arr_from_list(static_cast<py::ssize_t>(arr_size));
+        py::handle *data = arr_from_list.mutable_data();
+        for (py::size_t i = 0; i < arr_size; i++) {
+            assert(data[i] == nullptr);
+            data[i] = py::object(objs[i]).release();
+        }
+        return arr_from_list;
+    });
+
+    sm.def("return_array_object_cpp_loop", [](const py::list &objs) {
+        py::size_t arr_size = py::len(objs);
+        py::array_t<py::object> arr_from_list(static_cast<py::ssize_t>(arr_size));
+        py::object *data = arr_from_list.mutable_data();
+        for (py::size_t i = 0; i < arr_size; i++) {
+            data[i] = objs[i];
         }
         return arr_from_list;
     });
 
     sm.def("return_array_pyobject_ptr_from_list",
            [](const py::list &objs) -> py::array_t<PyObject *> { return objs; });
+
+    sm.def("return_array_handle_from_list",
+           [](const py::list &objs) -> py::array_t<py::handle> { return objs; });
+
+    sm.def("return_array_object_from_list",
+           [](const py::list &objs) -> py::array_t<py::object> { return objs; });
 }

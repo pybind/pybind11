@@ -617,8 +617,12 @@ def test_round_trip_float():
 #     * Sanitizers are much more likely to detect heap-use-after-free due to
 #       other ref-count bugs.
 class PyValueHolder:
+    counter = 0
     def __init__(self, value):
         self.value = value
+        PyValueHolder.counter += 1
+    def __del__(self):
+        PyValueHolder.counter -= 1
 
 
 def WrapWithPyValueHolder(*values):
@@ -629,45 +633,86 @@ def UnwrapPyValueHolder(vhs):
     return [vh.value for vh in vhs]
 
 
-def test_pass_array_pyobject_ptr_return_sum_str_values_ndarray():
-    # Intentionally all temporaries, do not change.
-    assert (
-        m.pass_array_pyobject_ptr_return_sum_str_values(
-            np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object)
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.pass_array_pyobject_ptr_return_sum_str_values,
+        m.pass_array_handle_return_sum_str_values,
+        m.pass_array_object_return_sum_str_values,
+    ],
+)
+def test_pass_array_object_return_sum_str_values_ndarray(func):
+    initial_counter = PyValueHolder.counter
+    for loop in range(100):
+        # Intentionally all temporaries, do not change.
+        assert (
+            func(
+                np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object)
+            )
+            == "-3four5.0"
         )
-        == "-3four5.0"
-    )
-
-
-def test_pass_array_pyobject_ptr_return_sum_str_values_list():
-    # Intentionally all temporaries, do not change.
-    assert (
-        m.pass_array_pyobject_ptr_return_sum_str_values(
-            WrapWithPyValueHolder(2, "three", -4.0)
-        )
-        == "2three-4.0"
-    )
-
-
-def test_pass_array_pyobject_ptr_return_as_list():
-    # Intentionally all temporaries, do not change.
-    assert UnwrapPyValueHolder(
-        m.pass_array_pyobject_ptr_return_as_list(
-            np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object)
-        )
-    ) == [-1, "two", 3.0]
+    assert PyValueHolder.counter == initial_counter
 
 
 @pytest.mark.parametrize(
-    ("return_array_pyobject_ptr", "unwrap"),
+    "func",
     [
-        (m.return_array_pyobject_ptr_cpp_loop, list),
-        (m.return_array_pyobject_ptr_from_list, UnwrapPyValueHolder),
+        m.pass_array_pyobject_ptr_return_sum_str_values,
+        m.pass_array_handle_return_sum_str_values,
+        m.pass_array_object_return_sum_str_values,
     ],
 )
-def test_return_array_pyobject_ptr_cpp_loop(return_array_pyobject_ptr, unwrap):
-    # Intentionally all temporaries, do not change.
-    arr_from_list = return_array_pyobject_ptr(WrapWithPyValueHolder(6, "seven", -8.0))
-    assert isinstance(arr_from_list, np.ndarray)
-    assert arr_from_list.dtype == np.dtype("O")
-    assert unwrap(arr_from_list) == [6, "seven", -8.0]
+def test_pass_array_object_return_sum_str_values_list(func):
+    initial_counter = PyValueHolder.counter
+    for loop in range(100):
+        # Intentionally all temporaries, do not change.
+        assert (
+            func(
+                WrapWithPyValueHolder(2, "three", -4.0)
+            )
+            == "2three-4.0"
+        )
+    assert PyValueHolder.counter == initial_counter
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.pass_array_pyobject_ptr_return_as_list,
+        m.pass_array_handle_return_as_list,
+        m.pass_array_object_return_as_list,
+    ],
+)
+def test_pass_array_object_return_as_list(func):
+    initial_counter = PyValueHolder.counter
+    for loop in range(100):
+        # Intentionally all temporaries, do not change.
+        assert UnwrapPyValueHolder(
+            func(
+                np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object)
+            )
+        ) == [-1, "two", 3.0]
+    assert PyValueHolder.counter == initial_counter
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        m.return_array_pyobject_ptr_cpp_loop,
+        m.return_array_handle_cpp_loop,
+        m.return_array_object_cpp_loop,
+        m.return_array_pyobject_ptr_from_list,
+        m.return_array_handle_from_list,
+        m.return_array_object_from_list,
+    ],
+)
+def test_return_array_object_cpp_loop(func):
+    initial_counter = PyValueHolder.counter
+    for loop in range(100):
+        # Intentionally all temporaries, do not change.
+        arr_from_list = func(WrapWithPyValueHolder(6, "seven", -8.0))
+        assert isinstance(arr_from_list, np.ndarray)
+        assert arr_from_list.dtype == np.dtype("O")
+        assert UnwrapPyValueHolder(arr_from_list) == [6, "seven", -8.0]
+    del arr_from_list
+    assert PyValueHolder.counter == initial_counter
