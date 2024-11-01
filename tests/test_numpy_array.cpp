@@ -569,7 +569,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         py::array_t<py::handle> arr_from_list(static_cast<py::ssize_t>(arr_size));
         py::handle *data = arr_from_list.mutable_data();
         for (py::size_t i = 0; i < arr_size; i++) {
-            assert(data[i] == nullptr);
+            assert(!data[i]);
             data[i] = py::object(objs[i]).release();
         }
         return arr_from_list;
