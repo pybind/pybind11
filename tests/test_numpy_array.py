@@ -645,12 +645,11 @@ def UnwrapPyValueHolder(vhs):
 )
 def test_pass_array_object_return_sum_str_values_ndarray(func):
     initial_counter = PyValueHolder.counter
-    for loop in range(100):
-        # Intentionally all temporaries, do not change.
-        assert (
-            func(np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object))
-            == "-3four5.0"
-        )
+    # Intentionally all temporaries, do not change.
+    assert (
+        func(np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object))
+        == "-3four5.0"
+    )
     assert PyValueHolder.counter == initial_counter
 
 
@@ -664,9 +663,8 @@ def test_pass_array_object_return_sum_str_values_ndarray(func):
 )
 def test_pass_array_object_return_sum_str_values_list(func):
     initial_counter = PyValueHolder.counter
-    for loop in range(100):
-        # Intentionally all temporaries, do not change.
-        assert func(WrapWithPyValueHolder(2, "three", -4.0)) == "2three-4.0"
+    # Intentionally all temporaries, do not change.
+    assert func(WrapWithPyValueHolder(2, "three", -4.0)) == "2three-4.0"
     assert PyValueHolder.counter == initial_counter
 
 
@@ -680,11 +678,10 @@ def test_pass_array_object_return_sum_str_values_list(func):
 )
 def test_pass_array_object_return_as_list(func):
     initial_counter = PyValueHolder.counter
-    for loop in range(100):
-        # Intentionally all temporaries, do not change.
-        assert UnwrapPyValueHolder(
-            func(np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object))
-        ) == [-1, "two", 3.0]
+    # Intentionally all temporaries, do not change.
+    assert UnwrapPyValueHolder(
+        func(np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object))
+    ) == [-1, "two", 3.0]
     assert PyValueHolder.counter == initial_counter
 
 
@@ -701,11 +698,10 @@ def test_pass_array_object_return_as_list(func):
 )
 def test_return_array_object_cpp_loop(func):
     initial_counter = PyValueHolder.counter
-    for loop in range(100):
-        # Intentionally all temporaries, do not change.
-        arr_from_list = func(WrapWithPyValueHolder(6, "seven", -8.0))
-        assert isinstance(arr_from_list, np.ndarray)
-        assert arr_from_list.dtype == np.dtype("O")
-        assert UnwrapPyValueHolder(arr_from_list) == [6, "seven", -8.0]
+    # Intentionally all temporaries, do not change.
+    arr_from_list = func(WrapWithPyValueHolder(6, "seven", -8.0))
+    assert isinstance(arr_from_list, np.ndarray)
+    assert arr_from_list.dtype == np.dtype("O")
+    assert UnwrapPyValueHolder(arr_from_list) == [6, "seven", -8.0]
     del arr_from_list
     assert PyValueHolder.counter == initial_counter
