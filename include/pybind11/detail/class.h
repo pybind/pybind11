@@ -602,9 +602,9 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         return -1;
     }
     view->obj = obj;
+    view->ndim = 1;  // See discussion on PR #5407.
     view->internal = info;
     view->buf = info->ptr;
-    view->ndim = (int) info->ndim;
     view->itemsize = info->itemsize;
     view->len = view->itemsize;
     for (auto s : info->shape) {
@@ -615,6 +615,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         view->format = const_cast<char *>(info->format.c_str());
     }
     if ((flags & PyBUF_ND) == PyBUF_ND) {
+        view->ndim = (int) info->ndim;
         view->shape = info->shape.data();
     }
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {

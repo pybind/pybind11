@@ -247,7 +247,7 @@ def test_to_pybuffer():
     info = m.get_py_buffer(mat, m.PyBUF_SIMPLE)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
     assert info.len == mat.rows() * mat.cols() * info.itemsize
-    assert info.ndim == 2
+    assert info.ndim == 1  # See discussion on PR #5407.
     assert info.shape is None
     assert info.strides is None
     assert info.suboffsets is None
