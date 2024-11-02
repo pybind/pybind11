@@ -276,3 +276,80 @@ def test_to_pybuffer():
     assert info.strides == [4 * info.itemsize, info.itemsize]
     assert info.suboffsets is None  # Should be filled in here, but we don't use it.
     assert not info.readonly
+
+    # A Fortran-shaped buffer can only be accessed at PyBUF_STRIDES level or higher.
+    mat = m.FortranMatrix(5, 4)
+    info = m.get_py_buffer(mat, m.PyBUF_STRIDES)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape == [5, 4]
+    assert info.strides == [info.itemsize, 5 * info.itemsize]
+    assert info.suboffsets is None
+    assert not info.readonly
+    info = m.get_py_buffer(mat, m.PyBUF_INDIRECT)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape == [5, 4]
+    assert info.strides == [info.itemsize, 5 * info.itemsize]
+    assert info.suboffsets is None  # Should be filled in here, but we don't use it.
+    assert not info.readonly
+
+    mat = m.DiscontiguousMatrix(5, 4, 2, 3)
+    info = m.get_py_buffer(mat, m.PyBUF_STRIDES)
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.ndim == 2
+    assert info.shape == [5, 4]
+    assert info.strides == [2 * 4 * 3 * info.itemsize, 3 * info.itemsize]
+    assert info.suboffsets is None
+    assert not info.readonly
+
+
+def test_to_pybuffer_contiguity():
+    def check_strides(mat):
+        # The full block is memset to 0, so fill it with non-zero in real spots.
+        expected = np.arange(1, mat.rows() * mat.cols() + 1).reshape(
+            (mat.rows(), mat.cols())
+        )
+        for i in range(mat.rows()):
+            for j in range(mat.cols()):
+                mat[i, j] = expected[i, j]
+        # If all strides are correct, the exposed buffer should match the input.
+        np.testing.assert_array_equal(np.array(mat), expected)
+
+    mat = m.Matrix(5, 4)
+    check_strides(mat)
+    # Should work in C-contiguous mode, but not Fortran order.
+    m.get_py_buffer(mat, m.PyBUF_C_CONTIGUOUS)
+    m.get_py_buffer(mat, m.PyBUF_ANY_CONTIGUOUS)
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_F_CONTIGUOUS)
+
+    mat = m.FortranMatrix(5, 4)
+    check_strides(mat)
+    # These flags imply C-contiguity, so won't work.
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_SIMPLE)
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_ND)
+    # Should work in Fortran-contiguous mode, but not C order.
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_C_CONTIGUOUS)
+    m.get_py_buffer(mat, m.PyBUF_ANY_CONTIGUOUS)
+    m.get_py_buffer(mat, m.PyBUF_F_CONTIGUOUS)
+
+    mat = m.DiscontiguousMatrix(5, 4, 2, 3)
+    check_strides(mat)
+    # Should never work.
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_SIMPLE)
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_ND)
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_C_CONTIGUOUS)
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_ANY_CONTIGUOUS)
+    with pytest.raises(BufferError):
+        m.get_py_buffer(mat, m.PyBUF_F_CONTIGUOUS)
