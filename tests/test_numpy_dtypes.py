@@ -195,20 +195,20 @@ def test_dtype(simple_dtype):
         assert a == b
 
     arr = np.array([4, 84, 21, 36])
-    assert (m.test_dtype_switch(arr.astype(np.byte)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.ubyte)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.short)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.ushort)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.intc)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.uintc)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.intp)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.uintp)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.long)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.ulong)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.longlong)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.ulonglong)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.float32)) == arr + 1).all()
-    assert (m.test_dtype_switch(arr.astype(np.float64)) == arr + 1).all()
+    # Note: "ulong" does not work in NumPy 1.x, so we use "L"
+    assert (m.test_dtype_switch(arr.astype("byte")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ubyte")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("short")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ushort")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("intc")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("uintc")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("long")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("L")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("longlong")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ulonglong")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("single")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("double")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("longdouble")) == arr + 1).all()
 
 
 def test_recarray(simple_dtype, packed_dtype):

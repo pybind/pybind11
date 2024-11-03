@@ -304,7 +304,7 @@ template <typename T>
 py::array_t<T> dispatch_array_increment(py::array_t<T> arr) {
     py::array_t<T> res(arr.shape(0));
     for (py::ssize_t i = 0; i < arr.shape(0); ++i) {
-        res.mutable_at(i) = arr.at(i) + 1;
+        res.mutable_at(i) = T(arr.at(i) + 1);
     }
     return res;
 }
