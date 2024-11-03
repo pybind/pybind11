@@ -814,8 +814,9 @@ public:
     /// equivalent types with different type numbers.
     int normalized_num() const {
         int value = num();
-        if (value >= 0 && value <= detail::npy_api::NPY_VOID_)
+        if (value >= 0 && value <= detail::npy_api::NPY_VOID_) {
             return detail::normalized_dtype_num[value];
+        }
         return value;
     }
 
