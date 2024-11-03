@@ -188,6 +188,28 @@ def test_dtype(simple_dtype):
             chr(np.dtype(ch).flags) for ch in expected_chars
         ]
 
+    for a, b in m.test_dtype_num_of():
+        assert a == b
+
+    for a, b in m.test_dtype_normalized_num():
+        assert a == b
+
+    arr = np.array([4, 84, 21, 36])
+    assert (m.test_dtype_switch(arr.astype(np.byte)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.ubyte)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.short)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.ushort)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.intc)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.uintc)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.intp)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.uintp)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.long)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.ulong)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.longlong)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.ulonglong)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.float32)) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype(np.float64)) == arr + 1).all()
+
 
 def test_recarray(simple_dtype, packed_dtype):
     elements = [(False, 0, 0.0, -0.0), (True, 1, 1.5, -2.5), (False, 2, 3.0, -5.0)]
