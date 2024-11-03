@@ -572,7 +572,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 #undef TEST_DTYPE
         return res;
     });
-    m.def("test_dtype_switch", [](py::array arr) -> py::array {
+    m.def("test_dtype_switch", [](const py::array &arr) -> py::array {
         switch (arr.dtype().normalized_num()) {
             case py::dtype::num_of<int8_t>():
                 return dispatch_array_increment<int8_t>(arr);
