@@ -601,8 +601,10 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         set_error(PyExc_BufferError, "Writable buffer requested for readonly storage");
         return -1;
     }
+
+    // Fill in all the information, and then downgrade as requested by the caller, or raise an
+    // error if that's not possible.
     view->obj = obj;
-    view->ndim = 1;
     view->internal = info;
     view->buf = info->ptr;
     view->itemsize = info->itemsize;
@@ -610,15 +612,59 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     for (auto s : info->shape) {
         view->len *= s;
     }
+    view->ndim = static_cast<int>(info->ndim);
+    view->shape = info->shape.data();
+    view->strides = info->strides.data();
     view->readonly = static_cast<int>(info->readonly);
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
         view->format = const_cast<char *>(info->format.c_str());
     }
-    if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-        view->ndim = (int) info->ndim;
-        view->strides = info->strides.data();
-        view->shape = info->shape.data();
+
+    // Note, all contiguity flags imply PyBUF_STRIDES and lower.
+    if ((flags & PyBUF_C_CONTIGUOUS) == PyBUF_C_CONTIGUOUS) {
+        if (PyBuffer_IsContiguous(view, 'C') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            delete info;
+            set_error(PyExc_BufferError,
+                      "C-contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+    } else if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
+        if (PyBuffer_IsContiguous(view, 'F') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            delete info;
+            set_error(PyExc_BufferError,
+                      "Fortran-contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+    } else if ((flags & PyBUF_ANY_CONTIGUOUS) == PyBUF_ANY_CONTIGUOUS) {
+        if (PyBuffer_IsContiguous(view, 'A') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            delete info;
+            set_error(PyExc_BufferError, "Contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+
+    } else if ((flags & PyBUF_STRIDES) != PyBUF_STRIDES) {
+        // If no strides are requested, the buffer must be C-contiguous.
+        // https://docs.python.org/3/c-api/buffer.html#contiguity-requests
+        if (PyBuffer_IsContiguous(view, 'C') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            delete info;
+            set_error(PyExc_BufferError,
+                      "C-contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+
+        view->strides = nullptr;
+
+        // Since this is a contiguous buffer, it can also pretend to be 1D.
+        if ((flags & PyBUF_ND) != PyBUF_ND) {
+            view->shape = nullptr;
+            view->ndim = 0;
+        }
     }
+
     Py_INCREF(view->obj);
     return 0;
 }
