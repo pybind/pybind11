@@ -612,7 +612,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     for (auto s : info->shape) {
         view->len *= s;
     }
-    view->ndim = (int) info->ndim;
+    view->ndim = static_cast<int>(info->ndim);
     view->shape = info->shape.data();
     view->strides = info->strides.data();
     view->readonly = static_cast<int>(info->readonly);
@@ -645,9 +645,9 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
             return -1;
         }
 
+    } else if ((flags & PyBUF_STRIDES) != PyBUF_STRIDES) {
         // If no strides are requested, the buffer must be C-contiguous.
         // https://docs.python.org/3/c-api/buffer.html#contiguity-requests
-    } else if ((flags & PyBUF_STRIDES) != PyBUF_STRIDES) {
         if (PyBuffer_IsContiguous(view, 'C') == 0) {
             std::memset(view, 0, sizeof(Py_buffer));
             delete info;
@@ -661,7 +661,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         // Since this is a contiguous buffer, it can also pretend to be 1D.
         if ((flags & PyBUF_ND) != PyBUF_ND) {
             view->shape = nullptr;
-            view->ndim = 1;
+            view->ndim = 0;
         }
     }
 
