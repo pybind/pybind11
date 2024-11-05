@@ -241,12 +241,18 @@ def test_buffer_exception():
     assert "for context" in str(excinfo.value.__cause__)
 
 
-def test_to_pybuffer():
-    mat = m.Matrix(5, 4)
+@pytest.mark.parametrize("type", ["pybind11", "numpy"])
+def test_c_contiguous_to_pybuffer(type):
+    if type == "pybind11":
+        mat = m.Matrix(5, 4)
+    elif type == "numpy":
+        mat = np.empty((5, 4), dtype=np.float32)
+    else:
+        raise ValueError(f"Unknown parametrization {type}")
 
     info = m.get_py_buffer(mat, m.PyBUF_SIMPLE)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 0  # See discussion on PR #5407.
     assert info.shape is None
     assert info.strides is None
@@ -254,7 +260,7 @@ def test_to_pybuffer():
     assert not info.readonly
     info = m.get_py_buffer(mat, m.PyBUF_ND)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 2
     assert info.shape == [5, 4]
     assert info.strides is None
@@ -262,7 +268,7 @@ def test_to_pybuffer():
     assert not info.readonly
     info = m.get_py_buffer(mat, m.PyBUF_STRIDES)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 2
     assert info.shape == [5, 4]
     assert info.strides == [4 * info.itemsize, info.itemsize]
@@ -270,18 +276,27 @@ def test_to_pybuffer():
     assert not info.readonly
     info = m.get_py_buffer(mat, m.PyBUF_INDIRECT)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 2
     assert info.shape == [5, 4]
     assert info.strides == [4 * info.itemsize, info.itemsize]
     assert info.suboffsets is None  # Should be filled in here, but we don't use it.
     assert not info.readonly
+
+
+@pytest.mark.parametrize("type", ["pybind11", "numpy"])
+def test_fortran_contiguous_to_pybuffer(type):
+    if type == "pybind11":
+        mat = m.FortranMatrix(5, 4)
+    elif type == "numpy":
+        mat = np.empty((5, 4), dtype=np.float32, order="F")
+    else:
+        raise ValueError(f"Unknown parametrization {type}")
 
     # A Fortran-shaped buffer can only be accessed at PyBUF_STRIDES level or higher.
-    mat = m.FortranMatrix(5, 4)
     info = m.get_py_buffer(mat, m.PyBUF_STRIDES)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 2
     assert info.shape == [5, 4]
     assert info.strides == [info.itemsize, 5 * info.itemsize]
@@ -289,17 +304,26 @@ def test_to_pybuffer():
     assert not info.readonly
     info = m.get_py_buffer(mat, m.PyBUF_INDIRECT)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 2
     assert info.shape == [5, 4]
     assert info.strides == [info.itemsize, 5 * info.itemsize]
     assert info.suboffsets is None  # Should be filled in here, but we don't use it.
     assert not info.readonly
 
-    mat = m.DiscontiguousMatrix(5, 4, 2, 3)
+
+@pytest.mark.parametrize("type", ["pybind11", "numpy"])
+def test_discontiguous_to_pybuffer(type):
+    if type == "pybind11":
+        mat = m.DiscontiguousMatrix(5, 4, 2, 3)
+    elif type == "numpy":
+        mat = np.empty((5 * 2, 4 * 3), dtype=np.float32)[::2, ::3]
+    else:
+        raise ValueError(f"Unknown parametrization {type}")
+
     info = m.get_py_buffer(mat, m.PyBUF_STRIDES)
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
-    assert info.len == mat.rows() * mat.cols() * info.itemsize
+    assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 2
     assert info.shape == [5, 4]
     assert info.strides == [2 * 4 * 3 * info.itemsize, 3 * info.itemsize]
@@ -307,49 +331,61 @@ def test_to_pybuffer():
     assert not info.readonly
 
 
-def test_to_pybuffer_contiguity():
+@pytest.mark.parametrize("type", ["pybind11", "numpy"])
+def test_to_pybuffer_contiguity(type):
     def check_strides(mat):
         # The full block is memset to 0, so fill it with non-zero in real spots.
-        expected = np.arange(1, mat.rows() * mat.cols() + 1).reshape(
-            (mat.rows(), mat.cols())
-        )
-        for i in range(mat.rows()):
-            for j in range(mat.cols()):
+        expected = np.arange(1, 5 * 4 + 1).reshape((5, 4))
+        for i in range(5):
+            for j in range(4):
                 mat[i, j] = expected[i, j]
         # If all strides are correct, the exposed buffer should match the input.
         np.testing.assert_array_equal(np.array(mat), expected)
 
-    mat = m.Matrix(5, 4)
-    check_strides(mat)
+    if type == "pybind11":
+        cmat = m.Matrix(5, 4)  # C contiguous.
+        fmat = m.FortranMatrix(5, 4)  # Fortran contiguous.
+        dmat = m.DiscontiguousMatrix(5, 4, 2, 3)  # Not contiguous.
+        expected_exception = BufferError
+    elif type == "numpy":
+        cmat = np.empty((5, 4), dtype=np.float32)  # C contiguous.
+        fmat = np.empty((5, 4), dtype=np.float32, order="F")  # Fortran contiguous.
+        dmat = np.empty((5 * 2, 4 * 3), dtype=np.float32)[::2, ::3]  # Not contiguous.
+        # NumPy incorrectly raises ValueError; when the minimum NumPy requirement is
+        # above the version that fixes https://github.com/numpy/numpy/issues/3634 then
+        # BufferError can be used everywhere.
+        expected_exception = (BufferError, ValueError)
+    else:
+        raise ValueError(f"Unknown parametrization {type}")
+
+    check_strides(cmat)
     # Should work in C-contiguous mode, but not Fortran order.
-    m.get_py_buffer(mat, m.PyBUF_C_CONTIGUOUS)
-    m.get_py_buffer(mat, m.PyBUF_ANY_CONTIGUOUS)
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_F_CONTIGUOUS)
+    m.get_py_buffer(cmat, m.PyBUF_C_CONTIGUOUS)
+    m.get_py_buffer(cmat, m.PyBUF_ANY_CONTIGUOUS)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(cmat, m.PyBUF_F_CONTIGUOUS)
 
-    mat = m.FortranMatrix(5, 4)
-    check_strides(mat)
+    check_strides(fmat)
     # These flags imply C-contiguity, so won't work.
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_SIMPLE)
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_ND)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(fmat, m.PyBUF_SIMPLE)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(fmat, m.PyBUF_ND)
     # Should work in Fortran-contiguous mode, but not C order.
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_C_CONTIGUOUS)
-    m.get_py_buffer(mat, m.PyBUF_ANY_CONTIGUOUS)
-    m.get_py_buffer(mat, m.PyBUF_F_CONTIGUOUS)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(fmat, m.PyBUF_C_CONTIGUOUS)
+    m.get_py_buffer(fmat, m.PyBUF_ANY_CONTIGUOUS)
+    m.get_py_buffer(fmat, m.PyBUF_F_CONTIGUOUS)
 
-    mat = m.DiscontiguousMatrix(5, 4, 2, 3)
-    check_strides(mat)
+    check_strides(dmat)
     # Should never work.
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_SIMPLE)
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_ND)
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_C_CONTIGUOUS)
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_ANY_CONTIGUOUS)
-    with pytest.raises(BufferError):
-        m.get_py_buffer(mat, m.PyBUF_F_CONTIGUOUS)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(dmat, m.PyBUF_SIMPLE)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(dmat, m.PyBUF_ND)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(dmat, m.PyBUF_C_CONTIGUOUS)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(dmat, m.PyBUF_ANY_CONTIGUOUS)
+    with pytest.raises(expected_exception):
+        m.get_py_buffer(dmat, m.PyBUF_F_CONTIGUOUS)
