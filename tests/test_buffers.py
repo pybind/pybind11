@@ -251,6 +251,16 @@ def test_c_contiguous_to_pybuffer(type):
         raise ValueError(f"Unknown parametrization {type}")
 
     info = m.get_py_buffer(mat, m.PyBUF_SIMPLE)
+    assert info.format is None
+    assert info.itemsize == ctypes.sizeof(ctypes.c_float)
+    assert info.len == 5 * 4 * info.itemsize
+    assert info.ndim == 0  # See discussion on PR #5407.
+    assert info.shape is None
+    assert info.strides is None
+    assert info.suboffsets is None
+    assert not info.readonly
+    info = m.get_py_buffer(mat, m.PyBUF_SIMPLE | m.PyBUF_FORMAT)
+    assert info.format == "f"
     assert info.itemsize == ctypes.sizeof(ctypes.c_float)
     assert info.len == 5 * 4 * info.itemsize
     assert info.ndim == 0  # See discussion on PR #5407.

@@ -389,6 +389,7 @@ TEST_SUBMODULE(buffers, m) {
     m.def("get_buffer_info", [](const py::buffer &buffer) { return buffer.request(); });
 
     // Expose Py_buffer for testing.
+    m.attr("PyBUF_FORMAT") = PyBUF_FORMAT;
     m.attr("PyBUF_SIMPLE") = PyBUF_SIMPLE;
     m.attr("PyBUF_ND") = PyBUF_ND;
     m.attr("PyBUF_STRIDES") = PyBUF_STRIDES;
