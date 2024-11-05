@@ -27,6 +27,9 @@ def test_instance(msg):
 
     instance = m.NoConstructor.new_instance()
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.NoConstructor)
     assert cstats.alive() == 1
     del instance
@@ -35,6 +38,10 @@ def test_instance(msg):
 
 def test_instance_new():
     instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.NoConstructorNew)
     assert cstats.alive() == 1
     del instance
