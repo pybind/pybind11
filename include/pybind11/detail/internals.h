@@ -671,8 +671,8 @@ inline std::uint64_t mix64(std::uint64_t z) {
 }
 
 template <typename F>
-inline auto with_instance_map(const void *ptr,
-                              const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
+inline auto with_instance_map(const void *ptr, const F &cb)
+    -> decltype(cb(std::declval<instance_map &>())) {
     auto &internals = get_internals();
 
 #ifdef Py_GIL_DISABLED
