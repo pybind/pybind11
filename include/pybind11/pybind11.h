@@ -2334,9 +2334,9 @@ all_type_info_get_cache(PyTypeObject *type) {
                        .emplace(type, std::vector<detail::type_info *>());
 #endif
         if (ins.second) {
-            // In free-threading this method should be called
-            // under pymutex lock to avoid other threads
-            // continue running with empty ins.first->second
+            // For free-threading mode, this call must be under
+            // the with_internals() mutex lock, to avoid that other threads
+            // continue running with the empty ins.first->second.
             all_type_info_populate(type, ins.first->second);
         }
         return ins;

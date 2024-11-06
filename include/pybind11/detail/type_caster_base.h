@@ -175,8 +175,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
  * The value is cached for the lifetime of the Python type.
  */
 inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type) {
-    auto ins = all_type_info_get_cache(type);
-    return ins.first->second;
+    return all_type_info_get_cache(type).first->second;
 }
 
 /**

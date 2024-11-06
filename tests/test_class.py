@@ -513,30 +513,16 @@ def test_pr4220_tripped_over_this():
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_all_type_info_multithreaded():
-    # Test data race in all_type_info method in free-threading mode.
-    # For example, we have 2 threads entering `all_type_info`.
-    # Both enter `all_type_info_get_cache`` function and
-    # there is a first one which inserts a tuple (type, empty_vector) to the map
-    # and second is waiting. Inserting thread gets the (iter_to_key, True) and non-inserting thread
-    # after waiting gets (iter_to_key, False).
-    # Inserting thread than will add a weakref and will then call into `all_type_info_populate`.
-    # However, non-inserting thread is not entering `if (ins.second) {` clause and
-    # returns `ins.first->second;`` which is just empty_vector.
-    # Finally, non-inserting thread is failing the check in `allocate_layout`:
-    # if (n_types == 0) {
-    #     pybind11_fail(
-    #         "instance allocation failed: new instance has no pybind11-registered base types");
-    # }
+    # See PR #5419 for background.
     import threading
 
     from pybind11_tests import TestContext
 
     class Context(TestContext):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        pass
 
-    num_runs = 4
-    num_threads = 5
+    num_runs = 10
+    num_threads = 4
     barrier = threading.Barrier(num_threads)
 
     def func():

@@ -97,6 +97,7 @@ void ignoreOldStyleInitWarnings(F &&body) {
              py::dict(py::arg("body") = py::cpp_function(body)));
 }
 
+// See PR #5419 for background.
 class TestContext {
 public:
     TestContext() = delete;
