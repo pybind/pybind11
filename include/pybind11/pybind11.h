@@ -2326,13 +2326,20 @@ keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type) {
     auto res = with_internals([type](internals &internals) {
-        return internals
-            .registered_types_py
+        auto ins = internals
+                       .registered_types_py
 #ifdef __cpp_lib_unordered_map_try_emplace
-            .try_emplace(type);
+                       .try_emplace(type);
 #else
-            .emplace(type, std::vector<detail::type_info *>());
+                       .emplace(type, std::vector<detail::type_info *>());
 #endif
+        if (ins.second) {
+            // For free-threading mode, this call must be under
+            // the with_internals() mutex lock, to avoid that other threads
+            // continue running with the empty ins.first->second.
+            all_type_info_populate(type, ins.first->second);
+        }
+        return ins;
     });
     if (res.second) {
         // New cache entry created; set up a weak reference to automatically remove it if the type
