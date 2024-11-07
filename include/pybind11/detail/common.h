@@ -1150,14 +1150,14 @@ struct overload_cast_impl {
     }
 
     template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...),
-                              std::false_type = {}) const noexcept -> decltype(pmf) {
+    constexpr auto operator()(Return (Class::*pmf)(Args...), std::false_type = {}) const noexcept
+        -> decltype(pmf) {
         return pmf;
     }
 
     template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const,
-                              std::true_type) const noexcept -> decltype(pmf) {
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const, std::true_type) const noexcept
+        -> decltype(pmf) {
         return pmf;
     }
 };
