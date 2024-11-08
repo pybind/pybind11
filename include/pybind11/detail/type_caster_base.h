@@ -117,7 +117,6 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
     }
-
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
         auto *type = check[i];
@@ -176,13 +175,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
  * The value is cached for the lifetime of the Python type.
  */
 inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type) {
-    auto ins = all_type_info_get_cache(type);
-    if (ins.second) {
-        // New cache entry: populate it
-        all_type_info_populate(type, ins.first->second);
-    }
-
-    return ins.first->second;
+    return all_type_info_get_cache(type).first->second;
 }
 
 /**

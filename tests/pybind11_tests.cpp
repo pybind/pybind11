@@ -128,4 +128,9 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     for (const auto &initializer : initializers()) {
         initializer(m);
     }
+
+    py::class_<TestContext>(m, "TestContext")
+        .def(py::init<>(&TestContext::createNewContextForInit))
+        .def("__enter__", &TestContext::contextEnter)
+        .def("__exit__", &TestContext::contextExit);
 }
