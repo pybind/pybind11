@@ -25,14 +25,14 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v18.1.8"
+  rev: "v19.1.3"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.6.3
+  rev: v0.7.2
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -40,7 +40,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.11.2"
+  rev: "v1.13.0"
   hooks:
   - id: mypy
     args: []
@@ -62,7 +62,7 @@ repos:
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v4.6.0"
+  rev: "v5.0.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -79,7 +79,7 @@ repos:
 
 # Also code format the docs
 - repo: https://github.com/adamchainz/blacken-docs
-  rev: "1.18.0"
+  rev: "1.19.1"
   hooks:
   - id: blacken-docs
     additional_dependencies:
@@ -108,7 +108,7 @@ repos:
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
-  rev: "0.49"
+  rev: "0.50"
   hooks:
   - id: check-manifest
     # This is a slow hook, so only run this if --hook-stage manual is passed
@@ -142,14 +142,14 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.2.7"
+  rev: "v3.3.1"
   hooks:
   - id: pylint
     files: ^pybind11
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.29.2
+  rev: 0.29.4
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows
