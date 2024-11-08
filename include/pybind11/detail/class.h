@@ -583,9 +583,9 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         return -1;
     }
     std::memset(view, 0, sizeof(Py_buffer));
-    buffer_info *info = nullptr;
+    std::unique_ptr<buffer_info> info = nullptr;
     try {
-        info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
+        info.reset(tinfo->get_buffer(obj, tinfo->get_buffer_data));
     } catch (...) {
         try_translate_exceptions();
         raise_from(PyExc_BufferError, "Error getting buffer");
@@ -596,7 +596,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     }
 
     if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
-        delete info;
         // view->obj = nullptr;  // Was just memset to 0, so not necessary
         set_error(PyExc_BufferError, "Writable buffer requested for readonly storage");
         return -1;
@@ -604,9 +603,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
 
     // Fill in all the information, and then downgrade as requested by the caller, or raise an
     // error if that's not possible.
-    view->obj = obj;
-    view->internal = info;
-    view->buf = info->ptr;
     view->itemsize = info->itemsize;
     view->len = view->itemsize;
     for (auto s : info->shape) {
@@ -624,7 +620,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     if ((flags & PyBUF_C_CONTIGUOUS) == PyBUF_C_CONTIGUOUS) {
         if (PyBuffer_IsContiguous(view, 'C') == 0) {
             std::memset(view, 0, sizeof(Py_buffer));
-            delete info;
             set_error(PyExc_BufferError,
                       "C-contiguous buffer requested for discontiguous storage");
             return -1;
@@ -632,7 +627,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     } else if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
         if (PyBuffer_IsContiguous(view, 'F') == 0) {
             std::memset(view, 0, sizeof(Py_buffer));
-            delete info;
             set_error(PyExc_BufferError,
                       "Fortran-contiguous buffer requested for discontiguous storage");
             return -1;
@@ -640,7 +634,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     } else if ((flags & PyBUF_ANY_CONTIGUOUS) == PyBUF_ANY_CONTIGUOUS) {
         if (PyBuffer_IsContiguous(view, 'A') == 0) {
             std::memset(view, 0, sizeof(Py_buffer));
-            delete info;
             set_error(PyExc_BufferError, "Contiguous buffer requested for discontiguous storage");
             return -1;
         }
@@ -650,7 +643,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         // https://docs.python.org/3/c-api/buffer.html#contiguity-requests
         if (PyBuffer_IsContiguous(view, 'C') == 0) {
             std::memset(view, 0, sizeof(Py_buffer));
-            delete info;
             set_error(PyExc_BufferError,
                       "C-contiguous buffer requested for discontiguous storage");
             return -1;
@@ -665,6 +657,11 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         }
     }
 
+    // Set these after all checks so they don't leak out into the caller, and can be automatically
+    // cleaned up on error.
+    view->buf = info->ptr;
+    view->internal = info.release();
+    view->obj = obj;
     Py_INCREF(view->obj);
     return 0;
 }
