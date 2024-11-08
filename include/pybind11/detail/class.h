@@ -603,8 +603,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
 
     // Fill in all the information, and then downgrade as requested by the caller, or raise an
     // error if that's not possible.
-    view->obj = obj;
-    view->buf = info->ptr;
     view->itemsize = info->itemsize;
     view->len = view->itemsize;
     for (auto s : info->shape) {
@@ -659,7 +657,11 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         }
     }
 
+    // Set these after all checks so they don't leak out into the caller, and can be automatically
+    // cleaned up on error.
+    view->buf = info->ptr;
     view->internal = info.release();
+    view->obj = obj;
     Py_INCREF(view->obj);
     return 0;
 }
