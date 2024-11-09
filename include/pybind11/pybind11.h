@@ -300,12 +300,21 @@ protected:
         {
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
-                           has_arg_annotations = any_of<is_keyword<Extra>...>::value,
-                           has_is_method = any_of<std::is_same<is_method, Extra>...>::value;
+                           has_arg_annotations = any_of<is_keyword<Extra>...>::value;
+            constexpr bool has_is_method = any_of<std::is_same<is_method, Extra>...>::value;
+            // The implicit `self` argument is not present and counted in method definitions.
+            constexpr bool has_args = cast_in::args_pos >= 0;
+            constexpr bool is_method_with_self_arg_only = has_is_method && !has_args;
             static_assert(has_arg_annotations || !has_kw_only_args,
                           "py::kw_only requires the use of argument annotations");
-            static_assert(has_arg_annotations || !has_pos_only_args
-                              || (has_is_method /* method has at least one argument `self` */),
+            static_assert(((/* Need `py::arg("arg_name")` annotation in function/method. */
+                            has_arg_annotations)
+                           || (/* Allow methods with no arguments `def method(self, /): ...`.
+                                * A method has at least one argument `self`. There can be no
+                                * `py::arg` annotation. E.g. `class.def("method", py::pos_only())`.
+                                * */
+                               is_method_with_self_arg_only))
+                              || !has_pos_only_args,
                           "py::pos_only requires the use of argument annotations (for docstrings "
                           "and aligning the annotations to the argument)");
 
