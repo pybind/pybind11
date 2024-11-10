@@ -40,7 +40,11 @@
 #    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
-#        define PYBIND11_INTERNALS_VERSION 5
+#        ifdef Py_GIL_DISABLED
+#            define PYBIND11_INTERNALS_VERSION 6
+#        else
+#            define PYBIND11_INTERNALS_VERSION 5
+#        endif
 #    else
 #        define PYBIND11_INTERNALS_VERSION 4
 #    endif
@@ -178,6 +182,7 @@ static_assert(sizeof(instance_map_shard) % 64 == 0,
 struct internals {
 #ifdef Py_GIL_DISABLED
     pymutex mutex;
+    pymutex exception_translator_mutex;
 #endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
@@ -389,7 +394,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 inline object get_python_state_dict() {
     object state_dict;
-#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION)
+#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
 #    if PY_VERSION_HEX < 0x03090000
@@ -583,6 +588,19 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     return cb(internals);
 }
 
+template <typename F>
+inline auto with_exception_translators(const F &cb)
+    -> decltype(cb(get_internals().registered_exception_translators,
+                   get_local_internals().registered_exception_translators)) {
+    auto &internals = get_internals();
+#ifdef Py_GIL_DISABLED
+    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+#endif
+    auto &local_internals = get_local_internals();
+    return cb(internals.registered_exception_translators,
+              local_internals.registered_exception_translators);
+}
+
 inline std::uint64_t mix64(std::uint64_t z) {
     // David Stafford's variant 13 of the MurmurHash3 finalizer popularized
     // by the SplitMix PRNG.
@@ -593,8 +611,8 @@ inline std::uint64_t mix64(std::uint64_t z) {
 }
 
 template <typename F>
-inline auto with_instance_map(const void *ptr,
-                              const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
+inline auto with_instance_map(const void *ptr, const F &cb)
+    -> decltype(cb(std::declval<instance_map &>())) {
     auto &internals = get_internals();
 
 #ifdef Py_GIL_DISABLED
@@ -649,7 +667,8 @@ const char *c_str(Args &&...args) {
 }
 
 inline const char *get_function_record_capsule_name() {
-#if PYBIND11_INTERNALS_VERSION > 4
+    // On GraalPy, pointer equality of the names is currently not guaranteed
+#if PYBIND11_INTERNALS_VERSION > 4 && !defined(GRAALVM_PYTHON)
     return get_internals().function_record_capsule_name.c_str();
 #else
     return nullptr;

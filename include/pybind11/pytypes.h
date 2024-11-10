@@ -643,7 +643,7 @@ struct error_fetch_and_normalize {
 
         bool have_trace = false;
         if (m_trace) {
-#if !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
             auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
 
             // Get the deepest trace possible.
@@ -1356,7 +1356,7 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #    define PYBIND11_STR_CHECK_FUN PyUnicode_Check
 #endif
 
-inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
+inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
 
 class kwargs_proxy : public handle {
 public:
@@ -1470,11 +1470,17 @@ public:
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
 
     iterator &operator++() {
+        init();
         advance();
         return *this;
     }
 
     iterator operator++(int) {
+        // Note: We must call init() first so that rv.value is
+        // the same as this->value just before calling advance().
+        // Otherwise, dereferencing the returned iterator may call
+        // advance() again and return the 3rd item instead of the 1st.
+        init();
         auto rv = *this;
         advance();
         return rv;
@@ -1482,15 +1488,12 @@ public:
 
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference operator*() const {
-        if (m_ptr && !value.ptr()) {
-            auto &self = const_cast<iterator &>(*this);
-            self.advance();
-        }
+        init();
         return value;
     }
 
     pointer operator->() const {
-        operator*();
+        init();
         return &value;
     }
 
@@ -1513,6 +1516,13 @@ public:
     friend bool operator!=(const iterator &a, const iterator &b) { return a->ptr() != b->ptr(); }
 
 private:
+    void init() const {
+        if (m_ptr && !value.ptr()) {
+            auto &self = const_cast<iterator &>(*this);
+            self.advance();
+        }
+    }
+
     void advance() {
         value = reinterpret_steal<object>(PyIter_Next(m_ptr));
         if (value.ptr() == nullptr && PyErr_Occurred()) {

@@ -211,6 +211,10 @@ def _run_in_threads(test_fn, num_threads, parallel):
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_one_thread(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread.
 
@@ -221,6 +225,10 @@ def test_run_in_process_one_thread(test_fn):
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_multiple_threads_parallel(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
@@ -231,6 +239,10 @@ def test_run_in_process_multiple_threads_parallel(test_fn):
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_multiple_threads_sequential(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
@@ -241,6 +253,10 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_direct(test_fn):
     """Makes sure there is no GIL deadlock when using processes.
 

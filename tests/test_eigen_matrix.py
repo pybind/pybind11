@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 
 np = pytest.importorskip("numpy")
@@ -394,6 +395,7 @@ def test_eigen_return_references():
     np.testing.assert_array_equal(a_copy5, c5want)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def assert_keeps_alive(cl, method, *args):
     cstats = ConstructorStats.get(cl)
     start_with = cstats.alive()
@@ -409,6 +411,7 @@ def assert_keeps_alive(cl, method, *args):
     assert cstats.alive() == start_with
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_eigen_keepalive():
     a = m.ReturnTester()
     cstats = ConstructorStats.get(m.ReturnTester)

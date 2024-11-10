@@ -6,7 +6,13 @@ from io import StringIO
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import iostream as m
+
+pytestmark = pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="Delayed prints from finalizers from other tests can end up in the output",
+)
 
 
 def test_captured(capsys):

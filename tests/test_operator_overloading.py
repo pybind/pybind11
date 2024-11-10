@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import pytest
 
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import operators as m
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_operator_overloading():
     v1 = m.Vector2(1, 2)
     v2 = m.Vector(3, -1)
@@ -49,6 +51,9 @@ def test_operator_overloading():
     v2 /= v1
     assert str(v2) == "[2.000000, 8.000000]"
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.Vector2)
     assert cstats.alive() == 3
     del v1
@@ -83,6 +88,7 @@ def test_operator_overloading():
     assert cstats.move_assignments == 0
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_operators_notimplemented():
     """#393: need to return NotSupported to ensure correct arithmetic operator behavior"""
 

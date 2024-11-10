@@ -117,7 +117,6 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
     }
-
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
         auto *type = check[i];
@@ -176,13 +175,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
  * The value is cached for the lifetime of the Python type.
  */
 inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type) {
-    auto ins = all_type_info_get_cache(type);
-    if (ins.second) {
-        // New cache entry: populate it
-        all_type_info_populate(type, ins.first->second);
-    }
-
-    return ins.first->second;
+    return all_type_info_get_cache(type).first->second;
 }
 
 /**
@@ -459,7 +452,7 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 }
 
 inline PyThreadState *get_thread_state_unchecked() {
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     return PyThreadState_GET();
 #elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
@@ -1161,14 +1154,14 @@ protected:
        does not have a private operator new implementation. A comma operator is used in the
        decltype argument to apply SFINAE to the public copy/move constructors.*/
     template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *) -> decltype(new T(std::declval<const T>()),
-                                                             Constructor{}) {
+    static auto make_copy_constructor(const T *)
+        -> decltype(new T(std::declval<const T>()), Constructor{}) {
         return [](const void *arg) -> void * { return new T(*reinterpret_cast<const T *>(arg)); };
     }
 
     template <typename T, typename = enable_if_t<is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *) -> decltype(new T(std::declval<T &&>()),
-                                                             Constructor{}) {
+    static auto make_move_constructor(const T *)
+        -> decltype(new T(std::declval<T &&>()), Constructor{}) {
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };
