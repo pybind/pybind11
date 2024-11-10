@@ -50,6 +50,13 @@ main_headers = {
     "include/pybind11/warnings.h",
 }
 
+conduit_headers = {
+    "include/pybind11/conduit/README.txt",
+    "include/pybind11/conduit/pybind11_conduit_v1.h",
+    "include/pybind11/conduit/pybind11_platform_abi_id.h",
+    "include/pybind11/conduit/wrap_include_python_h.h",
+}
+
 detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
@@ -97,7 +104,7 @@ py_files = {
     "setup_helpers.py",
 }
 
-headers = main_headers | detail_headers | eigen_headers | stl_headers
+headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
 src_files = headers | cmake_files | pkgconfig_files
 all_files = src_files | py_files
 
@@ -106,6 +113,7 @@ sdist_files = {
     "pybind11",
     "pybind11/include",
     "pybind11/include/pybind11",
+    "pybind11/include/pybind11/conduit",
     "pybind11/include/pybind11/detail",
     "pybind11/include/pybind11/eigen",
     "pybind11/include/pybind11/stl",
