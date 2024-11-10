@@ -316,28 +316,28 @@ struct type_info {
 // - Builds using libc++ with unstable ABIs
 // - Builds using libstdc++ with the legacy (pre-C++11) ABI
 #if defined(_MSC_VER)
-#  if defined(_MT) && defined(_DLL) // catches /MD or /MDd
-#    define PYBIND11_BUILD_LIB "_md"
-#  elif defined(_MT)
-#    define PYBIND11_BUILD_LIB "_mt"      // catches /MT or /MTd
-#  else
-#    define PYBIND11_BUILD_LIB ""
-#  endif
-#  if (_MSC_VER) / 100 == 19
-#    define PYBIND11_BUILD_ABI NB_BUILD_LIB "_19"
-#  else
-#    define PYBIND11_BUILD_ABI NB_BUILD_LIB "_unknown"
-#  endif
+#    if defined(_MT) && defined(_DLL) // catches /MD or /MDd
+#        define PYBIND11_BUILD_LIB "_md"
+#    elif defined(_MT)
+#        define PYBIND11_BUILD_LIB "_mt" // catches /MT or /MTd
+#    else
+#        define PYBIND11_BUILD_LIB ""
+#    endif
+#    if (_MSC_VER) / 100 == 19
+#        define PYBIND11_BUILD_ABI NB_BUILD_LIB "_19"
+#    else
+#        define PYBIND11_BUILD_ABI NB_BUILD_LIB "_unknown"
+#    endif
 #elif defined(_LIBCPP_ABI_VERSION)
-#  define PYBIND11_BUILD_ABI "_abi" NB_TOSTRING(_LIBCPP_ABI_VERSION)
+#    define PYBIND11_BUILD_ABI "_abi" NB_TOSTRING(_LIBCPP_ABI_VERSION)
 #elif defined(__GLIBCXX__)
-#  if _GLIBCXX_USE_CXX11_ABI
-#    define PYBIND11_BUILD_ABI ""
-#  else
-#    define PYBIND11_BUILD_ABI "_legacy"
-#  endif
+#    if _GLIBCXX_USE_CXX11_ABI
+#        define PYBIND11_BUILD_ABI ""
+#    else
+#        define PYBIND11_BUILD_ABI "_legacy"
+#    endif
 #else
-#  define PYBIND11_BUILD_ABI ""
+#    define PYBIND11_BUILD_ABI ""
 #endif
 
 #define PYBIND11_PLATFORM_ABI_ID                                                                  \
