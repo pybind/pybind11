@@ -310,25 +310,38 @@ struct type_info {
 #    endif
 #endif
 
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-/// On MSVC, changes in _MSC_VER may indicate ABI incompatibility (#2898).
-#ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER)
-#        define PYBIND11_BUILD_ABI "_mscver" PYBIND11_TOSTRING(_MSC_VER)
-#    else
-#        define PYBIND11_BUILD_ABI ""
-#    endif
-#endif
-
-#ifndef PYBIND11_INTERNALS_KIND
-#    define PYBIND11_INTERNALS_KIND ""
+// Catch other conditions that imply ABI incompatibility
+// - MSVC builds with different CRT versions
+// - An anticipated MSVC ABI break ("vNext")
+// - Builds using libc++ with unstable ABIs
+// - Builds using libstdc++ with the legacy (pre-C++11) ABI
+#if defined(_MSC_VER)
+#  if defined(_MT) && defined(_DLL) // catches /MD or /MDd
+#    define PYBIND11_BUILD_LIB "_md"
+#  elif defined(_MT)
+#    define PYBIND11_BUILD_LIB "_mt"      // catches /MT or /MTd
+#  else
+#    define PYBIND11_BUILD_LIB ""
+#  endif
+#  if (_MSC_VER) / 100 == 19
+#    define PYBIND11_BUILD_ABI NB_BUILD_LIB "_19"
+#  else
+#    define PYBIND11_BUILD_ABI NB_BUILD_LIB "_unknown"
+#  endif
+#elif defined(_LIBCPP_ABI_VERSION)
+#  define PYBIND11_BUILD_ABI "_abi" NB_TOSTRING(_LIBCPP_ABI_VERSION)
+#elif defined(__GLIBCXX__)
+#  if _GLIBCXX_USE_CXX11_ABI
+#    define PYBIND11_BUILD_ABI ""
+#  else
+#    define PYBIND11_BUILD_ABI "_legacy"
+#  endif
+#else
+#  define PYBIND11_BUILD_ABI ""
 #endif
 
 #define PYBIND11_PLATFORM_ABI_ID                                                                  \
-    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
-        PYBIND11_BUILD_TYPE
+    PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE
 
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
