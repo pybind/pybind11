@@ -17,7 +17,7 @@
 #endif
 
 // THIS MUST STAY AT THE TOP!
-#include <pybind11/compat/pybind11_conduit_v1.h> // VERY light-weight dependency.
+#include <pybind11/conduit/pybind11_conduit_v1.h> // VERY light-weight dependency.
 
 #include "test_cpp_conduit_traveler_types.h"
 

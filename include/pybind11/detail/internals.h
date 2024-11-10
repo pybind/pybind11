@@ -15,7 +15,7 @@
 #    include <pybind11/gil.h>
 #endif
 
-#include <pybind11/compat/pybind11_platform_abi_id.h>
+#include <pybind11/conduit/pybind11_platform_abi_id.h>
 #include <pybind11/pytypes.h>
 
 #include <exception>
