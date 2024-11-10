@@ -54,9 +54,7 @@
 #endif
 
 #ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION) // Linux/OSX.
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER)               // See PR #4953.
+#    if defined(_MSC_VER)                 // See PR #4953.
 #        if defined(_MT) && defined(_DLL) // Corresponding to CL command line options /MD or /MDd.
 #            if (_MSC_VER) / 100 == 19
 #                define PYBIND11_BUILD_ABI "_md_mscver19"
@@ -72,8 +70,17 @@
 #                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
 #            endif
 #        endif
-#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based).
-#        define PYBIND11_BUILD_ABI "" // TODO: What should be here, to prevent UB?
+#    elif defined(__NVCOMPILER)        // NVHPC (PGI-based).
+#        define PYBIND11_BUILD_ABI ""  // TODO: What should be here, to prevent UB?
+#    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
+#        define PYBIND11_BUILD_ABI "_libcpp" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
+#    elif defined(__GXX_ABI_VERSION)
+#        if __GXX_ABI_VERSION >= 1002 && defined(_GLIBCXX_USE_CXX11_ABI)
+#            define PYBIND11_BUILD_ABI                                                            \
+                "_usecxx11" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_GLIBCXX_USE_CXX11_ABI)
+#        else
+#            error "Unknown platform or compiler (__GXX_ABI_VERSION): PLEASE REVISE THIS CODE."
+#        endif
 #    else
 #        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
 #    endif
