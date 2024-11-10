@@ -9,6 +9,11 @@
 
 #pragma once
 
+#include <pybind11/conduit/wrap_include_python_h.h>
+#if PY_VERSION_HEX < 0x03080000
+#    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
+#endif
+
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 14
 #define PYBIND11_VERSION_PATCH 0.dev1
@@ -204,31 +209,6 @@
 #    define PYBIND11_MAYBE_UNUSED __attribute__((__unused__))
 #endif
 
-/* Don't let Python.h #define (v)snprintf as macro because they are implemented
-   properly in Visual Studio since 2015. */
-#if defined(_MSC_VER)
-#    define HAVE_SNPRINTF 1
-#endif
-
-/// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
-#if defined(_MSC_VER)
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_MSVC(4505)
-// C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#    if defined(_DEBUG) && !defined(Py_DEBUG)
-// Workaround for a VS 2022 issue.
-// NOTE: This workaround knowingly violates the Python.h include order requirement:
-// https://docs.python.org/3/c-api/intro.html#include-files
-// See https://github.com/pybind/pybind11/pull/3497 for full context.
-#        include <yvals.h>
-#        if _MSVC_STL_VERSION >= 143
-#            include <crtdefs.h>
-#        endif
-#        define PYBIND11_DEBUG_MARKER
-#        undef _DEBUG
-#    endif
-#endif
-
 // https://en.cppreference.com/w/c/chrono/localtime
 #if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
 #    define __STDC_WANT_LIB_EXT1__
@@ -263,44 +243,12 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #    endif
 #endif
 
-#include <Python.h>
-#if PY_VERSION_HEX < 0x03080000
-#    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
-#endif
-#include <frameobject.h>
-#include <pythread.h>
-
-/* Python #defines overrides on all sorts of core functions, which
-   tends to weak havok in C++ codebases that expect these to work
-   like regular functions (potentially with several overloads) */
-#if defined(isalnum)
-#    undef isalnum
-#    undef isalpha
-#    undef islower
-#    undef isspace
-#    undef isupper
-#    undef tolower
-#    undef toupper
-#endif
-
-#if defined(copysign)
-#    undef copysign
-#endif
-
 #if defined(PYBIND11_NUMPY_1_ONLY)
 #    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
 #endif
 
 #if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
-#endif
-
-#if defined(_MSC_VER)
-#    if defined(PYBIND11_DEBUG_MARKER)
-#        define _DEBUG
-#        undef PYBIND11_DEBUG_MARKER
-#    endif
-PYBIND11_WARNING_POP
 #endif
 
 #include <cstddef>
