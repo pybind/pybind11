@@ -86,20 +86,20 @@ template <op_id id, op_type ot, typename L, typename R>
 struct op_ {
     static constexpr bool op_enable_if_hook = true;
     template <typename Class, typename... Extra>
-    void execute(Class &cl, const Extra &...extra) const {
+    void execute(Class &cl, Extra &&...extra) const {
         using Base = typename Class::type;
         using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
         using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
         using op = op_impl<id, ot, Base, L_type, R_type>;
-        cl.def(op::name(), &op::execute, is_operator(), extra...);
+        cl.def(op::name(), &op::execute, is_operator(), std::forward<Extra>(extra)...);
     }
     template <typename Class, typename... Extra>
-    void execute_cast(Class &cl, const Extra &...extra) const {
+    void execute_cast(Class &cl, Extra &&...extra) const {
         using Base = typename Class::type;
         using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
         using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
         using op = op_impl<id, ot, Base, L_type, R_type>;
-        cl.def(op::name(), &op::execute_cast, is_operator(), extra...);
+        cl.def(op::name(), &op::execute_cast, is_operator(), std::forward<Extra>(extra)...);
     }
 };
 
