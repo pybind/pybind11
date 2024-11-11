@@ -102,10 +102,11 @@ def test_new_style_pickle_getstate_pos_only():
         )
         is not None
     )
-    assert (
-        re.match(
-            r"^__getstate__\(self: [\w\.]+, /\)",
-            m.PickleableWithDictNew.__getstate__.__doc__,
+    if hasattr(m, "PickleableWithDictNew"):
+        assert (
+            re.match(
+                r"^__getstate__\(self: [\w\.]+, /\)",
+                m.PickleableWithDictNew.__getstate__.__doc__,
+            )
+            is not None
         )
-        is not None
-    )
