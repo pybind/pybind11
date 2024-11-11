@@ -2481,6 +2481,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
                     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
                 },
                 std::forward<Extra>(extra)...,
+                pos_only(),
                 Policy);
     }
 
