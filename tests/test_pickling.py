@@ -93,3 +93,20 @@ def test_roundtrip_simple_cpp_derived():
     # Issue #3062: pickleable base C++ classes can incur object slicing
     #              if derived typeid is not registered with pybind11
     assert not m.check_dynamic_cast_SimpleCppDerived(p2)
+
+
+def test_new_style_pickle_getstate_pos_only():
+    assert (
+        re.match(
+            r"^__getstate__\(self: [\w\.]+, /\)", m.PickleableNew.__getstate__.__doc__
+        )
+        is not None
+    )
+    if hasattr(m, "PickleableWithDictNew"):
+        assert (
+            re.match(
+                r"^__getstate__\(self: [\w\.]+, /\)",
+                m.PickleableWithDictNew.__getstate__.__doc__,
+            )
+            is not None
+        )

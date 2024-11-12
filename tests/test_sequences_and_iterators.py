@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 from pytest import approx  # noqa: PT013
 
@@ -253,16 +255,12 @@ def test_python_iterator_in_cpp():
 
 def test_iterator_passthrough():
     """#181: iterator passthrough did not compile"""
-    from pybind11_tests.sequences_and_iterators import iterator_passthrough
-
     values = [3, 5, 7, 9, 11, 13, 15]
-    assert list(iterator_passthrough(iter(values))) == values
+    assert list(m.iterator_passthrough(iter(values))) == values
 
 
 def test_iterator_rvp():
     """#388: Can't make iterators via make_iterator() with different r/v policies"""
-    import pybind11_tests.sequences_and_iterators as m
-
     assert list(m.make_iterator_1()) == [1, 2, 3]
     assert list(m.make_iterator_2()) == [1, 2, 3]
     assert not isinstance(m.make_iterator_1(), type(m.make_iterator_2()))
@@ -274,3 +272,25 @@ def test_carray_iterator():
     arr_h = m.CArrayHolder(*args_gt)
     args = list(arr_h)
     assert args_gt == args
+
+
+def test_generated_dunder_methods_pos_only():
+    string_map = m.StringMap({"hi": "bye", "black": "white"})
+    for it in (
+        m.make_iterator_1(),
+        m.make_iterator_2(),
+        m.iterator_passthrough(iter([3, 5, 7])),
+        iter(m.Sequence(5)),
+        iter(string_map),
+        string_map.items(),
+        string_map.values(),
+        iter(m.CArrayHolder(*[float(i) for i in range(3)])),
+    ):
+        assert (
+            re.match(r"^__iter__\(self: [\w\.]+, /\)", type(it).__iter__.__doc__)
+            is not None
+        )
+        assert (
+            re.match(r"^__next__\(self: [\w\.]+, /\)", type(it).__next__.__doc__)
+            is not None
+        )
