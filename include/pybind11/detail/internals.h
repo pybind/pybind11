@@ -324,12 +324,12 @@ struct type_info {
 #    define PYBIND11_BUILD_LIB ""
 #  endif
 #  if (_MSC_VER) / 100 == 19
-#    define PYBIND11_BUILD_ABI NB_BUILD_LIB "_19"
+#    define PYBIND11_BUILD_ABI PYBIND11_BUILD_LIB "_19"
 #  else
-#    define PYBIND11_BUILD_ABI NB_BUILD_LIB "_unknown"
+#    define PYBIND11_BUILD_ABI PYBIND11_BUILD_LIB "_unknown"
 #  endif
 #elif defined(_LIBCPP_ABI_VERSION)
-#  define PYBIND11_BUILD_ABI "_abi" NB_TOSTRING(_LIBCPP_ABI_VERSION)
+#  define PYBIND11_BUILD_ABI "_abi" PYBIND11_TOSTRING(_LIBCPP_ABI_VERSION)
 #elif defined(__GLIBCXX__)
 #  if _GLIBCXX_USE_CXX11_ABI
 #    define PYBIND11_BUILD_ABI ""
