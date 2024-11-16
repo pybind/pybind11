@@ -160,7 +160,7 @@ template <typename PyObjectType>
 PyObjectType convert_to_pyobjecttype(py::object obj);
 
 template <>
-PyObject * convert_to_pyobjecttype<PyObject *>(py::object obj) {
+PyObject *convert_to_pyobjecttype<PyObject *>(py::object obj) {
     return obj.release().ptr();
 }
 
@@ -568,9 +568,12 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     sm.def("round_trip_float", [](double d) { return d; });
 
-    sm.def("pass_array_pyobject_ptr_return_sum_str_values", pass_array_return_sum_str_values<PyObject *>);
-    sm.def("pass_array_handle_return_sum_str_values", pass_array_return_sum_str_values<py::handle>);
-    sm.def("pass_array_object_return_sum_str_values", pass_array_return_sum_str_values<py::object>);
+    sm.def("pass_array_pyobject_ptr_return_sum_str_values",
+           pass_array_return_sum_str_values<PyObject *>);
+    sm.def("pass_array_handle_return_sum_str_values",
+           pass_array_return_sum_str_values<py::handle>);
+    sm.def("pass_array_object_return_sum_str_values",
+           pass_array_return_sum_str_values<py::object>);
 
     sm.def("pass_array_pyobject_ptr_return_as_list", pass_array_return_as_list<PyObject *>);
     sm.def("pass_array_handle_return_as_list", pass_array_return_as_list<py::handle>);
