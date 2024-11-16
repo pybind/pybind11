@@ -1428,7 +1428,11 @@ public:
 };
 
 template <typename T>
-struct npy_format_descriptor<T, enable_if_t<is_same_ignoring_cvref<T, PyObject *>::value>> {
+struct npy_format_descriptor<
+    T,
+    enable_if_t<is_same_ignoring_cvref<T, PyObject *>::value
+                || ((std::is_same<T, handle>::value || std::is_same<T, object>::value)
+                    && sizeof(T) == sizeof(PyObject *))>> {
     static constexpr auto name = const_name("object");
 
     static constexpr int value = npy_api::NPY_OBJECT_;
