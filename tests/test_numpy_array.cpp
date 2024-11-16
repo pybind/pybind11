@@ -195,7 +195,7 @@ py::array_t<PyObjectType> return_array_cpp_loop(const py::list &objs) {
     PyObjectType *data = arr_from_list.mutable_data();
     for (py::size_t i = 0; i < arr_size; i++) {
         assert(!data[i]);
-        data[i] = convert_to_pyobjecttype<PyObjectType>(objs[i]);
+        data[i] = convert_to_pyobjecttype<PyObjectType>(objs[i].attr("value"));
     }
     return arr_from_list;
 }
