@@ -143,6 +143,9 @@ set(PYBIND11_HEADERS
     include/pybind11/chrono.h
     include/pybind11/common.h
     include/pybind11/complex.h
+    include/pybind11/conduit/pybind11_conduit_v1.h
+    include/pybind11/conduit/pybind11_platform_abi_id.h
+    include/pybind11/conduit/wrap_include_python_h.h
     include/pybind11/options.h
     include/pybind11/eigen.h
     include/pybind11/eigen/common.h

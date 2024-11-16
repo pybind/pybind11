@@ -491,6 +491,12 @@ foreach(target ${test_targets})
   if(SKBUILD)
     install(TARGETS ${target} LIBRARY DESTINATION .)
   endif()
+
+  if("${target}" STREQUAL "exo_planet_c_api")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang|NVHPC)")
+      target_compile_options(${target} PRIVATE -fno-exceptions)
+    endif()
+  endif()
 endforeach()
 
 # Provide nice organisation in IDEs

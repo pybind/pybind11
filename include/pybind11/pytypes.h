@@ -2226,6 +2226,18 @@ class kwargs : public dict {
     PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)
 };
 
+// Subclasses of args and kwargs to support type hinting
+// as defined in PEP 484. See #5357 for more info.
+template <typename T>
+class Args : public args {
+    using args::args;
+};
+
+template <typename T>
+class KWArgs : public kwargs {
+    using kwargs::kwargs;
+};
+
 class anyset : public object {
 public:
     PYBIND11_OBJECT(anyset, object, PyAnySet_Check)

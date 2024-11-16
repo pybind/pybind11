@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from unittest import mock
 
 import pytest
@@ -508,3 +509,31 @@ def test_pr4220_tripped_over_this():
         m.Empty0().get_msg()
         == "This is really only meant to exercise successful compilation."
     )
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+def test_all_type_info_multithreaded():
+    # See PR #5419 for background.
+    import threading
+
+    from pybind11_tests import TestContext
+
+    class Context(TestContext):
+        pass
+
+    num_runs = 10
+    num_threads = 4
+    barrier = threading.Barrier(num_threads)
+
+    def func():
+        barrier.wait()
+        with Context():
+            pass
+
+    for _ in range(num_runs):
+        threads = [threading.Thread(target=func) for _ in range(num_threads)]
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()

@@ -19,6 +19,13 @@ NO_DELETER_MSG = (
 )
 
 
+def test_self_only_pos_only():
+    assert (
+        m.ExampleMandA.__str__.__doc__
+        == "__str__(self: pybind11_tests.methods_and_attributes.ExampleMandA, /) -> str\n"
+    )
+
+
 def test_methods_and_attributes():
     instance1 = m.ExampleMandA()
     instance2 = m.ExampleMandA(32)
