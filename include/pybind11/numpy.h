@@ -212,6 +212,7 @@ constexpr int platform_lookup(int I, Ints... Is) {
 }
 
 struct npy_api {
+    // If you change this code, please review `normalized_dtype_num` below.
     enum constants {
         NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
         NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
@@ -387,7 +388,8 @@ private:
 // This table normalizes typenums by mapping NPY_INT_, NPY_LONG, ... to NPY_INT32_, NPY_INT64, ...
 // This is needed to correctly handle situations where multiple typenums map to the same type,
 // e.g. NPY_LONG_ may be equivalent to NPY_INT_ or NPY_LONGLONG_ despite having a different
-// typenum. The normalized typenum always matches the values used in npy_format_descriptor.
+// typenum. The normalized typenum should always match the values used in npy_format_descriptor.
+// If you change this code, please review `enum constants` above.
 static constexpr int normalized_dtype_num[npy_api::NPY_VOID_ + 1] = {
     // NPY_BOOL_ =>
     npy_api::NPY_BOOL_,
