@@ -629,45 +629,61 @@ def UnwrapPyValueHolder(vhs):
     return [vh.value for vh in vhs]
 
 
-def test_pass_array_pyobject_ptr_return_sum_str_values_ndarray():
+PASS_ARRAY_PYOBJECT_RETURN_SUM_STR_VALUES_FUNCTIONS = [
+    m.pass_array_pyobject_ptr_return_sum_str_values,
+    m.pass_array_handle_return_sum_str_values,
+    m.pass_array_object_return_sum_str_values,
+]
+
+
+@pytest.mark.parametrize(
+    "pass_array", PASS_ARRAY_PYOBJECT_RETURN_SUM_STR_VALUES_FUNCTIONS
+)
+def test_pass_array_object_return_sum_str_values_ndarray(pass_array):
     # Intentionally all temporaries, do not change.
     assert (
-        m.pass_array_pyobject_ptr_return_sum_str_values(
-            np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object)
-        )
+        pass_array(np.array(WrapWithPyValueHolder(-3, "four", 5.0), dtype=object))
         == "-3four5.0"
     )
 
 
-def test_pass_array_pyobject_ptr_return_sum_str_values_list():
+@pytest.mark.parametrize(
+    "pass_array", PASS_ARRAY_PYOBJECT_RETURN_SUM_STR_VALUES_FUNCTIONS
+)
+def test_pass_array_object_return_sum_str_values_list(pass_array):
     # Intentionally all temporaries, do not change.
-    assert (
-        m.pass_array_pyobject_ptr_return_sum_str_values(
-            WrapWithPyValueHolder(2, "three", -4.0)
-        )
-        == "2three-4.0"
-    )
+    assert pass_array(WrapWithPyValueHolder(2, "three", -4.0)) == "2three-4.0"
 
 
-def test_pass_array_pyobject_ptr_return_as_list():
+@pytest.mark.parametrize(
+    "pass_array",
+    [
+        m.pass_array_pyobject_ptr_return_as_list,
+        m.pass_array_handle_return_as_list,
+        m.pass_array_object_return_as_list,
+    ],
+)
+def test_pass_array_object_return_as_list(pass_array):
     # Intentionally all temporaries, do not change.
     assert UnwrapPyValueHolder(
-        m.pass_array_pyobject_ptr_return_as_list(
-            np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object)
-        )
+        pass_array(np.array(WrapWithPyValueHolder(-1, "two", 3.0), dtype=object))
     ) == [-1, "two", 3.0]
 
 
 @pytest.mark.parametrize(
-    ("return_array_pyobject_ptr", "unwrap"),
+    ("return_array", "unwrap"),
     [
         (m.return_array_pyobject_ptr_cpp_loop, list),
+        (m.return_array_handle_cpp_loop, list),
+        (m.return_array_object_cpp_loop, list),
         (m.return_array_pyobject_ptr_from_list, UnwrapPyValueHolder),
+        (m.return_array_handle_from_list, UnwrapPyValueHolder),
+        (m.return_array_object_from_list, UnwrapPyValueHolder),
     ],
 )
-def test_return_array_pyobject_ptr_cpp_loop(return_array_pyobject_ptr, unwrap):
+def test_return_array_object_cpp_loop(return_array, unwrap):
     # Intentionally all temporaries, do not change.
-    arr_from_list = return_array_pyobject_ptr(WrapWithPyValueHolder(6, "seven", -8.0))
+    arr_from_list = return_array(WrapWithPyValueHolder(6, "seven", -8.0))
     assert isinstance(arr_from_list, np.ndarray)
     assert arr_from_list.dtype == np.dtype("O")
     assert unwrap(arr_from_list) == [6, "seven", -8.0]
