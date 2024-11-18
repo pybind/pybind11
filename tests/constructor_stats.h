@@ -312,8 +312,16 @@ void print_created(T *inst, Values &&...values) {
 }
 template <class T, typename... Values>
 void print_destroyed(T *inst, Values &&...values) { // Prints but doesn't store given values
+    /*
+     * On GraalPy, destructors can trigger anywhere and this can cause random
+     * failures in unrelated tests.
+     */
+#if !defined(GRAALVM_PYTHON)
     print_constr_details(inst, "destroyed", values...);
     track_destroyed(inst);
+#else
+    py::detail::silence_unused_warnings(inst, values...);
+#endif
 }
 template <class T, typename... Values>
 void print_values(T *inst, Values &&...values) {
