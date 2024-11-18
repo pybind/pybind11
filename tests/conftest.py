@@ -198,8 +198,9 @@ def pytest_assertrepr_compare(op, left, right):  # noqa: ARG001
 
 
 def gc_collect():
-    """Run the garbage collector twice (needed when running
+    """Run the garbage collector three times (needed when running
     reference counting tests with PyPy)"""
+    gc.collect()
     gc.collect()
     gc.collect()
 

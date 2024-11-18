@@ -301,9 +301,20 @@ protected:
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
+            constexpr bool has_is_method = any_of<std::is_same<is_method, Extra>...>::value;
+            // The implicit `self` argument is not present and not counted in method definitions.
+            constexpr bool has_args = cast_in::args_pos >= 0;
+            constexpr bool is_method_with_self_arg_only = has_is_method && !has_args;
             static_assert(has_arg_annotations || !has_kw_only_args,
                           "py::kw_only requires the use of argument annotations");
-            static_assert(has_arg_annotations || !has_pos_only_args,
+            static_assert(((/* Need `py::arg("arg_name")` annotation in function/method. */
+                            has_arg_annotations)
+                           || (/* Allow methods with no arguments `def method(self, /): ...`.
+                                * A method has at least one argument `self`. There can be no
+                                * `py::arg` annotation. E.g. `class.def("method", py::pos_only())`.
+                                */
+                               is_method_with_self_arg_only))
+                              || !has_pos_only_args,
                           "py::pos_only requires the use of argument annotations (for docstrings "
                           "and aligning the annotations to the argument)");
 
@@ -2022,9 +2033,11 @@ struct enum_base {
                     .format(std::move(type_name), enum_name(arg), int_(arg));
             },
             name("__repr__"),
-            is_method(m_base));
+            is_method(m_base),
+            pos_only());
 
-        m_base.attr("name") = property(cpp_function(&enum_name, name("name"), is_method(m_base)));
+        m_base.attr("name")
+            = property(cpp_function(&enum_name, name("name"), is_method(m_base), pos_only()));
 
         m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
@@ -2032,7 +2045,8 @@ struct enum_base {
                 return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
             name("__str__"),
-            is_method(m_base));
+            is_method(m_base),
+            pos_only());
 
         if (options::show_enum_members_docstring()) {
             m_base.attr("__doc__") = static_property(
@@ -2087,7 +2101,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV(op, expr)                                                           \
     m_base.attr(op) = cpp_function(                                                               \
@@ -2097,7 +2112,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                                       \
     m_base.attr(op) = cpp_function(                                                               \
@@ -2107,7 +2123,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
         if (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
@@ -2127,7 +2144,8 @@ struct enum_base {
                 m_base.attr("__invert__")
                     = cpp_function([](const object &arg) { return ~(int_(arg)); },
                                    name("__invert__"),
-                                   is_method(m_base));
+                                   is_method(m_base),
+                                   pos_only());
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
@@ -2147,11 +2165,15 @@ struct enum_base {
 #undef PYBIND11_ENUM_OP_CONV
 #undef PYBIND11_ENUM_OP_STRICT
 
-        m_base.attr("__getstate__") = cpp_function(
-            [](const object &arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
+        m_base.attr("__getstate__") = cpp_function([](const object &arg) { return int_(arg); },
+                                                   name("__getstate__"),
+                                                   is_method(m_base),
+                                                   pos_only());
 
-        m_base.attr("__hash__") = cpp_function(
-            [](const object &arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
+        m_base.attr("__hash__") = cpp_function([](const object &arg) { return int_(arg); },
+                                               name("__hash__"),
+                                               is_method(m_base),
+                                               pos_only());
     }
 
     PYBIND11_NOINLINE void value(char const *name_, object value, const char *doc = nullptr) {
@@ -2243,9 +2265,9 @@ public:
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
-        def_property_readonly("value", [](Type value) { return (Scalar) value; });
-        def("__int__", [](Type value) { return (Scalar) value; });
-        def("__index__", [](Type value) { return (Scalar) value; });
+        def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());
+        def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
+        def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(
@@ -2254,7 +2276,8 @@ public:
             detail::is_new_style_constructor(),
             pybind11::name("__setstate__"),
             is_method(*this),
-            arg("state"));
+            arg("state"),
+            pos_only());
     }
 
     /// Export enumeration entries into the parent scope
@@ -2440,7 +2463,8 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state & { return s; })
+            .def(
+                "__iter__", [](state &s) -> state & { return s; }, pos_only())
             .def(
                 "__next__",
                 [](state &s) -> ValueType {
@@ -2457,6 +2481,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
                     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
                 },
                 std::forward<Extra>(extra)...,
+                pos_only(),
                 Policy);
     }
 
