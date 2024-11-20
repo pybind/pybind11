@@ -75,7 +75,8 @@
 #    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
 #        define PYBIND11_BUILD_ABI "_libcpp" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
 #    elif defined(__GXX_ABI_VERSION)
-#        if __GXX_ABI_VERSION >= 1002 && __GXX_ABI_VERSION < 2000 && defined(_GLIBCXX_USE_CXX11_ABI)
+#        if __GXX_ABI_VERSION >= 1002 && __GXX_ABI_VERSION < 2000                                 \
+            && defined(_GLIBCXX_USE_CXX11_ABI)
 #            define PYBIND11_BUILD_ABI                                                            \
                 "_gxx_abi_1_usecxx11_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_GLIBCXX_USE_CXX11_ABI)
 #        else
