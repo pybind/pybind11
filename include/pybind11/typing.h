@@ -155,6 +155,10 @@ struct handle_type_name<typing::Dict<K, V>> {
 template <typename T>
 struct handle_type_name<typing::List<T>> {
     static constexpr auto name = const_name("list[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("list[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("list[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
