@@ -128,13 +128,16 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename... Types>
 struct handle_type_name<typing::Tuple<Types...>> {
-    template <typename... Ds>
-    static constexpr auto wrap_name(const Ds &...names) {
-        return const_name("tuple[") + ::pybind11::detail::concat(names...) + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<Types>::name...);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<Types>>::name...);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<Types>>::name...);
+    static constexpr auto name = const_name("tuple[")
+                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
+                                 + const_name("]");
+    static constexpr auto arg_name
+        = const_name("tuple[")
+          + ::pybind11::detail::concat(as_arg_type<make_caster<Types>>::name...) + const_name("]");
+    static constexpr auto return_name
+        = const_name("tuple[")
+          + ::pybind11::detail::concat(as_return_type<make_caster<Types>>::name...)
+          + const_name("]");
 };
 
 template <>
@@ -146,70 +149,60 @@ struct handle_type_name<typing::Tuple<>> {
 template <typename T>
 struct handle_type_name<typing::Tuple<T, ellipsis>> {
     // PEP 484 specifies this syntax for a variable-length tuple
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("tuple[") + name + const_name(", ...]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name
+        = const_name("tuple[") + make_caster<T>::name + const_name(", ...]");
+    static constexpr auto arg_name
+        = const_name("tuple[") + as_arg_type<make_caster<T>>::name + const_name(", ...]");
+    static constexpr auto return_name
+        = const_name("tuple[") + as_return_type<make_caster<T>>::name + const_name(", ...]");
 };
 
 template <typename K, typename V>
 struct handle_type_name<typing::Dict<K, V>> {
-    template <typename Kd, typename Vd>
-    static constexpr auto wrap_name(const Kd &key_name, const Vd &value_name) {
-        return const_name("dict[") + key_name + const_name(", ") + value_name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<K>::name, make_caster<V>::name);
-    static constexpr auto arg_name
-        = wrap_name(as_arg_type<make_caster<K>>::name, as_arg_type<make_caster<V>>::name);
-    static constexpr auto return_name
-        = wrap_name(as_return_type<make_caster<K>>::name, as_return_type<make_caster<V>>::name);
+    static constexpr auto name = const_name("dict[") + make_caster<K>::name + const_name(", ")
+                                 + make_caster<V>::name + const_name("]");
+    static constexpr auto arg_name = const_name("dict[") + as_arg_type<make_caster<K>>::name
+                                     + const_name(", ") + as_arg_type<make_caster<V>>::name
+                                     + const_name("]");
+    static constexpr auto return_name = const_name("dict[") + as_return_type<make_caster<K>>::name
+                                        + const_name(", ") + as_return_type<make_caster<V>>::name
+                                        + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::List<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("list[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("list[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("list[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("list[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Set<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("set[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("set[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("set[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("set[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterable<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("Iterable[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("Iterable[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("Iterable[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("Iterable[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterator<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("Iterator[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("Iterator[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("Iterator[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("Iterator[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename Return, typename... Args>
@@ -237,46 +230,43 @@ struct handle_type_name<typing::Type<T>> {
 
 template <typename... Types>
 struct handle_type_name<typing::Union<Types...>> {
-    template <typename... Ds>
-    static constexpr auto wrap_name(const Ds &...names) {
-        return const_name("Union[") + ::pybind11::detail::concat(names...) + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<Types>::name...);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<Types>>::name...);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<Types>>::name...);
+    static constexpr auto name = const_name("Union[")
+                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
+                                 + const_name("]");
+    static constexpr auto arg_name
+        = const_name("Union[")
+          + ::pybind11::detail::concat(as_arg_type<make_caster<Types>>::name...) + const_name("]");
+    static constexpr auto return_name
+        = const_name("Union[")
+          + ::pybind11::detail::concat(as_return_type<make_caster<Types>>::name...)
+          + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("Optional[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("Optional[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("Optional[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("TypeGuard[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("TypeGuard[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("TypeGuard[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("TypeGuard[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
-    template <typename D>
-    static constexpr auto wrap_name(const D &name) {
-        return const_name("TypeIs[") + name + const_name("]");
-    }
-    static constexpr auto name = wrap_name(make_caster<T>::name);
-    static constexpr auto arg_name = wrap_name(as_arg_type<make_caster<T>>::name);
-    static constexpr auto return_name = wrap_name(as_return_type<make_caster<T>>::name);
+    static constexpr auto name = const_name("TypeIs[") + make_caster<T>::name + const_name("]");
+    static constexpr auto arg_name
+        = const_name("TypeIs[") + as_arg_type<make_caster<T>>::name + const_name("]");
+    static constexpr auto return_name
+        = const_name("TypeIs[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <>
