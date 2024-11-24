@@ -457,12 +457,13 @@ TEST_SUBMODULE(stl, m) {
     m.def("parent_path", [](const std::filesystem::path &path) { return path.parent_path(); });
     m.def("parent_paths", [](const std::vector<std::filesystem::path> &paths) {
         std::vector<std::filesystem::path> result;
+        result.reserve(paths.size());
         for (const auto &path : paths) {
             result.push_back(path.parent_path());
         }
         return result;
     });
-    m.def("parent_paths_list", [](py::typing::List<std::filesystem::path> paths) {
+    m.def("parent_paths_list", [](const py::typing::List<std::filesystem::path> &paths) {
         py::typing::List<std::filesystem::path> result;
         for (auto path : paths) {
             result.append(path.cast<std::filesystem::path>().parent_path());
@@ -470,7 +471,7 @@ TEST_SUBMODULE(stl, m) {
         return result;
     });
     m.def("parent_paths_nested_list",
-          [](py::typing::List<py::typing::List<std::filesystem::path>> paths_lists) {
+          [](const py::typing::List<py::typing::List<std::filesystem::path>> &paths_lists) {
               py::typing::List<py::typing::List<std::filesystem::path>> result_lists;
               for (auto paths : paths_lists) {
                   py::typing::List<std::filesystem::path> result;
@@ -482,19 +483,20 @@ TEST_SUBMODULE(stl, m) {
               return result_lists;
           });
     m.def("parent_paths_tuple",
-          [](py::typing::Tuple<std::filesystem::path, std::filesystem::path> paths) {
+          [](const py::typing::Tuple<std::filesystem::path, std::filesystem::path> &paths) {
               py::typing::Tuple<std::filesystem::path, std::filesystem::path> result
                   = py::make_tuple(paths[0].cast<std::filesystem::path>().parent_path(),
                                    paths[1].cast<std::filesystem::path>().parent_path());
               return result;
           });
-    m.def("parent_paths_dict", [](py::typing::Dict<std::string, std::filesystem::path> paths) {
-        py::typing::Dict<std::string, std::filesystem::path> result;
-        for (auto it : paths) {
-            result[it.first] = it.second.cast<std::filesystem::path>().parent_path();
-        }
-        return result;
-    });
+    m.def("parent_paths_dict",
+          [](const py::typing::Dict<std::string, std::filesystem::path> &paths) {
+              py::typing::Dict<std::string, std::filesystem::path> result;
+              for (auto it : paths) {
+                  result[it.first] = it.second.cast<std::filesystem::path>().parent_path();
+              }
+              return result;
+          });
 #endif
 
 #ifdef PYBIND11_TEST_VARIANT
