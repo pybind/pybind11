@@ -257,6 +257,7 @@ def test_fs_path(doc):
         def __fspath__(self):
             return b"foo/bar"
 
+    # Single argument
     assert m.parent_path(Path("foo/bar")) == Path("foo")
     assert m.parent_path("foo/bar") == Path("foo")
     assert m.parent_path(b"foo/bar") == Path("foo")
@@ -266,14 +267,48 @@ def test_fs_path(doc):
         doc(m.parent_path)
         == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> Path"
     )
+    # std::vector should use name (for arg_name/return_name typing classes must be used)
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths)
         == "parent_paths(arg0: list[os.PathLike]) -> list[os.PathLike]"
     )
+    # py::typing::List
+    assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
-        doc(m.parent_paths_typing)
-        == "parent_paths_typing(arg0: list[Union[os.PathLike, str, bytes]]) -> list[Path]"
+        doc(m.parent_paths_list)
+        == "parent_paths_list(arg0: list[Union[os.PathLike, str, bytes]]) -> list[Path]"
+    )
+    # Nested py::typing::List
+    assert m.parent_paths_nested_list([["foo/bar"], ["foo/baz", "foo/buzz"]]) == [
+        [Path("foo")],
+        [Path("foo"), Path("foo")],
+    ]
+    assert (
+        doc(m.parent_paths_nested_list)
+        == "parent_paths_nested_list(arg0: list[list[Union[os.PathLike, str, bytes]]]) -> list[list[Path]]"
+    )
+    # py::typing::Tuple
+    assert m.parent_paths_tuple(("foo/bar", "foo/baz")) == (Path("foo"), Path("foo"))
+    assert (
+        doc(m.parent_paths_tuple)
+        == "parent_paths_tuple(arg0: tuple[Union[os.PathLike, str, bytes], Union[os.PathLike, str, bytes]]) -> tuple[Path, Path]"
+    )
+    # py::typing::Dict
+    assert m.parent_paths_dict(
+        {
+            "key1": Path("foo/bar"),
+            "key2": "foo/baz",
+            "key3": b"foo/buzz",
+        }
+    ) == {
+        "key1": Path("foo"),
+        "key2": Path("foo"),
+        "key3": Path("foo"),
+    }
+    assert (
+        doc(m.parent_paths_dict)
+        == "parent_paths_dict(arg0: dict[str, Union[os.PathLike, str, bytes]]) -> dict[str, Path]"
     )
 
 
