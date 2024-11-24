@@ -23,22 +23,18 @@
 // A user can manually set this string if they know their
 // compiler is compatible.
 #ifndef PYBIND11_COMPILER_TYPE
-#    if defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__INTEL_COMPILER)
-#        define PYBIND11_COMPILER_TYPE "_icc"
-#    elif defined(__clang__)
-#        define PYBIND11_COMPILER_TYPE "_clang"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
-#    elif defined(__MINGW32__)
+#    if defined(__MINGW32__)
 #        define PYBIND11_COMPILER_TYPE "_mingw"
 #    elif defined(__CYGWIN__)
 #        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#    elif defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_gcc"
+#    elif defined(_MSC_VER)
+#        define PYBIND11_COMPILER_TYPE "_msvc"
+#    elif defined(__PGI)
+#        define PYBIND11_COMPILER_TYPE "_pgi"
+#    elif defined(__INTEL_COMPILER) || defined(__clang__) || defined(__GNUC__)
+#        define PYBIND11_COMPILER_TYPE "_system" // Assumed compatible with system compiler.
 #    else
-#        define PYBIND11_COMPILER_TYPE "_unknown"
+#        error "Unknown PYBIND11_COMPILER_TYPE: PLEASE REVISE THIS CODE."
 #    endif
 #endif
 
