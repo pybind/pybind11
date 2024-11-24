@@ -489,6 +489,14 @@ TEST_SUBMODULE(stl, m) {
                                    paths[1].cast<std::filesystem::path>().parent_path());
               return result;
           });
+    m.def("parent_paths_tuple_ellipsis",
+          [](const py::typing::Tuple<std::filesystem::path, py::ellipsis> &paths) {
+              py::typing::Tuple<std::filesystem::path, py::ellipsis> result(paths.size());
+              for (size_t i = 0; i < paths.size(); ++i) {
+                  result[i] = paths[i].cast<std::filesystem::path>().parent_path();
+              }
+              return result;
+          });
     m.def("parent_paths_dict",
           [](const py::typing::Dict<std::string, std::filesystem::path> &paths) {
               py::typing::Dict<std::string, std::filesystem::path> result;
