@@ -45,7 +45,7 @@ template <size_t N, typename... Ts>
 struct is_descr<const descr<N, Ts...>> : std::true_type {};
 
 // Use arg_name instead of name when available
-template <typename T, typename Enable = void>
+template <typename T, typename SFINAE = void>
 struct as_arg_type {
     static constexpr auto name = T::name;
 };
@@ -56,7 +56,7 @@ struct as_arg_type<T, typename std::enable_if<is_descr<decltype(T::arg_name)>::v
 };
 
 // Use return_name instead of name when available
-template <typename T, typename Enable = void>
+template <typename T, typename SFINAE = void>
 struct as_return_type {
     static constexpr auto name = T::name;
 };
