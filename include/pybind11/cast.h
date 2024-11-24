@@ -1582,6 +1582,39 @@ template <typename Base, typename Derived>
 struct is_same_or_base_of<Base, Derived, decltype(void(sizeof(Derived)))>
     : any_of<std::is_same<Base, Derived>, std::is_base_of<Base, Derived>> {};
 
+// Type trait checker for `descr`
+template <typename>
+struct is_descr : std::false_type {};
+
+template <size_t N, typename... Ts>
+struct is_descr<descr<N, Ts...>> : std::true_type {};
+
+template <size_t N, typename... Ts>
+struct is_descr<const descr<N, Ts...>> : std::true_type {};
+
+// Use arg_name instead of name when available
+template <typename T, typename Enable = void>
+struct as_arg_type {
+    static constexpr auto name = T::name;
+};
+
+template <typename T>
+struct as_arg_type<T, typename std::enable_if<is_descr<decltype(T::arg_name)>::value>::type> {
+    static constexpr auto name = T::arg_name;
+};
+
+// Use return_name instead of name when available
+template <typename T, typename Enable = void>
+struct as_return_type {
+    static constexpr auto name = T::name;
+};
+
+template <typename T>
+struct as_return_type<T,
+                      typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
+    static constexpr auto name = T::return_name;
+};
+
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
@@ -1606,7 +1639,7 @@ public:
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names
-        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
+        = ::pybind11::detail::concat(type_descr(as_arg_type<make_caster<Args>>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 
