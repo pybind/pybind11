@@ -64,7 +64,7 @@ type is explicitly allowed.
                 value.long_value = PyLong_AsLong(tmp);
                 Py_DECREF(tmp);
                 /* Ensure return code was OK (to avoid out-of-range errors etc) */
-                return !(value.long_value == -1 && !PyErr_Occurred());
+                return !(value.long_value == -1 && PyErr_Occurred());
             }
 
             /**
