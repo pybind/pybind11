@@ -1151,7 +1151,15 @@ def test_arg_return_type_hints(doc):
         == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
     )
     # Callable<R(A)>
+    assert (
+        doc(m.apply_callable)
+        == "apply_callable(arg0: Union[float, int], arg1: Callable[[Union[float, int]], float]) -> float"
+    )
     # Callable<R(...)>
+    assert (
+        doc(m.apply_callable)
+        == "apply_callable(arg0: Union[float, int], arg1: Callable[[...], float]) -> float"
+    )
     # Union<T1, T2>
     assert (
         doc(m.identity_union)

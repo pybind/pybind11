@@ -1089,14 +1089,15 @@ TEST_SUBMODULE(pytypes, m) {
     // Iterator<T>
     m.def("identity_iterator", [](const py::typing::Iterator<RealNumber> &x) { return x; });
     // Callable<R(A)>
-    // m.def("get_identity_callable", []() -> py::typing::Callable<RealNumber(const RealNumber &)>
-    // { return [](const RealNumber &x) { return x; };
-    // });
+    m.def("apply_callable",
+          [](const RealNumber &x, const py::typing::Callable<RealNumber(const RealNumber &)> &f) {
+              return f(x).cast<RealNumber>();
+          });
     // Callable<R(...)>
-    // m.def("get_identity_callable_only_return",
-    //   []() -> py::typing::Callable<RealNumber(py::ellipsis)> {
-    //   return [](const RealNumber &x) { return x; };
-    //   });
+    m.def("apply_callable",
+          [](const RealNumber &x, const py::typing::Callable<RealNumber(py::ellipsis)> &f) {
+              return f(x).cast<RealNumber>();
+          });
     // Union<T1, T2>
     m.def("identity_union", [](const py::typing::Union<RealNumber, std::string> &x) { return x; });
     // Optional<T>
