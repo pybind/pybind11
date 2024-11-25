@@ -1110,6 +1110,11 @@ def test_arg_return_type_hints(doc):
     assert m.half_of_number(0) == 0
     assert isinstance(m.half_of_number(0), float)
     assert not isinstance(m.half_of_number(0), int)
+    # std::vector<T> should use fallback type (complex is not really useful but just used for testing)
+    assert (
+        doc(m.half_of_number_vector)
+        == "half_of_number_vector(arg0: list[complex]) -> list[complex]"
+    )
     # Tuple<T, T>
     assert (
         doc(m.half_of_number_tuple)
@@ -1176,7 +1181,4 @@ def test_arg_return_type_hints(doc):
         == "check_type_guard(arg0: list[object]) -> TypeGuard[list[float]]"
     )
     # TypeIs<T>
-    assert (
-        doc(m.check_type_is)
-        == "check_type_is(arg0: object) -> TypeIs[float]"
-    )
+    assert doc(m.check_type_is) == "check_type_is(arg0: object) -> TypeIs[float]"

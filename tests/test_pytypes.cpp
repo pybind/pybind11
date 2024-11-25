@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/stl.h>
 #include <pybind11/typing.h>
 
 #include "pybind11_tests.h"
@@ -1037,6 +1038,15 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
     m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    // std::vector<T>
+    m.def("half_of_number_vector", [](const std::vector<RealNumber> &x) {
+        std::vector<RealNumber> result;
+        result.reserve(x.size());
+        for (auto num : x) {
+            result.push_back(RealNumber{num.value / 2});
+        }
+        return result;
+    });
     // Tuple<T, T>
     m.def("half_of_number_tuple", [](const py::typing::Tuple<RealNumber, RealNumber> &x) {
         py::typing::Tuple<RealNumber, RealNumber> result
