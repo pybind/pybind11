@@ -1171,4 +1171,12 @@ def test_arg_return_type_hints(doc):
         == "identity_optional(arg0: Optional[Union[float, int]]) -> Optional[float]"
     )
     # TypeGuard<T>
+    assert (
+        doc(m.check_type_guard)
+        == "check_type_guard(arg0: list[object]) -> TypeGuard[list[float]]"
+    )
     # TypeIs<T>
+    assert (
+        doc(m.check_type_is)
+        == "check_type_is(arg0: object) -> TypeIs[float]"
+    )

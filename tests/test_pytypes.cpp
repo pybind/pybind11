@@ -1103,5 +1103,18 @@ TEST_SUBMODULE(pytypes, m) {
     // Optional<T>
     m.def("identity_optional", [](const py::typing::Optional<RealNumber> &x) { return x; });
     // TypeGuard<T>
+    m.def("check_type_guard",
+          [](const py::typing::List<py::object> &x)
+              -> py::typing::TypeGuard<py::typing::List<RealNumber>> {
+              for (const auto &item : x) {
+                  if (!py::isinstance<RealNumber>(item)) {
+                      return false;
+                  }
+              }
+              return true;
+          });
     // TypeIs<T>
+    m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
+        return py::isinstance<RealNumber>(x);
+    });
 }

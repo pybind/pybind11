@@ -251,21 +251,18 @@ struct handle_type_name<typing::Optional<T>> {
         = const_name("Optional[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
+// TypeGuard and TypeIs use as_return_type to use the return type if available, which is usually
+// the narrower type.
+
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
-    static constexpr auto name = const_name("TypeGuard[") + make_caster<T>::name + const_name("]");
-    static constexpr auto arg_name
-        = const_name("TypeGuard[") + as_arg_type<make_caster<T>>::name + const_name("]");
-    static constexpr auto return_name
+    static constexpr auto name
         = const_name("TypeGuard[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
-    static constexpr auto name = const_name("TypeIs[") + make_caster<T>::name + const_name("]");
-    static constexpr auto arg_name
-        = const_name("TypeIs[") + as_arg_type<make_caster<T>>::name + const_name("]");
-    static constexpr auto return_name
+    static constexpr auto name
         = const_name("TypeIs[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
