@@ -1037,12 +1037,14 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
     m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    // Tuple<T, T>
     m.def("half_of_number_tuple", [](const py::typing::Tuple<RealNumber, RealNumber> &x) {
         py::typing::Tuple<RealNumber, RealNumber> result
             = py::make_tuple(RealNumber{x[0].cast<RealNumber>().value / 2},
                              RealNumber{x[1].cast<RealNumber>().value / 2});
         return result;
     });
+    // Tuple<T, ...>
     m.def("half_of_number_tuple_ellipsis",
           [](const py::typing::Tuple<RealNumber, py::ellipsis> &x) {
               py::typing::Tuple<RealNumber, py::ellipsis> result(x.size());
@@ -1051,6 +1053,15 @@ TEST_SUBMODULE(pytypes, m) {
               }
               return result;
           });
+    // Dict<K, V>
+    m.def("half_of_number_dict", [](const py::typing::Dict<std::string, RealNumber> &x) {
+        py::typing::Dict<std::string, RealNumber> result;
+        for (auto it : x) {
+            result[it.first] = RealNumber{it.second.cast<RealNumber>().value / 2};
+        }
+        return result;
+    });
+    // List<T>
     m.def("half_of_number_list", [](const py::typing::List<RealNumber> &x) {
         py::typing::List<RealNumber> result;
         for (auto num : x) {
@@ -1058,6 +1069,7 @@ TEST_SUBMODULE(pytypes, m) {
         }
         return result;
     });
+    // List<List<T>>
     m.def("half_of_number_nested_list",
           [](const py::typing::List<py::typing::List<RealNumber>> &x) {
               py::typing::List<py::typing::List<RealNumber>> result_lists;
@@ -1070,11 +1082,25 @@ TEST_SUBMODULE(pytypes, m) {
               }
               return result_lists;
           });
-    m.def("half_of_number_dict", [](const py::typing::Dict<std::string, RealNumber> &x) {
-        py::typing::Dict<std::string, RealNumber> result;
-        for (auto it : x) {
-            result[it.first] = RealNumber{it.second.cast<RealNumber>().value / 2};
-        }
-        return result;
-    });
+    // Set<T>
+    m.def("identity_set", [](const py::typing::Set<RealNumber> &x) { return x; });
+    // Iterable<T>
+    m.def("identity_iterable", [](const py::typing::Iterable<RealNumber> &x) { return x; });
+    // Iterator<T>
+    m.def("identity_iterator", [](const py::typing::Iterator<RealNumber> &x) { return x; });
+    // Callable<R(A)>
+    // m.def("get_identity_callable", []() -> py::typing::Callable<RealNumber(const RealNumber &)>
+    // { return [](const RealNumber &x) { return x; };
+    // });
+    // Callable<R(...)>
+    // m.def("get_identity_callable_only_return",
+    //   []() -> py::typing::Callable<RealNumber(py::ellipsis)> {
+    //   return [](const RealNumber &x) { return x; };
+    //   });
+    // Union<T1, T2>
+    m.def("identity_union", [](const py::typing::Union<RealNumber, std::string> &x) { return x; });
+    // Optional<T>
+    m.def("identity_optional", [](const py::typing::Optional<RealNumber> &x) { return x; });
+    // TypeGuard<T>
+    // TypeIs<T>
 }

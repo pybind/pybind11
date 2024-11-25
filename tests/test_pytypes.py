@@ -1110,23 +1110,57 @@ def test_arg_return_type_hints(doc):
     assert m.half_of_number(0) == 0
     assert isinstance(m.half_of_number(0), float)
     assert not isinstance(m.half_of_number(0), int)
+    # Tuple<T, T>
     assert (
         doc(m.half_of_number_tuple)
         == "half_of_number_tuple(arg0: tuple[Union[float, int], Union[float, int]]) -> tuple[float, float]"
     )
+    # Tuple<T, ...>
     assert (
         doc(m.half_of_number_tuple_ellipsis)
         == "half_of_number_tuple_ellipsis(arg0: tuple[Union[float, int], ...]) -> tuple[float, ...]"
     )
-    assert (
-        doc(m.half_of_number_list)
-        == "half_of_number_list(arg0: list[Union[float, int]]) -> list[float]"
-    )
-    assert (
-        doc(m.half_of_number_nested_list)
-        == "half_of_number_nested_list(arg0: list[list[Union[float, int]]]) -> list[list[float]]"
-    )
+    # Dict<K, V>
     assert (
         doc(m.half_of_number_dict)
         == "half_of_number_dict(arg0: dict[str, Union[float, int]]) -> dict[str, float]"
     )
+    # List<T>
+    assert (
+        doc(m.half_of_number_list)
+        == "half_of_number_list(arg0: list[Union[float, int]]) -> list[float]"
+    )
+    # List<List<T>>
+    assert (
+        doc(m.half_of_number_nested_list)
+        == "half_of_number_nested_list(arg0: list[list[Union[float, int]]]) -> list[list[float]]"
+    )
+    # Set<T>
+    assert (
+        doc(m.identity_set)
+        == "identity_set(arg0: set[Union[float, int]]) -> set[float]"
+    )
+    # Iterable<T>
+    assert (
+        doc(m.identity_iterable)
+        == "identity_iterable(arg0: Iterable[Union[float, int]]) -> Iterable[float]"
+    )
+    # Iterator<T>
+    assert (
+        doc(m.identity_iterator)
+        == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
+    )
+    # Callable<R(A)>
+    # Callable<R(...)>
+    # Union<T1, T2>
+    assert (
+        doc(m.identity_union)
+        == "identity_union(arg0: Union[Union[float, int], str]) -> Union[float, str]"
+    )
+    # Optional<T>
+    assert (
+        doc(m.identity_optional)
+        == "identity_optional(arg0: Optional[Union[float, int]]) -> Optional[float]"
+    )
+    # TypeGuard<T>
+    # TypeIs<T>
