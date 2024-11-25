@@ -1101,3 +1101,32 @@ def test_list_ranges(tested_list, expected):
 def test_dict_ranges(tested_dict, expected):
     assert m.dict_iterator_default_initialization()
     assert m.transform_dict_plus_one(tested_dict) == expected
+
+
+def test_arg_return_type_hints(doc):
+    assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
+    assert m.half_of_number(2.0) == 1.0
+    assert m.half_of_number(2) == 1.0
+    assert m.half_of_number(0) == 0
+    assert isinstance(m.half_of_number(0), float)
+    assert not isinstance(m.half_of_number(0), int)
+    assert (
+        doc(m.half_of_number_tuple)
+        == "half_of_number_tuple(arg0: tuple[Union[float, int], Union[float, int]]) -> tuple[float, float]"
+    )
+    assert (
+        doc(m.half_of_number_tuple_ellipsis)
+        == "half_of_number_tuple_ellipsis(arg0: tuple[Union[float, int], ...]) -> tuple[float, ...]"
+    )
+    assert (
+        doc(m.half_of_number_list)
+        == "half_of_number_list(arg0: list[Union[float, int]]) -> list[float]"
+    )
+    assert (
+        doc(m.half_of_number_nested_list)
+        == "half_of_number_nested_list(arg0: list[list[Union[float, int]]]) -> list[list[float]]"
+    )
+    assert (
+        doc(m.half_of_number_dict)
+        == "half_of_number_dict(arg0: dict[str, Union[float, int]]) -> dict[str, float]"
+    )

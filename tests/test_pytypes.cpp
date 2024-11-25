@@ -137,6 +137,44 @@ typedef py::typing::TypeVar<"V"> TypeVarV;
 } // namespace typevar
 #endif
 
+// Custom type for testing arg_name/return_name type hints
+// RealNumber:
+// in arguments -> float | int,
+// in return -> float
+// fallback -> complex (just for testing, not really useful here)
+
+struct RealNumber {
+    double value;
+};
+
+namespace pybind11 {
+namespace detail {
+
+template <>
+struct type_caster<RealNumber> {
+    PYBIND11_TYPE_CASTER(RealNumber, const_name("complex"));
+    static constexpr auto arg_name = const_name("Union[float, int]");
+    static constexpr auto return_name = const_name("float");
+
+    static handle cast(const RealNumber &number, return_value_policy, handle) {
+        return PyFloat_FromDouble(number.value);
+    }
+
+    bool load(handle src, bool) {
+        if (!src) {
+            return false;
+        }
+        if (!PyFloat_Check(src.ptr()) && !PyLong_Check(src.ptr())) {
+            return false;
+        }
+        value = RealNumber{PyFloat_AsDouble(src.ptr())};
+        return true;
+    }
+};
+
+} // namespace detail
+} // namespace pybind11
+
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -998,4 +1036,45 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
+    m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    m.def("half_of_number_tuple", [](const py::typing::Tuple<RealNumber, RealNumber> &x) {
+        py::typing::Tuple<RealNumber, RealNumber> result
+            = py::make_tuple(RealNumber{x[0].cast<RealNumber>().value / 2},
+                             RealNumber{x[1].cast<RealNumber>().value / 2});
+        return result;
+    });
+    m.def("half_of_number_tuple_ellipsis",
+          [](const py::typing::Tuple<RealNumber, py::ellipsis> &x) {
+              py::typing::Tuple<RealNumber, py::ellipsis> result(x.size());
+              for (size_t i = 0; i < x.size(); ++i) {
+                  result[i] = x[i].cast<RealNumber>().value / 2;
+              }
+              return result;
+          });
+    m.def("half_of_number_list", [](const py::typing::List<RealNumber> &x) {
+        py::typing::List<RealNumber> result;
+        for (auto num : x) {
+            result.append(RealNumber{num.cast<RealNumber>().value / 2});
+        }
+        return result;
+    });
+    m.def("half_of_number_nested_list",
+          [](const py::typing::List<py::typing::List<RealNumber>> &x) {
+              py::typing::List<py::typing::List<RealNumber>> result_lists;
+              for (auto nums : x) {
+                  py::typing::List<RealNumber> result;
+                  for (auto num : nums) {
+                      result.append(RealNumber{num.cast<RealNumber>().value / 2});
+                  }
+                  result_lists.append(result);
+              }
+              return result_lists;
+          });
+    m.def("half_of_number_dict", [](const py::typing::Dict<std::string, RealNumber> &x) {
+        py::typing::Dict<std::string, RealNumber> result;
+        for (auto it : x) {
+            result[it.first] = RealNumber{it.second.cast<RealNumber>().value / 2};
+        }
+        return result;
+    });
 }
