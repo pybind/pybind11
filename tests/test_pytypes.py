@@ -1157,8 +1157,8 @@ def test_arg_return_type_hints(doc):
     )
     # Callable<R(...)>
     assert (
-        doc(m.apply_callable)
-        == "apply_callable(arg0: Union[float, int], arg1: Callable[[...], float]) -> float"
+        doc(m.apply_callable_ellipsis)
+        == "apply_callable_ellipsis(arg0: Union[float, int], arg1: Callable[..., float]) -> float"
     )
     # Union<T1, T2>
     assert (

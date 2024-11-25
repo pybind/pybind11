@@ -1094,7 +1094,7 @@ TEST_SUBMODULE(pytypes, m) {
               return f(x).cast<RealNumber>();
           });
     // Callable<R(...)>
-    m.def("apply_callable",
+    m.def("apply_callable_ellipsis",
           [](const RealNumber &x, const py::typing::Callable<RealNumber(py::ellipsis)> &f) {
               return f(x).cast<RealNumber>();
           });
