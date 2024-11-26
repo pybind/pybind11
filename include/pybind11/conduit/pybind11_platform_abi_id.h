@@ -67,11 +67,17 @@
 #    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
 #        define PYBIND11_BUILD_ABI "_abi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
 #    elif defined(_GLIBCXX_USE_CXX11_ABI) // See PR #5439.
+#        if defined(__NVCOMPILER)
+//           // Assume that NVHPC is in the 1xxx ABI family.
+//           // THIS ASSUMPTION IS NOT FUTURE PROOF but apparently the best we can do.
+//           // Please let us know if there is a way to validate the assumption here.
+#        elif !defined(__GXX_ABI_VERSION)
+#            error                                                                                \
+                "Unknown platform or compiler (_GLIBCXX_USE_CXX11_ABI): PLEASE REVISE THIS CODE."
+#        endif
 #        if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION < 1002 || __GXX_ABI_VERSION >= 2000
 #            error "Unknown platform or compiler (__GXX_ABI_VERSION): PLEASE REVISE THIS CODE."
 #        endif
-//       // Assume NVHPC it is in the 1xxx ABI family. THIS ASSUMPTION IS NOT FUTURE PROOF,
-//       // but on balance the best we can do.
 #        define PYBIND11_BUILD_ABI                                                                \
             "_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(                     \
                 _GLIBCXX_USE_CXX11_ABI)
