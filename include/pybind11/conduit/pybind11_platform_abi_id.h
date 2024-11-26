@@ -29,8 +29,6 @@
 #        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
 #    elif defined(_MSC_VER)
 #        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
 #    elif defined(__INTEL_COMPILER) || defined(__clang__) || defined(__GNUC__)
 #        define PYBIND11_COMPILER_TYPE "_system" // Assumed compatible with system compiler.
 #    else
@@ -66,23 +64,17 @@
 #                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
 #            endif
 #        endif
-#    elif defined(__NVCOMPILER) // NVHPC (PGI-based).
-#        define PYBIND11_BUILD_ABI                                                                      \
-            "_gnuc_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(__GNUC__) "_" PYBIND11_PLATFORM_ABI_ID_TOSTRING( \
-                __GNUC_MINOR__) "_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_GLIBCXX_USE_CXX11_ABI)
 #    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
 #        define PYBIND11_BUILD_ABI "_abi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
-#    elif defined(__GXX_ABI_VERSION)
-#        if __GXX_ABI_VERSION >= 1002 && __GXX_ABI_VERSION < 2000
-#            if !defined(_GLIBCXX_USE_CXX11_ABI)
-#                error "UNEXPECTED: _GLIBCXX_USE_CXX11_ABI not defined: PLEASE REVISE THIS CODE."
-#            endif
-#            define PYBIND11_BUILD_ABI                                                            \
-                "_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(                 \
-                    _GLIBCXX_USE_CXX11_ABI)
-#        else
+#    elif defined(_GLIBCXX_USE_CXX11_ABI) // See PR #5439.
+#        if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION < 1002 || __GXX_ABI_VERSION >= 2000
 #            error "Unknown platform or compiler (__GXX_ABI_VERSION): PLEASE REVISE THIS CODE."
 #        endif
+//       // Assume NVHPC it is in the 1xxx ABI family. THIS ASSUMPTION IS NOT FUTURE PROOF,
+//       // but on balance the best we can do.
+#        define PYBIND11_BUILD_ABI                                                                \
+            "_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(                     \
+                _GLIBCXX_USE_CXX11_ABI)
 #    else
 #        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
 #    endif
