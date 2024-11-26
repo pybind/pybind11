@@ -34,8 +34,8 @@ struct type_caster<user_space::Point2D> {
     // return_value_policy::reference_internal) and are often ignored by custom casters.
     static handle cast(const user_space::Point2D &number, return_value_policy, handle) {
         // Convert x and y components to python float
-        auto x = PyFloat_FromDouble(number.x);
-        auto y = PyFloat_FromDouble(number.y);
+        auto *x = PyFloat_FromDouble(number.x);
+        auto *y = PyFloat_FromDouble(number.y);
         // Check if conversion was successful otherwise clean up references and return null
         if (!x || !y) {
             Py_XDECREF(x);
@@ -54,11 +54,11 @@ struct type_caster<user_space::Point2D> {
     // second argument indicates whether implicit conversions should be allowed.
     bool load(handle src, bool) {
         // Check if handle is valid Sequence of length 2
-        if (!src || !PySequence_Check(src.ptr()) || PySequence_Length(src.ptr()) != 2) {
+        if (!src || PySequence_Check(src.ptr()) == 0 || PySequence_Length(src.ptr()) != 2) {
             return false;
         }
-        auto x = PySequence_GetItem(src.ptr(), 0);
-        auto y = PySequence_GetItem(src.ptr(), 1);
+        auto *x = PySequence_GetItem(src.ptr(), 0);
+        auto *y = PySequence_GetItem(src.ptr(), 1);
         // Check if values are float or int (both are allowed with float as type hint)
         if (!x || !(PyFloat_Check(x) || PyLong_Check(x)) || !y
             || !(PyFloat_Check(y) || PyLong_Check(y))) {
