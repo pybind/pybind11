@@ -43,7 +43,7 @@ struct type_caster<user_space::Point2D> {
             return nullptr;
         }
         // Create tuple from x and y
-        auto t = PyTuple_Pack(2, x, y);
+        auto *t = PyTuple_Pack(2, x, y);
         // Decrement references (the tuple now owns x an y)
         Py_DECREF(x);
         Py_DECREF(y);
