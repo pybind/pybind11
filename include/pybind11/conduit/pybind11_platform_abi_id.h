@@ -66,8 +66,10 @@
 #                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
 #            endif
 #        endif
-#    elif defined(__NVCOMPILER)        // NVHPC (PGI-based).
-#        define PYBIND11_BUILD_ABI ""  // TODO: What should be here, to prevent UB?
+#    elif defined(__NVCOMPILER) // NVHPC (PGI-based).
+#        define PYBIND11_BUILD_ABI                                                                      \
+            "_gnuc_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(__GNUC__) "_" PYBIND11_PLATFORM_ABI_ID_TOSTRING( \
+                __GNUC_MINOR__) "_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_GLIBCXX_USE_CXX11_ABI)
 #    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
 #        define PYBIND11_BUILD_ABI "_abi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
 #    elif defined(__GXX_ABI_VERSION)
