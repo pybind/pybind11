@@ -73,16 +73,21 @@ type is explicitly allowed.
         // are used to indicate the return value policy and parent object (for
         // return_value_policy::reference_internal) and are often ignored by custom casters.
         static handle cast(const user_space::Point2D &number, return_value_policy, handle) {
+            // Convert x and y components to python float
             auto x = PyFloat_FromDouble(number.x);
-            if (!x) {
-                return nullptr;
-            }
             auto y = PyFloat_FromDouble(number.y);
-            if (!y) {
-                Py_DECREF(x);
+            // Check if conversion was successful otherwise clean up references and return null
+            if (!x || !y) {
+                Py_XDECREF(x);
+                Py_XDECREF(y);
                 return nullptr;
             }
-            return PyTuple_Pack(2, x, y);
+            // Create tuple from x and y
+            auto t = PyTuple_Pack(2, x, y);
+            // Decrement references (the tuple now owns x an y)
+            Py_DECREF(x);
+            Py_DECREF(y);
+            return t;
         }
 
         // Python -> C++: convert a `PyObject` into a `Point2D` and return false upon failure. The
@@ -95,16 +100,18 @@ type is explicitly allowed.
             auto x = PySequence_GetItem(src.ptr(), 0);
             auto y = PySequence_GetItem(src.ptr(), 1);
             // Check if values are float or int (both are allowed with float as type hint)
-            if (!x || !(PyFloat_Check(x) || PyLong_Check(x))) {
-                return false;
-            }
-            if (!y || !(PyFloat_Check(y) || PyLong_Check(y))) {
+            if (!x || !(PyFloat_Check(x) || PyLong_Check(x)) || !y
+                || !(PyFloat_Check(y) || PyLong_Check(y))) {
+                Py_XDECREF(x);
+                Py_XDECREF(y);
                 return false;
             }
             // value is a default constructed Point2D
             value.x = PyFloat_AsDouble(x);
             value.y = PyFloat_AsDouble(y);
-            if (PyErr_Occurred()) {
+            Py_DECREF(x);
+            Py_DECREF(y);
+            if ((value.x == -1.0 || value.y == -1.0) && PyErr_Occurred()) {
                 PyErr_Clear();
                 return false;
             }
@@ -138,4 +145,4 @@ type is explicitly allowed.
     Unfortunately, that loses the length information ``tuple[float, float]`` provides.
     One way of still providing some length information in type hints is using ``typing.Annotated``, e.g.,
     ``Annotated[Sequence[float], 2]``, or further add libraries like
-    `annotated-types <https://github.com/annotated-types/annotated-types>`.
+    `annotated-types <https://github.com/annotated-types/annotated-types>`_.
