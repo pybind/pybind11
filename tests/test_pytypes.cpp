@@ -168,7 +168,7 @@ struct type_caster<RealNumber> {
         if (!PyFloat_Check(src.ptr()) && !PyLong_Check(src.ptr())) {
             return false;
         }
-        value = RealNumber{PyFloat_AsDouble(src.ptr())};
+        value.value = PyFloat_AsDouble(src.ptr());
         return true;
     }
 };
