@@ -869,17 +869,27 @@ struct always_construct_holder {
 };
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
-#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
+#define PYBIND11_DECLARE_HOLDER_TYPE_PART1(type, ...)                                             \
     PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <typename type>                                                                      \
-    struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__> {  \
-    };                                                                                            \
+        struct always_construct_holder<__VA_ARGS__> : always_construct_holder <
+#define PYBIND11_DECLARE_HOLDER_TYPE_PART2(type, ...)                                             \
+    >{};                                                                                          \
     template <typename type>                                                                      \
-    class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>>               \
-        : public type_caster_holder<type, holder_type> {};                                        \
+    class type_caster<__VA_ARGS__, enable_if_t<!is_shared_ptr<__VA_ARGS__>::value>>               \
+        : public type_caster_holder<type, __VA_ARGS__> {};                                        \
     }                                                                                             \
     PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+#if defined(PYBIND11_CPP20)
+#    define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                  \
+        PYBIND11_DECLARE_HOLDER_TYPE_PART1(type, holder_type)                                     \
+        void __VA_OPT__(, ) __VA_ARGS__ PYBIND11_DECLARE_HOLDER_TYPE_PART2(type, holder_type)
+#else
+#    define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                  \
+        PYBIND11_DECLARE_HOLDER_TYPE_PART1(type, holder_type)                                     \
+        void, ##__VA_ARGS__ PYBIND11_DECLARE_HOLDER_TYPE_PART2(type, holder_type)
+#endif
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder>
