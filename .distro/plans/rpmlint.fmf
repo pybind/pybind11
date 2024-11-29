@@ -1,0 +1,10 @@
+prepare:
+  - how: shell
+    script: cp ./*.rpmlintrc $TMT_PLAN_DATA/
+discover:
+  how: fmf
+  filter: "tag: rpmlint"
+  url: https://github.com/packit/tmt-plans
+  ref: main
+execute:
+  how: tmt
