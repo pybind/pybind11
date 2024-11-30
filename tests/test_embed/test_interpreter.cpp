@@ -4,6 +4,10 @@
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
+#if defined(__clang_major__) && __clang_major__ < 14
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+#endif
+
 #include <catch.hpp>
 #include <cstdlib>
 #include <fstream>
