@@ -881,7 +881,7 @@ struct always_construct_holder {
         : public type_caster_holder<type, __VA_ARGS__> {};                                        \
     }                                                                                             \
     PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-#if defined(PYBIND11_CPP20)
+#if defined(PYBIND11_CPP20) && !defined(_MSC_VER)
 #    define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                  \
         PYBIND11_DECLARE_HOLDER_TYPE_PART1(type, holder_type)                                     \
         void __VA_OPT__(, ) __VA_ARGS__ PYBIND11_DECLARE_HOLDER_TYPE_PART2(type, holder_type)
