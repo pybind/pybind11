@@ -1,4 +1,4 @@
-name: Jones Technology Foundation 
+.github/workflows/python-package-conda.ymlname: Jones Technology Foundation 
 
 on: [push]
 
