@@ -14,10 +14,6 @@
 
 #include <thread>
 
-#if defined(__clang_major__) && __clang_major__ < 14
-PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
-#endif
-
 /* This is an example class that we'll want to be able to extend from Python */
 class ExampleVirt {
 public:
