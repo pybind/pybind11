@@ -11,8 +11,9 @@
 #include "object.h"
 #include "pybind11_tests.h"
 
-// This breaks on PYBIND11_DECLARE_HOLDER_TYPE
+// These break on PYBIND11_DECLARE_HOLDER_TYPE
 PYBIND11_WARNING_DISABLE_GCC("-Wpedantic")
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 
 namespace {
 
