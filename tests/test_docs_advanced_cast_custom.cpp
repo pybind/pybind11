@@ -33,21 +33,7 @@ struct type_caster<user_space::Point2D> {
     // are used to indicate the return value policy and parent object (for
     // return_value_policy::reference_internal) and are often ignored by custom casters.
     static handle cast(const user_space::Point2D &number, return_value_policy, handle) {
-        // Convert x and y components to python float
-        auto *x = PyFloat_FromDouble(number.x);
-        auto *y = PyFloat_FromDouble(number.y);
-        // Check if conversion was successful otherwise clean up references and return null
-        if (!x || !y) {
-            Py_XDECREF(x);
-            Py_XDECREF(y);
-            return nullptr;
-        }
-        // Create tuple from x and y
-        auto *t = PyTuple_Pack(2, x, y);
-        // Decrement references (the tuple now owns x an y)
-        Py_DECREF(x);
-        Py_DECREF(y);
-        return t;
+        return py::make_tuple(number.x, number.y).release();
     }
 
     // Python -> C++: convert a `PyObject` into a `Point2D` and return false upon failure. The
