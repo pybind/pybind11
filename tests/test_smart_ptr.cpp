@@ -13,7 +13,9 @@
 
 // These break on PYBIND11_DECLARE_HOLDER_TYPE
 PYBIND11_WARNING_DISABLE_GCC("-Wpedantic")
+#if defined(__clang_major__) && __clang_major__ < 14
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+#endif
 
 namespace {
 
