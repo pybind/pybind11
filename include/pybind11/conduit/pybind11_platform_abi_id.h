@@ -12,13 +12,6 @@
 #define PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x) #x
 #define PYBIND11_PLATFORM_ABI_ID_TOSTRING(x) PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x)
 
-// On MSVC, debug and release builds are not ABI-compatible!
-#if defined(_MSC_VER) && defined(_DEBUG)
-#    define PYBIND11_BUILD_TYPE "_debug"
-#else
-#    define PYBIND11_BUILD_TYPE ""
-#endif
-
 // Let's assume that different compilers are ABI-incompatible.
 // A user can manually set this string if they know their
 // compiler is compatible.
@@ -82,6 +75,14 @@
 #    endif
 #endif
 
+// On MSVC, debug and release builds are not ABI-compatible!
+#if defined(_MSC_VER) && defined(_DEBUG)
+#    define PYBIND11_BUILD_TYPE "_debug"
+#else
+#    define PYBIND11_BUILD_TYPE ""
+#endif
+
+// Obsolete and slated for removal. DO NOT USE!
 #ifndef PYBIND11_INTERNALS_KIND
 #    define PYBIND11_INTERNALS_KIND ""
 #endif
