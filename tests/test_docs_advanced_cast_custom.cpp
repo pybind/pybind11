@@ -32,35 +32,31 @@ struct type_caster<user_space::Point2D> {
     // C++ -> Python: convert `Point2D` to `tuple[float, float]`. The second and third arguments
     // are used to indicate the return value policy and parent object (for
     // return_value_policy::reference_internal) and are often ignored by custom casters.
-    static handle cast(const user_space::Point2D &number, return_value_policy, handle) {
+    static handle
+    cast(const user_space::Point2D &number, return_value_policy /*policy*/, handle /*parent*/) {
         return py::make_tuple(number.x, number.y).release();
     }
 
     // Python -> C++: convert a `PyObject` into a `Point2D` and return false upon failure. The
     // second argument indicates whether implicit conversions should be allowed.
-    bool load(handle src, bool) {
-        // Check if handle is valid Sequence of length 2
-        if (!src || PySequence_Check(src.ptr()) == 0 || PySequence_Length(src.ptr()) != 2) {
+    bool load(handle src, bool /*convert*/) {
+        // Check if handle is a Sequence
+        if (!py::isinstance<py::sequence>(src)) {
             return false;
         }
-        auto *x = PySequence_GetItem(src.ptr(), 0);
-        auto *y = PySequence_GetItem(src.ptr(), 1);
-        // Check if values are float or int (both are allowed with float as type hint)
-        if (!x || !(PyFloat_Check(x) || PyLong_Check(x)) || !y
-            || !(PyFloat_Check(y) || PyLong_Check(y))) {
-            Py_XDECREF(x);
-            Py_XDECREF(y);
+        auto seq = py::reinterpret_borrow<py::sequence>(src);
+        // Check if exactly two values are in the Sequence
+        if (seq.size() != 2) {
             return false;
         }
-        // value is a default constructed Point2D
-        value.x = PyFloat_AsDouble(x);
-        value.y = PyFloat_AsDouble(y);
-        Py_DECREF(x);
-        Py_DECREF(y);
-        if ((value.x == -1.0 || value.y == -1.0) && PyErr_Occurred()) {
-            PyErr_Clear();
-            return false;
+        // Check if each element is either a float or an int
+        for (auto item : seq) {
+            if (!py::isinstance<py::float_>(item) and !py::isinstance<py::int_>(item)) {
+                return false;
+            }
         }
+        value.x = seq[0].cast<double>();
+        value.y = seq[1].cast<double>();
         return true;
     }
 };
