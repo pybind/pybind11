@@ -36,15 +36,10 @@
 #    endif
 #endif
 
-// Also standard libs
+// PR #5439 made this macro obsolete. However, there are many manipulations of this macro in the
+// wild. Therefore, to maintain backward compatibility, it is kept around.
 #ifndef PYBIND11_STDLIB
-#    if defined(_LIBCPP_VERSION)
-#        define PYBIND11_STDLIB "_libcpp"
-#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#        define PYBIND11_STDLIB "_libstdcpp"
-#    else
-#        define PYBIND11_STDLIB ""
-#    endif
+#    define PYBIND11_STDLIB ""
 #endif
 
 #ifndef PYBIND11_BUILD_ABI
@@ -65,7 +60,8 @@
 #            endif
 #        endif
 #    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
-#        define PYBIND11_BUILD_ABI "_abi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
+#        define PYBIND11_BUILD_ABI                                                                \
+            "_libcpp_abi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
 #    elif defined(_GLIBCXX_USE_CXX11_ABI) // See PR #5439.
 #        if defined(__NVCOMPILER)
 //           // Assume that NVHPC is in the 1xxx ABI family.
@@ -79,7 +75,7 @@
 #            error "Unknown platform or compiler (__GXX_ABI_VERSION): PLEASE REVISE THIS CODE."
 #        endif
 #        define PYBIND11_BUILD_ABI                                                                \
-            "_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(                     \
+            "_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(           \
                 _GLIBCXX_USE_CXX11_ABI)
 #    else
 #        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
