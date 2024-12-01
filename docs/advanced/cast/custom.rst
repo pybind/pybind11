@@ -117,8 +117,8 @@ type is explicitly allowed.
     and then ``load()`` assigns to it).
 
 .. note::
-    For further information on the ``return_value_policy`` argument of ``cast`` refer to :ref:`return-value-policies`.
-    To learn about the ``convert`` argument of ``load`` see :ref:`non-converting-arguments`.
+    For further information on the ``return_value_policy`` argument of ``cast`` refer to :ref:`return_value_policies`.
+    To learn about the ``convert`` argument of ``load`` see :ref:`nonconverting_arguments`.
 
 .. warning::
 
