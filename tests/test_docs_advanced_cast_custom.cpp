@@ -53,7 +53,7 @@ struct type_caster<user_space::Point2D> {
         }
         // Check if each element is either a float or an int
         for (auto item : seq) {
-            if (!py::isinstance<py::float_>(item) and !py::isinstance<py::int_>(item)) {
+            if (!py::isinstance<py::float_>(item) && !py::isinstance<py::int_>(item)) {
                 return false;
             }
         }
