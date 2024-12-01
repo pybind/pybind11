@@ -158,17 +158,14 @@ struct type_caster<RealNumber> {
     static constexpr auto return_name = const_name("float");
 
     static handle cast(const RealNumber &number, return_value_policy, handle) {
-        return PyFloat_FromDouble(number.value);
+        return py::float_(number.value).release();
     }
 
     bool load(handle src, bool) {
-        if (!src) {
+        if (!py::isinstance<py::float_>(src) && !py::isinstance<py::int_>(src)) {
             return false;
         }
-        if (!PyFloat_Check(src.ptr()) && !PyLong_Check(src.ptr())) {
-            return false;
-        }
-        value.value = PyFloat_AsDouble(src.ptr());
+        value.value = src.cast<double>();
         return true;
     }
 };
