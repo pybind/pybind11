@@ -140,9 +140,12 @@ typedef py::typing::TypeVar<"V"> TypeVarV;
 
 // Custom type for testing arg_name/return_name type hints
 // RealNumber:
-// in arguments -> float | int,
-// in return -> float
-// fallback -> complex (just for testing, not really useful here)
+// * in arguments -> float | int
+// * in return -> float
+// * fallback -> complex
+// The choice of types is not really useful, but just made different for testing purposes.
+// According to `PEP 484 – Type Hints` annotating with `float` also allows `int`,
+// so using `float | int` could be replaced by just `float`.
 
 struct RealNumber {
     double value;
