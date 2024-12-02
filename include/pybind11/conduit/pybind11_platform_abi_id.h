@@ -12,18 +12,19 @@
 #define PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x) #x
 #define PYBIND11_PLATFORM_ABI_ID_TOSTRING(x) PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x)
 
-// Let's assume that different compilers are ABI-incompatible.
-// A user can manually set this string if they know their
-// compiler is compatible.
-#ifndef PYBIND11_COMPILER_TYPE
+#ifdef PYBIND11_COMPILER_TYPE
+//   // To maintain backward compatibility (see PR #5439).
+#    define PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE ""
+#else
+#    define PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE "_"
 #    if defined(__MINGW32__)
-#        define PYBIND11_COMPILER_TYPE "_mingw"
+#        define PYBIND11_COMPILER_TYPE "mingw"
 #    elif defined(__CYGWIN__)
-#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
+#        define PYBIND11_COMPILER_TYPE "gcc_cygwin"
 #    elif defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
+#        define PYBIND11_COMPILER_TYPE "msvc"
 #    elif defined(__INTEL_COMPILER) || defined(__clang__) || defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_system" // Assumed compatible with system compiler.
+#        define PYBIND11_COMPILER_TYPE "system" // Assumed compatible with system compiler.
 #    else
 #        error "Unknown PYBIND11_COMPILER_TYPE: PLEASE REVISE THIS CODE."
 #    endif
@@ -82,11 +83,5 @@
 #    define PYBIND11_BUILD_TYPE ""
 #endif
 
-// Obsolete and slated for removal. DO NOT USE!
-#ifndef PYBIND11_INTERNALS_KIND
-#    define PYBIND11_INTERNALS_KIND ""
-#endif
-
 #define PYBIND11_PLATFORM_ABI_ID                                                                  \
-    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
-        PYBIND11_BUILD_TYPE
+    PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE
