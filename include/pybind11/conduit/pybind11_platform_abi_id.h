@@ -23,14 +23,10 @@
 #        define PYBIND11_COMPILER_TYPE "gcc_cygwin"
 #    elif defined(_MSC_VER)
 #        define PYBIND11_COMPILER_TYPE "msvc"
-#    elif defined(__GLIBC__)                                                                      \
-        && (defined(__INTEL_COMPILER) || defined(__clang__) || defined(__GNUC__))
-//       // Compatibility is determined based on libstdc++ or libc++ ABI version (below).
-#        define PYBIND11_COMPILER_TYPE "glibc"
-#    elif defined(__APPLE__)                                                                      \
-        && (defined(__INTEL_COMPILER) || defined(__clang__) || defined(__GNUC__))
-//       // Compatibility is (usually) determined based on libc++ ABI version (below).
+#    elif defined(__APPLE__)
 #        define PYBIND11_COMPILER_TYPE "macos"
+#    elif defined(__GLIBC__) || defined(_GLIBCXX_USE_CXX11_ABI)
+#        define PYBIND11_COMPILER_TYPE "glibc"
 #    else
 #        error "Unknown PYBIND11_COMPILER_TYPE: PLEASE REVISE THIS CODE."
 #    endif
