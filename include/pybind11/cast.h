@@ -1336,7 +1336,7 @@ template <typename T>
 str_attr_accessor object_api<D>::attr_with_type(const char *key) const {
     annotations()[key] = make_caster<T>::name.text;
     return {derived(), key};
-};
+}
 
 // Placeholder type for the unneeded (and dead code) static variable in the
 // PYBIND11_OVERRIDE_OVERRIDE macro
