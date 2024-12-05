@@ -186,8 +186,8 @@ public:
     /// Get or set the object's docstring, i.e. ``obj.__doc__``.
     str_attr_accessor doc() const;
 
-    /// Get or set the object's annotations, i.e. ``obj.__annotations``.
-    str_attr_accessor annotations() const;
+    /// Get or set the object's annotations, i.e. ``obj.__annotations__``.
+    object annotations() const;
 
     /// Return the object's current reference count
     ssize_t ref_count() const {
@@ -2566,12 +2566,9 @@ str_attr_accessor object_api<D>::doc() const {
 }
 
 template <typename D>
-str_attr_accessor object_api<D>::annotations() const {
-    str_attr_accessor annotations_dict = attr("__annotations__");
-    // Create dict automatically
-    if (!isinstance<dict>(annotations_dict)) {
-        annotations_dict = dict();
-    }
+// Always a dict
+object object_api<D>::annotations() const {
+    dict annotations_dict = getattr(derived(), "__annotations__", dict());
     return annotations_dict;
 }
 
