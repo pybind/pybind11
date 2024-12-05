@@ -998,4 +998,22 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
+
+    m.attr_with_type<py::typing::List<int>>("list_int") = py::list();
+    m.attr_with_type<py::typing::Set<py::str>>("set_str") = py::set();
+
+
+    struct Empty {};
+    py::class_<Empty>(m, "EmptyAnnotationClass");
+
+    struct Point {
+        float x;
+        py::dict dict_str_int;
+    };
+    auto point = py::class_<Point>(m, "Point");
+    point.attr_with_type<float>("x");
+    point.attr_with_type<py::typing::Dict<py::str, int>>("dict_str_int") = py::dict();
+
+    m.attr_with_type<py::typing::Final<int>>("CONST_INT") = 3;
+
 }

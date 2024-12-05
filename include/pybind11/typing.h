@@ -83,6 +83,12 @@ class Optional : public object {
 };
 
 template <typename T>
+class Final : public object {
+    PYBIND11_OBJECT_DEFAULT(Final, object, PyObject_Type)
+    using object::object;
+};
+
+template <typename T>
 class TypeGuard : public bool_ {
     using bool_::bool_;
 };
@@ -203,6 +209,11 @@ struct handle_type_name<typing::Union<Types...>> {
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
     static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
+};
+
+template <typename T>
+struct handle_type_name<typing::Final<T>> {
+    static constexpr auto name = const_name("Final[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>

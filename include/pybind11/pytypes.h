@@ -113,6 +113,10 @@ public:
     /// See above (the only difference is that the key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
 
+    // attr_with_type is implemented in cast.h:
+    template <typename T>
+    str_attr_accessor attr_with_type(const char *key) const;
+
     /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
         or ``list`` for a function call. Applying another * to the result yields
@@ -181,6 +185,9 @@ public:
 
     /// Get or set the object's docstring, i.e. ``obj.__doc__``.
     str_attr_accessor doc() const;
+
+    // TODO: Make read only?
+    str_attr_accessor annotations() const;
 
     /// Return the object's current reference count
     ssize_t ref_count() const {
@@ -2556,6 +2563,16 @@ pybind11::str object_api<D>::str() const {
 template <typename D>
 str_attr_accessor object_api<D>::doc() const {
     return attr("__doc__");
+}
+
+template <typename D>
+str_attr_accessor object_api<D>::annotations() const {
+     str_attr_accessor annotations_dict = attr("__annotations__");
+    // Create dict automatically
+    if (!isinstance<dict>(annotations_dict)){
+        annotations_dict = dict();
+    }
+    return annotations_dict;
 }
 
 template <typename D>
