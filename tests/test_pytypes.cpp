@@ -1002,7 +1002,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr_with_type<py::typing::List<int>>("list_int") = py::list();
     m.attr_with_type<py::typing::Set<py::str>>("set_str") = py::set();
 
-
     struct Empty {};
     py::class_<Empty>(m, "EmptyAnnotationClass");
 
@@ -1015,5 +1014,4 @@ TEST_SUBMODULE(pytypes, m) {
     point.attr_with_type<py::typing::Dict<py::str, int>>("dict_str_int") = py::dict();
 
     m.attr_with_type<py::typing::Final<int>>("CONST_INT") = 3;
-
 }

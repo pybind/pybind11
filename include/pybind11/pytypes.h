@@ -2567,9 +2567,9 @@ str_attr_accessor object_api<D>::doc() const {
 
 template <typename D>
 str_attr_accessor object_api<D>::annotations() const {
-     str_attr_accessor annotations_dict = attr("__annotations__");
+    str_attr_accessor annotations_dict = attr("__annotations__");
     // Create dict automatically
-    if (!isinstance<dict>(annotations_dict)){
+    if (!isinstance<dict>(annotations_dict)) {
         annotations_dict = dict();
     }
     return annotations_dict;

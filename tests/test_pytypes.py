@@ -1106,18 +1106,19 @@ def test_dict_ranges(tested_dict, expected):
 def test_module_attribute_types() -> None:
     module_annotations = m.__annotations__
 
-    assert module_annotations['list_int'] == 'list[int]'
-    assert module_annotations['set_str'] == 'set[str]'
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
 
 
 def test_class_attribute_types() -> None:
     empty_annotations = m.EmptyAnnotationClass.__annotations__
     annotations = m.Point.__annotations__
-    
+
     assert empty_annotations == {}
-    assert annotations['x'] == 'float'
-    assert annotations['dict_str_int'] == 'dict[str, int]'
+    assert annotations["x"] == "float"
+    assert annotations["dict_str_int"] == "dict[str, int]"
+
 
 def test_final_annotation() -> None:
     module_annotations = m.__annotations__
-    assert module_annotations['CONST_INT'] == 'Final[int]'
+    assert module_annotations["CONST_INT"] == "Final[int]"
