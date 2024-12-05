@@ -1102,13 +1102,14 @@ def test_dict_ranges(tested_dict, expected):
     assert m.dict_iterator_default_initialization()
     assert m.transform_dict_plus_one(tested_dict) == expected
 
+
 def get_annotations_helper(o):
     # Taken from __annotations__ docs
     # https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
     if isinstance(o, type):
-        ann = o.__dict__.get('__annotations__', None)
+        ann = o.__dict__.get("__annotations__", None)
     else:
-        ann = getattr(o, '__annotations__', None)
+        ann = getattr(o, "__annotations__", None)
     return ann
 
 
