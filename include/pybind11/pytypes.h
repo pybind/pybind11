@@ -2569,11 +2569,11 @@ template <typename D>
 str_attr_accessor object_api<D>::annotations() const {
     // Create dict automatically
 
-    #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
-        str_attr_accessor annotations_dict = attr("__dict__").attr("__annotations__");
-    #else
-        str_attr_accessor annotations_dict = attr("__annotations__");
-    #endif
+#if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
+    str_attr_accessor annotations_dict = attr("__dict__").attr("__annotations__");
+#else
+    str_attr_accessor annotations_dict = attr("__annotations__");
+#endif
     // Create dict automatically
     if (!isinstance<dict>(annotations_dict)) {
         annotations_dict = dict();
