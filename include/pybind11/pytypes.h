@@ -2568,8 +2568,7 @@ str_attr_accessor object_api<D>::doc() const {
 template <typename D>
 // Always a dict
 object object_api<D>::annotations() const {
-    dict annotations_dict = getattr(derived(), "__annotations__", dict());
-    return std::move(annotations_dict);
+    return getattr(derived(), "__annotations__", dict());
 }
 
 template <typename D>

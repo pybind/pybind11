@@ -1104,6 +1104,7 @@ def test_dict_ranges(tested_dict, expected):
 
 
 def get_annotations_helper(o):
+    print(help(o))
     return getattr(o, "__annotations__", None)
 
 
