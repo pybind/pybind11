@@ -2569,7 +2569,7 @@ template <typename D>
 // Always a dict
 object object_api<D>::annotations() const {
     dict annotations_dict = getattr(derived(), "__annotations__", dict());
-    return annotations_dict;
+    return std::move(annotations_dict);
 }
 
 template <typename D>
