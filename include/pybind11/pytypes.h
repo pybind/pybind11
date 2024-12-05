@@ -186,7 +186,7 @@ public:
     /// Get or set the object's docstring, i.e. ``obj.__doc__``.
     str_attr_accessor doc() const;
 
-    // TODO: Make read only?
+    /// Get or set the object's annotations, i.e. ``obj.__annotations``.
     str_attr_accessor annotations() const;
 
     /// Return the object's current reference count
