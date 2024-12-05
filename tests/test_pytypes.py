@@ -1102,23 +1102,32 @@ def test_dict_ranges(tested_dict, expected):
     assert m.dict_iterator_default_initialization()
     assert m.transform_dict_plus_one(tested_dict) == expected
 
+def get_annotations_helper(o):
+    # Taken from __annotations__ docs
+    # https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+    if isinstance(o, type):
+        ann = o.__dict__.get('__annotations__', None)
+    else:
+        ann = getattr(o, '__annotations__', None)
+    return ann
+
 
 def test_module_attribute_types() -> None:
-    module_annotations = m.__annotations__
+    module_annotations = get_annotations_helper(m)
 
     assert module_annotations["list_int"] == "list[int]"
     assert module_annotations["set_str"] == "set[str]"
 
 
 def test_class_attribute_types() -> None:
-    empty_annotations = m.EmptyAnnotationClass.__annotations__
-    annotations = m.Point.__annotations__
+    empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
+    annotations = get_annotations_helper(m.Point)
 
-    assert empty_annotations == {}
+    assert empty_annotations is None
     assert annotations["x"] == "float"
     assert annotations["dict_str_int"] == "dict[str, int]"
 
 
 def test_final_annotation() -> None:
-    module_annotations = m.__annotations__
+    module_annotations = get_annotations_helper(m)
     assert module_annotations["CONST_INT"] == "Final[int]"
