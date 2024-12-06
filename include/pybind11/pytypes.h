@@ -2572,7 +2572,7 @@ object object_api<D>::annotations() const {
 // Python 3.8, 3.9
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
     if (isinstance<type>(derived())) {
-        return getattr(derived(), "__dict__").get("__annotations__", dict());
+        return getattr(getattr(derived(), "__dict__"), "__annotations__", dict());
     } else {
         return getattr(derived(), "__annotations__", dict());
     }
