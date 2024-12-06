@@ -2567,8 +2567,14 @@ str_attr_accessor object_api<D>::doc() const {
 
 template <typename D>
 // Always a dict
+// https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
 object object_api<D>::annotations() const {
-    return getattr(derived(), "__annotations__", dict());
+    if (isinstance<type>(derived())){
+        return getattr(getattr(derived(), "__dict__"), "__annotations__", dict());
+    }
+    else{
+        return getattr(derived(), "__annotations__", dict());
+    }
 }
 
 template <typename D>
