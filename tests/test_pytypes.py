@@ -1109,6 +1109,7 @@ def get_annotations_helper(o):
         return o.__dict__.get("__annotations__", {})
     return getattr(o, "__annotations__", {})
 
+
 @pytest.mark.skipif(
     not m.defined_PYBIND11_CPP17,
     reason="C++17 Position Independent Code not available",
@@ -1118,6 +1119,7 @@ def test_module_attribute_types() -> None:
 
     assert module_annotations["list_int"] == "list[int]"
     assert module_annotations["set_str"] == "set[str]"
+
 
 @pytest.mark.skipif(
     not m.defined_PYBIND11_CPP17,
@@ -1130,6 +1132,7 @@ def test_class_attribute_types() -> None:
     assert empty_annotations == {}
     assert annotations["x"] == "float"
     assert annotations["dict_str_int"] == "dict[str, int]"
+
 
 @pytest.mark.skipif(
     not m.defined_PYBIND11_CPP17,
