@@ -1105,7 +1105,7 @@ def test_dict_ranges(tested_dict, expected):
 
 # https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
 def get_annotations_helper(o):
-    dir(o)
+    print(dir(o))
     if isinstance(o, type):
         return o.__dict__.get("__annotations__", {})
     return getattr(o, "__annotations__", {})
@@ -1125,6 +1125,7 @@ def test_class_attribute_types() -> None:
     assert empty_annotations == {}
     assert annotations["x"] == "float"
     assert annotations["dict_str_int"] == "dict[str, int]"
+    assert False
 
 
 def test_final_annotation() -> None:
