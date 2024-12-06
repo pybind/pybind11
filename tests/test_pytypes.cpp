@@ -999,6 +999,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
 
+#if defined(PYBIND11_CPP17)
     m.attr_with_type<py::typing::List<int>>("list_int") = py::list();
     m.attr_with_type<py::typing::Set<py::str>>("set_str") = py::set();
 
@@ -1014,4 +1015,8 @@ TEST_SUBMODULE(pytypes, m) {
     point.attr_with_type<py::typing::Dict<py::str, int>>("dict_str_int") = py::dict();
 
     m.attr_with_type<py::typing::Final<int>>("CONST_INT") = 3;
+    m.attr("defined_PYBIND11_CPP17") = true;
+#else
+    m.attr("defined_PYBIND11_CPP17") = false;
+#endif
 }
