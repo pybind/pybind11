@@ -1329,14 +1329,18 @@ object object_or_cast(T &&o) {
     return pybind11::cast(std::forward<T>(o));
 }
 
+
+#if defined(PYBIND11_CPP17)
 // Declared in pytypes.h:
 // Written here so make_caster<T> can be used
 template <typename D>
 template <typename T>
 str_attr_accessor object_api<D>::attr_with_type(const char *key) const {
-    annotations()[key] = make_caster<T>::name.text;
+    static constexpr auto name = make_caster<T>::name;
+    annotations()[key] = name.text;
     return {derived(), key};
 }
+#endif
 
 // Placeholder type for the unneeded (and dead code) static variable in the
 // PYBIND11_OVERRIDE_OVERRIDE macro
