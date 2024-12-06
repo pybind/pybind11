@@ -1329,7 +1329,6 @@ object object_or_cast(T &&o) {
     return pybind11::cast(std::forward<T>(o));
 }
 
-
 #if defined(PYBIND11_CPP17)
 // Declared in pytypes.h:
 // Written here so make_caster<T> can be used
