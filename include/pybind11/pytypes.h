@@ -2569,10 +2569,9 @@ template <typename D>
 // Always a dict
 // https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
 object object_api<D>::annotations() const {
-    if (isinstance<type>(derived())){
+    if (isinstance<type>(derived())) {
         return getattr(getattr(derived(), "__dict__"), "__annotations__", dict());
-    }
-    else{
+    } else {
         return getattr(derived(), "__annotations__", dict());
     }
 }
