@@ -2571,11 +2571,10 @@ template <typename D>
 object object_api<D>::annotations() const {
 // Python 3.8, 3.9
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
-    if (hasattr(derived(), "__dict__")) {
-        return getattr(getattr(derived(), "__dict__"), "__annotations__", dict());
-    } else {
-        return getattr(derived(), "__annotations__", dict());
+    if (!hasattr(derived(), "__annotations__")) {
+        setattr(derived(), "__annotations__", dict());
     }
+    return attr("__annotations__");
 // Python 3.10+
 #else
     return getattr(derived(), "__annotations__", dict());

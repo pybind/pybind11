@@ -1125,7 +1125,6 @@ def test_class_attribute_types() -> None:
     assert empty_annotations == {}
     assert annotations["x"] == "float"
     assert annotations["dict_str_int"] == "dict[str, int]"
-    assert False
 
 
 def test_final_annotation() -> None:
