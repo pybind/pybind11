@@ -25,6 +25,8 @@
 #        define PYBIND11_COMPILER_TYPE "msvc"
 #    elif defined(__APPLE__)
 #        define PYBIND11_COMPILER_TYPE "macos"
+#    elif defined(__EMSCRIPTEN__)
+#        define PYBIND11_COMPILER_TYPE "emscripten"
 #    elif defined(__GLIBC__) || defined(_GLIBCXX_USE_CXX11_ABI)
 #        define PYBIND11_COMPILER_TYPE "glibc"
 #    else
