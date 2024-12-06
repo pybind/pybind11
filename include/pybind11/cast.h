@@ -1335,8 +1335,7 @@ object object_or_cast(T &&o) {
 template <typename D>
 template <typename T>
 str_attr_accessor object_api<D>::attr_with_type(const char *key) const {
-    static constexpr auto name = make_caster<T>::name;
-    annotations()[key] = name.text;
+    annotations()[key] = make_caster<T>::name.text;
     return {derived(), key};
 }
 #endif
