@@ -124,7 +124,7 @@ type is explicitly allowed.
 
     When using custom type casters, it's important to declare them consistently
     in every compilation unit of the Python extension module to satisfy the C++ One Definition Rule
-    (`ODR <https://en.cppreference.com/w/cpp/language/definition>`_).. Otherwise,
+    (`ODR <https://en.cppreference.com/w/cpp/language/definition>`_). Otherwise,
     undefined behavior can ensue.
 
 .. note::
