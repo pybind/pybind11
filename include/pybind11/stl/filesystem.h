@@ -107,6 +107,8 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
+    static constexpr auto arg_name = const_name("Union[os.PathLike, str, bytes]");
+    static constexpr auto return_name = const_name("Path");
 };
 
 #endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
