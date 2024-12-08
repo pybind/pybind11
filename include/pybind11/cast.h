@@ -34,6 +34,39 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// Type trait checker for `descr`
+template <typename>
+struct is_descr : std::false_type {};
+
+template <size_t N, typename... Ts>
+struct is_descr<descr<N, Ts...>> : std::true_type {};
+
+template <size_t N, typename... Ts>
+struct is_descr<const descr<N, Ts...>> : std::true_type {};
+
+// Use arg_name instead of name when available
+template <typename T, typename SFINAE = void>
+struct as_arg_type {
+    static constexpr auto name = T::name;
+};
+
+template <typename T>
+struct as_arg_type<T, typename std::enable_if<is_descr<decltype(T::arg_name)>::value>::type> {
+    static constexpr auto name = T::arg_name;
+};
+
+// Use return_name instead of name when available
+template <typename T, typename SFINAE = void>
+struct as_return_type {
+    static constexpr auto name = T::name;
+};
+
+template <typename T>
+struct as_return_type<T,
+                      typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
+    static constexpr auto name = T::return_name;
+};
+
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -863,18 +896,20 @@ using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::val
                                          copyable_holder_caster<type, holder_type>,
                                          move_only_holder_caster<type, holder_type>>;
 
-template <typename T, bool Value = false>
-struct always_construct_holder {
+template <bool Value = false>
+struct always_construct_holder_value {
     static constexpr bool value = Value;
 };
+
+template <typename T, bool Value = false>
+struct always_construct_holder : always_construct_holder_value<Value> {};
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
     PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <typename type>                                                                      \
-    struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__> {  \
-    };                                                                                            \
+    struct always_construct_holder<holder_type> : always_construct_holder_value<__VA_ARGS__> {};  \
     template <typename type>                                                                      \
     class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>>               \
         : public type_caster_holder<type, holder_type> {};                                        \
@@ -1078,6 +1113,8 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    static constexpr auto arg_name = as_arg_type<handle_type_name<type>>::name;
+    static constexpr auto return_name = as_return_type<handle_type_name<type>>::name;
 };
 
 template <typename T>
@@ -1606,7 +1643,7 @@ public:
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names
-        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
+        = ::pybind11::detail::concat(type_descr(as_arg_type<make_caster<Args>>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 

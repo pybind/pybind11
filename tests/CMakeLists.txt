@@ -122,6 +122,7 @@ set(PYBIND11_TEST_FILES
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
+    test_docs_advanced_cast_custom
     test_eigen_matrix
     test_eigen_tensor
     test_enum
