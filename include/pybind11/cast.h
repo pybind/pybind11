@@ -896,18 +896,20 @@ using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::val
                                          copyable_holder_caster<type, holder_type>,
                                          move_only_holder_caster<type, holder_type>>;
 
-template <typename T, bool Value = false>
-struct always_construct_holder {
+template <bool Value = false>
+struct always_construct_holder_value {
     static constexpr bool value = Value;
 };
+
+template <typename T, bool Value = false>
+struct always_construct_holder : always_construct_holder_value<Value> {};
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
     PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <typename type>                                                                      \
-    struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__> {  \
-    };                                                                                            \
+    struct always_construct_holder<holder_type> : always_construct_holder_value<__VA_ARGS__> {};  \
     template <typename type>                                                                      \
     class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>>               \
         : public type_caster_holder<type, holder_type> {};                                        \
