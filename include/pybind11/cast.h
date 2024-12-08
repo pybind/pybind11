@@ -1334,7 +1334,7 @@ object object_or_cast(T &&o) {
 // Written here so make_caster<T> can be used
 template <typename D>
 template <typename T>
-str_attr_accessor object_api<D>::attr_with_type(const char *key) const {
+str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     annotations()[key] = make_caster<T>::name.text;
     return {derived(), key};
 }

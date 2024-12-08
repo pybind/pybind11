@@ -114,9 +114,9 @@ public:
     str_attr_accessor attr(const char *key) const;
 
 #if defined(PYBIND11_CPP17)
-    // attr_with_type is implemented in cast.h:
+    // attr_with_type_hint is implemented in cast.h:
     template <typename T>
-    str_attr_accessor attr_with_type(const char *key) const;
+    str_attr_accessor attr_with_type_hint(const char *key) const;
 #endif
     /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
@@ -2567,16 +2567,13 @@ str_attr_accessor object_api<D>::doc() const {
 }
 
 template <typename D>
-// Always a dict
-// https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
 object object_api<D>::annotations() const {
-// Python 3.8, 3.9
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
+// https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
     if (!hasattr(derived(), "__annotations__")) {
         setattr(derived(), "__annotations__", dict());
     }
     return attr("__annotations__");
-// Python 3.10+
 #else
     return getattr(derived(), "__annotations__", dict());
 #endif
