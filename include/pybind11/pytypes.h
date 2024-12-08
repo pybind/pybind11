@@ -2569,7 +2569,7 @@ str_attr_accessor object_api<D>::doc() const {
 template <typename D>
 object object_api<D>::annotations() const {
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
-// https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+    // https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
     if (!hasattr(derived(), "__annotations__")) {
         setattr(derived(), "__annotations__", dict());
     }
