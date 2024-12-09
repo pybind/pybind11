@@ -26,6 +26,12 @@
 #include <utility>
 #include <vector>
 
+// See PR #5448. This warning suppression is needed for the PYBIND11_OVERRIDE macro family.
+// NOTE that this is NOT embedded in a push/pop pair because that is very difficult to achieve.
+#if defined(__clang_major__) && __clang_major__ < 14
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+#endif
+
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #    define PYBIND11_STD_LAUNDER std::launder
 #    define PYBIND11_HAS_STD_LAUNDER 1
@@ -330,8 +336,8 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature
-            = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
+        static constexpr auto signature = const_name("(") + cast_in::arg_names
+                                          + const_name(") -> ") + as_return_type<cast_out>::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */

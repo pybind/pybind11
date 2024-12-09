@@ -1101,3 +1101,84 @@ def test_list_ranges(tested_list, expected):
 def test_dict_ranges(tested_dict, expected):
     assert m.dict_iterator_default_initialization()
     assert m.transform_dict_plus_one(tested_dict) == expected
+
+
+def test_arg_return_type_hints(doc):
+    assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
+    assert m.half_of_number(2.0) == 1.0
+    assert m.half_of_number(2) == 1.0
+    assert m.half_of_number(0) == 0
+    assert isinstance(m.half_of_number(0), float)
+    assert not isinstance(m.half_of_number(0), int)
+    # std::vector<T> should use fallback type (complex is not really useful but just used for testing)
+    assert (
+        doc(m.half_of_number_vector)
+        == "half_of_number_vector(arg0: list[complex]) -> list[complex]"
+    )
+    # Tuple<T, T>
+    assert (
+        doc(m.half_of_number_tuple)
+        == "half_of_number_tuple(arg0: tuple[Union[float, int], Union[float, int]]) -> tuple[float, float]"
+    )
+    # Tuple<T, ...>
+    assert (
+        doc(m.half_of_number_tuple_ellipsis)
+        == "half_of_number_tuple_ellipsis(arg0: tuple[Union[float, int], ...]) -> tuple[float, ...]"
+    )
+    # Dict<K, V>
+    assert (
+        doc(m.half_of_number_dict)
+        == "half_of_number_dict(arg0: dict[str, Union[float, int]]) -> dict[str, float]"
+    )
+    # List<T>
+    assert (
+        doc(m.half_of_number_list)
+        == "half_of_number_list(arg0: list[Union[float, int]]) -> list[float]"
+    )
+    # List<List<T>>
+    assert (
+        doc(m.half_of_number_nested_list)
+        == "half_of_number_nested_list(arg0: list[list[Union[float, int]]]) -> list[list[float]]"
+    )
+    # Set<T>
+    assert (
+        doc(m.identity_set)
+        == "identity_set(arg0: set[Union[float, int]]) -> set[float]"
+    )
+    # Iterable<T>
+    assert (
+        doc(m.identity_iterable)
+        == "identity_iterable(arg0: Iterable[Union[float, int]]) -> Iterable[float]"
+    )
+    # Iterator<T>
+    assert (
+        doc(m.identity_iterator)
+        == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
+    )
+    # Callable<R(A)>
+    assert (
+        doc(m.apply_callable)
+        == "apply_callable(arg0: Union[float, int], arg1: Callable[[Union[float, int]], float]) -> float"
+    )
+    # Callable<R(...)>
+    assert (
+        doc(m.apply_callable_ellipsis)
+        == "apply_callable_ellipsis(arg0: Union[float, int], arg1: Callable[..., float]) -> float"
+    )
+    # Union<T1, T2>
+    assert (
+        doc(m.identity_union)
+        == "identity_union(arg0: Union[Union[float, int], str]) -> Union[float, str]"
+    )
+    # Optional<T>
+    assert (
+        doc(m.identity_optional)
+        == "identity_optional(arg0: Optional[Union[float, int]]) -> Optional[float]"
+    )
+    # TypeGuard<T>
+    assert (
+        doc(m.check_type_guard)
+        == "check_type_guard(arg0: list[object]) -> TypeGuard[list[float]]"
+    )
+    # TypeIs<T>
+    assert doc(m.check_type_is) == "check_type_is(arg0: object) -> TypeIs[float]"
