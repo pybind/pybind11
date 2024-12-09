@@ -1103,6 +1103,46 @@ def test_dict_ranges(tested_dict, expected):
     assert m.transform_dict_plus_one(tested_dict) == expected
 
 
+# https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+def get_annotations_helper(o):
+    if isinstance(o, type):
+        return o.__dict__.get("__annotations__", {})
+    return getattr(o, "__annotations__", {})
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_CPP17,
+    reason="C++17 Position Independent Code not available",
+)
+def test_module_attribute_types() -> None:
+    module_annotations = get_annotations_helper(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_CPP17,
+    reason="C++17 Position Independent Code not available",
+)
+def test_class_attribute_types() -> None:
+    empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
+    annotations = get_annotations_helper(m.Point)
+
+    assert empty_annotations == {}
+    assert annotations["x"] == "float"
+    assert annotations["dict_str_int"] == "dict[str, int]"
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_CPP17,
+    reason="C++17 Position Independent Code not available",
+)
+def test_final_annotation() -> None:
+    module_annotations = get_annotations_helper(m)
+    assert module_annotations["CONST_INT"] == "Final[int]"
+
+
 def test_arg_return_type_hints(doc):
     assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
     assert m.half_of_number(2.0) == 1.0
