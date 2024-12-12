@@ -1042,8 +1042,9 @@ def test_optional_object_annotations(doc):
 def test_literal(doc):
     assert (
         doc(m.annotate_literal)
-        == 'annotate_literal(arg0: Literal[3, 6, 1, 0, True, False]) -> object'
+        == "annotate_literal(arg0: Literal[3, 6, 1, 0, True, False]) -> object"
     )
+
 
 @pytest.mark.skipif(
     not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,

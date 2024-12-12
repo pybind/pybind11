@@ -984,7 +984,8 @@ TEST_SUBMODULE(pytypes, m) {
 #endif
 
 #if defined(PYBIND11_CPP17)
-    m.def("annotate_literal", [](py::typing::Literal<3, 6, 1, 0, true, false> &o) -> py::object { return o; });
+    m.def("annotate_literal",
+          [](py::typing::Literal<3, 6, 1, 0, true, false> &o) -> py::object { return o; });
 
     m.attr("PYBIND11_CPP17") = true;
 #else

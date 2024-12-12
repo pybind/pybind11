@@ -281,11 +281,13 @@ struct handle_type_name<typing::Never> {
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
-template <auto StrLit, typename std::enable_if<std::is_same<decltype(StrLit), typing::StringLiteral>::value, int>::type = 0>
+template <auto StrLit,
+          typename std::enable_if<std::is_same<decltype(StrLit), typing::StringLiteral>::value,
+                                  int>::type
+          = 0>
 auto constexpr const_name() {
     return const_name(StrLit.name);
 }
-
 
 template <typing::StringLiteral StrLit>
 struct handle_type_name<typing::TypeVar<StrLit>> {
