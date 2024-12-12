@@ -1036,12 +1036,22 @@ def test_optional_object_annotations(doc):
 
 
 @pytest.mark.skipif(
-    not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
-    reason="C++20 non-type template args feature not available.",
+    not m.PYBIND11_CPP17,
+    reason="C++17 auto template args feature not available.",
 )
 def test_literal(doc):
     assert (
         doc(m.annotate_literal)
+        == 'annotate_literal(arg0: Literal[3, 6, 1, 0, True, False]) -> object'
+    )
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
+    reason="C++20 non-type template args feature not available.",
+)
+def test_complete_literal(doc):
+    assert (
+        doc(m.annotate_complete_literal)
         == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
 

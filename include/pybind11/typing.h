@@ -102,15 +102,12 @@ class Never : public none {
 
 #if defined(__cpp_nontype_template_args) && __cpp_nontype_template_args >= 201911L
 #    define PYBIND11_TYPING_H_HAS_STRING_LITERAL
+
+// Used for TypeVars and Strings, bytes, Enums, None for Literal object
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
     char name[N];
-};
-
-template <StringLiteral... StrLits>
-class Literal : public object {
-    PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
 };
 
 // Example syntax for creating a TypeVar.
@@ -119,6 +116,13 @@ template <StringLiteral>
 class TypeVar : public object {
     PYBIND11_OBJECT_DEFAULT(TypeVar, object, PyObject_Type)
     using object::object;
+};
+#endif
+
+#if defined(PYBIND11_CPP17)
+template <auto... Literals>
+class Literal : public object {
+    PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
 };
 #endif
 
@@ -277,15 +281,24 @@ struct handle_type_name<typing::Never> {
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
-template <typing::StringLiteral... Literals>
-struct handle_type_name<typing::Literal<Literals...>> {
-    static constexpr auto name = const_name("Literal[")
-                                 + pybind11::detail::concat(const_name(Literals.name)...)
-                                 + const_name("]");
-};
+template <auto StrLit, typename std::enable_if<std::is_same<decltype(StrLit), typing::StringLiteral>::value, int>::type = 0>
+auto constexpr const_name() {
+    return const_name(StrLit.name);
+}
+
+
 template <typing::StringLiteral StrLit>
 struct handle_type_name<typing::TypeVar<StrLit>> {
-    static constexpr auto name = const_name(StrLit.name);
+    static constexpr auto name = const_name<StrLit>();
+};
+#endif
+
+#if defined(PYBIND11_CPP17)
+template <auto... Literals>
+struct handle_type_name<typing::Literal<Literals...>> {
+    static constexpr auto name = const_name("Literal[")
+                                 + pybind11::detail::concat(const_name<Literals>()...)
+                                 + const_name("]");
 };
 #endif
 

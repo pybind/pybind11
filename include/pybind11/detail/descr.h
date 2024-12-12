@@ -89,7 +89,12 @@ constexpr enable_if_t<!B, T2> const_name(const T1 &, const T2 &d) {
     return d;
 }
 
-template <size_t Size>
+template <auto Bool, typename std::enable_if<std::is_same<decltype(Bool), bool>::value, int>::type = 0>
+auto constexpr const_name() {
+    return const_name<Bool>("True", "False");
+}
+
+template <auto Size, typename std::enable_if<std::is_same<decltype(Size), int>::value, int>::type = 0>
 auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
@@ -126,7 +131,7 @@ constexpr enable_if_t<!B, T2> _(const T1 &d1, const T2 &d2) {
     return const_name<B, T1, T2>(d1, d2);
 }
 
-template <size_t Size>
+template <auto Size>
 auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return const_name<Size>();
 }
