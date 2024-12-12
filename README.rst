@@ -3,7 +3,7 @@
 
 **pybind11 — Seamless operability between C++11 and Python**
 
-|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status|
+|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status| |Gurubase|
 
 |Repology| |PyPI package| |Conda-forge| |Python Versions|
 
@@ -179,3 +179,5 @@ to the terms and conditions of this license.
    :target: https://pypi.org/project/pybind11/
 .. |GitHub Discussions| image:: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
    :target: https://github.com/pybind/pybind11/discussions
+.. |Gurubase| image:: https://img.shields.io/badge/Gurubase-Ask%20pybind11%20Guru-006BFF
+   :target: https://gurubase.io/g/pybind11
