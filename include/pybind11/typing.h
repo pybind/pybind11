@@ -282,7 +282,7 @@ struct handle_type_name<typing::Never> {
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
 template <auto StrLit,
-          typename std::enable_if<std::is_same<decltype(StrLit), typing::StringLiteral>::value,
+          typename std::enable_if<!std::is_integral<decltype(StrLit)>::value,
                                   int>::type
           = 0>
 auto constexpr const_name() {
