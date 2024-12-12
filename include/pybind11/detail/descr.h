@@ -99,7 +99,7 @@ auto constexpr const_name() {
 
 template <auto Size,
           typename std::enable_if<!std::is_same<decltype(Size), bool>::value, int>::type = 0>
-#elif
+#else
 template <size_t Size>
 #endif
 auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
