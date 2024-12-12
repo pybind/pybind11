@@ -124,12 +124,12 @@ enum Color { RED = 0, BLUE = 1 };
 
 typedef py::typing::Literal<26,
                             0x1A,
-                            "\"hello world\"",
-                            "b\"hello world\"",
-                            "u\"hello world\"",
+                            py::typing::StringLiteral("\"hello world\""),
+                            py::typing::StringLiteral("b\"hello world\""),
+                            py::typing::StringLiteral("u\"hello world\""),
                             true,
-                            "Color.RED",
-                            "None">
+                            py::typing::StringLiteral("Color.RED"),
+                            py::typing::StringLiteral("None")>
     LiteralFoo;
 } // namespace literals
 namespace typevar {
