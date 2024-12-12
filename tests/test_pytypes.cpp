@@ -970,13 +970,12 @@ TEST_SUBMODULE(pytypes, m) {
         .value("BLUE", literals::Color::BLUE);
 
     m.def("annotate_complete_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
-    
+
     m.def("literal_test", [](py::typing::Literal<"hi"> &o) -> py::object { return o; })
-    
-    m.def("annotate_generic_containers",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
-              return l;
-          });
+
+        m.def("annotate_generic_containers",
+              [](const py::typing::List<typevar::TypeVarT> &l)
+                  -> py::typing::List<typevar::TypeVarV> { return l; });
 
     m.def("annotate_listT_to_T",
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
