@@ -123,7 +123,7 @@ namespace literals {
 enum Color { RED = 0, BLUE = 1 };
 
 typedef py::typing::Literal<26,
-                            "0x1A",
+                            0x1A,
                             "\"hello world\"",
                             "b\"hello world\"",
                             "u\"hello world\"",
@@ -985,7 +985,7 @@ TEST_SUBMODULE(pytypes, m) {
 
 #if defined(PYBIND11_CPP17)
     m.def("annotate_literal",
-          [](py::typing::Literal<3, 6, 1, 0, true, false> &o) -> py::object { return o; });
+          [](py::typing::Literal<3, 6, 1, 0, true, false, 0x14> &o) -> py::object { return o; });
 
     m.attr("PYBIND11_CPP17") = true;
 #else

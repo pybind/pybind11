@@ -1042,7 +1042,7 @@ def test_optional_object_annotations(doc):
 def test_literal(doc):
     assert (
         doc(m.annotate_literal)
-        == "annotate_literal(arg0: Literal[3, 6, 1, 0, True, False]) -> object"
+        == "annotate_literal(arg0: Literal[3, 6, 1, 0, True, False, 20]) -> object"
     )
 
 
@@ -1053,7 +1053,7 @@ def test_literal(doc):
 def test_complete_literal(doc):
     assert (
         doc(m.annotate_complete_literal)
-        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
+        == 'annotate_literal(arg0: Literal[26, 20 "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
 
 
