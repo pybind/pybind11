@@ -124,17 +124,17 @@ enum Color { RED = 0, BLUE = 1 };
 
 typedef py::typing::Literal<26,
                             0x1A,
-                            "\"hello world\"",
-                            "b\"hello world\"",
-                            "u\"hello world\"",
+                            py::typing::StringLiteral("\"hello world\""),
+                            py::typing::StringLiteral("b\"hello world\""),
+                            py::typing::StringLiteral("u\"hello world\""),
                             true,
-                            "Color.RED",
-                            "None">
+                            py::typing::StringLiteral("Color.RED"),
+                            py::typing::StringLiteral("None")>
     LiteralFoo;
 } // namespace literals
 namespace typevar {
 typedef py::typing::TypeVar<"T"> TypeVarT;
-typedef py::typing::TypeVar<"V"> TypeVarV;
+typedef py::typing::TypeVar<py::typing::StringLiteral("V")> TypeVarV;
 } // namespace typevar
 #endif
 
@@ -971,11 +971,9 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("annotate_complete_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
 
-    m.def("literal_test", [](py::typing::Literal<"hi"> &o) -> py::object { return o; })
-
-        m.def("annotate_generic_containers",
-              [](const py::typing::List<typevar::TypeVarT> &l)
-                  -> py::typing::List<typevar::TypeVarV> { return l; });
+    m.def("annotate_generic_containers",
+            [](const py::typing::List<typevar::TypeVarT> &l)
+                -> py::typing::List<typevar::TypeVarV> { return l; });
 
     m.def("annotate_listT_to_T",
           [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
