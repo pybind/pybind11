@@ -89,6 +89,8 @@ constexpr enable_if_t<!B, T2> const_name(const T1 &, const T2 &d) {
     return d;
 }
 
+#if defined(PYBIND11_CPP17)
+
 template <auto Bool,
           typename std::enable_if<std::is_same<decltype(Bool), bool>::value, int>::type = 0>
 auto constexpr const_name() {
@@ -97,6 +99,9 @@ auto constexpr const_name() {
 
 template <auto Size,
           typename std::enable_if<!std::is_same<decltype(Size), bool>::value, int>::type = 0>
+#elif
+template <size_t Size>
+#endif
 auto constexpr const_name() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
