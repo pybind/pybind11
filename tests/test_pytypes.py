@@ -1053,7 +1053,7 @@ def test_literal(doc):
 def test_complete_literal(doc):
     assert (
         doc(m.annotate_complete_literal)
-        == 'annotate_literal(arg0: Literal[26, 20 "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
+        == 'annotate_complete_literal(arg0: Literal[26, 20, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
 
 
