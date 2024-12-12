@@ -336,10 +336,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        clang:
-          - dev
-        std:
-          - 11
         container_suffix:
           - ""
         include:
