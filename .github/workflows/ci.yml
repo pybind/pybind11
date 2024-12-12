@@ -339,7 +339,7 @@ jobs:
         clang:
           - dev
         std:
-          - 11
+          - 17
         container_suffix:
           - ""
         include:
