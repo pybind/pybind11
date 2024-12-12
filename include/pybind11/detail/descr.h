@@ -138,10 +138,23 @@ constexpr enable_if_t<!B, T2> _(const T1 &d1, const T2 &d2) {
     return const_name<B, T1, T2>(d1, d2);
 }
 
-template <auto Size>
+#if defined(PYBIND11_CPP17)
+
+template <auto Bool,
+          typename std::enable_if<std::is_same<decltype(Bool), bool>::value, int>::type = 0>
+auto constexpr _() {
+    return const_name<Bool>();
+}
+
+template <auto Size,
+          typename std::enable_if<!std::is_same<decltype(Size), bool>::value, int>::type = 0>
+#else
+template <size_t Size>
+#endif
 auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return const_name<Size>();
 }
+
 template <typename Type>
 constexpr descr<1, Type> _() {
     return const_name<Type>();
