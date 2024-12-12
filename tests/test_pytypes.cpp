@@ -123,7 +123,7 @@ namespace literals {
 enum Color { RED = 0, BLUE = 1 };
 
 typedef py::typing::Literal<26,
-                            0x1A,
+                            0x14,
                             py::typing::StringLiteral("\"hello world\""),
                             py::typing::StringLiteral("b\"hello world\""),
                             py::typing::StringLiteral("u\"hello world\""),
