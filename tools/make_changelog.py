@@ -59,9 +59,9 @@ for issue in issues:
             msg += "."
 
         msg += f"\n  `#{issue.number} <{issue.html_url}>`_"
-        for cat in cats:
+        for cat, cat_list in cats.items():
             if issue.title.lower().startswith(f"{cat}:"):
-                cats[cat].append(msg)
+                cat_list.append(msg)
                 break
         else:
             cats["unknown"].append(msg)
