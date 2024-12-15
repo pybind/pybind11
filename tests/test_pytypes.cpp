@@ -1049,7 +1049,8 @@ TEST_SUBMODULE(pytypes, m) {
     auto static_class = py::class_<Static>(m, "Static");
     static_class.def(py::init());
     static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
-    static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>("dict_str_int")
+    static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
+        "dict_str_int")
         = py::dict();
 
     struct Instance {};
