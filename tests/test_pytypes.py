@@ -1136,8 +1136,9 @@ def test_class_attribute_types() -> None:
     m.Point.x = 1.0
     assert m.Point.x == 1.0
 
+    m.Point.x = 3.0
     point = m.Point()
-    assert point.x == 1.0
+    assert point.x == 3.0
 
     point.dict_str_int["hi"] = 3
     assert m.Point().dict_str_int == {"hi": 3}
