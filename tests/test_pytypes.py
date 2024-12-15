@@ -1106,8 +1106,8 @@ def test_dict_ranges(tested_dict, expected):
 # https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
 def get_annotations_helper(o):
     if isinstance(o, type):
-        return o.__dict__.get("__annotations__", {})
-    return getattr(o, "__annotations__", {})
+        return o.__dict__.get("__annotations__", None)
+    return getattr(o, "__annotations__", None)
 
 
 @pytest.mark.skipif(
@@ -1129,9 +1129,19 @@ def test_class_attribute_types() -> None:
     empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
     annotations = get_annotations_helper(m.Point)
 
-    assert empty_annotations == {}
-    assert annotations["x"] == "float"
-    assert annotations["dict_str_int"] == "dict[str, int]"
+    assert empty_annotations is None
+    assert annotations["x"] == "ClassVar[float]"
+    assert annotations["dict_str_int"] == "ClassVar[dict[str, int]]"
+
+    m.Point.x = 1.0
+    assert m.Point.x == 1.0
+
+    point = m.Point()
+    assert point.x == 1.0
+
+    point.dict_str_int["hi"] = 3
+    assert m.Point().dict_str_int == {"hi": 3}
+
 
 
 @pytest.mark.skipif(

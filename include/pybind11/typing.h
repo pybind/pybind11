@@ -89,6 +89,12 @@ class Final : public object {
 };
 
 template <typename T>
+class ClassVar : public object {
+    PYBIND11_OBJECT_DEFAULT(ClassVar, object, PyObject_Type)
+    using object::object;
+};
+
+template <typename T>
 class TypeGuard : public bool_ {
     using bool_::bool_;
 };
@@ -257,13 +263,18 @@ struct handle_type_name<typing::Optional<T>> {
         = const_name("Optional[") + as_return_type<make_caster<T>>::name + const_name("]");
 };
 
-// TypeGuard and TypeIs use as_return_type to use the return type if available, which is usually
-// the narrower type.
-
 template <typename T>
 struct handle_type_name<typing::Final<T>> {
     static constexpr auto name = const_name("Final[") + make_caster<T>::name + const_name("]");
 };
+
+template <typename T>
+struct handle_type_name<typing::ClassVar<T>> {
+    static constexpr auto name = const_name("ClassVar[") + make_caster<T>::name + const_name("]");
+};
+
+// TypeGuard and TypeIs use as_return_type to use the return type if available, which is usually
+// the narrower type.
 
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
