@@ -1127,21 +1127,30 @@ def test_module_attribute_types() -> None:
 )
 def test_class_attribute_types() -> None:
     empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
-    annotations = get_annotations_helper(m.Point)
+    static_annotations = get_annotations_helper(m.Static)
+    instance_annotations = get_annotations_helper(m.Instance)
 
     assert empty_annotations is None
-    assert annotations["x"] == "ClassVar[float]"
-    assert annotations["dict_str_int"] == "ClassVar[dict[str, int]]"
+    assert static_annotations["x"] == "ClassVar[float]"
+    assert static_annotations["dict_str_int"] == "ClassVar[dict[str, int]]"
 
-    m.Point.x = 1.0
-    assert m.Point.x == 1.0
+    assert m.Static.x == 1.0
 
-    m.Point.x = 3.0
-    point = m.Point()
-    assert point.x == 3.0
+    m.Static.x = 3.0
+    static = m.Static()
+    assert static.x == 3.0
 
-    point.dict_str_int["hi"] = 3
-    assert m.Point().dict_str_int == {"hi": 3}
+    static.dict_str_int["hi"] = 3
+    assert m.Static().dict_str_int == {"hi": 3}
+
+    assert instance_annotations["y"] == "float"
+    instance1 = m.Instance()
+    instance1.y = 4.0
+
+    instance2 = m.Instance()
+    instance2.y = 5.0
+
+    assert instance1.y != instance2.y
 
 
 @pytest.mark.skipif(

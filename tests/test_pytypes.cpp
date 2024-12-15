@@ -1045,12 +1045,17 @@ TEST_SUBMODULE(pytypes, m) {
     struct Empty {};
     py::class_<Empty>(m, "EmptyAnnotationClass");
 
-    struct Point {};
-    auto point = py::class_<Point>(m, "Point");
-    point.def(py::init());
-    point.attr_with_type_hint<py::typing::ClassVar<float>>("x");
-    point.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>("dict_str_int")
+    struct Static {};
+    auto static_class = py::class_<Static>(m, "Static");
+    static_class.def(py::init());
+    static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
+    static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>("dict_str_int")
         = py::dict();
+
+    struct Instance {};
+    auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());
+    instance.def(py::init());
+    instance.attr_with_type_hint<float>("y");
 
     m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
     m.attr("defined_PYBIND11_CPP17") = true;
