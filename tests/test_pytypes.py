@@ -1143,7 +1143,6 @@ def test_class_attribute_types() -> None:
     assert m.Point().dict_str_int == {"hi": 3}
 
 
-
 @pytest.mark.skipif(
     not m.defined_PYBIND11_CPP17,
     reason="C++17 Position Independent Code not available",

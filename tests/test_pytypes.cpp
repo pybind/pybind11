@@ -1049,7 +1049,8 @@ TEST_SUBMODULE(pytypes, m) {
     auto point = py::class_<Point>(m, "Point");
     point.def(py::init());
     point.attr_with_type_hint<py::typing::ClassVar<float>>("x");
-    point.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>("dict_str_int") = py::dict();
+    point.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>("dict_str_int")
+        = py::dict();
 
     m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
     m.attr("defined_PYBIND11_CPP17") = true;
