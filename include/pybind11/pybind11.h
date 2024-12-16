@@ -1322,7 +1322,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <>
 struct handle_type_name<module_> {
-    static constexpr auto name = const_name("module");
+    static constexpr auto name = const_name("types.ModuleType");
 };
 
 PYBIND11_NAMESPACE_END(detail)
