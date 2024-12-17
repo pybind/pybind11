@@ -113,11 +113,10 @@ public:
     /// See above (the only difference is that the key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
 
-#if defined(PYBIND11_CPP17)
     // attr_with_type_hint is implemented in cast.h:
     template <typename T>
     str_attr_accessor attr_with_type_hint(const char *key) const;
-#endif
+
     /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
         or ``list`` for a function call. Applying another * to the result yields

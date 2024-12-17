@@ -1038,7 +1038,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
 
-#if defined(PYBIND11_CPP17)
+#if defined(__cpp_inline_variables)
     m.attr_with_type_hint<py::typing::List<int>>("list_int") = py::list();
     m.attr_with_type_hint<py::typing::Set<py::str>>("set_str") = py::set();
 
@@ -1059,9 +1059,9 @@ TEST_SUBMODULE(pytypes, m) {
     instance.attr_with_type_hint<float>("y");
 
     m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
-    m.attr("defined_PYBIND11_CPP17") = true;
+    m.attr("defined___cpp_inline_variables") = true;
 #else
-    m.attr("defined_PYBIND11_CPP17") = false;
+    m.attr("defined___cpp_inline_variables") = false;
 #endif
     m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
     // std::vector<T>

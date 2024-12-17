@@ -1111,8 +1111,8 @@ def get_annotations_helper(o):
 
 
 @pytest.mark.skipif(
-    not m.defined_PYBIND11_CPP17,
-    reason="C++17 Position Independent Code not available",
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
 )
 def test_module_attribute_types() -> None:
     module_annotations = get_annotations_helper(m)
@@ -1122,8 +1122,8 @@ def test_module_attribute_types() -> None:
 
 
 @pytest.mark.skipif(
-    not m.defined_PYBIND11_CPP17,
-    reason="C++17 Position Independent Code not available",
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
 )
 def test_class_attribute_types() -> None:
     empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
@@ -1154,8 +1154,8 @@ def test_class_attribute_types() -> None:
 
 
 @pytest.mark.skipif(
-    not m.defined_PYBIND11_CPP17,
-    reason="C++17 Position Independent Code not available",
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
 )
 def test_final_annotation() -> None:
     module_annotations = get_annotations_helper(m)
