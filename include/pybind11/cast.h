@@ -1372,7 +1372,7 @@ template <typename D>
 template <typename T>
 str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
 #if !defined(__cpp_inline_variables)
-    static_assert(false,
+    static_assert(!std::is_same<T, T>::value,
                   "C++17 feature __cpp_inline_variables not available: "
                   "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
 #endif
