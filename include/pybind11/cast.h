@@ -1376,7 +1376,11 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
                   "C++17 feature __cpp_inline_variables not available: "
                   "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
 #endif
-    annotations()[key] = make_caster<T>::name.text;
+    object ann = annotations();
+    if (ann.contains(key)) {
+        throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
+    }
+    ann[key] = make_caster<T>::name.text;
     return {derived(), key};
 }
 
