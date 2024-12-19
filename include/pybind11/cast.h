@@ -1366,6 +1366,9 @@ object object_or_cast(T &&o) {
     return pybind11::cast(std::forward<T>(o));
 }
 
+// This is being used to get around the conflict with the deprecated str() function on object_api
+typedef str py_str;
+
 // Declared in pytypes.h:
 // Written here so make_caster<T> can be used
 template <typename D>
@@ -1379,7 +1382,7 @@ obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
     object ann = annotations();
     object reinterpreted_key = reinterpret_borrow<object>(key);
     if (ann.contains(reinterpreted_key)) {
-        throw std::runtime_error("__annotations__[\"" + std::string(str(reinterpreted_key))
+        throw std::runtime_error("__annotations__[\"" + py_str(reinterpreted_key)
                                  + "\"] was set already.");
     }
     ann[key] = make_caster<T>::name.text;
