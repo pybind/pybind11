@@ -1377,11 +1377,12 @@ obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
                   "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
 #endif
     object ann = annotations();
-    if (ann.contains(key)) {
-        throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
+    object reinterpreted_key = reinterpret_borrow<object>(key);
+    if (ann.contains(reinterpreted_key)) {
+        throw std::runtime_error("__annotations__[\"" + std::string(py::str(reinterpreted_key)) + "\"] was set already.");
     }
     ann[key] = make_caster<T>::name.text;
-    return {derived(), reinterpret_borrow<object>(key)};
+    return {derived(), reinterpreted_key};
 }
 
 template <typename D>
