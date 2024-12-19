@@ -1162,8 +1162,11 @@ def test_redeclaration_attr_with_type_hint() -> None:
     m.attr_with_type_hint_float_x(obj)
     help(obj)
     assert get_annotations_helper(obj)["x"] == "float"
-    with pytest.raises(RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'):
+    with pytest.raises(
+        RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'
+    ):
         m.attr_with_type_hint_float_x(obj)
+
 
 @pytest.mark.skipif(
     not m.defined___cpp_inline_variables,
