@@ -1160,7 +1160,6 @@ def test_class_attribute_types() -> None:
 def test_redeclaration_attr_with_type_hint() -> None:
     obj = m.Instance()
     m.attr_with_type_hint_float_x(obj)
-    help(obj)
     assert get_annotations_helper(obj)["x"] == "float"
     with pytest.raises(
         RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'
