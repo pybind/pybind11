@@ -23,7 +23,7 @@
 #        define PYBIND11_COMPILER_TYPE "gcc_cygwin"
 #    elif defined(_MSC_VER)
 #        define PYBIND11_COMPILER_TYPE "msvc"
-#    elif defined(__INTEL_COMPILER) || defined(__clang__) || defined(__GNUC__)
+#    elif defined(__clang__) || defined(__GNUC__)
 #        define PYBIND11_COMPILER_TYPE "system" // Assumed compatible with system compiler.
 #    else
 #        error "Unknown PYBIND11_COMPILER_TYPE: PLEASE REVISE THIS CODE."
