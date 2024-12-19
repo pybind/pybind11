@@ -1157,6 +1157,18 @@ def test_class_attribute_types() -> None:
     not m.defined___cpp_inline_variables,
     reason="C++17 feature __cpp_inline_variables not available.",
 )
+def test_redeclaration_attr_with_type_hint() -> None:
+    obj = m.Instance()
+    m.attr_with_type_hint_float_x(obj)
+    help(obj)
+    assert get_annotations_helper(obj)["x"] == "float"
+    with pytest.raises(RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'):
+        m.attr_with_type_hint_float_x(obj)
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
 def test_final_annotation() -> None:
     module_annotations = get_annotations_helper(m)
     assert module_annotations["CONST_INT"] == "Final[int]"

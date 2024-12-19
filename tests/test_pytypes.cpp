@@ -1058,7 +1058,12 @@ TEST_SUBMODULE(pytypes, m) {
     instance.def(py::init());
     instance.attr_with_type_hint<float>("y");
 
+    m.def("attr_with_type_hint_float_x", [](py::handle obj) {
+        obj.attr_with_type_hint<float>("x");
+    });
+
     m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
+    
     m.attr("defined___cpp_inline_variables") = true;
 #else
     m.attr("defined___cpp_inline_variables") = false;
