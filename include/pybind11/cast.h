@@ -1382,7 +1382,7 @@ obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
     object ann = annotations();
     object reinterpreted_key = reinterpret_borrow<object>(key);
     if (ann.contains(reinterpreted_key)) {
-        throw std::runtime_error("__annotations__[\"" + py_str(reinterpreted_key)
+        throw std::runtime_error("__annotations__[\"" + std::string(py_str(reinterpreted_key))
                                  + "\"] was set already.");
     }
     ann[key] = make_caster<T>::name.text;
