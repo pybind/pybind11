@@ -1367,7 +1367,7 @@ object object_or_cast(T &&o) {
 }
 
 // This is being used to get around the conflict with the deprecated str() function on object_api
-typedef str py_str;
+using py_str = str;
 
 // Declared in pytypes.h:
 // Written here so make_caster<T> can be used
@@ -1380,7 +1380,7 @@ obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
                   "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
 #endif
     object ann = annotations();
-    object reinterpreted_key = reinterpret_borrow<object>(key);
+    auto reinterpreted_key = reinterpret_borrow<object>(key);
     if (ann.contains(reinterpreted_key)) {
         throw std::runtime_error("__annotations__[\"" + std::string(py_str(reinterpreted_key))
                                  + "\"] was set already.");
