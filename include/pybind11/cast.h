@@ -1373,6 +1373,22 @@ using py_str = str;
 // Written here so make_caster<T> can be used
 template <typename D>
 template <typename T>
+str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
+#if !defined(__cpp_inline_variables)
+    static_assert(!std::is_same<T, T>::value,
+                  "C++17 feature __cpp_inline_variables not available: "
+                  "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
+#endif
+    object ann = annotations();
+    if (ann.contains(key)) {
+        throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
+    }
+    ann[key] = make_caster<T>::name.text;
+    return {derived(), key};
+}
+
+template <typename D>
+template <typename T>
 obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
 #if !defined(__cpp_inline_variables)
     static_assert(!std::is_same<T, T>::value,
@@ -1387,22 +1403,6 @@ obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
     }
     ann[key] = make_caster<T>::name.text;
     return {derived(), reinterpreted_key};
-}
-
-template <typename D>
-template <typename T>
-str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
-#if !defined(__cpp_inline_variables)
-    static_assert(!std::is_same<T, T>::value,
-                  "C++17 feature __cpp_inline_variables not available: "
-                  "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
-#endif
-    object ann = annotations();
-    if (ann.contains(key)) {
-        throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
-    }
-    ann[key] = make_caster<T>::name.text;
-    return {derived(), key};
 }
 
 // Placeholder type for the unneeded (and dead code) static variable in the
