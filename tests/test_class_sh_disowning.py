@@ -60,10 +60,8 @@ def test_mixed():
         assert is_disowned_results.count(True) == 1
         if first_pass:
             first_pass = False
-            print(
-                "\nC++ function argument %d is evaluated first."
-                % (is_disowned_results.index(True) + 1)
-            )
+            ix = is_disowned_results.index(True) + 1
+            print(f"\nC++ function argument {ix} is evaluated first.")
 
         return  # Comment out for manual leak checking (use `top` command).
 
