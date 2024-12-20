@@ -48,7 +48,7 @@ def generate_dummy_code_boost(nclasses=10):
     decl += "\n"
 
     for cl in range(nclasses):
-        decl += "class cl%03i {\n" % cl
+        decl += f"class cl{cl:03} {{\n"
         decl += "public:\n"
         bindings += f'    py::class_<cl{cl:03}>("cl{cl:03}")\n'
         for fn in range(nfns):
@@ -85,5 +85,5 @@ for codegen in [generate_dummy_code_pybind11, generate_dummy_code_boost]:
         n2 = dt.datetime.now()
         elapsed = (n2 - n1).total_seconds()
         size = os.stat("test.so").st_size
-        print("   {%i, %f, %i}," % (nclasses * nfns, elapsed, size))
+        print(f"   {{{nclasses * nfns}, {elapsed:.6f}, {size}}},")
     print("}")
