@@ -115,7 +115,7 @@ public:
 
     /** \rst
          Similar to the above attr functions with the difference that the templated Type
-         is used to set the `__annotations__` dict value to the corresponding key. Worth nothing
+         is used to set the `__annotations__` dict value to the corresponding key. Worth noting
          that attr_with_type_hint is implemented in cast.h
     \endrst */
     template <typename T>
