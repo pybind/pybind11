@@ -1366,11 +1366,8 @@ object object_or_cast(T &&o) {
     return pybind11::cast(std::forward<T>(o));
 }
 
-// This is being used to get around the conflict with the deprecated str() function on object_api
-using py_str = str;
-
 // Declared in pytypes.h:
-// Written here so make_caster<T> can be used
+// Implemented here so that make_caster<T> can be used.
 template <typename D>
 template <typename T>
 str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
@@ -1390,19 +1387,8 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
 template <typename D>
 template <typename T>
 obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
-#if !defined(__cpp_inline_variables)
-    static_assert(!std::is_same<T, T>::value,
-                  "C++17 feature __cpp_inline_variables not available: "
-                  "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
-#endif
-    object ann = annotations();
-    auto reinterpreted_key = reinterpret_borrow<object>(key);
-    if (ann.contains(reinterpreted_key)) {
-        throw std::runtime_error("__annotations__[\"" + std::string(py_str(reinterpreted_key))
-                                 + "\"] was set already.");
-    }
-    ann[key] = make_caster<T>::name.text;
-    return {derived(), reinterpreted_key};
+    (void) attr_with_type_hint<T>(key.cast<std::string>().c_str());
+    return {derived(), reinterpret_borrow<object>(key)};
 }
 
 // Placeholder type for the unneeded (and dead code) static variable in the

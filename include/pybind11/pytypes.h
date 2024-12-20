@@ -116,7 +116,6 @@ public:
     // attr_with_type_hint is implemented in cast.h:
     template <typename T>
     obj_attr_accessor attr_with_type_hint(handle key) const;
-
     template <typename T>
     str_attr_accessor attr_with_type_hint(const char *key) const;
 

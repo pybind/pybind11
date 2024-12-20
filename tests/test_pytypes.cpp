@@ -1039,8 +1039,10 @@ TEST_SUBMODULE(pytypes, m) {
 #endif
 
 #if defined(__cpp_inline_variables)
+    // Exercises const char* overload:
     m.attr_with_type_hint<py::typing::List<int>>("list_int") = py::list();
-    m.attr_with_type_hint<py::typing::Set<py::str>>("set_str") = py::set();
+    // Exercises py::handle overload:
+    m.attr_with_type_hint<py::typing::Set<py::str>>(py::str("set_str")) = py::set();
 
     struct Empty {};
     py::class_<Empty>(m, "EmptyAnnotationClass");
