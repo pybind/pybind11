@@ -627,6 +627,9 @@ struct instance {
 static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
 
+template <typename>
+struct always_false : std::false_type {};
+
 /// from __cpp_future__ import (convenient aliases from C++14/17)
 #if defined(PYBIND11_CPP14)
 using std::conditional_t;
