@@ -1120,6 +1120,18 @@ def test_module_attribute_types() -> None:
     assert module_annotations["list_int"] == "list[int]"
     assert module_annotations["set_str"] == "set[str]"
 
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+@pytest.mark.skipif(sys.version_info < (3, 10),
+                    reason="get_annotations function does not exist until Python3.10")
+def test_get_annotations_compliance() -> None:
+    from inspect import get_annotations
+    module_annotations = get_annotations(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
 
 @pytest.mark.skipif(
     not m.defined___cpp_inline_variables,
