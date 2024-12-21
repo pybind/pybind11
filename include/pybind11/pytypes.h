@@ -120,6 +120,7 @@ public:
     \endrst */
     template <typename T>
     obj_attr_accessor attr_with_type_hint(handle key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
     template <typename T>
     str_attr_accessor attr_with_type_hint(const char *key) const;
 
