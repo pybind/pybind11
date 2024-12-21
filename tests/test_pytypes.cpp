@@ -1037,6 +1037,38 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
+
+#if defined(__cpp_inline_variables)
+    // Exercises const char* overload:
+    m.attr_with_type_hint<py::typing::List<int>>("list_int") = py::list();
+    // Exercises py::handle overload:
+    m.attr_with_type_hint<py::typing::Set<py::str>>(py::str("set_str")) = py::set();
+
+    struct Empty {};
+    py::class_<Empty>(m, "EmptyAnnotationClass");
+
+    struct Static {};
+    auto static_class = py::class_<Static>(m, "Static");
+    static_class.def(py::init());
+    static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
+    static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
+        "dict_str_int")
+        = py::dict();
+
+    struct Instance {};
+    auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());
+    instance.def(py::init());
+    instance.attr_with_type_hint<float>("y");
+
+    m.def("attr_with_type_hint_float_x",
+          [](py::handle obj) { obj.attr_with_type_hint<float>("x"); });
+
+    m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
+
+    m.attr("defined___cpp_inline_variables") = true;
+#else
+    m.attr("defined___cpp_inline_variables") = false;
+#endif
     m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
     // std::vector<T>
     m.def("half_of_number_vector", [](const std::vector<RealNumber> &x) {
