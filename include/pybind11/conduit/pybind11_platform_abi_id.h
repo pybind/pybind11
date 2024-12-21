@@ -12,51 +12,32 @@
 #define PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x) #x
 #define PYBIND11_PLATFORM_ABI_ID_TOSTRING(x) PYBIND11_PLATFORM_ABI_ID_STRINGIFY(x)
 
-// On MSVC, debug and release builds are not ABI-compatible!
-#if defined(_MSC_VER) && defined(_DEBUG)
-#    define PYBIND11_BUILD_TYPE "_debug"
+#ifdef PYBIND11_COMPILER_TYPE
+//   // To maintain backward compatibility (see PR #5439).
+#    define PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE ""
 #else
-#    define PYBIND11_BUILD_TYPE ""
-#endif
-
-// Let's assume that different compilers are ABI-incompatible.
-// A user can manually set this string if they know their
-// compiler is compatible.
-#ifndef PYBIND11_COMPILER_TYPE
-#    if defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__INTEL_COMPILER)
-#        define PYBIND11_COMPILER_TYPE "_icc"
-#    elif defined(__clang__)
-#        define PYBIND11_COMPILER_TYPE "_clang"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
-#    elif defined(__MINGW32__)
-#        define PYBIND11_COMPILER_TYPE "_mingw"
+#    define PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE "_"
+#    if defined(__MINGW32__)
+#        define PYBIND11_COMPILER_TYPE "mingw"
 #    elif defined(__CYGWIN__)
-#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#    elif defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_gcc"
+#        define PYBIND11_COMPILER_TYPE "gcc_cygwin"
+#    elif defined(_MSC_VER)
+#        define PYBIND11_COMPILER_TYPE "msvc"
+#    elif defined(__clang__) || defined(__GNUC__)
+#        define PYBIND11_COMPILER_TYPE "system" // Assumed compatible with system compiler.
 #    else
-#        define PYBIND11_COMPILER_TYPE "_unknown"
+#        error "Unknown PYBIND11_COMPILER_TYPE: PLEASE REVISE THIS CODE."
 #    endif
 #endif
 
-// Also standard libs
+// PR #5439 made this macro obsolete. However, there are many manipulations of this macro in the
+// wild. Therefore, to maintain backward compatibility, it is kept around.
 #ifndef PYBIND11_STDLIB
-#    if defined(_LIBCPP_VERSION)
-#        define PYBIND11_STDLIB "_libcpp"
-#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#        define PYBIND11_STDLIB "_libstdcpp"
-#    else
-#        define PYBIND11_STDLIB ""
-#    endif
+#    define PYBIND11_STDLIB ""
 #endif
 
 #ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION) // Linux/OSX.
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER)               // See PR #4953.
+#    if defined(_MSC_VER)                 // See PR #4953.
 #        if defined(_MT) && defined(_DLL) // Corresponding to CL command line options /MD or /MDd.
 #            if (_MSC_VER) / 100 == 19
 #                define PYBIND11_BUILD_ABI "_md_mscver19"
@@ -72,17 +53,35 @@
 #                error "Unknown major version for MSC_VER: PLEASE REVISE THIS CODE."
 #            endif
 #        endif
-#    elif defined(__NVCOMPILER)       // NVHPC (PGI-based).
-#        define PYBIND11_BUILD_ABI "" // TODO: What should be here, to prevent UB?
+#    elif defined(_LIBCPP_ABI_VERSION) // https://libcxx.llvm.org/DesignDocs/ABIVersioning.html
+#        define PYBIND11_BUILD_ABI                                                                \
+            "_libcpp_abi" PYBIND11_PLATFORM_ABI_ID_TOSTRING(_LIBCPP_ABI_VERSION)
+#    elif defined(_GLIBCXX_USE_CXX11_ABI) // See PR #5439.
+#        if defined(__NVCOMPILER)
+//           // Assume that NVHPC is in the 1xxx ABI family.
+//           // THIS ASSUMPTION IS NOT FUTURE PROOF but apparently the best we can do.
+//           // Please let us know if there is a way to validate the assumption here.
+#        elif !defined(__GXX_ABI_VERSION)
+#            error                                                                                \
+                "Unknown platform or compiler (_GLIBCXX_USE_CXX11_ABI): PLEASE REVISE THIS CODE."
+#        endif
+#        if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION < 1002 || __GXX_ABI_VERSION >= 2000
+#            error "Unknown platform or compiler (__GXX_ABI_VERSION): PLEASE REVISE THIS CODE."
+#        endif
+#        define PYBIND11_BUILD_ABI                                                                \
+            "_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(           \
+                _GLIBCXX_USE_CXX11_ABI)
 #    else
 #        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
 #    endif
 #endif
 
-#ifndef PYBIND11_INTERNALS_KIND
-#    define PYBIND11_INTERNALS_KIND ""
+// On MSVC, debug and release builds are not ABI-compatible!
+#if defined(_MSC_VER) && defined(_DEBUG)
+#    define PYBIND11_BUILD_TYPE "_debug"
+#else
+#    define PYBIND11_BUILD_TYPE ""
 #endif
 
 #define PYBIND11_PLATFORM_ABI_ID                                                                  \
-    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
-        PYBIND11_BUILD_TYPE
+    PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE
