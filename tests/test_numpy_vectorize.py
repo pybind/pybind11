@@ -150,7 +150,7 @@ def test_docs(doc):
     assert (
         doc(m.vectorized_func)
         == """
-        vectorized_func(arg0: numpy.ndarray[numpy.int32], arg1: numpy.ndarray[numpy.float32], arg2: numpy.ndarray[numpy.float64]) -> object
+        vectorized_func(arg0: numpy.typing.NDArray[numpy.int32], arg1: numpy.typing.NDArray[numpy.float32], arg2: numpy.typing.NDArray[numpy.float64]) -> object
     """
     )
 
@@ -212,12 +212,12 @@ def test_passthrough_arguments(doc):
         + ", ".join(
             [
                 "arg0: float",
-                "arg1: numpy.ndarray[numpy.float64]",
-                "arg2: numpy.ndarray[numpy.float64]",
-                "arg3: numpy.ndarray[numpy.int32]",
+                "arg1: numpy.typing.NDArray[numpy.float64]",
+                "arg2: numpy.typing.NDArray[numpy.float64]",
+                "arg3: numpy.typing.NDArray[numpy.int32]",
                 "arg4: int",
                 "arg5: m.numpy_vectorize.NonPODClass",
-                "arg6: numpy.ndarray[numpy.float64]",
+                "arg6: numpy.typing.NDArray[numpy.float64]",
             ]
         )
         + ") -> object"
