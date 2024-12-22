@@ -1103,6 +1103,96 @@ def test_dict_ranges(tested_dict, expected):
     assert m.transform_dict_plus_one(tested_dict) == expected
 
 
+# https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+def get_annotations_helper(o):
+    if isinstance(o, type):
+        return o.__dict__.get("__annotations__", None)
+    return getattr(o, "__annotations__", None)
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_module_attribute_types() -> None:
+    module_annotations = get_annotations_helper(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="get_annotations function does not exist until Python3.10",
+)
+def test_get_annotations_compliance() -> None:
+    from inspect import get_annotations
+
+    module_annotations = get_annotations(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_class_attribute_types() -> None:
+    empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
+    static_annotations = get_annotations_helper(m.Static)
+    instance_annotations = get_annotations_helper(m.Instance)
+
+    assert empty_annotations is None
+    assert static_annotations["x"] == "ClassVar[float]"
+    assert static_annotations["dict_str_int"] == "ClassVar[dict[str, int]]"
+
+    assert m.Static.x == 1.0
+
+    m.Static.x = 3.0
+    static = m.Static()
+    assert static.x == 3.0
+
+    static.dict_str_int["hi"] = 3
+    assert m.Static().dict_str_int == {"hi": 3}
+
+    assert instance_annotations["y"] == "float"
+    instance1 = m.Instance()
+    instance1.y = 4.0
+
+    instance2 = m.Instance()
+    instance2.y = 5.0
+
+    assert instance1.y != instance2.y
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_redeclaration_attr_with_type_hint() -> None:
+    obj = m.Instance()
+    m.attr_with_type_hint_float_x(obj)
+    assert get_annotations_helper(obj)["x"] == "float"
+    with pytest.raises(
+        RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'
+    ):
+        m.attr_with_type_hint_float_x(obj)
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_final_annotation() -> None:
+    module_annotations = get_annotations_helper(m)
+    assert module_annotations["CONST_INT"] == "Final[int]"
+
+
 def test_arg_return_type_hints(doc):
     assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
     assert m.half_of_number(2.0) == 1.0

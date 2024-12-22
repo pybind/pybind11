@@ -114,6 +114,17 @@ public:
     str_attr_accessor attr(const char *key) const;
 
     /** \rst
+         Similar to the above attr functions with the difference that the templated Type
+         is used to set the `__annotations__` dict value to the corresponding key. Worth noting
+         that attr_with_type_hint is implemented in cast.h.
+    \endrst */
+    template <typename T>
+    obj_attr_accessor attr_with_type_hint(handle key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
+    template <typename T>
+    str_attr_accessor attr_with_type_hint(const char *key) const;
+
+    /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
         or ``list`` for a function call. Applying another * to the result yields
         ** unpacking, e.g. to unpack a dict as function keyword arguments.
@@ -181,6 +192,9 @@ public:
 
     /// Get or set the object's docstring, i.e. ``obj.__doc__``.
     str_attr_accessor doc() const;
+
+    /// Get or set the object's annotations, i.e. ``obj.__annotations__``.
+    object annotations() const;
 
     /// Return the object's current reference count
     ssize_t ref_count() const {
@@ -2556,6 +2570,19 @@ pybind11::str object_api<D>::str() const {
 template <typename D>
 str_attr_accessor object_api<D>::doc() const {
     return attr("__doc__");
+}
+
+template <typename D>
+object object_api<D>::annotations() const {
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
+    // https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+    if (!hasattr(derived(), "__annotations__")) {
+        setattr(derived(), "__annotations__", dict());
+    }
+    return attr("__annotations__");
+#else
+    return getattr(derived(), "__annotations__", dict());
+#endif
 }
 
 template <typename D>
