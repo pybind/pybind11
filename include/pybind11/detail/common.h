@@ -627,6 +627,14 @@ struct instance {
 static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
 
+// Some older compilers (e.g. gcc 9.4.0) require
+//     static_assert(always_false<T>::value, "...");
+// instead of
+//     static_assert(false, "...");
+// to trigger the static_assert() in a template only if it is actually instantiated.
+template <typename>
+struct always_false : std::false_type {};
+
 /// from __cpp_future__ import (convenient aliases from C++14/17)
 #if defined(PYBIND11_CPP14)
 using std::conditional_t;
