@@ -82,7 +82,10 @@ def test_pydoc():
 
 
 def test_module_handle_type_name():
-    assert doc(m.def_submodule) == "def_submodule(arg0: module, arg1: str) -> types.ModuleType"
+    assert (
+        doc(m.def_submodule)
+        == "def_submodule(arg0: module, arg1: str) -> types.ModuleType"
+    )
 
 
 def test_duplicate_registration():
