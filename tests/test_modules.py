@@ -83,8 +83,8 @@ def test_pydoc():
 
 def test_module_handle_type_name():
     assert (
-        doc(m.def_submodule)
-        == "def_submodule(arg0: module, arg1: str) -> types.ModuleType"
+        m.def_submodule.__doc__
+        == "def_submodule(arg0: module, arg1: str) -> types.ModuleType\n"
     )
 
 
