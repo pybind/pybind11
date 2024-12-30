@@ -81,6 +81,10 @@ def test_pydoc():
     assert pydoc.text.docmodule(pybind11_tests)
 
 
+def test_module_handle_type_name():
+    assert doc(m.def_submodule) == "def_submodule(arg0: module, arg1: str) -> types.ModuleType"
+
+
 def test_duplicate_registration():
     """Registering two things with the same name"""
 
