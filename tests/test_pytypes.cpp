@@ -1168,4 +1168,11 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
         return py::isinstance<RealNumber>(x);
     });
+    // Literal with `@`, `%`, `{`, and `}`
+    // m.def("identity_literal_x", [](const py::typing::Literal<"\"x\""> &x) { return x; });
+    // m.def("identity_literal_at", [](const py::typing::Literal<"\"@\""> &x) { return x; });
+    // m.def("identity_literal_percent", [](const py::typing::Literal<"\"%\""> &x) { return x; });
+    // m.def("identity_literal_curly_open", [](const py::typing::Literal<"\"{\""> &x) { return x;
+    // }); m.def("identity_literal_curly_close", [](const py::typing::Literal<"\"}\""> &x) { return
+    // x; });
 }

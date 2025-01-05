@@ -1281,3 +1281,29 @@ def test_arg_return_type_hints(doc):
     )
     # TypeIs<T>
     assert doc(m.check_type_is) == "check_type_is(arg0: object) -> TypeIs[float]"
+    # Literal without special characters
+    # assert (
+    # doc(m.identity_literal_x)
+    # == 'identity_literal_x(arg0: Literal["x"]) -> Literal["x"]'
+    # )
+    # The Following tests fail with `ImportError: Internal error while parsing type signature (2)`
+    # Literal with @
+    # assert (
+    # doc(m.identity_literal_at)
+    # == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'
+    # )
+    # Literal with %
+    # assert (
+    # doc(m.identity_literal_percent)
+    # == 'identity_literal_percent(arg0: Literal["%"]) -> Literal["%"]'
+    # )
+    # Literal with {
+    # assert (
+    # doc(m.identity_literal_curly_open)
+    # == 'identity_literal_curly_open(arg0: Literal["{"]) -> Literal["{"]'
+    # )
+    # Literal with }
+    # assert (
+    # doc(m.identity_literal_curly_close)
+    # == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
+    # )
