@@ -1252,18 +1252,26 @@ def test_arg_return_type_hints(doc):
         doc(m.identity_iterator)
         == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
     )
+    # Callable<R(A)> identity
+    assert (
+        doc(m.identity_callable)
+        == "identity_callable(arg0: Callable[[Union[float, int]], float]) -> Callable[[Union[float, int]], float]"
+    )
+    # Callable<R(...)> identity
+    assert (
+        doc(m.identity_callable_ellipsis)
+        == "identity_callable_ellipsis(arg0: Callable[..., float]) -> Callable[..., float]"
+    )
     # Callable<R(A)>
-    # TODO: Needs support for arg/return environments
-    # assert (
-    # doc(m.apply_callable)
-    # == "apply_callable(arg0: Union[float, int], arg1: Callable[[Union[float, int]], float]) -> float"
-    # )
+    assert (
+        doc(m.apply_callable)
+        == "apply_callable(arg0: Union[float, int], arg1: Callable[[Union[float, int]], float]) -> float"
+    )
     # Callable<R(...)>
-    # TODO: Needs support for arg/return environments
-    # assert (
-    # doc(m.apply_callable_ellipsis)
-    # == "apply_callable_ellipsis(arg0: Union[float, int], arg1: Callable[..., float]) -> float"
-    # )
+    assert (
+        doc(m.apply_callable_ellipsis)
+        == "apply_callable_ellipsis(arg0: Union[float, int], arg1: Callable[..., float]) -> float"
+    )
     # Union<T1, T2>
     assert (
         doc(m.identity_union)

@@ -174,5 +174,15 @@ constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {
     return const_name("{") + descr + const_name("}");
 }
 
+template <size_t N, typename... Ts>
+constexpr descr<N + 4, Ts...> arg_descr(const descr<N, Ts...> &descr) {
+    return const_name("@^") + descr + const_name("@^");
+}
+
+template <size_t N, typename... Ts>
+constexpr descr<N + 4, Ts...> return_descr(const descr<N, Ts...> &descr) {
+    return const_name("@$") + descr + const_name("@$");
+}
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

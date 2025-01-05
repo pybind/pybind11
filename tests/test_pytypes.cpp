@@ -1139,6 +1139,12 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("identity_iterable", [](const py::typing::Iterable<RealNumber> &x) { return x; });
     // Iterator<T>
     m.def("identity_iterator", [](const py::typing::Iterator<RealNumber> &x) { return x; });
+    // Callable<R(A)> identity
+    m.def("identity_callable",
+          [](const py::typing::Callable<RealNumber(const RealNumber &)> &x) { return x; });
+    // Callable<R(...)> identity
+    m.def("identity_callable_ellipsis",
+          [](const py::typing::Callable<RealNumber(py::ellipsis)> &x) { return x; });
     // Callable<R(A)>
     m.def("apply_callable",
           [](const RealNumber &x, const py::typing::Callable<RealNumber(const RealNumber &)> &f) {
