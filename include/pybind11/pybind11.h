@@ -336,8 +336,8 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature = const_name("(") + cast_in::arg_names
-                                          + const_name(") -> ") + as_return_type<cast_out>::name;
+        static constexpr auto signature
+            = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */

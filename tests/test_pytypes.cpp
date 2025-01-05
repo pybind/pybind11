@@ -142,7 +142,6 @@ typedef py::typing::TypeVar<"V"> TypeVarV;
 // RealNumber:
 // * in arguments -> float | int
 // * in return -> float
-// * fallback -> complex
 // The choice of types is not really useful, but just made different for testing purposes.
 // According to `PEP 484 – Type Hints` annotating with `float` also allows `int`,
 // so using `float | int` could be replaced by just `float`.
@@ -156,9 +155,7 @@ namespace detail {
 
 template <>
 struct type_caster<RealNumber> {
-    PYBIND11_TYPE_CASTER(RealNumber, const_name("complex"));
-    static constexpr auto arg_name = const_name("Union[float, int]");
-    static constexpr auto return_name = const_name("float");
+    PYBIND11_TYPE_CASTER(RealNumber, io_name("Union[float, int]", "float"));
 
     static handle cast(const RealNumber &number, return_value_policy, handle) {
         return py::float_(number.value).release();
