@@ -161,7 +161,11 @@ struct type_caster<RealNumber> {
         return py::float_(number.value).release();
     }
 
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
+        // If we're in no-convert mode, only load if given a float
+        if (!convert && !py::isinstance<py::float_>(src)) {
+            return false;
+        }
         if (!py::isinstance<py::float_>(src) && !py::isinstance<py::int_>(src)) {
             return false;
         }
@@ -1067,6 +1071,14 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined___cpp_inline_variables") = false;
 #endif
     m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    m.def(
+        "half_of_number_convert",
+        [](const RealNumber &x) { return RealNumber{x.value / 2}; },
+        py::arg("x"));
+    m.def(
+        "half_of_number_noconvert",
+        [](const RealNumber &x) { return RealNumber{x.value / 2}; },
+        py::arg("x").noconvert());
     // std::vector<T>
     m.def("half_of_number_vector", [](const std::vector<RealNumber> &x) {
         std::vector<RealNumber> result;

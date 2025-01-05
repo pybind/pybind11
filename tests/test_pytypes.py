@@ -1195,6 +1195,13 @@ def test_final_annotation() -> None:
 
 def test_arg_return_type_hints(doc):
     assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
+    assert (
+        doc(m.half_of_number_convert)
+        == "half_of_number_convert(x: Union[float, int]) -> float"
+    )
+    assert (
+        doc(m.half_of_number_noconvert) == "half_of_number_noconvert(x: float) -> float"
+    )
     assert m.half_of_number(2.0) == 1.0
     assert m.half_of_number(2) == 1.0
     assert m.half_of_number(0) == 0

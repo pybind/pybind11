@@ -497,8 +497,10 @@ protected:
             } else if (c == '@') {
                 // Handle types that differ depending on whether they appear
                 // in an argument or a return value position
+                // For named arguments (py::arg()) with noconvert set, use return value type
                 ++pc;
-                if (!is_return_value) {
+                if (!is_return_value
+                    && !(arg_index < rec->args.size() && !rec->args[arg_index].convert)) {
                     while (*pc && *pc != '@')
                         signature += *pc++;
                     if (*pc == '@')
