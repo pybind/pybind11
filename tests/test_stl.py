@@ -267,11 +267,11 @@ def test_fs_path(doc):
         doc(m.parent_path)
         == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> Path"
     )
-    # std::vector should use name (for arg_name/return_name typing classes must be used)
+    # std::vector
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths)
-        == "parent_paths(arg0: list[os.PathLike]) -> list[os.PathLike]"
+        == "parent_paths(arg0: list[Union[os.PathLike, str, bytes]]) -> list[Path]"
     )
     # py::typing::List
     assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]

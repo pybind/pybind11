@@ -440,6 +440,7 @@ protected:
         std::string signature;
         size_t type_index = 0, arg_index = 0;
         bool is_starred = false;
+        bool is_return_value = false;
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
@@ -493,7 +494,29 @@ protected:
                 } else {
                     signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
+            } else if (c == '@') {
+                // Handle types that differ depending on whether they appear
+                // in an argument or a return value position
+                ++pc;
+                if (!is_return_value) {
+                    while (*pc && *pc != '@')
+                        signature += *pc++;
+                    if (*pc == '@')
+                        ++pc;
+                    while (*pc && *pc != '@')
+                        ++pc;
+                } else {
+                    while (*pc && *pc != '@')
+                        ++pc;
+                    if (*pc == '@')
+                        ++pc;
+                    while (*pc && *pc != '@')
+                        signature += *pc++;
+                }
             } else {
+                if (c == '-' && *(pc + 1) == '>') {
+                    is_return_value = true;
+                }
                 signature += c;
             }
         }
