@@ -149,6 +149,29 @@ def test_vector_custom():
     assert str(vv_b) == "VectorEl[El{1}, El{2}]"
 
 
+def test_set_int():
+    s_a = m.SetInt()
+    s_b = m.SetInt()
+
+    assert len(s_a) == 0
+    assert s_a == s_b
+
+    s_a.add(1)
+
+    assert 1 in s_a
+    assert str(s_a) == "SetInt{1}"
+    assert s_a != s_b
+
+    for i in range(5):
+        s_a.add(i)
+
+    assert sorted(s_a) == [0, 1, 2, 3, 4]
+
+    s_a.clear()
+    assert len(s_a) == 0
+    assert str(s_a) == "SetInt{}"
+
+
 def test_map_string_double():
     mm = m.MapStringDouble()
     mm["a"] = 1
