@@ -444,7 +444,7 @@ protected:
         // `is_return_value.top()` is true if we are currently inside the return type of the
         // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
         // back to the previous state.
-        std::stack<bool> is_return_value = {false};
+        std::stack<bool> is_return_value({false});
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
