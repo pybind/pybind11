@@ -1044,6 +1044,23 @@ def test_literal(doc):
         doc(m.annotate_literal)
         == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
+    # The characters @, %, and {} are used in the signature parser as special characters, but Literal should escape those for the parser to work.
+    assert (
+        doc(m.identity_literal_at)
+        == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'
+    )
+    assert (
+        doc(m.identity_literal_percent)
+        == 'identity_literal_percent(arg0: Literal["%"]) -> Literal["%"]'
+    )
+    assert (
+        doc(m.identity_literal_curly_open)
+        == 'identity_literal_curly_open(arg0: Literal["{"]) -> Literal["{"]'
+    )
+    assert (
+        doc(m.identity_literal_curly_close)
+        == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
+    )
 
 
 @pytest.mark.skipif(
@@ -1294,28 +1311,3 @@ def test_arg_return_type_hints(doc):
     )
     # TypeIs<T>
     assert doc(m.check_type_is) == "check_type_is(arg0: object) -> TypeIs[float]"
-    # Literal without special characters
-    assert (
-        doc(m.identity_literal_x)
-        == 'identity_literal_x(arg0: Literal["x"]) -> Literal["x"]'
-    )
-    # Literal with @
-    assert (
-        doc(m.identity_literal_at)
-        == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'
-    )
-    # Literal with %
-    assert (
-        doc(m.identity_literal_percent)
-        == 'identity_literal_percent(arg0: Literal["%"]) -> Literal["%"]'
-    )
-    # Literal with {
-    assert (
-        doc(m.identity_literal_curly_open)
-        == 'identity_literal_curly_open(arg0: Literal["{"]) -> Literal["{"]'
-    )
-    # Literal with }
-    assert (
-        doc(m.identity_literal_curly_close)
-        == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
-    )
