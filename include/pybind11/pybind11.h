@@ -22,6 +22,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -444,7 +445,6 @@ protected:
         // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
         // back to the previous state.
         std::stack<bool> is_return_value = {false};
-        bool use_return_value = false;
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
