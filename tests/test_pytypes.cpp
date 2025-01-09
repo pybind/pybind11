@@ -122,14 +122,14 @@ void m_defs(py::module_ &m) {
 namespace literals {
 enum Color { RED = 0, BLUE = 1 };
 
-typedef py::typing::Literal<"26",
-                            "0x1A",
-                            "\"hello world\"",
-                            "b\"hello world\"",
-                            "u\"hello world\"",
-                            "True",
-                            "Color.RED",
-                            "None">
+typedef py::typing::Literal<26,
+                            0x14,
+                            py::typing::StringLiteral("\"hello world\""),
+                            py::typing::StringLiteral("b\"hello world\""),
+                            py::typing::StringLiteral("u\"hello world\""),
+                            true,
+                            py::typing::StringLiteral("Color.RED"),
+                            py::typing::StringLiteral("None")>
     LiteralFoo;
 } // namespace literals
 namespace typevar {
@@ -969,7 +969,8 @@ TEST_SUBMODULE(pytypes, m) {
         .value("RED", literals::Color::RED)
         .value("BLUE", literals::Color::BLUE);
 
-    m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
+    m.def("annotate_complete_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
+
     m.def("annotate_generic_containers",
           [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
               return l;
@@ -981,6 +982,15 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = true;
 #else
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
+#endif
+
+#if defined(PYBIND11_CPP17)
+    m.def("annotate_literal",
+          [](py::typing::Literal<3, 6, 1, 0, true, false, 0x14> &o) -> py::object { return o; });
+
+    m.attr("PYBIND11_CPP17") = true;
+#else
+    m.attr("PYBIND11_CPP17") = false;
 #endif
 
 #if defined(PYBIND11_TEST_PYTYPES_HAS_RANGES)
