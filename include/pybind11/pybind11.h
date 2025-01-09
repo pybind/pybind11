@@ -515,19 +515,25 @@ protected:
                 ++pc;
                 if (!use_return_value
                     && !(arg_index < rec->args.size() && !rec->args[arg_index].convert)) {
-                    while (*pc && *pc != '@')
+                    while (*pc != '\0' && *pc != '@') {
                         signature += *pc++;
-                    if (*pc == '@')
+                    }
+                    if (*pc == '@') {
                         ++pc;
-                    while (*pc && *pc != '@')
+                    }
+                    while (*pc != '\0' && *pc != '@') {
                         ++pc;
+                    }
                 } else {
-                    while (*pc && *pc != '@')
+                    while (*pc != '\0' && *pc != '@') {
                         ++pc;
-                    if (*pc == '@')
+                    }
+                    if (*pc == '@') {
                         ++pc;
-                    while (*pc && *pc != '@')
+                    }
+                    while (*pc != '\0' && *pc != '@') {
                         signature += *pc++;
+                    }
                 }
             } else {
                 if (c == '-' && *(pc + 1) == '>') {
