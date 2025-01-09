@@ -101,7 +101,7 @@ constexpr descr<1, Type> const_name() {
 
 // Use a different name based on whether the parameter is used as input or output
 template <size_t N1, size_t N2>
-constexpr auto io_name(char const (&text1)[N1], char const (&text2)[N2]) {
+constexpr descr<N1 + N2 + 1> io_name(char const (&text1)[N1], char const (&text2)[N2]) {
     return const_name("@") + const_name(text1) + const_name("@") + const_name(text2)
            + const_name("@");
 }
@@ -163,8 +163,9 @@ constexpr auto concat(const descr<N, Ts...> &d, const Args &...args) {
 }
 #else
 template <size_t N, typename... Ts, typename... Args>
-constexpr auto concat(const descr<N, Ts...> &d, const Args &...args)
-    -> decltype(std::declval<descr<N + 2, Ts...>>() + concat(args...)) {
+constexpr auto concat(const descr<N, Ts...> &d,
+                      const Args &...args) -> decltype(std::declval<descr<N + 2, Ts...>>()
+                                                       + concat(args...)) {
     return d + const_name(", ") + concat(args...);
 }
 #endif
