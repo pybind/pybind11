@@ -498,6 +498,11 @@ protected:
                 } else {
                     signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
+            } else if (c == '!'
+                       && (*(pc + 1) == '!' || *(pc + 1) == '@' || *(pc + 1) == '%'
+                           || *(pc + 1) == '{' || *(pc + 1) == '}')) {
+                // typing::Literal escapes special characters with !
+                signature += *++pc;
             } else if (c == '@') {
                 // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
                 // typing::Callable/detail::arg_descr/detail::return_descr)

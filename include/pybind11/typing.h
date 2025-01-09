@@ -120,6 +120,36 @@ struct StringLiteral {
     char name[N];
 };
 
+template <StringLiteral str>
+consteval auto sanitize_string_literal() {
+    constexpr std::string_view v(str.name);
+    char result[v.size() + std::ranges::count(v, '!') + std::ranges::count(v, '@')
+                + std::ranges::count(v, '%') + std::ranges::count(v, '{')
+                + std::ranges::count(v, '}') + 1];
+    size_t i = 0;
+    for (auto c : str.name) {
+        if (c == '!') {
+            result[i++] = '!';
+            result[i++] = '!';
+        } else if (c == '@') {
+            result[i++] = '!';
+            result[i++] = '@';
+        } else if (c == '%') {
+            result[i++] = '!';
+            result[i++] = '%';
+        } else if (c == '{') {
+            result[i++] = '!';
+            result[i++] = '{';
+        } else if (c == '}') {
+            result[i++] = '!';
+            result[i++] = '}';
+        } else {
+            result[i++] = c;
+        }
+    }
+    return StringLiteral(result);
+}
+
 template <StringLiteral... StrLits>
 class Literal : public object {
     PYBIND11_OBJECT_DEFAULT(Literal, object, PyObject_Type)
@@ -253,13 +283,14 @@ struct handle_type_name<typing::Never> {
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
 template <typing::StringLiteral... Literals>
 struct handle_type_name<typing::Literal<Literals...>> {
-    static constexpr auto name = const_name("Literal[")
-                                 + pybind11::detail::concat(const_name(Literals.name)...)
-                                 + const_name("]");
+    static constexpr auto name
+        = const_name("Literal[")
+          + pybind11::detail::concat(const_name(sanitize_string_literal<Literals>().name)...)
+          + const_name("]");
 };
 template <typing::StringLiteral StrLit>
 struct handle_type_name<typing::TypeVar<StrLit>> {
-    static constexpr auto name = const_name(StrLit.name);
+    static constexpr auto name = const_name(sanitize_string_literal<StrLit>().name);
 };
 #endif
 
