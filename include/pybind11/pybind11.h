@@ -505,11 +505,13 @@ protected:
                     is_return_value.emplace(false);
                     ++pc;
                     continue;
-                } else if (*(pc + 1) == '$') {
+                }
+                if (*(pc + 1) == '$') {
                     is_return_value.emplace(true);
                     ++pc;
                     continue;
-                } else if (*(pc + 1) == '!') {
+                }
+                if (*(pc + 1) == '!') {
                     is_return_value.pop();
                     ++pc;
                     continue;
