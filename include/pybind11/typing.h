@@ -16,6 +16,12 @@
 
 #include <algorithm>
 
+#if defined(__cpp_nontype_template_args) && __cpp_nontype_template_args >= 201911L
+#    define PYBIND11_TYPING_H_HAS_STRING_LITERAL
+#    include <ranges>
+#    include <string_view>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(typing)
 
@@ -112,43 +118,12 @@ class Never : public none {
     using none::none;
 };
 
-#if defined(__cpp_nontype_template_args) && __cpp_nontype_template_args >= 201911L
-#    define PYBIND11_TYPING_H_HAS_STRING_LITERAL
+#if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
 template <size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, name); }
     char name[N];
 };
-
-template <StringLiteral str>
-consteval auto sanitize_string_literal() {
-    constexpr std::string_view v(str.name);
-    char result[v.size() + std::ranges::count(v, '!') + std::ranges::count(v, '@')
-                + std::ranges::count(v, '%') + std::ranges::count(v, '{')
-                + std::ranges::count(v, '}') + 1];
-    size_t i = 0;
-    for (auto c : str.name) {
-        if (c == '!') {
-            result[i++] = '!';
-            result[i++] = '!';
-        } else if (c == '@') {
-            result[i++] = '!';
-            result[i++] = '@';
-        } else if (c == '%') {
-            result[i++] = '!';
-            result[i++] = '%';
-        } else if (c == '{') {
-            result[i++] = '!';
-            result[i++] = '{';
-        } else if (c == '}') {
-            result[i++] = '!';
-            result[i++] = '}';
-        } else {
-            result[i++] = c;
-        }
-    }
-    return StringLiteral(result);
-}
 
 template <StringLiteral... StrLits>
 class Literal : public object {
@@ -281,6 +256,36 @@ struct handle_type_name<typing::Never> {
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
+template <typing::StringLiteral str>
+consteval auto sanitize_string_literal() {
+    constexpr std::string_view v(str.name);
+    char result[v.size() + std::ranges::count(v, '!') + std::ranges::count(v, '@')
+                + std::ranges::count(v, '%') + std::ranges::count(v, '{')
+                + std::ranges::count(v, '}') + 1];
+    size_t i = 0;
+    for (auto c : str.name) {
+        if (c == '!') {
+            result[i++] = '!';
+            result[i++] = '!';
+        } else if (c == '@') {
+            result[i++] = '!';
+            result[i++] = '@';
+        } else if (c == '%') {
+            result[i++] = '!';
+            result[i++] = '%';
+        } else if (c == '{') {
+            result[i++] = '!';
+            result[i++] = '{';
+        } else if (c == '}') {
+            result[i++] = '!';
+            result[i++] = '}';
+        } else {
+            result[i++] = c;
+        }
+    }
+    return typing::StringLiteral(result);
+}
+
 template <typing::StringLiteral... Literals>
 struct handle_type_name<typing::Literal<Literals...>> {
     static constexpr auto name
