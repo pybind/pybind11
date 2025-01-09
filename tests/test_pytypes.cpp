@@ -977,6 +977,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("identity_literal_percent", [](const py::typing::Literal<"\"%\""> &x) { return x; });
     m.def("identity_literal_curly_open", [](const py::typing::Literal<"\"{\""> &x) { return x; });
     m.def("identity_literal_curly_close", [](const py::typing::Literal<"\"}\""> &x) { return x; });
+    m.def("identity_literal_all_special_chars",
+          [](const py::typing::Literal<"\"!@!!{%}\""> &x) { return x; });
     m.def("annotate_generic_containers",
           [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
               return l;
