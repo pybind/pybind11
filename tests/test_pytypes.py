@@ -1044,7 +1044,11 @@ def test_literal(doc):
         doc(m.annotate_literal)
         == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
-    # The characters @, %, and {} are used in the signature parser as special characters, but Literal should escape those for the parser to work.
+    # The characters !, @, %, and {} are used in the signature parser as special characters, but Literal should escape those for the parser to work.
+    assert (
+        doc(m.identity_literal_exclamation)
+        == 'identity_literal_exclamation(arg0: Literal["!"]) -> Literal["!"]'
+    )
     assert (
         doc(m.identity_literal_at)
         == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'

@@ -256,14 +256,14 @@ struct handle_type_name<typing::Never> {
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
-template <typing::StringLiteral str>
+template <typing::StringLiteral StrLit>
 consteval auto sanitize_string_literal() {
-    constexpr std::string_view v(str.name);
+    constexpr std::string_view v(StrLit.name);
     char result[v.size() + std::ranges::count(v, '!') + std::ranges::count(v, '@')
                 + std::ranges::count(v, '%') + std::ranges::count(v, '{')
                 + std::ranges::count(v, '}') + 1];
     size_t i = 0;
-    for (auto c : str.name) {
+    for (auto c : StrLit.name) {
         if (c == '!') {
             result[i++] = '!';
             result[i++] = '!';
