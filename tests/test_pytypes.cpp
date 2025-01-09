@@ -1145,6 +1145,10 @@ TEST_SUBMODULE(pytypes, m) {
     // Callable<R(...)> identity
     m.def("identity_callable_ellipsis",
           [](const py::typing::Callable<RealNumber(py::ellipsis)> &x) { return x; });
+    // Nested Callable<R(A)> identity
+    m.def("identity_nested_callable",
+          [](const py::typing::Callable<py::typing::Callable<RealNumber(const RealNumber &)>(
+                 py::typing::Callable<RealNumber(const RealNumber &)>)> &x) { return x; });
     // Callable<R(A)>
     m.def("apply_callable",
           [](const RealNumber &x, const py::typing::Callable<RealNumber(const RealNumber &)> &f) {

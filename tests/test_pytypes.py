@@ -1262,6 +1262,11 @@ def test_arg_return_type_hints(doc):
         doc(m.identity_callable_ellipsis)
         == "identity_callable_ellipsis(arg0: Callable[..., float]) -> Callable[..., float]"
     )
+    # Nested Callable<R(A)> identity
+    assert (
+        doc(m.identity_nested_callable)
+        == "identity_nested_callable(arg0: Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]) -> Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]"
+    )
     # Callable<R(A)>
     assert (
         doc(m.apply_callable)

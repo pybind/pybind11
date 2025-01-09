@@ -440,10 +440,10 @@ protected:
         std::string signature;
         size_t type_index = 0, arg_index = 0;
         bool is_starred = false;
-        // `is_return_value` is true if we are currently inside the return type of the signature.
-        // The same is true for `use_return_value`, except for forced usage of arg/return type
-        // using @^/@$.
-        bool is_return_value = false;
+        // `is_return_value.top()` is true if we are currently inside the return type of the
+        // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
+        // back to the previous state.
+        std::stack<bool> is_return_value = {false};
         bool use_return_value = false;
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
@@ -499,13 +499,18 @@ protected:
                     signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
             } else if (c == '@') {
-                // `@^ ... @^` and `@$ ... @$` are used to force arg/return value type (see
+                // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
                 // typing::Callable/detail::arg_descr/detail::return_descr)
-                if ((*(pc + 1) == '^' && is_return_value)
-                    || (*(pc + 1) == '$' && !is_return_value)) {
-                    use_return_value = !use_return_value;
-                }
-                if (*(pc + 1) == '^' || *(pc + 1) == '$') {
+                if (*(pc + 1) == '^') {
+                    is_return_value.emplace(false);
+                    ++pc;
+                    continue;
+                } else if (*(pc + 1) == '$') {
+                    is_return_value.emplace(true);
+                    ++pc;
+                    continue;
+                } else if (*(pc + 1) == '!') {
+                    is_return_value.pop();
                     ++pc;
                     continue;
                 }
@@ -513,7 +518,7 @@ protected:
                 // in an argument or a return value position (see io_name<text1, text2>).
                 // For named arguments (py::arg()) with noconvert set, return value type is used.
                 ++pc;
-                if (!use_return_value
+                if (!is_return_value.top()
                     && !(arg_index < rec->args.size() && !rec->args[arg_index].convert)) {
                     while (*pc != '\0' && *pc != '@') {
                         signature += *pc++;
@@ -537,8 +542,7 @@ protected:
                 }
             } else {
                 if (c == '-' && *(pc + 1) == '>') {
-                    is_return_value = true;
-                    use_return_value = true;
+                    is_return_value.emplace(true);
                 }
                 signature += c;
             }
