@@ -153,12 +153,12 @@ def test_set_int():
     s_a = m.SetInt()
     s_b = m.SetInt()
 
-    assert len(s_a) == 0
     assert s_a == s_b
 
     s_a.add(1)
 
     assert 1 in s_a
+    assert len(s_a) == 1
     assert str(s_a) == "SetInt{1}"
     assert s_a != s_b
 

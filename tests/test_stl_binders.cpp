@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/attr.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 
@@ -186,6 +187,7 @@ TEST_SUBMODULE(stl_binders, m) {
 
     // test_set_int
     py::bind_set<std::set<int>>(m, "SetInt");
+    // py::implicitly_convertible<py::set, std::set<int>>();
 
     // test_map_string_double
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
