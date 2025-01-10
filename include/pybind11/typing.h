@@ -262,7 +262,7 @@ consteval auto sanitize_string_literal() {
     constexpr std::string_view v(StrLit.name);
     constexpr std::string_view special_chars("!@%{}-");
     constexpr auto num_special_chars = std::accumulate(
-        special_chars.begin(), special_chars.end(), 0, [&v](auto acc, const char &c) {
+        special_chars.begin(), special_chars.end(), (size_t) 0, [&v](auto acc, const char &c) {
             return std::move(acc) + std::ranges::count(v, c);
         });
     char result[v.size() + num_special_chars + 1];
