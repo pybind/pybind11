@@ -971,7 +971,7 @@ TEST_SUBMODULE(pytypes, m) {
         .value("BLUE", literals::Color::BLUE);
 
     m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
-    // Literal with `@`, `%`, `{`, and `}`
+    // Literal with `@`, `%`, `{`, `}`, and `->`
     m.def("identity_literal_exclamation", [](const py::typing::Literal<"\"!\""> &x) { return x; });
     m.def("identity_literal_at", [](const py::typing::Literal<"\"@\""> &x) { return x; });
     m.def("identity_literal_percent", [](const py::typing::Literal<"\"%\""> &x) { return x; });

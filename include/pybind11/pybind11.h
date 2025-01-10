@@ -445,6 +445,9 @@ protected:
         // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
         // back to the previous state.
         std::stack<bool> is_return_value({false});
+        // The following characters have special meaning in the signature parsing. Literals
+        // containing these are escaped with `!`.
+        std::string special_chars("!@%{}-");
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
@@ -498,9 +501,7 @@ protected:
                 } else {
                     signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
-            } else if (c == '!'
-                       && (*(pc + 1) == '!' || *(pc + 1) == '@' || *(pc + 1) == '%'
-                           || *(pc + 1) == '{' || *(pc + 1) == '}' || *(pc + 1) == '-')) {
+            } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
                 // typing::Literal escapes special characters with !
                 signature += *++pc;
             } else if (c == '@') {
