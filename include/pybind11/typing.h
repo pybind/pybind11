@@ -264,24 +264,10 @@ consteval auto sanitize_string_literal() {
                 + std::ranges::count(v, '}') + 1];
     size_t i = 0;
     for (auto c : StrLit.name) {
-        if (c == '!') {
+        if (c == '!' || c == '@' || c == '%' || c == '{' || c == '}') {
             result[i++] = '!';
-            result[i++] = '!';
-        } else if (c == '@') {
-            result[i++] = '!';
-            result[i++] = '@';
-        } else if (c == '%') {
-            result[i++] = '!';
-            result[i++] = '%';
-        } else if (c == '{') {
-            result[i++] = '!';
-            result[i++] = '{';
-        } else if (c == '}') {
-            result[i++] = '!';
-            result[i++] = '}';
-        } else {
-            result[i++] = c;
         }
+        result[i++] = c;
     }
     return typing::StringLiteral(result);
 }
