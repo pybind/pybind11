@@ -1066,8 +1066,16 @@ def test_literal(doc):
         == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
     )
     assert (
+        doc(m.identity_literal_arrow)
+        == 'identity_literal_arrow(arg0: Literal["->"]) -> Literal["->"]'
+    )
+    assert (
+        doc(m.identity_literal_arrow_with_callable)
+        == 'identity_literal_arrow_with_callable(arg0: Callable[[Literal["->"], Union[float, int]], float]) -> Callable[[Literal["->"], Union[float, int]], float]'
+    )
+    assert (
         doc(m.identity_literal_all_special_chars)
-        == 'identity_literal_all_special_chars(arg0: Literal["!@!!{%}"]) -> Literal["!@!!{%}"]'
+        == 'identity_literal_all_special_chars(arg0: Literal["!@!!->{%}"]) -> Literal["!@!!->{%}"]'
     )
 
 
