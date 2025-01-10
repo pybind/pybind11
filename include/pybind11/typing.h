@@ -18,6 +18,7 @@
 
 #if defined(__cpp_nontype_template_args) && __cpp_nontype_template_args >= 201911L
 #    define PYBIND11_TYPING_H_HAS_STRING_LITERAL
+#    include <numeric>
 #    include <ranges>
 #    include <string_view>
 #endif
@@ -259,12 +260,15 @@ struct handle_type_name<typing::Never> {
 template <typing::StringLiteral StrLit>
 consteval auto sanitize_string_literal() {
     constexpr std::string_view v(StrLit.name);
-    char result[v.size() + std::ranges::count(v, '!') + std::ranges::count(v, '@')
-                + std::ranges::count(v, '%') + std::ranges::count(v, '{')
-                + std::ranges::count(v, '}') + 1];
+    constexpr std::string_view special_chars("!@%{}-");
+    constexpr auto num_special_chars = std::accumulate(
+        special_chars.begin(), special_chars.end(), 0, [&v](auto acc, const char &c) {
+            return std::move(acc) + std::ranges::count(v, c);
+        });
+    char result[v.size() + num_special_chars + 1];
     size_t i = 0;
     for (auto c : StrLit.name) {
-        if (c == '!' || c == '@' || c == '%' || c == '{' || c == '}' || c == '-') {
+        if (special_chars.find(c) != std::string_view::npos) {
             result[i++] = '!';
         }
         result[i++] = c;
