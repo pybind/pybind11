@@ -500,7 +500,7 @@ protected:
                 }
             } else if (c == '!'
                        && (*(pc + 1) == '!' || *(pc + 1) == '@' || *(pc + 1) == '%'
-                           || *(pc + 1) == '{' || *(pc + 1) == '}')) {
+                           || *(pc + 1) == '{' || *(pc + 1) == '}' || *(pc + 1) == '-')) {
                 // typing::Literal escapes special characters with !
                 signature += *++pc;
             } else if (c == '@') {

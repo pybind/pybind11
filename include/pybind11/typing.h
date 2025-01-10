@@ -264,7 +264,7 @@ consteval auto sanitize_string_literal() {
                 + std::ranges::count(v, '}') + 1];
     size_t i = 0;
     for (auto c : StrLit.name) {
-        if (c == '!' || c == '@' || c == '%' || c == '{' || c == '}') {
+        if (c == '!' || c == '@' || c == '%' || c == '{' || c == '}' || c == '-') {
             result[i++] = '!';
         }
         result[i++] = c;
