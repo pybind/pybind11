@@ -978,7 +978,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("identity_literal_curly_open", [](const py::typing::Literal<"\"{\""> &x) { return x; });
     m.def("identity_literal_curly_close", [](const py::typing::Literal<"\"}\""> &x) { return x; });
     m.def("identity_literal_arrow_with_io_name",
-          [](const py::typing::Literal<"\"->\""> &x, const RealNumber &y) { return x; });
+          [](const py::typing::Literal<"\"->\""> &x, const RealNumber &) { return x; });
     m.def("identity_literal_arrow_with_callable",
           [](const py::typing::Callable<RealNumber(const py::typing::Literal<"\"->\""> &,
                                                    const RealNumber &)> &x) { return x; });
