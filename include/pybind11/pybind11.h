@@ -22,6 +22,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -336,8 +337,8 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature = const_name("(") + cast_in::arg_names
-                                          + const_name(") -> ") + as_return_type<cast_out>::name;
+        static constexpr auto signature
+            = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
@@ -440,6 +441,13 @@ protected:
         std::string signature;
         size_t type_index = 0, arg_index = 0;
         bool is_starred = false;
+        // `is_return_value.top()` is true if we are currently inside the return type of the
+        // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
+        // back to the previous state.
+        std::stack<bool> is_return_value({false});
+        // The following characters have special meaning in the signature parsing. Literals
+        // containing these are escaped with `!`.
+        std::string special_chars("!@%{}-");
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
@@ -493,7 +501,57 @@ protected:
                 } else {
                     signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
                 }
+            } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
+                // typing::Literal escapes special characters with !
+                signature += *++pc;
+            } else if (c == '@') {
+                // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
+                // typing::Callable/detail::arg_descr/detail::return_descr)
+                if (*(pc + 1) == '^') {
+                    is_return_value.emplace(false);
+                    ++pc;
+                    continue;
+                }
+                if (*(pc + 1) == '$') {
+                    is_return_value.emplace(true);
+                    ++pc;
+                    continue;
+                }
+                if (*(pc + 1) == '!') {
+                    is_return_value.pop();
+                    ++pc;
+                    continue;
+                }
+                // Handle types that differ depending on whether they appear
+                // in an argument or a return value position (see io_name<text1, text2>).
+                // For named arguments (py::arg()) with noconvert set, return value type is used.
+                ++pc;
+                if (!is_return_value.top()
+                    && !(arg_index < rec->args.size() && !rec->args[arg_index].convert)) {
+                    while (*pc != '\0' && *pc != '@') {
+                        signature += *pc++;
+                    }
+                    if (*pc == '@') {
+                        ++pc;
+                    }
+                    while (*pc != '\0' && *pc != '@') {
+                        ++pc;
+                    }
+                } else {
+                    while (*pc != '\0' && *pc != '@') {
+                        ++pc;
+                    }
+                    if (*pc == '@') {
+                        ++pc;
+                    }
+                    while (*pc != '\0' && *pc != '@') {
+                        signature += *pc++;
+                    }
+                }
             } else {
+                if (c == '-' && *(pc + 1) == '>') {
+                    is_return_value.emplace(true);
+                }
                 signature += c;
             }
         }

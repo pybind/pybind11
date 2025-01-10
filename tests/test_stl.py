@@ -265,19 +265,19 @@ def test_fs_path(doc):
     assert m.parent_path(PseudoBytesPath()) == Path("foo")
     assert (
         doc(m.parent_path)
-        == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> Path"
+        == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> pathlib.Path"
     )
-    # std::vector should use name (for arg_name/return_name typing classes must be used)
+    # std::vector
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths)
-        == "parent_paths(arg0: list[os.PathLike]) -> list[os.PathLike]"
+        == "parent_paths(arg0: list[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
     )
     # py::typing::List
     assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths_list)
-        == "parent_paths_list(arg0: list[Union[os.PathLike, str, bytes]]) -> list[Path]"
+        == "parent_paths_list(arg0: list[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
     )
     # Nested py::typing::List
     assert m.parent_paths_nested_list([["foo/bar"], ["foo/baz", "foo/buzz"]]) == [
@@ -286,13 +286,13 @@ def test_fs_path(doc):
     ]
     assert (
         doc(m.parent_paths_nested_list)
-        == "parent_paths_nested_list(arg0: list[list[Union[os.PathLike, str, bytes]]]) -> list[list[Path]]"
+        == "parent_paths_nested_list(arg0: list[list[Union[os.PathLike, str, bytes]]]) -> list[list[pathlib.Path]]"
     )
     # py::typing::Tuple
     assert m.parent_paths_tuple(("foo/bar", "foo/baz")) == (Path("foo"), Path("foo"))
     assert (
         doc(m.parent_paths_tuple)
-        == "parent_paths_tuple(arg0: tuple[Union[os.PathLike, str, bytes], Union[os.PathLike, str, bytes]]) -> tuple[Path, Path]"
+        == "parent_paths_tuple(arg0: tuple[Union[os.PathLike, str, bytes], Union[os.PathLike, str, bytes]]) -> tuple[pathlib.Path, pathlib.Path]"
     )
     # py::typing::Dict
     assert m.parent_paths_dict(
@@ -308,7 +308,7 @@ def test_fs_path(doc):
     }
     assert (
         doc(m.parent_paths_dict)
-        == "parent_paths_dict(arg0: dict[str, Union[os.PathLike, str, bytes]]) -> dict[str, Path]"
+        == "parent_paths_dict(arg0: dict[str, Union[os.PathLike, str, bytes]]) -> dict[str, pathlib.Path]"
     )
 
 

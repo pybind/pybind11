@@ -34,39 +34,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// Type trait checker for `descr`
-template <typename>
-struct is_descr : std::false_type {};
-
-template <size_t N, typename... Ts>
-struct is_descr<descr<N, Ts...>> : std::true_type {};
-
-template <size_t N, typename... Ts>
-struct is_descr<const descr<N, Ts...>> : std::true_type {};
-
-// Use arg_name instead of name when available
-template <typename T, typename SFINAE = void>
-struct as_arg_type {
-    static constexpr auto name = T::name;
-};
-
-template <typename T>
-struct as_arg_type<T, typename std::enable_if<is_descr<decltype(T::arg_name)>::value>::type> {
-    static constexpr auto name = T::arg_name;
-};
-
-// Use return_name instead of name when available
-template <typename T, typename SFINAE = void>
-struct as_return_type {
-    static constexpr auto name = T::name;
-};
-
-template <typename T>
-struct as_return_type<T,
-                      typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
-    static constexpr auto name = T::return_name;
-};
-
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -1113,8 +1080,6 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
-    static constexpr auto arg_name = as_arg_type<handle_type_name<type>>::name;
-    static constexpr auto return_name = as_return_type<handle_type_name<type>>::name;
 };
 
 template <typename T>
@@ -1668,7 +1633,7 @@ public:
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names
-        = ::pybind11::detail::concat(type_descr(as_arg_type<make_caster<Args>>::name)...);
+        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 
