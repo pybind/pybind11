@@ -246,7 +246,8 @@ inline bool try_incref(PyObject *obj) {
     // TODO: Use PyUnstable_TryIncref when available.
     // See https://github.com/python/cpython/issues/128844
 #ifdef Py_GIL_DISABLED
-    // See https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
+    // See
+    // https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
     uint32_t local = _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local);
     local += 1;
     if (local == 0) {
@@ -255,9 +256,9 @@ inline bool try_incref(PyObject *obj) {
     }
     if (_Py_IsOwnedByCurrentThread(obj)) {
         _Py_atomic_store_uint32_relaxed(&obj->ob_ref_local, local);
-#ifdef Py_REF_DEBUG
+#    ifdef Py_REF_DEBUG
         _Py_INCREF_IncRefTotal();
-#endif
+#    endif
         return true;
     }
     Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared);
@@ -269,12 +270,10 @@ inline bool try_incref(PyObject *obj) {
         }
 
         if (_Py_atomic_compare_exchange_ssize(
-                &obj->ob_ref_shared,
-                &shared,
-                shared + (1 << _Py_REF_SHARED_SHIFT))) {
-#ifdef Py_REF_DEBUG
+                &obj->ob_ref_shared, &shared, shared + (1 << _Py_REF_SHARED_SHIFT))) {
+#    ifdef Py_REF_DEBUG
             _Py_INCREF_IncRefTotal();
-#endif
+#    endif
             return true;
         }
     }
