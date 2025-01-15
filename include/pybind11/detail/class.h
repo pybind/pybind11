@@ -312,8 +312,8 @@ inline void traverse_offset_bases(void *valueptr,
     }
 }
 
-static inline void enable_try_inc_ref(PyObject *op) {
 #ifdef Py_GIL_DISABLED
+static inline void enable_try_inc_ref(PyObject *op) {
     // TODO: Replace with PyUnstable_Object_EnableTryIncRef when available.
     // See https://github.com/python/cpython/issues/128844
     if (_Py_IsImmortal(op)) {
@@ -330,11 +330,13 @@ static inline void enable_try_inc_ref(PyObject *op) {
             return;
         }
     }
-#endif
 }
+#endif
 
 inline bool register_instance_impl(void *ptr, instance *self) {
+#ifdef Py_GIL_DISABLED
     enable_try_inc_ref((PyObject *) self);
+#endif
     with_instance_map(ptr, [&](instance_map &instances) { instances.emplace(ptr, self); });
     return true; // unused, but gives the same signature as the deregister func
 }
