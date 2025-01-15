@@ -312,7 +312,29 @@ inline void traverse_offset_bases(void *valueptr,
     }
 }
 
+static inline void enable_try_inc_ref(PyObject *op) {
+#ifdef Py_GIL_DISABLED
+    // TODO: Replace with PyUnstable_Object_EnableTryIncRef when available.
+    // See https://github.com/python/cpython/issues/128844
+    if (_Py_IsImmortal(op)) {
+        return;
+    }
+    for (;;) {
+        Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&op->ob_ref_shared);
+        if ((shared & _Py_REF_SHARED_FLAG_MASK) != 0) {
+            // Nothing to do if it's in WEAKREFS, QUEUED, or MERGED states.
+            return;
+        }
+        if (_Py_atomic_compare_exchange_ssize(
+                &op->ob_ref_shared, &shared, shared | _Py_REF_MAYBE_WEAKREF)) {
+            return;
+        }
+    }
+#endif
+}
+
 inline bool register_instance_impl(void *ptr, instance *self) {
+    enable_try_inc_ref((PyObject *) self);
     with_instance_map(ptr, [&](instance_map &instances) { instances.emplace(ptr, self); });
     return true; // unused, but gives the same signature as the deregister func
 }
