@@ -280,6 +280,7 @@ inline bool try_incref(PyObject *obj) {
 #else
     assert(Py_REFCNT(obj) > 0);
     Py_INCREF(obj);
+    return true;
 #endif
 }
 
