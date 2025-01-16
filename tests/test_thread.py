@@ -57,7 +57,7 @@ def test_bind_shared_instance():
     def access_shared_instance():
         b.wait()
         for _ in range(1000):
-            # assign to local variable to make clang-tidy happy
+            # assign to local variable to make ruff happy
             x = m.EmptyStruct.SharedInstance
             del x
 
