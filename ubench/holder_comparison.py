@@ -93,8 +93,8 @@ def run(args: List[str]) -> None:
                     continue
                 if selected_holder_type != "all" and nb_label != selected_holder_type:
                     continue
-                nb1 = nb_type(data_size)  # type: ignore[misc]
-                nb2 = nb_type(data_size)  # type: ignore[misc]
+                nb1 = nb_type(data_size)
+                nb2 = nb_type(data_size)
 
                 def many_sum(call_repetitions: int) -> float:
                     assert int(round(nb1.sum())) == data_size
