@@ -313,20 +313,20 @@ inline void traverse_offset_bases(void *valueptr,
 }
 
 #ifdef Py_GIL_DISABLED
-static inline void enable_try_inc_ref(PyObject *op) {
+inline void enable_try_inc_ref(PyObject *obj) {
     // TODO: Replace with PyUnstable_Object_EnableTryIncRef when available.
     // See https://github.com/python/cpython/issues/128844
-    if (_Py_IsImmortal(op)) {
+    if (_Py_IsImmortal(obj)) {
         return;
     }
     for (;;) {
-        Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&op->ob_ref_shared);
+        Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared);
         if ((shared & _Py_REF_SHARED_FLAG_MASK) != 0) {
             // Nothing to do if it's in WEAKREFS, QUEUED, or MERGED states.
             return;
         }
         if (_Py_atomic_compare_exchange_ssize(
-                &op->ob_ref_shared, &shared, shared | _Py_REF_MAYBE_WEAKREF)) {
+                &obj->ob_ref_shared, &shared, shared | _Py_REF_MAYBE_WEAKREF)) {
             return;
         }
     }
@@ -335,7 +335,7 @@ static inline void enable_try_inc_ref(PyObject *op) {
 
 inline bool register_instance_impl(void *ptr, instance *self) {
 #ifdef Py_GIL_DISABLED
-    enable_try_inc_ref((PyObject *) self);
+    enable_try_inc_ref(reinterpret_cast<PyObject *>(self));
 #endif
     with_instance_map(ptr, [&](instance_map &instances) { instances.emplace(ptr, self); });
     return true; // unused, but gives the same signature as the deregister func

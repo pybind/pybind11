@@ -57,8 +57,7 @@ def test_bind_shared_instance():
     def access_shared_instance():
         b.wait()
         for _ in range(1000):
-            x = m.EmptyStruct.SharedInstance
-            del x
+            m.EmptyStruct.SharedInstance
 
     threads = [
         threading.Thread(target=access_shared_instance) for _ in range(nb_threads)

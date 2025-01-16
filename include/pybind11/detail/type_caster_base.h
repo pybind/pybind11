@@ -292,7 +292,7 @@ PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                    PyObject *wrapper = (PyObject *) it_i->second;
+                    auto *wrapper = reinterpret_cast<PyObject *>(it_i->second);
                     if (try_incref(wrapper)) {
                         return handle(wrapper);
                     }
