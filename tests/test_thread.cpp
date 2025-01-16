@@ -29,7 +29,7 @@ struct IntStruct {
 };
 
 struct EmptyStruct {};
-static EmptyStruct SharedInstance;
+EmptyStruct SharedInstance;
 
 } // namespace
 
