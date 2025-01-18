@@ -26,6 +26,12 @@
 #include <utility>
 #include <vector>
 
+// See PR #5448. This warning suppression is needed for the PYBIND11_OVERRIDE macro family.
+// NOTE that this is NOT embedded in a push/pop pair because that is very difficult to achieve.
+#if defined(__clang_major__) && __clang_major__ < 14
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+#endif
+
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #    define PYBIND11_STD_LAUNDER std::launder
 #    define PYBIND11_HAS_STD_LAUNDER 1
@@ -303,9 +309,20 @@ protected:
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
+            constexpr bool has_is_method = any_of<std::is_same<is_method, Extra>...>::value;
+            // The implicit `self` argument is not present and not counted in method definitions.
+            constexpr bool has_args = cast_in::args_pos >= 0;
+            constexpr bool is_method_with_self_arg_only = has_is_method && !has_args;
             static_assert(has_arg_annotations || !has_kw_only_args,
                           "py::kw_only requires the use of argument annotations");
-            static_assert(has_arg_annotations || !has_pos_only_args,
+            static_assert(((/* Need `py::arg("arg_name")` annotation in function/method. */
+                            has_arg_annotations)
+                           || (/* Allow methods with no arguments `def method(self, /): ...`.
+                                * A method has at least one argument `self`. There can be no
+                                * `py::arg` annotation. E.g. `class.def("method", py::pos_only())`.
+                                */
+                               is_method_with_self_arg_only))
+                              || !has_pos_only_args,
                           "py::pos_only requires the use of argument annotations (for docstrings "
                           "and aligning the annotations to the argument)");
 
@@ -321,8 +338,8 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature
-            = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
+        static constexpr auto signature = const_name("(") + cast_in::arg_names
+                                          + const_name(") -> ") + as_return_type<cast_out>::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
@@ -575,8 +592,7 @@ protected:
                 // chain.
                 chain_start = rec;
                 rec->next = chain;
-                auto rec_capsule
-                    = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
+                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(m_ptr));
                 rec_capsule.set_pointer(unique_rec.release());
                 guarded_strdup.release();
             } else {
@@ -636,12 +652,11 @@ protected:
             }
         }
 
-        /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
-        std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
-        func->m_ml->ml_doc
-            = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+        auto *doc = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+        std::free(const_cast<char *>(PYBIND11_PYCFUNCTION_GET_DOC(func)));
+        PYBIND11_PYCFUNCTION_SET_DOC(func, doc);
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -1309,7 +1324,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <>
 struct handle_type_name<module_> {
-    static constexpr auto name = const_name("module");
+    static constexpr auto name = const_name("types.ModuleType");
 };
 
 PYBIND11_NAMESPACE_END(detail)
@@ -2038,9 +2053,11 @@ struct enum_base {
                     .format(std::move(type_name), enum_name(arg), int_(arg));
             },
             name("__repr__"),
-            is_method(m_base));
+            is_method(m_base),
+            pos_only());
 
-        m_base.attr("name") = property(cpp_function(&enum_name, name("name"), is_method(m_base)));
+        m_base.attr("name")
+            = property(cpp_function(&enum_name, name("name"), is_method(m_base), pos_only()));
 
         m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
@@ -2048,7 +2065,8 @@ struct enum_base {
                 return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
             name("__str__"),
-            is_method(m_base));
+            is_method(m_base),
+            pos_only());
 
         if (options::show_enum_members_docstring()) {
             m_base.attr("__doc__") = static_property(
@@ -2103,7 +2121,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV(op, expr)                                                           \
     m_base.attr(op) = cpp_function(                                                               \
@@ -2113,7 +2132,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                                       \
     m_base.attr(op) = cpp_function(                                                               \
@@ -2123,7 +2143,8 @@ struct enum_base {
         },                                                                                        \
         name(op),                                                                                 \
         is_method(m_base),                                                                        \
-        arg("other"))
+        arg("other"),                                                                             \
+        pos_only())
 
         if (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
@@ -2143,7 +2164,8 @@ struct enum_base {
                 m_base.attr("__invert__")
                     = cpp_function([](const object &arg) { return ~(int_(arg)); },
                                    name("__invert__"),
-                                   is_method(m_base));
+                                   is_method(m_base),
+                                   pos_only());
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
@@ -2163,11 +2185,15 @@ struct enum_base {
 #undef PYBIND11_ENUM_OP_CONV
 #undef PYBIND11_ENUM_OP_STRICT
 
-        m_base.attr("__getstate__") = cpp_function(
-            [](const object &arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
+        m_base.attr("__getstate__") = cpp_function([](const object &arg) { return int_(arg); },
+                                                   name("__getstate__"),
+                                                   is_method(m_base),
+                                                   pos_only());
 
-        m_base.attr("__hash__") = cpp_function(
-            [](const object &arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
+        m_base.attr("__hash__") = cpp_function([](const object &arg) { return int_(arg); },
+                                               name("__hash__"),
+                                               is_method(m_base),
+                                               pos_only());
     }
 
     PYBIND11_NOINLINE void value(char const *name_, object value, const char *doc = nullptr) {
@@ -2259,9 +2285,9 @@ public:
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
-        def_property_readonly("value", [](Type value) { return (Scalar) value; });
-        def("__int__", [](Type value) { return (Scalar) value; });
-        def("__index__", [](Type value) { return (Scalar) value; });
+        def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());
+        def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
+        def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(
@@ -2270,7 +2296,8 @@ public:
             detail::is_new_style_constructor(),
             pybind11::name("__setstate__"),
             is_method(*this),
-            arg("state"));
+            arg("state"),
+            pos_only());
     }
 
     /// Export enumeration entries into the parent scope
@@ -2342,13 +2369,20 @@ keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type) {
     auto res = with_internals([type](internals &internals) {
-        return internals
-            .registered_types_py
+        auto ins = internals
+                       .registered_types_py
 #ifdef __cpp_lib_unordered_map_try_emplace
-            .try_emplace(type);
+                       .try_emplace(type);
 #else
-            .emplace(type, std::vector<detail::type_info *>());
+                       .emplace(type, std::vector<detail::type_info *>());
 #endif
+        if (ins.second) {
+            // For free-threading mode, this call must be under
+            // the with_internals() mutex lock, to avoid that other threads
+            // continue running with the empty ins.first->second.
+            all_type_info_populate(type, ins.first->second);
+        }
+        return ins;
     });
     if (res.second) {
         // New cache entry created; set up a weak reference to automatically remove it if the type
@@ -2449,7 +2483,8 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
-            .def("__iter__", [](state &s) -> state & { return s; })
+            .def(
+                "__iter__", [](state &s) -> state & { return s; }, pos_only())
             .def(
                 "__next__",
                 [](state &s) -> ValueType {
@@ -2466,6 +2501,7 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
                     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
                 },
                 std::forward<Extra>(extra)...,
+                pos_only(),
                 Policy);
     }
 
@@ -2794,8 +2830,8 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
     }
 
     /* Don't call dispatch code if invoked from overridden function.
-       Unfortunately this doesn't work on PyPy. */
-#if !defined(PYPY_VERSION)
+       Unfortunately this doesn't work on PyPy and GraalPy. */
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
 #    if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {

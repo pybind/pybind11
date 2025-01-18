@@ -122,6 +122,7 @@ set(PYBIND11_TEST_FILES
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
+    test_docs_advanced_cast_custom
     test_eigen_matrix
     test_eigen_tensor
     test_enum
@@ -490,6 +491,12 @@ foreach(target ${test_targets})
   endif()
   if(SKBUILD)
     install(TARGETS ${target} LIBRARY DESTINATION .)
+  endif()
+
+  if("${target}" STREQUAL "exo_planet_c_api")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang|NVHPC)")
+      target_compile_options(${target} PRIVATE -fno-exceptions)
+    endif()
   endif()
 endforeach()
 

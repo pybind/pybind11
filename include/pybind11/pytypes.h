@@ -114,6 +114,17 @@ public:
     str_attr_accessor attr(const char *key) const;
 
     /** \rst
+         Similar to the above attr functions with the difference that the templated Type
+         is used to set the `__annotations__` dict value to the corresponding key. Worth noting
+         that attr_with_type_hint is implemented in cast.h.
+    \endrst */
+    template <typename T>
+    obj_attr_accessor attr_with_type_hint(handle key) const;
+    /// See above (the only difference is that the key is provided as a string literal)
+    template <typename T>
+    str_attr_accessor attr_with_type_hint(const char *key) const;
+
+    /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
         or ``list`` for a function call. Applying another * to the result yields
         ** unpacking, e.g. to unpack a dict as function keyword arguments.
@@ -181,6 +192,9 @@ public:
 
     /// Get or set the object's docstring, i.e. ``obj.__doc__``.
     str_attr_accessor doc() const;
+
+    /// Get or set the object's annotations, i.e. ``obj.__annotations__``.
+    object annotations() const;
 
     /// Return the object's current reference count
     ssize_t ref_count() const {
@@ -643,7 +657,7 @@ struct error_fetch_and_normalize {
 
         bool have_trace = false;
         if (m_trace) {
-#if !defined(PYPY_VERSION)
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
             auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
 
             // Get the deepest trace possible.
@@ -1356,7 +1370,7 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #    define PYBIND11_STR_CHECK_FUN PyUnicode_Check
 #endif
 
-inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
+inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
 
 class kwargs_proxy : public handle {
 public:
@@ -1470,11 +1484,17 @@ public:
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
 
     iterator &operator++() {
+        init();
         advance();
         return *this;
     }
 
     iterator operator++(int) {
+        // Note: We must call init() first so that rv.value is
+        // the same as this->value just before calling advance().
+        // Otherwise, dereferencing the returned iterator may call
+        // advance() again and return the 3rd item instead of the 1st.
+        init();
         auto rv = *this;
         advance();
         return rv;
@@ -1482,15 +1502,12 @@ public:
 
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
     reference operator*() const {
-        if (m_ptr && !value.ptr()) {
-            auto &self = const_cast<iterator &>(*this);
-            self.advance();
-        }
+        init();
         return value;
     }
 
     pointer operator->() const {
-        operator*();
+        init();
         return &value;
     }
 
@@ -1513,6 +1530,13 @@ public:
     friend bool operator!=(const iterator &a, const iterator &b) { return a->ptr() != b->ptr(); }
 
 private:
+    void init() const {
+        if (m_ptr && !value.ptr()) {
+            auto &self = const_cast<iterator &>(*this);
+            self.advance();
+        }
+    }
+
     void advance() {
         value = reinterpret_steal<object>(PyIter_Next(m_ptr));
         if (value.ptr() == nullptr && PyErr_Occurred()) {
@@ -2216,6 +2240,18 @@ class kwargs : public dict {
     PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)
 };
 
+// Subclasses of args and kwargs to support type hinting
+// as defined in PEP 484. See #5357 for more info.
+template <typename T>
+class Args : public args {
+    using args::args;
+};
+
+template <typename T>
+class KWArgs : public kwargs {
+    using kwargs::kwargs;
+};
+
 class anyset : public object {
 public:
     PYBIND11_OBJECT(anyset, object, PyAnySet_Check)
@@ -2534,6 +2570,19 @@ pybind11::str object_api<D>::str() const {
 template <typename D>
 str_attr_accessor object_api<D>::doc() const {
     return attr("__doc__");
+}
+
+template <typename D>
+object object_api<D>::annotations() const {
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
+    // https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+    if (!hasattr(derived(), "__annotations__")) {
+        setattr(derived(), "__annotations__", dict());
+    }
+    return attr("__annotations__");
+#else
+    return getattr(derived(), "__annotations__", dict());
+#endif
 }
 
 template <typename D>

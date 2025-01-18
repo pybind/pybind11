@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/stl.h>
 #include <pybind11/typing.h>
 
 #include "pybind11_tests.h"
@@ -137,6 +138,44 @@ typedef py::typing::TypeVar<"V"> TypeVarV;
 } // namespace typevar
 #endif
 
+// Custom type for testing arg_name/return_name type hints
+// RealNumber:
+// * in arguments -> float | int
+// * in return -> float
+// * fallback -> complex
+// The choice of types is not really useful, but just made different for testing purposes.
+// According to `PEP 484 – Type Hints` annotating with `float` also allows `int`,
+// so using `float | int` could be replaced by just `float`.
+
+struct RealNumber {
+    double value;
+};
+
+namespace pybind11 {
+namespace detail {
+
+template <>
+struct type_caster<RealNumber> {
+    PYBIND11_TYPE_CASTER(RealNumber, const_name("complex"));
+    static constexpr auto arg_name = const_name("Union[float, int]");
+    static constexpr auto return_name = const_name("float");
+
+    static handle cast(const RealNumber &number, return_value_policy, handle) {
+        return py::float_(number.value).release();
+    }
+
+    bool load(handle src, bool) {
+        if (!py::isinstance<py::float_>(src) && !py::isinstance<py::int_>(src)) {
+            return false;
+        }
+        value.value = src.cast<double>();
+        return true;
+    }
+};
+
+} // namespace detail
+} // namespace pybind11
+
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -150,6 +189,18 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
     m.def("get_iterable", [] { return py::iterable(); });
+    m.def("get_first_item_from_iterable", [](const py::iterable &iter) {
+        // This tests the postfix increment operator
+        py::iterator it = iter.begin();
+        py::iterator it2 = it++;
+        return *it2;
+    });
+    m.def("get_second_item_from_iterable", [](const py::iterable &iter) {
+        // This tests the prefix increment operator
+        py::iterator it = iter.begin();
+        ++it;
+        return *it;
+    });
     m.def("get_frozenset_from_iterable",
           [](const py::iterable &iter) { return py::frozenset(iter); });
     m.def("get_list_from_iterable", [](const py::iterable &iter) { return py::list(iter); });
@@ -986,4 +1037,126 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
+
+#if defined(__cpp_inline_variables)
+    // Exercises const char* overload:
+    m.attr_with_type_hint<py::typing::List<int>>("list_int") = py::list();
+    // Exercises py::handle overload:
+    m.attr_with_type_hint<py::typing::Set<py::str>>(py::str("set_str")) = py::set();
+
+    struct Empty {};
+    py::class_<Empty>(m, "EmptyAnnotationClass");
+
+    struct Static {};
+    auto static_class = py::class_<Static>(m, "Static");
+    static_class.def(py::init());
+    static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
+    static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
+        "dict_str_int")
+        = py::dict();
+
+    struct Instance {};
+    auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());
+    instance.def(py::init());
+    instance.attr_with_type_hint<float>("y");
+
+    m.def("attr_with_type_hint_float_x",
+          [](py::handle obj) { obj.attr_with_type_hint<float>("x"); });
+
+    m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
+
+    m.attr("defined___cpp_inline_variables") = true;
+#else
+    m.attr("defined___cpp_inline_variables") = false;
+#endif
+    m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    // std::vector<T>
+    m.def("half_of_number_vector", [](const std::vector<RealNumber> &x) {
+        std::vector<RealNumber> result;
+        result.reserve(x.size());
+        for (auto num : x) {
+            result.push_back(RealNumber{num.value / 2});
+        }
+        return result;
+    });
+    // Tuple<T, T>
+    m.def("half_of_number_tuple", [](const py::typing::Tuple<RealNumber, RealNumber> &x) {
+        py::typing::Tuple<RealNumber, RealNumber> result
+            = py::make_tuple(RealNumber{x[0].cast<RealNumber>().value / 2},
+                             RealNumber{x[1].cast<RealNumber>().value / 2});
+        return result;
+    });
+    // Tuple<T, ...>
+    m.def("half_of_number_tuple_ellipsis",
+          [](const py::typing::Tuple<RealNumber, py::ellipsis> &x) {
+              py::typing::Tuple<RealNumber, py::ellipsis> result(x.size());
+              for (size_t i = 0; i < x.size(); ++i) {
+                  result[i] = x[i].cast<RealNumber>().value / 2;
+              }
+              return result;
+          });
+    // Dict<K, V>
+    m.def("half_of_number_dict", [](const py::typing::Dict<std::string, RealNumber> &x) {
+        py::typing::Dict<std::string, RealNumber> result;
+        for (auto it : x) {
+            result[it.first] = RealNumber{it.second.cast<RealNumber>().value / 2};
+        }
+        return result;
+    });
+    // List<T>
+    m.def("half_of_number_list", [](const py::typing::List<RealNumber> &x) {
+        py::typing::List<RealNumber> result;
+        for (auto num : x) {
+            result.append(RealNumber{num.cast<RealNumber>().value / 2});
+        }
+        return result;
+    });
+    // List<List<T>>
+    m.def("half_of_number_nested_list",
+          [](const py::typing::List<py::typing::List<RealNumber>> &x) {
+              py::typing::List<py::typing::List<RealNumber>> result_lists;
+              for (auto nums : x) {
+                  py::typing::List<RealNumber> result;
+                  for (auto num : nums) {
+                      result.append(RealNumber{num.cast<RealNumber>().value / 2});
+                  }
+                  result_lists.append(result);
+              }
+              return result_lists;
+          });
+    // Set<T>
+    m.def("identity_set", [](const py::typing::Set<RealNumber> &x) { return x; });
+    // Iterable<T>
+    m.def("identity_iterable", [](const py::typing::Iterable<RealNumber> &x) { return x; });
+    // Iterator<T>
+    m.def("identity_iterator", [](const py::typing::Iterator<RealNumber> &x) { return x; });
+    // Callable<R(A)>
+    m.def("apply_callable",
+          [](const RealNumber &x, const py::typing::Callable<RealNumber(const RealNumber &)> &f) {
+              return f(x).cast<RealNumber>();
+          });
+    // Callable<R(...)>
+    m.def("apply_callable_ellipsis",
+          [](const RealNumber &x, const py::typing::Callable<RealNumber(py::ellipsis)> &f) {
+              return f(x).cast<RealNumber>();
+          });
+    // Union<T1, T2>
+    m.def("identity_union", [](const py::typing::Union<RealNumber, std::string> &x) { return x; });
+    // Optional<T>
+    m.def("identity_optional", [](const py::typing::Optional<RealNumber> &x) { return x; });
+    // TypeGuard<T>
+    m.def("check_type_guard",
+          [](const py::typing::List<py::object> &x)
+              -> py::typing::TypeGuard<py::typing::List<RealNumber>> {
+              for (const auto &item : x) {
+                  if (!py::isinstance<RealNumber>(item)) {
+                      return false;
+                  }
+              }
+              return true;
+          });
+    // TypeIs<T>
+    m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
+        return py::isinstance<RealNumber>(x);
+    });
 }

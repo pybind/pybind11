@@ -694,6 +694,40 @@ struct ItemsViewImpl : public detail::items_view {
     Map &map;
 };
 
+inline str format_message_key_error_key_object(handle py_key) {
+    str message = "pybind11::bind_map key";
+    if (!py_key) {
+        return message;
+    }
+    try {
+        message = str(py_key);
+    } catch (const std::exception &) {
+        try {
+            message = repr(py_key);
+        } catch (const std::exception &) {
+            return message;
+        }
+    }
+    const ssize_t cut_length = 100;
+    if (len(message) > 2 * cut_length + 3) {
+        return str(message[slice(0, cut_length, 1)]) + str("✄✄✄")
+               + str(message[slice(-cut_length, static_cast<ssize_t>(len(message)), 1)]);
+    }
+    return message;
+}
+
+template <typename KeyType>
+str format_message_key_error(const KeyType &key) {
+    object py_key;
+    try {
+        py_key = cast(key);
+    } catch (const std::exception &) {
+        do { // Trick to avoid "empty catch" warning/error.
+        } while (false);
+    }
+    return format_message_key_error_key_object(py_key);
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
@@ -785,7 +819,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
         [](Map &m, const KeyType &k) -> MappedType & {
             auto it = m.find(k);
             if (it == m.end()) {
-                throw key_error();
+                set_error(PyExc_KeyError, detail::format_message_key_error(k));
+                throw error_already_set();
             }
             return it->second;
         },
@@ -808,7 +843,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
     cl.def("__delitem__", [](Map &m, const KeyType &k) {
         auto it = m.find(k);
         if (it == m.end()) {
-            throw key_error();
+            set_error(PyExc_KeyError, detail::format_message_key_error(k));
+            throw error_already_set();
         }
         m.erase(it);
     });

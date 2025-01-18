@@ -15,6 +15,7 @@
 #    include <pybind11/gil.h>
 #endif
 
+#include <pybind11/conduit/pybind11_platform_abi_id.h>
 #include <pybind11/pytypes.h>
 
 #include <exception>
@@ -269,74 +270,13 @@ struct type_info {
     bool module_local : 1;
 };
 
-/// On MSVC, debug and release builds are not ABI-compatible!
-#if defined(_MSC_VER) && defined(_DEBUG)
-#    define PYBIND11_BUILD_TYPE "_debug"
-#else
-#    define PYBIND11_BUILD_TYPE ""
-#endif
-
-/// Let's assume that different compilers are ABI-incompatible.
-/// A user can manually set this string if they know their
-/// compiler is compatible.
-#ifndef PYBIND11_COMPILER_TYPE
-#    if defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__INTEL_COMPILER)
-#        define PYBIND11_COMPILER_TYPE "_icc"
-#    elif defined(__clang__)
-#        define PYBIND11_COMPILER_TYPE "_clang"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
-#    elif defined(__MINGW32__)
-#        define PYBIND11_COMPILER_TYPE "_mingw"
-#    elif defined(__CYGWIN__)
-#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#    elif defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_gcc"
-#    else
-#        define PYBIND11_COMPILER_TYPE "_unknown"
-#    endif
-#endif
-
-/// Also standard libs
-#ifndef PYBIND11_STDLIB
-#    if defined(_LIBCPP_VERSION)
-#        define PYBIND11_STDLIB "_libcpp"
-#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#        define PYBIND11_STDLIB "_libstdcpp"
-#    else
-#        define PYBIND11_STDLIB ""
-#    endif
-#endif
-
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-/// On MSVC, changes in _MSC_VER may indicate ABI incompatibility (#2898).
-#ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER)
-#        define PYBIND11_BUILD_ABI "_mscver" PYBIND11_TOSTRING(_MSC_VER)
-#    else
-#        define PYBIND11_BUILD_ABI ""
-#    endif
-#endif
-
-#ifndef PYBIND11_INTERNALS_KIND
-#    define PYBIND11_INTERNALS_KIND ""
-#endif
-
-#define PYBIND11_PLATFORM_ABI_ID                                                                  \
-    PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI             \
-        PYBIND11_BUILD_TYPE
-
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_PLATFORM_ABI_ID "__"
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_PLATFORM_ABI_ID "__"
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -454,7 +394,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 inline object get_python_state_dict() {
     object state_dict;
-#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION)
+#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
 #    if PY_VERSION_HEX < 0x03090000
@@ -671,8 +611,8 @@ inline std::uint64_t mix64(std::uint64_t z) {
 }
 
 template <typename F>
-inline auto with_instance_map(const void *ptr,
-                              const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
+inline auto with_instance_map(const void *ptr, const F &cb)
+    -> decltype(cb(std::declval<instance_map &>())) {
     auto &internals = get_internals();
 
 #ifdef Py_GIL_DISABLED
@@ -727,7 +667,8 @@ const char *c_str(Args &&...args) {
 }
 
 inline const char *get_function_record_capsule_name() {
-#if PYBIND11_INTERNALS_VERSION > 4
+    // On GraalPy, pointer equality of the names is currently not guaranteed
+#if PYBIND11_INTERNALS_VERSION > 4 && !defined(GRAALVM_PYTHON)
     return get_internals().function_record_capsule_name.c_str();
 #else
     return nullptr;
