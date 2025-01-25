@@ -1445,9 +1445,9 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type,
-                         io_name(const_name("numpy.typing.ArrayLike]"),
+                         io_name("numpy.typing.ArrayLike",
                                  const_name("numpy.typing.NDArray[")
-                                     + npy_format_descriptor<type>::name + const_name("]")));
+                                     + npy_format_descriptor<T>::name + const_name("]")));
 };
 
 template <typename T>
