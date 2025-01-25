@@ -175,7 +175,6 @@ inline numpy_internals &get_numpy_internals() {
 PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name) {
     module_ numpy = module_::import("numpy");
     str version_string = numpy.attr("__version__");
-
     module_ numpy_lib = module_::import("numpy.lib");
     object numpy_version = numpy_lib.attr("NumpyVersion")(version_string);
     int major_version = numpy_version.attr("major").cast<int>();
@@ -1445,7 +1444,9 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
         return src.inc_ref();
     }
-    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    PYBIND11_TYPE_CASTER(type,
+                         io_name("numpy.typing.ArrayLike",
+                                 "numpy.typing.NDArray[" + npy_format_descriptor<T>::name + "]"));
 };
 
 template <typename T>
@@ -2183,7 +2184,7 @@ vectorize_helper<Func, Return, Args...> vectorize_extractor(const Func &f, Retur
 template <typename T, int Flags>
 struct handle_type_name<array_t<T, Flags>> {
     static constexpr auto name
-        = const_name("numpy.ndarray[") + npy_format_descriptor<T>::name + const_name("]");
+        = const_name("numpy.typing.NDArray[") + npy_format_descriptor<T>::name + const_name("]");
 };
 
 PYBIND11_NAMESPACE_END(detail)
