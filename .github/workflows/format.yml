@@ -41,7 +41,7 @@ jobs:
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
     runs-on: ubuntu-latest
-    container: silkeh/clang:15-bullseye
+    container: silkeh/clang:18-bookworm
     steps:
     - uses: actions/checkout@v4
 

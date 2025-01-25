@@ -1,11 +1,15 @@
 # ruff: noqa: SIM201 SIM300 SIM202
 from __future__ import annotations
 
+import re
+
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import enums as m
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
@@ -193,6 +197,7 @@ def test_implicit_conversion():
     assert repr(x) == "{<EMode.EFirstMode: 1>: 3, <EMode.ESecondMode: 2>: 4}"
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_binary_operators():
     assert int(m.Flags.Read) == 4
     assert int(m.Flags.Write) == 2
@@ -268,3 +273,61 @@ def test_docstring_signatures():
 def test_str_signature():
     for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
         assert enum_type.__str__.__doc__.startswith("__str__")
+
+
+def test_generated_dunder_methods_pos_only():
+    for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
+        for binary_op in [
+            "__eq__",
+            "__ne__",
+            "__ge__",
+            "__gt__",
+            "__lt__",
+            "__le__",
+            "__and__",
+            "__rand__",
+            # "__or__",  # fail with some compilers (__doc__ = "Return self|value.")
+            # "__ror__",  # fail with some compilers (__doc__ = "Return value|self.")
+            "__xor__",
+            "__rxor__",
+            "__rxor__",
+        ]:
+            method = getattr(enum_type, binary_op, None)
+            if method is not None:
+                assert (
+                    re.match(
+                        rf"^{binary_op}\(self: [\w\.]+, other: [\w\.]+, /\)",
+                        method.__doc__,
+                    )
+                    is not None
+                )
+        for unary_op in [
+            "__int__",
+            "__index__",
+            "__hash__",
+            "__str__",
+            "__repr__",
+        ]:
+            method = getattr(enum_type, unary_op, None)
+            if method is not None:
+                assert (
+                    re.match(
+                        rf"^{unary_op}\(self: [\w\.]+, /\)",
+                        method.__doc__,
+                    )
+                    is not None
+                )
+        assert (
+            re.match(
+                r"^__getstate__\(self: [\w\.]+, /\)",
+                enum_type.__getstate__.__doc__,
+            )
+            is not None
+        )
+        assert (
+            re.match(
+                r"^__setstate__\(self: [\w\.]+, state: [\w\.]+, /\)",
+                enum_type.__setstate__.__doc__,
+            )
+            is not None
+        )

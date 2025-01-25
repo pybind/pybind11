@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
 
@@ -46,6 +47,13 @@ def test_array(doc):
         doc(m.load_array)
         == "load_array(arg0: Annotated[list[int], FixedSize(2)]) -> bool"
     )
+
+
+def test_array_no_default_ctor():
+    lst = m.NoDefaultCtorArray(3)
+    assert [e.val for e in lst.arr] == [13, 23]
+    lst.arr = m.NoDefaultCtorArray(4).arr
+    assert [e.val for e in lst.arr] == [14, 24]
 
 
 def test_valarray(doc):
@@ -238,7 +246,7 @@ def test_reference_sensitive_optional():
 
 
 @pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
-def test_fs_path():
+def test_fs_path(doc):
     from pathlib import Path
 
     class PseudoStrPath:
@@ -249,11 +257,59 @@ def test_fs_path():
         def __fspath__(self):
             return b"foo/bar"
 
+    # Single argument
     assert m.parent_path(Path("foo/bar")) == Path("foo")
     assert m.parent_path("foo/bar") == Path("foo")
     assert m.parent_path(b"foo/bar") == Path("foo")
     assert m.parent_path(PseudoStrPath()) == Path("foo")
     assert m.parent_path(PseudoBytesPath()) == Path("foo")
+    assert (
+        doc(m.parent_path)
+        == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> Path"
+    )
+    # std::vector should use name (for arg_name/return_name typing classes must be used)
+    assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
+    assert (
+        doc(m.parent_paths)
+        == "parent_paths(arg0: list[os.PathLike]) -> list[os.PathLike]"
+    )
+    # py::typing::List
+    assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
+    assert (
+        doc(m.parent_paths_list)
+        == "parent_paths_list(arg0: list[Union[os.PathLike, str, bytes]]) -> list[Path]"
+    )
+    # Nested py::typing::List
+    assert m.parent_paths_nested_list([["foo/bar"], ["foo/baz", "foo/buzz"]]) == [
+        [Path("foo")],
+        [Path("foo"), Path("foo")],
+    ]
+    assert (
+        doc(m.parent_paths_nested_list)
+        == "parent_paths_nested_list(arg0: list[list[Union[os.PathLike, str, bytes]]]) -> list[list[Path]]"
+    )
+    # py::typing::Tuple
+    assert m.parent_paths_tuple(("foo/bar", "foo/baz")) == (Path("foo"), Path("foo"))
+    assert (
+        doc(m.parent_paths_tuple)
+        == "parent_paths_tuple(arg0: tuple[Union[os.PathLike, str, bytes], Union[os.PathLike, str, bytes]]) -> tuple[Path, Path]"
+    )
+    # py::typing::Dict
+    assert m.parent_paths_dict(
+        {
+            "key1": Path("foo/bar"),
+            "key2": "foo/baz",
+            "key3": b"foo/buzz",
+        }
+    ) == {
+        "key1": Path("foo"),
+        "key2": Path("foo"),
+        "key3": Path("foo"),
+    }
+    assert (
+        doc(m.parent_paths_dict)
+        == "parent_paths_dict(arg0: dict[str, Union[os.PathLike, str, bytes]]) -> dict[str, Path]"
+    )
 
 
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
@@ -355,6 +411,7 @@ def test_function_with_string_and_vector_string_arg():
     assert m.func_with_string_or_vector_string_arg_overload("A") == 3
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_stl_ownership():
     cstats = ConstructorStats.get(m.Placeholder)
     assert cstats.alive() == 0
@@ -381,3 +438,129 @@ def test_return_vector_bool_raw_ptr():
     v = m.return_vector_bool_raw_ptr()
     assert isinstance(v, list)
     assert len(v) == 4513
+
+
+@pytest.mark.parametrize(
+    ("fn", "offset"), [(m.pass_std_vector_int, 0), (m.pass_std_array_int_2, 1)]
+)
+def test_pass_std_vector_int(fn, offset):
+    assert fn([7, 13]) == 140 + offset
+    assert fn({6, 2}) == 116 + offset
+    assert fn({"x": 8, "y": 11}.values()) == 138 + offset
+    assert fn({3: None, 9: None}.keys()) == 124 + offset
+    assert fn(i for i in [4, 17]) == 142 + offset
+    assert fn(map(lambda i: i * 3, [8, 7])) == 190 + offset  # noqa: C417
+    with pytest.raises(TypeError):
+        fn({"x": 0, "y": 1})
+    with pytest.raises(TypeError):
+        fn({})
+
+
+def test_pass_std_vector_pair_int():
+    fn = m.pass_std_vector_pair_int
+    assert fn({1: 2, 3: 4}.items()) == 406
+    assert fn(zip([5, 17], [13, 9])) == 2222
+
+
+def test_list_caster_fully_consumes_generator_object():
+    def gen_invalid():
+        yield from [1, 2.0, 3]
+
+    gen_obj = gen_invalid()
+    with pytest.raises(TypeError):
+        m.pass_std_vector_int(gen_obj)
+    assert not tuple(gen_obj)
+
+
+def test_pass_std_set_int():
+    fn = m.pass_std_set_int
+    assert fn({3, 15}) == 254
+    assert fn({5: None, 12: None}.keys()) == 251
+    with pytest.raises(TypeError):
+        fn([])
+    with pytest.raises(TypeError):
+        fn({})
+    with pytest.raises(TypeError):
+        fn({}.values())
+    with pytest.raises(TypeError):
+        fn(i for i in [])
+
+
+def test_set_caster_dict_keys_failure():
+    dict_keys = {1: None, 2.0: None, 3: None}.keys()
+    # The asserts does not really exercise anything in pybind11, but if one of
+    # them fails in some future version of Python, the set_caster load
+    # implementation may need to be revisited.
+    assert tuple(dict_keys) == (1, 2.0, 3)
+    assert tuple(dict_keys) == (1, 2.0, 3)
+    with pytest.raises(TypeError):
+        m.pass_std_set_int(dict_keys)
+    assert tuple(dict_keys) == (1, 2.0, 3)
+
+
+class FakePyMappingMissingItems:
+    def __getitem__(self, _):
+        raise RuntimeError("Not expected to be called.")
+
+
+class FakePyMappingWithItems(FakePyMappingMissingItems):
+    def items(self):
+        return ((1, 3), (2, 4))
+
+
+class FakePyMappingBadItems(FakePyMappingMissingItems):
+    def items(self):
+        return ((1, 2), (3, "x"))
+
+
+class FakePyMappingItemsNotCallable(FakePyMappingMissingItems):
+    @property
+    def items(self):
+        return ((1, 2), (3, 4))
+
+
+class FakePyMappingItemsWithArg(FakePyMappingMissingItems):
+    def items(self, _):
+        return ((1, 2), (3, 4))
+
+
+class FakePyMappingGenObj(FakePyMappingMissingItems):
+    def __init__(self, gen_obj):
+        super().__init__()
+        self.gen_obj = gen_obj
+
+    def items(self):
+        yield from self.gen_obj
+
+
+def test_pass_std_map_int():
+    fn = m.pass_std_map_int
+    assert fn({1: 2, 3: 4}) == 4506
+    with pytest.raises(TypeError):
+        fn([])
+    assert fn(FakePyMappingWithItems()) == 3507
+    with pytest.raises(TypeError):
+        fn(FakePyMappingMissingItems())
+    with pytest.raises(TypeError):
+        fn(FakePyMappingBadItems())
+    with pytest.raises(TypeError):
+        fn(FakePyMappingItemsNotCallable())
+    with pytest.raises(TypeError):
+        fn(FakePyMappingItemsWithArg())
+
+
+@pytest.mark.parametrize(
+    ("items", "expected_exception"),
+    [
+        (((1, 2), (3, "x"), (4, 5)), TypeError),
+        (((1, 2), (3, 4, 5), (6, 7)), ValueError),
+    ],
+)
+def test_map_caster_fully_consumes_generator_object(items, expected_exception):
+    def gen_invalid():
+        yield from items
+
+    gen_obj = gen_invalid()
+    with pytest.raises(expected_exception):
+        m.pass_std_map_int(FakePyMappingGenObj(gen_obj))
+    assert not tuple(gen_obj)

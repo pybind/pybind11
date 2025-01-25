@@ -5,10 +5,6 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-if(CMAKE_VERSION VERSION_LESS 3.12)
-  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
-endif()
-
 include_guard(DIRECTORY)
 
 get_property(
@@ -56,7 +52,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   find_package(
-    Python 3.7 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+    Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
                                    ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
@@ -236,7 +232,6 @@ if(TARGET ${_Python}::Python)
     PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
 endif()
 
-# CMake 3.15+ has this
 if(TARGET ${_Python}::Module)
   set_property(
     TARGET pybind11::module
@@ -277,10 +272,6 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::module)
   else()
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
-  endif()
-
-  if(MSVC)
-    target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
   endif()
 
   # -fvisibility=hidden is required to allow multiple modules compiled against

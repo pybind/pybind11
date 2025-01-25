@@ -12,10 +12,11 @@
 #include "common.h"
 
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-#    include "../gil.h"
+#    include <pybind11/gil.h>
 #endif
 
-#include "../pytypes.h"
+#include <pybind11/conduit/pybind11_platform_abi_id.h>
+#include <pybind11/pytypes.h>
 
 #include <exception>
 #include <mutex>
@@ -39,7 +40,11 @@
 #    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
-#        define PYBIND11_INTERNALS_VERSION 5
+#        ifdef Py_GIL_DISABLED
+#            define PYBIND11_INTERNALS_VERSION 6
+#        else
+#            define PYBIND11_INTERNALS_VERSION 5
+#        endif
 #    else
 #        define PYBIND11_INTERNALS_VERSION 4
 #    endif
@@ -148,20 +153,36 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
+#ifdef Py_GIL_DISABLED
+// Wrapper around PyMutex to provide BasicLockable semantics
+class pymutex {
+    PyMutex mutex;
+
+public:
+    pymutex() : mutex({}) {}
+    void lock() { PyMutex_Lock(&mutex); }
+    void unlock() { PyMutex_Unlock(&mutex); }
+};
+
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct instance_map_shard {
-    std::mutex mutex;
     instance_map registered_instances;
+    pymutex mutex;
     // alignas(64) would be better, but causes compile errors in macOS before 10.14 (see #5200)
-    char padding[64 - (sizeof(std::mutex) + sizeof(instance_map)) % 64];
+    char padding[64 - (sizeof(instance_map) + sizeof(pymutex)) % 64];
 };
+
+static_assert(sizeof(instance_map_shard) % 64 == 0,
+              "instance_map_shard size is not a multiple of 64 bytes");
+#endif
 
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
 #ifdef Py_GIL_DISABLED
-    std::mutex mutex;
+    pymutex mutex;
+    pymutex exception_translator_mutex;
 #endif
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
@@ -249,72 +270,13 @@ struct type_info {
     bool module_local : 1;
 };
 
-/// On MSVC, debug and release builds are not ABI-compatible!
-#if defined(_MSC_VER) && defined(_DEBUG)
-#    define PYBIND11_BUILD_TYPE "_debug"
-#else
-#    define PYBIND11_BUILD_TYPE ""
-#endif
-
-/// Let's assume that different compilers are ABI-incompatible.
-/// A user can manually set this string if they know their
-/// compiler is compatible.
-#ifndef PYBIND11_COMPILER_TYPE
-#    if defined(_MSC_VER)
-#        define PYBIND11_COMPILER_TYPE "_msvc"
-#    elif defined(__INTEL_COMPILER)
-#        define PYBIND11_COMPILER_TYPE "_icc"
-#    elif defined(__clang__)
-#        define PYBIND11_COMPILER_TYPE "_clang"
-#    elif defined(__PGI)
-#        define PYBIND11_COMPILER_TYPE "_pgi"
-#    elif defined(__MINGW32__)
-#        define PYBIND11_COMPILER_TYPE "_mingw"
-#    elif defined(__CYGWIN__)
-#        define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#    elif defined(__GNUC__)
-#        define PYBIND11_COMPILER_TYPE "_gcc"
-#    else
-#        define PYBIND11_COMPILER_TYPE "_unknown"
-#    endif
-#endif
-
-/// Also standard libs
-#ifndef PYBIND11_STDLIB
-#    if defined(_LIBCPP_VERSION)
-#        define PYBIND11_STDLIB "_libcpp"
-#    elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#        define PYBIND11_STDLIB "_libstdcpp"
-#    else
-#        define PYBIND11_STDLIB ""
-#    endif
-#endif
-
-/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-/// On MSVC, changes in _MSC_VER may indicate ABI incompatibility (#2898).
-#ifndef PYBIND11_BUILD_ABI
-#    if defined(__GXX_ABI_VERSION)
-#        define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#    elif defined(_MSC_VER)
-#        define PYBIND11_BUILD_ABI "_mscver" PYBIND11_TOSTRING(_MSC_VER)
-#    else
-#        define PYBIND11_BUILD_ABI ""
-#    endif
-#endif
-
-#ifndef PYBIND11_INTERNALS_KIND
-#    define PYBIND11_INTERNALS_KIND ""
-#endif
-
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
-            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+        PYBIND11_PLATFORM_ABI_ID "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB                            \
-            PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+        PYBIND11_PLATFORM_ABI_ID "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -432,7 +394,7 @@ inline void translate_local_exception(std::exception_ptr p) {
 
 inline object get_python_state_dict() {
     object state_dict;
-#if PYBIND11_INTERNALS_VERSION <= 4 || PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+#if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
 #    if PY_VERSION_HEX < 0x03090000
@@ -538,7 +500,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
 #endif
         internals_ptr->istate = tstate->interp;
-        state_dict[PYBIND11_INTERNALS_ID] = capsule(internals_pp);
+        state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
@@ -614,7 +576,7 @@ inline local_internals &get_local_internals() {
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<std::mutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
@@ -624,6 +586,19 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     auto &internals = get_internals();
     PYBIND11_LOCK_INTERNALS(internals);
     return cb(internals);
+}
+
+template <typename F>
+inline auto with_exception_translators(const F &cb)
+    -> decltype(cb(get_internals().registered_exception_translators,
+                   get_local_internals().registered_exception_translators)) {
+    auto &internals = get_internals();
+#ifdef Py_GIL_DISABLED
+    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+#endif
+    auto &local_internals = get_local_internals();
+    return cb(internals.registered_exception_translators,
+              local_internals.registered_exception_translators);
 }
 
 inline std::uint64_t mix64(std::uint64_t z) {
@@ -636,8 +611,8 @@ inline std::uint64_t mix64(std::uint64_t z) {
 }
 
 template <typename F>
-inline auto with_instance_map(const void *ptr,
-                              const F &cb) -> decltype(cb(std::declval<instance_map &>())) {
+inline auto with_instance_map(const void *ptr, const F &cb)
+    -> decltype(cb(std::declval<instance_map &>())) {
     auto &internals = get_internals();
 
 #ifdef Py_GIL_DISABLED
@@ -651,7 +626,7 @@ inline auto with_instance_map(const void *ptr,
     auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
 
     auto &shard = internals.instance_shards[idx];
-    std::unique_lock<std::mutex> lock(shard.mutex);
+    std::unique_lock<pymutex> lock(shard.mutex);
     return cb(shard.registered_instances);
 #else
     (void) ptr;
@@ -667,7 +642,7 @@ inline size_t num_registered_instances() {
     size_t count = 0;
     for (size_t i = 0; i <= internals.instance_shards_mask; ++i) {
         auto &shard = internals.instance_shards[i];
-        std::unique_lock<std::mutex> lock(shard.mutex);
+        std::unique_lock<pymutex> lock(shard.mutex);
         count += shard.registered_instances.size();
     }
     return count;
@@ -692,7 +667,8 @@ const char *c_str(Args &&...args) {
 }
 
 inline const char *get_function_record_capsule_name() {
-#if PYBIND11_INTERNALS_VERSION > 4
+    // On GraalPy, pointer equality of the names is currently not guaranteed
+#if PYBIND11_INTERNALS_VERSION > 4 && !defined(GRAALVM_PYTHON)
     return get_internals().function_record_capsule_name.c_str();
 #else
     return nullptr;

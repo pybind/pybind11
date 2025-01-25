@@ -15,6 +15,146 @@ IN DEVELOPMENT
 
 Changes will be summarized here periodically.
 
+New Features:
+
+* Support for Python 3.7 was removed. (Official end-of-life: 2023-06-27).
+  `#5191 <https://github.com/pybind/pybind11/pull/5191>`_
+
+* stl.h ``list|set|map_caster`` were made more user friendly: it is no longer
+  necessary to explicitly convert Python iterables to ``tuple()``, ``set()``,
+  or ``map()`` in many common situations.
+  `#4686 <https://github.com/pybind/pybind11/pull/4686>`_
+
+* Support for CMake older than 3.15 removed. CMake 3.15-3.30 supported.
+  `#5304 <https://github.com/pybind/pybind11/pull/5304>`_
+
+* The ``array_caster`` in pybind11/stl.h was enhanced to support value types that are not default-constructible.
+  `#5305 <https://github.com/pybind/pybind11/pull/5305>`_
+
+* Added ``py::warnings`` namespace with ``py::warnings::warn`` and ``py::warnings::new_warning_type`` that provides the interface for Python warnings.
+  `#5291 <https://github.com/pybind/pybind11/pull/5291>`_
+
+Version 2.13.6 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
+  ``py::class_``-wrapped types, to enable type-safe interoperability between
+  different independent Python/C++ bindings systems, including pybind11
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
+
+
+Bug fixes:
+
+* Using ``__cpp_nontype_template_args`` instead of ``__cpp_nontype_template_parameter_class``.
+  `#5330 <https://github.com/pybind/pybind11/pull/5330>`_
+
+* Properly translate C++ exception to Python exception when creating Python buffer from wrapped object.
+  `#5324 <https://github.com/pybind/pybind11/pull/5324>`_
+
+
+Documentation:
+
+* Adds an answer (FAQ) for "What is a highly conclusive and simple way to find memory leaks?".
+  `#5340 <https://github.com/pybind/pybind11/pull/5340>`_
+
+
+Version 2.13.5 (August 22, 2024)
+--------------------------------
+
+Bug fixes:
+
+* Fix includes when using Windows long paths (``\\?\`` prefix).
+  `#5321 <https://github.com/pybind/pybind11/pull/5321>`_
+
+* Support ``-Wpedantic`` in C++20 mode.
+  `#5322 <https://github.com/pybind/pybind11/pull/5322>`_
+
+* Fix and test ``<ranges>`` support for ``py::tuple`` and ``py::list``.
+  `#5314 <https://github.com/pybind/pybind11/pull/5314>`_
+
+Version 2.13.4 (August 14, 2024)
+--------------------------------
+
+Bug fixes:
+
+* Fix paths with spaces, including on Windows.
+  (Replaces regression from `#5302 <https://github.com/pybind/pybind11/pull/5302>`_)
+  `#4874 <https://github.com/pybind/pybind11/pull/4874>`_
+
+Documentation:
+
+* Remove repetitive words.
+  `#5308 <https://github.com/pybind/pybind11/pull/5308>`_
+
+
+Version 2.13.3 (August 13, 2024)
+--------------------------------
+
+Bug fixes:
+
+* Quote paths from pybind11-config
+  `#5302 <https://github.com/pybind/pybind11/pull/5302>`_
+
+
+* Fix typo in Emscripten support when in config mode (CMake)
+  `#5301 <https://github.com/pybind/pybind11/pull/5301>`_
+
+
+Version 2.13.2 (August 13, 2024)
+--------------------------------
+
+New Features:
+
+* A ``pybind11::detail::type_caster_std_function_specializations`` feature was added, to support specializations for
+  ``std::function``'s with return types that require custom to-Python conversion behavior (to primary use case is to catch and
+  convert exceptions).
+  `#4597 <https://github.com/pybind/pybind11/pull/4597>`_
+
+
+Changes:
+
+
+* Use ``PyMutex`` instead of ``std::mutex`` for internal locking in the free-threaded build.
+  `#5219 <https://github.com/pybind/pybind11/pull/5219>`_
+
+* Add a special type annotation for C++ empty tuple.
+  `#5214 <https://github.com/pybind/pybind11/pull/5214>`_
+
+* When compiling for WebAssembly, add the required exception flags (CMake 3.13+).
+  `#5298 <https://github.com/pybind/pybind11/pull/5298>`_
+
+Bug fixes:
+
+* Make ``gil_safe_call_once_and_store`` thread-safe in free-threaded CPython.
+  `#5246 <https://github.com/pybind/pybind11/pull/5246>`_
+
+* A missing ``#include <algorithm>`` in pybind11/typing.h was added to fix build errors (in case user code does not already depend
+  on that include).
+  `#5208 <https://github.com/pybind/pybind11/pull/5208>`_
+
+* Fix regression introduced in #5201 for GCC<10.3 in C++20 mode.
+  `#5205 <https://github.com/pybind/pybind11/pull/5205>`_
+
+
+.. fix(cmake)
+
+* Remove extra = when assigning flto value in the case for Clang in CMake.
+  `#5207 <https://github.com/pybind/pybind11/pull/5207>`_
+
+
+Tests:
+
+* Adding WASM testing to our CI (Pyodide / Emscripten via scikit-build-core).
+  `#4745 <https://github.com/pybind/pybind11/pull/4745>`_
+
+* clang-tidy (in GitHub Actions) was updated from clang 15 to clang 18.
+  `#5272 <https://github.com/pybind/pybind11/pull/5272>`_
+
+
 Version 2.13.1 (June 26, 2024)
 ------------------------------
 
@@ -128,6 +268,18 @@ Other:
 
 * Update docs and noxfile.
   `#5071 <https://github.com/pybind/pybind11/pull/5071>`_
+
+Version 2.12.1 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
+  ``py::class_``-wrapped types, to enable type-safe interoperability between
+  different independent Python/C++ bindings systems, including pybind11
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
 
 
 Version 2.12.0 (March 27, 2024)
@@ -303,6 +455,18 @@ Other:
 
 * An ``assert()`` was added to help Coverty avoid generating a false positive.
   `#4817 <https://github.com/pybind/pybind11/pull/4817>`_
+
+Version 2.11.2 (September 13, 2024)
+-----------------------------------
+
+New Features:
+
+* A new ``self._pybind11_conduit_v1_()`` method is automatically added to all
+  ``py::class_``-wrapped types, to enable type-safe interoperability between
+  different independent Python/C++ bindings systems, including pybind11
+  versions with different ``PYBIND11_INTERNALS_VERSION``'s. Supported on
+  pybind11 2.11.2, 2.12.1, and 2.13.6+.
+  `#5296 <https://github.com/pybind/pybind11/pull/5296>`_
 
 
 Version 2.11.1 (July 17, 2023)

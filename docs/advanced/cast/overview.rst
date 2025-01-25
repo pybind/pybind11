@@ -151,7 +151,7 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-----------------------------------+
 | ``std::variant<...>``              | Type-safe union (C++17)   | :file:`pybind11/stl.h`            |
 +------------------------------------+---------------------------+-----------------------------------+
-| ``std::filesystem::path<T>``       | STL path (C++17) [#]_     | :file:`pybind11/stl/filesystem.h` |
+| ``std::filesystem::path``          | STL path (C++17) [#]_     | :file:`pybind11/stl/filesystem.h` |
 +------------------------------------+---------------------------+-----------------------------------+
 | ``std::function<...>``             | STL polymorphic function  | :file:`pybind11/functional.h`     |
 +------------------------------------+---------------------------+-----------------------------------+
@@ -167,4 +167,4 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-----------------------------------+
 
 .. [#] ``std::filesystem::path`` is converted to ``pathlib.Path`` and
-   ``os.PathLike`` is converted to ``std::filesystem::path``.
+   can be loaded from ``os.PathLike``, ``str``, and ``bytes``.

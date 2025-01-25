@@ -9,8 +9,10 @@
 
 #pragma once
 
-#include "../attr.h"
-#include "../options.h"
+#include <pybind11/attr.h>
+#include <pybind11/options.h>
+
+#include "exception_translation.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -466,19 +468,9 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
 
     type->tp_free(self);
 
-#if PY_VERSION_HEX < 0x03080000
-    // `type->tp_dealloc != pybind11_object_dealloc` means that we're being called
-    // as part of a derived type's dealloc, in which case we're not allowed to decref
-    // the type here. For cross-module compatibility, we shouldn't compare directly
-    // with `pybind11_object_dealloc`, but with the common one stashed in internals.
-    auto pybind11_object_type = (PyTypeObject *) get_internals().instance_base;
-    if (type->tp_dealloc == pybind11_object_type->tp_dealloc)
-        Py_DECREF(type);
-#else
     // This was not needed before Python 3.8 (Python issue 35810)
     // https://github.com/pybind/pybind11/issues/1946
     Py_DECREF(type);
-#endif
 }
 
 std::string error_string();
@@ -591,31 +583,85 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         return -1;
     }
     std::memset(view, 0, sizeof(Py_buffer));
-    buffer_info *info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
+    std::unique_ptr<buffer_info> info = nullptr;
+    try {
+        info.reset(tinfo->get_buffer(obj, tinfo->get_buffer_data));
+    } catch (...) {
+        try_translate_exceptions();
+        raise_from(PyExc_BufferError, "Error getting buffer");
+        return -1;
+    }
+    if (info == nullptr) {
+        pybind11_fail("FATAL UNEXPECTED SITUATION: tinfo->get_buffer() returned nullptr.");
+    }
+
     if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
-        delete info;
         // view->obj = nullptr;  // Was just memset to 0, so not necessary
         set_error(PyExc_BufferError, "Writable buffer requested for readonly storage");
         return -1;
     }
-    view->obj = obj;
-    view->ndim = 1;
-    view->internal = info;
-    view->buf = info->ptr;
+
+    // Fill in all the information, and then downgrade as requested by the caller, or raise an
+    // error if that's not possible.
     view->itemsize = info->itemsize;
     view->len = view->itemsize;
     for (auto s : info->shape) {
         view->len *= s;
     }
+    view->ndim = static_cast<int>(info->ndim);
+    view->shape = info->shape.data();
+    view->strides = info->strides.data();
     view->readonly = static_cast<int>(info->readonly);
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT) {
         view->format = const_cast<char *>(info->format.c_str());
     }
-    if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-        view->ndim = (int) info->ndim;
-        view->strides = info->strides.data();
-        view->shape = info->shape.data();
+
+    // Note, all contiguity flags imply PyBUF_STRIDES and lower.
+    if ((flags & PyBUF_C_CONTIGUOUS) == PyBUF_C_CONTIGUOUS) {
+        if (PyBuffer_IsContiguous(view, 'C') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            set_error(PyExc_BufferError,
+                      "C-contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+    } else if ((flags & PyBUF_F_CONTIGUOUS) == PyBUF_F_CONTIGUOUS) {
+        if (PyBuffer_IsContiguous(view, 'F') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            set_error(PyExc_BufferError,
+                      "Fortran-contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+    } else if ((flags & PyBUF_ANY_CONTIGUOUS) == PyBUF_ANY_CONTIGUOUS) {
+        if (PyBuffer_IsContiguous(view, 'A') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            set_error(PyExc_BufferError, "Contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+
+    } else if ((flags & PyBUF_STRIDES) != PyBUF_STRIDES) {
+        // If no strides are requested, the buffer must be C-contiguous.
+        // https://docs.python.org/3/c-api/buffer.html#contiguity-requests
+        if (PyBuffer_IsContiguous(view, 'C') == 0) {
+            std::memset(view, 0, sizeof(Py_buffer));
+            set_error(PyExc_BufferError,
+                      "C-contiguous buffer requested for discontiguous storage");
+            return -1;
+        }
+
+        view->strides = nullptr;
+
+        // Since this is a contiguous buffer, it can also pretend to be 1D.
+        if ((flags & PyBUF_ND) != PyBUF_ND) {
+            view->shape = nullptr;
+            view->ndim = 0;
+        }
     }
+
+    // Set these after all checks so they don't leak out into the caller, and can be automatically
+    // cleaned up on error.
+    view->buf = info->ptr;
+    view->internal = info.release();
+    view->obj = obj;
     Py_INCREF(view->obj);
     return 0;
 }

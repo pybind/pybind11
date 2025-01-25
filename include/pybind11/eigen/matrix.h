@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include "../numpy.h"
+#include <pybind11/numpy.h>
+
 #include "common.h"
 
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.

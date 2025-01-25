@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 asyncio = pytest.importorskip("asyncio")
 m = pytest.importorskip("pybind11_tests.async_module")
 
+if sys.platform.startswith("emscripten"):
+    pytest.skip("Can't run a new event_loop in pyodide", allow_module_level=True)
 
-@pytest.fixture()
+
+@pytest.fixture
 def event_loop():
     loop = asyncio.new_event_loop()
     yield loop

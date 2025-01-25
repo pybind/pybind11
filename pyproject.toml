@@ -30,7 +30,7 @@ ignore_missing_imports = true
 
 
 [tool.pylint]
-master.py-version = "3.7"
+master.py-version = "3.8"
 reports.output-format = "colorized"
 messages_control.disable = [
   "design",
@@ -45,7 +45,7 @@ messages_control.disable = [
 ]
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"
 src = ["src"]
 
 [tool.ruff.lint]
@@ -71,7 +71,6 @@ ignore = [
   "PLR",    # Design related pylint
   "E501",   # Line too long (Black is enough)
   "PT011",  # Too broad with raises in pytest
-  "PT004",  # Fixture that doesn't return needs underscore (no, it is fine)
   "SIM118", # iter(x) is not always the same as iter(x.keys())
 ]
 unfixable = ["T20"]

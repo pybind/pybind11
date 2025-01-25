@@ -28,8 +28,8 @@ except Exception:
 
 @pytest.fixture(scope="session", autouse=True)
 def use_multiprocessing_forkserver_on_linux():
-    if sys.platform != "linux":
-        # The default on Windows and macOS is "spawn": If it's not broken, don't fix it.
+    if sys.platform != "linux" or sys.implementation.name == "graalpy":
+        # The default on Windows, macOS and GraalPy is "spawn": If it's not broken, don't fix it.
         return
 
     # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
@@ -136,7 +136,7 @@ class Capture:
         return Output(self.err)
 
 
-@pytest.fixture()
+@pytest.fixture
 def capture(capsys):
     """Extended `capsys` with context manager and custom equality operators"""
     return Capture(capsys)
@@ -172,7 +172,7 @@ def _sanitize_docstring(thing):
     return _sanitize_general(s)
 
 
-@pytest.fixture()
+@pytest.fixture
 def doc():
     """Sanitize docstrings and add custom failure explanation"""
     return SanitizedString(_sanitize_docstring)
@@ -184,7 +184,7 @@ def _sanitize_message(thing):
     return _hexadecimal.sub("0", s)
 
 
-@pytest.fixture()
+@pytest.fixture
 def msg():
     """Sanitize messages and add custom failure explanation"""
     return SanitizedString(_sanitize_message)
@@ -198,8 +198,9 @@ def pytest_assertrepr_compare(op, left, right):  # noqa: ARG001
 
 
 def gc_collect():
-    """Run the garbage collector twice (needed when running
+    """Run the garbage collector three times (needed when running
     reference counting tests with PyPy)"""
+    gc.collect()
     gc.collect()
     gc.collect()
 

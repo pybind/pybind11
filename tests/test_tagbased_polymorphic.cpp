@@ -74,6 +74,7 @@ std::vector<std::unique_ptr<Animal>> create_zoo() {
     // simulate some new type of Dog that the Python bindings
     // haven't been updated for; it should still be considered
     // a Dog, not just an Animal.
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     ret.emplace_back(new Dog("Ginger", Dog::Kind(150)));
 
     ret.emplace_back(new Chihuahua("Hertzl"));
@@ -144,4 +145,4 @@ TEST_SUBMODULE(tagbased_polymorphic, m) {
         .def(py::init<std::string>())
         .def("purr", &Panther::purr);
     m.def("create_zoo", &create_zoo);
-};
+}

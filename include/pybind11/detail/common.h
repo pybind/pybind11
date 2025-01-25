@@ -9,6 +9,11 @@
 
 #pragma once
 
+#include <pybind11/conduit/wrap_include_python_h.h>
+#if PY_VERSION_HEX < 0x03080000
+#    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
+#endif
+
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 14
 #define PYBIND11_VERSION_PATCH 0.dev1
@@ -41,7 +46,7 @@
 #    define PYBIND11_COMPILER_CLANG
 #    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(clang diagnostic push)
-#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(clang diagnostic push)
+#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(clang diagnostic pop)
 #elif defined(__GNUC__)
 #    define PYBIND11_COMPILER_GCC
 #    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
@@ -164,14 +169,6 @@
 #    endif
 #endif
 
-#if !defined(PYBIND11_EXPORT_EXCEPTION)
-#    if defined(__apple_build_version__)
-#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
-#    else
-#        define PYBIND11_EXPORT_EXCEPTION
-#    endif
-#endif
-
 // For CUDA, GCC7, GCC8:
 // PYBIND11_NOINLINE_FORCED is incompatible with `-Wattributes -Werror`.
 // When defining PYBIND11_NOINLINE_FORCED, it is best to also use `-Wno-attributes`.
@@ -212,31 +209,6 @@
 #    define PYBIND11_MAYBE_UNUSED __attribute__((__unused__))
 #endif
 
-/* Don't let Python.h #define (v)snprintf as macro because they are implemented
-   properly in Visual Studio since 2015. */
-#if defined(_MSC_VER)
-#    define HAVE_SNPRINTF 1
-#endif
-
-/// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
-#if defined(_MSC_VER)
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_MSVC(4505)
-// C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#    if defined(_DEBUG) && !defined(Py_DEBUG)
-// Workaround for a VS 2022 issue.
-// NOTE: This workaround knowingly violates the Python.h include order requirement:
-// https://docs.python.org/3/c-api/intro.html#include-files
-// See https://github.com/pybind/pybind11/pull/3497 for full context.
-#        include <yvals.h>
-#        if _MSVC_STL_VERSION >= 143
-#            include <crtdefs.h>
-#        endif
-#        define PYBIND11_DEBUG_MARKER
-#        undef _DEBUG
-#    endif
-#endif
-
 // https://en.cppreference.com/w/c/chrono/localtime
 #if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
 #    define __STDC_WANT_LIB_EXT1__
@@ -271,44 +243,12 @@ PYBIND11_WARNING_DISABLE_MSVC(4505)
 #    endif
 #endif
 
-#include <Python.h>
-#if PY_VERSION_HEX < 0x03070000
-#    error "PYTHON < 3.7 IS UNSUPPORTED. pybind11 v2.12 was the last to support Python 3.6."
-#endif
-#include <frameobject.h>
-#include <pythread.h>
-
-/* Python #defines overrides on all sorts of core functions, which
-   tends to weak havok in C++ codebases that expect these to work
-   like regular functions (potentially with several overloads) */
-#if defined(isalnum)
-#    undef isalnum
-#    undef isalpha
-#    undef islower
-#    undef isspace
-#    undef isupper
-#    undef tolower
-#    undef toupper
-#endif
-
-#if defined(copysign)
-#    undef copysign
-#endif
-
 #if defined(PYBIND11_NUMPY_1_ONLY)
 #    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
 #endif
 
-#if defined(PYPY_VERSION) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
-#endif
-
-#if defined(_MSC_VER)
-#    if defined(PYBIND11_DEBUG_MARKER)
-#        define _DEBUG
-#        undef PYBIND11_DEBUG_MARKER
-#    endif
-PYBIND11_WARNING_POP
 #endif
 
 #include <cstddef>
@@ -326,6 +266,17 @@ PYBIND11_WARNING_POP
 #if defined(__has_include)
 #    if __has_include(<version>)
 #        include <version>
+#    endif
+#endif
+
+// For libc++, the exceptions should be exported,
+// otherwise, the exception translation would be incorrect.
+// IMPORTANT: This code block must stay BELOW the #include <exception> above (see PR #5390).
+#if !defined(PYBIND11_EXPORT_EXCEPTION)
+#    if defined(_LIBCPP_EXCEPTION)
+#        define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
+#    else
+#        define PYBIND11_EXPORT_EXCEPTION
 #    endif
 #endif
 
@@ -386,6 +337,20 @@ PYBIND11_WARNING_POP
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
+
+#if !defined(GRAALVM_PYTHON)
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            (func)->m_ml->ml_doc = (doc);                                                         \
+        } while (0)
+#else
+#    define PYBIND11_PYCFUNCTION_GET_DOC(func) (GraalPyCFunction_GetDoc((PyObject *) (func)))
+#    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
+        do {                                                                                      \
+            GraalPyCFunction_SetDoc((PyObject *) (func), (doc));                                  \
+        } while (0)
+#endif
 
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
     {                                                                                             \
@@ -462,7 +427,25 @@ PYBIND11_WARNING_POP
                 return "Hello, World!";
             });
         }
+
+    The third macro argument is optional (available since 2.13.0), and can be used to
+    mark the extension module as safe to run without the GIL under a free-threaded CPython
+    interpreter. Passing this argument has no effect on other interpreters.
+
+    .. code-block:: cpp
+
+        PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
+            m.doc() = "pybind11 example module safe to run without the GIL";
+
+            // Add bindings here
+            m.def("foo", []() {
+                return "Hello, Free-threaded World!";
+            });
+        }
+
 \endrst */
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
@@ -483,6 +466,7 @@ PYBIND11_WARNING_POP
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -538,7 +522,7 @@ enum class return_value_policy : uint8_t {
         object without taking ownership similar to the above
         return_value_policy::reference policy. In contrast to that policy, the
         function or property's implicit this argument (called the parent) is
-        considered to be the the owner of the return value (the child).
+        considered to be the owner of the return value (the child).
         pybind11 then couples the lifetime of the parent to the child via a
         reference relationship that ensures that the parent cannot be garbage
         collected while Python is still using the child. More advanced
@@ -1109,14 +1093,14 @@ struct overload_cast_impl {
     }
 
     template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...),
-                              std::false_type = {}) const noexcept -> decltype(pmf) {
+    constexpr auto operator()(Return (Class::*pmf)(Args...), std::false_type = {}) const noexcept
+        -> decltype(pmf) {
         return pmf;
     }
 
     template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const,
-                              std::true_type) const noexcept -> decltype(pmf) {
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const, std::true_type) const noexcept
+        -> decltype(pmf) {
         return pmf;
     }
 };

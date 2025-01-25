@@ -34,6 +34,39 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// Type trait checker for `descr`
+template <typename>
+struct is_descr : std::false_type {};
+
+template <size_t N, typename... Ts>
+struct is_descr<descr<N, Ts...>> : std::true_type {};
+
+template <size_t N, typename... Ts>
+struct is_descr<const descr<N, Ts...>> : std::true_type {};
+
+// Use arg_name instead of name when available
+template <typename T, typename SFINAE = void>
+struct as_arg_type {
+    static constexpr auto name = T::name;
+};
+
+template <typename T>
+struct as_arg_type<T, typename std::enable_if<is_descr<decltype(T::arg_name)>::value>::type> {
+    static constexpr auto name = T::arg_name;
+};
+
+// Use return_name instead of name when available
+template <typename T, typename SFINAE = void>
+struct as_return_type {
+    static constexpr auto name = T::name;
+};
+
+template <typename T>
+struct as_return_type<T,
+                      typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
+    static constexpr auto name = T::return_name;
+};
+
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -158,7 +191,7 @@ public:
         } else {
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
-#if PY_VERSION_HEX < 0x03080000 || defined(PYPY_VERSION)
+#if defined(PYPY_VERSION)
             object index;
             if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: index_check(src.ptr())
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
@@ -343,7 +376,7 @@ public:
 #else
             // Alternate approach for CPython: this does the same as the above, but optimized
             // using the CPython API so as to avoid an unneeded attribute lookup.
-            else if (auto *tp_as_number = src.ptr()->ob_type->tp_as_number) {
+            else if (auto *tp_as_number = Py_TYPE(src.ptr())->tp_as_number) {
                 if (PYBIND11_NB_BOOL(tp_as_number)) {
                     res = (*PYBIND11_NB_BOOL(tp_as_number))(src.ptr());
                 }
@@ -740,6 +773,13 @@ class type_caster<std::pair<T1, T2>> : public tuple_caster<std::pair, T1, T2> {}
 template <typename... Ts>
 class type_caster<std::tuple<Ts...>> : public tuple_caster<std::tuple, Ts...> {};
 
+template <>
+class type_caster<std::tuple<>> : public tuple_caster<std::tuple> {
+public:
+    // PEP 484 specifies this syntax for an empty tuple
+    static constexpr auto name = const_name("tuple[()]");
+};
+
 /// Helper class which abstracts away certain actions. Users can provide specializations for
 /// custom holders, but it's only necessary if the type has a non-standard interface.
 template <typename T>
@@ -787,11 +827,11 @@ protected:
         }
     }
 
-    bool load_value(value_and_holder &&v_h) {
+    void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             holder = v_h.template holder<holder_type>();
-            return true;
+            return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -856,18 +896,20 @@ using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::val
                                          copyable_holder_caster<type, holder_type>,
                                          move_only_holder_caster<type, holder_type>>;
 
-template <typename T, bool Value = false>
-struct always_construct_holder {
+template <bool Value = false>
+struct always_construct_holder_value {
     static constexpr bool value = Value;
 };
+
+template <typename T, bool Value = false>
+struct always_construct_holder : always_construct_holder_value<Value> {};
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
     PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <typename type>                                                                      \
-    struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__> {  \
-    };                                                                                            \
+    struct always_construct_holder<holder_type> : always_construct_holder_value<__VA_ARGS__> {};  \
     template <typename type>                                                                      \
     class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>>               \
         : public type_caster_holder<type, holder_type> {};                                        \
@@ -1005,9 +1047,17 @@ template <>
 struct handle_type_name<args> {
     static constexpr auto name = const_name("*args");
 };
+template <typename T>
+struct handle_type_name<Args<T>> {
+    static constexpr auto name = const_name("*args: ") + make_caster<T>::name;
+};
 template <>
 struct handle_type_name<kwargs> {
     static constexpr auto name = const_name("**kwargs");
+};
+template <typename T>
+struct handle_type_name<KWArgs<T>> {
+    static constexpr auto name = const_name("**kwargs: ") + make_caster<T>::name;
 };
 template <>
 struct handle_type_name<obj_attr_accessor> {
@@ -1063,6 +1113,8 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    static constexpr auto arg_name = as_arg_type<handle_type_name<type>>::name;
+    static constexpr auto return_name = as_return_type<handle_type_name<type>>::name;
 };
 
 template <typename T>
@@ -1496,7 +1548,7 @@ struct kw_only {};
 
 /// \ingroup annotations
 /// Annotation indicating that all previous arguments are positional-only; the is the equivalent of
-/// an unnamed '/' argument (in Python 3.8)
+/// an unnamed '/' argument
 struct pos_only {};
 
 template <typename T>
@@ -1557,15 +1609,24 @@ struct function_call {
     handle init_self;
 };
 
+// See PR #5396 for the discussion that led to this
+template <typename Base, typename Derived, typename = void>
+struct is_same_or_base_of : std::is_same<Base, Derived> {};
+
+// Only evaluate is_base_of if Derived is complete.
+// is_base_of raises a compiler error if Derived is incomplete.
+template <typename Base, typename Derived>
+struct is_same_or_base_of<Base, Derived, decltype(void(sizeof(Derived)))>
+    : any_of<std::is_same<Base, Derived>, std::is_base_of<Base, Derived>> {};
+
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
-
     template <typename Arg>
-    using argument_is_args = std::is_same<intrinsic_t<Arg>, args>;
+    using argument_is_args = is_same_or_base_of<args, intrinsic_t<Arg>>;
     template <typename Arg>
-    using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
+    using argument_is_kwargs = is_same_or_base_of<kwargs, intrinsic_t<Arg>>;
     // Get kwargs argument position, or -1 if not present:
     static constexpr auto kwargs_pos = constexpr_last<argument_is_kwargs, Args...>();
 
@@ -1582,7 +1643,7 @@ public:
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names
-        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
+        = ::pybind11::detail::concat(type_descr(as_arg_type<make_caster<Args>>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 

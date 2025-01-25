@@ -7,11 +7,20 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/stl.h>
 #include <pybind11/typing.h>
 
 #include "pybind11_tests.h"
 
 #include <utility>
+
+//__has_include has been part of C++17, no need to check it
+#if defined(PYBIND11_CPP20) && __has_include(<ranges>)
+#    if !defined(PYBIND11_COMPILER_CLANG) || __clang_major__ >= 16 // llvm/llvm-project#52696
+#        define PYBIND11_TEST_PYTYPES_HAS_RANGES
+#        include <ranges>
+#    endif
+#endif
 
 namespace external {
 namespace detail {
@@ -129,6 +138,44 @@ typedef py::typing::TypeVar<"V"> TypeVarV;
 } // namespace typevar
 #endif
 
+// Custom type for testing arg_name/return_name type hints
+// RealNumber:
+// * in arguments -> float | int
+// * in return -> float
+// * fallback -> complex
+// The choice of types is not really useful, but just made different for testing purposes.
+// According to `PEP 484 – Type Hints` annotating with `float` also allows `int`,
+// so using `float | int` could be replaced by just `float`.
+
+struct RealNumber {
+    double value;
+};
+
+namespace pybind11 {
+namespace detail {
+
+template <>
+struct type_caster<RealNumber> {
+    PYBIND11_TYPE_CASTER(RealNumber, const_name("complex"));
+    static constexpr auto arg_name = const_name("Union[float, int]");
+    static constexpr auto return_name = const_name("float");
+
+    static handle cast(const RealNumber &number, return_value_policy, handle) {
+        return py::float_(number.value).release();
+    }
+
+    bool load(handle src, bool) {
+        if (!py::isinstance<py::float_>(src) && !py::isinstance<py::int_>(src)) {
+            return false;
+        }
+        value.value = src.cast<double>();
+        return true;
+    }
+};
+
+} // namespace detail
+} // namespace pybind11
+
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -142,6 +189,18 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
     m.def("get_iterable", [] { return py::iterable(); });
+    m.def("get_first_item_from_iterable", [](const py::iterable &iter) {
+        // This tests the postfix increment operator
+        py::iterator it = iter.begin();
+        py::iterator it2 = it++;
+        return *it2;
+    });
+    m.def("get_second_item_from_iterable", [](const py::iterable &iter) {
+        // This tests the prefix increment operator
+        py::iterator it = iter.begin();
+        ++it;
+        return *it;
+    });
     m.def("get_frozenset_from_iterable",
           [](const py::iterable &iter) { return py::frozenset(iter); });
     m.def("get_list_from_iterable", [](const py::iterable &iter) { return py::list(iter); });
@@ -923,4 +982,149 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
 #endif
+
+#if defined(PYBIND11_TEST_PYTYPES_HAS_RANGES)
+
+    // test_tuple_ranges
+    m.def("tuple_iterator_default_initialization", []() {
+        using TupleIterator = decltype(std::declval<py::tuple>().begin());
+        static_assert(std::random_access_iterator<TupleIterator>);
+        return TupleIterator{} == TupleIterator{};
+    });
+
+    m.def("transform_tuple_plus_one", [](py::tuple &tpl) {
+        py::list ret{};
+        for (auto it : tpl | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
+            ret.append(py::int_(it));
+        }
+        return ret;
+    });
+
+    // test_list_ranges
+    m.def("list_iterator_default_initialization", []() {
+        using ListIterator = decltype(std::declval<py::list>().begin());
+        static_assert(std::random_access_iterator<ListIterator>);
+        return ListIterator{} == ListIterator{};
+    });
+
+    m.def("transform_list_plus_one", [](py::list &lst) {
+        py::list ret{};
+        for (auto it : lst | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
+            ret.append(py::int_(it));
+        }
+        return ret;
+    });
+
+    // test_dict_ranges
+    m.def("dict_iterator_default_initialization", []() {
+        using DictIterator = decltype(std::declval<py::dict>().begin());
+        static_assert(std::forward_iterator<DictIterator>);
+        return DictIterator{} == DictIterator{};
+    });
+
+    m.def("transform_dict_plus_one", [](py::dict &dct) {
+        py::list ret{};
+        for (auto it : dct | std::views::transform([](auto &o) {
+                           return std::pair{py::cast<int>(o.first) + 1,
+                                            py::cast<int>(o.second) + 1};
+                       })) {
+            ret.append(py::make_tuple(py::int_(it.first), py::int_(it.second)));
+        }
+        return ret;
+    });
+
+    m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = true;
+#else
+    m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
+#endif
+    m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    // std::vector<T>
+    m.def("half_of_number_vector", [](const std::vector<RealNumber> &x) {
+        std::vector<RealNumber> result;
+        result.reserve(x.size());
+        for (auto num : x) {
+            result.push_back(RealNumber{num.value / 2});
+        }
+        return result;
+    });
+    // Tuple<T, T>
+    m.def("half_of_number_tuple", [](const py::typing::Tuple<RealNumber, RealNumber> &x) {
+        py::typing::Tuple<RealNumber, RealNumber> result
+            = py::make_tuple(RealNumber{x[0].cast<RealNumber>().value / 2},
+                             RealNumber{x[1].cast<RealNumber>().value / 2});
+        return result;
+    });
+    // Tuple<T, ...>
+    m.def("half_of_number_tuple_ellipsis",
+          [](const py::typing::Tuple<RealNumber, py::ellipsis> &x) {
+              py::typing::Tuple<RealNumber, py::ellipsis> result(x.size());
+              for (size_t i = 0; i < x.size(); ++i) {
+                  result[i] = x[i].cast<RealNumber>().value / 2;
+              }
+              return result;
+          });
+    // Dict<K, V>
+    m.def("half_of_number_dict", [](const py::typing::Dict<std::string, RealNumber> &x) {
+        py::typing::Dict<std::string, RealNumber> result;
+        for (auto it : x) {
+            result[it.first] = RealNumber{it.second.cast<RealNumber>().value / 2};
+        }
+        return result;
+    });
+    // List<T>
+    m.def("half_of_number_list", [](const py::typing::List<RealNumber> &x) {
+        py::typing::List<RealNumber> result;
+        for (auto num : x) {
+            result.append(RealNumber{num.cast<RealNumber>().value / 2});
+        }
+        return result;
+    });
+    // List<List<T>>
+    m.def("half_of_number_nested_list",
+          [](const py::typing::List<py::typing::List<RealNumber>> &x) {
+              py::typing::List<py::typing::List<RealNumber>> result_lists;
+              for (auto nums : x) {
+                  py::typing::List<RealNumber> result;
+                  for (auto num : nums) {
+                      result.append(RealNumber{num.cast<RealNumber>().value / 2});
+                  }
+                  result_lists.append(result);
+              }
+              return result_lists;
+          });
+    // Set<T>
+    m.def("identity_set", [](const py::typing::Set<RealNumber> &x) { return x; });
+    // Iterable<T>
+    m.def("identity_iterable", [](const py::typing::Iterable<RealNumber> &x) { return x; });
+    // Iterator<T>
+    m.def("identity_iterator", [](const py::typing::Iterator<RealNumber> &x) { return x; });
+    // Callable<R(A)>
+    m.def("apply_callable",
+          [](const RealNumber &x, const py::typing::Callable<RealNumber(const RealNumber &)> &f) {
+              return f(x).cast<RealNumber>();
+          });
+    // Callable<R(...)>
+    m.def("apply_callable_ellipsis",
+          [](const RealNumber &x, const py::typing::Callable<RealNumber(py::ellipsis)> &f) {
+              return f(x).cast<RealNumber>();
+          });
+    // Union<T1, T2>
+    m.def("identity_union", [](const py::typing::Union<RealNumber, std::string> &x) { return x; });
+    // Optional<T>
+    m.def("identity_optional", [](const py::typing::Optional<RealNumber> &x) { return x; });
+    // TypeGuard<T>
+    m.def("check_type_guard",
+          [](const py::typing::List<py::object> &x)
+              -> py::typing::TypeGuard<py::typing::List<RealNumber>> {
+              for (const auto &item : x) {
+                  if (!py::isinstance<RealNumber>(item)) {
+                      return false;
+                  }
+              }
+              return true;
+          });
+    // TypeIs<T>
+    m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
+        return py::isinstance<RealNumber>(x);
+    });
 }

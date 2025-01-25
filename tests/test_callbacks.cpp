@@ -148,7 +148,7 @@ TEST_SUBMODULE(callbacks, m) {
     m.def("dummy_function2", [](int i, int j) { return i + j; });
     m.def(
         "roundtrip",
-        [](std::function<int(int)> f, bool expect_none = false) {
+        [](std::function<int(int)> f, bool expect_none) {
             if (expect_none && f) {
                 throw std::runtime_error("Expected None to be converted to empty std::function");
             }
@@ -270,7 +270,7 @@ TEST_SUBMODULE(callbacks, m) {
     m.add_object("custom_function", PyCFunction_New(custom_def, rec_capsule.ptr()));
 
     // This test requires a new ABI version to pass
-#if PYBIND11_INTERNALS_VERSION > 4
+#if PYBIND11_INTERNALS_VERSION > 4 && !defined(GRAALVM_PYTHON)
     // rec_capsule with nullptr name
     py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
     m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule2.ptr()));
