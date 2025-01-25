@@ -175,7 +175,7 @@ inline numpy_internals &get_numpy_internals() {
 PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name) {
     module_ numpy = module_::import("numpy");
     str version_string = numpy.attr("__version__");
-    > module_ numpy_lib = module_::import("numpy.lib");
+    module_ numpy_lib = module_::import("numpy.lib");
     object numpy_version = numpy_lib.attr("NumpyVersion")(version_string);
     int major_version = numpy_version.attr("major").cast<int>();
 
