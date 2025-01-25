@@ -71,6 +71,11 @@ def main() -> None:
         action="store_true",
         help="Print the pkgconfig directory, ideal for setting $PKG_CONFIG_PATH.",
     )
+    parser.add_argument(
+        "--extension-suffix",
+        action="store_true",
+        help="Print the extension for a Python module",
+    )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
@@ -80,6 +85,8 @@ def main() -> None:
         print(quote(get_cmake_dir()))
     if args.pkgconfigdir:
         print(quote(get_pkgconfig_dir()))
+    if args.extension_suffix:
+        print(sysconfig.get_config_var("EXT_SUFFIX"))
 
 
 if __name__ == "__main__":

@@ -241,6 +241,49 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
 }
 
+inline bool try_incref(PyObject *obj) {
+    // Tries to increment the reference count of an object if it's not zero.
+    // TODO: Use PyUnstable_TryIncref when available.
+    // See https://github.com/python/cpython/issues/128844
+#ifdef Py_GIL_DISABLED
+    // See
+    // https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
+    uint32_t local = _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local);
+    local += 1;
+    if (local == 0) {
+        // immortal
+        return true;
+    }
+    if (_Py_IsOwnedByCurrentThread(obj)) {
+        _Py_atomic_store_uint32_relaxed(&obj->ob_ref_local, local);
+#    ifdef Py_REF_DEBUG
+        _Py_INCREF_IncRefTotal();
+#    endif
+        return true;
+    }
+    Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared);
+    for (;;) {
+        // If the shared refcount is zero and the object is either merged
+        // or may not have weak references, then we cannot incref it.
+        if (shared == 0 || shared == _Py_REF_MERGED) {
+            return false;
+        }
+
+        if (_Py_atomic_compare_exchange_ssize(
+                &obj->ob_ref_shared, &shared, shared + (1 << _Py_REF_SHARED_SHIFT))) {
+#    ifdef Py_REF_DEBUG
+            _Py_INCREF_IncRefTotal();
+#    endif
+            return true;
+        }
+    }
+#else
+    assert(Py_REFCNT(obj) > 0);
+    Py_INCREF(obj);
+    return true;
+#endif
+}
+
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
 PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
                                                          const detail::type_info *tinfo) {
@@ -249,7 +292,10 @@ PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                    return handle((PyObject *) it_i->second).inc_ref();
+                    auto *wrapper = reinterpret_cast<PyObject *>(it_i->second);
+                    if (try_incref(wrapper)) {
+                        return handle(wrapper);
+                    }
                 }
             }
         }

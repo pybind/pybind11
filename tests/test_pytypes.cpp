@@ -142,7 +142,6 @@ typedef py::typing::TypeVar<"V"> TypeVarV;
 // RealNumber:
 // * in arguments -> float | int
 // * in return -> float
-// * fallback -> complex
 // The choice of types is not really useful, but just made different for testing purposes.
 // According to `PEP 484 – Type Hints` annotating with `float` also allows `int`,
 // so using `float | int` could be replaced by just `float`.
@@ -156,15 +155,17 @@ namespace detail {
 
 template <>
 struct type_caster<RealNumber> {
-    PYBIND11_TYPE_CASTER(RealNumber, const_name("complex"));
-    static constexpr auto arg_name = const_name("Union[float, int]");
-    static constexpr auto return_name = const_name("float");
+    PYBIND11_TYPE_CASTER(RealNumber, io_name("Union[float, int]", "float"));
 
     static handle cast(const RealNumber &number, return_value_policy, handle) {
         return py::float_(number.value).release();
     }
 
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
+        // If we're in no-convert mode, only load if given a float
+        if (!convert && !py::isinstance<py::float_>(src)) {
+            return false;
+        }
         if (!py::isinstance<py::float_>(src) && !py::isinstance<py::int_>(src)) {
             return false;
         }
@@ -970,6 +971,19 @@ TEST_SUBMODULE(pytypes, m) {
         .value("BLUE", literals::Color::BLUE);
 
     m.def("annotate_literal", [](literals::LiteralFoo &o) -> py::object { return o; });
+    // Literal with `@`, `%`, `{`, `}`, and `->`
+    m.def("identity_literal_exclamation", [](const py::typing::Literal<"\"!\""> &x) { return x; });
+    m.def("identity_literal_at", [](const py::typing::Literal<"\"@\""> &x) { return x; });
+    m.def("identity_literal_percent", [](const py::typing::Literal<"\"%\""> &x) { return x; });
+    m.def("identity_literal_curly_open", [](const py::typing::Literal<"\"{\""> &x) { return x; });
+    m.def("identity_literal_curly_close", [](const py::typing::Literal<"\"}\""> &x) { return x; });
+    m.def("identity_literal_arrow_with_io_name",
+          [](const py::typing::Literal<"\"->\""> &x, const RealNumber &) { return x; });
+    m.def("identity_literal_arrow_with_callable",
+          [](const py::typing::Callable<RealNumber(const py::typing::Literal<"\"->\""> &,
+                                                   const RealNumber &)> &x) { return x; });
+    m.def("identity_literal_all_special_chars",
+          [](const py::typing::Literal<"\"!@!!->{%}\""> &x) { return x; });
     m.def("annotate_generic_containers",
           [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
               return l;
@@ -1037,7 +1051,47 @@ TEST_SUBMODULE(pytypes, m) {
 #else
     m.attr("defined_PYBIND11_TEST_PYTYPES_HAS_RANGES") = false;
 #endif
+
+#if defined(__cpp_inline_variables)
+    // Exercises const char* overload:
+    m.attr_with_type_hint<py::typing::List<int>>("list_int") = py::list();
+    // Exercises py::handle overload:
+    m.attr_with_type_hint<py::typing::Set<py::str>>(py::str("set_str")) = py::set();
+
+    struct Empty {};
+    py::class_<Empty>(m, "EmptyAnnotationClass");
+
+    struct Static {};
+    auto static_class = py::class_<Static>(m, "Static");
+    static_class.def(py::init());
+    static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
+    static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
+        "dict_str_int")
+        = py::dict();
+
+    struct Instance {};
+    auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());
+    instance.def(py::init());
+    instance.attr_with_type_hint<float>("y");
+
+    m.def("attr_with_type_hint_float_x",
+          [](py::handle obj) { obj.attr_with_type_hint<float>("x"); });
+
+    m.attr_with_type_hint<py::typing::Final<int>>("CONST_INT") = 3;
+
+    m.attr("defined___cpp_inline_variables") = true;
+#else
+    m.attr("defined___cpp_inline_variables") = false;
+#endif
     m.def("half_of_number", [](const RealNumber &x) { return RealNumber{x.value / 2}; });
+    m.def(
+        "half_of_number_convert",
+        [](const RealNumber &x) { return RealNumber{x.value / 2}; },
+        py::arg("x"));
+    m.def(
+        "half_of_number_noconvert",
+        [](const RealNumber &x) { return RealNumber{x.value / 2}; },
+        py::arg("x").noconvert());
     // std::vector<T>
     m.def("half_of_number_vector", [](const std::vector<RealNumber> &x) {
         std::vector<RealNumber> result;
@@ -1098,6 +1152,16 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("identity_iterable", [](const py::typing::Iterable<RealNumber> &x) { return x; });
     // Iterator<T>
     m.def("identity_iterator", [](const py::typing::Iterator<RealNumber> &x) { return x; });
+    // Callable<R(A)> identity
+    m.def("identity_callable",
+          [](const py::typing::Callable<RealNumber(const RealNumber &)> &x) { return x; });
+    // Callable<R(...)> identity
+    m.def("identity_callable_ellipsis",
+          [](const py::typing::Callable<RealNumber(py::ellipsis)> &x) { return x; });
+    // Nested Callable<R(A)> identity
+    m.def("identity_nested_callable",
+          [](const py::typing::Callable<py::typing::Callable<RealNumber(const RealNumber &)>(
+                 py::typing::Callable<RealNumber(const RealNumber &)>)> &x) { return x; });
     // Callable<R(A)>
     m.def("apply_callable",
           [](const RealNumber &x, const py::typing::Callable<RealNumber(const RealNumber &)> &f) {

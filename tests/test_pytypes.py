@@ -1044,6 +1044,39 @@ def test_literal(doc):
         doc(m.annotate_literal)
         == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
+    # The characters !, @, %, {, } and -> are used in the signature parser as special characters, but Literal should escape those for the parser to work.
+    assert (
+        doc(m.identity_literal_exclamation)
+        == 'identity_literal_exclamation(arg0: Literal["!"]) -> Literal["!"]'
+    )
+    assert (
+        doc(m.identity_literal_at)
+        == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'
+    )
+    assert (
+        doc(m.identity_literal_percent)
+        == 'identity_literal_percent(arg0: Literal["%"]) -> Literal["%"]'
+    )
+    assert (
+        doc(m.identity_literal_curly_open)
+        == 'identity_literal_curly_open(arg0: Literal["{"]) -> Literal["{"]'
+    )
+    assert (
+        doc(m.identity_literal_curly_close)
+        == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
+    )
+    assert (
+        doc(m.identity_literal_arrow_with_io_name)
+        == 'identity_literal_arrow_with_io_name(arg0: Literal["->"], arg1: Union[float, int]) -> Literal["->"]'
+    )
+    assert (
+        doc(m.identity_literal_arrow_with_callable)
+        == 'identity_literal_arrow_with_callable(arg0: Callable[[Literal["->"], Union[float, int]], float]) -> Callable[[Literal["->"], Union[float, int]], float]'
+    )
+    assert (
+        doc(m.identity_literal_all_special_chars)
+        == 'identity_literal_all_special_chars(arg0: Literal["!@!!->{%}"]) -> Literal["!@!!->{%}"]'
+    )
 
 
 @pytest.mark.skipif(
@@ -1103,17 +1136,114 @@ def test_dict_ranges(tested_dict, expected):
     assert m.transform_dict_plus_one(tested_dict) == expected
 
 
+# https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+def get_annotations_helper(o):
+    if isinstance(o, type):
+        return o.__dict__.get("__annotations__", None)
+    return getattr(o, "__annotations__", None)
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_module_attribute_types() -> None:
+    module_annotations = get_annotations_helper(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="get_annotations function does not exist until Python3.10",
+)
+def test_get_annotations_compliance() -> None:
+    from inspect import get_annotations
+
+    module_annotations = get_annotations(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_class_attribute_types() -> None:
+    empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
+    static_annotations = get_annotations_helper(m.Static)
+    instance_annotations = get_annotations_helper(m.Instance)
+
+    assert empty_annotations is None
+    assert static_annotations["x"] == "ClassVar[float]"
+    assert static_annotations["dict_str_int"] == "ClassVar[dict[str, int]]"
+
+    assert m.Static.x == 1.0
+
+    m.Static.x = 3.0
+    static = m.Static()
+    assert static.x == 3.0
+
+    static.dict_str_int["hi"] = 3
+    assert m.Static().dict_str_int == {"hi": 3}
+
+    assert instance_annotations["y"] == "float"
+    instance1 = m.Instance()
+    instance1.y = 4.0
+
+    instance2 = m.Instance()
+    instance2.y = 5.0
+
+    assert instance1.y != instance2.y
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_redeclaration_attr_with_type_hint() -> None:
+    obj = m.Instance()
+    m.attr_with_type_hint_float_x(obj)
+    assert get_annotations_helper(obj)["x"] == "float"
+    with pytest.raises(
+        RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'
+    ):
+        m.attr_with_type_hint_float_x(obj)
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_final_annotation() -> None:
+    module_annotations = get_annotations_helper(m)
+    assert module_annotations["CONST_INT"] == "Final[int]"
+
+
 def test_arg_return_type_hints(doc):
     assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
+    assert (
+        doc(m.half_of_number_convert)
+        == "half_of_number_convert(x: Union[float, int]) -> float"
+    )
+    assert (
+        doc(m.half_of_number_noconvert) == "half_of_number_noconvert(x: float) -> float"
+    )
     assert m.half_of_number(2.0) == 1.0
     assert m.half_of_number(2) == 1.0
     assert m.half_of_number(0) == 0
     assert isinstance(m.half_of_number(0), float)
     assert not isinstance(m.half_of_number(0), int)
-    # std::vector<T> should use fallback type (complex is not really useful but just used for testing)
+    # std::vector<T>
     assert (
         doc(m.half_of_number_vector)
-        == "half_of_number_vector(arg0: list[complex]) -> list[complex]"
+        == "half_of_number_vector(arg0: list[Union[float, int]]) -> list[float]"
     )
     # Tuple<T, T>
     assert (
@@ -1154,6 +1284,21 @@ def test_arg_return_type_hints(doc):
     assert (
         doc(m.identity_iterator)
         == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
+    )
+    # Callable<R(A)> identity
+    assert (
+        doc(m.identity_callable)
+        == "identity_callable(arg0: Callable[[Union[float, int]], float]) -> Callable[[Union[float, int]], float]"
+    )
+    # Callable<R(...)> identity
+    assert (
+        doc(m.identity_callable_ellipsis)
+        == "identity_callable_ellipsis(arg0: Callable[..., float]) -> Callable[..., float]"
+    )
+    # Nested Callable<R(A)> identity
+    assert (
+        doc(m.identity_nested_callable)
+        == "identity_nested_callable(arg0: Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]) -> Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]"
     )
     # Callable<R(A)>
     assert (

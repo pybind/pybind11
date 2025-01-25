@@ -34,39 +34,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// Type trait checker for `descr`
-template <typename>
-struct is_descr : std::false_type {};
-
-template <size_t N, typename... Ts>
-struct is_descr<descr<N, Ts...>> : std::true_type {};
-
-template <size_t N, typename... Ts>
-struct is_descr<const descr<N, Ts...>> : std::true_type {};
-
-// Use arg_name instead of name when available
-template <typename T, typename SFINAE = void>
-struct as_arg_type {
-    static constexpr auto name = T::name;
-};
-
-template <typename T>
-struct as_arg_type<T, typename std::enable_if<is_descr<decltype(T::arg_name)>::value>::type> {
-    static constexpr auto name = T::arg_name;
-};
-
-// Use return_name instead of name when available
-template <typename T, typename SFINAE = void>
-struct as_return_type {
-    static constexpr auto name = T::name;
-};
-
-template <typename T>
-struct as_return_type<T,
-                      typename std::enable_if<is_descr<decltype(T::return_name)>::value>::type> {
-    static constexpr auto name = T::return_name;
-};
-
 template <typename type, typename SFINAE = void>
 class type_caster : public type_caster_base<type> {};
 template <typename type>
@@ -1113,8 +1080,6 @@ struct pyobject_caster {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
-    static constexpr auto arg_name = as_arg_type<handle_type_name<type>>::name;
-    static constexpr auto return_name = as_return_type<handle_type_name<type>>::name;
 };
 
 template <typename T>
@@ -1364,6 +1329,31 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
 object object_or_cast(T &&o) {
     return pybind11::cast(std::forward<T>(o));
+}
+
+// Declared in pytypes.h:
+// Implemented here so that make_caster<T> can be used.
+template <typename D>
+template <typename T>
+str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
+#if !defined(__cpp_inline_variables)
+    static_assert(always_false<T>::value,
+                  "C++17 feature __cpp_inline_variables not available: "
+                  "https://en.cppreference.com/w/cpp/language/static#Static_data_members");
+#endif
+    object ann = annotations();
+    if (ann.contains(key)) {
+        throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
+    }
+    ann[key] = make_caster<T>::name.text;
+    return {derived(), key};
+}
+
+template <typename D>
+template <typename T>
+obj_attr_accessor object_api<D>::attr_with_type_hint(handle key) const {
+    (void) attr_with_type_hint<T>(key.cast<std::string>().c_str());
+    return {derived(), reinterpret_borrow<object>(key)};
 }
 
 // Placeholder type for the unneeded (and dead code) static variable in the
@@ -1643,7 +1633,7 @@ public:
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names
-        = ::pybind11::detail::concat(type_descr(as_arg_type<make_caster<Args>>::name)...);
+        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 
