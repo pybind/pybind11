@@ -171,6 +171,16 @@ if(NOT _PYBIND11_CROSSCOMPILING)
       set(PYTHON_MODULE_EXTENSION
           "${_PYTHON_MODULE_EXTENSION}"
           CACHE INTERNAL "")
+      if((NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "")
+         AND (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "${PYTHON_MODULE_EXTENSION}"))
+        message(
+          AUTHOR_WARNING,
+          "SETUPTOOLS_EXT_SUFFIX is set to \"$ENV{SETUPTOOLS_EXT_SUFFIX}\", "
+          "but the auto-calculated Python extension suffix is \"${PYTHON_MODULE_EXTENSION}\". "
+          "This may cause problems when importing the Python extensions. "
+          "If you are using cross-compiling Python, you may need to "
+          "set PYTHON_MODULE_EXTENSION manually.")
+      endif()
     endif()
   endif()
 else()
@@ -307,7 +317,7 @@ function(pybind11_add_module target_name)
   if(DEFINED CMAKE_BUILD_TYPE) # see https://github.com/pybind/pybind11/issues/4454
     # Use case-insensitive comparison to match the result of $<CONFIG:cfgs>
     string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-    if(NOT MSVC AND NOT "${uppercase_CMAKE_BUILD_TYPE}" MATCHES DEBUG|RELWITHDEBINFO)
+    if(NOT MSVC AND NOT "${uppercase_CMAKE_BUILD_TYPE}" MATCHES DEBUG|RELWITHDEBINFO|NONE)
       # Strip unnecessary sections of the binary on Linux/macOS
       pybind11_strip(${target_name})
     endif()
