@@ -25,14 +25,14 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v19.1.6"
+  rev: "v19.1.7"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.8.6
+  rev: v0.9.4
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -119,7 +119,7 @@ repos:
 # Use tools/codespell_ignore_lines_from_errors.py
 # to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.3.0"
+  rev: "v2.4.1"
   hooks:
   - id: codespell
     exclude: ".supp$"
@@ -142,14 +142,14 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.3.3"
+  rev: "v3.3.4"
   hooks:
   - id: pylint
     files: ^pybind11
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.30.0
+  rev: 0.31.1
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows
