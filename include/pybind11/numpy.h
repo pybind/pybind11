@@ -2183,7 +2183,8 @@ vectorize_helper<Func, Return, Args...> vectorize_extractor(const Func &f, Retur
 template <typename T, int Flags>
 struct handle_type_name<array_t<T, Flags>> {
     static constexpr auto name
-        = const_name("numpy.ndarray[") + npy_format_descriptor<T>::name + const_name("]");
+        = io_name("typing.Annotated[numpy.typing.ArrayLike, ", "numpy.typing.NDArray[")
+          + npy_format_descriptor<T>::name + const_name("]");
 };
 
 PYBIND11_NAMESPACE_END(detail)
