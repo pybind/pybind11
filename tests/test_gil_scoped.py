@@ -108,6 +108,10 @@ def test_nested_acquire():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(
+    env.GRAALPY and sys.platform == "darwin",
+    reason="Transiently crashes on GraalPy on OS X",
+)
 def test_multi_acquire_release_cross_module():
     for bits in range(16 * 8):
         internals_ids = m.test_multi_acquire_release_cross_module(bits)
