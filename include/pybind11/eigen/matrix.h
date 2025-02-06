@@ -224,21 +224,23 @@ struct EigenProps {
     static constexpr bool show_f_contiguous
         = !show_c_contiguous && show_order && requires_col_major;
 
-    static constexpr auto descriptor
-        = const_name("numpy.typing.NDArray[") + npy_format_descriptor<Scalar>::name
-          + const_name("[") + const_name<fixed_rows>(const_name<(size_t) rows>(), const_name("m"))
-          + const_name(", ") + const_name<fixed_cols>(const_name<(size_t) cols>(), const_name("n"))
-          + const_name("]") +
+        static constexpr auto descriptor
+        = const_name("typing.Annotated[")
+          + io_name("numpy.typing.ArrayLike, ", "numpy.typing.NDArray[")
+          + npy_format_descriptor<Scalar>::name + io_name("", "]") + const_name(", \"[")
+          + const_name<fixed_rows>(const_name<(size_t) rows>(), const_name("m")) + const_name(", ")
+          + const_name<fixed_cols>(const_name<(size_t) cols>(), const_name("n"))
+          + const_name("]\"")
           // For a reference type (e.g. Ref<MatrixXd>) we have other constraints that might need to
           // be satisfied: writeable=True (for a mutable reference), and, depending on the map's
           // stride options, possibly f_contiguous or c_contiguous.  We include them in the
           // descriptor output to provide some hint as to why a TypeError is occurring (otherwise
           // it can be confusing to see that a function accepts a
-          // 'numpy.typing.NDArray[float64[3,2]]' and an error message that you *gave* a
-          // numpy.ndarray of the right type and dimensions.
-          const_name<show_writeable>(", flags.writeable", "")
-          + const_name<show_c_contiguous>(", flags.c_contiguous", "")
-          + const_name<show_f_contiguous>(", flags.f_contiguous", "") + const_name("]");
+          // 'typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3,2]"]' and an error message
+          // that you *gave* a numpy.ndarray of the right type and dimensions.
+          + const_name<show_writeable>(", \"flags.writeable\"", "")
+          + const_name<show_c_contiguous>(", \"flags.c_contiguous\"", "")
+          + const_name<show_f_contiguous>(", \"flags.f_contiguous\"", "") + const_name("]");
 };
 
 // Casts an Eigen type to numpy array.  If given a base, the numpy array references the src data,
