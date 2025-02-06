@@ -224,7 +224,7 @@ struct EigenProps {
     static constexpr bool show_f_contiguous
         = !show_c_contiguous && show_order && requires_col_major;
 
-        static constexpr auto descriptor
+    static constexpr auto descriptor
         = const_name("typing.Annotated[")
           + io_name("numpy.typing.ArrayLike, ", "numpy.typing.NDArray[")
           + npy_format_descriptor<Scalar>::name + io_name("", "]") + const_name(", \"[")

@@ -95,19 +95,19 @@ def test_mutator_descriptors():
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_r(zc)
     assert (
-        "(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[5, 6]\","
-        " \"flags.writeable\", \"flags.c_contiguous\"]) -> None" in str(excinfo.value)
+        '(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[5, 6]",'
+        ' "flags.writeable", "flags.c_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_c(zr)
     assert (
-        "(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[5, 6]\","
-        " \"flags.writeable\", \"flags.f_contiguous\"]) -> None" in str(excinfo.value)
+        '(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[5, 6]",'
+        ' "flags.writeable", "flags.f_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_a(np.array([[1, 2], [3, 4]], dtype="float32"))
     assert (
-        "(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[5, 6]\", \"flags.writeable\"]) -> None"
+        '(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[5, 6]", "flags.writeable"]) -> None'
         in str(excinfo.value)
     )
     zr.flags.writeable = False
@@ -635,16 +635,16 @@ def test_nocopy_wrapper():
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_colmajor)
     assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
-    assert ", \"flags.f_contiguous\"" in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
     assert m.get_elem_nocopy(dbl_matrix_colmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_rowmajor)
     assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
-    assert ", \"flags.f_contiguous\"" in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(dbl_matrix_rowmajor)
     assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
-    assert ", \"flags.f_contiguous\"" in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
 
     # For the row-major test, we take a long matrix in row-major, so only the third is allowed:
     with pytest.raises(TypeError) as excinfo:
@@ -652,20 +652,20 @@ def test_nocopy_wrapper():
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
     )
-    assert ", \"flags.c_contiguous\"" in str(excinfo.value)
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_colmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
     )
-    assert ", \"flags.c_contiguous\"" in str(excinfo.value)
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
     assert m.get_elem_rm_nocopy(int_matrix_rowmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_rowmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
     )
-    assert ", \"flags.c_contiguous\"" in str(excinfo.value)
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
 
 
 def test_eigen_ref_life_support():
