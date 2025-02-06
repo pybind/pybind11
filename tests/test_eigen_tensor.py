@@ -280,6 +280,7 @@ def test_doc_string(m, doc):
     )
     assert (
         doc(m.reference_const_tensor)
+        
         == 'reference_const_tensor() -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]"]'
     )
 
