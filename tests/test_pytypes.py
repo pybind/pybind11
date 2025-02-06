@@ -52,10 +52,10 @@ def test_from_iterable(pytype, from_iter_func):
 
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
-    lins = [1, 2, 3]
-    i = m.get_first_item_from_iterable(lins)
+    lst = [1, 2, 3]
+    i = m.get_first_item_from_iterable(lst)
     assert i == 1
-    i = m.get_second_item_from_iterable(lins)
+    i = m.get_second_item_from_iterable(lst)
     assert i == 2
 
 
@@ -67,13 +67,13 @@ def test_list(capture, doc):
     assert m.list_no_args() == []
     assert m.list_ssize_t() == []
     assert m.list_size_t() == []
-    lins = [1, 2]
-    m.list_insert_ssize_t(lins)
-    assert lins == [1, 83, 2]
-    m.list_insert_size_t(lins)
-    assert lins == [1, 83, 2, 57]
-    m.list_clear(lins)
-    assert lins == []
+    lst = [1, 2]
+    m.list_insert_ssize_t(lst)
+    assert lst == [1, 83, 2]
+    m.list_insert_size_t(lst)
+    assert lst == [1, 83, 2, 57]
+    m.list_clear(lst)
+    assert lst == []
 
     with capture:
         lst = m.get_list()

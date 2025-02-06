@@ -212,9 +212,9 @@ def pytest_configure():
 
 def pytest_report_header(config):
     del config  # Unused.
-    assert (
-        pybind11_tests.compiler_info is not None
-    ), "Please update pybind11_tests.cpp if this assert fails."
+    assert pybind11_tests.compiler_info is not None, (
+        "Please update pybind11_tests.cpp if this assert fails."
+    )
     return (
         "C++ Info:"
         f" {pybind11_tests.compiler_info}"
