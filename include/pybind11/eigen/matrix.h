@@ -317,7 +317,7 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
         }
 
         // Allocate the new type, then build a numpy reference into it
-        value.resize(fits.rows, fits.cols);
+        value = Type(fits.rows, fits.cols);
         auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
         if (dims == 1) {
             ref = ref.squeeze();
