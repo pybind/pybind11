@@ -1218,7 +1218,7 @@ protected:
 };
 
 inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
-    return cpp_type_name; // No-op for now. See PR #4888
+    return "`" + cpp_type_name + "`"; // See PR #4888
 }
 
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
