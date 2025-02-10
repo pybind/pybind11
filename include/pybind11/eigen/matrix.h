@@ -316,8 +316,11 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
             return false;
         }
 
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized") // See PR #5516
         // Allocate the new type, then build a numpy reference into it
         value = Type(fits.rows, fits.cols);
+        PYBIND11_WARNING_POP
         auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
         if (dims == 1) {
             ref = ref.squeeze();
