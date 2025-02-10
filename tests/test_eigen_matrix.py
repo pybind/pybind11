@@ -202,7 +202,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threer(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[1, 3]\", \"flags.writeable\"]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[1, 3]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
@@ -214,7 +214,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threec(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[3, 1]\", \"flags.writeable\"]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
@@ -701,25 +701,25 @@ def test_dense_signature(doc):
     assert (
         doc(m.double_col)
         == """
-        double_col(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[m, 1]\"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], \"[m, 1]\"]
+        double_col(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]
     """
     )
     assert (
         doc(m.double_row)
         == """
-        double_row(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[1, n]\"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], \"[1, n]\"]
+        double_row(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[1, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[1, n]"]
     """
     )
     assert doc(m.double_complex) == (
         """
-        double_complex(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.complex64, \"[m, 1]\"])"""
-        """ -> typing.Annotated[numpy.typing.NDArray[numpy.complex64], \"[m, 1]\"]
+        double_complex(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.complex64, "[m, 1]"])"""
+        """ -> typing.Annotated[numpy.typing.NDArray[numpy.complex64], "[m, 1]"]
     """
     )
     assert doc(m.double_mat_rm) == (
         """
-        double_mat_rm(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, \"[m, n]\"])"""
-        """ -> typing.Annotated[numpy.typing.NDArray[numpy.float32], \"[m, n]\"]
+        double_mat_rm(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"])"""
+        """ -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]
     """
     )
 
