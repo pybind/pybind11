@@ -38,23 +38,17 @@
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
 #    if PYBIND11_VERSION_MAJOR >= 3
-#        define PYBIND11_INTERNALS_VERSION 6
-#    elif PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
-// Version bump for Python 3.12+, before first 3.12 beta release.
-// Version bump for MSVC piggy-backed on PR #4779. See comments there.
-#        ifdef Py_GIL_DISABLED
-#            define PYBIND11_INTERNALS_VERSION 6
-#        else
-#            define PYBIND11_INTERNALS_VERSION 5
-#        endif
+#        define PYBIND11_INTERNALS_VERSION 106
 #    else
-#        define PYBIND11_INTERNALS_VERSION 4
+#        define PYBIND11_INTERNALS_VERSION 6
 #    endif
 #endif
 
 // This requirement is mainly to reduce the support burden (see PR #4570).
 static_assert(PY_VERSION_HEX < 0x030C0000 || PYBIND11_INTERNALS_VERSION >= 5,
               "pybind11 ABI version 5 is the minimum for Python 3.12+");
+static_assert(PYBIND11_INTERNALS_VERSION >= 4,
+              "pybind11 ABI version 4 is the minimum for all platforms.");
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -244,7 +238,7 @@ struct internals {
     }
 };
 
-#if PYBIND11_INTERNALS_VERSION >= 6
+#if PYBIND11_INTERNALS_VERSION >= 106
 
 #    define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
 
