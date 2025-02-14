@@ -505,7 +505,10 @@ protected:
     std::unique_ptr<MapType> value;
 
 public:
-    static constexpr auto name = get_tensor_descriptor<Type, true, needs_writeable>::value;
+    // return_descr forces the use of NDArray instead of ArrayLike since refs can only reference
+    // arrays
+    static constexpr auto name
+        = return_descr(get_tensor_descriptor<Type, true, needs_writeable>::value);
     explicit operator MapType *() { return value.get(); }
     explicit operator MapType &() { return *value; }
     explicit operator MapType &&() && { return std::move(*value); }

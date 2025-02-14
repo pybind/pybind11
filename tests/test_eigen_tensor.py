@@ -285,10 +285,32 @@ def test_doc_string(m, doc):
 
     order_flag = f'"flags.{m.needed_options.lower()}_contiguous"'
     assert doc(m.round_trip_view_tensor) == (
-        f'round_trip_view_tensor(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[?, ?, ?]", "flags.writeable", {order_flag}])'
+        f'round_trip_view_tensor(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}])'
         f' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}]'
     )
     assert doc(m.round_trip_const_view_tensor) == (
-        f'round_trip_const_view_tensor(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[?, ?, ?]", {order_flag}])'
+        f'round_trip_const_view_tensor(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", {order_flag}])'
         ' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]"]'
     )
+
+
+@pytest.mark.parametrize("m", submodules)
+def test_arraylike_signature(m, doc):
+    order_flag = f'"flags.{m.needed_options.lower()}_contiguous"'
+    assert doc(m.round_trip_tensor) == (
+        'round_trip_tensor(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[?, ?, ?]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]"]'
+    )
+    assert doc(m.round_trip_tensor_noconvert) == (
+        'round_trip_tensor_noconvert(tensor: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]"]'
+    )
+    assert doc(m.round_trip_view_tensor) == (
+        f'round_trip_view_tensor(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}])'
+        f' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}]'
+    )
+    m.round_trip_tensor(tensor_ref.tolist())
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_tensor_noconvert(tensor_ref.tolist())
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_view_tensor(tensor_ref.tolist())
