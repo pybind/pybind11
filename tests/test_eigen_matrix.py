@@ -95,19 +95,19 @@ def test_mutator_descriptors():
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_r(zc)
     assert (
-        '(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[5, 6]",'
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]",'
         ' "flags.writeable", "flags.c_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_c(zr)
     assert (
-        '(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[5, 6]",'
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]",'
         ' "flags.writeable", "flags.f_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_a(np.array([[1, 2], [3, 4]], dtype="float32"))
     assert (
-        '(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[5, 6]", "flags.writeable"]) -> None'
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]", "flags.writeable"]) -> None'
         in str(excinfo.value)
     )
     zr.flags.writeable = False
@@ -202,7 +202,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threer(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[1, 3]", "flags.writeable"]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[1, 3]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
@@ -214,7 +214,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threec(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]", "flags.writeable"]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
@@ -818,3 +818,22 @@ def test_custom_operator_new():
     o = m.CustomOperatorNew()
     np.testing.assert_allclose(o.a, 0.0)
     np.testing.assert_allclose(o.b.diagonal(), 1.0)
+
+
+def test_arraylike_signature(doc):
+    assert doc(m.round_trip_vector) == (
+        'round_trip_vector(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]'
+    )
+    assert doc(m.round_trip_dense) == (
+        'round_trip_dense(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]'
+    )
+    assert doc(m.round_trip_dense_ref) == (
+        'round_trip_dense_ref(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]", "flags.writeable", "flags.c_contiguous"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]", "flags.writeable", "flags.c_contiguous"]'
+    )
+    m.round_trip_vector([1.0, 2.0])
+    m.round_trip_dense([[1.0, 2.0], [3.0, 4.0]])
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_dense_ref([[1.0, 2.0], [3.0, 4.0]])

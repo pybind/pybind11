@@ -687,3 +687,17 @@ def test_return_array_object_cpp_loop(return_array, unwrap):
     assert isinstance(arr_from_list, np.ndarray)
     assert arr_from_list.dtype == np.dtype("O")
     assert unwrap(arr_from_list) == [6, "seven", -8.0]
+
+
+def test_arraylike_signature(doc):
+    assert (
+        doc(m.round_trip_array_t)
+        == "round_trip_array_t(x: typing.Annotated[numpy.typing.ArrayLike, numpy.float32]) -> numpy.typing.NDArray[numpy.float32]"
+    )
+    assert (
+        doc(m.round_trip_array_t_noconvert)
+        == "round_trip_array_t_noconvert(x: numpy.typing.NDArray[numpy.float32]) -> numpy.typing.NDArray[numpy.float32]"
+    )
+    m.round_trip_array_t([1, 2, 3])
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_array_t_noconvert([1, 2, 3])
