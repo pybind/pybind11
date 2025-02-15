@@ -10,9 +10,9 @@ namespace class_release_gil_before_calling_cpp_dtor {
 
 using RegistryType = std::unordered_map<std::string, int>;
 
-RegistryType &PyGILState_Check_Results() {
-    static auto *singleton = new RegistryType();
-    return *singleton;
+static RegistryType &PyGILState_Check_Results() {
+    static RegistryType singleton; // Local static variables have thread-safe initialization.
+    return singleton;
 }
 
 template <int> // Using int as a trick to easily generate a series of types.
