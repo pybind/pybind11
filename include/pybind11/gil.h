@@ -32,8 +32,13 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wredundant-decls"
+
 // forward declarations
 PyThreadState *get_thread_state_unchecked();
+
+#pragma GCC diagnostic pop
 
 PYBIND11_NAMESPACE_END(detail)
 
