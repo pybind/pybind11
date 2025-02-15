@@ -21,9 +21,6 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// forward declarations
-PyThreadState *get_thread_state_unchecked();
-
 PYBIND11_NAMESPACE_END(detail)
 
 #if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
