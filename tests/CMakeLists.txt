@@ -115,6 +115,7 @@ set(PYBIND11_TEST_FILES
     test_callbacks
     test_chrono
     test_class
+    test_class_release_gil_before_calling_cpp_dtor
     test_class_sh_basic
     test_class_sh_disowning
     test_class_sh_disowning_mi
