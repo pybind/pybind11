@@ -217,7 +217,7 @@ jobs:
       run: |
         pip install setuptools
         pytest tests/extra_setuptools
-      if: "!(matrix.runs-on == 'windows-2022')"
+      if: matrix.runs-on != 'windows-2022'
 
   manylinux:
     name: Manylinux on 🐍 3.13t • GIL
