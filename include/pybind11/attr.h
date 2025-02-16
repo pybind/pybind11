@@ -81,6 +81,10 @@ struct dynamic_attr {};
 /// Annotation which enables the buffer protocol for a type
 struct buffer_protocol {};
 
+/// Annotation which enables releasing the GIL before calling the C++ destructor of wrapped
+/// instances (pybind/pybind11#1446).
+struct release_gil_before_calling_cpp_dtor {};
+
 /// Annotation which requests that a special metaclass is created for a type
 struct metaclass {
     handle value;
@@ -272,7 +276,8 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false), is_final(false) {}
+          default_holder(true), module_local(false), is_final(false),
+          release_gil_before_calling_cpp_dtor(false) {}
 
     /// Handle to the parent scope
     handle scope;
@@ -330,6 +335,9 @@ struct type_record {
 
     /// Is the class inheritable from python classes?
     bool is_final : 1;
+
+    /// Solves pybind/pybind11#1446
+    bool release_gil_before_calling_cpp_dtor : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
         auto *base_info = detail::get_type_info(base, false);
@@ -601,6 +609,14 @@ struct process_attribute<metaclass> : process_attribute_default<metaclass> {
 template <>
 struct process_attribute<module_local> : process_attribute_default<module_local> {
     static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
+};
+
+template <>
+struct process_attribute<release_gil_before_calling_cpp_dtor>
+    : process_attribute_default<release_gil_before_calling_cpp_dtor> {
+    static void init(const release_gil_before_calling_cpp_dtor &, type_record *r) {
+        r->release_gil_before_calling_cpp_dtor = true;
+    }
 };
 
 /// Process a 'prepend' attribute, putting this at the beginning of the overload chain
