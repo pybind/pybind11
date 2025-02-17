@@ -5,8 +5,8 @@
 #pragma once
 
 #include "pybind11.h"
-static_assert(PYBIND11_INTERNALS_VERSION >= 6,
-              "pybind11 ABI version 6 is required for smart_holder functionality.");
+static_assert(PYBIND11_INTERNALS_VERSION == 106,
+              "pybind11 ABI version 106 is required for smart_holder functionality.");
 
 // Legacy macros introduced with smart_holder_type_casters implementation in 2021.
 // Deprecated.
