@@ -115,6 +115,7 @@ set(PYBIND11_TEST_FILES
     test_callbacks
     test_chrono
     test_class
+    test_class_release_gil_before_calling_cpp_dtor
     test_const_name
     test_constants_and_functions
     test_copy_move

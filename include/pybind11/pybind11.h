@@ -1665,7 +1665,6 @@ public:
         record.type_align = alignof(conditional_t<has_alias, type_alias, type> &);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
-        record.dealloc = dealloc;
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         set_operator_new<type>(&record);
@@ -1675,6 +1674,12 @@ public:
 
         /* Process optional arguments, if any */
         process_attributes<Extra...>::init(extra..., &record);
+
+        if (record.release_gil_before_calling_cpp_dtor) {
+            record.dealloc = dealloc_release_gil_before_calling_cpp_dtor;
+        } else {
+            record.dealloc = dealloc_without_manipulating_gil;
+        }
 
         generic_type::initialize(record);
 
@@ -1996,15 +2001,14 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
-    /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
-    static void dealloc(detail::value_and_holder &v_h) {
-        // We could be deallocating because we are cleaning up after a Python exception.
-        // If so, the Python error indicator will be set. We need to clear that before
-        // running the destructor, in case the destructor code calls more Python.
-        // If we don't, the Python API will exit with an exception, and pybind11 will
-        // throw error_already_set from the C++ destructor which is forbidden and triggers
-        // std::terminate().
-        error_scope scope;
+    // Deallocates an instance; via holder, if constructed; otherwise via operator delete.
+    // NOTE: The Python error indicator needs to cleared BEFORE this function is called.
+    // This is because we could be deallocating while cleaning up after a Python exception.
+    // If the error indicator is not cleared but the C++ destructor code makes Python C API
+    // calls, those calls are likely to generate a new exception, and pybind11 will then
+    // throw `error_already_set` from the C++ destructor. This is forbidden and will
+    // trigger std::terminate().
+    static void dealloc_impl(detail::value_and_holder &v_h) {
         if (v_h.holder_constructed()) {
             v_h.holder<holder_type>().~holder_type();
             v_h.set_holder_constructed(false);
@@ -2013,6 +2017,32 @@ private:
                 v_h.value_ptr<type>(), v_h.type->type_size, v_h.type->type_align);
         }
         v_h.value_ptr() = nullptr;
+    }
+
+    static void dealloc_without_manipulating_gil(detail::value_and_holder &v_h) {
+        error_scope scope;
+        dealloc_impl(v_h);
+    }
+
+    static void dealloc_release_gil_before_calling_cpp_dtor(detail::value_and_holder &v_h) {
+        error_scope scope;
+        // Intentionally not using `gil_scoped_release` because the non-simple
+        // version unconditionally calls `get_internals()`.
+        // `Py_BEGIN_ALLOW_THREADS`, `Py_END_ALLOW_THREADS` cannot be used
+        // because those macros include `{` and `}`.
+        PyThreadState *py_ts = PyEval_SaveThread();
+        try {
+            dealloc_impl(v_h);
+        } catch (...) {
+            // This code path is expected to be unreachable unless there is a
+            // bug in pybind11 itself.
+            // An alternative would be to mark this function, or
+            // `dealloc_impl()`, with `nothrow`, but that would be a subtle
+            // behavior change and could make debugging more difficult.
+            PyEval_RestoreThread(py_ts);
+            throw;
+        }
+        PyEval_RestoreThread(py_ts);
     }
 
     static detail::function_record *get_function_record(handle h) {
