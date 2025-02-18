@@ -22,6 +22,8 @@
 // Additional convention: 0xD = dev
 #define PYBIND11_VERSION_HEX 0x030000D1
 
+#define PYBIND11_SMART_HOLDER_ENABLED // TODO(rwgk): purge
+
 // Define some generic pybind11 helper macros for warning management.
 //
 // Note that compiler-specific push/pop pairs are baked into the
@@ -605,11 +607,8 @@ struct instance {
     bool simple_instance_registered : 1;
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
-// Cannot use PYBIND11_INTERNALS_VERSION >= 106 here without refactoring.
-#if PYBIND11_VERSION_MAJOR >= 3
     /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
     bool is_alias : 1;
-#endif
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)

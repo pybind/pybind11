@@ -37,15 +37,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PYBIND11_VERSION_MAJOR >= 3
-#        define PYBIND11_INTERNALS_VERSION 106
-#    else
-#        define PYBIND11_INTERNALS_VERSION 6
-#    endif
+#    define PYBIND11_INTERNALS_VERSION 7
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 6
-#    error "PYBIND11_INTERNALS_VERSION 6 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 7
+#    error "PYBIND11_INTERNALS_VERSION 7 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -215,10 +211,6 @@ struct internals {
     }
 };
 
-#if PYBIND11_INTERNALS_VERSION >= 106
-
-#    define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
-
 enum class holder_enum_t : uint8_t {
     undefined,
     std_unique_ptr, // Default, lacking interop with std::shared_ptr.
@@ -226,13 +218,6 @@ enum class holder_enum_t : uint8_t {
     smart_holder,   // Full std::unique_ptr / std::shared_ptr interop.
     custom_holder,
 };
-
-#endif
-
-#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)                                     \
-    && !defined(PYBIND11_SMART_HOLDER_DISABLE)
-#    define PYBIND11_SMART_HOLDER_ENABLED
-#endif
 
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
@@ -262,9 +247,7 @@ struct type_info {
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
-#endif
 };
 
 #define PYBIND11_INTERNALS_ID                                                                     \

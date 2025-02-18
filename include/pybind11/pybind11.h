@@ -1448,9 +1448,7 @@ protected:
         tinfo->simple_ancestors = true;
         tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         tinfo->holder_enum_v = rec.holder_enum_v;
-#endif
 
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
