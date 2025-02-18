@@ -3,7 +3,6 @@
 #pragma once
 
 #include "detail/common.h"
-#include "detail/type_caster_base.h"
 #include "gil.h"
 
 #include <cassert>
