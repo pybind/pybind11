@@ -4,9 +4,6 @@ import pytest
 
 from pybind11_tests import class_sh_factory_constructors as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 def test_atyp_factories():
     assert m.atyp_valu().get_mtxt() == "Valu"

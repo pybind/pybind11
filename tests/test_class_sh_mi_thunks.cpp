@@ -35,17 +35,7 @@ struct Derived : Base1, Base0 {
 
 } // namespace test_class_sh_mi_thunks
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base0)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Derived)
-
 TEST_SUBMODULE(class_sh_mi_thunks, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     using namespace test_class_sh_mi_thunks;
 
     m.def("ptrdiff_drvd_base0", []() {
@@ -103,5 +93,4 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
         }
         return obj_der->vec.size();
     });
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

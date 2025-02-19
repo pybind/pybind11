@@ -36,21 +36,7 @@ private:
     std::unique_ptr<pointee> ptr_;
 };
 
-} // namespace class_sh_unique_ptr_member
-} // namespace pybind11_tests
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_unique_ptr_member::pointee)
-
-namespace pybind11_tests {
-namespace class_sh_unique_ptr_member {
-
 TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     py::classh<pointee>(m, "pointee").def(py::init<>()).def("get_int", &pointee::get_int);
 
     m.def("make_unique_pointee", make_unique_pointee);
@@ -60,7 +46,6 @@ TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
         .def("is_owner", &ptr_owner::is_owner)
         .def("give_up_ownership_via_unique_ptr", &ptr_owner::give_up_ownership_via_unique_ptr)
         .def("give_up_ownership_via_shared_ptr", &ptr_owner::give_up_ownership_via_shared_ptr);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
 
 } // namespace class_sh_unique_ptr_member

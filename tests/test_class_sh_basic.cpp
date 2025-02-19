@@ -144,24 +144,7 @@ class LocalUnusualOpRef : UnusualOpRef {}; // To avoid clashing with `py::class_
 py::object CastUnusualOpRefConstRef(const LocalUnusualOpRef &cref) { return py::cast(cref); }
 py::object CastUnusualOpRefMovable(LocalUnusualOpRef &&mvbl) { return py::cast(std::move(mvbl)); }
 
-} // namespace class_sh_basic
-} // namespace pybind11_tests
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::atyp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::uconsumer)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::SharedPtrStash)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::LocalUnusualOpRef)
-
-namespace pybind11_tests {
-namespace class_sh_basic {
-
 TEST_SUBMODULE(class_sh_basic, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     namespace py = pybind11;
 
     py::classh<atyp>(m, "atyp").def(py::init<>()).def(py::init([](const std::string &mtxt) {
@@ -260,7 +243,6 @@ TEST_SUBMODULE(class_sh_basic, m) {
           []() { return CastUnusualOpRefConstRef(LocalUnusualOpRef()); });
     m.def("CallCastUnusualOpRefMovable",
           []() { return CastUnusualOpRefMovable(LocalUnusualOpRef()); });
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
 
 } // namespace class_sh_basic

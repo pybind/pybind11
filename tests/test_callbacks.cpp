@@ -269,12 +269,7 @@ TEST_SUBMODULE(callbacks, m) {
     rec_capsule.set_name(rec_capsule_name);
     m.add_object("custom_function", PyCFunction_New(custom_def, rec_capsule.ptr()));
 
-    // This test requires a new ABI version to pass
-#if PYBIND11_INTERNALS_VERSION > 4 && !defined(GRAALVM_PYTHON)
     // rec_capsule with nullptr name
     py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
     m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule2.ptr()));
-#else
-    m.add_object("custom_function2", py::none());
-#endif
 }

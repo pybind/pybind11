@@ -47,11 +47,7 @@ private:
 
     // Store stack pointer in thread-local storage.
     static PYBIND11_TLS_KEY_REF get_stack_tls_key() {
-#if PYBIND11_INTERNALS_VERSION == 4
-        return get_local_internals().loader_life_support_tls_key;
-#else
         return get_internals().loader_life_support_tls_key;
-#endif
     }
     static loader_life_support *get_stack_top() {
         return static_cast<loader_life_support *>(PYBIND11_TLS_GET_VALUE(get_stack_tls_key()));
@@ -515,8 +511,6 @@ inline PyThreadState *get_thread_state_unchecked() {
 void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
 // PYBIND11:REMINDER: Needs refactoring of existing pybind11 code.
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
@@ -872,8 +866,6 @@ struct load_helper : value_and_holder_helper {
 
 PYBIND11_NAMESPACE_END(smart_holder_type_caster_support)
 
-#endif // PYBIND11_SMART_HOLDER_ENABLED
-
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE explicit type_caster_generic(const std::type_info &type_info)
@@ -978,7 +970,6 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             smart_holder_type_caster_support::value_and_holder_helper v_h_helper;
             v_h_helper.loaded_v_h = v_h;
@@ -988,7 +979,6 @@ public:
                 return;
             }
         }
-#endif
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {

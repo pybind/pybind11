@@ -198,8 +198,6 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     v_h.value_ptr() = new Alias<Class>(std::move(result));
 }
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
 template <typename T, typename D>
 smart_holder init_smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                                bool void_cast_raw_ptr) {
@@ -267,8 +265,6 @@ void construct(value_and_holder &v_h,
     v_h.value_ptr() = ptr;
     v_h.type->init_instance(v_h.inst, &smhldr);
 }
-
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 
 // Implementing class for py::init<...>()
 template <typename... Args>

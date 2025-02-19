@@ -217,9 +217,7 @@ def test_custom_func():
     assert m.roundtrip(m.custom_function)(4) == 36
 
 
-@pytest.mark.skipif(
-    m.custom_function2 is None, reason="Current PYBIND11_INTERNALS_VERSION too low"
-)
+@pytest.mark.skipif("env.GRAALPY", reason="TODO debug segfault")
 def test_custom_func2():
     assert m.custom_function2(3) == 27
     assert m.roundtrip(m.custom_function2)(3) == 27

@@ -51,8 +51,6 @@ def test_instance_new():
 
 def test_pass_unique_ptr():
     obj = m.ToBeHeldByUniquePtr()
-    if m.pass_unique_ptr is None:
-        pytest.skip("smart_holder not available.")
     with pytest.raises(RuntimeError) as execinfo:
         m.pass_unique_ptr(obj)
     assert str(execinfo.value).startswith(

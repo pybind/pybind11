@@ -1448,9 +1448,7 @@ protected:
         tinfo->simple_ancestors = true;
         tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
-#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
         tinfo->holder_enum_v = rec.holder_enum_v;
-#endif
 
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
@@ -1665,8 +1663,6 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T, typename D, typename SFINAE = void>
 struct property_cpp_function : detail::property_cpp_function_classic<T, D> {};
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T, typename D, typename SFINAE = void>
@@ -1844,9 +1840,7 @@ struct property_cpp_function<
         detail::both_t_and_d_use_type_caster_base<T, typename D::element_type>>::value>>
     : detail::property_cpp_function_sh_unique_ptr_member<T, D> {};
 
-#endif // PYBIND11_SMART_HOLDER_ENABLED
-
-#if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT) && defined(PYBIND11_SMART_HOLDER_ENABLED)
+#if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)
 // NOTE: THIS IS MEANT FOR STRESS-TESTING ONLY!
 //       As of PR #5257, for production use, there is no longer a strong reason to make
 //       smart_holder the default holder:
@@ -1854,7 +1848,6 @@ struct property_cpp_function<
 //       Running the pybind11 unit tests with smart_holder as the default holder is to ensure
 //       that `py::smart_holder` / `py::classh` is backward-compatible with all pre-existing
 //       functionality.
-#    define PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
 template <typename>
 using default_holder_type = smart_holder;
 #else
@@ -1913,7 +1906,6 @@ public:
         // A more fitting name would be uses_unique_ptr_holder.
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
         if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
             record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
         } else if (detail::is_instantiation<std::shared_ptr, holder_type>::value) {
@@ -1923,7 +1915,6 @@ public:
         } else {
             record.holder_enum_v = detail::holder_enum_t::custom_holder;
         }
-#endif
 
         set_operator_new<type>(&record);
 
@@ -2265,8 +2256,6 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
     template <typename WrappedType>
     static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
         return false;
@@ -2325,8 +2314,6 @@ private:
         }
         v_h.set_holder_constructed();
     }
-
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 
     // Deallocates an instance; via holder, if constructed; otherwise via operator delete.
     // NOTE: The Python error indicator needs to cleared BEFORE this function is called.
@@ -2393,8 +2380,6 @@ private:
     }
 };
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
 // Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
 // users can simply replace the `_` in `class_` with `h` or vice versa.
 template <typename type_, typename... options>
@@ -2402,8 +2387,6 @@ class classh : public class_<type_, smart_holder, options...> {
 public:
     using class_<type_, smart_holder, options...>::class_;
 };
-
-#endif
 
 /// Binds an existing constructor taking arguments Args...
 template <typename... Args>
