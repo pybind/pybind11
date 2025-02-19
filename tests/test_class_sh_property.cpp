@@ -46,11 +46,6 @@ struct WithConstCharPtrMember {
 
 } // namespace test_class_sh_property
 
-PYBIND11_TYPE_CASTER_BASE_HOLDER(test_class_sh_property::ClassicField,
-                                 std::unique_ptr<test_class_sh_property::ClassicField>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(test_class_sh_property::ClassicOuter,
-                                 std::unique_ptr<test_class_sh_property::ClassicOuter>)
-
 TEST_SUBMODULE(class_sh_property, m) {
     using namespace test_class_sh_property;
 

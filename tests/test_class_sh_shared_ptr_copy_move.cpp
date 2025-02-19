@@ -41,12 +41,6 @@ struct Outer {
 };
 
 } // namespace
-} // namespace pybind11_tests
-
-PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::FooShPtr,
-                                 std::shared_ptr<pybind11_tests::FooShPtr>)
-
-namespace pybind11_tests {
 
 TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
     namespace py = pybind11;
