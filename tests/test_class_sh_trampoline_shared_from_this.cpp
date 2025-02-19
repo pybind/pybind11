@@ -109,9 +109,6 @@ std::shared_ptr<Sft> pass_through_shd_ptr(const std::shared_ptr<Sft> &obj) { ret
 
 using namespace pybind11_tests::class_sh_trampoline_shared_from_this;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
-
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     py::classh<Sft, SftTrampoline>(m, "Sft")
         .def(py::init<const std::string &>())

@@ -46,10 +46,6 @@ public:
 
 using namespace test_class_sh_property_non_owning;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(CoreField)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(DataField)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(DataFieldsHolder)
-
 TEST_SUBMODULE(class_sh_property_non_owning, m) {
     py::classh<CoreField>(m, "CoreField").def_readwrite("int_value", &CoreField::int_value);
 

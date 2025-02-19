@@ -47,8 +47,6 @@ struct Big5Trampoline : Big5, py::trampoline_self_life_support {
 
 using namespace pybind11_tests::class_sh_trampoline_self_life_support;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Big5)
-
 TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
     py::classh<Big5, Big5Trampoline>(m, "Big5")
         .def(py::init<std::string>())

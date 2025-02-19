@@ -36,14 +36,6 @@ private:
     std::unique_ptr<pointee> ptr_;
 };
 
-} // namespace class_sh_unique_ptr_member
-} // namespace pybind11_tests
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_unique_ptr_member::pointee)
-
-namespace pybind11_tests {
-namespace class_sh_unique_ptr_member {
-
 TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
     py::classh<pointee>(m, "pointee").def(py::init<>()).def("get_int", &pointee::get_int);
 

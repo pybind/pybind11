@@ -45,7 +45,6 @@ struct Outer {
 
 PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::FooShPtr,
                                  std::shared_ptr<pybind11_tests::FooShPtr>)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::FooSmHld)
 
 namespace pybind11_tests {
 

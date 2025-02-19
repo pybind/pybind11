@@ -22,14 +22,6 @@ private:
     explicit Pet(const std::string &name) : name(name) {}
 };
 
-} // namespace class_sh_unique_ptr_custom_deleter
-} // namespace pybind11_tests
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_unique_ptr_custom_deleter::Pet)
-
-namespace pybind11_tests {
-namespace class_sh_unique_ptr_custom_deleter {
-
 TEST_SUBMODULE(class_sh_unique_ptr_custom_deleter, m) {
     py::classh<Pet>(m, "Pet").def_readwrite("name", &Pet::name);
 

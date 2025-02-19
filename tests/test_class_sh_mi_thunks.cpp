@@ -35,10 +35,6 @@ struct Derived : Base1, Base0 {
 
 } // namespace test_class_sh_mi_thunks
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base0)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_mi_thunks::Derived)
-
 TEST_SUBMODULE(class_sh_mi_thunks, m) {
     using namespace test_class_sh_mi_thunks;
 

@@ -51,12 +51,6 @@ PYBIND11_TYPE_CASTER_BASE_HOLDER(test_class_sh_property::ClassicField,
 PYBIND11_TYPE_CASTER_BASE_HOLDER(test_class_sh_property::ClassicOuter,
                                  std::unique_ptr<test_class_sh_property::ClassicOuter>)
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::Field)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::Outer)
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithCharArrayMember)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithConstCharPtrMember)
-
 TEST_SUBMODULE(class_sh_property, m) {
     using namespace test_class_sh_property;
 

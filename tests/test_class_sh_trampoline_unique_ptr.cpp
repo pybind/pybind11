@@ -34,8 +34,6 @@ private:
 } // namespace class_sh_trampoline_unique_ptr
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_unique_ptr::Class)
-
 namespace pybind11_tests {
 namespace class_sh_trampoline_unique_ptr {
 

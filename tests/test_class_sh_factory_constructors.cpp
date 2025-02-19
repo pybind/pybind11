@@ -72,20 +72,6 @@ struct sddwaa : std::default_delete<with_alias_alias> {};
 } // namespace class_sh_factory_constructors
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_valu)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_rref)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_cref)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_mref)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_cptr)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_mptr)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_shmp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_shcp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_uqmp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_uqcp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_udmp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::atyp_udcp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::with_alias)
-
 TEST_SUBMODULE(class_sh_factory_constructors, m) {
     using namespace pybind11_tests::class_sh_factory_constructors;
 

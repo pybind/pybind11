@@ -78,9 +78,6 @@ void wrap(py::module_ m, const char *py_class_name) {
 
 using namespace pybind11_tests::class_sh_trampoline_basic;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Abase<0>)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Abase<1>)
-
 TEST_SUBMODULE(class_sh_trampoline_basic, m) {
     wrap<0>(m, "Abase0");
     wrap<1>(m, "Abase1");

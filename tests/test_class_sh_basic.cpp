@@ -144,17 +144,6 @@ class LocalUnusualOpRef : UnusualOpRef {}; // To avoid clashing with `py::class_
 py::object CastUnusualOpRefConstRef(const LocalUnusualOpRef &cref) { return py::cast(cref); }
 py::object CastUnusualOpRefMovable(LocalUnusualOpRef &&mvbl) { return py::cast(std::move(mvbl)); }
 
-} // namespace class_sh_basic
-} // namespace pybind11_tests
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::atyp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::uconsumer)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::SharedPtrStash)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::LocalUnusualOpRef)
-
-namespace pybind11_tests {
-namespace class_sh_basic {
-
 TEST_SUBMODULE(class_sh_basic, m) {
     namespace py = pybind11;
 
