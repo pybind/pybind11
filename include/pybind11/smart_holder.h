@@ -6,6 +6,11 @@
 
 #include "pybind11.h"
 
+#if !defined(PYBIND11_SMART_HOLDER_DISABLE)
+static_assert(PYBIND11_INTERNALS_VERSION >= 106,
+              "pybind11 ABI version 106 is required for smart_holder functionality.");
+#endif
+
 // Legacy macros introduced with smart_holder_type_casters implementation in 2021.
 // Deprecated.
 #define PYBIND11_TYPE_CASTER_BASE_HOLDER(...)
