@@ -22,8 +22,6 @@
 // Additional convention: 0xD = dev
 #define PYBIND11_VERSION_HEX 0x030000D1
 
-#define PYBIND11_SMART_HOLDER_ENABLED // TODO(rwgk): purge
-
 // Define some generic pybind11 helper macros for warning management.
 //
 // Note that compiler-specific push/pop pairs are baked into the
