@@ -1848,7 +1848,6 @@ struct property_cpp_function<
 //       Running the pybind11 unit tests with smart_holder as the default holder is to ensure
 //       that `py::smart_holder` / `py::classh` is backward-compatible with all pre-existing
 //       functionality.
-#    define PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
 template <typename>
 using default_holder_type = smart_holder;
 #else
