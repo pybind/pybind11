@@ -4,13 +4,9 @@
 
 #pragma once
 
-#include "detail/internals.h"
-
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
-#    include "detail/common.h"
-#    include "detail/using_smart_holder.h"
-#    include "detail/value_and_holder.h"
+#include "detail/common.h"
+#include "detail/using_smart_holder.h"
+#include "detail/value_and_holder.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -62,5 +58,3 @@ struct trampoline_self_life_support {
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
-
-#endif // PYBIND11_SMART_HOLDER_ENABLED
