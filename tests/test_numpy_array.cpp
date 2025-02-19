@@ -586,4 +586,13 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("return_array_pyobject_ptr_from_list", return_array_from_list<PyObject *>);
     sm.def("return_array_handle_from_list", return_array_from_list<py::handle>);
     sm.def("return_array_object_from_list", return_array_from_list<py::object>);
+
+    sm.def(
+        "round_trip_array_t",
+        [](const py::array_t<float> &x) -> py::array_t<float> { return x; },
+        py::arg("x"));
+    sm.def(
+        "round_trip_array_t_noconvert",
+        [](const py::array_t<float> &x) -> py::array_t<float> { return x; },
+        py::arg("x").noconvert());
 }
