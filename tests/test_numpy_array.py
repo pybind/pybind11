@@ -321,13 +321,13 @@ def test_overload_resolution(msg):
         msg(excinfo.value)
         == """
         overloaded(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.float64]) -> str
-            2. (arg0: numpy.ndarray[numpy.float32]) -> str
-            3. (arg0: numpy.ndarray[numpy.int32]) -> str
-            4. (arg0: numpy.ndarray[numpy.uint16]) -> str
-            5. (arg0: numpy.ndarray[numpy.int64]) -> str
-            6. (arg0: numpy.ndarray[numpy.complex128]) -> str
-            7. (arg0: numpy.ndarray[numpy.complex64]) -> str
+            1. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -> str
+            2. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32]) -> str
+            3. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int32]) -> str
+            4. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.uint16]) -> str
+            5. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int64]) -> str
+            6. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.complex128]) -> str
+            7. (arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.complex64]) -> str
 
         Invoked with: 'not an array'
     """
@@ -343,8 +343,8 @@ def test_overload_resolution(msg):
     assert m.overloaded3(np.array([1], dtype="intc")) == "int"
     expected_exc = """
         overloaded3(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.int32]) -> str
-            2. (arg0: numpy.ndarray[numpy.float64]) -> str
+            1. (arg0: numpy.typing.NDArray[numpy.int32]) -> str
+            2. (arg0: numpy.typing.NDArray[numpy.float64]) -> str
 
         Invoked with: """
 
@@ -528,7 +528,7 @@ def test_index_using_ellipsis():
     ],
 )
 def test_format_descriptors_for_floating_point_types(test_func):
-    assert "numpy.ndarray[numpy.float" in test_func.__doc__
+    assert "numpy.typing.ArrayLike, numpy.float" in test_func.__doc__
 
 
 @pytest.mark.parametrize("forcecast", [False, True])
@@ -687,3 +687,17 @@ def test_return_array_object_cpp_loop(return_array, unwrap):
     assert isinstance(arr_from_list, np.ndarray)
     assert arr_from_list.dtype == np.dtype("O")
     assert unwrap(arr_from_list) == [6, "seven", -8.0]
+
+
+def test_arraylike_signature(doc):
+    assert (
+        doc(m.round_trip_array_t)
+        == "round_trip_array_t(x: typing.Annotated[numpy.typing.ArrayLike, numpy.float32]) -> numpy.typing.NDArray[numpy.float32]"
+    )
+    assert (
+        doc(m.round_trip_array_t_noconvert)
+        == "round_trip_array_t_noconvert(x: numpy.typing.NDArray[numpy.float32]) -> numpy.typing.NDArray[numpy.float32]"
+    )
+    m.round_trip_array_t([1, 2, 3])
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_array_t_noconvert([1, 2, 3])
