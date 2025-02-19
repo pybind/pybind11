@@ -87,12 +87,6 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_factory_constructors::with_alias)
 
 TEST_SUBMODULE(class_sh_factory_constructors, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     using namespace pybind11_tests::class_sh_factory_constructors;
 
     py::classh<atyp_valu>(m, "atyp_valu")
@@ -183,5 +177,4 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
                       [](int, int, int, int, int) {
                           return std::make_shared<with_alias>(); // Invalid alias factory.
                       }));
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

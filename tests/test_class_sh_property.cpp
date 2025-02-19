@@ -58,12 +58,6 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithCharArrayMember)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(test_class_sh_property::WithConstCharPtrMember)
 
 TEST_SUBMODULE(class_sh_property, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     using namespace test_class_sh_property;
 
     py::class_<ClassicField, std::unique_ptr<ClassicField>>(m, "ClassicField")
@@ -109,5 +103,4 @@ TEST_SUBMODULE(class_sh_property, m) {
     py::classh<WithConstCharPtrMember>(m, "WithConstCharPtrMember")
         .def(py::init<>())
         .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

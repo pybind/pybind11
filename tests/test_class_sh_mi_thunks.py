@@ -4,9 +4,6 @@ import pytest
 
 from pybind11_tests import class_sh_mi_thunks as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 def test_ptrdiff_drvd_base0():
     ptrdiff = m.ptrdiff_drvd_base0()

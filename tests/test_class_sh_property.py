@@ -7,9 +7,6 @@ import pytest
 import env  # noqa: F401
 from pybind11_tests import class_sh_property as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 @pytest.mark.skipif(
     "env.PYPY or env.GRAALPY", reason="gc after `del field` is apparently deferred"
