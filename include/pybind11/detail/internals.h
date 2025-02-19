@@ -234,6 +234,7 @@ struct type_info {
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
@@ -241,13 +242,8 @@ struct type_info {
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
-    /* for base vs derived holder_type checks */
-    // SMART_HOLDER_BAKEIN_FOLLOW_ON: Remove default_holder member here and
-    // produce better error messages in the places where it is currently used.
-    bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
-    holder_enum_t holder_enum_v = holder_enum_t::undefined;
 };
 
 #define PYBIND11_INTERNALS_ID                                                                     \
