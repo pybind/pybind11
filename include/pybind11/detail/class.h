@@ -497,8 +497,6 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     Py_DECREF(type);
 }
 
-std::string error_string();
-
 /** Create the type which can be used as a common base for all classes.  This is
     needed in order to satisfy Python's requirements for multiple inheritance.
     Return value: New reference. */
