@@ -359,8 +359,7 @@ struct type_record {
 
         bases.append((PyObject *) base_info->type);
 
-// Keep in sync with enable_dynamic_attributes() in detail/class.h
-#if PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION)
+#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
         dynamic_attr |= base_info->type->tp_dictoffset != 0;
 #else
         dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
