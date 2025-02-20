@@ -43,11 +43,7 @@ private:
 
     // Store stack pointer in thread-local storage.
     static PYBIND11_TLS_KEY_REF get_stack_tls_key() {
-#if PYBIND11_INTERNALS_VERSION == 4
-        return get_local_internals().loader_life_support_tls_key;
-#else
         return get_internals().loader_life_support_tls_key;
-#endif
     }
     static loader_life_support *get_stack_top() {
         return static_cast<loader_life_support *>(PYBIND11_TLS_GET_VALUE(get_stack_tls_key()));
