@@ -1446,7 +1446,6 @@ protected:
         tinfo->dealloc = rec.dealloc;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
-        tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
         tinfo->holder_enum_v = rec.holder_enum_v;
 
@@ -1902,9 +1901,6 @@ public:
         record.type_align = alignof(conditional_t<has_alias, type_alias, type> &);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
-
-        // A more fitting name would be uses_unique_ptr_holder.
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
             record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
