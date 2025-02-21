@@ -23,6 +23,7 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <stack>
 #include <tuple>
 #include <type_traits>
 #include <utility>
