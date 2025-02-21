@@ -521,10 +521,14 @@ def test_overload_ordering():
     assert m.overload_order("string") == 1
     assert m.overload_order(0) == 4
 
-    assert "1. overload_order(arg0: typing.SupportsInt) -> int" in m.overload_order.__doc__
+    assert (
+        "1. overload_order(arg0: typing.SupportsInt) -> int" in m.overload_order.__doc__
+    )
     assert "2. overload_order(arg0: str) -> int" in m.overload_order.__doc__
     assert "3. overload_order(arg0: str) -> int" in m.overload_order.__doc__
-    assert "4. overload_order(arg0: typing.SupportsInt) -> int" in m.overload_order.__doc__
+    assert (
+        "4. overload_order(arg0: typing.SupportsInt) -> int" in m.overload_order.__doc__
+    )
 
     with pytest.raises(TypeError) as err:
         m.overload_order(1.1)

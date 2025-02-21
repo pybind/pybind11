@@ -7,13 +7,31 @@ from pybind11_tests import kwargs_and_defaults as m
 
 
 def test_function_signatures(doc):
-    assert doc(m.kw_func0) == "kw_func0(arg0: typing.SupportsInt, arg1: typing.SupportsInt) -> str"
-    assert doc(m.kw_func1) == "kw_func1(x: typing.SupportsInt, y: typing.SupportsInt) -> str"
-    assert doc(m.kw_func2) == "kw_func2(x: typing.SupportsInt = 100, y: typing.SupportsInt = 200) -> str"
+    assert (
+        doc(m.kw_func0)
+        == "kw_func0(arg0: typing.SupportsInt, arg1: typing.SupportsInt) -> str"
+    )
+    assert (
+        doc(m.kw_func1)
+        == "kw_func1(x: typing.SupportsInt, y: typing.SupportsInt) -> str"
+    )
+    assert (
+        doc(m.kw_func2)
+        == "kw_func2(x: typing.SupportsInt = 100, y: typing.SupportsInt = 200) -> str"
+    )
     assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
-    assert doc(m.kw_func4) == "kw_func4(myList: list[typing.SupportsInt] = [13, 17]) -> str"
-    assert doc(m.kw_func_udl) == "kw_func_udl(x: typing.SupportsInt, y: typing.SupportsInt = 300) -> str"
-    assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: typing.SupportsInt, y: typing.SupportsInt = 0) -> str"
+    assert (
+        doc(m.kw_func4)
+        == "kw_func4(myList: list[typing.SupportsInt] = [13, 17]) -> str"
+    )
+    assert (
+        doc(m.kw_func_udl)
+        == "kw_func_udl(x: typing.SupportsInt, y: typing.SupportsInt = 300) -> str"
+    )
+    assert (
+        doc(m.kw_func_udl_z)
+        == "kw_func_udl_z(x: typing.SupportsInt, y: typing.SupportsInt = 0) -> str"
+    )
     assert doc(m.args_function) == "args_function(*args) -> tuple"
     assert (
         doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
@@ -374,10 +392,22 @@ def test_positional_only_args():
 
 
 def test_signatures():
-    assert m.kw_only_all.__doc__ == "kw_only_all(*, i: typing.SupportsInt, j: typing.SupportsInt) -> tuple\n"
-    assert m.kw_only_mixed.__doc__ == "kw_only_mixed(i: typing.SupportsInt, *, j: typing.SupportsInt) -> tuple\n"
-    assert m.pos_only_all.__doc__ == "pos_only_all(i: typing.SupportsInt, j: typing.SupportsInt, /) -> tuple\n"
-    assert m.pos_only_mix.__doc__ == "pos_only_mix(i: typing.SupportsInt, /, j: typing.SupportsInt) -> tuple\n"
+    assert (
+        m.kw_only_all.__doc__
+        == "kw_only_all(*, i: typing.SupportsInt, j: typing.SupportsInt) -> tuple\n"
+    )
+    assert (
+        m.kw_only_mixed.__doc__
+        == "kw_only_mixed(i: typing.SupportsInt, *, j: typing.SupportsInt) -> tuple\n"
+    )
+    assert (
+        m.pos_only_all.__doc__
+        == "pos_only_all(i: typing.SupportsInt, j: typing.SupportsInt, /) -> tuple\n"
+    )
+    assert (
+        m.pos_only_mix.__doc__
+        == "pos_only_mix(i: typing.SupportsInt, /, j: typing.SupportsInt) -> tuple\n"
+    )
     assert (
         m.pos_kw_only_mix.__doc__
         == "pos_kw_only_mix(i: typing.SupportsInt, /, j: typing.SupportsInt, *, k: typing.SupportsInt) -> tuple\n"

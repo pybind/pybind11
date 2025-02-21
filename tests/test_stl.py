@@ -64,7 +64,9 @@ def test_valarray(doc):
     assert m.load_valarray(tuple(lst))
 
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
-    assert doc(m.load_valarray) == "load_valarray(arg0: list[typing.SupportsInt]) -> bool"
+    assert (
+        doc(m.load_valarray) == "load_valarray(arg0: list[typing.SupportsInt]) -> bool"
+    )
 
 
 def test_map(doc):
@@ -325,7 +327,8 @@ def test_variant(doc):
     assert m.cast_variant() == (5, "Hello")
 
     assert (
-        doc(m.load_variant) == "load_variant(arg0: Union[typing.SupportsInt, str, typing.SupportsFloat, None]) -> str"
+        doc(m.load_variant)
+        == "load_variant(arg0: Union[typing.SupportsInt, str, typing.SupportsFloat, None]) -> str"
     )
 
 

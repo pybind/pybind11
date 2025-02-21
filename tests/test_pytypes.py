@@ -942,7 +942,10 @@ def test_dict_annotations(doc):
 
 
 def test_list_annotations(doc):
-    assert doc(m.annotate_list_int) == "annotate_list_int(arg0: list[typing.SupportsInt]) -> None"
+    assert (
+        doc(m.annotate_list_int)
+        == "annotate_list_int(arg0: list[typing.SupportsInt]) -> None"
+    )
 
 
 def test_set_annotations(doc):
@@ -978,7 +981,9 @@ def test_fn_return_only(doc):
 
 
 def test_type_annotation(doc):
-    assert doc(m.annotate_type) == "annotate_type(arg0: type[typing.SupportsInt]) -> type"
+    assert (
+        doc(m.annotate_type) == "annotate_type(arg0: type[typing.SupportsInt]) -> type"
+    )
 
 
 def test_union_annotations(doc):
@@ -1182,7 +1187,9 @@ def test_class_attribute_types() -> None:
 
     assert empty_annotations is None
     assert static_annotations["x"] == "ClassVar[typing.SupportsFloat]"
-    assert static_annotations["dict_str_int"] == "ClassVar[dict[str, typing.SupportsInt]]"
+    assert (
+        static_annotations["dict_str_int"] == "ClassVar[dict[str, typing.SupportsInt]]"
+    )
 
     assert m.Static.x == 1.0
 

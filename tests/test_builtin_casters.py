@@ -322,7 +322,6 @@ def test_int_convert(doc):
 
 
 def test_float_convert(doc):
-
     class Float:
         def __float__(self):
             return 41.45

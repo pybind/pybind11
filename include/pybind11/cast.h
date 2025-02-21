@@ -241,7 +241,9 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T, io_name<std::is_integral<T>::value>("typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
+    PYBIND11_TYPE_CASTER(T,
+                         io_name<std::is_integral<T>::value>(
+                             "typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
 };
 
 template <typename T>
@@ -1345,8 +1347,8 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     if (ann.contains(key)) {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
-    
-    const char* text = make_caster<T>::name.text;
+
+    const char *text = make_caster<T>::name.text;
 
     std::string signature;
     // `is_return_value.top()` is true if we are currently inside the return type of the
@@ -1363,8 +1365,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
         if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
             // typing::Literal escapes special characters with !
             signature += *++pc;
-        }
-        else if (c == '@') {
+        } else if (c == '@') {
             // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
             // typing::Callable/detail::arg_descr/detail::return_descr)
             if (*(pc + 1) == '^') {
@@ -1407,8 +1408,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
                     signature += *pc++;
                 }
             }
-        }
-        else{
+        } else {
             signature += c;
         }
     }
