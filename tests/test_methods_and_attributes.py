@@ -251,7 +251,7 @@ def test_no_mixed_overloads():
             "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
             if not detailed_error_messages_enabled
             else "error while attempting to bind static method ExampleMandA.overload_mixed1"
-            "(arg0: float) -> str"
+            "(arg0: typing.SupportsFloat) -> str"
         )
     )
 
