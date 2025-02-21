@@ -138,7 +138,7 @@ def test_cpp_function_roundtrip():
 
 
 def test_function_signatures(doc):
-    assert doc(m.test_callback3) == "test_callback3(arg0: Callable[[int], int]) -> str"
+    assert doc(m.test_callback3) == "test_callback3(arg0: Callable[[typing.SupportsInt], typing.SupportsInt]) -> str"
     assert doc(m.test_callback4) == "test_callback4() -> Callable[[int], int]"
 
 

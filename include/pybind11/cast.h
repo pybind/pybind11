@@ -241,7 +241,7 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
+    PYBIND11_TYPE_CASTER(T, io_name<std::is_integral<T>::value>("typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
 };
 
 template <typename T>
@@ -952,7 +952,7 @@ struct handle_type_name<buffer> {
 };
 template <>
 struct handle_type_name<int_> {
-    static constexpr auto name = const_name("int");
+    static constexpr auto name = io_name("typing.SupportsInt", "int");
 };
 template <>
 struct handle_type_name<iterable> {
@@ -964,7 +964,7 @@ struct handle_type_name<iterator> {
 };
 template <>
 struct handle_type_name<float_> {
-    static constexpr auto name = const_name("float");
+    static constexpr auto name = io_name("typing.SupportsFloat", "float");
 };
 template <>
 struct handle_type_name<function> {
@@ -1345,7 +1345,75 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     if (ann.contains(key)) {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
-    ann[key] = make_caster<T>::name.text;
+    
+    const char* text = make_caster<T>::name.text;
+
+    std::string signature;
+    // `is_return_value.top()` is true if we are currently inside the return type of the
+    // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
+    // back to the previous state.
+    std::stack<bool> is_return_value({false});
+    // The following characters have special meaning in the signature parsing. Literals
+    // containing these are escaped with `!`.
+    std::string special_chars("!@%{}-");
+
+    // Simplified version of similar parser in cpp_function
+    for (const auto *pc = text; *pc != '\0'; ++pc) {
+        const auto c = *pc;
+        if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
+            // typing::Literal escapes special characters with !
+            signature += *++pc;
+        }
+        else if (c == '@') {
+            // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
+            // typing::Callable/detail::arg_descr/detail::return_descr)
+            if (*(pc + 1) == '^') {
+                is_return_value.emplace(false);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '$') {
+                is_return_value.emplace(true);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '!') {
+                is_return_value.pop();
+                ++pc;
+                continue;
+            }
+            // Handle types that differ depending on whether they appear
+            // in an argument or a return value position (see io_name<text1, text2>).
+            // For named arguments (py::arg()) with noconvert set, return value type is used.
+            ++pc;
+            if (!is_return_value.top()) {
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+            } else {
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+            }
+        }
+        else{
+            signature += c;
+        }
+    }
+
+    ann[key] = signature;
     return {derived(), key};
 }
 

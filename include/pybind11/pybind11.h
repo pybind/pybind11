@@ -450,7 +450,6 @@ protected:
         std::string special_chars("!@%{}-");
         for (const auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
-
             if (c == '{') {
                 // Write arg name for everything except *args and **kwargs.
                 is_starred = *(pc + 1) == '*';
