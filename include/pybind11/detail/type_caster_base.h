@@ -24,7 +24,6 @@
 #include <new>
 #include <stdexcept>
 #include <string>
-#include <stack>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
