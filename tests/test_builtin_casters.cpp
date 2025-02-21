@@ -241,10 +241,6 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("float_passthrough_noconvert", [](float arg) { return arg; }, py::arg{}.noconvert());
 
 
-    // test_bytes_convert
-    m.def("bytes_passthrough", [](py::bytes arg) { return arg; });
-    m.def("bytes_passthrough_noconvert", [](py::bytes arg) { return arg; }, py::arg{}.noconvert());
-
     // test_tuple
     m.def(
         "pair_passthrough",
