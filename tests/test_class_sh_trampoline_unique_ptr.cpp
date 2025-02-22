@@ -2,7 +2,6 @@
 // All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-#include "pybind11/smart_holder.h"
 #include "pybind11/trampoline_self_life_support.h"
 #include "pybind11_tests.h"
 

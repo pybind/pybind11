@@ -3,7 +3,6 @@
 // valu(e), ref(erence), ptr or p (pointer), r = rvalue, m = mutable, c = const,
 // sh = shared_ptr, uq = unique_ptr.
 
-#include "pybind11/smart_holder.h"
 #include "pybind11_tests.h"
 
 #include <memory>
