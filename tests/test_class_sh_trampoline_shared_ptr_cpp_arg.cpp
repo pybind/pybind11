@@ -57,18 +57,7 @@ struct SpGoAwayTester {
 
 using namespace pybind11_tests::class_sh_trampoline_shared_ptr_cpp_arg;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SpBase)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SpBaseTester)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SpGoAway)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SpGoAwayTester)
-
 TEST_SUBMODULE(class_sh_trampoline_shared_ptr_cpp_arg, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     // For testing whether a python subclass of a C++ object dies when the
     // last python reference is lost
 
@@ -101,5 +90,4 @@ TEST_SUBMODULE(class_sh_trampoline_shared_ptr_cpp_arg, m) {
     py::classh<SpGoAwayTester>(m, "SpGoAwayTester")
         .def(py::init<>())
         .def_readwrite("obj", &SpGoAwayTester::m_obj);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

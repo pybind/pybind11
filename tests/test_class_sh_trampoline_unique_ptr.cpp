@@ -34,12 +34,9 @@ private:
 } // namespace class_sh_trampoline_unique_ptr
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_unique_ptr::Class)
-
 namespace pybind11_tests {
 namespace class_sh_trampoline_unique_ptr {
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
 class PyClass : public Class, public py::trampoline_self_life_support {
 public:
     std::unique_ptr<Class> clone() const override {
@@ -48,18 +45,11 @@ public:
 
     int foo() const override { PYBIND11_OVERRIDE_PURE(int, Class, foo); }
 };
-#endif
 
 } // namespace class_sh_trampoline_unique_ptr
 } // namespace pybind11_tests
 
 TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     using namespace pybind11_tests::class_sh_trampoline_unique_ptr;
 
     py::classh<Class, PyClass>(m, "Class")
@@ -71,5 +61,4 @@ TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
 
     m.def("clone", [](const Class &obj) { return obj.clone(); });
     m.def("clone_and_foo", [](const Class &obj) { return obj.clone()->foo(); });
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

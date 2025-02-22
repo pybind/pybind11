@@ -4,9 +4,6 @@ import pytest
 
 from pybind11_tests import class_sh_virtual_py_cpp_mix as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 class PyBase(m.Base):  # Avoiding name PyDerived, for more systematic naming.
     def __init__(self):

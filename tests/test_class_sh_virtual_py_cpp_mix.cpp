@@ -31,8 +31,6 @@ int get_from_cpp_plainc_ptr(const Base *b) { return b->get() + 4000; }
 
 int get_from_cpp_unique_ptr(std::unique_ptr<Base> b) { return b->get() + 5000; }
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
-
 struct BaseVirtualOverrider : Base, py::trampoline_self_life_support {
     using Base::Base;
 
@@ -45,24 +43,12 @@ struct CppDerivedVirtualOverrider : CppDerived, py::trampoline_self_life_support
     int get() const override { PYBIND11_OVERRIDE(int, CppDerived, get); }
 };
 
-#endif
-
 } // namespace class_sh_virtual_py_cpp_mix
 } // namespace pybind11_tests
 
 using namespace pybind11_tests::class_sh_virtual_py_cpp_mix;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Base)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(CppDerivedPlain)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(CppDerived)
-
 TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     py::classh<Base, BaseVirtualOverrider>(m, "Base").def(py::init<>()).def("get", &Base::get);
 
     py::classh<CppDerivedPlain, Base>(m, "CppDerivedPlain").def(py::init<>());
@@ -71,5 +57,4 @@ TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
 
     m.def("get_from_cpp_plainc_ptr", get_from_cpp_plainc_ptr, py::arg("b"));
     m.def("get_from_cpp_unique_ptr", get_from_cpp_unique_ptr, py::arg("b"));
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

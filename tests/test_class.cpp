@@ -109,11 +109,7 @@ TEST_SUBMODULE(class_, m) {
     struct ToBeHeldByUniquePtr {};
     py::class_<ToBeHeldByUniquePtr, std::unique_ptr<ToBeHeldByUniquePtr>>(m, "ToBeHeldByUniquePtr")
         .def(py::init<>());
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
     m.def("pass_unique_ptr", [](std::unique_ptr<ToBeHeldByUniquePtr> &&) {});
-#else
-    m.attr("pass_unique_ptr") = py::none();
-#endif
 
     // test_inheritance
     class Pet {
@@ -636,7 +632,7 @@ CHECK_NOALIAS(8);
 CHECK_HOLDER(1, unique);
 CHECK_HOLDER(2, unique);
 CHECK_HOLDER(3, unique);
-#ifndef PYBIND11_ACTUALLY_USING_SMART_HOLDER_AS_DEFAULT
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 CHECK_HOLDER(4, unique);
 CHECK_HOLDER(5, unique);
 #endif

@@ -48,21 +48,7 @@ int disown_base2(std::unique_ptr<Base2> b2) { return b2->j * 2000 + 2; }
 } // namespace class_sh_disowning_mi
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::B)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C0)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::D)
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base2)
-
 TEST_SUBMODULE(class_sh_disowning_mi, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     using namespace pybind11_tests::class_sh_disowning_mi;
 
     py::classh<B>(m, "B")
@@ -98,5 +84,4 @@ TEST_SUBMODULE(class_sh_disowning_mi, m) {
     py::classh<Base2>(m, "Base2").def(py::init<int>()).def("bar", &Base2::bar);
     m.def("disown_base1", disown_base1);
     m.def("disown_base2", disown_base2);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

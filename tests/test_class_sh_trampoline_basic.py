@@ -4,9 +4,6 @@ import pytest
 
 from pybind11_tests import class_sh_trampoline_basic as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 class PyDrvd0(m.Abase0):
     def __init__(self, val):

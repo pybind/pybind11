@@ -28,16 +28,7 @@ int overloaded(std::unique_ptr<Atype<2>> at2, int i) { return at2->get() * 40 + 
 } // namespace class_sh_disowning
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning::Atype<1>)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning::Atype<2>)
-
 TEST_SUBMODULE(class_sh_disowning, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     using namespace pybind11_tests::class_sh_disowning;
 
     py::classh<Atype<1>>(m, "Atype1").def(py::init<int>()).def("get", &Atype<1>::get);
@@ -49,5 +40,4 @@ TEST_SUBMODULE(class_sh_disowning, m) {
 
     m.def("overloaded", (int (*)(std::unique_ptr<Atype<1>>, int)) &overloaded);
     m.def("overloaded", (int (*)(std::unique_ptr<Atype<2>>, int)) &overloaded);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }

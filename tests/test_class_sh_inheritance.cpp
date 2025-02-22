@@ -59,26 +59,7 @@ inline int pass_cptr_base2(base2 const *b) { return b->id() + 22; }
 inline int pass_cptr_drvd2(drvd2 const *d) { return d->id() + 23; }
 // clang-format on
 
-} // namespace class_sh_inheritance
-} // namespace pybind11_tests
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::drvd)
-
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base2)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::drvd2)
-
-namespace pybind11_tests {
-namespace class_sh_inheritance {
-
 TEST_SUBMODULE(class_sh_inheritance, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     py::classh<base>(m, "base");
     py::classh<drvd, base>(m, "drvd");
 
@@ -105,7 +86,6 @@ TEST_SUBMODULE(class_sh_inheritance, m) {
     m.def("pass_cptr_base1", pass_cptr_base1);
     m.def("pass_cptr_base2", pass_cptr_base2);
     m.def("pass_cptr_drvd2", pass_cptr_drvd2);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
 
 } // namespace class_sh_inheritance

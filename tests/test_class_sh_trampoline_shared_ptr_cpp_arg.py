@@ -5,9 +5,6 @@ import pytest
 import env  # noqa: F401
 import pybind11_tests.class_sh_trampoline_shared_ptr_cpp_arg as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_cpp_arg():

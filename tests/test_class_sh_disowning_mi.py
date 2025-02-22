@@ -5,9 +5,6 @@ import pytest
 import env  # noqa: F401
 from pybind11_tests import class_sh_disowning_mi as m
 
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
-
 
 def test_diamond_inheritance():
     # Very similar to test_multiple_inheritance.py:test_diamond_inheritance.

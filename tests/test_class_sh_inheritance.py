@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-import pytest
-
 from pybind11_tests import class_sh_inheritance as m
-
-if not m.defined_PYBIND11_SMART_HOLDER_ENABLED:
-    pytest.skip("smart_holder not available.", allow_module_level=True)
 
 
 def test_rtrn_mptr_drvd_pass_cptr_base():

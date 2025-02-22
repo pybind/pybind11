@@ -71,11 +71,9 @@ struct SftSharedPtrStash {
     }
 };
 
-#ifdef PYBIND11_SMART_HOLDER_ENABLED
 struct SftTrampoline : Sft, py::trampoline_self_life_support {
     using Sft::Sft;
 };
-#endif
 
 long use_count(const std::shared_ptr<Sft> &obj) { return obj.use_count(); }
 
@@ -111,16 +109,7 @@ std::shared_ptr<Sft> pass_through_shd_ptr(const std::shared_ptr<Sft> &obj) { ret
 
 using namespace pybind11_tests::class_sh_trampoline_shared_from_this;
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
-
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
-    m.attr("defined_PYBIND11_SMART_HOLDER_ENABLED") =
-#ifndef PYBIND11_SMART_HOLDER_ENABLED
-        false;
-#else
-        true;
-
     py::classh<Sft, SftTrampoline>(m, "Sft")
         .def(py::init<const std::string &>())
         .def(py::init([](const std::string &history, int) {
@@ -146,5 +135,4 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     m.def("make_pure_cpp_sft_unq_ptr", make_pure_cpp_sft_unq_ptr);
     m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
     m.def("pass_through_shd_ptr", pass_through_shd_ptr);
-#endif // PYBIND11_SMART_HOLDER_ENABLED
 }
