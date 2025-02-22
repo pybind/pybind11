@@ -1328,6 +1328,20 @@ inline void object::cast() && {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// forward declaration (definition in attr.h)
+struct function_record;
+struct argument_record;
+
+// forward declaration (definition in pybind11.h)
+std::string generate_signature(
+    const char *text,
+    function_record *rec,
+    const std::type_info *const *types,
+    size_t &type_index,
+    size_t &arg_index,
+    const bool is_annotation
+);
+
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
 object object_or_cast(T &&o) {
@@ -1351,70 +1365,8 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
 
     const char *text = make_caster<T>::name.text;
 
-    std::string signature;
-    // `is_return_value.top()` is true if we are currently inside the return type of the
-    // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
-    // back to the previous state.
-    std::stack<bool> is_return_value({false});
-    // The following characters have special meaning in the signature parsing. Literals
-    // containing these are escaped with `!`.
-    std::string special_chars("!@%{}-");
-
-    // Simplified version of similar parser in cpp_function
-    for (const auto *pc = text; *pc != '\0'; ++pc) {
-        const auto c = *pc;
-        if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
-            // typing::Literal escapes special characters with !
-            signature += *++pc;
-        } else if (c == '@') {
-            // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
-            // typing::Callable/detail::arg_descr/detail::return_descr)
-            if (*(pc + 1) == '^') {
-                is_return_value.emplace(false);
-                ++pc;
-                continue;
-            }
-            if (*(pc + 1) == '$') {
-                is_return_value.emplace(true);
-                ++pc;
-                continue;
-            }
-            if (*(pc + 1) == '!') {
-                is_return_value.pop();
-                ++pc;
-                continue;
-            }
-            // Handle types that differ depending on whether they appear
-            // in an argument or a return value position (see io_name<text1, text2>).
-            // For named arguments (py::arg()) with noconvert set, return value type is used.
-            ++pc;
-            if (!is_return_value.top()) {
-                while (*pc != '\0' && *pc != '@') {
-                    signature += *pc++;
-                }
-                if (*pc == '@') {
-                    ++pc;
-                }
-                while (*pc != '\0' && *pc != '@') {
-                    ++pc;
-                }
-            } else {
-                while (*pc != '\0' && *pc != '@') {
-                    ++pc;
-                }
-                if (*pc == '@') {
-                    ++pc;
-                }
-                while (*pc != '\0' && *pc != '@') {
-                    signature += *pc++;
-                }
-            }
-        } else {
-            signature += c;
-        }
-    }
-
-    ann[key] = signature;
+    size_t _ = 0;
+    ann[key] = generate_signature(text,0,0,_,_, true);
     return {derived(), key};
 }
 
