@@ -1363,7 +1363,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     const char *text = make_caster<T>::name.text;
 
     size_t unused = 0;
-    ann[key] = generate_signature(text, 0, 0, unused, unused, true);
+    ann[key] = generate_signature(text, nullptr, nullptr, unused, unused, true);
     return {derived(), key};
 }
 

@@ -108,7 +108,7 @@ inline std::string generate_signature(const char *text,
                                       const std::type_info *const *types,
                                       size_t &type_index,
                                       size_t &arg_index,
-                                      const bool is_annotation = false) {
+                                      bool is_annotation = false) {
     std::string signature;
     bool is_starred = false;
     // `is_return_value.top()` is true if we are currently inside the return type of the
