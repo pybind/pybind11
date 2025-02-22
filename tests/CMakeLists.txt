@@ -116,6 +116,23 @@ set(PYBIND11_TEST_FILES
     test_chrono
     test_class
     test_class_release_gil_before_calling_cpp_dtor
+    test_class_sh_basic
+    test_class_sh_disowning
+    test_class_sh_disowning_mi
+    test_class_sh_factory_constructors
+    test_class_sh_inheritance
+    test_class_sh_mi_thunks
+    test_class_sh_property
+    test_class_sh_property_non_owning
+    test_class_sh_shared_ptr_copy_move
+    test_class_sh_trampoline_basic
+    test_class_sh_trampoline_self_life_support
+    test_class_sh_trampoline_shared_from_this
+    test_class_sh_trampoline_shared_ptr_cpp_arg
+    test_class_sh_trampoline_unique_ptr
+    test_class_sh_unique_ptr_custom_deleter
+    test_class_sh_unique_ptr_member
+    test_class_sh_virtual_py_cpp_mix
     test_const_name
     test_constants_and_functions
     test_copy_move
@@ -589,6 +606,9 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
 if(NOT PYBIND11_CUDA_TESTS)
+  # Test pure C++ code (not depending on Python). Provides the `test_pure_cpp` target.
+  add_subdirectory(pure_cpp)
+
   # Test embedding the interpreter. Provides the `cpptest` target.
   add_subdirectory(test_embed)
 

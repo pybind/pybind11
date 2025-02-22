@@ -7,6 +7,7 @@ on:
     branches:
       - master
       - stable
+      - smart_holder
       - v*
 
 permissions: read-all
@@ -87,6 +88,20 @@ jobs:
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
+          # Exercise PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+          # with recent (or ideally latest) released Python version.
+          - runs-on: ubuntu-latest
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+          - runs-on: macos-13
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT"
+          - runs-on: windows-2022
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="/DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT /GR /EHsc"
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
           - python: 'graalpy-24.1'

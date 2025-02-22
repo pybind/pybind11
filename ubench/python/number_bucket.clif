@@ -1,0 +1,6 @@
+from "pybind11/ubench/number_bucket.h":
+  namespace `pybind11_ubench`:
+    class `number_bucket<0>` as number_bucket_pc:
+      def __init__(self, data_size: int = default)
+      def sum(self) -> float
+      def add(self, other: number_bucket_pc) -> int
