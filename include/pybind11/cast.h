@@ -1333,14 +1333,12 @@ struct function_record;
 struct argument_record;
 
 // forward declaration (definition in pybind11.h)
-std::string generate_signature(
-    const char *text,
-    function_record *rec,
-    const std::type_info *const *types,
-    size_t &type_index,
-    size_t &arg_index,
-    const bool is_annotation
-);
+std::string generate_signature(const char *text,
+                               function_record *rec,
+                               const std::type_info *const *types,
+                               size_t &type_index,
+                               size_t &arg_index,
+                               const bool is_annotation);
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -1366,7 +1364,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     const char *text = make_caster<T>::name.text;
 
     size_t _ = 0;
-    ann[key] = generate_signature(text,0,0,_,_, true);
+    ann[key] = generate_signature(text, 0, 0, _, _, true);
     return {derived(), key};
 }
 

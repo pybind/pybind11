@@ -102,15 +102,12 @@ inline std::string replace_newlines_and_squash(const char *text) {
     return result.substr(str_begin, str_range);
 }
 
-
-inline std::string generate_signature(
-    const char *text,
-    detail::function_record *rec,
-    const std::type_info *const *types,
-    size_t &type_index,
-    size_t &arg_index,
-    const bool is_annotation = false
-){
+inline std::string generate_signature(const char *text,
+                                      detail::function_record *rec,
+                                      const std::type_info *const *types,
+                                      size_t &type_index,
+                                      size_t &arg_index,
+                                      const bool is_annotation = false) {
     /* Generate a proper function signature */
     std::string signature;
     bool is_starred = false;
@@ -199,7 +196,8 @@ inline std::string generate_signature(
             // For named arguments (py::arg()) with noconvert set, return value type is used.
             ++pc;
             if (!is_return_value.top()
-                && (is_annotation || !(arg_index < rec->args.size() && !rec->args[arg_index].convert))) {
+                && (is_annotation
+                    || !(arg_index < rec->args.size() && !rec->args[arg_index].convert))) {
                 while (*pc != '\0' && *pc != '@') {
                     signature += *pc++;
                 }
@@ -566,7 +564,8 @@ protected:
 #endif
 
         size_t type_index = 0, arg_index = 0;
-        std::string signature = detail::generate_signature(text, rec, types, type_index, arg_index);
+        std::string signature
+            = detail::generate_signature(text, rec, types, type_index, arg_index);
 
         if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr) {
             pybind11_fail("Internal error while parsing type signature (2)");
