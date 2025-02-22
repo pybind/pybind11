@@ -22,7 +22,6 @@
 #include <iosfwd>
 #include <iterator>
 #include <memory>
-#include <stack>
 #include <string>
 #include <tuple>
 #include <type_traits>
