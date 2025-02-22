@@ -1330,7 +1330,6 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 // forward declaration (definition in attr.h)
 struct function_record;
-struct argument_record;
 
 // forward declaration (definition in pybind11.h)
 std::string generate_signature(const char *text,
