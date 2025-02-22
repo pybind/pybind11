@@ -102,13 +102,13 @@ inline std::string replace_newlines_and_squash(const char *text) {
     return result.substr(str_begin, str_range);
 }
 
+/* Generate a proper function signature */
 inline std::string generate_signature(const char *text,
                                       detail::function_record *rec,
                                       const std::type_info *const *types,
                                       size_t &type_index,
                                       size_t &arg_index,
                                       const bool is_annotation = false) {
-    /* Generate a proper function signature */
     std::string signature;
     bool is_starred = false;
     // `is_return_value.top()` is true if we are currently inside the return type of the
