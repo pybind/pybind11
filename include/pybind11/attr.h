@@ -346,16 +346,18 @@ struct type_record {
                           + "\" referenced unknown base type \"" + tname + "\"");
         }
 
-#ifdef RWGKTODO
-        if (default_holder != base_info->default_holder) {
+        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
+        bool this_has_unique_ptr_holder = (holder_enum_v == holder_enum_t::std_unique_ptr);
+        bool base_has_unique_ptr_holder
+            = (base_info->holder_enum_v == holder_enum_t::std_unique_ptr);
+        if (this_has_unique_ptr_holder != base_has_unique_ptr_holder) {
             std::string tname(base.name());
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
-                          + (default_holder ? "does not have" : "has")
+                          + (this_has_unique_ptr_holder ? "does not have" : "has")
                           + " a non-default holder type while its base \"" + tname + "\" "
-                          + (base_info->default_holder ? "does not" : "does"));
+                          + (base_has_unique_ptr_holder ? "does not" : "does"));
         }
-#endif
 
         bases.append((PyObject *) base_info->type);
 

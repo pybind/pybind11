@@ -790,11 +790,12 @@ public:
 protected:
     friend class type_caster_generic;
     void check_holder_compat() {
-#ifdef RWGKTODO
-        if (typeinfo->default_holder) {
+        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
+        bool inst_has_unique_ptr_holder
+            = (typeinfo->holder_enum_v == holder_enum_t::std_unique_ptr);
+        if (inst_has_unique_ptr_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
         }
-#endif
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -910,11 +911,12 @@ public:
 protected:
     friend class type_caster_generic;
     void check_holder_compat() {
-#ifdef RWGKTODO
-        if (typeinfo->default_holder) {
+        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
+        bool inst_has_unique_ptr_holder
+            = (typeinfo->holder_enum_v == holder_enum_t::std_unique_ptr);
+        if (inst_has_unique_ptr_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
         }
-#endif
     }
 
     void load_value(value_and_holder &&v_h) {
