@@ -201,14 +201,14 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
 template <typename... Args>
 struct constructor {
     template <typename Class, typename... Extra, enable_if_t<!Class::has_alias, int> = 0>
-    static void execute(Class &cl, const Extra &...extra) {
+    static void execute(Class &cl, Extra &&...extra) {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
                 v_h.value_ptr() = construct_or_initialize<Cpp<Class>>(std::forward<Args>(args)...);
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 
     template <
@@ -216,7 +216,7 @@ struct constructor {
         typename... Extra,
         enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value, int>
         = 0>
-    static void execute(Class &cl, const Extra &...extra) {
+    static void execute(Class &cl, Extra &&...extra) {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
@@ -229,7 +229,7 @@ struct constructor {
                 }
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 
     template <
@@ -237,7 +237,7 @@ struct constructor {
         typename... Extra,
         enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value, int>
         = 0>
-    static void execute(Class &cl, const Extra &...extra) {
+    static void execute(Class &cl, Extra &&...extra) {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
@@ -245,7 +245,7 @@ struct constructor {
                     = construct_or_initialize<Alias<Class>>(std::forward<Args>(args)...);
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 };
 
@@ -257,7 +257,7 @@ struct alias_constructor {
         typename... Extra,
         enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value, int>
         = 0>
-    static void execute(Class &cl, const Extra &...extra) {
+    static void execute(Class &cl, Extra &&...extra) {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
@@ -265,7 +265,7 @@ struct alias_constructor {
                     = construct_or_initialize<Alias<Class>>(std::forward<Args>(args)...);
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 };
 
@@ -290,7 +290,7 @@ struct factory<Func, void_type (*)(), Return(Args...)> {
     // inheriting from the C++ type) the returned value needs to either already be an alias
     // instance, or the alias needs to be constructible from a `Class &&` argument.
     template <typename Class, typename... Extra>
-    void execute(Class &cl, const Extra &...extra) && {
+    void execute(Class &cl, Extra &&...extra) && {
 #if defined(PYBIND11_CPP14)
         cl.def(
             "__init__",
@@ -306,7 +306,7 @@ struct factory<Func, void_type (*)(), Return(Args...)> {
                     v_h, func(std::forward<Args>(args)...), Py_TYPE(v_h.inst) != v_h.type->type);
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 };
 
@@ -334,7 +334,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
     // The class factory is called when the `self` type passed to `__init__` is the direct
     // class (i.e. not inherited), the alias factory when `self` is a Python-side subtype.
     template <typename Class, typename... Extra>
-    void execute(Class &cl, const Extra &...extra) && {
+    void execute(Class &cl, Extra &&...extra) && {
         static_assert(Class::has_alias,
                       "The two-argument version of `py::init()` can "
                       "only be used if the class has an alias");
@@ -359,7 +359,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
                 }
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 };
 
@@ -409,7 +409,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
     pickle_factory(Get get, Set set) : get(std::forward<Get>(get)), set(std::forward<Set>(set)) {}
 
     template <typename Class, typename... Extra>
-    void execute(Class &cl, const Extra &...extra) && {
+    void execute(Class &cl, Extra &&...extra) && {
         cl.def("__getstate__", std::move(get), pos_only());
 
 #if defined(PYBIND11_CPP14)
@@ -427,7 +427,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
                     v_h, func(std::forward<ArgState>(state)), Py_TYPE(v_h.inst) != v_h.type->type);
             },
             is_new_style_constructor(),
-            extra...);
+            std::forward<Extra>(extra)...);
     }
 };
 
