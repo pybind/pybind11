@@ -1337,7 +1337,7 @@ std::string generate_signature(const char *text,
                                const std::type_info *const *types,
                                size_t &type_index,
                                size_t &arg_index,
-                               const bool is_annotation);
+                               bool is_annotation);
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
