@@ -142,7 +142,10 @@ def test_function_signatures(doc):
         doc(m.test_callback3)
         == "test_callback3(arg0: Callable[[typing.SupportsInt], int]) -> str"
     )
-    assert doc(m.test_callback4) == "test_callback4() -> Callable[[typing.SupportsInt], int]"
+    assert (
+        doc(m.test_callback4)
+        == "test_callback4() -> Callable[[typing.SupportsInt], int]"
+    )
 
 
 def test_movable_object():
