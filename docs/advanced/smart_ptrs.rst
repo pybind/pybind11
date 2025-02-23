@@ -20,10 +20,10 @@ a type ``T`` is ``std::unique_ptr<T>``.
 Starting with pybind11v3, ``py::smart_holder`` is built into pybind11. It is
 the recommended ``py::class_`` holder for most situations, but it is **not**
 the default holder, and there are no plans to make it the default holder in
-the future. This is based on the assumption that such a change would cause
-more disruption than it is worth, especially because it is extremely easy
-to use the safer and more versatile ``py::smart_holder``. For a given C++
-type ``T``, simply change
+the future. This decision is based on the assumption that such a change would
+cause more disruption than benefit, especially because it is extremely easy
+to use the safer and more versatile ``py::smart_holder``. To use
+``py::smart_holder`` for a given C++ type ``T``, simply change
 
 * ``py::class_<T>`` to
 
@@ -32,6 +32,8 @@ type ``T``, simply change
 .. note::
 
     ``py::classh<T>`` is a shortcut for ``py::class_<T, py::smart_holder>``.
+    — The ``h`` in ``py::classh`` comes from **smart_holder** but is condensed
+    for brevity.
 
 The ``py::classh<T>`` functionality includes the following:
 
@@ -54,12 +56,12 @@ The ``py::classh<T>`` functionality includes the following:
 ``std::unique_ptr``
 ===================
 
-This is the default ``py::class_`` holder and works as expected in most
-situations. However, note that the handling of base-and-derived classes
-involves a ``reinterpret_cast`` that has strictly speaking undefined
-behavior. Also note that the ``std::unique_ptr`` holder only supports passing
-a ``std::unique_ptr`` from C++ to Python, but not the other way around. For
-example, this code will work as expected when using ``py::class_<Example>``:
+This is the default ``py::class_`` holder and works as expected in
+most situations. However, handling base-and-derived classes involves a
+``reinterpret_cast``, which is, strictly speaking, undefined behavior.
+Also note that the ``std::unique_ptr`` holder only supports passing a
+``std::unique_ptr`` from C++ to Python, but not the other way around.
+For example, the following code works as expected with ``py::class_<Example>``:
 
 .. code-block:: cpp
 
@@ -195,8 +197,8 @@ For example:
            .def("get_child", &Parent::get_child);  /* PROBLEM */
     }
 
-The following Python code will cause undefined behavior (and likely a
-segmentation fault).
+The following Python code leads to undefined behavior, likely resulting in
+a segmentation fault.
 
 .. code-block:: python
 
