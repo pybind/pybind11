@@ -164,3 +164,12 @@ def test_exo_planet_pybind11_wrap_very_lonely_traveler():
         '"pybind11_tests::test_cpp_conduit::LonelyTraveler"$',
     ):
         exo_planet_pybind11.wrap_very_lonely_traveler()
+
+
+def test_return_instance_from_exo_planet():
+    b = home_planet.B()
+    a = b.a
+    assert a.value == 0.0
+
+    a.value = 1.0
+    assert a.value == 1.0
