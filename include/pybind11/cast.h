@@ -39,6 +39,15 @@ class type_caster : public type_caster_base<type> {};
 template <typename type>
 using make_caster = type_caster<intrinsic_t<type>>;
 
+template <typename T>
+struct is_generic_type<T, enable_if_t<std::is_base_of<type_caster_generic, make_caster<T>>::value>>
+    : public std::true_type {};
+
+template <typename T>
+struct is_generic_type<T,
+                       enable_if_t<!std::is_base_of<type_caster_generic, make_caster<T>>::value>>
+    : public std::false_type {};
+
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T>
 typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
