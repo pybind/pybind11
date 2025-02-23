@@ -37,8 +37,14 @@ The binding code for ``Pet`` looks as follows:
 :class:`class_` creates bindings for a C++ *class* or *struct*-style data
 structure. :func:`init` is a convenience function that takes the types of a
 constructor's parameters as template arguments and wraps the corresponding
-constructor (see the :ref:`custom_constructors` section for details). An
-interactive Python session demonstrating this example is shown below:
+constructor (see the :ref:`custom_constructors` section for details).
+
+.. note::
+
+    Starting with pybind11v3, it is recommended to use `py::classh` in most
+    situations. See :ref:`smart_holder` for more information.
+
+An interactive Python session demonstrating this example is shown below:
 
 .. code-block:: pycon
 

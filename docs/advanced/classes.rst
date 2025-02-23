@@ -125,6 +125,32 @@ extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
 necessary steps required to providing proper overriding support for inherited
 classes.
 
+To enable safely passing a ``std::unique_ptr`` to a trampoline object between
+Python and C++,
+
+1. the C++ type (``Animal`` above) must be wrapped with ``py::classh``
+   (see :ref:`smart_holder`), and
+
+2. the trampoline helper class must inherit from
+   ``py::trampoline_self_life_support``.
+
+I.e. the example above needs these two changes:
+
+.. code-block:: cpp
+
+   class PyAnimal : public Animal, public py::trampoline_self_life_support {
+       ...
+   };
+
+.. code-block:: cpp
+
+    py::classh<Animal, PyAnimal>(m, "Animal");
+
+.. seealso::
+
+    A fairly minimal but complete example is in
+    :file:`tests/test_class_sh_trampoline_unique_ptr.cpp`.
+
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
 

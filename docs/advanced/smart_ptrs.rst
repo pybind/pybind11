@@ -3,66 +3,52 @@ Smart pointers & ``py::class_``
 
 The binding generator for classes, ``py::class_``, can be passed a template
 type that denotes a special *holder* type that is used to manage references to
-the object.  If no such holder type template argument is given, the default for
+the object. If no such holder type template argument is given, the default for
 a type ``T`` is ``std::unique_ptr<T>``.
+
+.. note::
+
+    A ``py::class_`` for a given C++ type ``T`` — and all its derived types —
+    can only use a single holder type.
+
+
+.. _smart_holder:
 
 ``py::smart_holder``
 ====================
 
 Starting with pybind11v3, ``py::smart_holder`` is built into pybind11. It is
-the recommended ``py::class_`` holder for all situations, but it is **not**
-the default holder, and there is no intent to make it the default holder in
-the future, based on the assumption that this would cause more disruption
-than it is worth.
-
-It is extremely easy to change existing pybind11 client code to use the safer
-and more versatile ``py::smart_holder``. For a given C++ type ``T``, simply
-change
+the recommended ``py::class_`` holder for most situations, but it is **not**
+the default holder, and there are no plans to make it the default holder in
+the future. This is based on the assumption that such a change would cause
+more disruption than it is worth, especially because it is extremely easy
+to use the safer and more versatile ``py::smart_holder``. For a given C++
+type ``T``, simply change
 
 * ``py::class_<T>`` to
-* ``py::classh<T>``
+
+* ``py::classh<T>``.
 
 .. note::
 
-    ``py::classh<T>`` is simply a shortcut for ``py::class_<T, py::smart_holder>``.
+    ``py::classh<T>`` is a shortcut for ``py::class_<T, py::smart_holder>``.
 
-The ``py::classh<T>`` functionality includes
+The ``py::classh<T>`` functionality includes the following:
 
-* support for **two-way** Python/C++ conversions for both
+* Support for **two-way** Python/C++ conversions for both
   ``std::unique_ptr<T>`` and ``std::shared_ptr<T>`` **simultaneously**.
-  — In contrast, ``py::class_<T>`` only supports one-way C++-to-Python
-  conversions for ``std::unique_ptr<T>``, or alternatively two-way
-  Python/C++ conversions for ``std::shared_ptr<T>``, which then excludes
-  the one-way C++-to-Python ``std::unique_ptr<T>`` conversions (this manifests
-  itself through undefined runtime behavior, often a segmentation fault
-  or double free).
 
-* passing a Python object back to C++ via ``std::unique_ptr<T>``, safely
+* Passing a Python object back to C++ via ``std::unique_ptr<T>``, safely
   **disowning** the Python object.
 
-* safely passing `"trampoline"
-  <https://pybind11.readthedocs.io/en/stable/advanced/classes.html#overriding-virtual-functions-in-python>`_
-  objects (objects with C++ virtual function overrides implemented in
-  Python) via ``std::unique_ptr<T>`` or ``std::shared_ptr<T>`` back to C++:
+* Safely passing "trampoline" objects (objects with C++ virtual function
+  overrides implemented in Python, see :ref:`overriding_virtuals`) via
+  ``std::unique_ptr<T>`` or ``std::shared_ptr<T>`` back to C++:
   associated Python objects are automatically kept alive for the lifetime
   of the smart-pointer.
 
-TODO(rwgk): Move to classes.rst
-
-A pybind11 `"trampoline"
-<https://pybind11.readthedocs.io/en/stable/advanced/classes.html#overriding-virtual-functions-in-python>`_
-is a C++ helper class with virtual function overrides that transparently
-call back from C++ into Python. To enable safely passing a ``std::unique_ptr``
-to a trampoline object between Python and C++, the trampoline class must
-inherit from ``py::trampoline_self_life_support``, for example:
-
-.. code-block:: cpp
-
-   class PyAnimal : public Animal, public py::trampoline_self_life_support {
-       ...
-   };
-
-A fairly minimal but complete example is :file:`tests/test_class_sh_trampoline_unique_ptr.cpp`.
+* Full support for ``std::enable_shared_from_this`` (`cppreference
+  <http://en.cppreference.com/w/cpp/memory/enable_shared_from_this>`_).
 
 
 ``std::unique_ptr``
@@ -71,7 +57,7 @@ A fairly minimal but complete example is :file:`tests/test_class_sh_trampoline_u
 This is the default ``py::class_`` holder and works as expected in most
 situations. However, note that the handling of base-and-derived classes
 involves a ``reinterpret_cast`` that has strictly speaking undefined
-behavior. Also note that the ``std::unique_ptr`` holder only support passing
+behavior. Also note that the ``std::unique_ptr`` holder only supports passing
 a ``std::unique_ptr`` from C++ to Python, but not the other way around. For
 example, this code will work as expected when using ``py::class_<Example>``:
 
@@ -83,7 +69,7 @@ example, this code will work as expected when using ``py::class_<Example>``:
 
     m.def("create_example", &create_example);
 
-However, this will fail with ``py::class_<Example>`` (but work with
+However, this will fail with ``py::class_<Example>`` (but works with
 ``py::classh<Example>``):
 
 .. code-block:: cpp
@@ -102,11 +88,10 @@ It is possible to use ``std::shared_ptr`` as the holder, for example:
 
 Compared to using ``py::classh``, there are two noteworthy disadvantages:
 
-* A ``py::class_`` for any particular C++ type ``T`` (and all its derived types)
-  can only use a single holder type. Therefore, ``std::unique_ptr<T>``
-  cannot even be passed from C++ to Python if the ``std::shared_ptr<T>`` holder
-  is used. This will become apparent only at runtime, often through a
-  segmentation fault or double free.
+* Because a ``py::class_`` for a given C++ type ``T`` can only use a
+  single holder type, ``std::unique_ptr<T>`` cannot even be passed from C++
+  to Python. This will become apparent only at runtime, often through a
+  segmentation fault.
 
 * Similar to the ``std::unique_ptr`` holder, the handling of base-and-derived
   classes involves a ``reinterpret_cast`` that has strictly speaking undefined
@@ -118,9 +103,9 @@ Compared to using ``py::classh``, there are two noteworthy disadvantages:
 Custom smart pointers
 =====================
 
-For custom smart pointer, transparent conversions can be enabled
-using a macro invocation similar to the following. It must be declared at the
-top namespace level before any binding code:
+For custom smart pointers (e.g. ``c10::intrusive_ptr`` in pytorch), transparent
+conversions can be enabled using a macro invocation similar to the following.
+It must be declared at the top namespace level before any binding code:
 
 .. code-block:: cpp
 
@@ -167,6 +152,12 @@ specialized:
 The above specialization informs pybind11 that the custom ``SmartPtr`` class
 provides ``.get()`` functionality via ``.getPointer()``.
 
+.. note::
+
+    The two noteworthy disadvantages mentioned under the ``std::shared_ptr``
+    section apply similarly to custom smart pointer holders, but there is no
+    established safe alternative in this case.
+
 .. seealso::
 
     The file :file:`tests/test_smart_ptr.cpp` contains a complete example
@@ -174,12 +165,15 @@ provides ``.get()`` functionality via ``.getPointer()``.
     in more detail.
 
 
-Be careful to not undermine automatic lifetime management
-=========================================================
+Be careful not to accidentally undermine automatic lifetime management
+======================================================================
 
-One potential stumbling block when using holder types is that they need to be
-applied consistently. Can you guess what's broken about the following binding
-code?
+``py::class_``-wrapped objects automatically manage the lifetime of the
+wrapped C++ object, in collaboration with the chosen holder type.
+When wrapping C++ functions involving raw pointers, care needs to be taken
+to not inadvertently transfer ownership, resulting in multiple Python
+objects acting as owners, causing heap-use-after-free or double-free errors.
+For example:
 
 .. code-block:: cpp
 
@@ -188,7 +182,7 @@ code?
     class Parent {
     public:
        Parent() : child(std::make_shared<Child>()) { }
-       Child *get_child() { return child.get(); }  /* Hint: ** DON'T DO THIS ** */
+       Child *get_child() { return child.get(); }  /* DANGER */
     private:
         std::shared_ptr<Child> child;
     };
@@ -198,7 +192,7 @@ code?
 
         py::class_<Parent, std::shared_ptr<Parent>>(m, "Parent")
            .def(py::init<>())
-           .def("get_child", &Parent::get_child);
+           .def("get_child", &Parent::get_child);  /* PROBLEM */
     }
 
 The following Python code will cause undefined behavior (and likely a
@@ -210,34 +204,18 @@ segmentation fault).
 
    print(Parent().get_child())
 
-The problem is that ``Parent::get_child()`` returns a pointer to an instance of
-``Child``, but the fact that this instance is already managed by
-``std::shared_ptr<...>`` is lost when passing raw pointers. In this case,
-pybind11 will create a second independent ``std::shared_ptr<...>`` that also
-claims ownership of the pointer. In the end, the object will be freed **twice**
-since these shared pointers have no way of knowing about each other.
+Part of the ``/* PROBLEM */`` here is that pybind11 falls back to using
+``return_value_policy::take_ownership`` as the default (see
+:ref:`return_value_policies`). The fact that the ``Child`` instance is
+already managed by ``std::shared_ptr<Child>`` is lost. Therefore pybind11
+will create a second independent ``std::shared_ptr<Child>`` that also
+claims ownership of the pointer, eventually leading to heap-use-after-free
+or double-free errors.
 
-There are two ways to resolve this issue:
-
-1. For types that are managed by a smart pointer class, never use raw pointers
-   in function arguments or return values. In other words: always consistently
-   wrap pointers into their designated holder types (such as
-   ``std::shared_ptr<...>``). In this case, the signature of ``get_child()``
-   should be modified as follows:
-
-.. code-block:: cpp
-
-    std::shared_ptr<Child> get_child() { return child; }
-
-2. Adjust the definition of ``Child`` by specifying
-   ``std::enable_shared_from_this<T>`` (see cppreference_ for details) as a
-   base class. This adds a small bit of information to ``Child`` that allows
-   pybind11 to realize that there is already an existing
-   ``std::shared_ptr<...>`` and communicate with it. In this case, the
-   declaration of ``Child`` should look as follows:
-
-.. _cppreference: http://en.cppreference.com/w/cpp/memory/enable_shared_from_this
-
-.. code-block:: cpp
-
-    class Child : public std::enable_shared_from_this<Child> { };
+There are various ways to resolve this issue, either by changing
+the ``Child`` or ``Parent`` C++ implementations (e.g. using
+``std::enable_shared_from_this<Child>`` as a base class for
+``Child``, or adding a member function to ``Parent`` that returns
+``std::shared_ptr<Child>``), or if that is not feasible, by using
+``return_value_policy::reference_internal``. What is the best approach
+depends on the exact situation.
