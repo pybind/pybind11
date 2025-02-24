@@ -78,6 +78,13 @@ However, this will fail with ``py::class_<Example>`` (but works with
 
     void do_something_with_example(std::unique_ptr<Example> ex) { ... }
 
+.. note::
+
+    The ``reinterpret_cast`` mentioned above is `here
+    <https://github.com/pybind/pybind11/blob/30eb39ed79d1e2eeff15219ac00773034300a5e6/include/pybind11/cast.h#L235>`_.
+    For completeness: The same cast is also applied to ``py::smart_holder``,
+    but that is safe, because ``py::smart_holder`` is not templated.
+
 
 ``std::shared_ptr``
 ===================
