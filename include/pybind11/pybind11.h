@@ -1839,14 +1839,13 @@ struct property_cpp_function<
         detail::both_t_and_d_use_type_caster_base<T, typename D::element_type>>::value>>
     : detail::property_cpp_function_sh_unique_ptr_member<T, D> {};
 
-#if defined(PYBIND11_USE_SMART_HOLDER_AS_DEFAULT)
-// NOTE: THIS IS MEANT FOR STRESS-TESTING ONLY!
-//       As of PR #5257, for production use, there is no longer a strong reason to make
-//       smart_holder the default holder:
-//           Simply use `py::classh` (see below) instead of `py::class_` as needed.
+#ifdef PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+// NOTE: THIS IS MEANT FOR STRESS-TESTING OR TRIAGING ONLY!
 //       Running the pybind11 unit tests with smart_holder as the default holder is to ensure
 //       that `py::smart_holder` / `py::classh` is backward-compatible with all pre-existing
 //       functionality.
+//       Be careful not to link translation units compiled with different default holders, because
+//       this will cause ODR violations (https://en.wikipedia.org/wiki/One_Definition_Rule).
 template <typename>
 using default_holder_type = smart_holder;
 #else
