@@ -46,10 +46,10 @@ Normally, the binding code for these classes would look as follows:
 .. code-block:: cpp
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal>(m, "Animal")
+        py::classh<Animal>(m, "Animal")
             .def("go", &Animal::go);
 
-        py::class_<Dog, Animal>(m, "Dog")
+        py::classh<Dog, Animal>(m, "Dog")
             .def(py::init<>());
 
         m.def("call_go", &call_go);
@@ -64,7 +64,7 @@ helper class that is defined as follows:
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public Animal, py::trampoline_self_life_support {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
@@ -79,6 +79,11 @@ helper class that is defined as follows:
             );
         }
     };
+
+The ``py::trampoline_self_life_support`` base class is needed to ensure that a
+``std::unique_ptr`` can safely be passed between Python and C++. It is best
+practice to always use the base class, although it may not strictly be needed
+in all use cases.
 
 The macro :c:macro:`PYBIND11_OVERRIDE_PURE` should be used for pure virtual
 functions, and :c:macro:`PYBIND11_OVERRIDE` should be used for functions which have
@@ -95,28 +100,30 @@ The binding code also needs a few minor adaptations (highlighted):
     :emphasize-lines: 2,3
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
+        py::classh<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
             .def(py::init<>())
             .def("go", &Animal::go);
 
-        py::class_<Dog, Animal>(m, "Dog")
+        py::classh<Dog, Animal>(m, "Dog")
             .def(py::init<>());
 
         m.def("call_go", &call_go);
     }
 
 Importantly, pybind11 is made aware of the trampoline helper class by
-specifying it as an extra template argument to :class:`class_`. (This can also
-be combined with other template arguments such as a custom holder type; the
-order of template types does not matter).  Following this, we are able to
-define a constructor as usual.
+specifying it as an extra template argument to ``py::classh``. (This can also
+be combined with other template arguments; the order of template types does
+not matter). Using ``py::classh`` (vs ``py::class_``) is to ensure that that
+a ``std::unique_ptr`` can safely be passed between Python and C++ (see
+:ref:`smart_holder`).
 
-Bindings should be made against the actual class, not the trampoline helper class.
+A constructor can be defined as usual. Bindings should be made against the
+actual class, not the trampoline helper class.
 
 .. code-block:: cpp
     :emphasize-lines: 3
 
-    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
+    py::classh<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
         .def(py::init<>())
         .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
 
@@ -124,32 +131,6 @@ Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
 necessary steps required to providing proper overriding support for inherited
 classes.
-
-To enable safely passing a ``std::unique_ptr`` to a trampoline object between
-Python and C++,
-
-1. the C++ type (``Animal`` above) must be wrapped with ``py::classh``
-   (see :ref:`smart_holder`), and
-
-2. the trampoline helper class must inherit from
-   ``py::trampoline_self_life_support``.
-
-I.e. the example above needs these two changes:
-
-.. code-block:: cpp
-
-   class PyAnimal : public Animal, public py::trampoline_self_life_support {
-       ...
-   };
-
-.. code-block:: cpp
-
-    py::classh<Animal, PyAnimal>(m, "Animal");
-
-.. seealso::
-
-    A fairly minimal but complete example is in
-    :file:`tests/test_class_sh_trampoline_unique_ptr.cpp`.
 
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
@@ -337,9 +318,9 @@ The classes are then registered with pybind11 using:
 
 .. code-block:: cpp
 
-    py::class_<Animal, PyAnimal<>> animal(m, "Animal");
-    py::class_<Dog, Animal, PyDog<>> dog(m, "Dog");
-    py::class_<Husky, Dog, PyDog<Husky>> husky(m, "Husky");
+    py::classh<Animal, PyAnimal<>> animal(m, "Animal");
+    py::classh<Dog, Animal, PyDog<>> dog(m, "Dog");
+    py::classh<Husky, Dog, PyDog<Husky>> husky(m, "Husky");
     // ... add animal, dog, husky definitions
 
 Note that ``Husky`` did not require a dedicated trampoline template class at
@@ -456,7 +437,7 @@ class like this:
         static Example create(int a) { return Example(a); }
     };
 
-    py::class_<Example>(m, "Example")
+    py::classh<Example>(m, "Example")
         .def(py::init(&Example::create));
 
 While it is possible to create a straightforward binding of the static
@@ -483,7 +464,7 @@ The following example shows the different approaches:
         Example(std::string);
     };
 
-    py::class_<Example>(m, "Example")
+    py::classh<Example>(m, "Example")
         // Bind the factory function as a constructor:
         .def(py::init(&Example::create))
         // Bind a lambda function returning a pointer wrapped in a holder:
@@ -530,7 +511,7 @@ an alias:
         using Example::Example;
         PyExample(Example &&base) : Example(std::move(base)) {}
     };
-    py::class_<Example, PyExample>(m, "Example")
+    py::classh<Example, PyExample>(m, "Example")
         // Returns an Example pointer.  If a PyExample is needed, the Example
         // instance will be moved via the extra constructor in PyExample, above.
         .def(py::init([]() { return new Example(); }))
@@ -555,7 +536,7 @@ constructor of the target class. This means that it can be used to bind
         std::string b;
     };
 
-    py::class_<Aggregate>(m, "Aggregate")
+    py::classh<Aggregate>(m, "Aggregate")
         .def(py::init<int, const std::string &>());
 
 .. note::
@@ -572,13 +553,11 @@ Non-public destructors
 
 If a class has a private or protected destructor (as might e.g. be the case in
 a singleton pattern), a compile error will occur when creating bindings via
-pybind11. The underlying issue is that the ``std::unique_ptr`` holder type that
-is responsible for managing the lifetime of instances will reference the
-destructor even if no deallocations ever take place. In order to expose classes
-with private or protected destructors, it is possible to override the holder
-type via a holder type argument to ``class_``. Pybind11 provides a helper class
-``py::nodelete`` that disables any destructor invocations. In this case, it is
-crucial that instances are deallocated on the C++ side to avoid memory leaks.
+pybind11. In order to expose classes with private or protected destructors,
+it is possible to override the holder type via a holder type argument to
+``class_``. Pybind11 provides a helper class ``py::nodelete`` that disables
+any destructor invocations. (If the instance is not a singleton, it is
+crucial that is deallocated on the C++ side to avoid memory leaks.)
 
 .. code-block:: cpp
 
@@ -645,10 +624,10 @@ could be a fixed and an arbitrary precision number type).
 
 .. code-block:: cpp
 
-    py::class_<A>(m, "A")
+    py::classh<A>(m, "A")
         /// ... members ...
 
-    py::class_<B>(m, "B")
+    py::classh<B>(m, "B")
         .def(py::init<A>())
         /// ... members ...
 
@@ -695,7 +674,7 @@ that ignores it:
 
 .. code-block:: cpp
 
-    py::class_<Foo>(m, "Foo")
+    py::classh<Foo>(m, "Foo")
         .def_property_readonly_static("foo", [](py::object /* self */) { return Foo(); });
 
 Operator overloading
@@ -735,7 +714,7 @@ to Python.
     #include <pybind11/operators.h>
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Vector2>(m, "Vector2")
+        py::classh<Vector2>(m, "Vector2")
             .def(py::init<float, float>())
             .def(py::self + py::self)
             .def(py::self += py::self)
@@ -807,7 +786,7 @@ to bind these two functions:
 
 .. code-block:: cpp
 
-    py::class_<Pickleable>(m, "Pickleable")
+    py::classh<Pickleable>(m, "Pickleable")
         .def(py::init<std::string>())
         .def("value", &Pickleable::value)
         .def("extra", &Pickleable::extra)
@@ -878,7 +857,7 @@ which should look as follows:
 
 .. code-block:: cpp
 
-    py::class_<Copyable>(m, "Copyable")
+    py::classh<Copyable>(m, "Copyable")
         .def("__copy__",  [](const Copyable &self) {
             return Copyable(self);
         })
@@ -897,11 +876,11 @@ Multiple Inheritance
 
 pybind11 can create bindings for types that derive from multiple base types
 (aka. *multiple inheritance*). To do so, specify all bases in the template
-arguments of the ``class_`` declaration:
+arguments of the ``py::classh`` declaration:
 
 .. code-block:: cpp
 
-    py::class_<MyType, BaseType1, BaseType2, BaseType3>(m, "MyType")
+    py::classh<MyType, BaseType1, BaseType2, BaseType3>(m, "MyType")
        ...
 
 The base types can be specified in arbitrary order, and they can even be
@@ -921,7 +900,7 @@ inheritance, which can lead to undefined behavior. In such cases, add the tag
 
 .. code-block:: cpp
 
-    py::class_<MyType, BaseType2>(m, "MyType", py::multiple_inheritance());
+    py::classh<MyType, BaseType2>(m, "MyType", py::multiple_inheritance());
 
 The tag is redundant and does not need to be specified when multiple base types
 are listed.
@@ -939,7 +918,7 @@ example, this allows the following:
 .. code-block:: cpp
 
     // In the module1.cpp binding code for module1:
-    py::class_<Pet>(m, "Pet")
+    py::classh<Pet>(m, "Pet")
         .def(py::init<std::string>())
         .def_readonly("name", &Pet::name);
 
@@ -972,11 +951,11 @@ because of conflicting definitions on the external type:
     // dogs.cpp
 
     // Binding for external library class:
-    py::class<pets::Pet>(m, "Pet")
+    py::classh<pets::Pet>(m, "Pet")
         .def("name", &pets::Pet::name);
 
     // Binding for local extension class:
-    py::class<Dog, pets::Pet>(m, "Dog")
+    py::classh<Dog, pets::Pet>(m, "Dog")
         .def(py::init<std::string>());
 
 .. code-block:: cpp
@@ -984,11 +963,11 @@ because of conflicting definitions on the external type:
     // cats.cpp, in a completely separate project from the above dogs.cpp.
 
     // Binding for external library class:
-    py::class<pets::Pet>(m, "Pet")
+    py::classh<pets::Pet>(m, "Pet")
         .def("get_name", &pets::Pet::name);
 
     // Binding for local extending class:
-    py::class<Cat, pets::Pet>(m, "Cat")
+    py::classh<Cat, pets::Pet>(m, "Cat")
         .def(py::init<std::string>());
 
 .. code-block:: pycon
@@ -1001,18 +980,18 @@ because of conflicting definitions on the external type:
 
 To get around this, you can tell pybind11 to keep the external class binding
 localized to the module by passing the ``py::module_local()`` attribute into
-the ``py::class_`` constructor:
+the ``py::classh`` constructor:
 
 .. code-block:: cpp
 
     // Pet binding in dogs.cpp:
-    py::class<pets::Pet>(m, "Pet", py::module_local())
+    py::classh<pets::Pet>(m, "Pet", py::module_local())
         .def("name", &pets::Pet::name);
 
 .. code-block:: cpp
 
     // Pet binding in cats.cpp:
-    py::class<pets::Pet>(m, "Pet", py::module_local())
+    py::classh<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
 
 This makes the Python-side ``dogs.Pet`` and ``cats.Pet`` into distinct classes,
@@ -1087,7 +1066,7 @@ It's normally not possible to expose ``protected`` member functions to Python:
         int foo() const { return 42; }
     };
 
-    py::class_<A>(m, "A")
+    py::classh<A>(m, "A")
         .def("foo", &A::foo); // error: 'foo' is a protected member of 'A'
 
 On one hand, this is good because non-``public`` members aren't meant to be
@@ -1108,7 +1087,7 @@ The following pattern makes this possible:
         using A::foo; // inherited with different access modifier
     };
 
-    py::class_<A>(m, "A") // bind the primary class
+    py::classh<A>(m, "A") // bind the primary class
         .def("foo", &Publicist::foo); // expose protected methods via the publicist
 
 This works because ``&Publicist::foo`` is exactly the same function as
@@ -1140,7 +1119,7 @@ described trampoline:
         using A::foo;
     };
 
-    py::class_<A, Trampoline>(m, "A") // <-- `Trampoline` here
+    py::classh<A, Trampoline>(m, "A") // <-- `Trampoline` here
         .def("foo", &Publicist::foo); // <-- `Publicist` here, not `Trampoline`!
 
 Binding final classes
@@ -1156,7 +1135,7 @@ to be declared final.
 
     class IsFinal final {};
 
-    py::class_<IsFinal>(m, "IsFinal", py::is_final());
+    py::classh<IsFinal>(m, "IsFinal", py::is_final());
 
 When you try to inherit from such a class in Python, you will now get this
 error:
@@ -1194,7 +1173,7 @@ wrap instantiated templated classes. You cannot wrap a non-instantiated template
 .. code-block:: cpp
 
     // BROKEN (this will not compile)
-    py::class_<Cage>(m, "Cage");
+    py::classh<Cage>(m, "Cage");
         .def("get", &Cage::get);
 
 You must explicitly specify each template/type combination that you want to
@@ -1203,11 +1182,11 @@ wrap separately.
 .. code-block:: cpp
 
     // ok
-    py::class_<Cage<Cat>>(m, "CatCage")
+    py::classh<Cage<Cat>>(m, "CatCage")
         .def("get", &Cage<Cat>::get);
 
     // ok
-    py::class_<Cage<Dog>>(m, "DogCage")
+    py::classh<Cage<Dog>>(m, "DogCage")
         .def("get", &Cage<Dog>::get);
 
 If your class methods have template parameters you can wrap those as well,
@@ -1221,7 +1200,7 @@ but once again each instantiation must be explicitly specified:
         T fn(V v);
     };
 
-    py::class<MyClass<int>>(m, "MyClassT")
+    py::classh<MyClass<int>>(m, "MyClassT")
         .def("fn", &MyClass<int>::fn<std::string>);
 
 Custom automatic downcasters
@@ -1330,7 +1309,7 @@ Custom type setup
 
 For advanced use cases, such as enabling garbage collection support, you may
 wish to directly manipulate the ``PyHeapTypeObject`` corresponding to a
-``py::class_`` definition.
+``py::classh`` definition.
 
 You can do that using ``py::custom_type_setup``:
 
@@ -1339,7 +1318,7 @@ You can do that using ``py::custom_type_setup``:
    struct OwnsPythonObjects {
        py::object value = py::none();
    };
-   py::class_<OwnsPythonObjects> cls(
+   py::classh<OwnsPythonObjects> cls(
        m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
            auto *type = &heap_type->ht_type;
            type->tp_flags |= Py_TPFLAGS_HAVE_GC;

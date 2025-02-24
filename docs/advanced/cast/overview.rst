@@ -3,13 +3,13 @@ Overview
 
 .. rubric:: 1. Native type in C++, wrapper in Python
 
-Exposing a custom C++ type using :class:`py::class_` was covered in detail
-in the :doc:`/classes` section. There, the underlying data structure is
-always the original C++ class while the :class:`py::class_` wrapper provides
-a Python interface. Internally, when an object like this is sent from C++ to
-Python, pybind11 will just add the outer wrapper layer over the native C++
-object. Getting it back from Python is just a matter of peeling off the
-wrapper.
+Exposing a custom C++ type using ``py::classh`` (or ``py::class_``) was
+covered in detail in the :doc:`/classes` section. There, the underlying
+data structure is always the original C++ class while the ``py::classh``
+wrapper provides a Python interface. Internally, when an object like this
+is sent from C++ to Python, pybind11 will just add the outer wrapper layer
+over the native C++ object. Getting it back from Python is just a matter of
+peeling off the wrapper.
 
 .. rubric:: 2. Wrapper in C++, native type in Python
 

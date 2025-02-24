@@ -110,7 +110,7 @@ Return value policies can also be applied to properties:
 
 .. code-block:: cpp
 
-    class_<MyClass>(m, "MyClass")
+    py::classh<MyClass>(m, "MyClass")
         .def_property("data", &MyClass::getData, &MyClass::setData,
                       py::return_value_policy::copy);
 
@@ -121,7 +121,7 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 
 .. code-block:: cpp
 
-    class_<MyClass>(m, "MyClass")
+    py::classh<MyClass>(m, "MyClass")
         .def_property("data",
             py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
             py::cpp_function(&MyClass::setData)
@@ -194,7 +194,7 @@ container:
 
 .. code-block:: cpp
 
-    py::class_<List>(m, "List")
+    py::classh<List>(m, "List")
         .def("append", &List::append, py::keep_alive<1, 2>());
 
 For consistency, the argument indexing is identical for constructors. Index
@@ -205,7 +205,7 @@ ties the lifetime of the constructor element to the constructed object:
 
 .. code-block:: cpp
 
-    py::class_<Nurse>(m, "Nurse")
+    py::classh<Nurse>(m, "Nurse")
         .def(py::init<Patient &>(), py::keep_alive<1, 2>());
 
 .. note::
@@ -332,11 +332,11 @@ Consider the following example:
 
 .. code-block:: cpp
 
-    py::class_<MyClass>("MyClass")
+    py::classh<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = SomeType(123));
 
 In this case, pybind11 must already be set up to deal with values of the type
-``SomeType`` (via a prior instantiation of ``py::class_<SomeType>``), or an
+``SomeType`` (via a prior instantiation of ``py::classh<SomeType>``), or an
 exception will be thrown.
 
 Another aspect worth highlighting is that the "preview" of the default argument
@@ -357,7 +357,7 @@ default argument manually using the ``arg_v`` notation:
 
 .. code-block:: cpp
 
-    py::class_<MyClass>("MyClass")
+    py::classh<MyClass>("MyClass")
         .def("myFunction", py::arg_v("arg", SomeType(123), "SomeType(123)"));
 
 Sometimes it may be necessary to pass a null pointer value as a default
@@ -366,7 +366,7 @@ like so:
 
 .. code-block:: cpp
 
-    py::class_<MyClass>("MyClass")
+    py::classh<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = static_cast<SomeType *>(nullptr));
 
 .. _keyword_only_arguments:
@@ -489,7 +489,7 @@ name, i.e. by specifying ``py::arg().noconvert()``.
 Allow/Prohibiting None arguments
 ================================
 
-When a C++ type registered with :class:`py::class_` is passed as an argument to
+When a C++ type registered with :class:`py::classh` is passed as an argument to
 a function taking the instance as pointer or shared holder (e.g. ``shared_ptr``
 or a custom, copyable holder as described in :ref:`smart_pointers`), pybind
 allows ``None`` to be passed from Python which results in calling the C++
@@ -500,8 +500,8 @@ To explicitly enable or disable this behaviour, using the
 
 .. code-block:: cpp
 
-    py::class_<Dog>(m, "Dog").def(py::init<>());
-    py::class_<Cat>(m, "Cat").def(py::init<>());
+    py::classh<Dog>(m, "Dog").def(py::init<>());
+    py::classh<Cat>(m, "Cat").def(py::init<>());
     m.def("bark", [](Dog *dog) -> std::string {
         if (dog) return "woof!"; /* Called with a Dog instance */
         else return "(no dog)"; /* Called with None, dog == nullptr */

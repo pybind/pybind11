@@ -135,7 +135,7 @@ functions:
 
     /* ... binding code ... */
 
-    py::class_<MyClass>(m, "MyClass")
+    py::classh<MyClass>(m, "MyClass")
         .def(py::init<>())
         .def_readwrite("contents", &MyClass::contents);
 
@@ -169,12 +169,12 @@ macro must be specified at the top level (and outside of any namespaces), since
 it adds a template instantiation of ``type_caster``. If your binding code consists of
 multiple compilation units, it must be present in every file (typically via a
 common header) preceding any usage of ``std::vector<int>``. Opaque types must
-also have a corresponding ``class_`` declaration to associate them with a name
+also have a corresponding ``py::classh`` declaration to associate them with a name
 in Python, and to define a set of available operations, e.g.:
 
 .. code-block:: cpp
 
-    py::class_<std::vector<int>>(m, "IntVector")
+    py::classh<std::vector<int>>(m, "IntVector")
         .def(py::init<>())
         .def("clear", &std::vector<int>::clear)
         .def("pop_back", &std::vector<int>::pop_back)
