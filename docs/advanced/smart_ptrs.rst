@@ -18,12 +18,12 @@ a type ``T`` is ``std::unique_ptr<T>``.
 ====================
 
 Starting with pybind11v3, ``py::smart_holder`` is built into pybind11. It is
-the recommended ``py::class_`` holder for most situations, but it is **not**
-the default holder, and there are no plans to make it the default holder in
-the future. This decision is based on the assumption that such a change would
-cause more disruption than benefit, especially because it is extremely easy
-to use the safer and more versatile ``py::smart_holder``. To use
-``py::smart_holder`` for a given C++ type ``T``, simply change
+the recommended ``py::class_`` holder for most situations. However, for
+backward compatibility it is **not** the default holder, and there are no
+plans to make it the default holder in the future.
+
+It is extremely easy to use the safer and more versatile ``py::smart_holder``:
+simply change
 
 * ``py::class_<T>`` to
 
