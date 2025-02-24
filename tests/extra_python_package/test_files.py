@@ -131,7 +131,6 @@ sdist_files = {
     "LICENSE",
     "MANIFEST.in",
     "README.rst",
-    "README_smart_holder.rst",
     "PKG-INFO",
     "SECURITY.md",
 }
