@@ -555,7 +555,7 @@ If a class has a private or protected destructor (as might e.g. be the case in
 a singleton pattern), a compile error will occur when creating bindings via
 pybind11. In order to expose classes with private or protected destructors,
 it is possible to override the holder type via a holder type argument to
-``class_``. Pybind11 provides a helper class ``py::nodelete`` that disables
+``py::class_``. Pybind11 provides a helper class ``py::nodelete`` that disables
 any destructor invocations. (If the instance is not a singleton, it is
 crucial that is deallocated on the C++ side to avoid memory leaks.)
 
