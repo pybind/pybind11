@@ -118,19 +118,19 @@ The binding code also needs a few minor adaptations (highlighted):
 Importantly, pybind11 is made aware of the trampoline helper class by
 specifying it as an extra template argument to ``py::classh``. (This can also
 be combined with other template arguments; the order of template types does
-not matter). Using ``py::classh`` (vs ``py::class_``) is to ensure that that
+not matter). Using ``py::classh`` (vs ``py::class_``) is to ensure that
 a ``std::unique_ptr`` can safely be passed between Python and C++ (see
 :ref:`smart_holder`).
 
 A constructor can be defined as usual. Bindings should be made against the
-actual class, not the trampoline helper class.
+actual class, not the trampoline helper class:
 
 .. code-block:: cpp
     :emphasize-lines: 3
 
     py::classh<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
         .def(py::init<>())
-        .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
+        .def("go", &Animal::go); /* <--- DO NOT USE &PyAnimal::go HERE */
 
 Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
@@ -562,7 +562,7 @@ pybind11. In order to expose classes with private or protected destructors,
 it is possible to override the holder type via a holder type argument to
 ``py::class_``. Pybind11 provides a helper class ``py::nodelete`` that disables
 any destructor invocations. (If the instance is not a singleton, it is
-crucial that is deallocated on the C++ side to avoid memory leaks.)
+crucial that it is deallocated on the C++ side to avoid memory leaks.)
 
 .. code-block:: cpp
 
