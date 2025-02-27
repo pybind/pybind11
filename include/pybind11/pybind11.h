@@ -2378,10 +2378,7 @@ private:
 // Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
 // users can simply replace the `_` in `class_` with `h` or vice versa.
 template <typename type_, typename... options>
-class classh : public class_<type_, smart_holder, options...> {
-public:
-    using class_<type_, smart_holder, options...>::class_;
-};
+using classh = class_<type_, smart_holder, options...>;
 
 /// Binds an existing constructor taking arguments Args...
 template <typename... Args>
