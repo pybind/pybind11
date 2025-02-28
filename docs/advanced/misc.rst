@@ -80,7 +80,7 @@ could be realized as follows (important changes highlighted):
 .. code-block:: cpp
     :emphasize-lines: 8,30,31
 
-    class PyAnimal : public Animal, py::trampoline_self_life_support {
+    class PyAnimal : public Animal {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
@@ -98,12 +98,12 @@ could be realized as follows (important changes highlighted):
     };
 
     PYBIND11_MODULE(example, m) {
-        py::classh<Animal, PyAnimal> animal(m, "Animal");
+        py::class_<Animal, PyAnimal> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
 
-        py::classh<Dog>(m, "Dog", animal)
+        py::class_<Dog>(m, "Dog", animal)
             .def(py::init<>());
 
         m.def("call_go", [](Animal *animal) -> std::string {
@@ -177,30 +177,30 @@ from Section :ref:`inheritance`.
 
 .. code-block:: cpp
 
-    py::classh<Pet> pet(m, "Pet");
+    py::class_<Pet> pet(m, "Pet");
     pet.def(py::init<const std::string &>())
        .def_readwrite("name", &Pet::name);
 
-    py::classh<Dog>(m, "Dog", pet /* <- specify parent */)
+    py::class_<Dog>(m, "Dog", pet /* <- specify parent */)
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
 Suppose now that ``Pet`` bindings are defined in a module named ``basic``,
 whereas the ``Dog`` bindings are defined somewhere else. The challenge is of
 course that the variable ``pet`` is not available anymore though it is needed
-to indicate the inheritance relationship to the constructor of
-``py::classh<Dog>``. However, it can be acquired as follows:
+to indicate the inheritance relationship to the constructor of ``class_<Dog>``.
+However, it can be acquired as follows:
 
 .. code-block:: cpp
 
     py::object pet = (py::object) py::module_::import("basic").attr("Pet");
 
-    py::classh<Dog>(m, "Dog", pet)
+    py::class_<Dog>(m, "Dog", pet)
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
 Alternatively, you can specify the base class as a template parameter option to
-``py::classh``, which performs an automated lookup of the corresponding Python
+``class_``, which performs an automated lookup of the corresponding Python
 type. Like the above code, however, this also requires invoking the ``import``
 function once to ensure that the pybind11 binding code of the module ``basic``
 has been executed:
@@ -209,7 +209,7 @@ has been executed:
 
     py::module_::import("basic");
 
-    py::classh<Dog, Pet>(m, "Dog")
+    py::class_<Dog, Pet>(m, "Dog")
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
@@ -382,7 +382,7 @@ Avoiding C++ types in docstrings
 
 Docstrings are generated at the time of the declaration, e.g. when ``.def(...)`` is called.
 At this point parameter and return types should be known to pybind11.
-If a custom type is not exposed yet through a ``py::classh`` constructor or a custom type caster,
+If a custom type is not exposed yet through a ``py::class_`` constructor or a custom type caster,
 its C++ type name will be used instead to generate the signature in the docstring:
 
 .. code-block:: text
@@ -399,8 +399,8 @@ before they are used as a parameter or return type of a function:
 
     PYBIND11_MODULE(example, m) {
 
-        auto pyFoo = py::classh<ns::Foo>(m, "Foo");
-        auto pyBar = py::classh<ns::Bar>(m, "Bar");
+        auto pyFoo = py::class_<ns::Foo>(m, "Foo");
+        auto pyBar = py::class_<ns::Bar>(m, "Bar");
 
         pyFoo.def(py::init<const ns::Bar&>());
         pyBar.def(py::init<const ns::Foo&>());

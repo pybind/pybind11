@@ -102,7 +102,7 @@ example:
     };
 
     // Later, in binding code:
-    py::classh<MyClass>(m, "MyClass")
+    py::class_<MyClass>(m, "MyClass")
         .def(py::init<>())
         .def("copy_matrix", &MyClass::getMatrix) // Makes a copy!
         .def("get_matrix", &MyClass::getMatrix, py::return_value_policy::reference_internal)
@@ -250,7 +250,7 @@ copying to take place:
 
     // The associated binding code:
     using namespace pybind11::literals; // for "arg"_a
-    py::classh<MyClass>(m, "MyClass")
+    py::class_<MyClass>(m, "MyClass")
         // ... other class definitions
         .def("some_method", &MyClass::some_method, py::arg().noconvert());
 

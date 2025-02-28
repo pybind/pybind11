@@ -28,13 +28,13 @@ The binding code for ``Pet`` looks as follows:
     namespace py = pybind11;
 
     PYBIND11_MODULE(example, m) {
-        py::classh<Pet>(m, "Pet")
+        py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def("setName", &Pet::setName)
             .def("getName", &Pet::getName);
     }
 
-``py::classh`` creates bindings for a C++ *class* or *struct*-style data
+:class:`class_` creates bindings for a C++ *class* or *struct*-style data
 structure. :func:`init` is a convenience function that takes the types of a
 constructor's parameters as template arguments and wraps the corresponding
 constructor (see the :ref:`custom_constructors` section for details).
@@ -98,7 +98,7 @@ Lambda function instead:
 
 .. code-block:: cpp
 
-        py::classh<Pet>(m, "Pet")
+        py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def("setName", &Pet::setName)
             .def("getName", &Pet::getName)
@@ -129,7 +129,7 @@ method also exists for ``const`` fields.
 
 .. code-block:: cpp
 
-        py::classh<Pet>(m, "Pet")
+        py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def_readwrite("name", &Pet::name)
             // ... remainder ...
@@ -166,7 +166,7 @@ the setter and getter functions:
 
 .. code-block:: cpp
 
-        py::classh<Pet>(m, "Pet")
+        py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def_property("name", &Pet::getName, &Pet::setName)
             // ... remainder ...
@@ -202,7 +202,7 @@ or :func:`class_::def_property`.
 
 .. code-block:: cpp
 
-    py::classh<Pet>(m, "Pet")
+    py::class_<Pet>(m, "Pet")
         .def(py::init<>())
         .def_readwrite("name", &Pet::name);
 
@@ -220,7 +220,7 @@ must be added to the :class:`py::class_` constructor:
 
 .. code-block:: cpp
 
-    py::classh<Pet>(m, "Pet", py::dynamic_attr())
+    py::class_<Pet>(m, "Pet", py::dynamic_attr())
         .def(py::init<>())
         .def_readwrite("name", &Pet::name);
 
@@ -268,12 +268,12 @@ parameter of the :class:`class_`:
 
 .. code-block:: cpp
 
-    py::classh<Pet>(m, "Pet")
+    py::class_<Pet>(m, "Pet")
        .def(py::init<const std::string &>())
        .def_readwrite("name", &Pet::name);
 
     // Method 1: template parameter:
-    py::classh<Dog, Pet /* <- specify C++ parent type */>(m, "Dog")
+    py::class_<Dog, Pet /* <- specify C++ parent type */>(m, "Dog")
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
@@ -282,12 +282,12 @@ Alternatively, we can also assign a name to the previously bound ``Pet``
 
 .. code-block:: cpp
 
-    py::classh<Pet> pet(m, "Pet");
+    py::class_<Pet> pet(m, "Pet");
     pet.def(py::init<const std::string &>())
        .def_readwrite("name", &Pet::name);
 
-    // Method 2: pass parent py::classh object:
-    py::classh<Dog>(m, "Dog", pet /* <- specify Python parent type */)
+    // Method 2: pass parent class_ object:
+    py::class_<Dog>(m, "Dog", pet /* <- specify Python parent type */)
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
@@ -334,8 +334,8 @@ will automatically recognize this:
     };
 
     // Same binding code
-    py::classh<PolymorphicPet>(m, "PolymorphicPet");
-    py::classh<PolymorphicDog, PolymorphicPet>(m, "PolymorphicDog")
+    py::class_<PolymorphicPet>(m, "PolymorphicPet");
+    py::class_<PolymorphicDog, PolymorphicPet>(m, "PolymorphicDog")
         .def(py::init<>())
         .def("bark", &PolymorphicDog::bark);
 
@@ -387,7 +387,7 @@ sequence.
 
 .. code-block:: cpp
 
-    py::classh<Pet>(m, "Pet")
+    py::class_<Pet>(m, "Pet")
        .def(py::init<const std::string &, int>())
        .def("set", static_cast<void (Pet::*)(int)>(&Pet::set), "Set the pet's age")
        .def("set", static_cast<void (Pet::*)(const std::string &)>(&Pet::set), "Set the pet's name");
@@ -418,7 +418,7 @@ syntax to cast the overloaded function:
 
 .. code-block:: cpp
 
-    py::classh<Pet>(m, "Pet")
+    py::class_<Pet>(m, "Pet")
         .def("set", py::overload_cast<int>(&Pet::set), "Set the pet's age")
         .def("set", py::overload_cast<const std::string &>(&Pet::set), "Set the pet's name");
 
@@ -434,7 +434,7 @@ on constness, the ``py::const_`` tag should be used:
         int foo(int x, float y) const;
     };
 
-    py::classh<Widget>(m, "Widget")
+    py::class_<Widget>(m, "Widget")
        .def("foo_mutable", py::overload_cast<int, float>(&Widget::foo))
        .def("foo_const",   py::overload_cast<int, float>(&Widget::foo, py::const_));
 
@@ -446,7 +446,7 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
     template <typename... Args>
     using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
 
-    py::classh<Pet>(m, "Pet")
+    py::class_<Pet>(m, "Pet")
         .def("set", overload_cast_<int>()(&Pet::set), "Set the pet's age")
         .def("set", overload_cast_<const std::string &>()(&Pet::set), "Set the pet's name");
 
@@ -486,7 +486,7 @@ The binding code for this example looks as follows:
 
 .. code-block:: cpp
 
-    py::classh<Pet> pet(m, "Pet");
+    py::class_<Pet> pet(m, "Pet");
 
     pet.def(py::init<const std::string &, Pet::Kind>())
         .def_readwrite("name", &Pet::name)
@@ -498,7 +498,7 @@ The binding code for this example looks as follows:
         .value("Cat", Pet::Kind::Cat)
         .export_values();
 
-    py::classh<Pet::Attributes>(pet, "Attributes")
+    py::class_<Pet::Attributes>(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
 
