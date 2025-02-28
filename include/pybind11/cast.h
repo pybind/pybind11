@@ -1062,9 +1062,9 @@ public:
             value = sh_load_helper.get_void_ptr_or_nullptr();
             return;
         }
-        pybind11_fail(
-            "Passing `std::unique_ptr<T>` from Python to C++ requires `py::classh` (with T = "
-            + clean_type_id(typeinfo->cpptype->name()) + ")");
+        pybind11_fail("Passing `std::unique_ptr<T>` from Python to C++ requires `py::class_<T, "
+                      "py::smart_holder>` (with T = "
+                      + clean_type_id(typeinfo->cpptype->name()) + ")");
     }
 
     template <typename T_>

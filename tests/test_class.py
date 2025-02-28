@@ -54,7 +54,7 @@ def test_pass_unique_ptr():
     with pytest.raises(RuntimeError) as execinfo:
         m.pass_unique_ptr(obj)
     assert str(execinfo.value).startswith(
-        "Passing `std::unique_ptr<T>` from Python to C++ requires `py::classh` (with T = "
+        "Passing `std::unique_ptr<T>` from Python to C++ requires `py::class_<T, py::smart_holder>` (with T = "
     )
     assert "ToBeHeldByUniquePtr" in str(execinfo.value)
 

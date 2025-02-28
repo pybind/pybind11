@@ -23,19 +23,20 @@ backward compatibility it is **not** the default holder, and there are no
 plans to make it the default holder in the future.
 
 It is extremely easy to use the safer and more versatile ``py::smart_holder``:
-simply change
+simply add ``py::smart_holder`` to ``py::class_``:
 
 * ``py::class_<T>`` to
 
-* ``py::classh<T>``.
+* ``py::class_<T, py::smart_holder>``.
 
 .. note::
 
-    ``py::classh<T>`` is a shortcut for ``py::class_<T, py::smart_holder>``.
-    — The ``h`` in ``py::classh`` comes from **smart_holder** but is condensed
-    for brevity.
+    A shorthand, ``py::classh<T>``, is provided for ``py::class_<T,
+    py::smart_holder>``. The ``h`` in ``py::classh`` comes from
+    **smart_holder** but is condensed for brevity; it is the same number of
+    characters as ``py::class_``.
 
-The ``py::classh<T>`` functionality includes the following:
+The ``py::smart_holder`` functionality includes the following:
 
 * Support for **two-way** Python/C++ conversions for both
   ``std::unique_ptr<T>`` and ``std::shared_ptr<T>`` **simultaneously**.
@@ -72,7 +73,7 @@ For example, the following code works as expected with ``py::class_<Example>``:
     m.def("create_example", &create_example);
 
 However, this will fail with ``py::class_<Example>`` (but works with
-``py::classh<Example>``):
+``py::class_<Example, py::smart_holder>``):
 
 .. code-block:: cpp
 
@@ -95,7 +96,7 @@ It is possible to use ``std::shared_ptr`` as the holder, for example:
 
     py::class_<Example, std::shared_ptr<Example> /* <- holder type */>(m, "Example");
 
-Compared to using ``py::classh``, there are two noteworthy disadvantages:
+Compared to using ``py::class_<Example, py::smart_holder>``, there are two noteworthy disadvantages:
 
 * Because a ``py::class_`` for a given C++ type ``T`` can only use a
   single holder type, ``std::unique_ptr<T>`` cannot even be passed from C++

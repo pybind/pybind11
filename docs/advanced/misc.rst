@@ -200,7 +200,7 @@ However, it can be acquired as follows:
         .def("bark", &Dog::bark);
 
 Alternatively, you can specify the base class as a template parameter option to
-``class_``, which performs an automated lookup of the corresponding Python
+``py::class_``, which performs an automated lookup of the corresponding Python
 type. Like the above code, however, this also requires invoking the ``import``
 function once to ensure that the pybind11 binding code of the module ``basic``
 has been executed:

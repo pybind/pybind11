@@ -139,7 +139,7 @@ classes.
 To enable safely passing a ``std::unique_ptr`` to a trampoline object between
 Python and C++,
 
-1. the C++ type (``Animal`` above) must be wrapped with ``py::classh``
+1. the C++ type (``Animal`` above) must be wrapped with ``py::class<..., py::smart_holder>``
    (see :ref:`smart_holder`), and
 
 2. the trampoline helper class must inherit from
@@ -155,7 +155,7 @@ I.e. the example above needs these two changes:
 
 .. code-block:: cpp
 
-    py::classh<Animal, PyAnimal>(m, "Animal");
+    py::class_<Animal, PyAnimal, py::smart_holder>(m, "Animal");
 
 .. seealso::
 
@@ -587,9 +587,10 @@ pybind11. The underlying issue is that the ``std::unique_ptr`` holder type that
 is responsible for managing the lifetime of instances will reference the
 destructor even if no deallocations ever take place. In order to expose classes
 with private or protected destructors, it is possible to override the holder
-type via a holder type argument to ``class_``. Pybind11 provides a helper class
-``py::nodelete`` that disables any destructor invocations. In this case, it is
-crucial that instances are deallocated on the C++ side to avoid memory leaks.
+type via a holder type argument to ``py::class_``. Pybind11 provides a helper
+class ``py::nodelete`` that disables any destructor invocations. In this case,
+it is crucial that instances are deallocated on the C++ side to avoid memory
+leaks.
 
 .. code-block:: cpp
 
@@ -908,7 +909,7 @@ Multiple Inheritance
 
 pybind11 can create bindings for types that derive from multiple base types
 (aka. *multiple inheritance*). To do so, specify all bases in the template
-arguments of the ``class_`` declaration:
+arguments of the ``py::class_`` declaration:
 
 .. code-block:: cpp
 

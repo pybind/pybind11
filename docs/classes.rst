@@ -41,8 +41,9 @@ constructor (see the :ref:`custom_constructors` section for details).
 
 .. note::
 
-    Starting with pybind11v3, it is recommended to use `py::classh` in most
-    situations. See :ref:`smart_holder` for more information.
+    Starting with pybind11v3, it is recommended to include `py::smart_holder`
+    if you plan to support conversions to C++ smart pointers. See
+    :ref:`smart_holder` for more information.
 
 An interactive Python session demonstrating this example is shown below:
 

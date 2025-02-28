@@ -68,7 +68,7 @@ Convenience functions converting to Python types
 
 .. _extras:
 
-Passing extra arguments to ``def`` or ``class_``
+Passing extra arguments to ``def`` or ``py::class_``
 ================================================
 
 .. doxygengroup:: annotations
