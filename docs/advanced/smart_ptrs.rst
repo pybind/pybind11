@@ -31,10 +31,12 @@ simply add ``py::smart_holder`` to ``py::class_``:
 
 .. note::
 
-    A shorthand, ``py::classh<T>``, is provided for ``py::class_<T,
-    py::smart_holder>``. The ``h`` in ``py::classh`` comes from
-    **smart_holder** but is condensed for brevity; it is the same number of
-    characters as ``py::class_``.
+    A shorthand, ``py::classh<T>``, is provided for
+    ``py::class_<T, py::smart_holder>``. The ``h`` in ``py::classh`` stands
+    for **smart_holder** but is shortened for brevity, ensuring it has the
+    same number of characters as ``py::class_``. This design choice facilitates
+    easy experimentation with ``py::smart_holder`` without introducing
+    distracting whitespace noise in diffs.
 
 The ``py::smart_holder`` functionality includes the following:
 
