@@ -6,7 +6,6 @@ on:
     branches:
     - master
     - stable
-    - smart_holder
     - v*
 
 concurrency:
