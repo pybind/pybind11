@@ -117,7 +117,7 @@ The binding code also needs a few minor adaptations (highlighted):
     }
 
 Importantly, pybind11 is made aware of the trampoline helper class by
-specifying it as an extra template argument to :class:`class_`. (This can also
+specifying it as an extra template argument to ``py::class_``. (This can also
 be combined with other template arguments such as a custom holder type; the
 order of template types does not matter).  Following this, we are able to
 define a constructor as usual.
@@ -139,8 +139,8 @@ classes.
 To enable safely passing a ``std::unique_ptr`` to a trampoline object between
 Python and C++,
 
-1. the C++ type (``Animal`` above) must be wrapped with ``py::class<..., py::smart_holder>``
-   (see :ref:`smart_holder`), and
+1. the C++ type (``Animal`` above) must be wrapped with
+   ``py::class_<..., py::smart_holder>`` (see :ref:`smart_holder`), and
 
 2. the trampoline helper class must inherit from
    ``py::trampoline_self_life_support``.
@@ -984,11 +984,11 @@ because of conflicting definitions on the external type:
     // dogs.cpp
 
     // Binding for external library class:
-    py::class<pets::Pet>(m, "Pet")
+    py::class_<pets::Pet>(m, "Pet")
         .def("name", &pets::Pet::name);
 
     // Binding for local extension class:
-    py::class<Dog, pets::Pet>(m, "Dog")
+    py::class_<Dog, pets::Pet>(m, "Dog")
         .def(py::init<std::string>());
 
 .. code-block:: cpp
@@ -996,11 +996,11 @@ because of conflicting definitions on the external type:
     // cats.cpp, in a completely separate project from the above dogs.cpp.
 
     // Binding for external library class:
-    py::class<pets::Pet>(m, "Pet")
+    py::class_<pets::Pet>(m, "Pet")
         .def("get_name", &pets::Pet::name);
 
     // Binding for local extending class:
-    py::class<Cat, pets::Pet>(m, "Cat")
+    py::class_<Cat, pets::Pet>(m, "Cat")
         .def(py::init<std::string>());
 
 .. code-block:: pycon
@@ -1018,13 +1018,13 @@ the ``py::class_`` constructor:
 .. code-block:: cpp
 
     // Pet binding in dogs.cpp:
-    py::class<pets::Pet>(m, "Pet", py::module_local())
+    py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("name", &pets::Pet::name);
 
 .. code-block:: cpp
 
     // Pet binding in cats.cpp:
-    py::class<pets::Pet>(m, "Pet", py::module_local())
+    py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
 
 This makes the Python-side ``dogs.Pet`` and ``cats.Pet`` into distinct classes,
@@ -1233,7 +1233,7 @@ but once again each instantiation must be explicitly specified:
         T fn(V v);
     };
 
-    py::class<MyClass<int>>(m, "MyClassT")
+    py::class_<MyClass<int>>(m, "MyClassT")
         .def("fn", &MyClass<int>::fn<std::string>);
 
 Custom automatic downcasters

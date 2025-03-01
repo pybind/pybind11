@@ -188,7 +188,7 @@ from Section :ref:`inheritance`.
 Suppose now that ``Pet`` bindings are defined in a module named ``basic``,
 whereas the ``Dog`` bindings are defined somewhere else. The challenge is of
 course that the variable ``pet`` is not available anymore though it is needed
-to indicate the inheritance relationship to the constructor of ``class_<Dog>``.
+to indicate the inheritance relationship to the constructor of ``py::class_<Dog>``.
 However, it can be acquired as follows:
 
 .. code-block:: cpp
