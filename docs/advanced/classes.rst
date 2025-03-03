@@ -64,7 +64,7 @@ helper class that is defined as follows:
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public Animal, py::trampoline_self_life_support {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
@@ -89,7 +89,8 @@ practice to always use the base class, in combination with
 .. note::
     For completeness, the base class has no effect if a holder other than
    ``py::smart_holder`` used, including the default ``std::unique_ptr<T>``.
-   Please think twice, though, the pitfalls are very real.
+   Please think twice, though, the pitfalls are very real, and the overhead
+   for using the safer ``py::smart_holder`` is very likely to be in the noise.
 
 The macro :c:macro:`PYBIND11_OVERRIDE_PURE` should be used for pure virtual
 functions, and :c:macro:`PYBIND11_OVERRIDE` should be used for functions which have
@@ -106,11 +107,11 @@ The binding code also needs a few minor adaptations (highlighted):
     :emphasize-lines: 2,3
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
+        py::class_<Animal, PyAnimal /* <--- trampoline */, py::smart_holder>(m, "Animal")
             .def(py::init<>())
             .def("go", &Animal::go);
 
-        py::class_<Dog, Animal>(m, "Dog")
+        py::class_<Dog, Animal, py::smart_holder>(m, "Dog")
             .def(py::init<>());
 
         m.def("call_go", &call_go);
@@ -127,7 +128,7 @@ Bindings should be made against the actual class, not the trampoline helper clas
 .. code-block:: cpp
     :emphasize-lines: 3
 
-    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
+    py::class_<Animal, PyAnimal /* <--- trampoline */, py::smart_holder>(m, "Animal");
         .def(py::init<>())
         .def("go", &Animal::go); /* <--- DO NOT USE &PyAnimal::go HERE */
 
@@ -135,32 +136,6 @@ Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
 necessary steps required to providing proper overriding support for inherited
 classes.
-
-To enable safely passing a ``std::unique_ptr`` to a trampoline object between
-Python and C++,
-
-1. the C++ type (``Animal`` above) must be wrapped with
-   ``py::class_<..., py::smart_holder>`` (see :ref:`smart_holder`), and
-
-2. the trampoline helper class must inherit from
-   ``py::trampoline_self_life_support``.
-
-I.e. the example above needs these two changes:
-
-.. code-block:: cpp
-
-   class PyAnimal : public Animal, public py::trampoline_self_life_support {
-       ...
-   };
-
-.. code-block:: cpp
-
-    py::class_<Animal, PyAnimal, py::smart_holder>(m, "Animal");
-
-.. seealso::
-
-    A fairly minimal but complete example is in
-    :file:`tests/test_class_sh_trampoline_unique_ptr.cpp`.
 
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
@@ -281,13 +256,13 @@ override the ``name()`` method):
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public Animal, py::trampoline_self_life_support {
     public:
         using Animal::Animal; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, Animal, go, n_times); }
         std::string name() override { PYBIND11_OVERRIDE(std::string, Animal, name, ); }
     };
-    class PyDog : public Dog {
+    class PyDog : public Dog, py::trampoline_self_life_support {
     public:
         using Dog::Dog; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE(std::string, Dog, go, n_times); }
@@ -309,7 +284,7 @@ declare or override any virtual methods itself:
 .. code-block:: cpp
 
     class Husky : public Dog {};
-    class PyHusky : public Husky {
+    class PyHusky : public Husky, py::trampoline_self_life_support {
     public:
         using Husky::Husky; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, Husky, go, n_times); }
@@ -324,13 +299,15 @@ follows:
 
 .. code-block:: cpp
 
-    template <class AnimalBase = Animal> class PyAnimal : public AnimalBase {
+    template <class AnimalBase = Animal>
+    class PyAnimal : public AnimalBase, py::trampoline_self_life_support {
     public:
         using AnimalBase::AnimalBase; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, AnimalBase, go, n_times); }
         std::string name() override { PYBIND11_OVERRIDE(std::string, AnimalBase, name, ); }
     };
-    template <class DogBase = Dog> class PyDog : public PyAnimal<DogBase> {
+    template <class DogBase = Dog>
+    class PyDog : public PyAnimal<DogBase>, py::trampoline_self_life_support {
     public:
         using PyAnimal<DogBase>::PyAnimal; // Inherit constructors
         // Override PyAnimal's pure virtual go() with a non-pure one:
@@ -348,9 +325,9 @@ The classes are then registered with pybind11 using:
 
 .. code-block:: cpp
 
-    py::class_<Animal, PyAnimal<>> animal(m, "Animal");
-    py::class_<Dog, Animal, PyDog<>> dog(m, "Dog");
-    py::class_<Husky, Dog, PyDog<Husky>> husky(m, "Husky");
+    py::class_<Animal, PyAnimal<>, py::smart_holder> animal(m, "Animal");
+    py::class_<Dog, Animal, PyDog<>, py::smart_holder> dog(m, "Dog");
+    py::class_<Husky, Dog, PyDog<Husky>, py::smart_holder> husky(m, "Husky");
     // ... add animal, dog, husky definitions
 
 Note that ``Husky`` did not require a dedicated trampoline template class at
@@ -536,12 +513,12 @@ an alias:
         // ...
         virtual ~Example() = default;
     };
-    class PyExample : public Example {
+    class PyExample : public Example, py::trampoline_self_life_support {
     public:
         using Example::Example;
         PyExample(Example &&base) : Example(std::move(base)) {}
     };
-    py::class_<Example, PyExample>(m, "Example")
+    py::class_<Example, PyExample, py::smart_holder>(m, "Example")
         // Returns an Example pointer.  If a PyExample is needed, the Example
         // instance will be moved via the extra constructor in PyExample, above.
         .def(py::init([]() { return new Example(); }))
@@ -1142,7 +1119,7 @@ described trampoline:
         virtual int foo() const { return 42; }
     };
 
-    class Trampoline : public A {
+    class Trampoline : public A, py::trampoline_self_life_support {
     public:
         int foo() const override { PYBIND11_OVERRIDE(int, A, foo, ); }
     };
@@ -1152,7 +1129,7 @@ described trampoline:
         using A::foo;
     };
 
-    py::class_<A, Trampoline>(m, "A") // <-- `Trampoline` here
+    py::class_<A, Trampoline, py::smart_holder>(m, "A") // <-- `Trampoline` here
         .def("foo", &Publicist::foo); // <-- `Publicist` here, not `Trampoline`!
 
 Binding final classes

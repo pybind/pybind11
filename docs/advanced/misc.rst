@@ -80,7 +80,7 @@ could be realized as follows (important changes highlighted):
 .. code-block:: cpp
     :emphasize-lines: 8,30,31
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public Animal, py::trampoline_self_life_support {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
@@ -98,12 +98,12 @@ could be realized as follows (important changes highlighted):
     };
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal, PyAnimal> animal(m, "Animal");
+        py::class_<Animal, PyAnimal, py::smart_holder> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
 
-        py::class_<Dog>(m, "Dog", animal)
+        py::class_<Dog, py::smart_holder>(m, "Dog", animal)
             .def(py::init<>());
 
         m.def("call_go", [](Animal *animal) -> std::string {
