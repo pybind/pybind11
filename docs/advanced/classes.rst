@@ -88,9 +88,9 @@ practice to always use the base class, in combination with
 
 .. note::
     For completeness, the base class has no effect if a holder other than
-   ``py::smart_holder`` used, including the default ``std::unique_ptr<T>``.
-   Please think twice, though, the pitfalls are very real, and the overhead
-   for using the safer ``py::smart_holder`` is very likely to be in the noise.
+    ``py::smart_holder`` used, including the default ``std::unique_ptr<T>``.
+    Please think twice, though, the pitfalls are very real, and the overhead
+    for using the safer ``py::smart_holder`` is very likely to be in the noise.
 
 The macro :c:macro:`PYBIND11_OVERRIDE_PURE` should be used for pure virtual
 functions, and :c:macro:`PYBIND11_OVERRIDE` should be used for functions which have
