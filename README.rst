@@ -134,11 +134,30 @@ About
 
 This project was created by `Wenzel
 Jakob <http://rgl.epfl.ch/people/wjakob>`_. Significant features and/or
-improvements to the code were contributed by Jonas Adler, Lori A. Burns,
-Sylvain Corlay, Eric Cousineau, Aaron Gokaslan, Ralf Grosse-Kunstleve, Trent Houliston, Axel
-Huebl, @hulucc, Yannick Jadoul, Sergey Lyskov, Johan Mabille, Tomasz Miąsko,
-Dean Moldovan, Ben Pritchard, Jason Rhinelander, Boris Schäling, Pim
-Schellart, Henry Schreiner, Ivan Smirnov, Boris Staletic, and Patrick Stewart.
+improvements to the code were contributed by
+Jonas Adler,
+Lori A. Burns,
+Sylvain Corlay,
+Eric Cousineau,
+Aaron Gokaslan,
+Ralf Grosse-Kunstleve,
+Trent Houliston,
+Axel Huebl,
+@hulucc,
+Yannick Jadoul,
+Sergey Lyskov,
+Johan Mabille,
+Tomasz Miąsko,
+Dean Moldovan,
+Ben Pritchard,
+Jason Rhinelander,
+Boris Schäling,
+Pim Schellart,
+Henry Schreiner,
+Ivan Smirnov,
+Boris Staletic,
+and
+Patrick Stewart.
 
 We thank Google for a generous financial contribution to the continuous
 integration infrastructure used by this project.
