@@ -457,6 +457,8 @@ inline void clear_instance(PyObject *self) {
             if (instance->owned || v_h.holder_constructed()) {
                 v_h.type->dealloc(v_h);
             }
+        } else if (v_h.holder_constructed()) {
+            v_h.type->dealloc(v_h); // Disowned instance.
         }
     }
     // Deallocate the value/holder layout internals:

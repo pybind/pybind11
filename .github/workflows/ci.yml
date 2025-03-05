@@ -87,6 +87,20 @@ jobs:
           # Extra ubuntu latest job
           - runs-on: ubuntu-latest
             python: '3.11'
+          # Run tests with py::smart_holder as the default holder
+          # with recent (or ideally latest) released Python version.
+          - runs-on: ubuntu-latest
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+          - runs-on: macos-13
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+          - runs-on: windows-2022
+            python: '3.12'
+            args: >
+              -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
           - python: 'graalpy-24.1'
