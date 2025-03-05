@@ -13,10 +13,25 @@
 
 .. start
 
-.. Note::
+NOTE
+----
 
-   This is the pybind11 **smart_holder** branch. Please refer to
-   ``README_smart_holder.rst`` for branch-specific information.
+**THIS BRANCH IS OBSOLETE.** — It was merged into the pybind11 master branch
+with `PR #5542 <https://github.com/pybind/pybind11/pull/5542>`_.
+
+Please switch to pybind11 master or future pybind11 releases.
+
+You will need to remove ``#include <pybind11/smart_holder.h>``
+from your code, and these obsolete macros:
+
+* ``PYBIND11_TYPE_CASTER_BASE_HOLDER``
+* ``PYBIND11_SMART_HOLDER_TYPE_CASTERS``
+* ``PYBIND11_SH_AVL``
+* ``PYBIND11_SH_DEF``
+
+
+Overview
+--------
 
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing
