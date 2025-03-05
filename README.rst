@@ -155,10 +155,13 @@ Boris Schäling,
 Pim Schellart,
 Henry Schreiner,
 Ivan Smirnov,
+Dustin Spicuzza,
 Boris Staletic,
 Ethan Steinberg,
+Patrick Stewart,
+Ivor Wanders,
 and
-Patrick Stewart.
+Xiaofei Wang.
 
 We thank Google for a generous financial contribution to the continuous
 integration infrastructure used by this project.
