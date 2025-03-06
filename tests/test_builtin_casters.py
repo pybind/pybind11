@@ -247,7 +247,7 @@ def test_integer_casting():
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_int_convert():
+def test_int_convert(doc):
     class Int:
         def __int__(self):
             return 42
@@ -286,6 +286,9 @@ def test_int_convert():
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
+    assert doc(convert) == "int_passthrough(arg0: typing.SupportsInt) -> int"
+    assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
+
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
 
@@ -316,6 +319,22 @@ def test_int_convert():
     requires_conversion(RaisingTypeErrorOnIndex())
     assert convert(RaisingValueErrorOnIndex()) == 42
     requires_conversion(RaisingValueErrorOnIndex())
+
+
+def test_float_convert(doc):
+    class Float:
+        def __float__(self):
+            return 41.45
+
+    convert, noconvert = m.float_passthrough, m.float_passthrough_noconvert
+    assert doc(convert) == "float_passthrough(arg0: typing.SupportsFloat) -> float"
+    assert doc(noconvert) == "float_passthrough_noconvert(arg0: float) -> float"
+
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    requires_conversion(Float())
+    assert pytest.approx(convert(Float())) == 41.45
 
 
 def test_numpy_int_convert():
@@ -362,7 +381,7 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: tuple[bool, str, int]) -> tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """

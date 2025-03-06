@@ -75,7 +75,7 @@ def test_noconvert_args(msg):
         msg(excinfo.value)
         == """
         ints_preferred(): incompatible function arguments. The following argument types are supported:
-            1. (i: int) -> int
+            1. (i: typing.SupportsInt) -> int
 
         Invoked with: 4.0
     """

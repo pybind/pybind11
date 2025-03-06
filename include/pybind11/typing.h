@@ -228,7 +228,9 @@ struct handle_type_name<typing::Optional<T>> {
 
 template <typename T>
 struct handle_type_name<typing::Final<T>> {
-    static constexpr auto name = const_name("Final[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("Final[")
+                                 + ::pybind11::detail::return_descr(make_caster<T>::name)
+                                 + const_name("]");
 };
 
 template <typename T>

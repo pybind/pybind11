@@ -106,6 +106,19 @@ constexpr descr<N1 + N2 + 1> io_name(char const (&text1)[N1], char const (&text2
            + const_name("@");
 }
 
+// Ternary description for io_name (like the numeric type_caster)
+template <bool B, size_t N1, size_t N2, size_t N3, size_t N4>
+constexpr enable_if_t<B, descr<N1 + N2 + 1>>
+io_name(char const (&text1)[N1], char const (&text2)[N2], char const (&)[N3], char const (&)[N4]) {
+    return io_name(text1, text2);
+}
+
+template <bool B, size_t N1, size_t N2, size_t N3, size_t N4>
+constexpr enable_if_t<!B, descr<N3 + N4 + 1>>
+io_name(char const (&)[N1], char const (&)[N2], char const (&text3)[N3], char const (&text4)[N4]) {
+    return io_name(text3, text4);
+}
+
 // If "_" is defined as a macro, py::detail::_ cannot be provided.
 // It is therefore best to use py::detail::const_name universally.
 // This block is for backward compatibility only.
