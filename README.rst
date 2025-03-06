@@ -1,7 +1,7 @@
 .. figure:: https://github.com/pybind/pybind11/raw/master/docs/pybind11-logo.png
    :alt: pybind11 logo
 
-**pybind11 — Seamless operability between C++11 and Python**
+**pybind11 (v3)  — Seamless interoperability between C++ and Python**
 
 |Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status|
 
@@ -134,11 +134,34 @@ About
 
 This project was created by `Wenzel
 Jakob <http://rgl.epfl.ch/people/wjakob>`_. Significant features and/or
-improvements to the code were contributed by Jonas Adler, Lori A. Burns,
-Sylvain Corlay, Eric Cousineau, Aaron Gokaslan, Ralf Grosse-Kunstleve, Trent Houliston, Axel
-Huebl, @hulucc, Yannick Jadoul, Sergey Lyskov, Johan Mabille, Tomasz Miąsko,
-Dean Moldovan, Ben Pritchard, Jason Rhinelander, Boris Schäling, Pim
-Schellart, Henry Schreiner, Ivan Smirnov, Boris Staletic, and Patrick Stewart.
+improvements to the code were contributed by
+Jonas Adler,
+Lori A. Burns,
+Sylvain Corlay,
+Eric Cousineau,
+Aaron Gokaslan,
+Ralf Grosse-Kunstleve,
+Trent Houliston,
+Axel Huebl,
+@hulucc,
+Yannick Jadoul,
+Sergey Lyskov,
+Johan Mabille,
+Tomasz Miąsko,
+Dean Moldovan,
+Ben Pritchard,
+Jason Rhinelander,
+Boris Schäling,
+Pim Schellart,
+Henry Schreiner,
+Ivan Smirnov,
+Dustin Spicuzza,
+Boris Staletic,
+Ethan Steinberg,
+Patrick Stewart,
+Ivor Wanders,
+and
+Xiaofei Wang.
 
 We thank Google for a generous financial contribution to the continuous
 integration infrastructure used by this project.

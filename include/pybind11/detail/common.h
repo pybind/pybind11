@@ -605,6 +605,8 @@ struct instance {
     bool simple_instance_registered : 1;
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
+    /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
+    bool is_alias : 1;
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)

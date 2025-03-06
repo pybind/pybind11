@@ -49,6 +49,16 @@ def test_instance_new():
     assert cstats.alive() == 0
 
 
+def test_pass_unique_ptr():
+    obj = m.ToBeHeldByUniquePtr()
+    with pytest.raises(RuntimeError) as execinfo:
+        m.pass_unique_ptr(obj)
+    assert str(execinfo.value).startswith(
+        "Passing `std::unique_ptr<T>` from Python to C++ requires `py::class_<T, py::smart_holder>` (with T = "
+    )
+    assert "ToBeHeldByUniquePtr" in str(execinfo.value)
+
+
 def test_type():
     assert m.check_type(1) == m.DerivedClass1
     with pytest.raises(RuntimeError) as execinfo:
