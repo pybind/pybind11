@@ -32,7 +32,7 @@ repos:
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.9.4
+  rev: v0.9.9
   hooks:
   - id: ruff
     args: ["--fix", "--show-fixes"]
@@ -40,7 +40,7 @@ repos:
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.14.1"
+  rev: "v1.15.0"
   hooks:
   - id: mypy
     args: []
@@ -76,6 +76,7 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
+    exclude: \.patch?$
 
 # Also code format the docs
 - repo: https://github.com/adamchainz/blacken-docs
@@ -90,6 +91,7 @@ repos:
   rev: "v1.5.5"
   hooks:
   - id: remove-tabs
+    exclude: (^docs/.*|\.patch)?$
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
@@ -149,7 +151,7 @@ repos:
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.31.1
+  rev: 0.31.2
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows

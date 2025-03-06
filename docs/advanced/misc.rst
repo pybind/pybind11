@@ -80,7 +80,7 @@ could be realized as follows (important changes highlighted):
 .. code-block:: cpp
     :emphasize-lines: 8,30,31
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public Animal, py::trampoline_self_life_support {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
@@ -98,12 +98,12 @@ could be realized as follows (important changes highlighted):
     };
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal, PyAnimal> animal(m, "Animal");
+        py::class_<Animal, PyAnimal, py::smart_holder> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
 
-        py::class_<Dog>(m, "Dog", animal)
+        py::class_<Dog, py::smart_holder>(m, "Dog", animal)
             .def(py::init<>());
 
         m.def("call_go", [](Animal *animal) -> std::string {
@@ -188,7 +188,7 @@ from Section :ref:`inheritance`.
 Suppose now that ``Pet`` bindings are defined in a module named ``basic``,
 whereas the ``Dog`` bindings are defined somewhere else. The challenge is of
 course that the variable ``pet`` is not available anymore though it is needed
-to indicate the inheritance relationship to the constructor of ``class_<Dog>``.
+to indicate the inheritance relationship to the constructor of ``py::class_<Dog>``.
 However, it can be acquired as follows:
 
 .. code-block:: cpp
@@ -200,7 +200,7 @@ However, it can be acquired as follows:
         .def("bark", &Dog::bark);
 
 Alternatively, you can specify the base class as a template parameter option to
-``class_``, which performs an automated lookup of the corresponding Python
+``py::class_``, which performs an automated lookup of the corresponding Python
 type. Like the above code, however, this also requires invoking the ``import``
 function once to ensure that the pybind11 binding code of the module ``basic``
 has been executed:

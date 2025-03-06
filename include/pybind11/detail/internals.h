@@ -37,11 +37,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 6
+#    define PYBIND11_INTERNALS_VERSION 7
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 6
-#    error "PYBIND11_INTERNALS_VERSION 6 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 7
+#    error "PYBIND11_INTERNALS_VERSION 7 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -211,6 +211,17 @@ struct internals {
     }
 };
 
+// For backwards compatibility (i.e. #ifdef guards):
+#define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+
+enum class holder_enum_t : uint8_t {
+    undefined,
+    std_unique_ptr, // Default, lacking interop with std::shared_ptr.
+    std_shared_ptr, // Lacking interop with std::unique_ptr.
+    smart_holder,   // Full std::unique_ptr / std::shared_ptr interop.
+    custom_holder,
+};
+
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
@@ -226,6 +237,7 @@ struct type_info {
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
@@ -233,8 +245,6 @@ struct type_info {
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
-    /* for base vs derived holder_type checks */
-    bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
 };

@@ -45,6 +45,7 @@ main_headers = {
     "include/pybind11/pytypes.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/trampoline_self_life_support.h",
     "include/pybind11/type_caster_pyobject_ptr.h",
     "include/pybind11/typing.h",
     "include/pybind11/warnings.h",
@@ -62,10 +63,13 @@ detail_headers = {
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/cpp_conduit.h",
     "include/pybind11/detail/descr.h",
+    "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+    "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",
     "include/pybind11/detail/exception_translation.h",
 }
@@ -102,6 +106,8 @@ py_files = {
     "commands.py",
     "py.typed",
     "setup_helpers.py",
+    "share/__init__.py",
+    "share/pkgconfig/__init__.py",
 }
 
 headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
