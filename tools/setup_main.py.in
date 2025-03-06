@@ -18,6 +18,7 @@ setup(
         "pybind11.include.pybind11.detail",
         "pybind11.include.pybind11.eigen",
         "pybind11.include.pybind11.stl",
+        "pybind11.share",
         "pybind11.share.cmake.pybind11",
         "pybind11.share.pkgconfig",
     ],
@@ -40,7 +41,10 @@ setup(
         ],
         "pipx.run": [
              "pybind11 = pybind11.__main__:main",
-        ]
+        ],
+        "pkg_config": [
+             "pybind11 = pybind11.share.pkgconfig",
+        ],
     },
     cmdclass=cmdclass
 )

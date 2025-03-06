@@ -106,6 +106,8 @@ py_files = {
     "commands.py",
     "py.typed",
     "setup_helpers.py",
+    "share/__init__.py",
+    "share/pkgconfig/__init__.py",
 }
 
 headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
