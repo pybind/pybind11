@@ -512,7 +512,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         py::list res;
 #define TEST_DTYPE(T) res.append(py::make_tuple(py::dtype::of<T>().num(), py::dtype::num_of<T>()));
         TEST_DTYPE(bool)
-        TEST_DTYPE(char)
+        TEST_DTYPE(signed char)
         TEST_DTYPE(unsigned char)
         TEST_DTYPE(short)
         TEST_DTYPE(unsigned short)
@@ -545,7 +545,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     res.append(py::make_tuple(py::dtype(py::detail::npy_api::NT).normalized_num(),                \
                               py::dtype::num_of<T>()));
         TEST_DTYPE(NPY_BOOL_, bool)
-        TEST_DTYPE(NPY_BYTE_, char);
+        TEST_DTYPE(NPY_BYTE_, signed char);
         TEST_DTYPE(NPY_UBYTE_, unsigned char);
         TEST_DTYPE(NPY_SHORT_, short);
         TEST_DTYPE(NPY_USHORT_, unsigned short);
