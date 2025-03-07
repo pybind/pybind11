@@ -72,7 +72,7 @@ compatible names (`PYTHON_*` vs. the new `Python_* names). Set the mode
 explicitly to avoid the compatibility defines. You can specify this mode
 explicitly by setting `PYBIND11_FINDPYTHON` to `COMPAT`, but if you are changing
 your CMakeLists anyway, please just use the `ON` mode. A future release may
-default on `ON`.
+default to `ON`.
 
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^
