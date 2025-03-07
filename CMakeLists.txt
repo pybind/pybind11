@@ -81,7 +81,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 else()
   set(PYBIND11_MASTER_PROJECT OFF)
   set(pybind11_system SYSTEM)
-  set(_pybind11_findpython_default OFF)
+  set(_pybind11_findpython_default COMPAT)
 endif()
 
 # Options
@@ -114,7 +114,9 @@ cmake_dependent_option(
   "Install pybind11 headers in Python include directory instead of default installation prefix"
   OFF "PYBIND11_INSTALL" OFF)
 
-option(PYBIND11_FINDPYTHON "Force new FindPython" ${_pybind11_findpython_default})
+set(PYBIND11_FINDPYTHON
+    ${_pybind11_findpython_default}
+    CACHE STRING "Force new FindPython - NEW, OLD, COMPAT")
 
 # Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
 # (makes transition easier while we support both modes).
