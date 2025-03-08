@@ -5,6 +5,7 @@ import pickle
 
 import pytest
 
+import env
 from pybind11_tests import native_enum as m
 
 SMALLENUM_MEMBERS = (
@@ -156,6 +157,8 @@ def test_native_enum_data_was_not_added_error_message():
     "func", [m.native_enum_ctor_malformed_utf8, m.native_enum_value_malformed_utf8]
 )
 def test_native_enum_malformed_utf8(func):
+    if env.GRAALPY and func is m.native_enum_ctor_malformed_utf8:
+        pytest.skip("GraalPy does not raise UnicodeDecodeError")
     malformed_utf8 = b"\x80"
     with pytest.raises(UnicodeDecodeError):
         func(malformed_utf8)
