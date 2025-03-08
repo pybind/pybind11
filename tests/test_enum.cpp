@@ -130,4 +130,20 @@ TEST_SUBMODULE(enums, m) {
     py::enum_<ScopedBoolEnum>(m, "ScopedBoolEnum")
         .value("FALSE", ScopedBoolEnum::FALSE)
         .value("TRUE", ScopedBoolEnum::TRUE);
+
+#if defined(__MINGW32__)
+    m.attr("obj_cast_UnscopedEnum_ptr") = "MinGW: dangling pointer to an unnamed temporary may be "
+                                          "used [-Werror=dangling-pointer=]";
+#else
+    m.def("obj_cast_UnscopedEnum_ptr", [](const py::object &obj) {
+        // https://github.com/OpenImageIO/oiio/blob/30ea4ebdfab11aec291befbaff446f2a7d24835b/src/python/py_oiio.h#L300
+        if (py::isinstance<UnscopedEnum>(obj)) {
+            if (*obj.cast<UnscopedEnum *>() == UnscopedEnum::ETwo) {
+                return 2;
+            }
+            return 1;
+        }
+        return 0;
+    });
+#endif
 }

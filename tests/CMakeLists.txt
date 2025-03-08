@@ -154,6 +154,7 @@ set(PYBIND11_TEST_FILES
     test_methods_and_attributes
     test_modules
     test_multiple_inheritance
+    test_native_enum
     test_numpy_array
     test_numpy_dtypes
     test_numpy_vectorize
