@@ -34,17 +34,16 @@ public:
     void arm_correct_use_check() const { correct_use_check = true; }
 
     // This is a separate public function only to enable easy unit testing.
-    std::string was_not_added_error_message() const {
-        return "`native_enum` was not added to any module."
-               " Use e.g. `m += native_enum<...>(\""
-               + enum_name_encoded + "\", ...)` to fix.";
+    std::string missing_finalize_error_message() const {
+        return "pybind11::native_enum<...>(\"" + enum_name_encoded
+               + "\", ...): MISSING .finalize()";
     }
 
 #if !defined(NDEBUG)
     // This dtor cannot easily be unit tested because it terminates the process.
     ~native_enum_data() {
         if (correct_use_check) {
-            pybind11_fail(was_not_added_error_message());
+            pybind11_fail(missing_finalize_error_message());
         }
     }
 #endif
