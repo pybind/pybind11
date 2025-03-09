@@ -18,11 +18,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 class native_enum_data {
 public:
-    native_enum_data(const char *enum_name,
+    native_enum_data(object parent_scope,
+                     const char *enum_name,
                      const std::type_index &enum_type_index,
                      bool use_int_enum)
-        : enum_name_encoded{enum_name}, enum_type_index{enum_type_index},
-          use_int_enum{use_int_enum}, enum_name{enum_name} {}
+        : parent_scope(parent_scope), enum_name_encoded{enum_name},
+          enum_type_index{enum_type_index}, use_int_enum{use_int_enum}, enum_name{enum_name} {}
 
     native_enum_data(const native_enum_data &) = delete;
     native_enum_data &operator=(const native_enum_data &) = delete;
@@ -50,6 +51,7 @@ private:
     mutable bool correct_use_check{false};
 
 public:
+    object parent_scope;
     std::string enum_name_encoded;
     std::type_index enum_type_index;
     bool use_int_enum;
