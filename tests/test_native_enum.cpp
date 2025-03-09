@@ -193,14 +193,15 @@ TEST_SUBMODULE(native_enum, m) {
     });
 
 #if defined(PYBIND11_NEGATE_THIS_CONDITION_FOR_LOCAL_TESTING) && !defined(NDEBUG)
-    m.def("native_enum_correct_use_failure", []() {
+    m.def("native_enum_missing_finalize_failure", []() {
         enum fake { x };
         py::native_enum<fake>(
-            py::none(), "fake_native_enum_correct_use_failure", py::native_enum_kind::IntEnum)
+            py::none(), "fake_native_enum_missing_finalize_failure", py::native_enum_kind::IntEnum)
             .value("x", fake::x)
-            .finalize();
+            // .finalize() missing
+            ;
     });
 #else
-    m.attr("native_enum_correct_use_failure") = "For local testing only: terminates process";
+    m.attr("native_enum_missing_finalize_failure") = "For local testing only: terminates process";
 #endif
 }

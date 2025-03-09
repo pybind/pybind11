@@ -213,7 +213,7 @@ def test_double_registration_native_enum_before_enum():
     )
 
 
-def test_native_enum_correct_use_failure():
-    if not isinstance(m.native_enum_correct_use_failure, str):
-        m.native_enum_correct_use_failure()
+def test_native_enum_missing_finalize_failure():
+    if not isinstance(m.native_enum_missing_finalize_failure, str):
+        m.native_enum_missing_finalize_failure()
         pytest.fail("Process termination expected.")
