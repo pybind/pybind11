@@ -150,7 +150,7 @@ TEST_SUBMODULE(native_enum, m) {
             .value(malformed_utf8, fake::x);
     });
 
-    m.def("double_registration_native_enum", [](py::module_ m) {
+    m.def("double_registration_native_enum", [](py::module_ &m) {
         enum fake { x };
         py::native_enum<fake>(
             m, "fake_double_registration_native_enum", py::native_enum_kind::IntEnum)
@@ -160,14 +160,14 @@ TEST_SUBMODULE(native_enum, m) {
             m, "fake_double_registration_native_enum", py::native_enum_kind::Enum);
     });
 
-    m.def("native_enum_name_clash", [](py::module_ m) {
+    m.def("native_enum_name_clash", [](py::module_ &m) {
         enum fake { x };
         py::native_enum<fake>(m, "fake_native_enum_name_clash", py::native_enum_kind::IntEnum)
             .value("x", fake::x)
             .finalize();
     });
 
-    m.def("native_enum_value_name_clash", [](py::module_ m) {
+    m.def("native_enum_value_name_clash", [](py::module_ &m) {
         enum fake { x };
         py::native_enum<fake>(
             m, "fake_native_enum_value_name_clash", py::native_enum_kind::IntEnum)
@@ -176,7 +176,7 @@ TEST_SUBMODULE(native_enum, m) {
             .finalize();
     });
 
-    m.def("double_registration_enum_before_native_enum", [](const py::module_ &m) {
+    m.def("double_registration_enum_before_native_enum", [](py::module_ &m) {
         enum fake { x };
         py::enum_<fake>(m, "fake_enum_first").value("x", fake::x);
         py::native_enum<fake>(m, "fake_enum_first", py::native_enum_kind::IntEnum)
@@ -184,7 +184,7 @@ TEST_SUBMODULE(native_enum, m) {
             .finalize();
     });
 
-    m.def("double_registration_native_enum_before_enum", [](py::module_ m) {
+    m.def("double_registration_native_enum_before_enum", [](py::module_ &m) {
         enum fake { x };
         py::native_enum<fake>(m, "fake_native_enum_first", py::native_enum_kind::IntEnum)
             .value("x", fake::x)
