@@ -87,10 +87,10 @@ global_internals_native_enum_type_map_contains(const std::type_index &enum_type_
     });
 }
 
-inline void native_enum_add_to_parent(const object &parent, const detail::native_enum_data &data) {
-    data.disarm_correct_use_check();
-    if (hasattr(parent, data.enum_name)) {
-        pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
+inline void native_enum_data::finalize() {
+    disarm_correct_use_check();
+    if (hasattr(parent_scope, enum_name)) {
+        pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                       + "\"): an object with that name is already defined");
     }
     auto enum_module = reinterpret_steal<object>(PyImport_ImportModule("enum"));
@@ -99,31 +99,29 @@ inline void native_enum_add_to_parent(const object &parent, const detail::native
                    "`import enum` FAILED at " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
         throw error_already_set();
     }
-    auto py_enum_type = enum_module.attr(data.use_int_enum ? "IntEnum" : "Enum");
-    auto py_enum = py_enum_type(data.enum_name, data.members);
-    object module_name = get_module_name_if_available(parent);
+    auto py_enum_type = enum_module.attr(use_int_enum ? "IntEnum" : "Enum");
+    auto py_enum = py_enum_type(enum_name, members);
+    object module_name = get_module_name_if_available(parent_scope);
     if (module_name) {
         py_enum.attr("__module__") = module_name;
     }
-    parent.attr(data.enum_name) = py_enum;
-    if (data.export_values_flag) {
-        for (auto member : data.members) {
+    parent_scope.attr(enum_name) = py_enum;
+    if (export_values_flag) {
+        for (auto member : members) {
             auto member_name = member[int_(0)];
-            if (hasattr(parent, member_name)) {
-                pybind11_fail("pybind11::native_enum<...>(\"" + data.enum_name_encoded
-                              + "\").value(\"" + member_name.cast<std::string>()
+            if (hasattr(parent_scope, member_name)) {
+                pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded + "\").value(\""
+                              + member_name.cast<std::string>()
                               + "\"): an object with that name is already defined");
             }
-            parent.attr(member_name) = py_enum[member_name];
+            parent_scope.attr(member_name) = py_enum[member_name];
         }
     }
-    for (auto doc : data.docs) {
+    for (auto doc : docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
-    global_internals_native_enum_type_map_set_item(data.enum_type_index, py_enum.release().ptr());
+    global_internals_native_enum_type_map_set_item(enum_type_index, py_enum.release().ptr());
 }
-
-inline void native_enum_data::finalize() { native_enum_add_to_parent(parent_scope, *this); }
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
