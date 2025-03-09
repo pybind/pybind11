@@ -18,7 +18,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 class native_enum_data {
 public:
-    native_enum_data(object parent_scope,
+    native_enum_data(const object &parent_scope,
                      const char *enum_name,
                      const std::type_index &enum_type_index,
                      bool use_int_enum)

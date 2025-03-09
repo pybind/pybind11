@@ -23,7 +23,7 @@ class native_enum : public detail::native_enum_data {
 public:
     using Underlying = typename std::underlying_type<Type>::type;
 
-    explicit native_enum(object parent_scope, const char *name, native_enum_kind kind)
+    explicit native_enum(const object &parent_scope, const char *name, native_enum_kind kind)
         : detail::native_enum_data(parent_scope,
                                    name,
                                    std::type_index(typeid(Type)),
