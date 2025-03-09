@@ -1377,11 +1377,6 @@ public:
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
     }
-
-    module_ &operator+=(const detail::native_enum_data &data) {
-        detail::native_enum_add_to_parent(*this, data);
-        return *this;
-    }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2189,11 +2184,6 @@ public:
             }
         }
         def_property_static_impl(name, fget, fset, rec_active);
-        return *this;
-    }
-
-    class_ &operator+=(const detail::native_enum_data &data) {
-        detail::native_enum_add_to_parent(*this, data);
         return *this;
     }
 

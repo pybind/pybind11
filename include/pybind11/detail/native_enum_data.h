@@ -25,6 +25,8 @@ public:
         : parent_scope(parent_scope), enum_name_encoded{enum_name},
           enum_type_index{enum_type_index}, use_int_enum{use_int_enum}, enum_name{enum_name} {}
 
+    void finalize();
+
     native_enum_data(const native_enum_data &) = delete;
     native_enum_data &operator=(const native_enum_data &) = delete;
 
@@ -120,6 +122,8 @@ inline void native_enum_add_to_parent(const object &parent, const detail::native
     }
     global_internals_native_enum_type_map_set_item(data.enum_type_index, py_enum.release().ptr());
 }
+
+inline void native_enum_data::finalize() { native_enum_add_to_parent(parent_scope, *this); }
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
