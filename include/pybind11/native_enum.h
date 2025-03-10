@@ -38,7 +38,7 @@ public:
             pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                           + "\") is already registered!");
         }
-        arm_correct_use_check();
+        arm_finalize_check();
     }
 
     /// Export enumeration entries into the parent scope
@@ -49,12 +49,13 @@ public:
 
     /// Add an enumeration entry
     native_enum &value(char const *name, Type value, const char *doc = nullptr) {
-        disarm_correct_use_check();
+        // Disarm for the case that the native_enum_data dtor runs during exception unwinding.
+        disarm_finalize_check("value after finalize");
         members.append(make_tuple(name, static_cast<Underlying>(value)));
         if (doc) {
             docs.append(make_tuple(name, doc));
         }
-        arm_correct_use_check();
+        arm_finalize_check(); // There was no exception.
         return *this;
     }
 

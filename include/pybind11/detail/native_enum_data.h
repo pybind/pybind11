@@ -10,6 +10,7 @@
 #include "common.h"
 #include "internals.h"
 
+#include <cassert>
 #include <string>
 #include <typeindex>
 
@@ -30,8 +31,18 @@ public:
     native_enum_data(const native_enum_data &) = delete;
     native_enum_data &operator=(const native_enum_data &) = delete;
 
-    void disarm_correct_use_check() const { correct_use_check = false; }
-    void arm_correct_use_check() const { correct_use_check = true; }
+    void disarm_finalize_check(const char *error_context) const {
+        if (!finalize_needed) {
+            pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
+                          + "\"): " + error_context);
+        }
+        finalize_needed = false;
+    }
+
+    void arm_finalize_check() const {
+        assert(!finalize_needed);
+        finalize_needed = true;
+    }
 
     // This is a separate public function only to enable easy unit testing.
     std::string missing_finalize_error_message() const {
@@ -42,14 +53,14 @@ public:
 #if !defined(NDEBUG)
     // This dtor cannot easily be unit tested because it terminates the process.
     ~native_enum_data() {
-        if (correct_use_check) {
+        if (finalize_needed) {
             pybind11_fail(missing_finalize_error_message());
         }
     }
 #endif
 
 private:
-    mutable bool correct_use_check{false};
+    mutable bool finalize_needed{false};
 
 public:
     object parent_scope;
@@ -87,7 +98,7 @@ global_internals_native_enum_type_map_contains(const std::type_index &enum_type_
 }
 
 inline void native_enum_data::finalize() {
-    disarm_correct_use_check();
+    disarm_finalize_check("DOUBLE finalize");
     if (hasattr(parent_scope, enum_name)) {
         pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                       + "\"): an object with that name is already defined");

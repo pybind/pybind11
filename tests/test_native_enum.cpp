@@ -135,13 +135,28 @@ TEST_SUBMODULE(native_enum, m) {
     m.def("native_enum_data_missing_finalize_error_message", [](const char *enum_name) {
         py::detail::native_enum_data data(
             py::none(), enum_name, std::type_index(typeid(void)), false);
-        data.disarm_correct_use_check();
         return data.missing_finalize_error_message();
     });
 
     m.def("native_enum_ctor_malformed_utf8", [](const char *malformed_utf8) {
         enum fake { x };
         py::native_enum<fake>{py::none(), malformed_utf8, py::native_enum_kind::IntEnum};
+    });
+
+    m.def("native_enum_double_finalize", [](py::module_ &m) {
+        enum fake { x };
+        py::native_enum<fake> ne(
+            m, "fake_native_enum_double_finalize", py::native_enum_kind::IntEnum);
+        ne.finalize();
+        ne.finalize();
+    });
+
+    m.def("native_enum_value_after_finalize", [](py::module_ &m) {
+        enum fake { x };
+        py::native_enum<fake> ne(
+            m, "fake_native_enum_value_after_finalize", py::native_enum_kind::IntEnum);
+        ne.finalize();
+        ne.value("x", fake::x);
     });
 
     m.def("native_enum_value_malformed_utf8", [](const char *malformed_utf8) {

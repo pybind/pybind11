@@ -161,6 +161,24 @@ def test_native_enum_malformed_utf8(func):
         func(malformed_utf8)
 
 
+def test_native_enum_double_finalize():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.native_enum_double_finalize(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_native_enum_double_finalize"): DOUBLE finalize'
+    )
+
+
+def test_native_enum_value_after_finalize():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.native_enum_value_after_finalize(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_native_enum_value_after_finalize"): value after finalize'
+    )
+
+
 def test_double_registration_native_enum():
     with pytest.raises(RuntimeError) as excinfo:
         m.double_registration_native_enum(m)
