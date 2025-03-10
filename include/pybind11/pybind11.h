@@ -109,8 +109,7 @@ inline std::string generate_signature(const char *text,
                                       detail::function_record *rec,
                                       const std::type_info *const *types,
                                       size_t &type_index,
-                                      size_t &arg_index
-                                      ) {
+                                      size_t &arg_index) {
     std::string signature;
     bool is_starred = false;
     bool is_annotation = rec == nullptr;
