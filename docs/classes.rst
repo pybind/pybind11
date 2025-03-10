@@ -459,8 +459,8 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
     other using the ``.def(py::init<...>())`` syntax. The existing machinery
     for specifying keyword and default arguments also works.
 
-Enumerations and internal types
-===============================
+Enumerations
+============
 
 Let's now suppose that the example class contains internal types like enumerations, e.g.:
 
@@ -494,74 +494,37 @@ The binding code for this example looks as follows:
         .def_readwrite("type", &Pet::type)
         .def_readwrite("attr", &Pet::attr);
 
-    py::enum_<Pet::Kind>(pet, "Kind")
+    py::native_enum<Pet::Kind>(pet, "Kind")
         .value("Dog", Pet::Kind::Dog)
         .value("Cat", Pet::Kind::Cat)
-        .export_values();
+        .export_values()
+        .finalize();
 
     py::class_<Pet::Attributes>(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
 
 
-To ensure that the nested types ``Kind`` and ``Attributes`` are created within the scope of ``Pet``, the
-``pet`` ``py::class_`` instance must be supplied to the :class:`enum_` and ``py::class_``
-constructor. The :func:`enum_::export_values` function exports the enum entries
-into the parent scope, which should be skipped for newer C++11-style strongly
-typed enums.
+To ensure that the nested types ``Kind`` and ``Attributes`` are created
+within the scope of ``Pet``, the ``pet`` ``py::class_`` instance must be
+supplied to the ``py::native_enum`` and ``py::class_`` constructors. The
+``.export_values()`` function is available for exporting the enum entries
+into the parent scope, if desired.
 
-.. code-block:: pycon
+The ``.finalize()`` call above is needed because Python's native enums
+cannot be built incrementally, but all name/value pairs need to be passed at
+once. To achieve this, ``py::native_enum`` acts as a buffer to collect the
+name/value pairs. The ``.finalize()`` call uses the accumulated name/value
+pairs to build the arguments for constructing a native Python enum type.
 
-    >>> p = Pet("Lucy", Pet.Cat)
-    >>> p.type
-    Kind.Cat
-    >>> int(p.type)
-    1L
+``py::native_enum`` was introduced with pybind11 release v3.0.0. It binds C++
+enum types to Python's native enum.Enum, making them PEP 435 compatible. This
+is the recommended way to bind C++ enums. The older ``py::enum_`` is
+not PEP 435 compatible
+(see `issue #2332 <https://github.com/pybind/pybind11/issues/2332>`_)
+but remains supported indefinitely for backward compatibility.
+New bindings should prefer ``py::native_enum``.
 
-The entries defined by the enumeration type are exposed in the ``__members__`` property:
-
-.. code-block:: pycon
-
-    >>> Pet.Kind.__members__
-    {'Dog': Kind.Dog, 'Cat': Kind.Cat}
-
-The ``name`` property returns the name of the enum value as a unicode string.
-
-.. note::
-
-    It is also possible to use ``str(enum)``, however these accomplish different
-    goals. The following shows how these two approaches differ.
-
-    .. code-block:: pycon
-
-        >>> p = Pet("Lucy", Pet.Cat)
-        >>> pet_type = p.type
-        >>> pet_type
-        Pet.Cat
-        >>> str(pet_type)
-        'Pet.Cat'
-        >>> pet_type.name
-        'Cat'
-
-.. note::
-
-    When the special tag ``py::arithmetic()`` is specified to the ``enum_``
-    constructor, pybind11 creates an enumeration that also supports rudimentary
-    arithmetic and bit-level operations like comparisons, and, or, xor, negation,
-    etc.
-
-    .. code-block:: cpp
-
-        py::enum_<Pet::Kind>(pet, "Kind", py::arithmetic())
-           ...
-
-    By default, these are omitted to conserve space.
-
-.. warning::
-
-    Contrary to Python customs, enum values from the wrappers should not be compared using ``is``, but with ``==`` (see `#1177 <https://github.com/pybind/pybind11/issues/1177>`_ for background).
-
-.. note::
-
-    ``py::native_enum`` was added as an alternative to ``py::enum_``
-    with http://github.com/pybind/pybind11/pull/5555
+For details about the deprecated ``py::enum_``, please refer to
+:file:`tests/test_enum.cpp` and
+:file:`tests/test_enum.py`.
