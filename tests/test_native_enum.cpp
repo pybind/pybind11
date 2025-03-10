@@ -132,11 +132,10 @@ TEST_SUBMODULE(native_enum, m) {
         return static_cast<int>(e);
     });
 
-    m.def("native_enum_data_missing_finalize_error_message", [](const char *enum_name) {
-        py::detail::native_enum_data data(
-            py::none(), enum_name, std::type_index(typeid(void)), false);
-        return data.missing_finalize_error_message();
-    });
+    m.def("native_enum_data_missing_finalize_error_message",
+          [](const std::string &enum_name_encoded) {
+              return py::detail::native_enum_missing_finalize_error_message(enum_name_encoded);
+          });
 
     m.def("native_enum_ctor_malformed_utf8", [](const char *malformed_utf8) {
         enum fake { x };

@@ -17,21 +17,38 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// This is a separate function only to enable easy unit testing.
+inline std::string
+native_enum_missing_finalize_error_message(const std::string &enum_name_encoded) {
+    return "pybind11::native_enum<...>(\"" + enum_name_encoded + "\", ...): MISSING .finalize()";
+}
+
 class native_enum_data {
 public:
     native_enum_data(const object &parent_scope,
                      const char *enum_name,
                      const std::type_index &enum_type_index,
                      bool use_int_enum)
-        : parent_scope(parent_scope), enum_name_encoded{enum_name},
-          enum_type_index{enum_type_index}, use_int_enum{use_int_enum}, enum_name{enum_name} {}
+        : enum_name_encoded{enum_name}, enum_type_index{enum_type_index}, enum_name{enum_name},
+          parent_scope(parent_scope), export_values_flag{false}, use_int_enum{use_int_enum},
+          finalize_needed{false} {}
 
     void finalize();
 
     native_enum_data(const native_enum_data &) = delete;
     native_enum_data &operator=(const native_enum_data &) = delete;
 
-    void disarm_finalize_check(const char *error_context) const {
+#if !defined(NDEBUG)
+    // This dtor cannot easily be unit tested because it terminates the process.
+    ~native_enum_data() {
+        if (finalize_needed) {
+            pybind11_fail(native_enum_missing_finalize_error_message(enum_name_encoded));
+        }
+    }
+#endif
+
+protected:
+    void disarm_finalize_check(const char *error_context) {
         if (!finalize_needed) {
             pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                           + "\"): " + error_context);
@@ -39,38 +56,26 @@ public:
         finalize_needed = false;
     }
 
-    void arm_finalize_check() const {
+    void arm_finalize_check() {
         assert(!finalize_needed);
         finalize_needed = true;
     }
 
-    // This is a separate public function only to enable easy unit testing.
-    std::string missing_finalize_error_message() const {
-        return "pybind11::native_enum<...>(\"" + enum_name_encoded
-               + "\", ...): MISSING .finalize()";
-    }
-
-#if !defined(NDEBUG)
-    // This dtor cannot easily be unit tested because it terminates the process.
-    ~native_enum_data() {
-        if (finalize_needed) {
-            pybind11_fail(missing_finalize_error_message());
-        }
-    }
-#endif
-
-private:
-    mutable bool finalize_needed{false};
-
-public:
-    object parent_scope;
     std::string enum_name_encoded;
     std::type_index enum_type_index;
-    bool use_int_enum;
-    bool export_values_flag{false};
+
+private:
     str enum_name;
+    object parent_scope;
+
+protected:
     list members;
     list docs;
+    bool export_values_flag : 1;
+
+private:
+    bool use_int_enum : 1;
+    bool finalize_needed : 1;
 };
 
 inline void global_internals_native_enum_type_map_set_item(const std::type_index &enum_type_index,
