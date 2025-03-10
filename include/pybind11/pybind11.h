@@ -109,10 +109,11 @@ inline std::string generate_signature(const char *text,
                                       detail::function_record *rec,
                                       const std::type_info *const *types,
                                       size_t &type_index,
-                                      size_t &arg_index,
-                                      bool is_annotation = false) {
+                                      size_t &arg_index
+                                      ) {
     std::string signature;
     bool is_starred = false;
+    bool is_annotation = rec == nullptr;
     // `is_return_value.top()` is true if we are currently inside the return type of the
     // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
     // back to the previous state.

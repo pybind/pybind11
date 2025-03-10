@@ -1614,8 +1614,7 @@ std::string generate_signature(const char *text,
                                function_record *rec,
                                const std::type_info *const *types,
                                size_t &type_index,
-                               size_t &arg_index,
-                               bool is_annotation);
+                               size_t &arg_index);
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -1641,7 +1640,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     const char *text = make_caster<T>::name.text;
 
     size_t unused = 0;
-    ann[key] = generate_signature(text, nullptr, nullptr, unused, unused, true);
+    ann[key] = generate_signature(text, nullptr, nullptr, unused, unused);
     return {derived(), key};
 }
 
