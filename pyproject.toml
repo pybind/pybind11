@@ -69,7 +69,6 @@ extend-select = [
 ]
 ignore = [
   "PLR",    # Design related pylint
-  "E501",   # Line too long (Black is enough)
   "PT011",  # Too broad with raises in pytest
   "SIM118", # iter(x) is not always the same as iter(x.keys())
 ]
