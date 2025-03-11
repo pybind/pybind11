@@ -37,11 +37,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 7
+#    define PYBIND11_INTERNALS_VERSION 8
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 7
-#    error "PYBIND11_INTERNALS_VERSION 7 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 8
+#    error "PYBIND11_INTERNALS_VERSION 8 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -193,6 +193,8 @@ struct internals {
     // Note that we have to use a std::string to allocate memory to ensure a unique address
     // We want unique addresses since we use pointer equality to compare function records
     std::string function_record_capsule_name = internals_function_record_capsule_name;
+
+    type_map<PyObject *> native_enum_type_map;
 
     internals() = default;
     internals(const internals &other) = delete;
