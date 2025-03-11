@@ -192,7 +192,25 @@ elseif(
       ))
 
   # New mode
-  include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
+  if(Python_FOUND OR Python3_FOUND)
+    include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
+  else()
+    include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
+
+    message(
+      "Using compatibility mode for Python, set PYBIND11_FINDPYTHON to NEW/OLD to silence this message"
+    )
+    set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+    set(PYTHON_INCLUDE_DIR "${Python_INCLUDE_DIR}")
+    set(Python_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
+    set(PYTHON_LIBRARY "${Python_LIRARY}")
+    set(PYTHON_LIBRARIES "${Python_LIRARIES}")
+    set(PYTHON_VERSION "${Python_VERSION}")
+    set(PYTHON_VERSION_STRING "${Python_VERSION_STRING}")
+    set(PYTHON_VERSION_MAJOR "${Python_VERSION_MAJOR}")
+    set(PYTHON_VERSION_MINOR "${Python_VERSION_MINOR}")
+    set(PYTHON_VERSION_PATCH "${Python_VERSION_PATCH}")
+  endif()
 
 else()
 
