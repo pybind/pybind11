@@ -21,5 +21,13 @@ struct PremiumTraveler : Traveler {
 struct LonelyTraveler {};
 struct VeryLonelyTraveler : LonelyTraveler {};
 
+struct A {
+    double value;
+};
+
+struct B {
+    A a{0.0};
+};
+
 } // namespace test_cpp_conduit
 } // namespace pybind11_tests
