@@ -52,17 +52,17 @@ jobs:
           - runs-on: ubuntu-20.04
             python: '3.8'
             args: >
-              -DPYBIND11_FINDPYTHON=ON
+              -DPYBIND11_FINDPYTHON=OFF
               -DCMAKE_CXX_FLAGS="-D_=1"
             exercise_D_: 1
           - runs-on: ubuntu-20.04
             python: 'pypy-3.8'
             args: >
-              -DPYBIND11_FINDPYTHON=ON
+              -DPYBIND11_FINDPYTHON=OFF
           - runs-on: windows-2019
             python: '3.8'
             args: >
-              -DPYBIND11_FINDPYTHON=ON
+              -DPYBIND11_FINDPYTHON=OFF
           # Inject a couple Windows 2019 runs
           - runs-on: windows-2019
             python: '3.9'
