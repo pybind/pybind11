@@ -499,7 +499,12 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     Py_DECREF(type);
 }
 
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
+
 std::string error_string();
+
+PYBIND11_WARNING_POP
 
 /** Create the type which can be used as a common base for all classes.  This is
     needed in order to satisfy Python's requirements for multiple inheritance.
