@@ -252,7 +252,25 @@ struct type_info {
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
 inline internals **&get_internals_pp() {
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON) || PY_VERSION_HEX < 0x030C0000               \
+    || !defined(PYBIND11_SUBINTERPRETER_SUPPORT)
     static internals **internals_pp = nullptr;
+#else
+    static thread_local internals **internals_pp = nullptr;
+    // This is one per interpreter, we cache it but if the thread changed
+    // then we need to invalidate our cache
+    // the caller will find the right value and set it if its null
+    static thread_local PyThreadState *tstate_cached = nullptr;
+#    if PY_VERSION_HEX < 0x030D0000
+    PyThreadState *tstate = _PyThreadState_UncheckedGet();
+#    else
+    PyThreadState *tstate = PyThreadState_GetUnchecked();
+#    endif
+    if (tstate != tstate_cached) {
+        tstate_cached = tstate;
+        internals_pp = nullptr;
+    }
+#endif
     return internals_pp;
 }
 
@@ -435,7 +453,12 @@ PYBIND11_NOINLINE internals &get_internals() {
         // libc++ with CPython doesn't require this (types are explicitly exported)
         // libc++ with PyPy still need it, awaiting further investigation
 #if !defined(__GLIBCXX__)
-        (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
+        if ((*internals_pp)->registered_exception_translators.empty()
+            || (*internals_pp)->registered_exception_translators.front()
+                   != &translate_local_exception) {
+            (*internals_pp)
+                ->registered_exception_translators.push_front(&translate_local_exception);
+        }
 #endif
     } else {
         if (!internals_pp) {
@@ -495,7 +518,54 @@ inline local_internals &get_local_internals() {
     // static deinitialization fiasco. In order to avoid it we avoid destruction of the
     // local_internals static. One can read more about the problem and current solution here:
     // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON) || PY_VERSION_HEX < 0x030C0000               \
+    || !defined(PYBIND11_SUBINTERPRETER_SUPPORT)
     static auto *locals = new local_internals();
+#else
+    static thread_local local_internals *locals = nullptr;
+    // This is one per interpreter, we cache it but if the interpreter changed
+    // then we need to invalidate our cache and re-fetch from the state dict
+    static thread_local PyThreadState *tstate_cached = nullptr;
+#    if PY_VERSION_HEX < 0x030D0000
+    PyThreadState *tstate = _PyThreadState_UncheckedGet();
+#    else
+    PyThreadState *tstate = PyThreadState_GetUnchecked();
+#    endif
+    if (!tstate) {
+        pybind11_fail(
+            "pybind11::detail::get_local_internals() called without a current python thread");
+    }
+    if (tstate != tstate_cached) {
+        // we create a unique value at first run which is based on a pointer to
+        // a (non-thread_local) static value in this function, then multiple
+        // loaded modules using this code will still each have a unique key.
+        static const std::string this_module_idstr
+            = PYBIND11_MODULE_LOCAL_ID
+              + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
+
+        // Ensure that the GIL is held since we will need to make Python calls.
+        // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
+	gil_scoped_acquire_simple gil;
+        error_scope err_scope;
+        dict state_dict = get_python_state_dict();
+        object local_capsule = reinterpret_steal<object>(
+            dict_getitemstringref(state_dict.ptr(), this_module_idstr.c_str()));
+        if (!local_capsule) {
+            locals = new local_internals();
+            state_dict[this_module_idstr.c_str()] = capsule(reinterpret_cast<void *>(locals));
+        } else {
+            void *ptr = PyCapsule_GetPointer(local_capsule.ptr(), nullptr);
+            if (!ptr) {
+                raise_from(PyExc_SystemError, "pybind11::detail::get_local_internals() FAILED");
+                throw error_already_set();
+            }
+            locals = reinterpret_cast<local_internals *>(ptr);
+        }
+        tstate_cached = tstate;
+    }
+#endif
+
     return *locals;
 }
 

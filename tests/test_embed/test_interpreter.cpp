@@ -323,6 +323,8 @@ TEST_CASE("Restart the interpreter") {
 }
 
 TEST_CASE("Subinterpreter") {
+    py::module_::import("external_module"); // in the main interpreter
+
     // Add tags to the modules in the main interpreter and test the basics.
     py::module_::import("__main__").attr("main_tag") = "main interpreter";
     {
@@ -338,11 +340,24 @@ TEST_CASE("Subinterpreter") {
     auto *main_tstate = PyThreadState_Get();
     auto *sub_tstate = Py_NewInterpreter();
 
-    // Subinterpreters get their own copy of builtins. detail::get_internals() still
-    // works by returning from the static variable, i.e. all interpreters share a single
-    // global pybind11::internals;
+    // Subinterpreters get their own copy of builtins.
     REQUIRE_FALSE(has_state_dict_internals_obj());
+
+#if defined(PYBIND11_SUBINTERPRETER_SUPPORT) && PY_VERSION_HEX >= 0x030C0000
+    // internals hasn't been populated yet, but will be different for the subinterpreter
+    REQUIRE_FALSE(has_pybind11_internals_static());
+
+    py::list sys_path = py::module_::import("sys").attr("path");
+    sys_path.append(py::str("."));
+
+    auto ext_int = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    py::detail::get_internals();
     REQUIRE(has_pybind11_internals_static());
+    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) == ext_int);
+#else
+    // This static is still defined
+    REQUIRE(has_pybind11_internals_static());
+#endif
 
     // Modules tags should be gone.
     REQUIRE_FALSE(py::hasattr(py::module_::import("__main__"), "tag"));
@@ -354,12 +369,16 @@ TEST_CASE("Subinterpreter") {
         REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
     }
 
+    // The subinterpreter now has internals populated since we imported a pybind11 module
+    REQUIRE(has_pybind11_internals_static());
+
     // Restore main interpreter.
     Py_EndInterpreter(sub_tstate);
     PyThreadState_Swap(main_tstate);
 
     REQUIRE(py::hasattr(py::module_::import("__main__"), "main_tag"));
     REQUIRE(py::hasattr(py::module_::import("widget_module"), "extension_module_tag"));
+    REQUIRE(has_state_dict_internals_obj());
 }
 
 TEST_CASE("Execution frame") {

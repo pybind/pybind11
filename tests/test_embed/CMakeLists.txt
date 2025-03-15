@@ -29,6 +29,7 @@ endif()
 find_package(Threads REQUIRED)
 
 add_executable(test_embed catch.cpp test_interpreter.cpp)
+target_compile_definitions(test_embed PRIVATE "PYBIND11_SUBINTERPRETER_SUPPORT")
 pybind11_enable_warnings(test_embed)
 
 target_link_libraries(test_embed PRIVATE pybind11::embed Catch2::Catch2 Threads::Threads)
@@ -44,6 +45,7 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)
+target_compile_definitions(external_module PRIVATE "PYBIND11_SUBINTERPRETER_SUPPORT")
 set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                  "${CMAKE_CURRENT_BINARY_DIR}")
 foreach(config ${CMAKE_CONFIGURATION_TYPES})

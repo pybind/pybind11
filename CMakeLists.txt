@@ -92,6 +92,7 @@ option(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
        "To enforce that a handle_type_name<> specialization exists" OFF)
 option(PYBIND11_SIMPLE_GIL_MANAGEMENT
        "Use simpler GIL management logic that does not support disassociation" OFF)
+option(PYBIND11_SUBINTERPRETER_SUPPORT "Enable support for sub-interpreters" OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
@@ -102,6 +103,9 @@ if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
 endif()
 if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
   add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+endif()
+if(PYBIND11_SUBINTERPRETER_SUPPORT)
+  add_compile_definitions(PYBIND11_SUBINTERPRETER_SUPPORT)
 endif()
 
 cmake_dependent_option(
