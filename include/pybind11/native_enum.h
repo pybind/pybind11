@@ -23,12 +23,6 @@ public:
 
     explicit native_enum(const object &parent_scope, const char *name, enum_kind kind)
         : detail::native_enum_data(parent_scope, name, std::type_index(typeid(Type)), kind) {
-#if PY_VERSION_HEX < 0x030B0000
-        // Preempt failure downstream, to produce a helpful error message.
-        if (kind == enum_kind::StrEnum) {
-            pybind11_fail("pybind11::enum_kind::StrEnum is available only with Python 3.11+");
-        }
-#endif
         if (detail::get_local_type_info(typeid(Type)) != nullptr
             || detail::get_global_type_info(typeid(Type)) != nullptr) {
             pybind11_fail(

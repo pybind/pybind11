@@ -16,7 +16,7 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-enum class enum_kind { Enum, IntEnum, StrEnum, COUNT /* Sentinel to trigger static_assert */ };
+enum class enum_kind { Enum, IntEnum, COUNT /* Sentinel to trigger static_assert */ };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -111,13 +111,11 @@ inline const char *enum_kind_to_string(enum_kind kind) {
             return "Enum";
         case enum_kind::IntEnum:
             return "IntEnum";
-        case enum_kind::StrEnum:
-            return "StrEnum";
         default:
             break;
     }
     // Ensure that all enum cases are handled at compile time
-    static_assert(static_cast<int>(enum_kind::COUNT) == 3, "Missing enum cases in switch!");
+    static_assert(static_cast<int>(enum_kind::COUNT) == 2, "Missing enum cases in switch!");
     pybind11_fail("Unexpected pybind11::enum_kind");
 }
 
