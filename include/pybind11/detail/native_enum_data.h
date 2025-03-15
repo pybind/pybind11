@@ -15,6 +15,9 @@
 #include <typeindex>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+enum class enum_kind { Enum, IntEnum, StrEnum, COUNT /* Sentinel to trigger static_assert */ };
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // This is a separate function only to enable easy unit testing.
@@ -28,10 +31,10 @@ public:
     native_enum_data(const object &parent_scope,
                      const char *enum_name,
                      const std::type_index &enum_type_index,
-                     bool use_int_enum)
+                     enum_kind kind)
         : enum_name_encoded{enum_name}, enum_type_index{enum_type_index}, enum_name{enum_name},
-          parent_scope(parent_scope), export_values_flag{false}, use_int_enum{use_int_enum},
-          finalize_needed{false} {}
+          parent_scope(parent_scope), export_values_flag{false}, finalize_needed{false},
+          kind{kind} {}
 
     void finalize();
 
@@ -71,11 +74,11 @@ private:
 protected:
     list members;
     list docs;
-    bool export_values_flag : 1;
+    bool export_values_flag : 1; // Attention: It is best to keep the bools together.
 
 private:
-    bool use_int_enum : 1;
     bool finalize_needed : 1;
+    enum_kind kind;
 };
 
 inline void global_internals_native_enum_type_map_set_item(const std::type_index &enum_type_index,
@@ -102,6 +105,22 @@ global_internals_native_enum_type_map_contains(const std::type_index &enum_type_
     });
 }
 
+inline const char *enum_kind_to_string(enum_kind kind) {
+    switch (kind) {
+        case enum_kind::Enum:
+            return "Enum";
+        case enum_kind::IntEnum:
+            return "IntEnum";
+        case enum_kind::StrEnum:
+            return "StrEnum";
+        default:
+            break;
+    }
+    // Ensure that all enum cases are handled at compile time
+    static_assert(static_cast<int>(enum_kind::COUNT) == 3, "Missing enum cases in switch!");
+    pybind11_fail("Unexpected pybind11::enum_kind");
+}
+
 inline void native_enum_data::finalize() {
     disarm_finalize_check("DOUBLE finalize");
     if (hasattr(parent_scope, enum_name)) {
@@ -114,7 +133,7 @@ inline void native_enum_data::finalize() {
                    "`import enum` FAILED at " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
         throw error_already_set();
     }
-    auto py_enum_type = enum_module.attr(use_int_enum ? "IntEnum" : "Enum");
+    auto py_enum_type = enum_module.attr(enum_kind_to_string(kind));
     auto py_enum = py_enum_type(enum_name, members);
     object module_name = get_module_name_if_available(parent_scope);
     if (module_name) {

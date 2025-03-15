@@ -145,6 +145,11 @@ def test_py_cast_color_handle():
         assert m.py_cast_color_handle(m.color[name]) == value
 
 
+def test_native_enum_StrEnum_greek():
+    assert not hasattr(m, "greek")
+    m.native_enum_StrEnum_greek(m)
+
+
 def test_native_enum_data_missing_finalize_error_message():
     msg = m.native_enum_data_missing_finalize_error_message("Fake")
     assert msg == 'pybind11::native_enum<...>("Fake", ...): MISSING .finalize()'
