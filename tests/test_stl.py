@@ -20,7 +20,10 @@ def test_vector(doc):
     assert m.load_bool_vector((True, False))
 
     assert doc(m.cast_vector) == "cast_vector() -> list[int]"
-    assert doc(m.load_vector) == "load_vector(arg0: list[typing.SupportsInt]) -> bool"
+    assert (
+        doc(m.load_vector)
+        == "load_vector(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
+    )
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
@@ -45,7 +48,7 @@ def test_array(doc):
     assert doc(m.cast_array) == "cast_array() -> Annotated[list[int], FixedSize(2)]"
     assert (
         doc(m.load_array)
-        == "load_array(arg0: Annotated[list[typing.SupportsInt], FixedSize(2)]) -> bool"
+        == "load_array(arg0: Annotated[collections.abc.Sequence[typing.SupportsInt], FixedSize(2)]) -> bool"
     )
 
 
@@ -65,7 +68,8 @@ def test_valarray(doc):
 
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
     assert (
-        doc(m.load_valarray) == "load_valarray(arg0: list[typing.SupportsInt]) -> bool"
+        doc(m.load_valarray)
+        == "load_valarray(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
     )
 
 
@@ -79,7 +83,9 @@ def test_map(doc):
     assert m.load_map(d)
 
     assert doc(m.cast_map) == "cast_map() -> dict[str, str]"
-    assert doc(m.load_map) == "load_map(arg0: dict[str, str]) -> bool"
+    assert (
+        doc(m.load_map) == "load_map(arg0: collections.abc.Mapping[str, str]) -> bool"
+    )
 
 
 def test_set(doc):
@@ -91,7 +97,7 @@ def test_set(doc):
     assert m.load_set(frozenset(s))
 
     assert doc(m.cast_set) == "cast_set() -> set[str]"
-    assert doc(m.load_set) == "load_set(arg0: set[str]) -> bool"
+    assert doc(m.load_set) == "load_set(arg0: collections.abc.Set[str]) -> bool"
 
 
 def test_recursive_casting():
@@ -273,7 +279,7 @@ def test_fs_path(doc):
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths)
-        == "parent_paths(arg0: list[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
+        == "parent_paths(arg0: collections.abc.Sequence[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
     )
     # py::typing::List
     assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
@@ -364,7 +370,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: list[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
 
         Invoked with:
     """
@@ -376,7 +382,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: list[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
 
         Invoked with: None
     """
