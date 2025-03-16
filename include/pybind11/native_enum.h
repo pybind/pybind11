@@ -17,15 +17,15 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Conversions between Python's native (stdlib) enum types and C++ enums.
-template <typename Type>
+template <typename EnumType>
 class native_enum : public detail::native_enum_data {
 public:
-    using Underlying = typename std::underlying_type<Type>::type;
+    using Underlying = typename std::underlying_type<EnumType>::type;
 
     native_enum(const object &parent_scope, const char *name, enum_kind kind = enum_kind::Enum)
-        : detail::native_enum_data(parent_scope, name, std::type_index(typeid(Type)), kind) {
-        if (detail::get_local_type_info(typeid(Type)) != nullptr
-            || detail::get_global_type_info(typeid(Type)) != nullptr) {
+        : detail::native_enum_data(parent_scope, name, std::type_index(typeid(EnumType)), kind) {
+        if (detail::get_local_type_info(typeid(EnumType)) != nullptr
+            || detail::get_global_type_info(typeid(EnumType)) != nullptr) {
             pybind11_fail(
                 "pybind11::native_enum<...>(\"" + enum_name_encoded
                 + "\") is already registered as a `pybind11::enum_` or `pybind11::class_`!");
@@ -45,7 +45,7 @@ public:
     }
 
     /// Add an enumeration entry
-    native_enum &value(char const *name, Type value, const char *doc = nullptr) {
+    native_enum &value(char const *name, EnumType value, const char *doc = nullptr) {
         // Disarm for the case that the native_enum_data dtor runs during exception unwinding.
         disarm_finalize_check("value after finalize");
         members.append(make_tuple(name, static_cast<Underlying>(value)));
