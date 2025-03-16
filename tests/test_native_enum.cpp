@@ -86,7 +86,7 @@ TEST_SUBMODULE(native_enum, m) {
         .value("blue", color::blue)
         .finalize();
 
-    py::native_enum<altitude>(m, "altitude", py::enum_kind::Enum)
+    py::native_enum<altitude>(m, "altitude")
         .value("high", altitude::high)
         .value("low", altitude::low)
         .finalize();
@@ -170,7 +170,7 @@ TEST_SUBMODULE(native_enum, m) {
         py::native_enum<fake>(m, "fake_double_registration_native_enum", py::enum_kind::IntEnum)
             .value("x", fake::x)
             .finalize();
-        py::native_enum<fake>(m, "fake_double_registration_native_enum", py::enum_kind::Enum);
+        py::native_enum<fake>(m, "fake_double_registration_native_enum");
     });
 
     m.def("native_enum_name_clash", [](py::module_ &m) {

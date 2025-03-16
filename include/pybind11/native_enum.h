@@ -21,7 +21,7 @@ class native_enum : public detail::native_enum_data {
 public:
     using Underlying = typename std::underlying_type<Type>::type;
 
-    explicit native_enum(const object &parent_scope, const char *name, enum_kind kind)
+    native_enum(const object &parent_scope, const char *name, enum_kind kind = enum_kind::Enum)
         : detail::native_enum_data(parent_scope, name, std::type_index(typeid(Type)), kind) {
         if (detail::get_local_type_info(typeid(Type)) != nullptr
             || detail::get_global_type_info(typeid(Type)) != nullptr) {
