@@ -461,8 +461,8 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
 
 .. _native_enum:
 
-Enumerations
-============
+Enumerations and internal types
+===============================
 
 Let's now suppose that the example class contains internal types like enumerations, e.g.:
 
@@ -489,6 +489,8 @@ The binding code for this example looks as follows:
 
 .. code-block:: cpp
 
+    #include <pybind11/native_enum.h> // Not already included with pybind11.h
+
     py::class_<Pet> pet(m, "Pet");
 
     pet.def(py::init<const std::string &, Pet::Kind>())
@@ -513,20 +515,57 @@ supplied to the ``py::native_enum`` and ``py::class_`` constructors. The
 ``.export_values()`` function is available for exporting the enum entries
 into the parent scope, if desired.
 
-The ``.finalize()`` call above is needed because Python's native enums
-cannot be built incrementally, but all name/value pairs need to be passed at
-once. To achieve this, ``py::native_enum`` acts as a buffer to collect the
-name/value pairs. The ``.finalize()`` call uses the accumulated name/value
-pairs to build the arguments for constructing a native Python enum type.
-
-``py::native_enum`` was introduced with pybind11 release v3.0.0. It binds C++
-enum types to Python's native enum.Enum, making them PEP 435 compatible. This
-is the recommended way to bind C++ enums. The older ``py::enum_`` is
-not PEP 435 compatible
+``py::native_enum`` was introduced with pybind11v3. It binds C++ enum types
+to Python's native enum.Enum_,
+making them `PEP 435 compatible <https://peps.python.org/pep-0435/>`_.
+This is the recommended way to bind C++ enums.
+The older ``py::enum_`` is not PEP 435 compatible
 (see `issue #2332 <https://github.com/pybind/pybind11/issues/2332>`_)
 but remains supported indefinitely for backward compatibility.
 New bindings should prefer ``py::native_enum``.
 
 .. note::
 
-    The deprecated ``py::enum_`` is documented under :ref:`deprecated_enum`.
+    The deprecated ``py::enum_`` is :ref:`documented here <deprecated_enum>`.
+
+The ``.finalize()`` call above is needed because Python's native enums
+cannot be built incrementally — all name/value pairs need to be passed at
+once. To achieve this, ``py::native_enum`` acts as a buffer to collect the
+name/value pairs. The ``.finalize()`` call uses the accumulated name/value
+pairs to build the arguments for constructing a native Python enum type.
+
+The ``py::native_enum`` constructor supports a third optional ``py::enum_kind``
+argument, with default value ``py::enum_kind::Enum``, which corresponds to
+Python's enum.Enum_. The alternative enum.IntEnum_ can be requested like this:
+
+.. code-block:: cpp
+
+    py::native_enum<Pet::Kind>(pet, "Kind", py::enum_kind::IntEnum)
+
+Currently, ``py::enum_kind::Enum`` and ``py::enum_kind::IntEnum`` are the only
+available options.
+
+.. _enum.Enum: https://docs.python.org/3/library/enum.html#enum.Enum
+.. _enum.IntEnum: https://docs.python.org/3/library/enum.html#enum.IntEnum
+
+.. note::
+
+    In rare cases, a C++ enum may be bound to Python via a
+    :ref:`custom type caster <custom_type_caster>`. In such cases, a
+    template specialization like this may be required:
+
+    .. code-block:: cpp
+
+        #if defined(PYBIND11_HAS_NATIVE_ENUM)
+        namespace pybind11::detail {
+        template <typename FancyEnum>
+        struct type_caster_enum_type_enabled<
+            FancyEnum,
+            std::enable_if_t<is_fancy_enum<FancyEnum>::value>> : std::false_type {};
+        }
+        #endif
+
+    This specialization is needed only if the custom type caster is templated.
+
+    The ``PYBIND11_HAS_NATIVE_ENUM`` guard is needed only if backward
+    compatibility with pybind11v2 is required.
