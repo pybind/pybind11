@@ -459,6 +459,8 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
     other using the ``.def(py::init<...>())`` syntax. The existing machinery
     for specifying keyword and default arguments also works.
 
+.. _native_enum:
+
 Enumerations
 ============
 
@@ -525,6 +527,6 @@ not PEP 435 compatible
 but remains supported indefinitely for backward compatibility.
 New bindings should prefer ``py::native_enum``.
 
-For details about the deprecated ``py::enum_``, please refer to
-:file:`tests/test_enum.cpp` and
-:file:`tests/test_enum.py`.
+.. note::
+
+    The deprecated ``py::enum_`` is documented under :ref:`deprecated_enum`.

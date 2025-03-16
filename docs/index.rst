@@ -36,6 +36,7 @@
    advanced/pycpp/index
    advanced/embedding
    advanced/misc
+   advanced/deprecated
 
 .. toctree::
    :caption: Extra Information
