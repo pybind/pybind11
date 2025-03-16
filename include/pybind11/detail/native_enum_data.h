@@ -60,7 +60,7 @@ protected:
     }
 
     void arm_finalize_check() {
-        assert(!finalize_needed);
+        assert(!finalize_needed); // Catch redundant calls.
         finalize_needed = true;
     }
 

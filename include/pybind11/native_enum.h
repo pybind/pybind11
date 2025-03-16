@@ -9,6 +9,7 @@
 #include "detail/type_caster_base.h"
 #include "cast.h"
 
+#include <cassert>
 #include <limits>
 #include <type_traits>
 #include <typeindex>
@@ -38,6 +39,7 @@ public:
 
     /// Export enumeration entries into the parent scope
     native_enum &export_values() {
+        assert(!export_values_flag); // Catch redundant calls.
         export_values_flag = true;
         return *this;
     }
