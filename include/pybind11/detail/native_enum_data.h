@@ -15,9 +15,6 @@
 #include <typeindex>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-
-enum class enum_kind { Enum, IntEnum, COUNT /* Sentinel to trigger static_assert */ };
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // This is a separate function only to enable easy unit testing.
@@ -30,11 +27,11 @@ class native_enum_data {
 public:
     native_enum_data(const object &parent_scope,
                      const char *enum_name,
-                     const std::type_index &enum_type_index,
-                     enum_kind kind)
-        : enum_name_encoded{enum_name}, enum_type_index{enum_type_index}, enum_name{enum_name},
-          parent_scope(parent_scope), export_values_flag{false}, finalize_needed{false},
-          kind{kind} {}
+                     const char *native_type_name,
+                     const std::type_index &enum_type_index)
+        : enum_name_encoded{enum_name}, native_type_name_encoded{native_type_name},
+          enum_type_index{enum_type_index}, parent_scope(parent_scope), enum_name{enum_name},
+          native_type_name{native_type_name}, export_values_flag{false}, finalize_needed{false} {}
 
     void finalize();
 
@@ -65,11 +62,13 @@ protected:
     }
 
     std::string enum_name_encoded;
+    std::string native_type_name_encoded;
     std::type_index enum_type_index;
 
 private:
-    str enum_name;
     object parent_scope;
+    str enum_name;
+    str native_type_name;
 
 protected:
     list members;
@@ -78,7 +77,6 @@ protected:
 
 private:
     bool finalize_needed : 1;
-    enum_kind kind;
 };
 
 inline void global_internals_native_enum_type_map_set_item(const std::type_index &enum_type_index,
@@ -105,18 +103,24 @@ global_internals_native_enum_type_map_contains(const std::type_index &enum_type_
     });
 }
 
-inline const char *enum_kind_to_string(enum_kind kind) {
-    switch (kind) {
-        case enum_kind::Enum:
-            return "Enum";
-        case enum_kind::IntEnum:
-            return "IntEnum";
-        default:
-            break;
+inline object import_module_get_attr(const std::string &fully_qualified_attribute_name) {
+    std::size_t last_dot = fully_qualified_attribute_name.rfind('.');
+    if (last_dot == std::string::npos) {
+        throw value_error("WIP-TODO no dot");
     }
-    // Ensure that all enum cases are handled at compile time
-    static_assert(static_cast<int>(enum_kind::COUNT) == 2, "Missing enum cases in switch!");
-    pybind11_fail("Unexpected pybind11::enum_kind");
+    std::string module_name = fully_qualified_attribute_name.substr(0, last_dot);
+    if (module_name.empty()) {
+        throw value_error("WIP-TODO empty module name");
+    }
+    std::string attr_name = fully_qualified_attribute_name.substr(last_dot + 1);
+    if (attr_name.empty()) {
+        throw value_error("WIP-TODO empty attr");
+    }
+    auto py_module = reinterpret_steal<object>(PyImport_ImportModule(module_name.c_str()));
+    if (!py_module) {
+        throw error_already_set();
+    }
+    return py_module.attr(attr_name.c_str());
 }
 
 inline void native_enum_data::finalize() {
@@ -125,13 +129,7 @@ inline void native_enum_data::finalize() {
         pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                       + "\"): an object with that name is already defined");
     }
-    auto enum_module = reinterpret_steal<object>(PyImport_ImportModule("enum"));
-    if (!enum_module) {
-        raise_from(PyExc_SystemError,
-                   "`import enum` FAILED at " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
-        throw error_already_set();
-    }
-    auto py_enum_type = enum_module.attr(enum_kind_to_string(kind));
+    auto py_enum_type = import_module_get_attr(native_type_name);
     auto py_enum = py_enum_type(enum_name, members);
     object module_name = get_module_name_if_available(parent_scope);
     if (module_name) {
