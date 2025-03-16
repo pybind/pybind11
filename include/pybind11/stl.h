@@ -479,11 +479,12 @@ public:
     using cast_op_type = movable_cast_op_type<T_>;
 
     static constexpr auto name
-        = const_name<Resizable>(const_name(""), const_name("Annotated["))
+        = const_name<Resizable>(const_name(""), const_name("typing.Annotated["))
           + io_name("collections.abc.Sequence", "list") + const_name("[") + value_conv::name
           + const_name("]")
-          + const_name<Resizable>(
-              const_name(""), const_name(", FixedSize(") + const_name<Size>() + const_name(")]"));
+          + const_name<Resizable>(const_name(""),
+                                  const_name(", \"FixedSize(") + const_name<Size>()
+                                      + const_name(")\"]"));
 };
 
 template <typename Type, size_t Size>
