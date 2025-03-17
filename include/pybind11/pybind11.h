@@ -105,14 +105,14 @@ inline std::string replace_newlines_and_squash(const char *text) {
 }
 
 /* Generate a proper function signature */
-inline std::string generate_signature(const char *text,
-                                      detail::function_record *rec,
+inline std::string generate_function_signature(const char *type_caster_name_field,
+                                      detail::function_record *func_rec,
                                       const std::type_info *const *types,
                                       size_t &type_index,
                                       size_t &arg_index) {
     std::string signature;
     bool is_starred = false;
-    bool is_annotation = rec == nullptr;
+    bool is_annotation = func_rec == nullptr;
     // `is_return_value.top()` is true if we are currently inside the return type of the
     // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
     // back to the previous state.
@@ -120,7 +120,7 @@ inline std::string generate_signature(const char *text,
     // The following characters have special meaning in the signature parsing. Literals
     // containing these are escaped with `!`.
     std::string special_chars("!@%{}-");
-    for (const auto *pc = text; *pc != '\0'; ++pc) {
+    for (const auto *pc = type_caster_name_field; *pc != '\0'; ++pc) {
         const auto c = *pc;
         if (c == '{') {
             // Write arg name for everything except *args and **kwargs.
@@ -130,26 +130,26 @@ inline std::string generate_signature(const char *text,
             }
             // Separator for keyword-only arguments, placed before the kw
             // arguments start (unless we are already putting an *args)
-            if (!rec->has_args && arg_index == rec->nargs_pos) {
+            if (!func_rec->has_args && arg_index == func_rec->nargs_pos) {
                 signature += "*, ";
             }
-            if (arg_index < rec->args.size() && rec->args[arg_index].name) {
-                signature += rec->args[arg_index].name;
-            } else if (arg_index == 0 && rec->is_method) {
+            if (arg_index < func_rec->args.size() && func_rec->args[arg_index].name) {
+                signature += func_rec->args[arg_index].name;
+            } else if (arg_index == 0 && func_rec->is_method) {
                 signature += "self";
             } else {
-                signature += "arg" + std::to_string(arg_index - (rec->is_method ? 1 : 0));
+                signature += "arg" + std::to_string(arg_index - (func_rec->is_method ? 1 : 0));
             }
             signature += ": ";
         } else if (c == '}') {
             // Write default value if available.
-            if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
+            if (!is_starred && arg_index < func_rec->args.size() && func_rec->args[arg_index].descr) {
                 signature += " = ";
-                signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
+                signature += detail::replace_newlines_and_squash(func_rec->args[arg_index].descr);
             }
             // Separator for positional-only arguments (placed after the
             // argument, rather than before like *
-            if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only) {
+            if (func_rec->nargs_pos_only > 0 && (arg_index + 1) == func_rec->nargs_pos_only) {
                 signature += ", /";
             }
             if (!is_starred) {
@@ -164,11 +164,11 @@ inline std::string generate_signature(const char *text,
                 handle th((PyObject *) tinfo->type);
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
-            } else if (rec->is_new_style_constructor && arg_index == 0) {
+            } else if (func_rec->is_new_style_constructor && arg_index == 0) {
                 // A new-style `__init__` takes `self` as `value_and_holder`.
                 // Rewrite it to the proper class type.
-                signature += rec->scope.attr("__module__").cast<std::string>() + "."
-                             + rec->scope.attr("__qualname__").cast<std::string>();
+                signature += func_rec->scope.attr("__module__").cast<std::string>() + "."
+                             + func_rec->scope.attr("__qualname__").cast<std::string>();
             } else {
                 signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
             }
@@ -199,7 +199,7 @@ inline std::string generate_signature(const char *text,
             ++pc;
             if (!is_return_value.top()
                 && (is_annotation
-                    || !(arg_index < rec->args.size() && !rec->args[arg_index].convert))) {
+                    || !(arg_index < func_rec->args.size() && !func_rec->args[arg_index].convert))) {
                 while (*pc != '\0' && *pc != '@') {
                     signature += *pc++;
                 }
@@ -567,7 +567,7 @@ protected:
 
         size_t type_index = 0, arg_index = 0;
         std::string signature
-            = detail::generate_signature(text, rec, types, type_index, arg_index);
+            = detail::generate_function_signature(text, rec, types, type_index, arg_index);
 
         if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr) {
             pybind11_fail("Internal error while parsing type signature (2)");

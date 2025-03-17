@@ -1610,8 +1610,8 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 struct function_record;
 
 // forward declaration (definition in pybind11.h)
-std::string generate_signature(const char *text,
-                               function_record *rec,
+std::string generate_function_signature(const char *type_caster_name_field,
+                               function_record *func_rec,
                                const std::type_info *const *types,
                                size_t &type_index,
                                size_t &arg_index);
@@ -1640,7 +1640,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     const char *text = make_caster<T>::name.text;
 
     size_t unused = 0;
-    ann[key] = generate_signature(text, nullptr, nullptr, unused, unused);
+    ann[key] = generate_function_signature(text, nullptr, nullptr, unused, unused);
     return {derived(), key};
 }
 
