@@ -106,10 +106,10 @@ inline std::string replace_newlines_and_squash(const char *text) {
 
 /* Generate a proper function signature */
 inline std::string generate_function_signature(const char *type_caster_name_field,
-                                      detail::function_record *func_rec,
-                                      const std::type_info *const *types,
-                                      size_t &type_index,
-                                      size_t &arg_index) {
+                                               detail::function_record *func_rec,
+                                               const std::type_info *const *types,
+                                               size_t &type_index,
+                                               size_t &arg_index) {
     std::string signature;
     bool is_starred = false;
     bool is_annotation = func_rec == nullptr;
@@ -143,7 +143,8 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             signature += ": ";
         } else if (c == '}') {
             // Write default value if available.
-            if (!is_starred && arg_index < func_rec->args.size() && func_rec->args[arg_index].descr) {
+            if (!is_starred && arg_index < func_rec->args.size()
+                && func_rec->args[arg_index].descr) {
                 signature += " = ";
                 signature += detail::replace_newlines_and_squash(func_rec->args[arg_index].descr);
             }
@@ -199,7 +200,8 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             ++pc;
             if (!is_return_value.top()
                 && (is_annotation
-                    || !(arg_index < func_rec->args.size() && !func_rec->args[arg_index].convert))) {
+                    || !(arg_index < func_rec->args.size()
+                         && !func_rec->args[arg_index].convert))) {
                 while (*pc != '\0' && *pc != '@') {
                     signature += *pc++;
                 }

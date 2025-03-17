@@ -1611,10 +1611,10 @@ struct function_record;
 
 // forward declaration (definition in pybind11.h)
 std::string generate_function_signature(const char *type_caster_name_field,
-                               function_record *func_rec,
-                               const std::type_info *const *types,
-                               size_t &type_index,
-                               size_t &arg_index);
+                                        function_record *func_rec,
+                                        const std::type_info *const *types,
+                                        size_t &type_index,
+                                        size_t &arg_index);
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
