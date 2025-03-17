@@ -16,7 +16,7 @@ if(TARGET Python::Module AND NOT TARGET Python::Python)
   return()
 endif()
 
-find_package(Catch 2.13.9)
+find_package(Catch 2.13.10)
 
 if(CATCH_FOUND)
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
