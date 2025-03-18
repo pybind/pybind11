@@ -301,9 +301,12 @@ def test_constructors():
     assert results["array_t<int32>"].dtype == np.int32
     assert results["array_t<double>"].dtype == np.float64
 
+
 def test_array_object_type(doc):
-    assert doc(m.pass_array_object_return_as_list) == \
-        "pass_array_object_return_as_list(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.object_]) -> list"
+    assert (
+        doc(m.pass_array_object_return_as_list)
+        == "pass_array_object_return_as_list(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.object_]) -> list"
+    )
 
 
 def test_overload_resolution(msg):
