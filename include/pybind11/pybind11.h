@@ -104,6 +104,134 @@ inline std::string replace_newlines_and_squash(const char *text) {
     return result.substr(str_begin, str_range);
 }
 
+/* Generate a proper function signature */
+inline std::string generate_function_signature(const char *type_caster_name_field,
+                                               detail::function_record *func_rec,
+                                               const std::type_info *const *types,
+                                               size_t &type_index,
+                                               size_t &arg_index) {
+    std::string signature;
+    bool is_starred = false;
+    bool is_annotation = func_rec == nullptr;
+    // `is_return_value.top()` is true if we are currently inside the return type of the
+    // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
+    // back to the previous state.
+    std::stack<bool> is_return_value({false});
+    // The following characters have special meaning in the signature parsing. Literals
+    // containing these are escaped with `!`.
+    std::string special_chars("!@%{}-");
+    for (const auto *pc = type_caster_name_field; *pc != '\0'; ++pc) {
+        const auto c = *pc;
+        if (c == '{') {
+            // Write arg name for everything except *args and **kwargs.
+            is_starred = *(pc + 1) == '*';
+            if (is_starred) {
+                continue;
+            }
+            // Separator for keyword-only arguments, placed before the kw
+            // arguments start (unless we are already putting an *args)
+            if (!func_rec->has_args && arg_index == func_rec->nargs_pos) {
+                signature += "*, ";
+            }
+            if (arg_index < func_rec->args.size() && func_rec->args[arg_index].name) {
+                signature += func_rec->args[arg_index].name;
+            } else if (arg_index == 0 && func_rec->is_method) {
+                signature += "self";
+            } else {
+                signature += "arg" + std::to_string(arg_index - (func_rec->is_method ? 1 : 0));
+            }
+            signature += ": ";
+        } else if (c == '}') {
+            // Write default value if available.
+            if (!is_starred && arg_index < func_rec->args.size()
+                && func_rec->args[arg_index].descr) {
+                signature += " = ";
+                signature += detail::replace_newlines_and_squash(func_rec->args[arg_index].descr);
+            }
+            // Separator for positional-only arguments (placed after the
+            // argument, rather than before like *
+            if (func_rec->nargs_pos_only > 0 && (arg_index + 1) == func_rec->nargs_pos_only) {
+                signature += ", /";
+            }
+            if (!is_starred) {
+                arg_index++;
+            }
+        } else if (c == '%') {
+            const std::type_info *t = types[type_index++];
+            if (!t) {
+                pybind11_fail("Internal error while parsing type signature (1)");
+            }
+            if (auto *tinfo = detail::get_type_info(*t)) {
+                handle th((PyObject *) tinfo->type);
+                signature += th.attr("__module__").cast<std::string>() + "."
+                             + th.attr("__qualname__").cast<std::string>();
+            } else if (func_rec->is_new_style_constructor && arg_index == 0) {
+                // A new-style `__init__` takes `self` as `value_and_holder`.
+                // Rewrite it to the proper class type.
+                signature += func_rec->scope.attr("__module__").cast<std::string>() + "."
+                             + func_rec->scope.attr("__qualname__").cast<std::string>();
+            } else {
+                signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
+            }
+        } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
+            // typing::Literal escapes special characters with !
+            signature += *++pc;
+        } else if (c == '@') {
+            // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
+            // typing::Callable/detail::arg_descr/detail::return_descr)
+            if (*(pc + 1) == '^') {
+                is_return_value.emplace(false);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '$') {
+                is_return_value.emplace(true);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '!') {
+                is_return_value.pop();
+                ++pc;
+                continue;
+            }
+            // Handle types that differ depending on whether they appear
+            // in an argument or a return value position (see io_name<text1, text2>).
+            // For named arguments (py::arg()) with noconvert set, return value type is used.
+            ++pc;
+            if (!is_return_value.top()
+                && (is_annotation
+                    || !(arg_index < func_rec->args.size()
+                         && !func_rec->args[arg_index].convert))) {
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+            } else {
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+            }
+        } else {
+            if (c == '-' && *(pc + 1) == '>') {
+                is_return_value.emplace(true);
+            }
+            signature += c;
+        }
+    }
+    return signature;
+}
+
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
@@ -439,124 +567,9 @@ protected:
         }
 #endif
 
-        /* Generate a proper function signature */
-        std::string signature;
         size_t type_index = 0, arg_index = 0;
-        bool is_starred = false;
-        // `is_return_value.top()` is true if we are currently inside the return type of the
-        // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
-        // back to the previous state.
-        std::stack<bool> is_return_value({false});
-        // The following characters have special meaning in the signature parsing. Literals
-        // containing these are escaped with `!`.
-        std::string special_chars("!@%{}-");
-        for (const auto *pc = text; *pc != '\0'; ++pc) {
-            const auto c = *pc;
-
-            if (c == '{') {
-                // Write arg name for everything except *args and **kwargs.
-                is_starred = *(pc + 1) == '*';
-                if (is_starred) {
-                    continue;
-                }
-                // Separator for keyword-only arguments, placed before the kw
-                // arguments start (unless we are already putting an *args)
-                if (!rec->has_args && arg_index == rec->nargs_pos) {
-                    signature += "*, ";
-                }
-                if (arg_index < rec->args.size() && rec->args[arg_index].name) {
-                    signature += rec->args[arg_index].name;
-                } else if (arg_index == 0 && rec->is_method) {
-                    signature += "self";
-                } else {
-                    signature += "arg" + std::to_string(arg_index - (rec->is_method ? 1 : 0));
-                }
-                signature += ": ";
-            } else if (c == '}') {
-                // Write default value if available.
-                if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
-                    signature += " = ";
-                    signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
-                }
-                // Separator for positional-only arguments (placed after the
-                // argument, rather than before like *
-                if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only) {
-                    signature += ", /";
-                }
-                if (!is_starred) {
-                    arg_index++;
-                }
-            } else if (c == '%') {
-                const std::type_info *t = types[type_index++];
-                if (!t) {
-                    pybind11_fail("Internal error while parsing type signature (1)");
-                }
-                if (auto *tinfo = detail::get_type_info(*t)) {
-                    handle th((PyObject *) tinfo->type);
-                    signature += th.attr("__module__").cast<std::string>() + "."
-                                 + th.attr("__qualname__").cast<std::string>();
-                } else if (rec->is_new_style_constructor && arg_index == 0) {
-                    // A new-style `__init__` takes `self` as `value_and_holder`.
-                    // Rewrite it to the proper class type.
-                    signature += rec->scope.attr("__module__").cast<std::string>() + "."
-                                 + rec->scope.attr("__qualname__").cast<std::string>();
-                } else {
-                    signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
-                }
-            } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
-                // typing::Literal escapes special characters with !
-                signature += *++pc;
-            } else if (c == '@') {
-                // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
-                // typing::Callable/detail::arg_descr/detail::return_descr)
-                if (*(pc + 1) == '^') {
-                    is_return_value.emplace(false);
-                    ++pc;
-                    continue;
-                }
-                if (*(pc + 1) == '$') {
-                    is_return_value.emplace(true);
-                    ++pc;
-                    continue;
-                }
-                if (*(pc + 1) == '!') {
-                    is_return_value.pop();
-                    ++pc;
-                    continue;
-                }
-                // Handle types that differ depending on whether they appear
-                // in an argument or a return value position (see io_name<text1, text2>).
-                // For named arguments (py::arg()) with noconvert set, return value type is used.
-                ++pc;
-                if (!is_return_value.top()
-                    && !(arg_index < rec->args.size() && !rec->args[arg_index].convert)) {
-                    while (*pc != '\0' && *pc != '@') {
-                        signature += *pc++;
-                    }
-                    if (*pc == '@') {
-                        ++pc;
-                    }
-                    while (*pc != '\0' && *pc != '@') {
-                        ++pc;
-                    }
-                } else {
-                    while (*pc != '\0' && *pc != '@') {
-                        ++pc;
-                    }
-                    if (*pc == '@') {
-                        ++pc;
-                    }
-                    while (*pc != '\0' && *pc != '@') {
-                        signature += *pc++;
-                    }
-                }
-            } else {
-                if (c == '-' && *(pc + 1) == '>') {
-                    is_return_value.emplace(true);
-                }
-                signature += c;
-            }
-        }
+        std::string signature
+            = detail::generate_function_signature(text, rec, types, type_index, arg_index);
 
         if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr) {
             pybind11_fail("Internal error while parsing type signature (2)");

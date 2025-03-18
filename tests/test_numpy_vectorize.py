@@ -211,11 +211,11 @@ def test_passthrough_arguments(doc):
         "vec_passthrough("
         + ", ".join(
             [
-                "arg0: float",
+                "arg0: typing.SupportsFloat",
                 "arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]",
                 "arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]",
                 "arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.int32]",
-                "arg4: int",
+                "arg4: typing.SupportsInt",
                 "arg5: m.numpy_vectorize.NonPODClass",
                 "arg6: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]",
             ]
