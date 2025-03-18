@@ -74,12 +74,6 @@ def test_cross_module_exceptions(msg):
     assert str(excinfo.value) == "'just local'"
 
 
-# TODO: FIXME
-@pytest.mark.xfail(
-    "env.MACOS and env.PYPY",
-    raises=RuntimeError,
-    reason="See Issue #2847, PR #2999, PR #4324",
-)
 def test_cross_module_exception_translator():
     with pytest.raises(KeyError):
         # translator registered in cross_module_tests
