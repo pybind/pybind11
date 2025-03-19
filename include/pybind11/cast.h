@@ -241,7 +241,9 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T, const_name<std::is_integral<T>::value>("int", "float"));
+    PYBIND11_TYPE_CASTER(T,
+                         io_name<std::is_integral<T>::value>(
+                             "typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
 };
 
 template <typename T>
@@ -303,7 +305,7 @@ public:
     template <typename T>
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
-    static constexpr auto name = const_name("capsule");
+    static constexpr auto name = const_name("types.CapsuleType");
 
 private:
     void *value = nullptr;
@@ -1231,7 +1233,7 @@ struct handle_type_name<buffer> {
 };
 template <>
 struct handle_type_name<int_> {
-    static constexpr auto name = const_name("int");
+    static constexpr auto name = io_name("typing.SupportsInt", "int");
 };
 template <>
 struct handle_type_name<iterable> {
@@ -1243,7 +1245,7 @@ struct handle_type_name<iterator> {
 };
 template <>
 struct handle_type_name<float_> {
-    static constexpr auto name = const_name("float");
+    static constexpr auto name = io_name("typing.SupportsFloat", "float");
 };
 template <>
 struct handle_type_name<function> {
@@ -1279,7 +1281,7 @@ struct handle_type_name<type> {
 };
 template <>
 struct handle_type_name<capsule> {
-    static constexpr auto name = const_name("capsule");
+    static constexpr auto name = const_name("types.CapsuleType");
 };
 template <>
 struct handle_type_name<ellipsis> {
@@ -1604,6 +1606,16 @@ inline void object::cast() && {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// forward declaration (definition in attr.h)
+struct function_record;
+
+// forward declaration (definition in pybind11.h)
+std::string generate_function_signature(const char *type_caster_name_field,
+                                        function_record *func_rec,
+                                        const std::type_info *const *types,
+                                        size_t &type_index,
+                                        size_t &arg_index);
+
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
 object object_or_cast(T &&o) {
@@ -1624,7 +1636,11 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     if (ann.contains(key)) {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
-    ann[key] = make_caster<T>::name.text;
+
+    const char *text = make_caster<T>::name.text;
+
+    size_t unused = 0;
+    ann[key] = generate_function_signature(text, nullptr, nullptr, unused, unused);
     return {derived(), key};
 }
 
