@@ -159,7 +159,7 @@ default is ``MODULE``. There are several options:
   Use thin LTO instead of regular if there's a choice (pybind11's selection
   is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
 ``WITHOUT_SOABI``
-  Disable the SOABI component (``PYBIND11_NEWPYTHON`` mode only).
+  Disable the SOABI component (``PYBIND11_FINDPYTHON`` mode only).
 ``NO_EXTRAS``
   Disable all extras, exit immediately after making the module.
 
