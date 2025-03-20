@@ -1255,6 +1255,22 @@ private:
     bool flag_;
 };
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline bool gil_not_used_option() { return false; }
+template <typename F, typename... O>
+bool gil_not_used_option(F &&, O &&...o);
+template <typename... O>
+inline bool gil_not_used_option(mod_gil_not_used f, O &&...o) {
+    return f.flag() || gil_not_used_option(o...);
+}
+template <typename F, typename... O>
+inline bool gil_not_used_option(F &&, O &&...o) {
+    return gil_not_used_option(o...);
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
@@ -1388,6 +1404,56 @@ public:
         //       returned from PyInit_...
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
+    }
+
+    /** \rst
+        Initialized a module def for use with multi-phase module initialization.
+
+        ``def`` should point to a statically allocated module_def.
+        ``slots`` must already contain a Py_mod_exec or Py_mod_create slot and will be filled with
+            additional slots (and the empty terminator slot) from the supplied options.
+    \endrst */
+    template <typename... Options>
+    static object initialize_multiphase_module_def(const char *name,
+                                                   const char *doc,
+                                                   module_def *def,
+                                                   std::vector<PyModuleDef_Slot> &slots,
+                                                   Options &&...options) {
+        // remove zero end sentinel, if present
+        while (!slots.empty() && slots.back().slot == 0) {
+            slots.pop_back();
+        }
+
+        bool nogil PYBIND11_MAYBE_UNUSED = detail::gil_not_used_option(options...);
+        if (nogil) {
+#if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
+            slots.emplace_back(PyModuleDef_Slot{Py_mod_gil, Py_MOD_GIL_NOT_USED});
+#endif
+        }
+
+        // must have a zero end sentinel
+        slots.emplace_back(PyModuleDef_Slot{0, nullptr});
+
+        // module_def is PyModuleDef
+        // Placement new (not an allocation).
+        def = new (def)
+            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                        /* m_name */ name,
+                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                        /* m_size */ 0,
+                        /* m_methods */ nullptr,
+                        /* m_slots */ slots.data(),
+                        /* m_traverse */ nullptr,
+                        /* m_clear */ nullptr,
+                        /* m_free */ nullptr};
+        auto *m = PyModuleDef_Init(def);
+        if (m == nullptr) {
+            if (PyErr_Occurred()) {
+                throw error_already_set();
+            }
+            pybind11_fail("Internal error in module_::initialize_multiphase_module_def()");
+        }
+        return reinterpret_borrow<object>(m);
     }
 };
 
