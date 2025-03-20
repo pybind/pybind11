@@ -1437,7 +1437,7 @@ public:
             if (next_slot >= term_slot) {
                 pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
             }
-            slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED});
+            slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
 #endif
         }
 
