@@ -447,16 +447,16 @@ PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name);           \
-    static std::vector<PyModuleDef_Slot> PYBIND11_CONCAT(pybind11_module_slots_, name);           \
+    static ::pybind11::module_::slots_array PYBIND11_CONCAT(pybind11_module_slots_, name);        \
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
         auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                              \
-        slots.clear();                                                                            \
-        slots.emplace_back(PyModuleDef_Slot{                                                      \
-            Py_mod_exec, reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))});      \
+        slots[0]                                                                                  \
+            = {Py_mod_exec, reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};    \
+        slots[1] = {0, nullptr};                                                                  \
         auto m = ::pybind11::module_::initialize_multiphase_module_def(                           \
             PYBIND11_TOSTRING(name),                                                              \
             nullptr,                                                                              \
