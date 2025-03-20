@@ -193,6 +193,9 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
     initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
 #endif
+
+    // There is exactly one interpreter alive currently.
+    detail::get_interpreter_count() = 1;
 }
 
 /** \rst
@@ -234,16 +237,11 @@ inline void finalize_interpreter() {
     // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
     // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
-    detail::internals **internals_ptr_ptr = detail::get_internals_pp();
-    // It could also be stashed in state_dict, so look there too:
-    if (object internals_obj
-        = get_internals_obj_from_state_dict(detail::get_python_state_dict())) {
-        internals_ptr_ptr = detail::get_internals_pp_from_capsule(internals_obj);
-    }
-    // Local internals contains data managed by the current interpreter, so we must clear them to
-    // avoid undefined behaviors when initializing another interpreter
-    detail::get_local_internals().registered_types_cpp.clear();
-    detail::get_local_internals().registered_exception_translators.clear();
+    auto &internals_ptr_ptr = detail::get_internals_pp();
+    internals_ptr_ptr = detail::find_internals_pp<detail::internals>(PYBIND11_INTERNALS_ID);
+    auto &local_internals_ptr_ptr = detail::get_local_internals_pp();
+    local_internals_ptr_ptr
+        = detail::find_internals_pp<detail::local_internals>(detail::get_local_internals_id());
 
     Py_Finalize();
 
@@ -251,6 +249,16 @@ inline void finalize_interpreter() {
         delete *internals_ptr_ptr;
         *internals_ptr_ptr = nullptr;
     }
+
+    // Local internals contains data managed by the current interpreter, so we must clear them to
+    // avoid undefined behaviors when initializing another interpreter
+    if (local_internals_ptr_ptr && *local_internals_ptr_ptr) {
+        delete *local_internals_ptr_ptr;
+        *local_internals_ptr_ptr = nullptr;
+    }
+
+    // We know there is no interpreter alive now, so we can reset the count
+    detail::get_interpreter_count() = 0;
 }
 
 /** \rst
