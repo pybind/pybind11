@@ -1303,7 +1303,6 @@ inline bool gil_not_used_option(F &&, O &&...o) {
 
 #ifdef Py_mod_multiple_interpreters
 inline void *multi_interp_option() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
-#    ifdef PYBIND11_SUBINTERPRETER_SUPPORT
 template <typename F, typename... O>
 void *multi_interp_option(F &&, O &&...o);
 template <typename... O>
@@ -1323,7 +1322,6 @@ inline void *multi_interp_option(mod_multi_interpreter_one_gil f, O &&...o) {
     }
     return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
 }
-#    endif
 template <typename F, typename... O>
 inline void *multi_interp_option(F &&, O &&...o) {
     return multi_interp_option(o...);
@@ -1481,7 +1479,7 @@ public:
 
     /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
     /// the sentinel (0) end slot.
-    using slots_array = std::array<PyModuleDef_Slot, 3>;
+    using slots_array = std::array<PyModuleDef_Slot, 4>;
 
     /** \rst
         Initialized a module def for use with multi-phase module initialization.
@@ -1504,21 +1502,15 @@ public:
             ++next_slot;
         }
 
-        bool nogil PYBIND11_MAYBE_UNUSED = detail::gil_not_used_option(options...);
-
 #ifdef Py_mod_multiple_interpreters
-        slots[i].slot = Py_mod_multiple_interpreters;
-        slots[i].value = detail::multi_interp_option(options...);
-        if (nogil && slots[i].value == Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED) {
-            // if you support free threading and multi-interpreters,
-            // then you definitely also support per-interpreter GIL
-            // even if you don't know it.
-            slots[i].value = Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
+        if (next_slot >= term_slot) {
+            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
         }
-        ++i;
+        slots[next_slot++]
+            = {Py_mod_multiple_interpreters, detail::multi_interp_option(options...)};
 #endif
 
-        if (nogil) {
+        if (detail::gil_not_used_option(options...)) {
 #if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
             if (next_slot >= term_slot) {
                 pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
