@@ -232,6 +232,13 @@
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
+// Slightly faster code paths are available when this is NOT defined, so undefine it for impls
+// that do not have subinterpreter.  Nothing breaks if this is defined but the impl does not
+// actually support subinterpreters.
+#if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#    define PYBIND11_SUBINTERPRETER_SUPPORT
+#endif
+
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
 //             (probably surprising and never documented, but this was the
@@ -407,6 +414,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
         return m.ptr();                                                                           \
     }                                                                                             \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
+        pybind11::detail::get_interpreter_count()++;                                              \
         try {                                                                                     \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \

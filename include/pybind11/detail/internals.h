@@ -15,6 +15,7 @@
 
 #include "common.h"
 
+#include <atomic>
 #include <exception>
 #include <mutex>
 #include <thread>
@@ -249,29 +250,46 @@ struct type_info {
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
 
+inline PyThreadState *get_thread_state_unchecked() {
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+    return PyThreadState_GET();
+#elif PY_VERSION_HEX < 0x030D0000
+    return _PyThreadState_UncheckedGet();
+#else
+    return PyThreadState_GetUnchecked();
+#endif
+}
+
+/// We use this count to figure out if there are or have been multiple sub-interpreters active at
+/// any point. This must never decrease while any interpreter may be running in any thread!
+inline std::atomic<int> &get_interpreter_count() {
+    static std::atomic<int> counter(0);
+    return counter;
+}
+
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
 inline internals **&get_internals_pp() {
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON) || PY_VERSION_HEX < 0x030C0000               \
-    || !defined(PYBIND11_SUBINTERPRETER_SUPPORT)
-    static internals **internals_pp = nullptr;
-#else
-    static thread_local internals **internals_pp = nullptr;
-    // This is one per interpreter, we cache it but if the thread changed
-    // then we need to invalidate our cache
-    // the caller will find the right value and set it if its null
-    static thread_local PyThreadState *tstate_cached = nullptr;
-#    if PY_VERSION_HEX < 0x030D0000
-    PyThreadState *tstate = _PyThreadState_UncheckedGet();
-#    else
-    PyThreadState *tstate = PyThreadState_GetUnchecked();
-#    endif
-    if (tstate != tstate_cached) {
-        tstate_cached = tstate;
-        internals_pp = nullptr;
+#ifdef PYBIND11_SUBINTERPRETER_SUPPORT
+    if (get_interpreter_count() > 1) {
+        // Internals is one per interpreter. When multiple interpreters are alive in different
+        // threads we have to allow them to have different internals, so we need a thread_local.
+        static thread_local internals **t_internals_pp = nullptr;
+        // Whenever the interpreter changes we need to invalidate the internals_pp.  That is slow,
+        // so we only do it when the PyThreadState has changed, which indicates the interpreter
+        // might have changed as well.
+        static thread_local PyThreadState *tstate_cached = nullptr;
+        auto *tstate = get_thread_state_unchecked();
+        if (tstate != tstate_cached) {
+            tstate_cached = tstate;
+            // the caller will fetch the instance from the state dict or create a new one
+            t_internals_pp = nullptr;
+        }
+        return t_internals_pp;
     }
 #endif
-    return internals_pp;
+    static internals **s_internals_pp = nullptr;
+    return s_internals_pp;
 }
 
 // forward decl
@@ -402,20 +420,6 @@ inline object get_python_state_dict() {
     return state_dict;
 }
 
-inline object get_internals_obj_from_state_dict(handle state_dict) {
-    return reinterpret_steal<object>(
-        dict_getitemstringref(state_dict.ptr(), PYBIND11_INTERNALS_ID));
-}
-
-inline internals **get_internals_pp_from_capsule(handle obj) {
-    void *raw_ptr = PyCapsule_GetPointer(obj.ptr(), /*name=*/nullptr);
-    if (raw_ptr == nullptr) {
-        raise_from(PyExc_SystemError, "pybind11::detail::get_internals_pp_from_capsule() FAILED");
-        throw error_already_set();
-    }
-    return static_cast<internals **>(raw_ptr);
-}
-
 inline uint64_t round_up_to_next_pow2(uint64_t x) {
     // Round-up to the next power of two.
     // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -430,9 +434,41 @@ inline uint64_t round_up_to_next_pow2(uint64_t x) {
     return x;
 }
 
+#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+using internals_safe_gil_scoped_acquire = gil_scoped_acquire;
+#else
+// Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
+struct internals_safe_gil_scoped_acquire {
+    internals_safe_gil_scoped_acquire() : state(PyGILState_Ensure()) {}
+    internals_safe_gil_scoped_acquire(const internals_safe_gil_scoped_acquire &) = delete;
+    internals_safe_gil_scoped_acquire &operator=(const internals_safe_gil_scoped_acquire &)
+        = delete;
+    internals_safe_gil_scoped_acquire(internals_safe_gil_scoped_acquire &&) = delete;
+    internals_safe_gil_scoped_acquire &operator=(internals_safe_gil_scoped_acquire &&) = delete;
+    ~internals_safe_gil_scoped_acquire() { PyGILState_Release(state); }
+    const PyGILState_STATE state;
+};
+#endif
+
+template <typename InternalsType>
+inline InternalsType **find_internals_pp(char const *state_dict_key) {
+    dict state_dict = get_python_state_dict();
+    auto internals_obj
+        = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), state_dict_key));
+    if (internals_obj) {
+        void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
+        if (!raw_ptr) {
+            pybind11_fail("find_or_create_internals_pp: broken capsule!");
+        } else {
+            return reinterpret_cast<InternalsType **>(raw_ptr);
+        }
+    }
+    return nullptr;
+}
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto **&internals_pp = get_internals_pp();
+    auto &internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp) {
         return **internals_pp;
     }
@@ -440,10 +476,8 @@ PYBIND11_NOINLINE internals &get_internals() {
     gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
-    dict state_dict = get_python_state_dict();
-    if (object internals_obj = get_internals_obj_from_state_dict(state_dict)) {
-        internals_pp = get_internals_pp_from_capsule(internals_obj);
-    }
+    internals_pp = find_internals_pp<internals>(PYBIND11_INTERNALS_ID);
+
     if (internals_pp && *internals_pp) {
         // We loaded the internals through `state_dict`, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
@@ -462,8 +496,11 @@ PYBIND11_NOINLINE internals &get_internals() {
 #endif
     } else {
         if (!internals_pp) {
-            internals_pp = new internals *();
+            internals_pp = new internals *(nullptr);
+            dict state = get_python_state_dict();
+            state[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
         }
+
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 
@@ -481,7 +518,6 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
 
         internals_ptr->istate = tstate->interp;
-        state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
@@ -511,62 +547,61 @@ struct local_internals {
     std::forward_list<ExceptionTranslator> registered_exception_translators;
 };
 
-/// Works like `get_internals`, but for things which are locally registered.
-inline local_internals &get_local_internals() {
-    // Current static can be created in the interpreter finalization routine. If the later will be
-    // destroyed in another static variable destructor, creation of this static there will cause
-    // static deinitialization fiasco. In order to avoid it we avoid destruction of the
-    // local_internals static. One can read more about the problem and current solution here:
-    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
-
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON) || PY_VERSION_HEX < 0x030C0000               \
-    || !defined(PYBIND11_SUBINTERPRETER_SUPPORT)
-    static auto *locals = new local_internals();
-#else
-    static thread_local local_internals *locals = nullptr;
-    // This is one per interpreter, we cache it but if the interpreter changed
-    // then we need to invalidate our cache and re-fetch from the state dict
-    static thread_local PyThreadState *tstate_cached = nullptr;
-#    if PY_VERSION_HEX < 0x030D0000
-    PyThreadState *tstate = _PyThreadState_UncheckedGet();
-#    else
-    PyThreadState *tstate = PyThreadState_GetUnchecked();
-#    endif
-    if (!tstate) {
-        pybind11_fail(
-            "pybind11::detail::get_local_internals() called without a current python thread");
-    }
-    if (tstate != tstate_cached) {
-        // we create a unique value at first run which is based on a pointer to
-        // a (non-thread_local) static value in this function, then multiple
-        // loaded modules using this code will still each have a unique key.
-        static const std::string this_module_idstr
-            = PYBIND11_MODULE_LOCAL_ID
-              + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-
-        // Ensure that the GIL is held since we will need to make Python calls.
-        // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-	gil_scoped_acquire_simple gil;
-        error_scope err_scope;
-        dict state_dict = get_python_state_dict();
-        object local_capsule = reinterpret_steal<object>(
-            dict_getitemstringref(state_dict.ptr(), this_module_idstr.c_str()));
-        if (!local_capsule) {
-            locals = new local_internals();
-            state_dict[this_module_idstr.c_str()] = capsule(reinterpret_cast<void *>(locals));
-        } else {
-            void *ptr = PyCapsule_GetPointer(local_capsule.ptr(), nullptr);
-            if (!ptr) {
-                raise_from(PyExc_SystemError, "pybind11::detail::get_local_internals() FAILED");
-                throw error_already_set();
-            }
-            locals = reinterpret_cast<local_internals *>(ptr);
+inline local_internals **&get_local_internals_pp() {
+#ifdef PYBIND11_SUBINTERPRETER_SUPPORT
+    if (get_interpreter_count() > 1) {
+        // Internals is one per interpreter. When multiple interpreters are alive in different
+        // threads we have to allow them to have different internals, so we need a thread_local.
+        static thread_local local_internals **t_internals_pp = nullptr;
+        // Whenever the interpreter changes we need to invalidate the internals_pp.  That is slow,
+        // so we only do it when the PyThreadState has changed, which indicates the interpreter
+        // might have changed as well.
+        static thread_local PyThreadState *tstate_cached = nullptr;
+        auto *tstate = get_thread_state_unchecked();
+        if (tstate != tstate_cached) {
+            tstate_cached = tstate;
+            // the caller will fetch the instance from the state dict or create a new one
+            t_internals_pp = nullptr;
         }
-        tstate_cached = tstate;
+        return t_internals_pp;
     }
 #endif
+    static local_internals **s_internals_pp = nullptr;
+    return s_internals_pp;
+}
 
-    return *locals;
+/// A string key uniquely describing this module
+inline char const *get_local_internals_id() {
+    // Use the address of this static itself as part of the key, so that the value is uniquely tied
+    // to where the module is loaded in memory
+    static const std::string this_module_idstr
+        = PYBIND11_MODULE_LOCAL_ID
+          + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
+    return this_module_idstr.c_str();
+}
+
+/// Works like `get_internals`, but for things which are locally registered.
+inline local_internals &get_local_internals() {
+    auto &local_internals_pp = get_local_internals_pp();
+    if (local_internals_pp && *local_internals_pp) {
+        return **local_internals_pp;
+    }
+
+    internals_safe_gil_scoped_acquire gil;
+
+    error_scope err_scope;
+
+    local_internals_pp = find_internals_pp<local_internals>(get_local_internals_id());
+    if (!local_internals_pp) {
+        local_internals_pp = new local_internals *(nullptr);
+        dict state = get_python_state_dict();
+        state[get_local_internals_id()] = capsule(reinterpret_cast<void *>(local_internals_pp));
+    }
+    if (!*local_internals_pp) {
+        *local_internals_pp = new local_internals();
+    }
+
+    return **local_internals_pp;
 }
 
 #ifdef Py_GIL_DISABLED

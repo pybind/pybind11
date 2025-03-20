@@ -256,8 +256,8 @@ TEST_CASE("Add program dir to path using PyConfig") {
 #endif
 
 bool has_state_dict_internals_obj() {
-    return bool(
-        py::detail::get_internals_obj_from_state_dict(py::detail::get_python_state_dict()));
+    py::dict state = py::detail::get_python_state_dict();
+    return state.contains(PYBIND11_INTERNALS_ID);
 }
 
 bool has_pybind11_internals_static() {
@@ -308,6 +308,7 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE_FALSE(ran);
     py::finalize_interpreter();
     REQUIRE(ran);
+    REQUIRE_FALSE(has_pybind11_internals_static());
     py::initialize_interpreter();
     REQUIRE_FALSE(has_state_dict_internals_obj());
     REQUIRE_FALSE(has_pybind11_internals_static());
@@ -340,6 +341,8 @@ TEST_CASE("Subinterpreter") {
     auto *main_tstate = PyThreadState_Get();
     auto *sub_tstate = Py_NewInterpreter();
 
+    py::detail::get_interpreter_count()++;
+
     // Subinterpreters get their own copy of builtins.
     REQUIRE_FALSE(has_state_dict_internals_obj());
 
@@ -347,8 +350,7 @@ TEST_CASE("Subinterpreter") {
     // internals hasn't been populated yet, but will be different for the subinterpreter
     REQUIRE_FALSE(has_pybind11_internals_static());
 
-    py::list sys_path = py::module_::import("sys").attr("path");
-    sys_path.append(py::str("."));
+    py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
     auto ext_int = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
     py::detail::get_internals();
@@ -374,6 +376,7 @@ TEST_CASE("Subinterpreter") {
 
     // Restore main interpreter.
     Py_EndInterpreter(sub_tstate);
+    py::detail::get_interpreter_count() = 1;
     PyThreadState_Swap(main_tstate);
 
     REQUIRE(py::hasattr(py::module_::import("__main__"), "main_tag"));
