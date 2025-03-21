@@ -1378,7 +1378,7 @@ public:
                                            = mod_gil_not_used(false)) {
         // module_def is PyModuleDef
         // Placement new (not an allocation).
-        def = new (def)
+        new (def)
             PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                         /* m_name */ name,
                         /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
@@ -1408,7 +1408,7 @@ public:
 
     /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
     /// the sentinel (0) end slot.
-    using slots_array = std::array<PyModuleDef_Slot, 4>;
+    using slots_array = std::array<PyModuleDef_Slot, 3>;
 
     /** \rst
         Initialized a module def for use with multi-phase module initialization.
@@ -1449,7 +1449,7 @@ public:
 
         // module_def is PyModuleDef
         // Placement new (not an allocation).
-        def = new (def)
+        new (def)
             PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                         /* m_name */ name,
                         /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
