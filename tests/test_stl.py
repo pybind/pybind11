@@ -603,7 +603,7 @@ def test_sequence_caster_protocol(doc):
 
     assert (
         doc(m.roundtrip_std_vector_int)
-        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[int]) -> list[int]"
+        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt]) -> list[int]"
     )
     assert m.roundtrip_std_vector_int([1, 2, 3]) == [1, 2, 3]
     assert m.roundtrip_std_vector_int((1, 2, 3)) == [1, 2, 3]
@@ -645,7 +645,7 @@ def test_mapping_caster_protocol(doc):
 
     assert (
         doc(m.roundtrip_std_map_str_int)
-        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, int]) -> dict[str, int]"
+        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt]) -> dict[str, int]"
     )
     assert m.roundtrip_std_map_str_int({"a": 1, "b": 2, "c": 3}) == {
         "a": 1,
@@ -694,7 +694,7 @@ def test_set_caster_protocol(doc):
 
     assert (
         doc(m.roundtrip_std_set_int)
-        == "roundtrip_std_set_int(arg0: collections.abc.Set[int]) -> set[int]"
+        == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt]) -> set[int]"
     )
     assert m.roundtrip_std_set_int({1, 2, 3}) == {1, 2, 3}
     assert m.roundtrip_std_set_int(SetLike(1, 2, 3)) == {1, 2, 3}
