@@ -1873,7 +1873,6 @@ using is_kw_only = std::is_same<intrinsic_t<T>, kw_only>;
 template <typename T>
 using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 
-
 /// Internal data associated with a single function call
 struct function_call {
     function_call(const function_record &f, handle p); // Implementation in attr.h
