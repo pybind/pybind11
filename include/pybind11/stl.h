@@ -173,7 +173,14 @@ private:
 public:
     bool load(handle src, bool convert) {
         if (!PyObjectTypeIsConvertibleToStdSet(src.ptr())) {
-            return false;
+            if (!convert) {
+                return false;
+            }
+            if (!(isinstance(src, module_::import("collections.abc").attr("Set"))
+                  && hasattr(src, "__contains__") && hasattr(src, "__iter__")
+                  && hasattr(src, "__len__"))) {
+                return false;
+            }
         }
         if (isinstance<anyset>(src)) {
             value.clear();
@@ -203,7 +210,9 @@ public:
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type,
+                         io_name("collections.abc.Set", "set") + const_name("[") + key_conv::name
+                             + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
@@ -235,7 +244,14 @@ private:
 public:
     bool load(handle src, bool convert) {
         if (!PyObjectTypeIsConvertibleToStdMap(src.ptr())) {
-            return false;
+            if (!convert) {
+                return false;
+            }
+            if (!(isinstance(src, module_::import("collections.abc").attr("Mapping"))
+                  && hasattr(src, "__getitem__") && hasattr(src, "__iter__")
+                  && hasattr(src, "__len__"))) {
+                return false;
+            }
         }
         if (isinstance<dict>(src)) {
             return convert_elements(reinterpret_borrow<dict>(src), convert);
@@ -274,7 +290,8 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("dict[") + key_conv::name + const_name(", ") + value_conv::name
+                         io_name("collections.abc.Mapping", "dict") + const_name("[")
+                             + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
 };
 
@@ -340,7 +357,9 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("list[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type,
+                         io_name("collections.abc.Sequence", "list") + const_name("[")
+                             + value_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Alloc>
@@ -474,10 +493,12 @@ public:
     using cast_op_type = movable_cast_op_type<T_>;
 
     static constexpr auto name
-        = const_name<Resizable>(const_name(""), const_name("Annotated[")) + const_name("list[")
-          + value_conv::name + const_name("]")
-          + const_name<Resizable>(
-              const_name(""), const_name(", FixedSize(") + const_name<Size>() + const_name(")]"));
+        = const_name<Resizable>(const_name(""), const_name("typing.Annotated["))
+          + io_name("collections.abc.Sequence", "list") + const_name("[") + value_conv::name
+          + const_name("]")
+          + const_name<Resizable>(const_name(""),
+                                  const_name(", \"FixedSize(") + const_name<Size>()
+                                      + const_name(")\"]"));
 };
 
 template <typename Type, size_t Size>
