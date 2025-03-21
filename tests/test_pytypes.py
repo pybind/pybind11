@@ -1163,6 +1163,8 @@ def test_module_attribute_types() -> None:
         == "Union[pybind11_tests.pytypes.foo, pybind11_tests.pytypes.foo2, pybind11_tests.pytypes.foo3]"
     )
 
+    assert module_annotations["foo4"] == "test_submodule_pytypes(module_&)::foo4"
+
 
 @pytest.mark.skipif(
     not m.defined___cpp_inline_variables,

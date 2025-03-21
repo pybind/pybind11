@@ -1610,11 +1610,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 struct function_record;
 
 // forward declaration (definition in pybind11.h)
-inline std::string generate_function_signature(const char *type_caster_name_field,
-                                               function_record *func_rec,
-                                               const std::type_info *const *types,
-                                               size_t &type_index,
-                                               size_t &arg_index);
+std::string generate_function_signature(const char *type_caster_name_field,
+                                        function_record *func_rec,
+                                        const std::type_info *const *types,
+                                        size_t &type_index,
+                                        size_t &arg_index);
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -1637,15 +1637,15 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
 
-    static constexpr auto type_name = make_caster<T>::name;
-    PYBIND11_DESCR_CONSTEXPR auto types = decltype(type_name)::types();
+    static constexpr auto caster_name_field = make_caster<T>::name;
+    PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
 
-    const char *text = type_name.text;
+    const char *text = caster_name_field.text;
 
+    auto func_rec = detail::function_record();
     size_t type_index = 0;
-    size_t unused = 0;
-
-    ann[key] = generate_function_signature(text, nullptr, types.data(), type_index, unused);
+    size_t arg_index = 0;
+    ann[key] = generate_function_signature(text, &func_rec, descr_types.data(), type_index, arg_index);
     return {derived(), key};
 }
 
