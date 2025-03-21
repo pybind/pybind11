@@ -648,4 +648,7 @@ TEST_SUBMODULE(stl, m) {
         }
         return zum;
     });
+    m.def("roundtrip_std_vector_int", [](const std::vector<int> &v) { return v; });
+    m.def("roundtrip_std_map_str_int", [](const std::map<std::string, int> &m) { return m; });
+    m.def("roundtrip_std_set_int", [](const std::set<int> &s) { return s; });
 }

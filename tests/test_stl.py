@@ -576,3 +576,129 @@ def test_map_caster_fully_consumes_generator_object(items, expected_exception):
     with pytest.raises(expected_exception):
         m.pass_std_map_int(FakePyMappingGenObj(gen_obj))
     assert not tuple(gen_obj)
+
+
+def test_sequence_caster_protocol(doc):
+    from collections.abc import Sequence
+
+    class SequenceLike(Sequence):
+        def __init__(self, *args):
+            self.data = tuple(args)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+    class FakeSequenceLike:
+        def __init__(self, *args):
+            self.data = tuple(args)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+    assert (
+        doc(m.roundtrip_std_vector_int)
+        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[int]) -> list[int]"
+    )
+    assert m.roundtrip_std_vector_int([1, 2, 3]) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int((1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int(SequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int(FakeSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int([]) == []
+    assert m.roundtrip_std_vector_int(()) == []
+    assert m.roundtrip_std_vector_int(FakeSequenceLike()) == []
+
+
+def test_mapping_caster_protocol(doc):
+    from collections.abc import Mapping
+
+    class MappingLike(Mapping):
+        def __init__(self, **kwargs):
+            self.data = dict(kwargs)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, key):
+            return self.data[key]
+
+        def __iter__(self):
+            yield from self.data
+
+    class FakeMappingLike:
+        def __init__(self, **kwargs):
+            self.data = dict(kwargs)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, key):
+            return self.data[key]
+
+        def __iter__(self):
+            yield from self.data
+
+    assert (
+        doc(m.roundtrip_std_map_str_int)
+        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, int]) -> dict[str, int]"
+    )
+    assert m.roundtrip_std_map_str_int({"a": 1, "b": 2, "c": 3}) == {
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    }
+    assert m.roundtrip_std_map_str_int(MappingLike(a=1, b=2, c=3)) == {
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    }
+    assert m.roundtrip_std_map_str_int({}) == {}
+    assert m.roundtrip_std_map_str_int(MappingLike()) == {}
+    with pytest.raises(TypeError):
+        m.roundtrip_std_map_str_int(FakeMappingLike(a=1, b=2, c=3))
+
+
+def test_set_caster_protocol(doc):
+    from collections.abc import Set
+
+    class SetLike(Set):
+        def __init__(self, *args):
+            self.data = set(args)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __contains__(self, item):
+            return item in self.data
+
+        def __iter__(self):
+            yield from self.data
+
+    class FakeSetLike:
+        def __init__(self, *args):
+            self.data = set(args)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __contains__(self, item):
+            return item in self.data
+
+        def __iter__(self):
+            yield from self.data
+
+    assert (
+        doc(m.roundtrip_std_set_int)
+        == "roundtrip_std_set_int(arg0: collections.abc.Set[int]) -> set[int]"
+    )
+    assert m.roundtrip_std_set_int({1, 2, 3}) == {1, 2, 3}
+    assert m.roundtrip_std_set_int(SetLike(1, 2, 3)) == {1, 2, 3}
+    assert m.roundtrip_std_set_int(set()) == set()
+    assert m.roundtrip_std_set_int(SetLike()) == set()
+    with pytest.raises(TypeError):
+        m.roundtrip_std_set_int(FakeSetLike(1, 2, 3))

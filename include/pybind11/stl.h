@@ -173,7 +173,14 @@ private:
 public:
     bool load(handle src, bool convert) {
         if (!PyObjectTypeIsConvertibleToStdSet(src.ptr())) {
-            return false;
+            if (!convert) {
+                return false;
+            }
+            if (!(isinstance(src, module_::import("collections.abc").attr("Set"))
+                  && hasattr(src, "__contains__") && hasattr(src, "__iter__")
+                  && hasattr(src, "__len__"))) {
+                return false;
+            }
         }
         if (isinstance<anyset>(src)) {
             value.clear();
@@ -237,7 +244,14 @@ private:
 public:
     bool load(handle src, bool convert) {
         if (!PyObjectTypeIsConvertibleToStdMap(src.ptr())) {
-            return false;
+            if (!convert) {
+                return false;
+            }
+            if (!(isinstance(src, module_::import("collections.abc").attr("Mapping"))
+                  && hasattr(src, "__getitem__") && hasattr(src, "__iter__")
+                  && hasattr(src, "__len__"))) {
+                return false;
+            }
         }
         if (isinstance<dict>(src)) {
             return convert_elements(reinterpret_borrow<dict>(src), convert);
