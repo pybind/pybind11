@@ -301,6 +301,8 @@ TEST_CASE("Restart the interpreter") {
     py::module_::import("__main__").attr("internals_destroy_test")
         = py::capsule(&ran, [](void *ran) {
               py::detail::get_internals();
+              REQUIRE(has_state_dict_internals_obj());
+              REQUIRE(has_pybind11_internals_static());
               *static_cast<bool *>(ran) = true;
           });
     REQUIRE_FALSE(has_state_dict_internals_obj());
@@ -383,6 +385,210 @@ TEST_CASE("Subinterpreter") {
     REQUIRE(py::hasattr(py::module_::import("widget_module"), "extension_module_tag"));
     REQUIRE(has_state_dict_internals_obj());
 }
+
+#if defined(PYBIND11_SUBINTERPRETER_SUPPORT)
+TEST_CASE("Multiple Subinterpreters") {
+    // Make sure the module is in the main interpreter and save its pointer
+    auto *main_ext = py::module_::import("external_module").ptr();
+    auto main_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    py::module_::import("external_module").attr("multi_interp") = "1";
+
+    auto *main_tstate = PyThreadState_Get();
+
+    /// Create and switch to a subinterpreter.
+    auto *sub1_tstate = Py_NewInterpreter();
+    py::detail::get_interpreter_count()++;
+
+    py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+
+    // The subinterpreter has its own copy of this module which is completely separate from main
+    auto *sub1_ext = py::module_::import("external_module").ptr();
+    REQUIRE(sub1_ext != main_ext);
+    REQUIRE_FALSE(py::hasattr(py::module_::import("external_module"), "multi_interp"));
+    py::module_::import("external_module").attr("multi_interp") = "2";
+    // The sub-interpreter also has its own internals
+    auto sub1_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    REQUIRE(sub1_int != main_int);
+
+    // Create another interpreter
+    auto *sub2_tstate = Py_NewInterpreter();
+    py::detail::get_interpreter_count()++;
+
+    py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+
+    // The second subinterpreter is separate from both main and the other sub-interpreter
+    auto *sub2_ext = py::module_::import("external_module").ptr();
+    REQUIRE(sub2_ext != main_ext);
+    REQUIRE(sub2_ext != sub1_ext);
+    REQUIRE_FALSE(py::hasattr(py::module_::import("external_module"), "multi_interp"));
+    py::module_::import("external_module").attr("multi_interp") = "3";
+    // The sub-interpreter also has its own internals
+    auto sub2_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    REQUIRE(sub2_int != main_int);
+    REQUIRE(sub2_int != sub1_int);
+
+    PyThreadState_Swap(sub1_tstate); // go back to sub1
+
+    REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
+            == "2");
+
+    PyThreadState_Swap(main_tstate); // go back to main
+
+    auto post_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    // Make sure internals went back the way it was before
+    REQUIRE(main_int == post_int);
+
+    REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
+            == "1");
+
+    PyThreadState_Swap(sub1_tstate);
+    Py_EndInterpreter(sub1_tstate);
+    PyThreadState_Swap(sub2_tstate);
+    Py_EndInterpreter(sub2_tstate);
+
+    py::detail::get_interpreter_count() = 1;
+    PyThreadState_Swap(main_tstate);
+}
+#endif
+
+#if defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED) && defined(PYBIND11_SUBINTERPRETER_SUPPORT)
+TEST_CASE("Per-Subinterpreter GIL") {
+    auto main_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+
+    std::atomic<int> started = 0, finished = 0, failure = 0, sync = 0;
+
+// REQUIRE throws on failure, so we can't use it within the thread
+#    define T_REQUIRE(status)                                                                     \
+        do {                                                                                      \
+            assert(status);                                                                       \
+            if (!(status))                                                                        \
+                ++failure;                                                                        \
+        } while (0)
+
+    auto &&thread_main = [&](int num) {
+        while (started == 0)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
+        ++started;
+
+        py::gil_scoped_acquire gil;
+        auto main_tstate = PyThreadState_Get();
+
+        // we have the GIL, we can access the main interpreter
+        auto t_int
+            = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+        T_REQUIRE(t_int == main_int);
+        py::module_::import("external_module").attr("multi_interp") = "1";
+
+        PyInterpreterConfig cfg = _PyInterpreterConfig_INIT;
+        PyThreadState *sub = nullptr;
+        auto status = Py_NewInterpreterFromConfig(&sub, &cfg);
+        T_REQUIRE(!PyStatus_IsError(status));
+
+        py::detail::get_interpreter_count()++;
+
+        py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+
+        // we have switched to the new interpreter and released the main gil
+
+        // widget_module did not provide the mod_per_interpreter_gil tag, so it cannot be imported
+        bool caught = false;
+        try {
+            py::module_::import("widget_module");
+        } catch (pybind11::error_already_set &pe) {
+            T_REQUIRE(pe.matches(PyExc_ImportError));
+            std::string msg(pe.what());
+            T_REQUIRE(msg.find("does not support loading in subinterpreters")
+                      != std::string::npos);
+            caught = true;
+        }
+        T_REQUIRE(caught);
+
+        T_REQUIRE(!py::hasattr(py::module_::import("external_module"), "multi_interp"));
+        py::module_::import("external_module").attr("multi_interp") = std::to_string(num);
+
+        // wait for something to set sync to our thread number
+        // we are holding our subinterpreter's GIL
+        while (sync != num)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
+
+        // now change it so the next thread can mvoe on
+        ++sync;
+
+        // but keep holding the GIL until after the next thread moves on as well
+        while (sync == num + 1)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
+
+        // one last check before quitting the thread, the internals should be different
+        auto sub_int
+            = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+        T_REQUIRE(sub_int != main_int);
+
+        Py_EndInterpreter(sub);
+
+        ++finished;
+
+        PyThreadState_Swap(
+            main_tstate); // switch back so the scoped_acquire can release the GIL properly
+    };
+
+    std::thread(thread_main, 1).detach();
+    std::thread(thread_main, 2).detach();
+
+    // we spawned two threads, at this point they are both waiting for started to increase
+    ++started;
+
+    // ok now wait for the threads to start
+    while (started != 3)
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+
+    // we still hold the main GIL, at this point both threads are waiting on the main GIL
+    // IN THE CASE of free threading, the threads are waiting on sync (because there is no GIL)
+
+    // IF the below code hangs in one of the wait loops, then the child thread GIL behavior did not
+    // function as expected.
+    {
+        // release the GIL and allow the threads to run
+        py::gil_scoped_release nogil;
+
+        // the threads are now waiting on the sync
+        REQUIRE(sync == 0);
+
+        // this will trigger thread 1 and then advance and trigger 2 and then advance
+        sync = 1;
+
+        // wait for thread 2 to advance
+        while (sync != 3)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
+
+        // we know now that thread 1 has run and may be finishing
+        // and thread 2 is waiting for permission to advance
+
+        // so we move sync so that thread 2 can finish executing
+        ++sync;
+
+        ++finished;
+
+        // now wait for both threads to complete
+        while (finished != 3)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+
+    // now we have the gil again, sanity check
+    REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
+            == "1");
+
+    // the threads are stopped. we can now lower this for the rest of the test
+    py::detail::get_interpreter_count() = 1;
+
+    // make sure nothing unexpected happened inside the threads, now that they are completed
+    REQUIRE(failure == 0);
+}
+#endif
 
 TEST_CASE("Execution frame") {
     // When the interpreter is embedded, there is no execution frame, but `py::exec`
