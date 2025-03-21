@@ -1639,7 +1639,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
 
     static constexpr auto type_name = make_caster<T>::name;
     PYBIND11_DESCR_CONSTEXPR auto types = decltype(type_name)::types();
-    
+
     const char *text = type_name.text;
 
     size_t type_index = 0;
