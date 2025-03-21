@@ -1378,16 +1378,15 @@ public:
                                            = mod_gil_not_used(false)) {
         // module_def is PyModuleDef
         // Placement new (not an allocation).
-        new (def)
-            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                        /* m_name */ name,
-                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                        /* m_size */ -1,
-                        /* m_methods */ nullptr,
-                        /* m_slots */ nullptr,
-                        /* m_traverse */ nullptr,
-                        /* m_clear */ nullptr,
-                        /* m_free */ nullptr};
+        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                              /* m_name */ name,
+                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                              /* m_size */ -1,
+                              /* m_methods */ nullptr,
+                              /* m_slots */ nullptr,
+                              /* m_traverse */ nullptr,
+                              /* m_clear */ nullptr,
+                              /* m_free */ nullptr};
         auto *m = PyModule_Create(def);
         if (m == nullptr) {
             if (PyErr_Occurred()) {
@@ -1449,16 +1448,15 @@ public:
 
         // module_def is PyModuleDef
         // Placement new (not an allocation).
-        new (def)
-            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                        /* m_name */ name,
-                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                        /* m_size */ 0,
-                        /* m_methods */ nullptr,
-                        /* m_slots */ &slots[0],
-                        /* m_traverse */ nullptr,
-                        /* m_clear */ nullptr,
-                        /* m_free */ nullptr};
+        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                              /* m_name */ name,
+                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                              /* m_size */ 0,
+                              /* m_methods */ nullptr,
+                              /* m_slots */ &slots[0],
+                              /* m_traverse */ nullptr,
+                              /* m_clear */ nullptr,
+                              /* m_free */ nullptr};
         auto *m = PyModuleDef_Init(def);
         if (m == nullptr) {
             if (PyErr_Occurred()) {
