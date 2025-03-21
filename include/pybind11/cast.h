@@ -1645,7 +1645,8 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     auto func_rec = detail::function_record();
     size_t type_index = 0;
     size_t arg_index = 0;
-    ann[key] = generate_function_signature(text, &func_rec, descr_types.data(), type_index, arg_index);
+    ann[key]
+        = generate_function_signature(text, &func_rec, descr_types.data(), type_index, arg_index);
     return {derived(), key};
 }
 

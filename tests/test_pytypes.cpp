@@ -1069,7 +1069,6 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.attr_with_type_hint<py::typing::Union<foo_t, foo2, foo3>>("foo_union") = foo_t{};
 
-
     struct foo4 {};
     m.attr_with_type_hint<foo4>("foo4") = 3;
 

@@ -198,8 +198,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             // For named arguments (py::arg()) with noconvert set, return value type is used.
             ++pc;
             if (!is_return_value.top()
-                && (!(arg_index < func_rec->args.size()
-                         && !func_rec->args[arg_index].convert))) {
+                && (!(arg_index < func_rec->args.size() && !func_rec->args[arg_index].convert))) {
                 while (*pc != '\0' && *pc != '@') {
                     signature += *pc++;
                 }
