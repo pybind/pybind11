@@ -6,7 +6,11 @@ namespace py = pybind11;
  * modules aren't preserved over a finalize/initialize.
  */
 
-PYBIND11_MODULE(external_module, m, py::mod_gil_not_used(), py::mod_multi_interpreter_one_gil()) {
+PYBIND11_MODULE(external_module,
+                m,
+                py::mod_multi_interpreter_one_gil(),
+                py::mod_gil_not_used(),
+                py::mod_per_interpreter_gil()) {
     class A {
     public:
         explicit A(int value) : v{value} {};

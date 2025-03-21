@@ -233,7 +233,7 @@
 #endif
 
 // Slightly faster code paths are available when this is NOT defined, so undefine it for impls
-// that do not have subinterpreter.  Nothing breaks if this is defined but the impl does not
+// that do not have subinterpreters. Nothing breaks if this is defined but the impl does not
 // actually support subinterpreters.
 #if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
 #    define PYBIND11_SUBINTERPRETER_SUPPORT
