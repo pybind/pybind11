@@ -184,8 +184,11 @@ if(PYBIND11_NOPYTHON)
   # We won't use new FindPython if PYBIND11_FINDPYTHON is defined and falselike
   # Otherwise, we use if FindPythonLibs is missing or if FindPython was already used
 elseif(
-  (NOT DEFINED PYBIND11_FINDPYTHON OR PYBIND11_FINDPYTHON)
+  (NOT DEFINED PYBIND11_FINDPYTHON
+   OR PYBIND11_FINDPYTHON STREQUAL "COMPAT"
+   OR PYBIND11_FINDPYTHON)
   AND (_pybind11_missing_old_python STREQUAL "NEW"
+       OR PYBIND11_FINDPYTHON STREQUAL "COMPAT"
        OR PYBIND11_FINDPYTHON
        OR Python_FOUND
        OR Python3_FOUND
