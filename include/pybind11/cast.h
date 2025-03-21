@@ -1642,7 +1642,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
 
     const char *text = caster_name_field.text;
 
-    auto func_rec = detail::function_record();
+    auto func_rec = function_record();
     size_t type_index = 0;
     size_t arg_index = 0;
     ann[key]
@@ -1873,8 +1873,6 @@ using is_kw_only = std::is_same<intrinsic_t<T>, kw_only>;
 template <typename T>
 using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 
-// forward declaration (definition in attr.h)
-struct function_record;
 
 /// Internal data associated with a single function call
 struct function_call {
