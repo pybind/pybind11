@@ -1607,7 +1607,7 @@ inline void object::cast() && {
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // forward declaration (definition in attr.h)
-struct function_record;
+typedef struct function_record function_record;
 
 // forward declaration (definition in pybind11.h)
 std::string generate_function_signature(const char *type_caster_name_field,
