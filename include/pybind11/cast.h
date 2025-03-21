@@ -1610,11 +1610,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 struct function_record;
 
 // forward declaration (definition in pybind11.h)
-std::string generate_function_signature(const char *type_caster_name_field,
-                                        function_record *func_rec,
-                                        const std::type_info *const *types,
-                                        size_t &type_index,
-                                        size_t &arg_index);
+inline std::string generate_function_signature(const char *type_caster_name_field,
+                                               function_record *func_rec,
+                                               const std::type_info *const *types,
+                                               size_t &type_index,
+                                               size_t &arg_index);
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -1637,10 +1637,15 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
 
-    const char *text = make_caster<T>::name.text;
+    static constexpr auto type_name = make_caster<T>::name;
+    PYBIND11_DESCR_CONSTEXPR auto types = decltype(type_name)::types();
+    
+    const char *text = type_name.text;
 
+    size_t type_index = 0;
     size_t unused = 0;
-    ann[key] = generate_function_signature(text, nullptr, nullptr, unused, unused);
+
+    ann[key] = generate_function_signature(text, nullptr, types.data(), type_index, unused);
     return {derived(), key};
 }
 
