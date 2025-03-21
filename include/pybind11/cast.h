@@ -12,6 +12,7 @@
 
 #include "detail/common.h"
 #include "detail/descr.h"
+#include "detail/native_enum_data.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
 #include "pytypes.h"
@@ -51,6 +52,104 @@ cast_op(make_caster<T> &&caster) {
     using result_t = typename make_caster<T>::template cast_op_type<
         typename std::add_rvalue_reference<T>::type>; // See PR #4893
     return std::move(caster).operator result_t();
+}
+
+template <typename EnumType>
+class type_caster_enum_type {
+private:
+    using Underlying = typename std::underlying_type<EnumType>::type;
+
+public:
+    static constexpr auto name = const_name<EnumType>();
+
+    template <typename SrcType>
+    static handle cast(SrcType &&src, return_value_policy, handle parent) {
+        handle native_enum
+            = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));
+        if (native_enum) {
+            return native_enum(static_cast<Underlying>(src)).release();
+        }
+        return type_caster_base<EnumType>::cast(
+            std::forward<SrcType>(src),
+            // Fixes https://github.com/pybind/pybind11/pull/3643#issuecomment-1022987818:
+            return_value_policy::copy,
+            parent);
+    }
+
+    bool load(handle src, bool convert) {
+        handle native_enum
+            = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));
+        if (native_enum) {
+            if (!isinstance(src, native_enum)) {
+                return false;
+            }
+            type_caster<Underlying> underlying_caster;
+            if (!underlying_caster.load(src.attr("value"), convert)) {
+                pybind11_fail("native_enum internal consistency failure.");
+            }
+            value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            return true;
+        }
+        if (!pybind11_enum_) {
+            pybind11_enum_.reset(new type_caster_base<EnumType>());
+        }
+        return pybind11_enum_->load(src, convert);
+    }
+
+    template <typename T>
+    using cast_op_type = detail::cast_op_type<T>;
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator EnumType *() {
+        if (!pybind11_enum_) {
+            return &value;
+        }
+        return pybind11_enum_->operator EnumType *();
+    }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator EnumType &() {
+        if (!pybind11_enum_) {
+            return value;
+        }
+        return pybind11_enum_->operator EnumType &();
+    }
+
+private:
+    std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
+    EnumType value;
+};
+
+template <typename EnumType, typename SFINAE = void>
+struct type_caster_enum_type_enabled : std::true_type {};
+
+template <typename T>
+struct type_uses_type_caster_enum_type {
+    static constexpr bool value
+        = std::is_enum<T>::value && type_caster_enum_type_enabled<T>::value;
+};
+
+template <typename EnumType>
+class type_caster<EnumType, detail::enable_if_t<type_uses_type_caster_enum_type<EnumType>::value>>
+    : public type_caster_enum_type<EnumType> {};
+
+template <typename T, detail::enable_if_t<std::is_enum<T>::value, int> = 0>
+bool isinstance_native_enum_impl(handle obj, const std::type_info &tp) {
+    handle native_enum = global_internals_native_enum_type_map_get_item(tp);
+    if (!native_enum) {
+        return false;
+    }
+    return isinstance(obj, native_enum);
+}
+
+template <typename T, detail::enable_if_t<!std::is_enum<T>::value, int> = 0>
+bool isinstance_native_enum_impl(handle, const std::type_info &) {
+    return false;
+}
+
+template <typename T>
+bool isinstance_native_enum(handle obj, const std::type_info &tp) {
+    return isinstance_native_enum_impl<intrinsic_t<T>>(obj, tp);
 }
 
 template <typename type>
@@ -1470,8 +1569,17 @@ template <typename T,
           = 0>
 T cast(const handle &handle) {
     using namespace detail;
-    static_assert(!cast_is_temporary_value_reference<T>::value,
+    constexpr bool is_enum_cast = type_uses_type_caster_enum_type<intrinsic_t<T>>::value;
+    static_assert(!cast_is_temporary_value_reference<T>::value || is_enum_cast,
                   "Unable to cast type to reference: value is local to type caster");
+#ifndef NDEBUG
+    if (is_enum_cast && cast_is_temporary_value_reference<T>::value) {
+        if (detail::global_internals_native_enum_type_map_contains(
+                std::type_index(typeid(intrinsic_t<T>)))) {
+            pybind11_fail("Unable to cast native enum type to reference");
+        }
+    }
+#endif
     return cast_op<T>(load_type<T>(handle));
 }
 
