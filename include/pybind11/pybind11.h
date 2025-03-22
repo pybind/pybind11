@@ -105,6 +105,134 @@ inline std::string replace_newlines_and_squash(const char *text) {
     return result.substr(str_begin, str_range);
 }
 
+/* Generate a proper function signature */
+inline std::string generate_function_signature(const char *type_caster_name_field,
+                                               detail::function_record *func_rec,
+                                               const std::type_info *const *types,
+                                               size_t &type_index,
+                                               size_t &arg_index) {
+    std::string signature;
+    bool is_starred = false;
+    bool is_annotation = func_rec == nullptr;
+    // `is_return_value.top()` is true if we are currently inside the return type of the
+    // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
+    // back to the previous state.
+    std::stack<bool> is_return_value({false});
+    // The following characters have special meaning in the signature parsing. Literals
+    // containing these are escaped with `!`.
+    std::string special_chars("!@%{}-");
+    for (const auto *pc = type_caster_name_field; *pc != '\0'; ++pc) {
+        const auto c = *pc;
+        if (c == '{') {
+            // Write arg name for everything except *args and **kwargs.
+            is_starred = *(pc + 1) == '*';
+            if (is_starred) {
+                continue;
+            }
+            // Separator for keyword-only arguments, placed before the kw
+            // arguments start (unless we are already putting an *args)
+            if (!func_rec->has_args && arg_index == func_rec->nargs_pos) {
+                signature += "*, ";
+            }
+            if (arg_index < func_rec->args.size() && func_rec->args[arg_index].name) {
+                signature += func_rec->args[arg_index].name;
+            } else if (arg_index == 0 && func_rec->is_method) {
+                signature += "self";
+            } else {
+                signature += "arg" + std::to_string(arg_index - (func_rec->is_method ? 1 : 0));
+            }
+            signature += ": ";
+        } else if (c == '}') {
+            // Write default value if available.
+            if (!is_starred && arg_index < func_rec->args.size()
+                && func_rec->args[arg_index].descr) {
+                signature += " = ";
+                signature += detail::replace_newlines_and_squash(func_rec->args[arg_index].descr);
+            }
+            // Separator for positional-only arguments (placed after the
+            // argument, rather than before like *
+            if (func_rec->nargs_pos_only > 0 && (arg_index + 1) == func_rec->nargs_pos_only) {
+                signature += ", /";
+            }
+            if (!is_starred) {
+                arg_index++;
+            }
+        } else if (c == '%') {
+            const std::type_info *t = types[type_index++];
+            if (!t) {
+                pybind11_fail("Internal error while parsing type signature (1)");
+            }
+            if (auto *tinfo = detail::get_type_info(*t)) {
+                handle th((PyObject *) tinfo->type);
+                signature += th.attr("__module__").cast<std::string>() + "."
+                             + th.attr("__qualname__").cast<std::string>();
+            } else if (func_rec->is_new_style_constructor && arg_index == 0) {
+                // A new-style `__init__` takes `self` as `value_and_holder`.
+                // Rewrite it to the proper class type.
+                signature += func_rec->scope.attr("__module__").cast<std::string>() + "."
+                             + func_rec->scope.attr("__qualname__").cast<std::string>();
+            } else {
+                signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
+            }
+        } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
+            // typing::Literal escapes special characters with !
+            signature += *++pc;
+        } else if (c == '@') {
+            // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
+            // typing::Callable/detail::arg_descr/detail::return_descr)
+            if (*(pc + 1) == '^') {
+                is_return_value.emplace(false);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '$') {
+                is_return_value.emplace(true);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '!') {
+                is_return_value.pop();
+                ++pc;
+                continue;
+            }
+            // Handle types that differ depending on whether they appear
+            // in an argument or a return value position (see io_name<text1, text2>).
+            // For named arguments (py::arg()) with noconvert set, return value type is used.
+            ++pc;
+            if (!is_return_value.top()
+                && (is_annotation
+                    || !(arg_index < func_rec->args.size()
+                         && !func_rec->args[arg_index].convert))) {
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+            } else {
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+            }
+        } else {
+            if (c == '-' && *(pc + 1) == '>') {
+                is_return_value.emplace(true);
+            }
+            signature += c;
+        }
+    }
+    return signature;
+}
+
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
@@ -440,124 +568,9 @@ protected:
         }
 #endif
 
-        /* Generate a proper function signature */
-        std::string signature;
         size_t type_index = 0, arg_index = 0;
-        bool is_starred = false;
-        // `is_return_value.top()` is true if we are currently inside the return type of the
-        // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
-        // back to the previous state.
-        std::stack<bool> is_return_value({false});
-        // The following characters have special meaning in the signature parsing. Literals
-        // containing these are escaped with `!`.
-        std::string special_chars("!@%{}-");
-        for (const auto *pc = text; *pc != '\0'; ++pc) {
-            const auto c = *pc;
-
-            if (c == '{') {
-                // Write arg name for everything except *args and **kwargs.
-                is_starred = *(pc + 1) == '*';
-                if (is_starred) {
-                    continue;
-                }
-                // Separator for keyword-only arguments, placed before the kw
-                // arguments start (unless we are already putting an *args)
-                if (!rec->has_args && arg_index == rec->nargs_pos) {
-                    signature += "*, ";
-                }
-                if (arg_index < rec->args.size() && rec->args[arg_index].name) {
-                    signature += rec->args[arg_index].name;
-                } else if (arg_index == 0 && rec->is_method) {
-                    signature += "self";
-                } else {
-                    signature += "arg" + std::to_string(arg_index - (rec->is_method ? 1 : 0));
-                }
-                signature += ": ";
-            } else if (c == '}') {
-                // Write default value if available.
-                if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
-                    signature += " = ";
-                    signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
-                }
-                // Separator for positional-only arguments (placed after the
-                // argument, rather than before like *
-                if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only) {
-                    signature += ", /";
-                }
-                if (!is_starred) {
-                    arg_index++;
-                }
-            } else if (c == '%') {
-                const std::type_info *t = types[type_index++];
-                if (!t) {
-                    pybind11_fail("Internal error while parsing type signature (1)");
-                }
-                if (auto *tinfo = detail::get_type_info(*t)) {
-                    handle th((PyObject *) tinfo->type);
-                    signature += th.attr("__module__").cast<std::string>() + "."
-                                 + th.attr("__qualname__").cast<std::string>();
-                } else if (rec->is_new_style_constructor && arg_index == 0) {
-                    // A new-style `__init__` takes `self` as `value_and_holder`.
-                    // Rewrite it to the proper class type.
-                    signature += rec->scope.attr("__module__").cast<std::string>() + "."
-                                 + rec->scope.attr("__qualname__").cast<std::string>();
-                } else {
-                    signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
-                }
-            } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
-                // typing::Literal escapes special characters with !
-                signature += *++pc;
-            } else if (c == '@') {
-                // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
-                // typing::Callable/detail::arg_descr/detail::return_descr)
-                if (*(pc + 1) == '^') {
-                    is_return_value.emplace(false);
-                    ++pc;
-                    continue;
-                }
-                if (*(pc + 1) == '$') {
-                    is_return_value.emplace(true);
-                    ++pc;
-                    continue;
-                }
-                if (*(pc + 1) == '!') {
-                    is_return_value.pop();
-                    ++pc;
-                    continue;
-                }
-                // Handle types that differ depending on whether they appear
-                // in an argument or a return value position (see io_name<text1, text2>).
-                // For named arguments (py::arg()) with noconvert set, return value type is used.
-                ++pc;
-                if (!is_return_value.top()
-                    && !(arg_index < rec->args.size() && !rec->args[arg_index].convert)) {
-                    while (*pc != '\0' && *pc != '@') {
-                        signature += *pc++;
-                    }
-                    if (*pc == '@') {
-                        ++pc;
-                    }
-                    while (*pc != '\0' && *pc != '@') {
-                        ++pc;
-                    }
-                } else {
-                    while (*pc != '\0' && *pc != '@') {
-                        ++pc;
-                    }
-                    if (*pc == '@') {
-                        ++pc;
-                    }
-                    while (*pc != '\0' && *pc != '@') {
-                        signature += *pc++;
-                    }
-                }
-            } else {
-                if (c == '-' && *(pc + 1) == '>') {
-                    is_return_value.emplace(true);
-                }
-                signature += c;
-            }
-        }
+        std::string signature
+            = detail::generate_function_signature(text, rec, types, type_index, arg_index);
 
         if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr) {
             pybind11_fail("Internal error while parsing type signature (2)");
@@ -1243,6 +1256,22 @@ private:
     bool flag_;
 };
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline bool gil_not_used_option() { return false; }
+template <typename F, typename... O>
+bool gil_not_used_option(F &&, O &&...o);
+template <typename... O>
+inline bool gil_not_used_option(mod_gil_not_used f, O &&...o) {
+    return f.flag() || gil_not_used_option(o...);
+}
+template <typename F, typename... O>
+inline bool gil_not_used_option(F &&, O &&...o) {
+    return gil_not_used_option(o...);
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
@@ -1350,16 +1379,15 @@ public:
                                            = mod_gil_not_used(false)) {
         // module_def is PyModuleDef
         // Placement new (not an allocation).
-        def = new (def)
-            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                        /* m_name */ name,
-                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                        /* m_size */ -1,
-                        /* m_methods */ nullptr,
-                        /* m_slots */ nullptr,
-                        /* m_traverse */ nullptr,
-                        /* m_clear */ nullptr,
-                        /* m_free */ nullptr};
+        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                              /* m_name */ name,
+                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                              /* m_size */ -1,
+                              /* m_methods */ nullptr,
+                              /* m_slots */ nullptr,
+                              /* m_traverse */ nullptr,
+                              /* m_clear */ nullptr,
+                              /* m_free */ nullptr};
         auto *m = PyModule_Create(def);
         if (m == nullptr) {
             if (PyErr_Occurred()) {
@@ -1376,6 +1404,68 @@ public:
         //       returned from PyInit_...
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
+    }
+
+    /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
+    /// the sentinel (0) end slot.
+    using slots_array = std::array<PyModuleDef_Slot, 3>;
+
+    /** \rst
+        Initialized a module def for use with multi-phase module initialization.
+
+        ``def`` should point to a statically allocated module_def.
+        ``slots`` must already contain a Py_mod_exec or Py_mod_create slot and will be filled with
+            additional slots from the supplied options (and the empty sentinel slot).
+    \endrst */
+    template <typename... Options>
+    static object initialize_multiphase_module_def(const char *name,
+                                                   const char *doc,
+                                                   module_def *def,
+                                                   slots_array &slots,
+                                                   Options &&...options) {
+        size_t next_slot = 0;
+        size_t term_slot = slots.size() - 1;
+
+        // find the end of the supplied slots
+        while (next_slot < term_slot && slots[next_slot].slot != 0) {
+            ++next_slot;
+        }
+
+        bool nogil PYBIND11_MAYBE_UNUSED = detail::gil_not_used_option(options...);
+        if (nogil) {
+#if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
+            if (next_slot >= term_slot) {
+                pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
+            }
+            slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
+#endif
+        }
+
+        // slots must have a zero end sentinel
+        if (next_slot > term_slot) {
+            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
+        }
+        slots[next_slot++] = {0, nullptr};
+
+        // module_def is PyModuleDef
+        // Placement new (not an allocation).
+        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                              /* m_name */ name,
+                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                              /* m_size */ 0,
+                              /* m_methods */ nullptr,
+                              /* m_slots */ &slots[0],
+                              /* m_traverse */ nullptr,
+                              /* m_clear */ nullptr,
+                              /* m_free */ nullptr};
+        auto *m = PyModuleDef_Init(def);
+        if (m == nullptr) {
+            if (PyErr_Occurred()) {
+                throw error_already_set();
+            }
+            pybind11_fail("Internal error in module_::initialize_multiphase_module_def()");
+        }
+        return reinterpret_borrow<object>(m);
     }
 };
 

@@ -20,7 +20,7 @@ def test_vector(doc):
     assert m.load_bool_vector((True, False))
 
     assert doc(m.cast_vector) == "cast_vector() -> list[int]"
-    assert doc(m.load_vector) == "load_vector(arg0: list[int]) -> bool"
+    assert doc(m.load_vector) == "load_vector(arg0: list[typing.SupportsInt]) -> bool"
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
@@ -45,7 +45,7 @@ def test_array(doc):
     assert doc(m.cast_array) == "cast_array() -> Annotated[list[int], FixedSize(2)]"
     assert (
         doc(m.load_array)
-        == "load_array(arg0: Annotated[list[int], FixedSize(2)]) -> bool"
+        == "load_array(arg0: Annotated[list[typing.SupportsInt], FixedSize(2)]) -> bool"
     )
 
 
@@ -64,7 +64,9 @@ def test_valarray(doc):
     assert m.load_valarray(tuple(lst))
 
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
-    assert doc(m.load_valarray) == "load_valarray(arg0: list[int]) -> bool"
+    assert (
+        doc(m.load_valarray) == "load_valarray(arg0: list[typing.SupportsInt]) -> bool"
+    )
 
 
 def test_map(doc):
@@ -325,7 +327,8 @@ def test_variant(doc):
     assert m.cast_variant() == (5, "Hello")
 
     assert (
-        doc(m.load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
+        doc(m.load_variant)
+        == "load_variant(arg0: Union[typing.SupportsInt, str, typing.SupportsFloat, None]) -> str"
     )
 
 
@@ -341,7 +344,7 @@ def test_variant_monostate(doc):
 
     assert (
         doc(m.load_monostate_variant)
-        == "load_monostate_variant(arg0: Union[None, int, str]) -> str"
+        == "load_monostate_variant(arg0: Union[None, typing.SupportsInt, str]) -> str"
     )
 
 
@@ -361,7 +364,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: list[int] = None) -> list[int]
+            1. (v: list[typing.SupportsInt] = None) -> list[int]
 
         Invoked with:
     """
@@ -373,7 +376,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: list[int] = None) -> list[int]
+            1. (v: list[typing.SupportsInt] = None) -> list[int]
 
         Invoked with: None
     """

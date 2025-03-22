@@ -41,7 +41,7 @@ def test_pointers(msg):
         msg(excinfo.value)
         == """
         get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: capsule) -> int
+            1. (arg0: types.CapsuleType) -> int
 
         Invoked with: [1, 2, 3]
     """
