@@ -488,8 +488,11 @@ TEST_CASE("Per-Subinterpreter GIL") {
         T_REQUIRE(t_int == main_int);
         py::module_::import("external_module").attr("multi_interp") = "1";
 
-        PyInterpreterConfig cfg = _PyInterpreterConfig_INIT;
         PyThreadState *sub = nullptr;
+        PyInterpreterConfig cfg;
+        memset(&cfg, 0, sizeof(cfg));
+        cfg.check_multi_interp_extensions = 1;
+        cfg.gil = PyInterpreterConfig_OWN_GIL;
         auto status = Py_NewInterpreterFromConfig(&sub, &cfg);
         T_REQUIRE(!PyStatus_IsError(status));
 
