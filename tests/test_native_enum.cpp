@@ -28,8 +28,6 @@ struct class_with_enum {
     enum class in_class { one, two };
 };
 
-enum class greek { Alpha = 10, Omega = 20 };
-
 // https://github.com/protocolbuffers/protobuf/blob/d70b5c5156858132decfdbae0a1103e6a5cb1345/src/google/protobuf/generated_enum_util.h#L52-L53
 template <typename T>
 struct is_proto_enum : std::false_type {};
@@ -132,16 +130,6 @@ TEST_SUBMODULE(native_enum, m) {
         auto e = py::cast<color>(obj);
         return static_cast<int>(e);
     });
-
-    m.def("native_enum_StrEnum_greek", [](py::module_ &m) {
-        py::native_enum<greek>(m, "greek", "enum.StrEnum")
-            .value("Alpha", greek::Alpha)
-            .value("Omega", greek::Omega)
-            .finalize();
-    });
-
-    m.def("pass_greek", [](greek e) { return static_cast<int>(e); });
-    m.def("return_greek", [](int i) { return static_cast<greek>(i); });
 
     m.def("native_enum_data_missing_finalize_error_message",
           [](const std::string &enum_name_encoded) {
