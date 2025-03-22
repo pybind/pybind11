@@ -11,6 +11,7 @@
 #include "internals.h"
 
 #include <cassert>
+#include <sstream>
 #include <string>
 #include <typeindex>
 
@@ -103,24 +104,50 @@ global_internals_native_enum_type_map_contains(const std::type_index &enum_type_
     });
 }
 
-inline object import_module_get_attr(const std::string &fully_qualified_attribute_name) {
-    std::size_t last_dot = fully_qualified_attribute_name.rfind('.');
-    if (last_dot == std::string::npos) {
-        throw value_error("WIP-TODO no dot");
+inline object import_or_getattr(const std::string &fully_qualified_name,
+                                const std::string &append_to_exception_message) {
+    std::istringstream stream(fully_qualified_name);
+    std::string part;
+
+    if (!std::getline(stream, part, '.') || part.empty()) {
+        throw value_error("Invalid fully-qualified name" + append_to_exception_message);
     }
-    std::string module_name = fully_qualified_attribute_name.substr(0, last_dot);
-    if (module_name.empty()) {
-        throw value_error("WIP-TODO empty module name");
-    }
-    std::string attr_name = fully_qualified_attribute_name.substr(last_dot + 1);
-    if (attr_name.empty()) {
-        throw value_error("WIP-TODO empty attr");
-    }
-    auto py_module = reinterpret_steal<object>(PyImport_ImportModule(module_name.c_str()));
-    if (!py_module) {
+
+    auto current = reinterpret_steal<object>(PyImport_ImportModule(part.c_str()));
+    if (!current) {
+        raise_from(
+            PyExc_ImportError,
+            ("Failed to import top-level module `" + part + "`" + append_to_exception_message)
+                .c_str());
         throw error_already_set();
     }
-    return py_module.attr(attr_name.c_str());
+
+    // Now recursively getattr or import remaining parts
+    std::string current_path = part;
+    while (std::getline(stream, part, '.')) {
+        if (part.empty()) {
+            throw value_error("Invalid fully-qualified name" + append_to_exception_message);
+        }
+        std::string next_path = current_path + "." + part;
+        auto next = reinterpret_steal<object>(PyObject_GetAttrString(current.ptr(), part.c_str()));
+        if (!next) {
+            error_fetch_and_normalize getattr_error("getattr");
+            // Try importing the next level
+            next = reinterpret_steal<object>(PyImport_ImportModule(next_path.c_str()));
+            if (!next) {
+                error_fetch_and_normalize import_error("import");
+                std::string msg = ("Failed to import or getattr `" + part + "` from `"
+                                   + current_path + "`" + append_to_exception_message
+                                   + "\n--------\n" + getattr_error.error_string() + "\n--------\n"
+                                   + import_error.error_string())
+                                      .c_str();
+                throw error_already_set();
+            }
+        }
+        current = next;
+        current_path = next_path;
+    }
+    return current;
 }
 
 inline void native_enum_data::finalize() {
@@ -129,7 +156,7 @@ inline void native_enum_data::finalize() {
         pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                       + "\"): an object with that name is already defined");
     }
-    auto py_enum_type = import_module_get_attr(native_type_name);
+    auto py_enum_type = import_or_getattr(native_type_name, " (native_type_name)");
     auto py_enum = py_enum_type(enum_name, members);
     object module_name = get_module_name_if_available(parent_scope);
     if (module_name) {
