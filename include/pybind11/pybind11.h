@@ -230,7 +230,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
 }
 
 template <typename T>
-inline std::string generate_type_signature(){
+inline std::string generate_type_signature() {
     static constexpr auto caster_name_field = make_caster<T>::name;
     PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
 

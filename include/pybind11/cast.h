@@ -1606,7 +1606,6 @@ inline void object::cast() && {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-
 // forward declaration (definition in pybind11.h)
 template <typename T>
 std::string generate_type_signature();
@@ -1631,7 +1630,7 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     if (ann.contains(key)) {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
-   
+
     ann[key] = generate_type_signature<T>();
     return {derived(), key};
 }
