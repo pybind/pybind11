@@ -1058,6 +1058,21 @@ TEST_SUBMODULE(pytypes, m) {
     // Exercises py::handle overload:
     m.attr_with_type_hint<py::typing::Set<py::str>>(py::str("set_str")) = py::set();
 
+    struct foo_t {};
+    struct foo2 {};
+    struct foo3 {};
+
+    pybind11::class_<foo_t>(m, "foo");
+    pybind11::class_<foo2>(m, "foo2");
+    pybind11::class_<foo3>(m, "foo3");
+    m.attr_with_type_hint<foo_t>("foo") = foo_t{};
+
+    m.attr_with_type_hint<py::typing::Union<foo_t, foo2, foo3>>("foo_union") = foo_t{};
+
+    // Include to ensure this does not crash
+    struct foo4 {};
+    m.attr_with_type_hint<foo4>("foo4") = 3;
+
     struct Empty {};
     py::class_<Empty>(m, "EmptyAnnotationClass");
 
