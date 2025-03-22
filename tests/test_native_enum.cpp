@@ -20,6 +20,8 @@ enum class altitude : char {
     low = 'l', // trailing comma only allowed after CWG518
 };
 
+enum class combinable { trait1 = 0x1, trait2 = 0x2, trait3 = 0x4 };
+
 enum class export_values { exv0, exv1 };
 
 enum class member_doc { mem0, mem1, mem2 };
@@ -87,6 +89,12 @@ TEST_SUBMODULE(native_enum, m) {
     py::native_enum<altitude>(m, "altitude")
         .value("high", altitude::high)
         .value("low", altitude::low)
+        .finalize();
+
+    py::native_enum<combinable>(m, "combinable", "enum.IntFlag")
+        .value("trait1", combinable::trait1)
+        .value("trait2", combinable::trait2)
+        .value("trait3", combinable::trait3)
         .finalize();
 
     py::native_enum<export_values>(m, "export_values", "enum.IntEnum")

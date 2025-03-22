@@ -26,6 +26,12 @@ ALTITUDE_MEMBERS = (
     ("low", "l"),
 )
 
+COMBINABLE_MEMBERS = (
+    ("trait1", 0x1),
+    ("trait2", 0x2),
+    ("trait3", 0x4),
+)
+
 CLASS_WITH_ENUM_IN_CLASS_MEMBERS = (
     ("one", 0),
     ("two", 1),
@@ -46,6 +52,7 @@ ENUM_TYPES_AND_MEMBERS = (
     (m.smallenum, SMALLENUM_MEMBERS),
     (m.color, COLOR_MEMBERS),
     (m.altitude, ALTITUDE_MEMBERS),
+    (m.combinable, COMBINABLE_MEMBERS),
     (m.export_values, EXPORT_VALUES_MEMBERS),
     (m.member_doc, MEMBER_DOC_MEMBERS),
     (m.class_with_enum.in_class, CLASS_WITH_ENUM_IN_CLASS_MEMBERS),
@@ -79,6 +86,13 @@ def test_pickle_roundtrip(enum_type, members):
             serialized = pickle.dumps(orig)
             restored = pickle.loads(serialized)
             assert restored == orig
+
+
+def test_enum_intflag():
+    traits13 = m.combinable.trait1 | m.combinable.trait3
+    assert m.combinable.trait1 in traits13
+    assert m.combinable.trait2 not in traits13
+    assert m.combinable.trait3 in traits13
 
 
 def test_export_values():
