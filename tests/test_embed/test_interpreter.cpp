@@ -591,7 +591,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
     // make sure nothing unexpected happened inside the threads, now that they are completed
     REQUIRE(failure == 0);
-#undef T_REQUIRE
+#    undef T_REQUIRE
 }
 #endif
 
