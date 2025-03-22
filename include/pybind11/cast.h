@@ -1606,15 +1606,10 @@ inline void object::cast() && {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// forward declaration (definition in attr.h)
-typedef struct function_record function_record;
 
 // forward declaration (definition in pybind11.h)
-std::string generate_function_signature(const char *type_caster_name_field,
-                                        function_record *func_rec,
-                                        const std::type_info *const *types,
-                                        size_t &type_index,
-                                        size_t &arg_index);
+template <typename T>
+std::string generate_type_signature();
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -1636,17 +1631,8 @@ str_attr_accessor object_api<D>::attr_with_type_hint(const char *key) const {
     if (ann.contains(key)) {
         throw std::runtime_error("__annotations__[\"" + std::string(key) + "\"] was set already.");
     }
-
-    static constexpr auto caster_name_field = make_caster<T>::name;
-    PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
-
-    const char *text = caster_name_field.text;
-
-    auto func_rec = function_record();
-    size_t type_index = 0;
-    size_t arg_index = 0;
-    ann[key]
-        = generate_function_signature(text, &func_rec, descr_types.data(), type_index, arg_index);
+   
+    ann[key] = generate_type_signature<T>();
     return {derived(), key};
 }
 
@@ -1872,6 +1858,9 @@ template <typename T>
 using is_kw_only = std::is_same<intrinsic_t<T>, kw_only>;
 template <typename T>
 using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
+
+// forward declaration (definition in attr.h)
+struct function_record;
 
 /// Internal data associated with a single function call
 struct function_call {

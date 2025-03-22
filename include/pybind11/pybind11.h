@@ -229,6 +229,19 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
     return signature;
 }
 
+template <typename T>
+inline std::string generate_type_signature(){
+    static constexpr auto caster_name_field = make_caster<T>::name;
+    PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
+
+    const char *text = caster_name_field.text;
+
+    auto func_rec = function_record();
+    size_t type_index = 0;
+    size_t arg_index = 0;
+    return generate_function_signature(text, &func_rec, descr_types.data(), type_index, arg_index);
+}
+
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
