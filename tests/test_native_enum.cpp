@@ -133,6 +133,16 @@ TEST_SUBMODULE(native_enum, m) {
         return static_cast<int>(e);
     });
 
+    m.def("native_enum_StrEnum_greek", [](py::module_ &m) {
+        py::native_enum<greek>(m, "greek", "enum.StrEnum")
+            .value("Alpha", greek::Alpha)
+            .value("Omega", greek::Omega)
+            .finalize();
+    });
+
+    m.def("pass_greek", [](greek e) { return static_cast<int>(e); });
+    m.def("return_greek", [](int i) { return static_cast<greek>(i); });
+
     m.def("native_enum_data_missing_finalize_error_message",
           [](const std::string &enum_name_encoded) {
               return py::detail::native_enum_missing_finalize_error_message(enum_name_encoded);
