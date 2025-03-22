@@ -460,7 +460,11 @@ TEST_CASE("Per-Subinterpreter GIL") {
     auto main_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
 
-    std::atomic<int> started = 0, finished = 0, failure = 0, sync = 0;
+    std::atomic<int> started, sync, finished, failure;
+    started = 0;
+    sync = 0;
+    finished = 0;
+    failure = 0;
 
 // REQUIRE throws on failure, so we can't use it within the thread
 #    define T_REQUIRE(status)                                                                     \
@@ -587,6 +591,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
     // make sure nothing unexpected happened inside the threads, now that they are completed
     REQUIRE(failure == 0);
+#undef T_REQUIRE
 }
 #endif
 
