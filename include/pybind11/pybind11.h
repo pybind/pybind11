@@ -234,7 +234,7 @@ inline std::string generate_type_signature() {
     static constexpr auto caster_name_field = make_caster<T>::name;
     PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
     // Create a default function_record to ensure the function signature has the proper
-    // configuration e.j. no_convert.
+    // configuration e.g. no_convert.
     auto func_rec = function_record();
     size_t type_index = 0;
     size_t arg_index = 0;
