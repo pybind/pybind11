@@ -110,44 +110,61 @@ inline object import_or_getattr(const std::string &fully_qualified_name,
     std::string part;
 
     if (!std::getline(stream, part, '.') || part.empty()) {
-        throw value_error("Invalid fully-qualified name" + append_to_exception_message);
+        std::string msg = "Invalid fully-qualified name `";
+        msg += fully_qualified_name;
+        msg += "`";
+        msg += append_to_exception_message;
+        throw value_error(msg);
     }
 
-    auto current = reinterpret_steal<object>(PyImport_ImportModule(part.c_str()));
-    if (!current) {
-        raise_from(
-            PyExc_ImportError,
-            ("Failed to import top-level module `" + part + "`" + append_to_exception_message)
-                .c_str());
+    auto curr_scope = reinterpret_steal<object>(PyImport_ImportModule(part.c_str()));
+    if (!curr_scope) {
+        std::string msg = "Failed to import top-level module `";
+        msg += part;
+        msg += "`";
+        msg += append_to_exception_message;
+        raise_from(PyExc_ImportError, msg.c_str());
         throw error_already_set();
     }
 
     // Now recursively getattr or import remaining parts
-    std::string current_path = part;
+    std::string curr_path = part;
     while (std::getline(stream, part, '.')) {
         if (part.empty()) {
-            throw value_error("Invalid fully-qualified name" + append_to_exception_message);
+            std::string msg = "Invalid fully-qualified name `";
+            msg += fully_qualified_name;
+            msg += "`";
+            msg += append_to_exception_message;
+            throw value_error(msg);
         }
-        std::string next_path = current_path + "." + part;
-        auto next = reinterpret_steal<object>(PyObject_GetAttrString(current.ptr(), part.c_str()));
-        if (!next) {
-            error_fetch_and_normalize getattr_error("getattr");
+        std::string next_path = curr_path;
+        next_path += ".";
+        next_path += part;
+        auto next_scope
+            = reinterpret_steal<object>(PyObject_GetAttrString(curr_scope.ptr(), part.c_str()));
+        if (!next_scope) {
+            error_fetch_and_normalize stored_getattr_error("getattr");
             // Try importing the next level
-            next = reinterpret_steal<object>(PyImport_ImportModule(next_path.c_str()));
-            if (!next) {
-                error_fetch_and_normalize import_error("import");
-                std::string msg = ("Failed to import or getattr `" + part + "` from `"
-                                   + current_path + "`" + append_to_exception_message
-                                   + "\n--------\n" + getattr_error.error_string() + "\n--------\n"
-                                   + import_error.error_string())
-                                      .c_str();
-                throw error_already_set();
+            next_scope = reinterpret_steal<object>(PyImport_ImportModule(next_path.c_str()));
+            if (!next_scope) {
+                error_fetch_and_normalize stored_import_error("import");
+                std::string msg = "Failed to import or getattr `";
+                msg += part;
+                msg += "` from `";
+                msg += curr_path;
+                msg += "`";
+                msg += append_to_exception_message;
+                msg += "\n-------- getattr exception --------\n";
+                msg += stored_getattr_error.error_string();
+                msg += "\n-------- import exception --------\n";
+                msg += stored_import_error.error_string();
+                throw import_error(msg.c_str());
             }
         }
-        current = next;
-        current_path = next_path;
+        curr_scope = next_scope;
+        curr_path = next_path;
     }
-    return current;
+    return curr_scope;
 }
 
 inline void native_enum_data::finalize() {

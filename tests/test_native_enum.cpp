@@ -139,6 +139,13 @@ TEST_SUBMODULE(native_enum, m) {
         return static_cast<int>(e);
     });
 
+    m.def("exercise_import_or_getattr", [](py::module_ &m, const char *native_type_name) {
+        enum fake { x };
+        py::native_enum<fake>(m, "fake_import_or_getattr", native_type_name)
+            .value("x", fake::x)
+            .finalize();
+    });
+
     m.def("native_enum_data_missing_finalize_error_message",
           [](const std::string &enum_name_encoded) {
               return py::detail::native_enum_missing_finalize_error_message(enum_name_encoded);

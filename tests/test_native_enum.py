@@ -159,6 +159,44 @@ def test_py_cast_color_handle():
         assert m.py_cast_color_handle(m.color[name]) == value
 
 
+def test_exercise_import_or_getattr_leading_dot():
+    with pytest.raises(ValueError) as excinfo:
+        m.exercise_import_or_getattr(m, ".")
+    assert str(excinfo.value) == "Invalid fully-qualified name `.` (native_type_name)"
+
+
+def test_exercise_import_or_getattr_bad_top_level():
+    with pytest.raises(ImportError) as excinfo:
+        m.exercise_import_or_getattr(m, "NeVeRLaNd")
+    assert (
+        str(excinfo.value)
+        == "Failed to import top-level module `NeVeRLaNd` (native_type_name)"
+    )
+
+
+def test_exercise_import_or_getattr_dot_dot():
+    with pytest.raises(ValueError) as excinfo:
+        m.exercise_import_or_getattr(m, "enum..")
+    assert (
+        str(excinfo.value) == "Invalid fully-qualified name `enum..` (native_type_name)"
+    )
+
+
+def test_exercise_import_or_getattr_bad_enum_attr():
+    with pytest.raises(ImportError) as excinfo:
+        m.exercise_import_or_getattr(m, "enum.NoNeXiStInG")
+    lines = str(excinfo.value).splitlines()
+    assert len(lines) >= 5
+    assert (
+        lines[0]
+        == "Failed to import or getattr `NoNeXiStInG` from `enum` (native_type_name)"
+    )
+    assert lines[1] == "-------- getattr exception --------"
+    ix = lines.index("-------- import exception --------")
+    assert ix >= 3
+    assert len(lines) > ix + 0
+
+
 def test_native_enum_data_missing_finalize_error_message():
     msg = m.native_enum_data_missing_finalize_error_message("Fake")
     assert msg == 'pybind11::native_enum<...>("Fake", ...): MISSING .finalize()'
