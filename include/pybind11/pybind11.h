@@ -112,7 +112,6 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
                                                size_t &arg_index) {
     std::string signature;
     bool is_starred = false;
-    bool is_annotation = func_rec == nullptr;
     // `is_return_value.top()` is true if we are currently inside the return type of the
     // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
     // back to the previous state.
@@ -199,9 +198,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             // For named arguments (py::arg()) with noconvert set, return value type is used.
             ++pc;
             if (!is_return_value.top()
-                && (is_annotation
-                    || !(arg_index < func_rec->args.size()
-                         && !func_rec->args[arg_index].convert))) {
+                && (!(arg_index < func_rec->args.size() && !func_rec->args[arg_index].convert))) {
                 while (*pc != '\0' && *pc != '@') {
                     signature += *pc++;
                 }
@@ -230,6 +227,19 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
         }
     }
     return signature;
+}
+
+template <typename T>
+inline std::string generate_type_signature() {
+    static constexpr auto caster_name_field = make_caster<T>::name;
+    PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
+    // Create a default function_record to ensure the function signature has the proper
+    // configuration e.g. no_convert.
+    auto func_rec = function_record();
+    size_t type_index = 0;
+    size_t arg_index = 0;
+    return generate_function_signature(
+        caster_name_field.text, &func_rec, descr_types.data(), type_index, arg_index);
 }
 
 #if defined(_MSC_VER)
