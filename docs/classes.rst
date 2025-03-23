@@ -516,8 +516,8 @@ supplied to the ``py::native_enum`` and ``py::class_`` constructors. The
 into the parent scope, if desired.
 
 ``py::native_enum`` was introduced with pybind11v3. It binds C++ enum types
-to Python's native enum.Enum_,
-making them `PEP 435 compatible <https://peps.python.org/pep-0435/>`_.
+to native Python enum types, typically types in Python's `stdlib enum`_ module,
+which are `PEP 435 compatible <https://peps.python.org/pep-0435/>`_.
 This is the recommended way to bind C++ enums.
 The older ``py::enum_`` is not PEP 435 compatible
 (see `issue #2332 <https://github.com/pybind/pybind11/issues/2332>`_)
@@ -534,19 +534,33 @@ once. To achieve this, ``py::native_enum`` acts as a buffer to collect the
 name/value pairs. The ``.finalize()`` call uses the accumulated name/value
 pairs to build the arguments for constructing a native Python enum type.
 
-The ``py::native_enum`` constructor supports a third optional ``py::enum_kind``
-argument, with default value ``py::enum_kind::Enum``, which corresponds to
-Python's enum.Enum_. The alternative enum.IntEnum_ can be requested like this:
+The ``py::native_enum`` constructor supports a third optional
+``native_type_name`` string argument, with default value ``"enum.Enum"``.
+Other types can be specified like this:
 
 .. code-block:: cpp
 
-    py::native_enum<Pet::Kind>(pet, "Kind", py::enum_kind::IntEnum)
+    py::native_enum<Pet::Kind>(pet, "Kind", "enum.IntEnum")
 
-Currently, ``py::enum_kind::Enum`` and ``py::enum_kind::IntEnum`` are the only
-available options.
+Any fully-qualified Python name can be specified. The only requirement is
+that the named type is similar to enum.Enum_ in these ways:
 
+* Has a constructor similar to that of enum.Enum_::
+
+    Colors = enum.Enum("Colors", (("Red", 0), ("Green", 1)))
+
+* A `C++ underlying <https://en.cppreference.com/w/cpp/types/underlying_type>`_
+  enum value can be passed to the constructor for the Python enum value::
+
+    red = Colors(0)
+
+* The enum values have a ``.value`` property yielding a value that
+  can be cast to the C++ underlying type::
+
+    underlying = red.value
+
+.. _`stdlib enum`: https://docs.python.org/3/library/enum.html
 .. _enum.Enum: https://docs.python.org/3/library/enum.html#enum.Enum
-.. _enum.IntEnum: https://docs.python.org/3/library/enum.html#enum.IntEnum
 
 .. note::
 
