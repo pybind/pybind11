@@ -198,7 +198,6 @@ class CustomContains:
         (CustomContains(), m.obj_contains),
     ],
 )
-@pytest.mark.xfail("env.PYPY and sys.pypy_version_info < (7, 3, 10)", strict=False)
 def test_unhashable_exceptions(arg, func):
     class Unhashable:
         __hash__ = None
