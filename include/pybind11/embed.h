@@ -49,6 +49,7 @@
             return m.ptr();                                                                       \
         }                                                                                         \
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+        return nullptr;                                                                           \
     }                                                                                             \
     PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                           \
     ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name)(                  \
