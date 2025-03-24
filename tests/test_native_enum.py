@@ -26,10 +26,16 @@ ALTITUDE_MEMBERS = (
     ("low", "l"),
 )
 
-COMBINABLE_MEMBERS = (
-    ("trait1", 0x1),
-    ("trait2", 0x2),
-    ("trait3", 0x4),
+FLAGS_UCHAR_MEMBERS = (
+    ("bit0", 0x1),
+    ("bit1", 0x2),
+    ("bit2", 0x4),
+)
+
+FLAGS_UINT_MEMBERS = (
+    ("bit0", 0x1),
+    ("bit1", 0x2),
+    ("bit2", 0x4),
 )
 
 CLASS_WITH_ENUM_IN_CLASS_MEMBERS = (
@@ -52,7 +58,8 @@ ENUM_TYPES_AND_MEMBERS = (
     (m.smallenum, SMALLENUM_MEMBERS),
     (m.color, COLOR_MEMBERS),
     (m.altitude, ALTITUDE_MEMBERS),
-    (m.combinable, COMBINABLE_MEMBERS),
+    (m.flags_uchar, FLAGS_UCHAR_MEMBERS),
+    (m.flags_uint, FLAGS_UINT_MEMBERS),
     (m.export_values, EXPORT_VALUES_MEMBERS),
     (m.member_doc, MEMBER_DOC_MEMBERS),
     (m.class_with_enum.in_class, CLASS_WITH_ENUM_IN_CLASS_MEMBERS),
@@ -88,11 +95,12 @@ def test_pickle_roundtrip(enum_type, members):
             assert restored == orig
 
 
-def test_enum_intflag():
-    traits13 = m.combinable.trait1 | m.combinable.trait3
-    assert m.combinable.trait1 in traits13
-    assert m.combinable.trait2 not in traits13
-    assert m.combinable.trait3 in traits13
+@pytest.mark.parametrize("enum_type", [m.flags_uchar, m.flags_uint])
+def test_enum_flag(enum_type):
+    bits02 = enum_type.bit0 | enum_type.bit2
+    assert enum_type.bit0 in bits02
+    assert enum_type.bit1 not in bits02
+    assert enum_type.bit2 in bits02
 
 
 def test_export_values():

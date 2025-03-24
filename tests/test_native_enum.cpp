@@ -20,7 +20,8 @@ enum class altitude : char {
     low = 'l', // trailing comma only allowed after CWG518
 };
 
-enum class combinable { trait1 = 0x1, trait2 = 0x2, trait3 = 0x4 };
+enum class flags_uchar : unsigned char { bit0 = 0x1u, bit1 = 0x2u, bit2 = 0x4u };
+enum class flags_uint : unsigned int { bit0 = 0x1u, bit1 = 0x2u, bit2 = 0x4u };
 
 enum class export_values { exv0, exv1 };
 
@@ -91,10 +92,16 @@ TEST_SUBMODULE(native_enum, m) {
         .value("low", altitude::low)
         .finalize();
 
-    py::native_enum<combinable>(m, "combinable", "enum.IntFlag")
-        .value("trait1", combinable::trait1)
-        .value("trait2", combinable::trait2)
-        .value("trait3", combinable::trait3)
+    py::native_enum<flags_uchar>(m, "flags_uchar", "enum.Flag")
+        .value("bit0", flags_uchar::bit0)
+        .value("bit1", flags_uchar::bit1)
+        .value("bit2", flags_uchar::bit2)
+        .finalize();
+
+    py::native_enum<flags_uint>(m, "flags_uint", "enum.IntFlag")
+        .value("bit0", flags_uint::bit0)
+        .value("bit1", flags_uint::bit1)
+        .value("bit2", flags_uint::bit2)
         .finalize();
 
     py::native_enum<export_values>(m, "export_values", "enum.IntEnum")

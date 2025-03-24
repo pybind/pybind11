@@ -563,6 +563,10 @@ in these ways:
 
     underlying = red.value
 
+As of Python 3.13, the compatible `types in the stdlib enum module
+<https://docs.python.org/3/library/enum.html#module-contents>`_ are:
+``Enum``, ``IntEnum``, ``Flag``, ``IntFlag``.
+
 .. note::
 
     In rare cases, a C++ enum may be bound to Python via a
