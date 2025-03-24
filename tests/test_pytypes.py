@@ -1157,6 +1157,11 @@ def test_module_attribute_types() -> None:
 
     assert module_annotations["list_int"] == "list[typing.SupportsInt]"
     assert module_annotations["set_str"] == "set[str]"
+    assert module_annotations["foo"] == "pybind11_tests.pytypes.foo"
+    assert (
+        module_annotations["foo_union"]
+        == "Union[pybind11_tests.pytypes.foo, pybind11_tests.pytypes.foo2, pybind11_tests.pytypes.foo3]"
+    )
 
 
 @pytest.mark.skipif(
