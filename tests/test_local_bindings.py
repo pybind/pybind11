@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-import env  # noqa: F401
 from pybind11_tests import local_bindings as m
 
 
@@ -181,7 +180,6 @@ def test_internal_locals_differ():
     assert m.local_cpp_types_addr() != cm.local_cpp_types_addr()
 
 
-@pytest.mark.xfail("env.PYPY and sys.pypy_version_info < (7, 3, 2)")
 def test_stl_caster_vs_stl_bind(msg):
     """One module uses a generic vector caster from `<pybind11/stl.h>` while the other
     exports `std::vector<int>` via `py:bind_vector` and `py::module_local`"""

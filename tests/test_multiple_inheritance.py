@@ -263,7 +263,6 @@ def test_mi_static_properties():
         assert d.static_value == 0
 
 
-# Requires PyPy 6+
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
