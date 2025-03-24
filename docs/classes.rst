@@ -516,7 +516,8 @@ supplied to the ``py::native_enum`` and ``py::class_`` constructors. The
 into the parent scope, if desired.
 
 ``py::native_enum`` was introduced with pybind11v3. It binds C++ enum types
-to native Python enum types, typically types in Python's `stdlib enum`_ module,
+to native Python enum types, typically types in Python's
+`stdlib enum <https://docs.python.org/3/library/enum.html>`_ module,
 which are `PEP 435 compatible <https://peps.python.org/pep-0435/>`_.
 This is the recommended way to bind C++ enums.
 The older ``py::enum_`` is not PEP 435 compatible
@@ -543,9 +544,12 @@ Other types can be specified like this:
     py::native_enum<Pet::Kind>(pet, "Kind", "enum.IntEnum")
 
 Any fully-qualified Python name can be specified. The only requirement is
-that the named type is similar to enum.Enum_ in these ways:
+that the named type is similar to
+`enum.Enum <https://docs.python.org/3/library/enum.html#enum.Enum>`_
+in these ways:
 
-* Has a constructor similar to that of enum.Enum_::
+* Has a `constructor similar to that of enum.Enum
+  <https://docs.python.org/3/howto/enum.html#functional-api>`_::
 
     Colors = enum.Enum("Colors", (("Red", 0), ("Green", 1)))
 
@@ -558,9 +562,6 @@ that the named type is similar to enum.Enum_ in these ways:
   can be cast to the C++ underlying type::
 
     underlying = red.value
-
-.. _`stdlib enum`: https://docs.python.org/3/library/enum.html
-.. _enum.Enum: https://docs.python.org/3/library/enum.html#enum.Enum
 
 .. note::
 
