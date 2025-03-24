@@ -85,37 +85,44 @@ inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
     return false;
 }
 
-inline bool PyObjectTypeIsConvertibleToStdVector(PyObject *obj) {
-    if (PySequence_Check(obj) != 0) {
-        return !PyUnicode_Check(obj) && !PyBytes_Check(obj);
+inline bool HandleIsConvertibleToStdVector(const handle &src) {
+    if (PySequence_Check(src.ptr()) != 0) {
+        return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
-    return (PyGen_Check(obj) != 0) || (PyAnySet_Check(obj) != 0)
+    return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
            || PyObjectIsInstanceWithOneOfTpNames(
-               obj, {"dict_keys", "dict_values", "dict_items", "map", "zip"});
+               src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
-inline bool PyObjectTypeIsConvertibleToStdSet(PyObject *obj) {
-    return (PyAnySet_Check(obj) != 0) || PyObjectIsInstanceWithOneOfTpNames(obj, {"dict_keys"});
+inline bool HandleIsConvertibleToStdSet(const handle &src, bool convert) {
+    return ((PyAnySet_Check(src.ptr()) != 0)
+            || PyObjectIsInstanceWithOneOfTpNames(src.ptr(), {"dict_keys"}))
+           || (convert && isinstance(src, module_::import("collections.abc").attr("Set"))
+               && hasattr(src, "__contains__") && hasattr(src, "__iter__")
+               && hasattr(src, "__len__"));
 }
 
-inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
-    if (PyDict_Check(obj)) {
+inline bool HandleIsConvertibleToStdMap(const handle &src, bool convert) {
+    if (PyDict_Check(src.ptr())) {
         return true;
     }
     // Implicit requirement in the conditions below:
     // A type with `.__getitem__()` & `.items()` methods must implement these
     // to be compatible with https://docs.python.org/3/c-api/mapping.html
-    if (PyMapping_Check(obj) == 0) {
-        return false;
+    if (PyMapping_Check(src.ptr()) != 0) {
+        PyObject *items = PyObject_GetAttrString(src.ptr(), "items");
+        if (items != nullptr) {
+            bool is_convertible = (PyCallable_Check(items) != 0);
+            Py_DECREF(items);
+            if (is_convertible) {
+                return true;
+            }
+        } else {
+            PyErr_Clear();
+        }
     }
-    PyObject *items = PyObject_GetAttrString(obj, "items");
-    if (items == nullptr) {
-        PyErr_Clear();
-        return false;
-    }
-    bool is_convertible = (PyCallable_Check(items) != 0);
-    Py_DECREF(items);
-    return is_convertible;
+    return (convert && isinstance(src, module_::import("collections.abc").attr("Mapping"))
+            && hasattr(src, "__getitem__") && hasattr(src, "__iter__") && hasattr(src, "__len__"));
 }
 
 //
@@ -172,15 +179,8 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdSet(src.ptr())) {
-            if (!convert) {
-                return false;
-            }
-            if (!(isinstance(src, module_::import("collections.abc").attr("Set"))
-                  && hasattr(src, "__contains__") && hasattr(src, "__iter__")
-                  && hasattr(src, "__len__"))) {
-                return false;
-            }
+        if (!HandleIsConvertibleToStdSet(src, convert)) {
+            return false;
         }
         if (isinstance<anyset>(src)) {
             value.clear();
@@ -243,15 +243,8 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdMap(src.ptr())) {
-            if (!convert) {
-                return false;
-            }
-            if (!(isinstance(src, module_::import("collections.abc").attr("Mapping"))
-                  && hasattr(src, "__getitem__") && hasattr(src, "__iter__")
-                  && hasattr(src, "__len__"))) {
-                return false;
-            }
+        if (!HandleIsConvertibleToStdMap(src, convert)) {
+            return false;
         }
         if (isinstance<dict>(src)) {
             return convert_elements(reinterpret_borrow<dict>(src), convert);
@@ -300,7 +293,7 @@ struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
+        if (!HandleIsConvertibleToStdVector(src)) {
             return false;
         }
         if (isinstance<sequence>(src)) {
@@ -435,7 +428,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
+        if (!HandleIsConvertibleToStdVector(src)) {
             return false;
         }
         if (isinstance<sequence>(src)) {
