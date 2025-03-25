@@ -36,6 +36,9 @@ PYBIND11_WARNING_PUSH
 #if defined(__GNUC__) && __GNUC__ >= 8
 PYBIND11_WARNING_DISABLE_GCC("-Wcast-function-type")
 #endif
+#if defined(__clang__) && !defined(__apple_build_version__) && __clang_major__ >= 19
+PYBIND11_WARNING_DISABLE_CLANG("-Wcast-function-type-mismatch")
+#endif
 static PyMethodDef tp_methods_impl[]
     = {{"__reduce_ex__", (PyCFunction) reduce_ex_impl, METH_VARARGS | METH_KEYWORDS, nullptr},
        {nullptr, nullptr, 0, nullptr}};
