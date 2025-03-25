@@ -1,3 +1,5 @@
+.. _custom_type_caster:
+
 Custom type casters
 ===================
 
