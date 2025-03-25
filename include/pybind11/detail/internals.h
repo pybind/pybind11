@@ -37,11 +37,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 8
+#    define PYBIND11_INTERNALS_VERSION 9
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 8
-#    error "PYBIND11_INTERNALS_VERSION 8 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 9
+#    error "PYBIND11_INTERNALS_VERSION 9 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -189,10 +189,6 @@ struct internals {
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
-
-    // Note that we have to use a std::string to allocate memory to ensure a unique address
-    // We want unique addresses since we use pointer equality to compare function records
-    std::string function_record_capsule_name = internals_function_record_capsule_name;
 
     type_map<PyObject *> native_enum_type_map;
 
@@ -610,26 +606,6 @@ const char *c_str(Args &&...args) {
     auto &strings = internals.static_strings;
     strings.emplace_front(std::forward<Args>(args)...);
     return strings.front().c_str();
-}
-
-inline const char *get_function_record_capsule_name() {
-    // On GraalPy, pointer equality of the names is currently not guaranteed
-#if !defined(GRAALVM_PYTHON)
-    return get_internals().function_record_capsule_name.c_str();
-#else
-    return nullptr;
-#endif
-}
-
-// Determine whether or not the following capsule contains a pybind11 function record.
-// Note that we use `internals` to make sure that only ABI compatible records are touched.
-//
-// This check is currently used in two places:
-// - An important optimization in functional.h to avoid overhead in C++ -> Python -> C++
-// - The sibling feature of cpp_function to allow overloads
-inline bool is_function_record_capsule(const capsule &cap) {
-    // Pointer equality as we rely on internals() to ensure unique pointers
-    return cap.name() == get_function_record_capsule_name();
 }
 
 PYBIND11_NAMESPACE_END(detail)

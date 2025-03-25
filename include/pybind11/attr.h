@@ -192,6 +192,7 @@ struct argument_record {
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads,
 /// etc.)
+#define PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID "v1" // PLEASE UPDATE if the struct is changed.
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
