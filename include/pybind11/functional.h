@@ -14,6 +14,7 @@
 #include "pybind11.h"
 
 #include <functional>
+#include <iostream>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -101,8 +102,17 @@ public:
                 if (detail::is_function_record_capsule(c)) {
                     rec = c.get_pointer<function_record>();
                 }
-
                 while (rec != nullptr) {
+                    const size_t self_offset = rec->is_method ? 1 : 0;
+                    if (rec->nargs != sizeof...(Args) + self_offset) {
+                        rec = rec->next;
+                        // if the overload is not feasible in terms of number of arguments, we
+                        // continue to the next one. If there is no next one, we return false.
+                        if (rec == nullptr) {
+                            return false;
+                        }
+                        continue;
+                    }
                     if (rec->is_stateless
                         && same_type(typeid(function_type),
                                      *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
@@ -118,6 +128,38 @@ public:
             // PYPY segfaults here when passing builtin function like sum.
             // Raising an fail exception here works to prevent the segfault, but only on gcc.
             // See PR #1413 for full details
+        } else {
+            // Check number of arguments of Python function
+            auto get_argument_count = [](const handle &obj) -> size_t {
+                // Faster then `import inspect` and `inspect.signature(obj).parameters`
+                return obj.attr("co_argcount").cast<size_t>();
+            };
+            size_t argCount = 0;
+
+            handle empty;
+            object codeAttr = getattr(src, "__code__", empty);
+
+            if (codeAttr) {
+                argCount = get_argument_count(codeAttr);
+            } else {
+                object callAttr = getattr(src, "__call__", empty);
+
+                if (callAttr) {
+                    object codeAttr2 = getattr(callAttr, "__code__");
+                    argCount = get_argument_count(codeAttr2) - 1; // removing the self argument
+                } else {
+                    // No __code__ or __call__ attribute, this is not a proper Python function
+                    return false;
+                }
+            }
+            // if we are a method, we have to correct the argument count since we are not counting
+            // the self argument
+            const size_t self_offset = static_cast<bool>(PyMethod_Check(src.ptr())) ? 1 : 0;
+
+            argCount -= self_offset;
+            if (argCount != sizeof...(Args)) {
+                return false;
+            }
         }
 
         value = type_caster_std_function_specializations::func_wrapper<Return, Args...>(

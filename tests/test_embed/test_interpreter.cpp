@@ -1,4 +1,5 @@
 #include <pybind11/embed.h>
+#include <pybind11/functional.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
@@ -76,6 +77,12 @@ PYBIND11_EMBEDDED_MODULE(throw_exception, ) { throw std::runtime_error("C++ Erro
 PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
     auto d = py::dict();
     d["missing"].cast<py::object>();
+}
+
+PYBIND11_EMBEDDED_MODULE(func_module, m) {
+    m.def("funcOverload", [](const std::function<int(int, int)> &f) {
+         return f(2, 3);
+     }).def("funcOverload", [](const std::function<int(int)> &f) { return f(2); });
 }
 
 TEST_CASE("PYTHONPATH is used to update sys.path") {
@@ -169,6 +176,15 @@ TEST_CASE("There can be only one interpreter") {
         auto pyi2 = std::move(pyi1);
     }
     py::initialize_interpreter();
+}
+
+TEST_CASE("Check the overload resolution from cpp_function objects to std::function") {
+    auto m = py::module_::import("func_module");
+    auto f = std::function<int(int)>([](int x) { return 2 * x; });
+    REQUIRE(m.attr("funcOverload")(f).template cast<int>() == 4);
+
+    auto f2 = std::function<int(int, int)>([](int x, int y) { return 2 * x * y; });
+    REQUIRE(m.attr("funcOverload")(f2).template cast<int>() == 12);
 }
 
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
