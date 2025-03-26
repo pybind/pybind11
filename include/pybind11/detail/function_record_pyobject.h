@@ -108,9 +108,7 @@ static PyTypeObject function_record_PyTypeObject = {
     /* destructor tp_del */ nullptr,
     /* unsigned int tp_version_tag */ 0,
     /* destructor tp_finalize */ nullptr,
-#if PY_VERSION_HEX >= 0x03080000
     /* vectorcallfunc tp_vectorcall */ nullptr,
-#endif
 };
 PYBIND11_WARNING_POP
 
