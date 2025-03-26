@@ -13,6 +13,7 @@
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
 #include "detail/init.h"
+#include "detail/native_enum_data.h"
 #include "detail/using_smart_holder.h"
 #include "attr.h"
 #include "gil.h"
@@ -2768,6 +2769,14 @@ public:
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+        {
+            if (detail::global_internals_native_enum_type_map_contains(
+                    std::type_index(typeid(Type)))) {
+                pybind11_fail("pybind11::enum_ \"" + std::string(name)
+                              + "\" is already registered as a pybind11::native_enum!");
+            }
+        }
+
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);

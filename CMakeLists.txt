@@ -136,6 +136,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
+    include/pybind11/detail/native_enum_data.h
     include/pybind11/detail/struct_smart_holder.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
@@ -162,6 +163,7 @@ set(PYBIND11_HEADERS
     include/pybind11/gil_safe_call_once.h
     include/pybind11/iostream.h
     include/pybind11/functional.h
+    include/pybind11/native_enum.h
     include/pybind11/numpy.h
     include/pybind11/operators.h
     include/pybind11/pybind11.h
