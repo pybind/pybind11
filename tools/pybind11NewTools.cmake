@@ -125,7 +125,7 @@ if(NOT _PYBIND11_CROSSCOMPILING)
     unset(PYTHON_MODULE_EXTENSION CACHE)
   endif()
 
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND DEFINED ${_Python}_EXECUTABLE_DEBUG)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND DEFINED ${_Python}_EXECUTABLE_DEBUG AND IS_EXECUTABLE ${${_Python}_EXECUTABLE_DEBUG})
     set(PYBIND11_PYTHON_EXECUTABLE_LAST
         "${${_Python}_EXECUTABLE_DEBUG}"
         CACHE INTERNAL "Python executable during the last CMake run")
@@ -134,6 +134,7 @@ if(NOT _PYBIND11_CROSSCOMPILING)
         "${${_Python}_EXECUTABLE}"
         CACHE INTERNAL "Python executable during the last CMake run")
   endif()
+
 
   if(NOT DEFINED PYTHON_IS_DEBUG)
     # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
