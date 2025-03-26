@@ -135,7 +135,6 @@ if(NOT _PYBIND11_CROSSCOMPILING)
         CACHE INTERNAL "Python executable during the last CMake run")
   endif()
 
-
   if(NOT DEFINED PYTHON_IS_DEBUG)
     # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
     execute_process(
