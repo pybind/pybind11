@@ -30,7 +30,7 @@ double apply_custom_transform(const py::object &src, double value) {
         return -100;
     }
     auto func = static_cast<std::function<raw_t> &>(func_caster);
-    auto cfunc = func.target<raw_t *>();
+    auto *cfunc = func.target<raw_t *>();
     if (cfunc == nullptr) {
         return -200;
     }
