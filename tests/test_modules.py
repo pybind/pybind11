@@ -21,6 +21,7 @@ def test_nested_modules():
     )
     assert m.__name__ == "pybind11_tests.modules"
     assert ms.__name__ == "pybind11_tests.modules.subsubmodule"
+    assert m.__file__ == ms.__file__
 
     assert ms.submodule_func() == "submodule_func()"
 
