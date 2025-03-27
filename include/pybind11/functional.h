@@ -9,7 +9,6 @@
 
 #pragma once
 
-#define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_FUNC_IS_STATELESS_WITH_EXACT_TYPE
 #define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS
 
 #include "pybind11.h"
@@ -66,15 +65,8 @@ struct type_caster<std::function<Return(Args...)>> {
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
     using function_type = Return (*)(Args...);
 
-private:
-    bool func_is_stateless_with_exact_type_ = false;
-
 public:
-    bool func_is_stateless_with_exact_type() const { return func_is_stateless_with_exact_type_; }
-
     bool load(handle src, bool convert) {
-        func_is_stateless_with_exact_type_ = false;
-
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
             if (!convert) {
@@ -118,7 +110,6 @@ public:
                             function_type f;
                         };
                         value = ((capture *) &rec->data)->f;
-                        func_is_stateless_with_exact_type_ = true;
                         return true;
                     }
                     rec = rec->next;

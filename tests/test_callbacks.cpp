@@ -29,10 +29,12 @@ double apply_custom_transform(const py::object &src, double value) {
     if (!func_caster.load(src, /*convert*/ false)) {
         return -100;
     }
-    if (!func_caster.func_is_stateless_with_exact_type()) {
+    auto func = static_cast<std::function<raw_t> &>(func_caster);
+    auto cfunc = func.target<raw_t*>();
+    if(cfunc == nullptr) {
         return -200;
     }
-    return static_cast<std::function<raw_t> &>(func_caster)(value);
+    return (*cfunc)(value);
 }
 
 } // namespace boost_histogram
