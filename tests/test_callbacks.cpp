@@ -20,30 +20,16 @@ namespace boost_histogram { // See PR #5580
 double custom_transform_double(double value) { return value * 3; }
 int custom_transform_int(int value) { return value; }
 
-// Derived from
+// Originally derived from
 // https://github.com/scikit-hep/boost-histogram/blob/460ef90905d6a8a9e6dd3beddfe7b4b49b364579/include/bh_python/transform.hpp#L68-L85
 double apply_custom_transform(const py::object &src, double value) {
     using raw_t = double(double);
 
-    auto func = py::reinterpret_borrow<py::function>(src);
-
-    if (auto cfunc = func.cpp_function()) {
-        auto c = py::reinterpret_borrow<py::capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
-
-        auto *rec = c.get_pointer<py::detail::function_record>();
-
-        if (rec && rec->is_stateless
-            && py::detail::same_type(typeid(raw_t *),
-                                     *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
-            struct capture {
-                raw_t *f;
-            };
-            auto *cap = reinterpret_cast<capture *>(&rec->data);
-            return (*cap->f)(value);
-        }
-        return -200;
+    py::detail::make_caster<std::function<raw_t>> func_caster;
+    if (!func_caster.load(src, /*convert*/ false)) {
+        return -100;
     }
-    return -100;
+    return static_cast<std::function<raw_t> &>(func_caster)(value);
 }
 
 } // namespace boost_histogram
