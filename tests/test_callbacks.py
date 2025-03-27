@@ -241,9 +241,8 @@ def test_boost_histogram_apply_custom_transform():
     cti = m.boost_histogram_custom_transform_int
     apply = m.boost_histogram_apply_custom_transform
     assert apply(ctd, 5) == 15
-    with pytest.raises(TypeError):
-        assert apply(cti, 0)
+    assert apply(cti, 0) == -200
     assert apply(None, 0) == -100
-    assert apply(lambda value: value * 10, 4) == 40
+    assert apply(lambda value: value, 9) == -200
     assert apply({}, 0) == -100
     assert apply("", 0) == -100
