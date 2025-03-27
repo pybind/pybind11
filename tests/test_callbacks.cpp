@@ -30,7 +30,7 @@ double apply_custom_transform(const py::object &src, double value) {
     if (auto cfunc = func.cpp_function()) {
         auto c = py::reinterpret_borrow<py::capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
 
-        auto rec = c.get_pointer<py::detail::function_record>();
+        auto *rec = c.get_pointer<py::detail::function_record>();
 
         if (rec && rec->is_stateless
             && py::detail::same_type(typeid(raw_t *),
@@ -38,7 +38,7 @@ double apply_custom_transform(const py::object &src, double value) {
             struct capture {
                 raw_t *f;
             };
-            auto cap = reinterpret_cast<capture *>(&rec->data);
+            auto *cap = reinterpret_cast<capture *>(&rec->data);
             return (*cap->f)(value);
         }
         return -200;
