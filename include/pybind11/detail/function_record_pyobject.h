@@ -31,6 +31,8 @@ void tp_dealloc_impl(PyObject *self);
 void tp_free_impl(void *self);
 
 static PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *);
+static PyObject *
+get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *, PyObject *);
 
 PYBIND11_WARNING_PUSH
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -41,6 +43,10 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wcast-function-type-mismatch")
 #endif
 static PyMethodDef tp_methods_impl[]
     = {{"__reduce_ex__", (PyCFunction) reduce_ex_impl, METH_VARARGS | METH_KEYWORDS, nullptr},
+       {"get_capsule_for_scipy_LowLevelCallable",
+        (PyCFunction) get_capsule_for_scipy_LowLevelCallable_impl,
+        METH_VARARGS | METH_KEYWORDS,
+        "for use with scipy.LowLevelCallable()"},
        {nullptr, nullptr, 0, nullptr}};
 PYBIND11_WARNING_POP
 
@@ -200,6 +206,29 @@ inline PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *) {
     }
     set_error(PyExc_RuntimeError, repr(self) + str(" is not pickleable."));
     return nullptr;
+}
+
+inline PyObject *
+get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *args, PyObject *kwargs) {
+    static const char *kwlist[] = {"signature", nullptr};
+    const char *signature = nullptr;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", const_cast<char **>(kwlist), &signature)) {
+        return nullptr;
+    }
+    function_record *rec = function_record_ptr_from_PyObject(self);
+    if (rec == nullptr) {
+        pybind11_fail("FATAL: get_capsule_for_scipy_LowLevelCallable_impl(): cannot obtain C++ "
+                      "function_record.");
+    }
+    if (!rec->is_stateless) {
+        set_error(PyExc_TypeError, repr(self) + str(" is not a stateless function."));
+        return nullptr;
+    }
+    struct capture {
+        void *f; // DANGER: TYPE SAFETY IS LOST COMPLETELY.
+    };
+    auto cap = reinterpret_cast<capture *>(&rec->data);
+    return capsule(cap->f, signature).release().ptr();
 }
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
