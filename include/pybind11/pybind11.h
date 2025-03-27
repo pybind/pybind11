@@ -1336,11 +1336,11 @@ public:
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
-        handle this_file = PyModule_GetFilenameObject(m_ptr);
-        if (!this_file) {
-            throw error_already_set();
-        }
-        result.attr("__file__") = this_file;
+
+        // GraalPy doesn't support PyModule_GetFilenameObject,
+        // so getting by attribute
+        handle this_module = m_ptr;
+        result.attr("__file__") = this_module.attr("__file__");
         attr(name) = result;
         return result;
     }
