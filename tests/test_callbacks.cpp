@@ -14,6 +14,41 @@
 
 #include <thread>
 
+namespace test_callbacks {
+namespace boost_histogram { // See PR #5580
+
+double custom_transform_double(double value) { return value * 3; }
+int custom_transform_int(int value) { return value; }
+
+// Derived from
+// https://github.com/scikit-hep/boost-histogram/blob/460ef90905d6a8a9e6dd3beddfe7b4b49b364579/include/bh_python/transform.hpp#L68-L85
+double apply_custom_transform(const py::object &src, double value) {
+    using raw_t = double(double);
+
+    auto func = py::reinterpret_borrow<py::function>(src);
+
+    if (auto cfunc = func.cpp_function()) {
+        auto c = py::reinterpret_borrow<py::capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
+
+        auto rec = c.get_pointer<py::detail::function_record>();
+
+        if (rec && rec->is_stateless
+            && py::detail::same_type(typeid(raw_t *),
+                                     *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
+            struct capture {
+                raw_t *f;
+            };
+            auto cap = reinterpret_cast<capture *>(&rec->data);
+            return (*cap->f)(value);
+        }
+        return -200;
+    }
+    return -100;
+}
+
+} // namespace boost_histogram
+} // namespace test_callbacks
+
 int dummy_function(int i) { return i + 1; }
 
 TEST_SUBMODULE(callbacks, m) {
@@ -272,4 +307,11 @@ TEST_SUBMODULE(callbacks, m) {
     // rec_capsule with nullptr name
     py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
     m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule2.ptr()));
+
+    m.def("boost_histogram_custom_transform_double",
+          test_callbacks::boost_histogram::custom_transform_double);
+    m.def("boost_histogram_custom_transform_int",
+          test_callbacks::boost_histogram::custom_transform_int);
+    m.def("boost_histogram_apply_custom_transform",
+          test_callbacks::boost_histogram::apply_custom_transform);
 }
