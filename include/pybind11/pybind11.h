@@ -1337,9 +1337,9 @@ public:
             result.attr("__doc__") = pybind11::str(doc);
         }
 
-#ifdef GRAALVM_PYTHON
+#if defined(GRAALVM_PYTHON) && GRAALPY_VERSION_NUM < 0x190000
         // GraalPy doesn't support PyModule_GetFilenameObject,
-        // so getting by attribute
+        // so getting by attribute (see PR #5584)
         handle this_module = m_ptr;
         result.attr("__file__") = this_module.attr("__file__");
 #else
