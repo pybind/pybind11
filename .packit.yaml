@@ -1,0 +1,70 @@
+packages:
+  pybind11:
+    # Use `path` when upstream issue is clarified
+    # https://github.com/packit/packit/issues/2272#issuecomment-2033712303
+    specfile_path: .distro/pybind11.spec
+    downstream_package_name: pybind11
+    files_to_sync:
+      - src: .distro/pybind11.spec
+        dest: pybind11.spec
+      - .packit.yaml
+      - src: .distro/pybind11.rpmlintrc
+        dest: pybind11.rpmlintrc
+      # tmt setup
+      - src: .distro/.fmf/
+        dest: .fmf/
+      - src: .distro/plans/
+        dest: plans/
+        filters:
+          - "- main.fmf.dist-git"
+          - "- rpminspect.fmf"
+          - "- rpmlint.fmf"
+      - src: .distro/tests/
+        dest: tests/
+      - src: .distro/plans/main.fmf.dist-git
+        dest: plans/main.fmf
+
+update_release: false
+upstream_tag_template: v{version}
+
+jobs:
+  - &copr
+    job: copr_build
+    trigger: release
+    owner: "@scikit-build"
+    project: release
+    targets:
+      - fedora-all-x86_64
+      - fedora-all-aarch64
+  - &tests
+    job: tests
+    trigger: release
+    targets:
+      - fedora-all-x86_64
+      - fedora-all-aarch64
+    fmf_path: .distro
+  - <<: *copr
+    trigger: commit
+    project: nightly
+    branch: main
+  - <<: *tests
+    trigger: commit
+  - <<: *copr
+    trigger: pull_request
+    project: pybind11
+    update_release: true
+    release_suffix: "{PACKIT_RPMSPEC_RELEASE}"
+  - <<: *tests
+    trigger: pull_request
+  - job: propose_downstream
+    trigger: release
+    dist_git_branches:
+      - fedora-rawhide
+  - job: koji_build
+    trigger: commit
+    dist_git_branches:
+      - fedora-all
+  - job: bodhi_update
+    trigger: commit
+    dist_git_branches:
+      - fedora-branched
