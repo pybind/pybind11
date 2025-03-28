@@ -212,7 +212,8 @@ inline PyObject *
 get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *args, PyObject *kwargs) {
     static const char *kwlist[] = {"signature", nullptr};
     const char *signature = nullptr;
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", const_cast<char **>(kwlist), &signature)) {
+    if (PyArg_ParseTupleAndKeywords(args, kwargs, "s", const_cast<char **>(kwlist), &signature)
+        == 0) {
         return nullptr;
     }
     function_record *rec = function_record_ptr_from_PyObject(self);
@@ -227,7 +228,7 @@ get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *args, PyOb
     struct capture {
         void *f; // DANGER: TYPE SAFETY IS LOST COMPLETELY.
     };
-    auto cap = reinterpret_cast<capture *>(&rec->data);
+    auto *cap = reinterpret_cast<capture *>(&rec->data);
     return capsule(cap->f, signature).release().ptr();
 }
 
