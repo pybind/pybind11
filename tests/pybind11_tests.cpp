@@ -104,6 +104,11 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
         false;
 #endif
 
+// Note that this is missing before GraalPy 24.2
+#if defined(GRAALPY_VERSION_NUM)
+    m.attr("GRAALPY_VERSION_NUM") = GRAALPY_VERSION_NUM;
+#endif
+
     bind_ConstructorStats(m);
 
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
