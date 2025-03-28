@@ -231,8 +231,10 @@ def pytest_report_header():
         f"PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}",
         f"PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}",
     ]
-    if hasattr(pybind11_tests, "GRAALPY_VERSION_NUM"):
-        cpp_info.append(f"GRAALPY_VERSION_NUM=0x{pybind11_tests.GRAALPY_VERSION_NUM:x}")
+    if "__graalpython__" in sys.modules:
+        cpp_info.append(
+            f"GraalPy version: {sys.modules['__graalpython__'].get_graalvm_version()}"
+        )
     lines = [
         f"installed packages of interest: {reqs}",
         " ".join(cpp_info),

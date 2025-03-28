@@ -3,13 +3,8 @@ from __future__ import annotations
 import pytest
 
 import env
-import pybind11_tests
 from pybind11_tests import ConstructorStats
 from pybind11_tests import operators as m
-
-GRAALPY_24_2 = (
-    env.GRAALPY and getattr(pybind11_tests, "GRAALPY_VERSION_NUM", 0) >= 0x180200
-)
 
 
 @pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
@@ -93,7 +88,9 @@ def test_operator_overloading():
     assert cstats.move_assignments == 0
 
 
-@pytest.mark.xfail(env.GRAALPY and not GRAALPY_24_2, reason="Fixed in GraalPy 24.2")
+@pytest.mark.xfail(
+    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
+)
 def test_operators_notimplemented():
     """#393: need to return NotSupported to ensure correct arithmetic operator behavior"""
 
