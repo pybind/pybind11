@@ -32,7 +32,7 @@ void tp_free_impl(void *self);
 
 static PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *);
 static PyObject *
-get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *, PyObject *);
+get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY_impl(PyObject *self, PyObject *, PyObject *);
 
 PYBIND11_WARNING_PUSH
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -43,8 +43,8 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wcast-function-type-mismatch")
 #endif
 static PyMethodDef tp_methods_impl[]
     = {{"__reduce_ex__", (PyCFunction) reduce_ex_impl, METH_VARARGS | METH_KEYWORDS, nullptr},
-       {"get_capsule_for_scipy_LowLevelCallable",
-        (PyCFunction) get_capsule_for_scipy_LowLevelCallable_impl,
+       {"get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY",
+        (PyCFunction) get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY_impl,
         METH_VARARGS | METH_KEYWORDS,
         "for use with scipy.LowLevelCallable()"},
        {nullptr, nullptr, 0, nullptr}};
@@ -208,8 +208,9 @@ inline PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *) {
     return nullptr;
 }
 
-inline PyObject *
-get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *args, PyObject *kwargs) {
+inline PyObject *get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY_impl(PyObject *self,
+                                                                            PyObject *args,
+                                                                            PyObject *kwargs) {
     static const char *kwlist[] = {"signature", nullptr};
     const char *signature = nullptr;
     if (PyArg_ParseTupleAndKeywords(args, kwargs, "s", const_cast<char **>(kwlist), &signature)
@@ -225,11 +226,13 @@ get_capsule_for_scipy_LowLevelCallable_impl(PyObject *self, PyObject *args, PyOb
         set_error(PyExc_TypeError, repr(self) + str(" is not a stateless function."));
         return nullptr;
     }
-    struct capture {
-        void *f; // DANGER: TYPE SAFETY IS LOST COMPLETELY.
+    // This is a type-erased match for `struct capture` in pybind11/functional.h
+    struct type_erased_capture {
+        // Return (*)(Args...) in pybind11/functional.h
+        void (*void_func_ptr)(); // TYPE SAFETY IS LOST COMPLETELY HERE.
     };
-    auto *cap = reinterpret_cast<capture *>(&rec->data);
-    return capsule(cap->f, signature).release().ptr();
+    auto *tec = reinterpret_cast<type_erased_capture *>(&rec->data);
+    return capsule(reinterpret_cast<void *>(tec->void_func_ptr), signature).release().ptr();
 }
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)

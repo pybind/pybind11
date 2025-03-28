@@ -17,7 +17,7 @@ def _m_square21_self():
 
 
 def test_get_capsule_for_scipy_LowLevelCallable():
-    cap = _m_square21_self().get_capsule_for_scipy_LowLevelCallable(
+    cap = _m_square21_self().get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY(
         signature="double (double)"
     )
     assert repr(cap).startswith("<capsule object ")
@@ -29,7 +29,7 @@ def test_with_scipy_LowLevelCallable():
     from scipy import integrate
 
     llc = scipy.LowLevelCallable(
-        _m_square21_self().get_capsule_for_scipy_LowLevelCallable(
+        _m_square21_self().get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY(
             signature="double (double)"
         )
     )
