@@ -14,6 +14,32 @@
 
 #include <thread>
 
+namespace test_callbacks {
+namespace boost_histogram { // See PR #5580
+
+double custom_transform_double(double value) { return value * 3; }
+int custom_transform_int(int value) { return value; }
+
+// Originally derived from
+// https://github.com/scikit-hep/boost-histogram/blob/460ef90905d6a8a9e6dd3beddfe7b4b49b364579/include/bh_python/transform.hpp#L68-L85
+double apply_custom_transform(const py::object &src, double value) {
+    using raw_t = double(double);
+
+    py::detail::make_caster<std::function<raw_t>> func_caster;
+    if (!func_caster.load(src, /*convert*/ false)) {
+        return -100;
+    }
+    auto func = static_cast<std::function<raw_t> &>(func_caster);
+    auto *cfunc = func.target<raw_t *>();
+    if (cfunc == nullptr) {
+        return -200;
+    }
+    return (*cfunc)(value);
+}
+
+} // namespace boost_histogram
+} // namespace test_callbacks
+
 int dummy_function(int i) { return i + 1; }
 
 TEST_SUBMODULE(callbacks, m) {
@@ -272,4 +298,11 @@ TEST_SUBMODULE(callbacks, m) {
     // rec_capsule with nullptr name
     py::capsule rec_capsule2(std::malloc(1), [](void *data) { std::free(data); });
     m.add_object("custom_function2", PyCFunction_New(custom_def, rec_capsule2.ptr()));
+
+    m.def("boost_histogram_custom_transform_double",
+          test_callbacks::boost_histogram::custom_transform_double);
+    m.def("boost_histogram_custom_transform_int",
+          test_callbacks::boost_histogram::custom_transform_int);
+    m.def("boost_histogram_apply_custom_transform",
+          test_callbacks::boost_histogram::apply_custom_transform);
 }

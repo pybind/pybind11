@@ -234,3 +234,15 @@ def test_callback_docstring():
         m.test_tuple_unpacking.__doc__.strip()
         == "test_tuple_unpacking(arg0: Callable) -> object"
     )
+
+
+def test_boost_histogram_apply_custom_transform():
+    ctd = m.boost_histogram_custom_transform_double
+    cti = m.boost_histogram_custom_transform_int
+    apply = m.boost_histogram_apply_custom_transform
+    assert apply(ctd, 5) == 15
+    assert apply(cti, 0) == -200
+    assert apply(None, 0) == -100
+    assert apply(lambda value: value, 9) == -200
+    assert apply({}, 0) == -100
+    assert apply("", 0) == -100
