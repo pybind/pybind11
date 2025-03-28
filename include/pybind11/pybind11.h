@@ -1264,6 +1264,26 @@ private:
     bool flag_;
 };
 
+// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+class mod_per_interpreter_gil {
+public:
+    explicit mod_per_interpreter_gil(bool flag = true) : flag_(flag) {}
+    bool flag() const { return flag_; }
+
+private:
+    bool flag_;
+};
+
+// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED
+class mod_multi_interpreter_one_gil {
+public:
+    explicit mod_multi_interpreter_one_gil(bool flag = true) : flag_(flag) {}
+    bool flag() const { return flag_; }
+
+private:
+    bool flag_;
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline bool gil_not_used_option() { return false; }
@@ -1277,6 +1297,33 @@ template <typename F, typename... O>
 inline bool gil_not_used_option(F &&, O &&...o) {
     return gil_not_used_option(o...);
 }
+
+#ifdef Py_mod_multiple_interpreters
+inline void *multi_interp_option() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
+template <typename F, typename... O>
+void *multi_interp_option(F &&, O &&...o);
+template <typename... O>
+void *multi_interp_option(mod_multi_interpreter_one_gil f, O &&...o);
+template <typename... O>
+inline void *multi_interp_option(mod_per_interpreter_gil f, O &&...o) {
+    if (f.flag()) {
+        return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
+    }
+    return multi_interp_option(o...);
+}
+template <typename... O>
+inline void *multi_interp_option(mod_multi_interpreter_one_gil f, O &&...o) {
+    void *others = multi_interp_option(o...);
+    if (!f.flag() || others == Py_MOD_PER_INTERPRETER_GIL_SUPPORTED) {
+        return others;
+    }
+    return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+}
+template <typename F, typename... O>
+inline void *multi_interp_option(F &&, O &&...o) {
+    return multi_interp_option(o...);
+}
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -1429,7 +1476,7 @@ public:
 
     /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
     /// the sentinel (0) end slot.
-    using slots_array = std::array<PyModuleDef_Slot, 3>;
+    using slots_array = std::array<PyModuleDef_Slot, 4>;
 
     /** \rst
         Initialized a module def for use with multi-phase module initialization.
@@ -1452,8 +1499,15 @@ public:
             ++next_slot;
         }
 
-        bool nogil PYBIND11_MAYBE_UNUSED = detail::gil_not_used_option(options...);
-        if (nogil) {
+#ifdef Py_mod_multiple_interpreters
+        if (next_slot >= term_slot) {
+            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
+        }
+        slots[next_slot++]
+            = {Py_mod_multiple_interpreters, detail::multi_interp_option(options...)};
+#endif
+
+        if (detail::gil_not_used_option(options...)) {
 #if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
             if (next_slot >= term_slot) {
                 pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
