@@ -226,12 +226,17 @@ inline PyObject *get_capsule_for_scipy_LowLevelCallable_NO_TYPE_SAFETY_impl(PyOb
         set_error(PyExc_TypeError, repr(self) + str(" is not a stateless function."));
         return nullptr;
     }
-    // This is a type-erased match for `struct capture` in pybind11/functional.h
+    // This struct must match the layout of `struct capture` in pybind11/functional.h
     struct type_erased_capture {
         // Return (*)(Args...) in pybind11/functional.h
         void (*void_func_ptr)(); // TYPE SAFETY IS LOST COMPLETELY HERE.
+
+        static type_erased_capture *from_data(void **data) {
+            return PYBIND11_STD_LAUNDER(reinterpret_cast<type_erased_capture *>(data));
+        }
     };
-    auto *tec = reinterpret_cast<type_erased_capture *>(&rec->data);
+    static_assert(std::is_standard_layout<type_erased_capture>::value, "");
+    auto *tec = type_erased_capture::from_data(rec->data);
     return capsule(reinterpret_cast<void *>(tec->void_func_ptr), signature).release().ptr();
 }
 
