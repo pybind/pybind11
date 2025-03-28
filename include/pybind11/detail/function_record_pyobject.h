@@ -56,6 +56,23 @@ constexpr char tp_name_impl[]
     = "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID
       "_" PYBIND11_PLATFORM_ABI_ID;
 
+inline PyObject *get_property_pybind11_detail_function_record_abi_id(PyObject *, void *) {
+    return PyUnicode_FromString(PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID);
+}
+
+inline PyObject *get_property_pybind11_platform_abi_id(PyObject *, void *) {
+    return PyUnicode_FromString(PYBIND11_PLATFORM_ABI_ID);
+}
+
+static PyGetSetDef tp_getset_impl[] = {
+    {"PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID",
+     get_property_pybind11_detail_function_record_abi_id,
+     nullptr,
+     nullptr,
+     nullptr},
+    {"PYBIND11_PLATFORM_ABI_ID", get_property_pybind11_platform_abi_id, nullptr, nullptr, nullptr},
+    {nullptr, nullptr, nullptr, nullptr, nullptr}};
+
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
 // Designated initializers are a C++20 feature:
@@ -96,7 +113,7 @@ static PyTypeObject function_record_PyTypeObject = {
     /* iternextfunc tp_iternext */ nullptr,
     /* struct PyMethodDef *tp_methods */ function_record_PyTypeObject_methods::tp_methods_impl,
     /* struct PyMemberDef *tp_members */ nullptr,
-    /* struct PyGetSetDef *tp_getset */ nullptr,
+    /* struct PyGetSetDef *tp_getset */ function_record_PyTypeObject_methods::tp_getset_impl,
     /* struct _typeobject *tp_base */ nullptr,
     /* PyObject *tp_dict */ nullptr,
     /* descrgetfunc tp_descr_get */ nullptr,

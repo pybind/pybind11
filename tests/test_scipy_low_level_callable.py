@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import pybind11_tests
 from pybind11_tests import scipy_low_level_callable as m
 
 
@@ -14,6 +15,12 @@ def _m_square21_self():
         return m.square21.__self__
     except AttributeError as e:
         pytest.skip(f"{str(e)}")
+
+
+def test_python_function_record_static_properties():
+    func_rec = _m_square21_self()
+    assert func_rec.PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID == "v1"
+    assert func_rec.PYBIND11_PLATFORM_ABI_ID in pybind11_tests.PYBIND11_INTERNALS_ID
 
 
 def test_get_capsule_for_scipy_LowLevelCallable():
