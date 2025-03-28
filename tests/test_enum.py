@@ -5,11 +5,13 @@ import re
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import enums as m
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
+@pytest.mark.xfail(
+    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
+)
 def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
@@ -197,7 +199,9 @@ def test_implicit_conversion():
     assert repr(x) == "{<EMode.EFirstMode: 1>: 3, <EMode.ESecondMode: 2>: 4}"
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
+@pytest.mark.xfail(
+    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
+)
 def test_binary_operators():
     assert int(m.Flags.Read) == 4
     assert int(m.Flags.Write) == 2

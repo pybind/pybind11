@@ -13,6 +13,10 @@ WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
 GRAALPY = sys.implementation.name == "graalpy"
+_graalpy_version = (
+    sys.modules["__graalpython__"].get_graalvm_version() if GRAALPY else "0.0.0"
+)
+GRAALPY_VERSION = tuple(int(t) for t in _graalpy_version.split(".")[:3])
 PY_GIL_DISABLED = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
