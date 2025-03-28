@@ -3,7 +3,7 @@
 namespace pybind11_tests {
 namespace scipy_low_level_callable {
 
-extern "C" double square(double x) { return x * x; }
+double square21(double x) { return x * x * 21; }
 
 } // namespace scipy_low_level_callable
 } // namespace pybind11_tests
@@ -11,5 +11,5 @@ extern "C" double square(double x) { return x * x; }
 TEST_SUBMODULE(scipy_low_level_callable, m) {
     using namespace pybind11_tests::scipy_low_level_callable;
 
-    m.def("square", square);
+    m.def("square21", square21);
 }
