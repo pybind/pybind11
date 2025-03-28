@@ -1336,6 +1336,19 @@ public:
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
+
+#if defined(GRAALVM_PYTHON) && (!defined(GRAALPY_VERSION_NUM) || GRAALPY_VERSION_NUM < 0x190000)
+        // GraalPy doesn't support PyModule_GetFilenameObject,
+        // so getting by attribute (see PR #5584)
+        handle this_module = m_ptr;
+        result.attr("__file__") = this_module.attr("__file__");
+#else
+        handle this_file = PyModule_GetFilenameObject(m_ptr);
+        if (!this_file) {
+            throw error_already_set();
+        }
+        result.attr("__file__") = this_file;
+#endif
         attr(name) = result;
         return result;
     }
