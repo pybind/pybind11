@@ -235,7 +235,8 @@ inline PyObject *get_capsule_for_scipy_LowLevelCallable_NO_ABI_OR_TYPE_SAFETY_im
             return PYBIND11_STD_LAUNDER(reinterpret_cast<type_erased_capture *>(data));
         }
     };
-    static_assert(std::is_standard_layout<type_erased_capture>::value, "");
+    PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+        std::is_standard_layout<type_erased_capture>::value);
     auto *tec = type_erased_capture::from_data(rec->data);
     return capsule(reinterpret_cast<void *>(tec->void_func_ptr), signature).release().ptr();
 }

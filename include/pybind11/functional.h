@@ -106,7 +106,8 @@ public:
                                 return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
                             }
                         };
-                        static_assert(std::is_standard_layout<capture>::value, "");
+                        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+                            std::is_standard_layout<capture>::value);
                         value = capture::from_data(rec->data)->f;
                         return true;
                     }

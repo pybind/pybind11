@@ -489,7 +489,8 @@ protected:
         using FunctionType = Return (*)(Args...);
         constexpr bool is_function_ptr
             = std::is_convertible<Func, FunctionType>::value && sizeof(capture) == sizeof(void *);
-        static_assert(!is_function_ptr || std::is_standard_layout<capture>::value, "");
+        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+            !is_function_ptr || std::is_standard_layout<capture>::value);
         if (is_function_ptr) {
             rec->is_stateless = true;
             rec->data[1]
