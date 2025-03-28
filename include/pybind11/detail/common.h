@@ -123,6 +123,14 @@
 #    endif
 #endif
 
+#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
+#    define PYBIND11_STD_LAUNDER std::launder
+#    define PYBIND11_HAS_STD_LAUNDER 1
+#else
+#    define PYBIND11_STD_LAUNDER
+#    define PYBIND11_HAS_STD_LAUNDER 0
+#endif
+
 #if defined(PYBIND11_CPP20)
 #    define PYBIND11_CONSTINIT constinit
 #    define PYBIND11_DTOR_CONSTEXPR constexpr

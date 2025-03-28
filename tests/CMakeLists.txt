@@ -163,6 +163,7 @@ set(PYBIND11_TEST_FILES
     test_pickling
     test_python_multiple_inheritance
     test_pytypes
+    test_scipy_low_level_callable
     test_sequences_and_iterators
     test_smart_ptr
     test_stl

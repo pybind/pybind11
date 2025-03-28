@@ -272,6 +272,12 @@ struct function_record {
     /// Pointer to next overload
     function_record *next = nullptr;
 };
+// The main purpose of this macro is to make it easy to pin-point the critically related code
+// sections.
+#define PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(...)              \
+    static_assert(                                                                                \
+        __VA_ARGS__,                                                                              \
+        "Violation of precondition for pybind11/functional.h performance optimizations!")
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {

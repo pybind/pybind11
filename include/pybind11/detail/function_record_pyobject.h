@@ -31,6 +31,9 @@ void tp_dealloc_impl(PyObject *self);
 void tp_free_impl(void *self);
 
 static PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *);
+static PyObject *get_capsule_for_scipy_LowLevelCallable_NO_ABI_OR_TYPE_SAFETY_impl(PyObject *self,
+                                                                                   PyObject *,
+                                                                                   PyObject *);
 
 PYBIND11_WARNING_PUSH
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -41,6 +44,10 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wcast-function-type-mismatch")
 #endif
 static PyMethodDef tp_methods_impl[]
     = {{"__reduce_ex__", (PyCFunction) reduce_ex_impl, METH_VARARGS | METH_KEYWORDS, nullptr},
+       {"get_capsule_for_scipy_LowLevelCallable_NO_ABI_OR_TYPE_SAFETY",
+        (PyCFunction) get_capsule_for_scipy_LowLevelCallable_NO_ABI_OR_TYPE_SAFETY_impl,
+        METH_VARARGS | METH_KEYWORDS,
+        "for use with scipy.LowLevelCallable()"},
        {nullptr, nullptr, 0, nullptr}};
 PYBIND11_WARNING_POP
 
@@ -48,6 +55,23 @@ PYBIND11_WARNING_POP
 constexpr char tp_name_impl[]
     = "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID
       "_" PYBIND11_PLATFORM_ABI_ID;
+
+inline PyObject *get_property_pybind11_detail_function_record_abi_id(PyObject *, void *) {
+    return PyUnicode_FromString(PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID);
+}
+
+inline PyObject *get_property_pybind11_platform_abi_id(PyObject *, void *) {
+    return PyUnicode_FromString(PYBIND11_PLATFORM_ABI_ID);
+}
+
+static PyGetSetDef tp_getset_impl[] = {
+    {"PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID",
+     get_property_pybind11_detail_function_record_abi_id,
+     nullptr,
+     nullptr,
+     nullptr},
+    {"PYBIND11_PLATFORM_ABI_ID", get_property_pybind11_platform_abi_id, nullptr, nullptr, nullptr},
+    {nullptr, nullptr, nullptr, nullptr, nullptr}};
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
@@ -89,7 +113,7 @@ static PyTypeObject function_record_PyTypeObject = {
     /* iternextfunc tp_iternext */ nullptr,
     /* struct PyMethodDef *tp_methods */ function_record_PyTypeObject_methods::tp_methods_impl,
     /* struct PyMemberDef *tp_members */ nullptr,
-    /* struct PyGetSetDef *tp_getset */ nullptr,
+    /* struct PyGetSetDef *tp_getset */ function_record_PyTypeObject_methods::tp_getset_impl,
     /* struct _typeobject *tp_base */ nullptr,
     /* PyObject *tp_dict */ nullptr,
     /* descrgetfunc tp_descr_get */ nullptr,
@@ -200,6 +224,38 @@ inline PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *) {
     }
     set_error(PyExc_RuntimeError, repr(self) + str(" is not pickleable."));
     return nullptr;
+}
+
+inline PyObject *get_capsule_for_scipy_LowLevelCallable_NO_ABI_OR_TYPE_SAFETY_impl(
+    PyObject *self, PyObject *args, PyObject *kwargs) {
+    static const char *kwlist[] = {"signature", nullptr};
+    const char *signature = nullptr;
+    if (PyArg_ParseTupleAndKeywords(args, kwargs, "s", const_cast<char **>(kwlist), &signature)
+        == 0) {
+        return nullptr;
+    }
+    function_record *rec = function_record_ptr_from_PyObject(self);
+    if (rec == nullptr) {
+        pybind11_fail("FATAL: get_capsule_for_scipy_LowLevelCallable_impl(): cannot obtain C++ "
+                      "function_record.");
+    }
+    if (!rec->is_stateless) {
+        set_error(PyExc_TypeError, repr(self) + str(" is not a stateless function."));
+        return nullptr;
+    }
+    // This struct must match the layout of `struct capture` in pybind11/functional.h
+    struct type_erased_capture {
+        // Return (*)(Args...) in pybind11/functional.h
+        void (*void_func_ptr)(); // TYPE SAFETY IS LOST COMPLETELY HERE.
+
+        static type_erased_capture *from_data(void **data) {
+            return PYBIND11_STD_LAUNDER(reinterpret_cast<type_erased_capture *>(data));
+        }
+    };
+    PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+        std::is_standard_layout<type_erased_capture>::value);
+    auto *tec = type_erased_capture::from_data(rec->data);
+    return capsule(reinterpret_cast<void *>(tec->void_func_ptr), signature).release().ptr();
 }
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
