@@ -8,6 +8,31 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-3.0:
+
+v3.0
+====
+
+PENDING CLEANUP:
+* remove_ruff_ignore_E501
+* tests for holder caster traits
+* refine holder compat errors
+* move "Be careful" section from smart_ptrs.rst
+* remove experimental/optional
+
+EXPLAIN:
+* How to migrate to v3? — (almost) nothing is expected to break, except ABI compatibility with the 2.x series
+* Explain ABI overhaul
+* If it's not broken, don't fix it ... maybe later?
+* What are the Pros/Cons/Pitfalls of migrating the existing code base to ``py::classh``?
+* What is the recommended workflow for migrating? (Search&Replace ``py::class_`` -> ``py::classh`` and add base class trampolines or anything else?)
+* ``py::smart_holder``, ``py::classh``
+* ``py::enum_`` → ``py::native_enum``
+* holder caster traits specializations may be needed
+* enum caster traits specializations may be needed
+* std::enabled_shared_from_this private inheritance
+* wrapped functions are now pickleable
+
 .. _upgrade-guide-2.12:
 
 v2.12
