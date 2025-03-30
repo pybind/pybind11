@@ -10,6 +10,10 @@ namespace pybindit {
 namespace memory {
 namespace smart_holder_poc { // Proof-of-Concept implementations.
 
+struct PrivateESFT : private std::enable_shared_from_this<PrivateESFT> {};
+static_assert(!pybindit::memory::type_has_shared_from_this(static_cast<PrivateESFT *>(nullptr)),
+              "should detect inaccessible base");
+
 template <typename T>
 T &as_lvalue_ref(const smart_holder &hld) {
     static const char *context = "as_lvalue_ref";
