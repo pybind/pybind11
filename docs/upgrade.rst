@@ -8,6 +8,83 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-3.0:
+
+v3.0
+====
+
+pybind11 v3.0 introduces major new features, but the vast majority of
+existing extensions are expected to build and run without modification. Minor
+adjustments may be needed in rare cases, and any such changes can be easily
+wrapped in preprocessor conditionals to maintain compatibility with the
+2.x series.
+
+However, due to new features and modernizations, extensions built with
+pybind11 v3.0 are not ABI-compatible with those built using v2.12. To ensure
+cross-extension-module compatibility, it is recommended to rebuild all
+pybind11-based extensions with v3.0.
+
+A major new feature in this release is the integration of
+``py::smart_holder``, which improves support for ``std::unique_ptr``
+and ``std::shared_ptr``, resolving several long-standing issues. See
+:ref:`smart_holder` for details. Closely related is the addition
+of ``py::trampoline_self_life_support``, documented under
+:ref:`overriding_virtuals`.
+
+This release includes a major modernization of cross-extension-module
+ABI compatibility handling. The new implementation reflects actual ABI
+compatibility much more accurately than in previous versions. The details
+are subtle and complex; see
+`#4953 <https://github.com/pybind/pybind11/pull/4953>`_ and
+`#5439 <https://github.com/pybind/pybind11/pull/5439>`_.
+
+Also new in v3.0 is ``py::native_enum``, a modern API for exposing
+C++ enumerations as native Python types — typically standard-library
+``enum.Enum`` or related subclasses. This provides improved integration with
+Python's enum system, compared to the older (now deprecated) ``py::enum_``.
+See #5555 <https://github.com/pybind/pybind11/pull/5555>_ for details.
+
+Functions exposed with pybind11 are now pickleable. This removes a
+long-standing obstacle when using pybind11-bound functions with Python features
+that rely on pickling, such as multiprocessing and caching tools.
+See #5580 <https://github.com/pybind/pybind11/pull/5580>_ for details.
+
+Migration Recommendations
+-------------------------
+
+We recommend migrating to pybind11 v3.0 promptly, while keeping initial
+changes to a minimum. Most projects can upgrade simply by updating the
+pybind11 version, without altering existing binding code.
+
+After a short stabilization period — enough to surface any subtle issues —
+you may incrementally adopt new features where appropriate:
+
+* Use ``py::smart_holder`` and ``py::trampoline_self_life_support`` as needed,
+  or to improve code health. Note that ``py::classh`` is available as a
+  shortcut — for example, ``py::classh<Pet>`` is shorthand for
+  ``py::class_<Pet, py::smart_holder>``. This is designed to enable easy
+  experimentation with ``py::smart_holder`` without introducing distracting
+  whitespace changes. In many cases, a global replacement of ``py::class_``
+  with ``py::classh`` can be an effective first step. Build failures will
+  quickly identify places where ``std::shared_ptr<...>`` holders need to be
+  removed. Runtime failures (assuming good unit test coverage) will highlight
+  base-and-derived class situations that require coordinated changes.
+
+* Gradually migrate from ``py::enum_`` to ``py::native_enum`` to improve
+  integration with Python's standard enum types.
+
+There is no urgency to refactor existing, working bindings — adopt new
+features as the need arises or as part of ongoing maintenance efforts.
+
+Potential stumbling blocks when migrating to v3.0
+-------------------------------------------------
+
+The following issues are very unlikely to arise, and easy to work around:
+
+* TODO holder caster traits specializations may be needed
+
+* TODO enum caster traits specializations may be needed
+
 .. _upgrade-guide-2.12:
 
 v2.12
