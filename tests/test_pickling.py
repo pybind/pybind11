@@ -9,18 +9,41 @@ import env
 from pybind11_tests import pickling as m
 
 
-def test_pickle_simple_callable():
+def test_assumptions():
+    assert pickle.HIGHEST_PROTOCOL >= 0
+
+
+@pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
+def test_pickle_simple_callable(protocol):
     assert m.simple_callable() == 20220426
-    if env.PYPY:
-        serialized = pickle.dumps(m.simple_callable)
-        deserialized = pickle.loads(serialized)
-        assert deserialized() == 20220426
-    else:
-        # To document broken behavior: currently it fails universally with
-        # all C Python versions.
-        with pytest.raises(TypeError) as excinfo:
-            pickle.dumps(m.simple_callable)
-        assert re.search("can.*t pickle .*[Cc]apsule.* object", str(excinfo.value))
+    serialized = pickle.dumps(m.simple_callable, protocol=protocol)
+    assert b"pybind11_tests.pickling" in serialized
+    assert b"simple_callable" in serialized
+    deserialized = pickle.loads(serialized)
+    assert deserialized() == 20220426
+    assert deserialized is m.simple_callable
+
+    # UNUSUAL: function record pickle roundtrip returns a module, not a function record object:
+    if not env.PYPY:
+        assert (
+            pickle.loads(pickle.dumps(m.simple_callable.__self__, protocol=protocol))
+            is m
+        )
+    # This is not expected to create issues because the only purpose of
+    # `m.simple_callable.__self__` is to enable pickling: the only method it has is
+    # `__reduce_ex__`. Direct access for any other purpose is not supported.
+    # Note that `repr(m.simple_callable.__self__)` shows, e.g.:
+    # `<pybind11_detail_function_record_v1__gcc_libstdcpp_cxxabi1018 object at 0x...>`
+    # It is considered to be as much an implementation detail as the
+    # `pybind11::detail::function_record` C++ type is.
+
+    # @rainwoodman suggested that the unusual pickle roundtrip behavior could be
+    # avoided by changing `reduce_ex_impl()` to produce, e.g.:
+    # `"__import__('importlib').import_module('pybind11_tests.pickling').simple_callable.__self__"`
+    # as the argument for the `eval()` function, and adding a getter to the
+    # `function_record_PyTypeObject` that returns `self`. However, the additional code complexity
+    # for this is deemed warranted only if the unusual pickle roundtrip behavior actually
+    # creates issues.
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])

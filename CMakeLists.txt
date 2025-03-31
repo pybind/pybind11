@@ -134,6 +134,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/cpp_conduit.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
+    include/pybind11/detail/function_record_pyobject.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
     include/pybind11/detail/native_enum_data.h
