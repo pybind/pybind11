@@ -326,3 +326,15 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_private_esft_tolerance():
+    # Regression test: binding a shared_ptr<T> member where T privately inherits
+    # enable_shared_from_this<T> must not cause a C++ compile error.
+    c = m.ContainerUsingPrivateESFT()
+    # The ptr member is not actually usable in any way, but this is how the
+    # pybind11 v2 release series worked.
+    with pytest.raises(TypeError):
+        _ = c.ptr  # getattr
+    with pytest.raises(TypeError):
+        c.ptr = None  # setattr
