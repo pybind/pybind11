@@ -9,11 +9,12 @@ import env
 from pybind11_tests import pickling as m
 
 
-def test_assumptions():
+def all_pickle_protocols():
     assert pickle.HIGHEST_PROTOCOL >= 0
+    return range(pickle.HIGHEST_PROTOCOL + 1)
 
 
-@pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
 def test_pickle_simple_callable(protocol):
     assert m.simple_callable() == 20220426
     serialized = pickle.dumps(m.simple_callable, protocol=protocol)
