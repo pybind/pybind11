@@ -42,6 +42,7 @@ cats_descr = {
     "fix": "Bug fixes",
     "fix(types)": "",
     "fix(cmake)": "",
+    "fix(free-threading)": "",
     "docs": "Documentation",
     "tests": "Tests",
     "ci": "CI",
