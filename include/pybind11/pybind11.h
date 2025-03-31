@@ -38,13 +38,6 @@
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #endif
 
-#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
-#    define PYBIND11_STD_LAUNDER std::launder
-#    define PYBIND11_HAS_STD_LAUNDER 1
-#else
-#    define PYBIND11_STD_LAUNDER
-#    define PYBIND11_HAS_STD_LAUNDER 0
-#endif
 #if defined(__GNUG__) && !defined(__clang__)
 #    include <cxxabi.h>
 #endif
@@ -345,6 +338,10 @@ protected:
         using namespace detail;
         struct capture {
             remove_reference_t<Func> f;
+
+            static capture *from_data(void **data) {
+                return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
+            }
         };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture
@@ -364,7 +361,7 @@ protected:
             PYBIND11_WARNING_DISABLE_GCC("-Wplacement-new")
 #endif
 
-            new ((capture *) &rec->data) capture{std::forward<Func>(f)};
+            new (capture::from_data(rec->data)) capture{std::forward<Func>(f)};
 
 #if !PYBIND11_HAS_STD_LAUNDER
             PYBIND11_WARNING_DISABLE_GCC("-Wstrict-aliasing")
@@ -374,8 +371,8 @@ protected:
             // a significant refactoring it's "impossible" to solve.
             if (!std::is_trivially_destructible<capture>::value) {
                 rec->free_data = [](function_record *r) {
-                    auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
-                    (void) data;
+                    auto data = capture::from_data(r->data);
+                    (void) data; // suppress "unused variable" warnings
                     data->~capture();
                 };
             }
@@ -492,6 +489,8 @@ protected:
         using FunctionType = Return (*)(Args...);
         constexpr bool is_function_ptr
             = std::is_convertible<Func, FunctionType>::value && sizeof(capture) == sizeof(void *);
+        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+            !is_function_ptr || std::is_standard_layout<capture>::value);
         if (is_function_ptr) {
             rec->is_stateless = true;
             rec->data[1]
