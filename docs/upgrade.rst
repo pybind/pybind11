@@ -24,6 +24,11 @@ pybind11 v3.0 are not ABI-compatible with those built using v2.12. To ensure
 cross-extension-module compatibility, it is recommended to rebuild all
 pybind11-based extensions with v3.0.
 
+CMake support now defaults to the modern FindPython module. If you haven't
+moved, we do some some backward compatibility ``PYTHON_*`` variables, but
+please update to using ``Python_*`` variables (and setting ``PYTHON_*``
+variables will not affect the build anymore).
+
 A major new feature in this release is the integration of
 ``py::smart_holder``, which improves support for ``std::unique_ptr``
 and ``std::shared_ptr``, resolving several long-standing issues. See
@@ -75,6 +80,11 @@ you may incrementally adopt new features where appropriate:
 
 There is no urgency to refactor existing, working bindings — adopt new
 features as the need arises or as part of ongoing maintenance efforts.
+
+If you are using CMake, update to FindPython variables (mostly changing
+variables from ``PYTHON_*`` -> ``Python_*``). You should see if you can use
+``set(PYBIND11_FINDPYTHON ON)``, which has been supported for years and will
+avoid setting the compatibly mode variables.
 
 Potential stumbling blocks when migrating to v3.0
 -------------------------------------------------
