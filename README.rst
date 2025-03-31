@@ -79,7 +79,7 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- Python 3.8+, PyPy3 7.3, and GraalPy 24.1+ are supported with an
+- Python 3.8+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
   implementation-agnostic interface (pybind11 2.9 was the last version to
   support Python 2 and 3.5).
 
