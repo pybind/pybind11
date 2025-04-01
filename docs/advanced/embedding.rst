@@ -18,7 +18,7 @@ information, see :doc:`/compiling`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.30)
+    cmake_minimum_required(VERSION 3.15...4.0)
     project(example)
 
     find_package(pybind11 REQUIRED)  # or `add_subdirectory(pybind11)`
