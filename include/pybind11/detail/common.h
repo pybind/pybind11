@@ -251,10 +251,6 @@
 #    endif
 #endif
 
-#if defined(PYBIND11_NUMPY_1_ONLY)
-#    define PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED
-#endif
-
 #if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif

@@ -229,7 +229,6 @@ def pytest_report_header():
         f"{pybind11_tests.cpp_std}",
         f"{pybind11_tests.PYBIND11_INTERNALS_ID}",
         f"PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}",
-        f"PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}",
     ]
     if "__graalpython__" in sys.modules:
         cpp_info.append(
