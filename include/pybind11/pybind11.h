@@ -1517,13 +1517,6 @@ inline dict globals() {
 #endif
 }
 
-template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
-PYBIND11_DEPRECATED("make_simple_namespace should be replaced with "
-                    "py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
-object make_simple_namespace(Args &&...args_) {
-    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
-}
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
