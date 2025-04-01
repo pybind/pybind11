@@ -101,8 +101,14 @@ public:
                                      *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
                         struct capture {
                             function_type f;
+
+                            static capture *from_data(void **data) {
+                                return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
+                            }
                         };
-                        value = ((capture *) &rec->data)->f;
+                        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+                            std::is_standard_layout<capture>::value);
+                        value = capture::from_data(rec->data)->f;
                         return true;
                     }
                     rec = rec->next;

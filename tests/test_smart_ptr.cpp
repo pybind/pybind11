@@ -473,4 +473,13 @@ TEST_SUBMODULE(smart_ptr, m) {
             }
             return list;
         });
+
+    class PrivateESFT : /* implicit private */ std::enable_shared_from_this<PrivateESFT> {};
+    struct ContainerUsingPrivateESFT {
+        std::shared_ptr<PrivateESFT> ptr;
+    };
+    py::class_<ContainerUsingPrivateESFT>(m, "ContainerUsingPrivateESFT")
+        .def(py::init<>())
+        .def_readwrite("ptr",
+                       &ContainerUsingPrivateESFT::ptr); // <- access ESFT through shared_ptr
 }
