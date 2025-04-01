@@ -34,12 +34,12 @@ dependency.
 Think of this library as a tiny self-contained version of Boost.Python
 with everything stripped away that isn't relevant for binding
 generation. Without comments, the core header files only require ~4K
-lines of code and depend on Python (3.8+, or PyPy) and the C++
-standard library. This compact implementation was possible thanks to
-some C++11 language features (specifically: tuples, lambda functions and
-variadic templates). Since its creation, this library has grown beyond
-Boost.Python in many ways, leading to dramatically simpler binding code in many
-common situations.
+lines of code and depend on Python (CPython 3.8+, PyPy, or GraalPy) and the C++
+standard library. This compact implementation was possible thanks to some C++11
+language features (specifically: tuples, lambda functions and variadic
+templates). Since its creation, this library has grown beyond Boost.Python in
+many ways, leading to dramatically simpler binding code in many common
+situations.
 
 Tutorial and reference documentation is provided at
 `pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_.
@@ -79,8 +79,9 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- Python 3.8+, and PyPy3 7.3 are supported with an implementation-agnostic
-  interface (pybind11 2.9 was the last version to support Python 2 and 3.5).
+- Python 3.8+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
+  implementation-agnostic interface (pybind11 2.9 was the last version to
+  support Python 2 and 3.5).
 
 - It is possible to bind C++11 lambda functions with captured
   variables. The lambda capture data is stored inside the resulting

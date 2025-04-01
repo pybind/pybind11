@@ -9,9 +9,11 @@ from __future__ import annotations
 import contextlib
 import difflib
 import gc
+import importlib.metadata
 import multiprocessing
 import re
 import sys
+import sysconfig
 import textwrap
 import traceback
 
@@ -210,16 +212,34 @@ def pytest_configure():
     pytest.gc_collect = gc_collect
 
 
-def pytest_report_header(config):
-    del config  # Unused.
+def pytest_report_header():
     assert pybind11_tests.compiler_info is not None, (
         "Please update pybind11_tests.cpp if this assert fails."
     )
-    return (
-        "C++ Info:"
-        f" {pybind11_tests.compiler_info}"
-        f" {pybind11_tests.cpp_std}"
-        f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
-        f" PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}"
-        f" PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}"
-    )
+    interesting_packages = ("pybind11", "numpy", "scipy", "build")
+    valid = []
+    for package in sorted(interesting_packages):
+        with contextlib.suppress(ModuleNotFoundError):
+            valid.append(f"{package}=={importlib.metadata.version(package)}")
+    reqs = " ".join(valid)
+
+    cpp_info = [
+        "C++ Info:",
+        f"{pybind11_tests.compiler_info}",
+        f"{pybind11_tests.cpp_std}",
+        f"{pybind11_tests.PYBIND11_INTERNALS_ID}",
+        f"PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}",
+        f"PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}",
+    ]
+    if "__graalpython__" in sys.modules:
+        cpp_info.append(
+            f"GraalPy version: {sys.modules['__graalpython__'].get_graalvm_version()}"
+        )
+    lines = [
+        f"installed packages of interest: {reqs}",
+        " ".join(cpp_info),
+    ]
+    if sysconfig.get_config_var("Py_GIL_DISABLED"):
+        lines.append("free-threaded Python build")
+
+    return lines
