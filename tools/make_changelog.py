@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# /// script
+# dependencies = ["ghapi", "rich"]
+# ///
+
 from __future__ import annotations
 
 import re
@@ -37,6 +42,7 @@ cats_descr = {
     "fix": "Bug fixes",
     "fix(types)": "",
     "fix(cmake)": "",
+    "fix(free-threading)": "",
     "docs": "Documentation",
     "tests": "Tests",
     "ci": "CI",
