@@ -1,21 +1,97 @@
 [build-system]
-requires = ["setuptools>=42", "cmake>=3.18", "ninja"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core >=0.11.0"]
+build-backend = "scikit_build_core.build"
 
-
-[tool.check-manifest]
-ignore = [
-    "tests/**",
-    "docs/**",
-    "tools/**",
-    "include/**",
-    ".*",
-    "pybind11/include/**",
-    "pybind11/share/**",
-    "CMakeLists.txt",
-    "CMakePresets.json",
-    "noxfile.py",
+[project]
+name = "pybind11"
+description = "Seamless operability between C++11 and Python"
+authors = [{name = "Wenzel Jakob", email = "wenzel.jakob@epfl.ch"}]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: C++",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+keywords = [
+    "C++11",
+    "Python bindings",
+]
+dynamic = ["version"]
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/pybind/pybind11"
+Documentation = "https://pybind11.readthedocs.io/"
+"Bug Tracker" = "https://github.com/pybind/pybind11/issues"
+Discussions = "https://github.com/pybind/pybind11/discussions"
+Changelog = "https://pybind11.readthedocs.io/en/latest/changelog.html"
+Chat = "https://gitter.im/pybind/Lobby"
+
+# not-in-global-start
+[project.optional-dependencies]
+global = ["pybind11-global"]  # TODO: pin
+[project.scripts]
+pybind11-config = "pybind11.__main__:main"
+
+[project.entry-points."pipx.run"]
+pybind11 = "pybind11.__main__:main"
+
+[project.entry-points.pkg_config]
+pybind11 = "pybind11.share.pkgconfig"
+
+[[tool.scikit-build.generate]]
+path = "pybind11/_version.py"
+template = '''
+from __future__ import annotations
+
+
+def _to_int(s: str) -> int | str:
+    try:
+        return int(s)
+    except ValueError:
+        return s
+
+
+__version__ = "$version"
+version_info = tuple(_to_int(s) for s in __version__.split("."))
+'''
+# not-in-global-end
+
+
+[tool.scikit-build]
+wheel.install-dir = "pybind11"
+wheel.platlib = false
+minimum-version = "build-system.requires"
+
+[tool.scikit-build.cmake.define]
+BUILD_TESTING = false
+PYBIND11_NOPYTHON = true
+prefix_for_pc_file = "${pcfiledir}/../../"
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "include/pybind11/detail/common.h"
+regex = '''(?sx)
+\#define \s+ PYBIND11_VERSION_MAJOR \s+ (?P<major>\d+) .*?
+\#define \s+ PYBIND11_VERSION_MINOR \s+ (?P<minor>\d+) .*?
+\#define \s+ PYBIND11_VERSION_PATCH \s+ (?P<patch>\S+)
+'''
+result = "{major}.{minor}.{patch}"
 
 # Can't use tool.uv.sources with requirements.txt
 [tool.uv]
@@ -46,10 +122,10 @@ messages_control.disable = [
   "protected-access",
   "missing-module-docstring",
   "unused-argument",  # covered by Ruff ARG
+  "consider-using-f-string", # triggers in _version.py incorrectly
 ]
 
 [tool.ruff]
-target-version = "py38"
 src = ["src"]
 
 [tool.ruff.lint]
