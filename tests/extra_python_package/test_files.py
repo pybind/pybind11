@@ -280,12 +280,11 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
     files = {f"pybind11/{n}" for n in all_files}
     files |= {
-        "dist-info/LICENSE",
+        "dist-info/licenses/LICENSE",
         "dist-info/METADATA",
         "dist-info/RECORD",
         "dist-info/WHEEL",
         "dist-info/entry_points.txt",
-        "dist-info/top_level.txt",
     }
 
     with zipfile.ZipFile(str(wheel)) as z:
@@ -313,7 +312,6 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
         "dist-info/LICENSE",
         "dist-info/METADATA",
         "dist-info/WHEEL",
-        "dist-info/top_level.txt",
         "dist-info/RECORD",
     }
 
