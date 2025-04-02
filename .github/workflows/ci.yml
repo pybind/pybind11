@@ -38,7 +38,7 @@ jobs:
         - '3.13'
         - 'pypy-3.10'
         - 'pypy-3.11'
-        - 'graalpy-24.1'
+        - 'graalpy-24.2'
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -95,9 +95,12 @@ jobs:
             python: '3.12'
             args: >
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
+          - python: 'graalpy-24.1'
+            runs-on: 'ubuntu-latest'
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
-          - python: 'graalpy-24.1'
+          # See https://github.com/actions/setup-python/pull/880
+          - python: 'graalpy-24.2'
             runs-on: 'windows-2022'
 
 
