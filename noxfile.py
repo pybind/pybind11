@@ -1,11 +1,16 @@
+#!/usr/bin/env -S uv run
+
+# /// script
+# dependencies = ["nox>=2025.2.9"]
+# ///
+
 from __future__ import annotations
 
 import argparse
 
 import nox
 
-nox.needs_version = ">=2024.3.2"
-nox.options.sessions = ["lint", "tests", "tests_packaging"]
+nox.needs_version = ">=2025.2.9"
 nox.options.default_venv_backend = "uv|virtualenv"
 
 
@@ -49,7 +54,7 @@ def tests_packaging(session: nox.Session) -> None:
     session.run("pytest", "tests/extra_python_package", *session.posargs)
 
 
-@nox.session(reuse_venv=True)
+@nox.session(reuse_venv=True, default=False)
 def docs(session: nox.Session) -> None:
     """
     Build the docs. Pass --non-interactive to avoid serving.
@@ -83,16 +88,15 @@ def docs(session: nox.Session) -> None:
         session.run("sphinx-build", "--keep-going", *shared_args)
 
 
-@nox.session(reuse_venv=True)
+@nox.session(reuse_venv=True, default=False)
 def make_changelog(session: nox.Session) -> None:
     """
     Inspect the closed issues and make entries for a changelog.
     """
-    session.install("ghapi", "rich")
-    session.run("python", "tools/make_changelog.py")
+    session.install_and_run_script("tools/make_changelog.py")
 
 
-@nox.session(reuse_venv=True)
+@nox.session(reuse_venv=True, default=False)
 def build(session: nox.Session) -> None:
     """
     Build SDists and wheels.

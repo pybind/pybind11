@@ -52,6 +52,7 @@ jobs:
             args: >
               -DPYBIND11_FINDPYTHON=OFF
               -DCMAKE_CXX_FLAGS="-D_=1"
+              -DPYBIND11_NUMPY_1_ONLY=ON
             exercise_D_: 1
           - runs-on: windows-2019
             python: '3.8'
@@ -65,6 +66,7 @@ jobs:
             python: '3.9'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+              -DPYBIND11_NUMPY_1_ONLY=ON
           - runs-on: windows-2022
             python: '3.10'
             args: >
@@ -149,14 +151,12 @@ jobs:
 
     # First build - C++11 mode and inplace
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON here
-    # (same for PYBIND11_NUMPY_1_ONLY, but requires a NumPy 1.x at runtime).
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
         -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
-        -DPYBIND11_NUMPY_1_ONLY=ON
         -DPYBIND11_PYTEST_ARGS=-v
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -180,13 +180,11 @@ jobs:
 
     # Second build - C++17 mode and in a build directory
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
-    # (same for PYBIND11_NUMPY_1_ONLY, but requires a NumPy 1.x at runtime).
     - name: Configure C++17
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-        -DPYBIND11_NUMPY_1_ONLY=ON
         -DPYBIND11_PYTEST_ARGS=-v
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
