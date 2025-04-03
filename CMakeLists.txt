@@ -371,6 +371,13 @@ if(PYBIND11_INSTALL)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"
           DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig/")
 
+  if(DEFINED SKBUILD_PROJECT_NAME AND SKBUILD_PROJECT_NAME STREQUAL "pybind11")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/empty")
+    file(TOUCH "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig/")
+  endif()
+
   # Uninstall target
   if(PYBIND11_MASTER_PROJECT)
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake_uninstall.cmake.in"
