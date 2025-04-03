@@ -29,6 +29,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(PYBIND11_NUMPY_1_ONLY)
+#    error "PYBIND11_NUMPY_1_ONLY is no longer supported (see PR #5595)."
+#endif
+
 /* This will be true on all flat address space platforms and allows us to reduce the
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
