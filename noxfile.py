@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import os
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -20,10 +19,6 @@ import nox
 
 nox.needs_version = ">=2025.2.9"
 nox.options.default_venv_backend = "uv|virtualenv"
-
-MARKER_PATTERN = re.compile(
-    r"# not-in-global-start.*?# not-in-global-end\n?", re.DOTALL
-)
 
 
 @nox.session(reuse_venv=True)
@@ -137,22 +132,17 @@ def build_global(session: nox.Session) -> None:
     """
 
     installer = ["--installer=uv"] if session.venv_backend == "uv" else []
-    session.install("build")
+    session.install("build", "tomlkit")
     session.log("Building pybind11-global files")
     pyproject = Path("pyproject.toml")
-    with preserve_file(pyproject) as txt:
-        new_txt = txt.replace('name = "pybind11"', 'name = "pybind11-global"')
-        assert txt != new_txt
-        newer_txt = MARKER_PATTERN.sub("", new_txt)
-        assert new_txt != newer_txt
-
+    with preserve_file(pyproject):
+        newer_txt = session.run("python", "tools/make_global.py", silent=True)
+        assert isinstance(newer_txt, str)
         pyproject.write_text(newer_txt, encoding="utf-8")
         session.run(
             "python",
             "-m",
             "build",
             *installer,
-            "-Cskbuild.wheel.install-dir=/data",
-            "-Cskbuild.experimental=true",
             *session.posargs,
         )
