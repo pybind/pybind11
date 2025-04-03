@@ -42,9 +42,9 @@ Discussions = "https://github.com/pybind/pybind11/discussions"
 Changelog = "https://pybind11.readthedocs.io/en/latest/changelog.html"
 Chat = "https://gitter.im/pybind/Lobby"
 
-# not-in-global-start
 [project.optional-dependencies]
 global = ["pybind11-global"]  # TODO: pin
+
 [project.scripts]
 pybind11-config = "pybind11.__main__:main"
 
@@ -53,24 +53,6 @@ pybind11 = "pybind11.__main__:main"
 
 [project.entry-points.pkg_config]
 pybind11 = "pybind11.share.pkgconfig"
-
-[[tool.scikit-build.generate]]
-path = "pybind11/_version.py"
-template = '''
-from __future__ import annotations
-
-
-def _to_int(s: str) -> int | str:
-    try:
-        return int(s)
-    except ValueError:
-        return s
-
-
-__version__ = "$version"
-version_info = tuple(_to_int(s) for s in __version__.split("."))
-'''
-# not-in-global-end
 
 
 [tool.scikit-build]
@@ -81,11 +63,6 @@ sdist.exclude = [
 ]
 wheel.install-dir = "pybind11"
 wheel.platlib = false
-wheel.packages = [
-# not-in-global-start
-  "pybind11",
-# not-in-global-end
-]
 
 [tool.scikit-build.cmake.define]
 BUILD_TESTING = false
@@ -106,6 +83,24 @@ result = "{major}.{minor}.{patch}"
 [tool.uv]
 index-strategy = "unsafe-best-match"
 
+[[tool.scikit-build.generate]]
+path = "pybind11/_version.py"
+template = '''
+from __future__ import annotations
+
+
+def _to_int(s: str) -> int | str:
+    try:
+        return int(s)
+    except ValueError:
+        return s
+
+
+__version__ = "$version"
+version_info = tuple(_to_int(s) for s in __version__.split("."))
+'''
+
+
 [tool.mypy]
 files = ["pybind11"]
 python_version = "3.8"
@@ -114,7 +109,7 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["ghapi.*"]
+module = ["ghapi.*", "tomlkit"]  # tomlkit has types, but not very helpful
 ignore_missing_imports = true
 
 

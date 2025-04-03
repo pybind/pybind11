@@ -3,24 +3,23 @@ from __future__ import annotations
 import contextlib
 import os
 import shutil
-import string
-import re
 import subprocess
 import sys
 import tarfile
 import zipfile
 from pathlib import Path
 from typing import Generator
-from pprint import pprint
 
 # These tests must be run explicitly
 
 DIR = Path(__file__).parent.resolve()
 MAIN_DIR = DIR.parent.parent
 
-MARKER_PATTERN = re.compile(
-    r"# not-in-global-start.*?# not-in-global-end\n?", re.DOTALL
-)
+
+# Newer pytest has global path setting, but keeping old pytest for now
+sys.path.append(str(MAIN_DIR / "tools"))
+
+from make_global import get_global  # noqa: E402
 
 HAS_UV = shutil.which("uv") is not None
 UV_ARGS = ["--installer=uv"] if HAS_UV else []
@@ -158,12 +157,8 @@ def build_global() -> Generator[None, None, None]:
     """
 
     pyproject = MAIN_DIR / "pyproject.toml"
-    with preserve_file(pyproject) as txt:
-        new_txt = txt.replace('name = "pybind11"', 'name = "pybind11-global"')
-        assert txt != new_txt
-        newer_txt = MARKER_PATTERN.sub("", new_txt)
-        assert new_txt != newer_txt
-
+    with preserve_file(pyproject):
+        newer_txt = get_global()
         pyproject.write_text(newer_txt, encoding="utf-8")
         yield
 
@@ -191,8 +186,6 @@ def test_build_sdist(monkeypatch, tmpdir):
     (sdist,) = tmpdir.visit("*.tar.gz")
 
     with tarfile.open(str(sdist), "r:gz") as tar:
-        start = tar.getnames()[0] + "/"
-        version = start[9:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
 
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
@@ -200,7 +193,6 @@ def test_build_sdist(monkeypatch, tmpdir):
     files = headers | sdist_files
     assert files <= simpler
 
-    simple_version = ".".join(version.split(".")[:3])
     assert b'name = "pybind11"' in pyproject_toml
 
 
@@ -208,15 +200,21 @@ def test_build_global_dist(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     with build_global():
         subprocess.run(
-            [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmpdir), *UV_ARGS],
+            [
+                sys.executable,
+                "-m",
+                "build",
+                "--sdist",
+                "--outdir",
+                str(tmpdir),
+                *UV_ARGS,
+            ],
             check=True,
         )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
 
     with tarfile.open(str(sdist), "r:gz") as tar:
-        start = tar.getnames()[0] + "/"
-        version = start[16:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
 
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
@@ -258,12 +256,8 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     with build_global():
         subprocess.run(
-            [sys.executable, "-m", "pip", "wheel", ".",
-            "-Cskbuild.wheel.install-dir=/data",
-            "-Cskbuild.experimental=true",
-             "-w", 
-             str(tmpdir),
-             *UV_ARGS], check=True
+            [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir), *UV_ARGS],
+            check=True,
         )
 
     (wheel,) = tmpdir.visit("*.whl")
@@ -282,7 +276,6 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
         names = z.namelist()
 
     beginning = names[0].split("/", 1)[0].rsplit(".", 1)[0]
-    pprint(names)
     trimmed = {n[len(beginning) + 1 :] for n in names}
 
     assert files == trimmed
