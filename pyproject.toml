@@ -74,9 +74,18 @@ version_info = tuple(_to_int(s) for s in __version__.split("."))
 
 
 [tool.scikit-build]
+minimum-version = "build-system.requires"
+sdist.exclude = [
+  "/docs/**",
+  "/.**",
+]
 wheel.install-dir = "pybind11"
 wheel.platlib = false
-minimum-version = "build-system.requires"
+wheel.packages = [
+# not-in-global-start
+  "pybind11",
+# not-in-global-end
+]
 
 [tool.scikit-build.cmake.define]
 BUILD_TESTING = false
