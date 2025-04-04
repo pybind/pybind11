@@ -69,6 +69,9 @@ to prevent accidents and improve readability:
   are also fairly commonly used, therefore enforcing explicit conversions
   would have an unfavorable cost : benefit ratio; more sloppily speaking,
   such an enforcement would be more annoying than helpful.
+
+Additional checks have been added to allow types derived from `collections.abc.Set` and
+`collections.abc.Mapping` (`collections.abc.Sequence` is already allowed by `PySequence_Check`).
 */
 
 inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
@@ -86,15 +89,19 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
 }
 
 inline bool object_is_convertible_to_std_vector(const handle &src) {
+    // Allow sequence-like objects, but not (byte-)string-like objects.
     if (PySequence_Check(src.ptr()) != 0) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
+    // Allow generators, set/frozenset and several common iterable types.
     return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
            || object_is_instance_with_one_of_tp_names(
                src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
 inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {
+    // Allow set/frozenset, dict keys.
+    // In convert mode: also allow types derived from collections.abc.Set.
     return ((PyAnySet_Check(src.ptr()) != 0)
             || object_is_instance_with_one_of_tp_names(src.ptr(), {"dict_keys"}))
            || (convert && isinstance(src, module_::import("collections.abc").attr("Set"))
@@ -103,12 +110,14 @@ inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {
 }
 
 inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
+    // Allow dict.
     if (PyDict_Check(src.ptr())) {
         return true;
     }
-    // Implicit requirement in the conditions below:
-    // A type with `.__getitem__()` & `.items()` methods must implement these
-    // to be compatible with https://docs.python.org/3/c-api/mapping.html
+    // Allow types conforming to Mapping Protocol.
+    // According to https://docs.python.org/3/c-api/mapping.html, PyMappingCheck() checks for
+    // `__getitem__()` without checking the type of keys. In order to restrict the allowed types to
+    // actual Mapping-like types, we also check for `items()` method.
     if (PyMapping_Check(src.ptr()) != 0) {
         PyObject *items = PyObject_GetAttrString(src.ptr(), "items");
         if (items != nullptr) {
@@ -121,6 +130,7 @@ inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
             PyErr_Clear();
         }
     }
+    // In convert mode: Allow types derived from collections.abc.Mapping
     return (convert && isinstance(src, module_::import("collections.abc").attr("Mapping"))
             && hasattr(src, "__getitem__") && hasattr(src, "__iter__") && hasattr(src, "__len__"));
 }
