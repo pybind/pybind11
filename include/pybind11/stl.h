@@ -43,7 +43,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // Begin: Equivalent of
 //        https://github.com/google/clif/blob/ae4eee1de07cdf115c0c9bf9fec9ff28efce6f6c/clif/python/runtime.cc#L388-L438
 /*
-The three `PyObjectTypeIsConvertibleTo*()` functions below are
+The three `object_is_convertible_to_*()` functions below are
 the result of converging the behaviors of pybind11 and PyCLIF
 (http://github.com/google/clif).
 
@@ -71,8 +71,8 @@ to prevent accidents and improve readability:
   such an enforcement would be more annoying than helpful.
 */
 
-inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
-                                               std::initializer_list<const char *> tp_names) {
+inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
+                                                    std::initializer_list<const char *> tp_names) {
     if (PyType_Check(obj)) {
         return false;
     }
@@ -85,24 +85,24 @@ inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
     return false;
 }
 
-inline bool HandleIsConvertibleToStdVector(const handle &src) {
+inline bool object_is_convertible_to_std_vector(const handle &src) {
     if (PySequence_Check(src.ptr()) != 0) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
     return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
-           || PyObjectIsInstanceWithOneOfTpNames(
+           || object_is_instance_with_one_of_tp_names(
                src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
-inline bool HandleIsConvertibleToStdSet(const handle &src, bool convert) {
+inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {
     return ((PyAnySet_Check(src.ptr()) != 0)
-            || PyObjectIsInstanceWithOneOfTpNames(src.ptr(), {"dict_keys"}))
+            || object_is_instance_with_one_of_tp_names(src.ptr(), {"dict_keys"}))
            || (convert && isinstance(src, module_::import("collections.abc").attr("Set"))
                && hasattr(src, "__contains__") && hasattr(src, "__iter__")
                && hasattr(src, "__len__"));
 }
 
-inline bool HandleIsConvertibleToStdMap(const handle &src, bool convert) {
+inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
     if (PyDict_Check(src.ptr())) {
         return true;
     }
@@ -179,7 +179,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!HandleIsConvertibleToStdSet(src, convert)) {
+        if (!object_is_convertible_to_std_set(src, convert)) {
             return false;
         }
         if (isinstance<anyset>(src)) {
@@ -243,7 +243,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!HandleIsConvertibleToStdMap(src, convert)) {
+        if (!object_is_convertible_to_std_map(src, convert)) {
             return false;
         }
         if (isinstance<dict>(src)) {
@@ -293,7 +293,7 @@ struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!HandleIsConvertibleToStdVector(src)) {
+        if (!object_is_convertible_to_std_vector(src)) {
             return false;
         }
         if (isinstance<sequence>(src)) {
@@ -428,7 +428,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!HandleIsConvertibleToStdVector(src)) {
+        if (!object_is_convertible_to_std_vector(src)) {
             return false;
         }
         if (isinstance<sequence>(src)) {
