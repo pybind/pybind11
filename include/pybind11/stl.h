@@ -100,13 +100,11 @@ inline bool object_is_convertible_to_std_vector(const handle &src) {
 }
 
 inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {
-    // Allow set/frozenset, dict keys.
+    // Allow set/frozenset and dict keys.
     // In convert mode: also allow types derived from collections.abc.Set.
     return ((PyAnySet_Check(src.ptr()) != 0)
             || object_is_instance_with_one_of_tp_names(src.ptr(), {"dict_keys"}))
-           || (convert && isinstance(src, module_::import("collections.abc").attr("Set"))
-               && hasattr(src, "__contains__") && hasattr(src, "__iter__")
-               && hasattr(src, "__len__"));
+           || (convert && isinstance(src, module_::import("collections.abc").attr("Set")));
 }
 
 inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
@@ -115,9 +113,9 @@ inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
         return true;
     }
     // Allow types conforming to Mapping Protocol.
-    // According to https://docs.python.org/3/c-api/mapping.html, PyMappingCheck() checks for
-    // `__getitem__()` without checking the type of keys. In order to restrict the allowed types to
-    // actual Mapping-like types, we also check for `items()` method.
+    // According to https://docs.python.org/3/c-api/mapping.html, `PyMappingCheck()` checks for
+    // `__getitem__()` without checking the type of keys. In order to restrict the allowed types
+    // closer to actual Mapping-like types, we also check for the `items()` method.
     if (PyMapping_Check(src.ptr()) != 0) {
         PyObject *items = PyObject_GetAttrString(src.ptr(), "items");
         if (items != nullptr) {
@@ -131,8 +129,7 @@ inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
         }
     }
     // In convert mode: Allow types derived from collections.abc.Mapping
-    return (convert && isinstance(src, module_::import("collections.abc").attr("Mapping"))
-            && hasattr(src, "__getitem__") && hasattr(src, "__iter__") && hasattr(src, "__len__"));
+    return convert && isinstance(src, module_::import("collections.abc").attr("Mapping"));
 }
 
 //
