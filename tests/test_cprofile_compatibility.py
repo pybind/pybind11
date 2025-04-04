@@ -26,7 +26,9 @@ def test_free_func_return_secret():
     assert cprofile_compatibility_ext.free_func_return_secret() == 102
     profiler.disable()
     stats_output = _get_pstats(profiler)
-    assert "LETS_SEE_WHAT_WE_GET_FREE_FUNC" in stats_output
+    raise AssertionError(
+        f"\npstats.Stats output free_func BEGIN:\n{stats_output}\npstats.Stats output free_func END\n"
+    )
 
 
 def test_member_func_return_secret():
@@ -36,4 +38,6 @@ def test_member_func_return_secret():
     assert obj.py_member_func() == 203
     profiler.disable()
     stats_output = _get_pstats(profiler)
-    assert "LETS_SEE_WHAT_WE_GET_MEMBER_FUNC" in stats_output
+    raise AssertionError(
+        f"\npstats.Stats output member_func BEGIN:\n{stats_output}\npstats.Stats output member_func END\n"
+    )
