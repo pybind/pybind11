@@ -5,7 +5,6 @@ import re
 import pytest
 
 import env  # noqa: F401
-from pybind11_tests import PYBIND11_NUMPY_1_ONLY
 from pybind11_tests import numpy_dtypes as m
 
 np = pytest.importorskip("numpy")
@@ -181,12 +180,7 @@ def test_dtype(simple_dtype):
     assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
     assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]
     assert m.test_dtype_alignment() == [np.dtype(ch).alignment for ch in expected_chars]
-    if not PYBIND11_NUMPY_1_ONLY:
-        assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
-    else:
-        assert m.test_dtype_flags() == [
-            chr(np.dtype(ch).flags) for ch in expected_chars
-        ]
+    assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
 
     for a, b in m.test_dtype_num_of():
         assert a == b
