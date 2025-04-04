@@ -210,8 +210,7 @@ public:
 #endif
     }
 
-    // TODO PYBIND11_DEPRECATED(
-    //     "Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
+    PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
     handle get_type() const;
 
 private:

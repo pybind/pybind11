@@ -219,7 +219,7 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });
 
-    m.def("get_type_classic", [](py::handle h) { return h.get_type(); });
+    m.def("get_type_classic", [](py::handle h) { return py::type::handle_of(h); });
 
     m.def("as_type", [](const py::object &ob) { return py::type(ob); });
 
