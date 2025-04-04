@@ -48,6 +48,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
 bool isinstance_generic(handle obj, const std::type_info &tp);
 
+template <typename T>
+bool isinstance_native_enum(handle obj, const std::type_info &tp);
+
 // Accessor forward declarations
 template <typename Policy>
 class accessor;
@@ -852,7 +855,8 @@ bool isinstance(handle obj) {
 
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) {
-    return detail::isinstance_generic(obj, typeid(T));
+    return detail::isinstance_native_enum<T>(obj, typeid(T))
+           || detail::isinstance_generic(obj, typeid(T));
 }
 
 template <>
@@ -1393,6 +1397,18 @@ template <return_value_policy policy = return_value_policy::automatic_reference>
 class simple_collector;
 template <return_value_policy policy = return_value_policy::automatic_reference>
 class unpacking_collector;
+
+inline object get_scope_module(handle scope) {
+    if (scope) {
+        if (hasattr(scope, "__module__")) {
+            return scope.attr("__module__");
+        }
+        if (hasattr(scope, "__name__")) {
+            return scope.attr("__name__");
+        }
+    }
+    return object();
+}
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -2643,6 +2659,19 @@ PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY
 #undef PYBIND11_MATH_OPERATOR_BINARY_INPLACE
+
+// Meant to return a Python str, but this is not checked.
+inline object get_module_name_if_available(handle scope) {
+    if (scope) {
+        if (hasattr(scope, "__module__")) {
+            return scope.attr("__module__");
+        }
+        if (hasattr(scope, "__name__")) {
+            return scope.attr("__name__");
+        }
+    }
+    return object();
+}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+
+# /// script
+# dependencies = ["ghapi", "rich"]
+# ///
+
 from __future__ import annotations
 
 import re

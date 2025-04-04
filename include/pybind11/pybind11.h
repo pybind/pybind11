@@ -12,7 +12,9 @@
 #include "detail/class.h"
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
+#include "detail/function_record_pyobject.h"
 #include "detail/init.h"
+#include "detail/native_enum_data.h"
 #include "detail/using_smart_holder.h"
 #include "attr.h"
 #include "gil.h"
@@ -20,6 +22,7 @@
 #include "options.h"
 #include "typing.h"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -35,13 +38,6 @@
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #endif
 
-#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
-#    define PYBIND11_STD_LAUNDER std::launder
-#    define PYBIND11_HAS_STD_LAUNDER 1
-#else
-#    define PYBIND11_STD_LAUNDER
-#    define PYBIND11_HAS_STD_LAUNDER 0
-#endif
 #if defined(__GNUG__) && !defined(__clang__)
 #    include <cxxabi.h>
 #endif
@@ -342,6 +338,10 @@ protected:
         using namespace detail;
         struct capture {
             remove_reference_t<Func> f;
+
+            static capture *from_data(void **data) {
+                return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
+            }
         };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture
@@ -361,7 +361,7 @@ protected:
             PYBIND11_WARNING_DISABLE_GCC("-Wplacement-new")
 #endif
 
-            new ((capture *) &rec->data) capture{std::forward<Func>(f)};
+            new (capture::from_data(rec->data)) capture{std::forward<Func>(f)};
 
 #if !PYBIND11_HAS_STD_LAUNDER
             PYBIND11_WARNING_DISABLE_GCC("-Wstrict-aliasing")
@@ -371,8 +371,8 @@ protected:
             // a significant refactoring it's "impossible" to solve.
             if (!std::is_trivially_destructible<capture>::value) {
                 rec->free_data = [](function_record *r) {
-                    auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
-                    (void) data;
+                    auto data = capture::from_data(r->data);
+                    (void) data; // suppress "unused variable" warnings
                     data->~capture();
                 };
             }
@@ -489,6 +489,8 @@ protected:
         using FunctionType = Return (*)(Args...);
         constexpr bool is_function_ptr
             = std::is_convertible<Func, FunctionType>::value && sizeof(capture) == sizeof(void *);
+        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+            !is_function_ptr || std::is_standard_layout<capture>::value);
         if (is_function_ptr) {
             rec->is_stateless = true;
             rec->data[1]
@@ -597,20 +599,11 @@ protected:
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
                 auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
-                if (!isinstance<capsule>(self)) {
+                chain = detail::function_record_ptr_from_PyObject(self);
+                if (chain && !chain->scope.is(rec->scope)) {
+                    /* Never append a method to an overload chain of a parent class;
+                       instead, hide the parent's overloads in this case */
                     chain = nullptr;
-                } else {
-                    auto rec_capsule = reinterpret_borrow<capsule>(self);
-                    if (detail::is_function_record_capsule(rec_capsule)) {
-                        chain = rec_capsule.get_pointer<detail::function_record>();
-                        /* Never append a method to an overload chain of a parent class;
-                           instead, hide the parent's overloads in this case */
-                        if (!chain->scope.is(rec->scope)) {
-                            chain = nullptr;
-                        }
-                    } else {
-                        chain = nullptr;
-                    }
                 }
             }
             // Don't trigger for things like the default __init__, which are wrapper_descriptors
@@ -630,21 +623,14 @@ protected:
                 = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)()>(dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
-            capsule rec_capsule(unique_rec.release(),
-                                detail::get_function_record_capsule_name(),
-                                [](void *ptr) { destruct((detail::function_record *) ptr); });
+            detail::function_record_PyTypeObject_PyType_Ready(); // Call-once initialization.
+            object py_func_rec = detail::function_record_PyObject_New();
+            ((detail::function_record_PyObject *) py_func_rec.ptr())->cpp_func_rec
+                = unique_rec.release();
             guarded_strdup.release();
 
-            object scope_module;
-            if (rec->scope) {
-                if (hasattr(rec->scope, "__module__")) {
-                    scope_module = rec->scope.attr("__module__");
-                } else if (hasattr(rec->scope, "__name__")) {
-                    scope_module = rec->scope.attr("__name__");
-                }
-            }
-
-            m_ptr = PyCFunction_NewEx(rec->def, rec_capsule.ptr(), scope_module.ptr());
+            object scope_module = detail::get_scope_module(rec->scope);
+            m_ptr = PyCFunction_NewEx(rec->def, py_func_rec.ptr(), scope_module.ptr());
             if (!m_ptr) {
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
             }
@@ -673,8 +659,9 @@ protected:
                 // chain.
                 chain_start = rec;
                 rec->next = chain;
-                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(m_ptr));
-                rec_capsule.set_pointer(unique_rec.release());
+                auto *py_func_rec
+                    = (detail::function_record_PyObject *) PyCFunction_GET_SELF(m_ptr);
+                py_func_rec->cpp_func_rec = unique_rec.release();
                 guarded_strdup.release();
             } else {
                 // Or end of chain (normal behavior)
@@ -749,6 +736,8 @@ protected:
         }
     }
 
+    friend void detail::function_record_PyTypeObject_methods::tp_dealloc_impl(PyObject *);
+
     /// When a cpp_function is GCed, release any memory allocated by pybind11
     static void destruct(detail::function_record *rec, bool free_strings = true) {
 // If on Python 3.9, check the interpreter "MICRO" (patch) version.
@@ -798,13 +787,11 @@ protected:
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
         using namespace detail;
-        assert(isinstance<capsule>(self));
+        const function_record *overloads = function_record_ptr_from_PyObject(self);
+        assert(overloads != nullptr);
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = reinterpret_cast<function_record *>(
-                                  PyCapsule_GetPointer(self, get_function_record_capsule_name())),
-                              *current_overload = overloads;
-        assert(overloads != nullptr);
+        const function_record *current_overload = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
@@ -1248,6 +1235,17 @@ protected:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
+
+// This implementation needs the definition of `class cpp_function`.
+inline void tp_dealloc_impl(PyObject *self) {
+    auto *py_func_rec = (function_record_PyObject *) self;
+    cpp_function::destruct(py_func_rec->cpp_func_rec);
+    py_func_rec->cpp_func_rec = nullptr;
+}
+
+PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
+
 template <>
 struct handle_type_name<cpp_function> {
     static constexpr auto name = const_name("Callable");
@@ -1335,6 +1333,19 @@ public:
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
+
+#if defined(GRAALVM_PYTHON) && (!defined(GRAALPY_VERSION_NUM) || GRAALPY_VERSION_NUM < 0x190000)
+        // GraalPy doesn't support PyModule_GetFilenameObject,
+        // so getting by attribute (see PR #5584)
+        handle this_module = m_ptr;
+        result.attr("__file__") = this_module.attr("__file__");
+#else
+        handle this_file = PyModule_GetFilenameObject(m_ptr);
+        if (!this_file) {
+            throw error_already_set();
+        }
+        result.attr("__file__") = this_file;
+#endif
         attr(name) = result;
         return result;
     }
@@ -2464,14 +2475,7 @@ private:
         if (!func_self) {
             throw error_already_set();
         }
-        if (!isinstance<capsule>(func_self)) {
-            return nullptr;
-        }
-        auto cap = reinterpret_borrow<capsule>(func_self);
-        if (!detail::is_function_record_capsule(cap)) {
-            return nullptr;
-        }
-        return cap.get_pointer<detail::function_record>();
+        return detail::function_record_ptr_from_PyObject(func_self.ptr());
     }
 };
 
@@ -2768,6 +2772,14 @@ public:
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+        {
+            if (detail::global_internals_native_enum_type_map_contains(
+                    std::type_index(typeid(Type)))) {
+                pybind11_fail("pybind11::enum_ \"" + std::string(name)
+                              + "\" is already registered as a pybind11::native_enum!");
+            }
+        }
+
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);

@@ -93,23 +93,22 @@ public:
             auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
             if (cfunc_self == nullptr) {
                 PyErr_Clear();
-            } else if (isinstance<capsule>(cfunc_self)) {
-                auto c = reinterpret_borrow<capsule>(cfunc_self);
-
-                function_record *rec = nullptr;
-                // Check that we can safely reinterpret the capsule into a function_record
-                if (detail::is_function_record_capsule(c)) {
-                    rec = c.get_pointer<function_record>();
-                }
-
+            } else {
+                function_record *rec = function_record_ptr_from_PyObject(cfunc_self);
                 while (rec != nullptr) {
                     if (rec->is_stateless
                         && same_type(typeid(function_type),
                                      *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
                         struct capture {
                             function_type f;
+
+                            static capture *from_data(void **data) {
+                                return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
+                            }
                         };
-                        value = ((capture *) &rec->data)->f;
+                        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+                            std::is_standard_layout<capture>::value);
+                        value = capture::from_data(rec->data)->f;
                         return true;
                     }
                     rec = rec->next;

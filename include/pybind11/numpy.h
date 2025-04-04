@@ -29,8 +29,8 @@
 #include <utility>
 #include <vector>
 
-#if defined(PYBIND11_NUMPY_1_ONLY) && !defined(PYBIND11_INTERNAL_NUMPY_1_ONLY_DETECTED)
-#    error PYBIND11_NUMPY_1_ONLY must be defined before any pybind11 header is included.
+#if defined(PYBIND11_NUMPY_1_ONLY)
+#    error "PYBIND11_NUMPY_1_ONLY is no longer supported (see PR #5595)."
 #endif
 
 /* This will be true on all flat address space platforms and allows us to reduce the
@@ -80,7 +80,6 @@ struct PyArrayDescr1_Proxy {
     PyObject *names;
 };
 
-#ifndef PYBIND11_NUMPY_1_ONLY
 struct PyArrayDescr_Proxy {
     PyObject_HEAD
     PyObject *typeobj;
@@ -91,10 +90,6 @@ struct PyArrayDescr_Proxy {
     int type_num;
     /* Additional fields are NumPy version specific. */
 };
-#else
-/* NumPy 1.x only, we can expose all fields */
-using PyArrayDescr_Proxy = PyArrayDescr1_Proxy;
-#endif
 
 /* NumPy 2 proxy, including legacy fields */
 struct PyArrayDescr2_Proxy {
@@ -179,14 +174,6 @@ PYBIND11_NOINLINE module_ import_numpy_core_submodule(const char *submodule_name
     object numpy_version = numpy_lib.attr("NumpyVersion")(version_string);
     int major_version = numpy_version.attr("major").cast<int>();
 
-#ifdef PYBIND11_NUMPY_1_ONLY
-    if (major_version >= 2) {
-        throw std::runtime_error(
-            "This extension was built with PYBIND11_NUMPY_1_ONLY defined, "
-            "but NumPy 2 is used in this process. For NumPy2 compatibility, "
-            "this extension needs to be rebuilt without the PYBIND11_NUMPY_1_ONLY define.");
-    }
-#endif
     /* `numpy.core` was renamed to `numpy._core` in NumPy 2.0 as it officially
         became a private module. */
     std::string numpy_core_path = major_version >= 2 ? "numpy._core" : "numpy.core";
@@ -300,16 +287,6 @@ struct npy_api {
     PyObject *(*PyArray_FromAny_)(PyObject *, PyObject *, int, int, int, PyObject *);
     int (*PyArray_DescrConverter_)(PyObject *, PyObject **);
     bool (*PyArray_EquivTypes_)(PyObject *, PyObject *);
-#ifdef PYBIND11_NUMPY_1_ONLY
-    int (*PyArray_GetArrayParamsFromObject_)(PyObject *,
-                                             PyObject *,
-                                             unsigned char,
-                                             PyObject **,
-                                             int *,
-                                             Py_intptr_t *,
-                                             PyObject **,
-                                             PyObject *);
-#endif
     PyObject *(*PyArray_Squeeze_)(PyObject *);
     // Unused. Not removed because that affects ABI of the class.
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
@@ -337,9 +314,6 @@ private:
         API_PyArray_View = 137,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
-#ifdef PYBIND11_NUMPY_1_ONLY
-        API_PyArray_GetArrayParamsFromObject = 278,
-#endif
         API_PyArray_SetBaseObject = 282
     };
 
@@ -374,9 +348,6 @@ private:
         DECL_NPY_API(PyArray_View);
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
-#ifdef PYBIND11_NUMPY_1_ONLY
-        DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-#endif
         DECL_NPY_API(PyArray_SetBaseObject);
 
 #undef DECL_NPY_API
@@ -760,21 +731,14 @@ public:
     }
 
     /// Size of the data type in bytes.
-#ifdef PYBIND11_NUMPY_1_ONLY
-    ssize_t itemsize() const { return detail::array_descriptor_proxy(m_ptr)->elsize; }
-#else
     ssize_t itemsize() const {
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return detail::array_descriptor1_proxy(m_ptr)->elsize;
         }
         return detail::array_descriptor2_proxy(m_ptr)->elsize;
     }
-#endif
 
     /// Returns true for structured data types.
-#ifdef PYBIND11_NUMPY_1_ONLY
-    bool has_fields() const { return detail::array_descriptor_proxy(m_ptr)->names != nullptr; }
-#else
     bool has_fields() const {
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return detail::array_descriptor1_proxy(m_ptr)->names != nullptr;
@@ -785,7 +749,6 @@ public:
         }
         return proxy->names != nullptr;
     }
-#endif
 
     /// Single-character code for dtype's kind.
     /// For example, floating point types are 'f' and integral types are 'i'.
@@ -824,29 +787,21 @@ public:
     /// Single character for byteorder
     char byteorder() const { return detail::array_descriptor_proxy(m_ptr)->byteorder; }
 
-/// Alignment of the data type
-#ifdef PYBIND11_NUMPY_1_ONLY
-    int alignment() const { return detail::array_descriptor_proxy(m_ptr)->alignment; }
-#else
+    /// Alignment of the data type
     ssize_t alignment() const {
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return detail::array_descriptor1_proxy(m_ptr)->alignment;
         }
         return detail::array_descriptor2_proxy(m_ptr)->alignment;
     }
-#endif
 
-/// Flags for the array descriptor
-#ifdef PYBIND11_NUMPY_1_ONLY
-    char flags() const { return detail::array_descriptor_proxy(m_ptr)->flags; }
-#else
+    /// Flags for the array descriptor
     std::uint64_t flags() const {
         if (detail::npy_api::get().PyArray_RUNTIME_VERSION_ < 0x12) {
             return (unsigned char) detail::array_descriptor1_proxy(m_ptr)->flags;
         }
         return detail::array_descriptor2_proxy(m_ptr)->flags;
     }
-#endif
 
 private:
     static object &_dtype_from_pep3118() {

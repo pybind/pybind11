@@ -10,7 +10,7 @@ if(NOT CMAKE_VERSION VERSION_LESS "3.27")
   cmake_policy(GET CMP0148 _pybind11_cmp0148)
 endif()
 
-cmake_minimum_required(VERSION 3.15...3.30)
+cmake_minimum_required(VERSION 3.15...4.0)
 
 if(_pybind11_cmp0148)
   cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
@@ -92,8 +92,6 @@ option(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
        "To enforce that a handle_type_name<> specialization exists" OFF)
 option(PYBIND11_SIMPLE_GIL_MANAGEMENT
        "Use simpler GIL management logic that does not support disassociation" OFF)
-option(PYBIND11_NUMPY_1_ONLY
-       "Disable NumPy 2 support to avoid changes to previous pybind11 versions." OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
@@ -104,9 +102,6 @@ if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
 endif()
 if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
   add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-endif()
-if(PYBIND11_NUMPY_1_ONLY)
-  add_compile_definitions(PYBIND11_NUMPY_1_ONLY)
 endif()
 
 cmake_dependent_option(
@@ -134,8 +129,10 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/cpp_conduit.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
+    include/pybind11/detail/function_record_pyobject.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
+    include/pybind11/detail/native_enum_data.h
     include/pybind11/detail/struct_smart_holder.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
@@ -162,6 +159,7 @@ set(PYBIND11_HEADERS
     include/pybind11/gil_safe_call_once.h
     include/pybind11/iostream.h
     include/pybind11/functional.h
+    include/pybind11/native_enum.h
     include/pybind11/numpy.h
     include/pybind11/operators.h
     include/pybind11/pybind11.h
