@@ -41,6 +41,10 @@ jobs:
           arch: x64
           cmake: "3.15"
 
+        - runs-on: macos-14
+          arch: x64
+          cmake: "4.0"
+
         - runs-on: windows-2019
           arch: x64 # x86 compilers seem to be missing on 2019 image
           cmake: "3.18"
