@@ -69,9 +69,10 @@ author = "Wenzel Jakob"
 # built documents.
 
 # Read the listed version
-with open("../pybind11/_version.py") as f:
-    code = compile(f.read(), "../pybind11/_version.py", "exec")
-loc = {}
+version_file = DIR.parent / "pybind11/_version.py"
+with version_file.open(encoding="utf-8") as f:
+    code = compile(f.read(), version_file, "exec")
+loc = {"__file__": str(version_file)}
 exec(code, loc)
 
 # The full version, including alpha/beta/rc tags.
