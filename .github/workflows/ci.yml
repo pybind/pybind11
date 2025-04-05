@@ -30,11 +30,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, windows-2022, macos-13]
+        runs-on: [ubuntu-22.04, windows-2022, macos-13]
         python:
         - '3.8'
-        - '3.9'
-        - '3.12'
         - '3.13'
         - 'pypy-3.10'
         - 'pypy-3.11'
@@ -80,7 +78,11 @@ jobs:
             python: '3.12'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          # Extra ubuntu latest job
+          # Extra ubuntu latest jobs
+          - runs-on: ubuntu-latest
+            python: '3.9'
+          - runs-on: ubuntu-latest
+            python: '3.10'
           - runs-on: ubuntu-latest
             python: '3.11'
           # Run tests with py::smart_holder as the default holder
@@ -273,7 +275,7 @@ jobs:
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -353,21 +355,11 @@ jobs:
             std: 14
           - clang: 11
             std: 20
-          - clang: 12
-            std: 20
-          - clang: 13
-            std: 20
           - clang: 14
             std: 20
-          - clang: 15
-            std: 20
-            container_suffix: "-bullseye"
           - clang: 16
             std: 20
             container_suffix: "-bullseye"
-          - clang: 17
-            std: 20
-            container_suffix: "-bookworm"
           - clang: 18
             std: 20
             container_suffix: "-bookworm"
@@ -531,8 +523,6 @@ jobs:
           - { gcc: 9, std: 20 }
           - { gcc: 10, std: 17 }
           - { gcc: 10, std: 20 }
-          - { gcc: 11, std: 20 }
-          - { gcc: 12, std: 20 }
           - { gcc: 13, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
@@ -831,10 +821,7 @@ jobs:
       matrix:
         python:
         - '3.8'
-        - '3.9'
-        - '3.10'
-        - '3.11'
-        - '3.12'
+        - '3.13'
 
         include:
           - python: '3.12'
