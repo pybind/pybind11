@@ -246,17 +246,38 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
     with zipfile.ZipFile(str(wheel)) as z:
         names = z.namelist()
+        share = zipfile.Path(z, "pybind11/share")
+        pkgconfig = (share / "pkgconfig/pybind11.pc").read_text(encoding="utf-8")
+        cmakeconfig = (share / "cmake/pybind11/pybind11Config.cmake").read_text(
+            encoding="utf-8"
+        )
 
     trimmed = {n for n in names if "dist-info" not in n}
     trimmed |= {f"dist-info/{n.split('/', 1)[-1]}" for n in names if "dist-info" in n}
+
     assert files == trimmed
+
+    assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmakeconfig
+
+    version = wheel.basename.split("-")[1]
+    simple_version = ".".join(version.split(".")[:3])
+    pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
+    assert pkgconfig_expected == pkgconfig
 
 
 def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     with build_global():
         subprocess.run(
-            [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir), *UV_ARGS],
+            [
+                sys.executable,
+                "-m",
+                "build",
+                "--wheel",
+                "--outdir",
+                str(tmpdir),
+                *UV_ARGS,
+            ],
             check=True,
         )
 
@@ -274,8 +295,21 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
 
     with zipfile.ZipFile(str(wheel)) as z:
         names = z.namelist()
+        beginning = names[0].split("/", 1)[0].rsplit(".", 1)[0]
 
-    beginning = names[0].split("/", 1)[0].rsplit(".", 1)[0]
+        share = zipfile.Path(z, f"{beginning}.data/data/share")
+        pkgconfig = (share / "pkgconfig/pybind11.pc").read_text(encoding="utf-8")
+        cmakeconfig = (share / "cmake/pybind11/pybind11Config.cmake").read_text(
+            encoding="utf-8"
+        )
+
     trimmed = {n[len(beginning) + 1 :] for n in names}
 
     assert files == trimmed
+
+    assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmakeconfig
+
+    version = wheel.basename.split("-")[1]
+    simple_version = ".".join(version.split(".")[:3])
+    pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
+    assert pkgconfig_expected == pkgconfig

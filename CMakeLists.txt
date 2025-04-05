@@ -371,6 +371,8 @@ if(PYBIND11_INSTALL)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"
           DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig/")
 
+  # When building a wheel, include __init__.py's for modules
+  # (see https://github.com/pybind/pybind11/pull/5552)
   if(DEFINED SKBUILD_PROJECT_NAME AND SKBUILD_PROJECT_NAME STREQUAL "pybind11")
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/empty")
     file(TOUCH "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py")

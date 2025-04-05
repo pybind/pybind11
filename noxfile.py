@@ -116,6 +116,9 @@ def build(session: nox.Session) -> None:
 
 @contextlib.contextmanager
 def preserve_file(filename: Path) -> Generator[str, None, None]:
+    """
+    Causes a file to be stored and preserved when the context manager exits.
+    """
     old_stat = filename.stat()
     old_file = filename.read_text(encoding="utf-8")
     try:
