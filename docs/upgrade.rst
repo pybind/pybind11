@@ -91,9 +91,64 @@ Potential stumbling blocks when migrating to v3.0
 
 The following issues are very unlikely to arise, and easy to work around:
 
-* TODO holder caster traits specializations may be needed
+* In rare cases, a C++ enum may be bound to Python via a
+  :ref:`custom type caster <custom_type_caster>`. In such cases, a
+  template specialization like this may be required:
 
-* TODO enum caster traits specializations may be needed
+  .. code-block:: cpp
+
+      #if defined(PYBIND11_HAS_NATIVE_ENUM)
+      namespace pybind11::detail {
+      template <typename FancyEnum>
+      struct type_caster_enum_type_enabled<
+          FancyEnum,
+          enable_if_t<is_fancy_enum<FancyEnum>::value>> : std::false_type {};
+      }
+      #endif
+
+  This specialization is needed only if the custom type caster is templated.
+
+  The ``PYBIND11_HAS_NATIVE_ENUM`` guard is needed only
+  if backward compatibility with pybind11v2 is required.
+
+* Similarly, template specializations like the following may be required
+  if there are custom
+
+  * ``pybind11::detail::copyable_holder_caster`` or
+
+  * ``pybind11::detail::move_only_holder_caster``
+
+  implementations that are used for ``std::shared_ptr`` or ``std::unique_ptr``
+  conversions:
+
+  .. code-block:: cpp
+
+      #if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+      namespace pybind11::detail {
+      template <typename ExampleType>
+      struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled<
+          ExampleType,
+          enable_if_t<is_example_type<ExampleType>::value>> : std::false_type {};
+      }
+      #endif
+
+  .. code-block:: cpp
+
+      #if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+      namespace pybind11::detail {
+      template <typename ExampleType>
+      struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled<
+          ExampleType,
+          enable_if_t<is_example_type<ExampleType>::value>> : std::false_type {};
+      }
+      #endif
+
+  The ``PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT`` guard is needed only
+  if backward compatibility with pybind11v2 is required.
+
+  (Note that ``copyable_holder_caster`` and ``move_only_holder_caster`` are not
+  documented, although they existed since 2017.)
+
 
 .. _upgrade-guide-2.12:
 
