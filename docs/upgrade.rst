@@ -20,7 +20,7 @@ wrapped in preprocessor conditionals to maintain compatibility with the
 2.x series.
 
 However, due to new features and modernizations, extensions built with
-pybind11 v3.0 are not ABI-compatible with those built using v2.12. To ensure
+pybind11 v3.0 are not ABI-compatible with those built using v2.13. To ensure
 cross-extension-module compatibility, it is recommended to rebuild all
 pybind11-based extensions with v3.0.
 
