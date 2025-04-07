@@ -75,6 +75,11 @@ you may incrementally adopt new features where appropriate:
   removed. Runtime failures (assuming good unit test coverage) will highlight
   base-and-derived class situations that require coordinated changes.
 
+  Note that ``py::bind_vector`` and ``py::bind_map`` (in pybind11/stl_bind.h)
+  have a ``holder_type`` template parameter that defaults to
+  ``std::unique_ptr``. If ``py::smart_holder`` functionality is desired or
+  required, use e.g. ``py::bind_vector<VecType, py::smart_holder>``.
+
 * Gradually migrate from ``py::enum_`` to ``py::native_enum`` to improve
   integration with Python's standard enum types.
 
