@@ -338,3 +338,15 @@ def test_private_esft_tolerance():
         _ = c.ptr  # getattr
     with pytest.raises(TypeError):
         c.ptr = None  # setattr
+
+
+def test_copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled():
+    assert (
+        m.return_std_shared_ptr_example_drvd() == "copyable_holder_caster_traits_test"
+    )
+
+
+def test_move_only_holder_caster_shared_ptr_with_smart_holder_support_enabled():
+    assert (
+        m.return_std_unique_ptr_example_drvd() == "move_only_holder_caster_traits_test"
+    )
