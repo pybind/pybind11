@@ -130,6 +130,7 @@ Bug fixes:
   `#5448 <https://github.com/pybind/pybind11/pull/5448>`_
 
 * ``PYBIND11_PLATFORM_ABI_ID`` (which is used in composing ``PYBIND11_INTERNALS_ID``) was modernized to reflect actual ABI compatibility more accurately.
+  `#4953 <https://github.com/pybind/pybind11/pull/4953>`_
   `#5439 <https://github.com/pybind/pybind11/pull/5439>`_
 
 * Fix buffer protocol implementation.
@@ -155,11 +156,6 @@ Bug fixes:
 
 * Properly translate C++ exception to Python exception when creating Python buffer from wrapped object.
   `#5324 <https://github.com/pybind/pybind11/pull/5324>`_
-
-* Properly handle MSVC MT/MD incompatibility in ``PYBIND11_BUILD_ABI``.
-  `#4953 <https://github.com/pybind/pybind11/pull/4953>`_
-
-
 
 
 .. fix(cmake)
