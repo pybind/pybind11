@@ -10,8 +10,8 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-IN DEVELOPMENT
---------------
+IN DEVELOPMENT (v3.0.0)
+-----------------------
 
 Changes will be summarized here periodically.
 
@@ -27,7 +27,7 @@ New Features:
 
 * Remove support for pybind11 v2 internals versions (4, 5, 6).
   (The internals version number has been bumped for pybind11 v3.)
-  `#5512 <https://github.com/pybind/pybind11/pull/5512>`_
+  `#5512 <https://github.com/pybind/pybind11/pull/5512>`_ |
   `#5530 <https://github.com/pybind/pybind11/pull/5530>`_
 
 * (CMake) Enable FindPython mode by default, with a ``COMPAT`` mode that sets some of the old variables to ease transition.
@@ -69,7 +69,6 @@ New Features:
   `#5360 <https://github.com/pybind/pybind11/pull/5360>`_
 
 
-
 New Features (typing):
 
 .. feat(types)
@@ -83,14 +82,15 @@ New Features (typing):
 * Updated type hint for ``py::capsule`` to ``type.CapsuleType``.
   `#5567 <https://github.com/pybind/pybind11/pull/5567>`_
 
-* Adds support for ``typing.SupportsInt`` and ``typing.SupportsFloat``. Update ``Final`` to be narrower type hint. Make ``std::function`` match ``Callable`` type. Fix ``io_name`` bug in
-``attr_with_type_hint``.
+* Adds support for ``typing.SupportsInt`` and ``typing.SupportsFloat``.
+  Update ``Final`` to be narrower type hint. Make ``std::function`` match
+  ``Callable`` type. Fix ``io_name`` bug in ``attr_with_type_hint``.
   `#5540 <https://github.com/pybind/pybind11/pull/5540>`_
 
 * Rework of arg/return type hints to support ``.noconvert()``.
   `#5486 <https://github.com/pybind/pybind11/pull/5486>`_
 
-* add ``attr_with_type`` for declaring attribute types and ``Final``, ``ClassVar`` type annotations.
+* Add ``attr_with_type`` for declaring attribute types and ``Final``, ``ClassVar`` type annotations.
   `#5460 <https://github.com/pybind/pybind11/pull/5460>`_
 
 * Allow annotate methods with ``py::pos_only`` when only have the ``self`` argument. Make arguments for auto-generated dunder methods positional-only.
@@ -111,7 +111,6 @@ New Features (typing):
   `#5469 <https://github.com/pybind/pybind11/pull/5469>`_
 
 
-
 Bug fixes:
 
 * Set ``__file__`` on submodules.
@@ -130,7 +129,7 @@ Bug fixes:
   `#5448 <https://github.com/pybind/pybind11/pull/5448>`_
 
 * ``PYBIND11_PLATFORM_ABI_ID`` (which is used in composing ``PYBIND11_INTERNALS_ID``) was modernized to reflect actual ABI compatibility more accurately.
-  `#4953 <https://github.com/pybind/pybind11/pull/4953>`_
+  `#4953 <https://github.com/pybind/pybind11/pull/4953>`_ |
   `#5439 <https://github.com/pybind/pybind11/pull/5439>`_
 
 * Fix buffer protocol implementation.
