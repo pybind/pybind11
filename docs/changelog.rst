@@ -25,9 +25,8 @@ New Features:
   and ``std::enable_shared_from_this``.
   `#5542 <https://github.com/pybind/pybind11/pull/5542>`_
 
-* Remove pybind11 2.x internals versions, the internals version number has been
-  bumped. Using ``self._pybind11_conduit_v1_()`` (backported to several 2.x
-  versions) should keep extension compatibility.
+* Remove support for pybind11 v2 internals versions (4, 5, 6).
+  (The internals version number has been bumped for pybind11 v3.)
   `#5512 <https://github.com/pybind/pybind11/pull/5512>`_
   `#5530 <https://github.com/pybind/pybind11/pull/5530>`_
 
