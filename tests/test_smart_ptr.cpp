@@ -348,6 +348,7 @@ struct example_drvd : example_base {};
 
 void wrap(py::module_ &m) {
     m.def("return_std_shared_ptr_example_drvd",
+          // NOLINTNEXTLINE(modernize-make-shared)
           []() { return std::shared_ptr<example_drvd>(new example_drvd()); });
     m.def("return_std_unique_ptr_example_drvd",
           []() { return std::unique_ptr<example_drvd>(new example_drvd()); });
