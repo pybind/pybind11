@@ -13,8 +13,8 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-using pybindit::memory::smart_holder;
-namespace poc = pybindit::memory::smart_holder_poc;
+using pybind11::memory::smart_holder;
+namespace poc = pybind11::memory::smart_holder_poc;
 
 namespace helpers {
 
