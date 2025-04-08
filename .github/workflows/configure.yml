@@ -42,7 +42,7 @@ jobs:
           cmake: "3.15"
 
         - runs-on: macos-14
-          arch: x64
+          arch: arm64
           cmake: "4.0"
 
         - runs-on: windows-2019
