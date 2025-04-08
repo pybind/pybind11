@@ -61,13 +61,9 @@ def test_unscoped_enum():
 
     for docstring_line in [
         "An unscoped enumeration",
-        "",
         "Members:",
-        "",
         "  EOne : Docstring for EOne",
-        "",
         "  ETwo : Docstring for ETwo",
-        "",
         "  EThree : Docstring for EThree",
     ]:
         assert docstring_line in m.UnscopedEnum.__doc__
