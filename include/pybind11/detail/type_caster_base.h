@@ -543,7 +543,7 @@ struct value_and_holder_helper {
 
     // have_holder() must be true or this function will fail.
     void throw_if_instance_is_currently_owned_by_shared_ptr() const {
-        auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
+        auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(holder().vptr);
         if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
             throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
@@ -770,7 +770,7 @@ struct load_helper : value_and_holder_helper {
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
         if (python_instance_is_alias) {
-            auto *vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
+            auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
                 if (released_ptr) {
@@ -790,8 +790,7 @@ struct load_helper : value_and_holder_helper {
                                   "loaded_v_h.inst == sptsls_ptr->self");
                 }
             }
-            if (sptsls_ptr != nullptr
-                || !pybindit::memory::type_has_shared_from_this(type_raw_ptr)) {
+            if (sptsls_ptr != nullptr || !memory::type_has_shared_from_this(type_raw_ptr)) {
                 return std::shared_ptr<T>(
                     type_raw_ptr, shared_ptr_trampoline_self_life_support(loaded_v_h.inst));
             }

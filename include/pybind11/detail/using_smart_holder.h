@@ -11,7 +11,7 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-using pybindit::memory::smart_holder;
+using pybind11::memory::smart_holder;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 

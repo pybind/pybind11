@@ -48,6 +48,8 @@ Details:
 
 #pragma once
 
+#include "pybind11_namespace_macros.h"
+
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -56,11 +58,8 @@ Details:
 #include <typeinfo>
 #include <utility>
 
-// pybindit = Python Bindings Innovation Track.
-// Currently not in pybind11 namespace to signal that this POC does not depend
-// on any existing pybind11 functionality.
-namespace pybindit {
-namespace memory {
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(memory)
 
 // Default fallback.
 static constexpr bool type_has_shared_from_this(...) { return false; }
@@ -355,5 +354,5 @@ struct smart_holder {
     }
 };
 
-} // namespace memory
-} // namespace pybindit
+PYBIND11_NAMESPACE_END(memory)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

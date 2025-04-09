@@ -69,6 +69,7 @@ detail_headers = {
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/native_enum_data.h",
+    "include/pybind11/detail/pybind11_namespace_macros.h",
     "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
