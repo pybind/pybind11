@@ -55,6 +55,7 @@ extend-select = [
   "N",           # pep8-naming
   "ARG",         # flake8-unused-arguments
   "C4",          # flake8-comprehensions
+  "E5",          # pycodestyle
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
   "PGH",         # pygrep-hooks
@@ -69,7 +70,6 @@ extend-select = [
 ]
 ignore = [
   "PLR",    # Design related pylint
-  "E501",   # Line too long (Black is enough)
   "PT011",  # Too broad with raises in pytest
   "SIM118", # iter(x) is not always the same as iter(x.keys())
 ]
