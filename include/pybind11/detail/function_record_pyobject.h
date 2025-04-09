@@ -38,6 +38,7 @@ static PyMethodDef tp_methods_impl[]
         // requires a PyCFunction. The cast through void* is safe and
         // idiomatic with METH_KEYWORDS, and it successfully sidesteps
         // unhelpful compiler warnings.
+        // NOLINTNEXTLINE(bugprone-casting-through-void)
         reinterpret_cast<PyCFunction>(reinterpret_cast<void *>(reduce_ex_impl)),
         METH_VARARGS | METH_KEYWORDS,
         nullptr},
