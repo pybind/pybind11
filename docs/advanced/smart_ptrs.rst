@@ -1,3 +1,5 @@
+.. _py_class_holder:
+
 Smart pointers & ``py::class_``
 ###############################
 
@@ -175,59 +177,3 @@ provides ``.get()`` functionality via ``.getPointer()``.
     The file :file:`tests/test_smart_ptr.cpp` contains a complete example
     that demonstrates how to work with custom reference-counting holder types
     in more detail.
-
-
-Be careful not to accidentally undermine automatic lifetime management
-======================================================================
-
-``py::class_``-wrapped objects automatically manage the lifetime of the
-wrapped C++ object, in collaboration with the chosen holder type.
-When wrapping C++ functions involving raw pointers, care needs to be taken
-to not inadvertently transfer ownership, resulting in multiple Python
-objects acting as owners, causing heap-use-after-free or double-free errors.
-For example:
-
-.. code-block:: cpp
-
-    class Child { };
-
-    class Parent {
-    public:
-       Parent() : child(std::make_shared<Child>()) { }
-       Child *get_child() { return child.get(); }  /* DANGER */
-    private:
-        std::shared_ptr<Child> child;
-    };
-
-    PYBIND11_MODULE(example, m) {
-        py::class_<Child, std::shared_ptr<Child>>(m, "Child");
-
-        py::class_<Parent, std::shared_ptr<Parent>>(m, "Parent")
-           .def(py::init<>())
-           .def("get_child", &Parent::get_child);  /* PROBLEM */
-    }
-
-The following Python code leads to undefined behavior, likely resulting in
-a segmentation fault.
-
-.. code-block:: python
-
-   from example import Parent
-
-   print(Parent().get_child())
-
-Part of the ``/* PROBLEM */`` here is that pybind11 falls back to using
-``return_value_policy::take_ownership`` as the default (see
-:ref:`return_value_policies`). The fact that the ``Child`` instance is
-already managed by ``std::shared_ptr<Child>`` is lost. Therefore pybind11
-will create a second independent ``std::shared_ptr<Child>`` that also
-claims ownership of the pointer, eventually leading to heap-use-after-free
-or double-free errors.
-
-There are various ways to resolve this issue, either by changing
-the ``Child`` or ``Parent`` C++ implementations (e.g. using
-``std::enable_shared_from_this<Child>`` as a base class for
-``Child``, or adding a member function to ``Parent`` that returns
-``std::shared_ptr<Child>``), or if that is not feasible, by using
-``return_value_policy::reference_internal``. What is the best approach
-depends on the exact situation.
