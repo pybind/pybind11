@@ -45,14 +45,14 @@ jobs:
         # We support an optional key: args, for cmake args
         include:
           # Just add a key
-          - runs-on: ubuntu-20.04
+          - runs-on: ubuntu-22.04
             python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=OFF
               -DCMAKE_CXX_FLAGS="-D_=1"
               -DPYBIND11_NUMPY_1_ONLY=ON
             exercise_D_: 1
-          - runs-on: windows-2019
+          - runs-on: windows-2022
             python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=OFF
@@ -82,8 +82,6 @@ jobs:
           - runs-on: ubuntu-latest
             python: '3.9'
           - runs-on: ubuntu-latest
-            python: '3.10'
-          - runs-on: ubuntu-latest
             python: '3.11'
           # Run tests with py::smart_holder as the default holder
           # with recent (or ideally latest) released Python version.
@@ -99,8 +97,8 @@ jobs:
             python: '3.12'
             args: >
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
-          - python: 'graalpy-24.1'
-            runs-on: 'ubuntu-latest'
+          - runs-on: 'ubuntu-latest'
+            python: 'graalpy-24.1'
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
