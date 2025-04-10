@@ -182,7 +182,7 @@ jobs:
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
     - name: Configure C++17
       run: >
-        cmake -S . -B build2
+        cmake -S . -B build2 -Werror=dev
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
         -DPYBIND11_PYTEST_ARGS=-v
