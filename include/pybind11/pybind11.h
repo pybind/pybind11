@@ -277,7 +277,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...), const Extra &...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-            (Return(*)(Class *, Arg...)) nullptr,
+            (Return (*)(Class *, Arg...)) nullptr,
             extra...);
     }
 
@@ -289,7 +289,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) &, const Extra &...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-            (Return(*)(Class *, Arg...)) nullptr,
+            (Return (*)(Class *, Arg...)) nullptr,
             extra...);
     }
 
@@ -299,7 +299,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) const, const Extra &...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-                   (Return(*)(const Class *, Arg...)) nullptr,
+                   (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
     }
 
@@ -311,7 +311,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) const &, const Extra &...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-                   (Return(*)(const Class *, Arg...)) nullptr,
+                   (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
     }
 
@@ -874,7 +874,7 @@ protected:
                 function_call call(func, parent);
 
                 // Protect std::min with parentheses
-                size_t args_to_copy = (std::min)(pos_args, n_args_in);
+                size_t args_to_copy = (std::min) (pos_args, n_args_in);
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument

@@ -51,7 +51,7 @@ def build_expected_version_hex(matches: dict[str, str]) -> str:
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
 # files, and the sys.prefix files (CMake and headers).
 
-global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
+global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST")
 
 setup_py = Path(
     "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
