@@ -32,17 +32,17 @@ void tp_free_impl(void *self);
 
 static PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *);
 
-PYBIND11_WARNING_PUSH
-#if defined(__GNUC__) && __GNUC__ >= 8
-PYBIND11_WARNING_DISABLE_GCC("-Wcast-function-type")
-#endif
-#if defined(__clang__) && !defined(__apple_build_version__) && __clang_major__ >= 19
-PYBIND11_WARNING_DISABLE_CLANG("-Wcast-function-type-mismatch")
-#endif
 static PyMethodDef tp_methods_impl[]
-    = {{"__reduce_ex__", (PyCFunction) reduce_ex_impl, METH_VARARGS | METH_KEYWORDS, nullptr},
+    = {{"__reduce_ex__",
+        // reduce_ex_impl is a PyCFunctionWithKeywords, but PyMethodDef
+        // requires a PyCFunction. The cast through void* is safe and
+        // idiomatic with METH_KEYWORDS, and it successfully sidesteps
+        // unhelpful compiler warnings.
+        // NOLINTNEXTLINE(bugprone-casting-through-void)
+        reinterpret_cast<PyCFunction>(reinterpret_cast<void *>(reduce_ex_impl)),
+        METH_VARARGS | METH_KEYWORDS,
+        nullptr},
        {nullptr, nullptr, 0, nullptr}};
-PYBIND11_WARNING_POP
 
 // Note that this name is versioned.
 constexpr char tp_name_impl[]
