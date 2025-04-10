@@ -56,17 +56,17 @@ jobs:
             python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=OFF
-          # Inject a couple Windows 2019 runs
+          # Inject a Windows 2019 run
           - runs-on: windows-2019
             python: '3.9'
           # Inject a few runs with different runtime libraries
           - runs-on: windows-2022
-            python: '3.9'
+            python: '3.8'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
               -DPYBIND11_NUMPY_1_ONLY=ON
           - runs-on: windows-2022
-            python: '3.10'
+            python: '3.9'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
           # This needs a python built with MTd
@@ -75,14 +75,9 @@ jobs:
           #   args: >
           #     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
           - runs-on: windows-2022
-            python: '3.12'
+            python: '3.13'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          # Extra ubuntu latest jobs
-          - runs-on: ubuntu-latest
-            python: '3.9'
-          - runs-on: ubuntu-latest
-            python: '3.11'
           # Run tests with py::smart_holder as the default holder
           # with recent (or ideally latest) released Python version.
           - runs-on: ubuntu-latest
@@ -90,11 +85,11 @@ jobs:
             args: >
               -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
           - runs-on: macos-13
-            python: '3.12'
+            python: '3.11'
             args: >
               -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
           - runs-on: windows-2022
-            python: '3.12'
+            python: '3.10'
             args: >
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
           - runs-on: 'ubuntu-latest'
@@ -328,8 +323,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container_suffix:
-          - ""
         include:
           - clang: 5
             std: 14
@@ -801,16 +794,11 @@ jobs:
       matrix:
         python:
         - '3.8'
+        - '3.10'
         - '3.13'
 
         include:
-          - python: '3.12'
-            args: -DCMAKE_CXX_STANDARD=20
-          - python: '3.11'
-            args: -DCMAKE_CXX_STANDARD=20
           - python: '3.10'
-            args: -DCMAKE_CXX_STANDARD=20
-          - python: '3.9'
             args: -DCMAKE_CXX_STANDARD=20
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
@@ -859,10 +847,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python:
-        - 3.8
-        - 3.9
-
         include:
           - python: 3.9
             args: -DCMAKE_CXX_STANDARD=20

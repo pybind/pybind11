@@ -24,30 +24,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-22.04, macos-13, windows-latest]
-        arch: [x64]
-        cmake: ["3.26"]
-
         include:
         - runs-on: ubuntu-22.04
-          arch: x64
           cmake: "3.15"
 
         - runs-on: ubuntu-22.04
-          arch: x64
+          cmake: "3.26"
+
+        - runs-on: ubuntu-22.04
           cmake: "3.29"
 
         - runs-on: macos-13
-          arch: x64
           cmake: "3.15"
 
         - runs-on: macos-14
-          arch: arm64
           cmake: "4.0"
 
         - runs-on: windows-2019
-          arch: x64 # x86 compilers seem to be missing on 2019 image
           cmake: "3.18"
+
+        - runs-on: windows-latest
+          cmake: "4.0"
 
     name: 🐍 3.11 • CMake ${{ matrix.cmake }} • ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
@@ -59,7 +56,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.11
-        architecture: ${{ matrix.arch }}
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt
