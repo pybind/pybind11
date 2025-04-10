@@ -1517,13 +1517,6 @@ inline dict globals() {
 #endif
 }
 
-template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
-PYBIND11_DEPRECATED("make_simple_namespace should be replaced with "
-                    "py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
-object make_simple_namespace(Args &&...args_) {
-    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
-}
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
@@ -2520,7 +2513,7 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline str enum_name(handle arg) {
-    dict entries = arg.get_type().attr("__entries");
+    dict entries = type::handle_of(arg).attr("__entries");
     for (auto kv : entries) {
         if (handle(kv.second[int_(0)]).equal(arg)) {
             return pybind11::str(kv.first);

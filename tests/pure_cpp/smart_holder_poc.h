@@ -6,12 +6,12 @@
 
 #include "pybind11/detail/struct_smart_holder.h"
 
-namespace pybindit {
-namespace memory {
-namespace smart_holder_poc { // Proof-of-Concept implementations.
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(memory)
+PYBIND11_NAMESPACE_BEGIN(smart_holder_poc) // Proof-of-Concept implementations.
 
 struct PrivateESFT : private std::enable_shared_from_this<PrivateESFT> {};
-static_assert(!pybindit::memory::type_has_shared_from_this(static_cast<PrivateESFT *>(nullptr)),
+static_assert(!type_has_shared_from_this(static_cast<PrivateESFT *>(nullptr)),
               "should detect inaccessible base");
 
 template <typename T>
@@ -50,6 +50,6 @@ std::unique_ptr<T, D> as_unique_ptr(smart_holder &hld) {
     return std::unique_ptr<T, D>(raw_ptr);
 }
 
-} // namespace smart_holder_poc
-} // namespace memory
-} // namespace pybindit
+PYBIND11_NAMESPACE_END(smart_holder_poc)
+PYBIND11_NAMESPACE_END(memory)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
