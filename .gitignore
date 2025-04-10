@@ -44,3 +44,4 @@ pybind11Targets.cmake
 /docs/_build/*
 .ipynb_checkpoints/
 tests/main.cpp
+CMakeUserPresents.json
