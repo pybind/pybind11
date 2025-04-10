@@ -45,11 +45,13 @@ struct is_proto_enum<some_proto_enum> : std::true_type {};
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// Negate this condition to demonstrate "ambiguous template instantiation" compilation error:
+#if defined(PYBIND11_HAS_NATIVE_ENUM)
 template <typename ProtoEnumType>
 struct type_caster_enum_type_enabled<
     ProtoEnumType,
-    detail::enable_if_t<test_native_enum::is_proto_enum<ProtoEnumType>::value>> : std::false_type {
-};
+    enable_if_t<test_native_enum::is_proto_enum<ProtoEnumType>::value>> : std::false_type {};
+#endif
 
 // https://github.com/pybind/pybind11_protobuf/blob/a50899c2eb604fc5f25deeb8901eff6231b8b3c0/pybind11_protobuf/enum_type_caster.h#L101-L105
 template <typename ProtoEnumType>
