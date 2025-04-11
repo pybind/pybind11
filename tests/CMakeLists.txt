@@ -541,10 +541,9 @@ if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
 
 endif()
 
-# cmake 3.12 added list(transform <list> prepend
-# but we can't use it yet
-string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_FILES
-               "${PYBIND11_PYTEST_FILES}")
+# Convert relative to full file names
+list(TRANSFORM PYBIND11_PYTEST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/"
+                                             OUTPUT_VARIABLE PYBIND11_ABS_PYTEST_FILES)
 
 set(PYBIND11_TEST_PREFIX_COMMAND
     ""
