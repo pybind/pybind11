@@ -55,7 +55,6 @@ extend-select = [
   "N",           # pep8-naming
   "ARG",         # flake8-unused-arguments
   "C4",          # flake8-comprehensions
-  "E5",          # pycodestyle
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
   "PGH",         # pygrep-hooks
