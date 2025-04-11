@@ -128,7 +128,7 @@ jobs:
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python --system -r tests/requirements.txt --index-strategy unsafe-best-match
+      run: uv pip install --python=python --system -r tests/requirements.txt
 
     - name: Setup annotations on Linux
       if: runner.os == 'Linux'

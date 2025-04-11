@@ -34,7 +34,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Prepare env
-      run: uv pip install --system --only-binary numpy -r tests/requirements.txt --index-strategy unsafe-best-match
+      run: uv pip install --system -r tests/requirements.txt
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
@@ -58,7 +58,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Prepare env
-      run: uv pip install --system -r tests/requirements.txt twine --index-strategy unsafe-best-match
+      run: uv pip install --system -r tests/requirements.txt twine
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/

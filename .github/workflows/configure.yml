@@ -56,7 +56,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Prepare env
-      run: uv pip install --python=python --system -r tests/requirements.txt --index-strategy unsafe-best-match
+      run: uv pip install --python=python --system -r tests/requirements.txt
 
     # An action for adding a specific version of CMake:
     #   https://github.com/jwlawson/actions-setup-cmake
