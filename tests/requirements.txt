@@ -1,3 +1,4 @@
+--extra-index-url=https://www.graalvm.org/python/wheels
 --only-binary=:all:
 build>=1
 numpy~=1.23.0; python_version=="3.8" and platform_python_implementation=="PyPy"
