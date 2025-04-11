@@ -24,16 +24,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, macos-13, windows-latest]
+        runs-on: [ubuntu-22.04, macos-13, windows-latest]
         arch: [x64]
         cmake: ["3.26"]
 
         include:
-        - runs-on: ubuntu-20.04
+        - runs-on: ubuntu-22.04
           arch: x64
           cmake: "3.15"
 
-        - runs-on: ubuntu-20.04
+        - runs-on: ubuntu-22.04
           arch: x64
           cmake: "3.29"
 
