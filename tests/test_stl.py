@@ -632,17 +632,29 @@ def test_mapping_caster_protocol(doc):
     class FormalMappingLike(BareMappingLike, Mapping):
         pass
 
+    a1b2c3 = {"a": 1, "b": 2, "c": 3}
+    # convert mode
     assert (
         doc(m.roundtrip_std_map_str_int)
         == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt]) -> dict[str, int]"
     )
-    a1b2c3 = {"a": 1, "b": 2, "c": 3}
     assert m.roundtrip_std_map_str_int(a1b2c3) == a1b2c3
     assert m.roundtrip_std_map_str_int(FormalMappingLike(**a1b2c3)) == a1b2c3
     assert m.roundtrip_std_map_str_int({}) == {}
     assert m.roundtrip_std_map_str_int(FormalMappingLike()) == {}
     with pytest.raises(TypeError):
         m.roundtrip_std_map_str_int(BareMappingLike(**a1b2c3))
+    # noconvert mode
+    assert (
+        doc(m.roundtrip_std_map_str_int_noconvert)
+        == "roundtrip_std_map_str_int_noconvert(m: dict[str, int]) -> dict[str, int]"
+    )
+    assert m.roundtrip_std_map_str_int_noconvert(a1b2c3) == a1b2c3
+    assert m.roundtrip_std_map_str_int_noconvert({}) == {}
+    with pytest.raises(TypeError):
+        m.roundtrip_std_map_str_int_noconvert(FormalMappingLike(**a1b2c3))
+    with pytest.raises(TypeError):
+        m.roundtrip_std_map_str_int_noconvert(BareMappingLike(**a1b2c3))
 
 
 def test_set_caster_protocol(doc):
@@ -667,6 +679,7 @@ def test_set_caster_protocol(doc):
     class FormalSetLike(BareSetLike, Set):
         pass
 
+    # convert mode
     assert (
         doc(m.roundtrip_std_set_int)
         == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt]) -> set[int]"
@@ -677,3 +690,14 @@ def test_set_caster_protocol(doc):
     assert m.roundtrip_std_set_int(FormalSetLike()) == set()
     with pytest.raises(TypeError):
         m.roundtrip_std_set_int(BareSetLike(1, 2, 3))
+    # noconvert mode
+    assert (
+        doc(m.roundtrip_std_set_int_noconvert)
+        == "roundtrip_std_set_int_noconvert(s: set[int]) -> set[int]"
+    )
+    assert m.roundtrip_std_set_int_noconvert({1, 2, 3}) == {1, 2, 3}
+    assert m.roundtrip_std_set_int_noconvert(set()) == set()
+    with pytest.raises(TypeError):
+        m.roundtrip_std_set_int_noconvert(FormalSetLike(1, 2, 3))
+    with pytest.raises(TypeError):
+        m.roundtrip_std_set_int_noconvert(BareSetLike(1, 2, 3))

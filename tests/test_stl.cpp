@@ -651,4 +651,12 @@ TEST_SUBMODULE(stl, m) {
     m.def("roundtrip_std_vector_int", [](const std::vector<int> &v) { return v; });
     m.def("roundtrip_std_map_str_int", [](const std::map<std::string, int> &m) { return m; });
     m.def("roundtrip_std_set_int", [](const std::set<int> &s) { return s; });
+    m.def(
+        "roundtrip_std_map_str_int_noconvert",
+        [](const std::map<std::string, int> &m) { return m; },
+        py::arg("m").noconvert());
+    m.def(
+        "roundtrip_std_set_int_noconvert",
+        [](const std::set<int> &s) { return s; },
+        py::arg("s").noconvert());
 }
