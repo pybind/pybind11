@@ -597,6 +597,7 @@ def test_sequence_caster_protocol(doc):
     class FormalSequenceLike(BareSequenceLike, Sequence):
         pass
 
+    # convert mode
     assert (
         doc(m.roundtrip_std_vector_int)
         == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt]) -> list[int]"
@@ -608,6 +609,22 @@ def test_sequence_caster_protocol(doc):
     assert m.roundtrip_std_vector_int([]) == []
     assert m.roundtrip_std_vector_int(()) == []
     assert m.roundtrip_std_vector_int(BareSequenceLike()) == []
+    # noconvert mode
+    assert (
+        doc(m.roundtrip_std_vector_int_noconvert)
+        == "roundtrip_std_vector_int_noconvert(v: list[int]) -> list[int]"
+    )
+    assert m.roundtrip_std_vector_int_noconvert([1, 2, 3]) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int_noconvert((1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int_noconvert(FormalSequenceLike(1, 2, 3)) == [
+        1,
+        2,
+        3,
+    ]
+    assert m.roundtrip_std_vector_int_noconvert(BareSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int_noconvert([]) == []
+    assert m.roundtrip_std_vector_int_noconvert(()) == []
+    assert m.roundtrip_std_vector_int_noconvert(BareSequenceLike()) == []
 
 
 def test_mapping_caster_protocol(doc):
