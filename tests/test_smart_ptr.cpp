@@ -290,6 +290,72 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>)
 
+namespace holder_caster_traits_test {
+struct example_base {};
+} // namespace holder_caster_traits_test
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Negate this condition to demonstrate "ambiguous template instantiation" compilation error:
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+template <typename ExampleType>
+struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled<
+    ExampleType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>>
+    : std::false_type {};
+#endif
+
+template <typename ExampleType, typename HolderType>
+struct copyable_holder_caster<
+    ExampleType,
+    HolderType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>> {
+    static constexpr auto name = const_name<ExampleType>();
+
+    static handle cast(const HolderType &, return_value_policy, handle) {
+        return str("copyable_holder_caster_traits_test").release();
+    }
+};
+
+// Negate this condition to demonstrate "ambiguous template instantiation" compilation error:
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+template <typename ExampleType>
+struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled<
+    ExampleType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>>
+    : std::false_type {};
+#endif
+
+template <typename ExampleType, typename HolderType>
+struct move_only_holder_caster<
+    ExampleType,
+    HolderType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>> {
+    static constexpr auto name = const_name<ExampleType>();
+
+    static handle cast(const HolderType &, return_value_policy, handle) {
+        return str("move_only_holder_caster_traits_test").release();
+    }
+};
+
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+namespace holder_caster_traits_test {
+
+struct example_drvd : example_base {};
+
+void wrap(py::module_ &m) {
+    m.def("return_std_shared_ptr_example_drvd",
+          // NOLINTNEXTLINE(modernize-make-shared)
+          []() { return std::shared_ptr<example_drvd>(new example_drvd()); });
+    m.def("return_std_unique_ptr_example_drvd",
+          []() { return std::unique_ptr<example_drvd>(new example_drvd()); });
+}
+
+} // namespace holder_caster_traits_test
+
 TEST_SUBMODULE(smart_ptr, m) {
     // Please do not interleave `struct` and `class` definitions with bindings code,
     // but implement `struct`s and `class`es in the anonymous namespace above.
@@ -482,4 +548,6 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init<>())
         .def_readwrite("ptr",
                        &ContainerUsingPrivateESFT::ptr); // <- access ESFT through shared_ptr
+
+    holder_caster_traits_test::wrap(m);
 }

@@ -30,11 +30,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-20.04, windows-2022, macos-13]
+        runs-on: [ubuntu-22.04, windows-2022, macos-13]
         python:
         - '3.8'
-        - '3.9'
-        - '3.12'
         - '3.13'
         - 'pypy-3.10'
         - 'pypy-3.11'
@@ -47,28 +45,28 @@ jobs:
         # We support an optional key: args, for cmake args
         include:
           # Just add a key
-          - runs-on: ubuntu-20.04
+          - runs-on: ubuntu-22.04
             python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=OFF
               -DCMAKE_CXX_FLAGS="-D_=1"
               -DPYBIND11_NUMPY_1_ONLY=ON
             exercise_D_: 1
-          - runs-on: windows-2019
+          - runs-on: windows-2022
             python: '3.8'
             args: >
               -DPYBIND11_FINDPYTHON=OFF
-          # Inject a couple Windows 2019 runs
+          # Inject a Windows 2019 run
           - runs-on: windows-2019
             python: '3.9'
           # Inject a few runs with different runtime libraries
           - runs-on: windows-2022
-            python: '3.9'
+            python: '3.8'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
               -DPYBIND11_NUMPY_1_ONLY=ON
           - runs-on: windows-2022
-            python: '3.10'
+            python: '3.9'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
           # This needs a python built with MTd
@@ -77,12 +75,9 @@ jobs:
           #   args: >
           #     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
           - runs-on: windows-2022
-            python: '3.12'
+            python: '3.13'
             args: >
               -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          # Extra ubuntu latest job
-          - runs-on: ubuntu-latest
-            python: '3.11'
           # Run tests with py::smart_holder as the default holder
           # with recent (or ideally latest) released Python version.
           - runs-on: ubuntu-latest
@@ -90,15 +85,15 @@ jobs:
             args: >
               -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
           - runs-on: macos-13
-            python: '3.12'
+            python: '3.11'
             args: >
               -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
           - runs-on: windows-2022
-            python: '3.12'
+            python: '3.10'
             args: >
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
-          - python: 'graalpy-24.1'
-            runs-on: 'ubuntu-latest'
+          - runs-on: 'ubuntu-latest'
+            python: 'graalpy-24.1'
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
@@ -182,7 +177,7 @@ jobs:
     # More-or-less randomly adding -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF here.
     - name: Configure C++17
       run: >
-        cmake -S . -B build2
+        cmake -S . -B build2 -Werror=dev
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
         -DPYBIND11_PYTEST_ARGS=-v
@@ -199,24 +194,6 @@ jobs:
 
     - name: C++ tests
       run: cmake --build build2 --target cpptest
-
-    # Third build - C++17 mode with unstable ABI
-    - name: Configure (unstable ABI)
-      run: >
-        cmake -S . -B build3
-        -DPYBIND11_WERROR=ON
-        -DPYBIND11_PYTEST_ARGS=-v
-        -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=ON
-        -DCMAKE_CXX_STANDARD=17
-        -DPYBIND11_INTERNALS_VERSION=10000000
-        ${{ matrix.args }}
-
-    - name: Build (unstable ABI)
-      run: cmake --build build3 -j 2
-
-    - name: Python tests (unstable ABI)
-      run: cmake --build build3 --target pytest
 
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
@@ -273,7 +250,7 @@ jobs:
           python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -346,28 +323,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container_suffix:
-          - ""
         include:
           - clang: 5
             std: 14
           - clang: 11
             std: 20
-          - clang: 12
-            std: 20
-          - clang: 13
-            std: 20
           - clang: 14
             std: 20
-          - clang: 15
-            std: 20
-            container_suffix: "-bullseye"
           - clang: 16
             std: 20
             container_suffix: "-bullseye"
-          - clang: 17
-            std: 20
-            container_suffix: "-bookworm"
           - clang: 18
             std: 20
             container_suffix: "-bookworm"
@@ -531,8 +496,6 @@ jobs:
           - { gcc: 9, std: 20 }
           - { gcc: 10, std: 17 }
           - { gcc: 10, std: 20 }
-          - { gcc: 11, std: 20 }
-          - { gcc: 12, std: 20 }
           - { gcc: 13, std: 20 }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
@@ -831,19 +794,11 @@ jobs:
       matrix:
         python:
         - '3.8'
-        - '3.9'
         - '3.10'
-        - '3.11'
-        - '3.12'
+        - '3.13'
 
         include:
-          - python: '3.12'
-            args: -DCMAKE_CXX_STANDARD=20
-          - python: '3.11'
-            args: -DCMAKE_CXX_STANDARD=20
           - python: '3.10'
-            args: -DCMAKE_CXX_STANDARD=20
-          - python: '3.9'
             args: -DCMAKE_CXX_STANDARD=20
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
@@ -892,10 +847,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python:
-        - 3.8
-        - 3.9
-
         include:
           - python: 3.9
             args: -DCMAKE_CXX_STANDARD=20

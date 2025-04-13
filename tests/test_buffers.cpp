@@ -237,11 +237,11 @@ TEST_SUBMODULE(buffers, m) {
         }
 
         float operator()(py::ssize_t i, py::ssize_t j) const {
-            return Matrix::operator()(i * m_row_factor, j * m_col_factor);
+            return Matrix::operator()(i *m_row_factor, j *m_col_factor);
         }
 
         float &operator()(py::ssize_t i, py::ssize_t j) {
-            return Matrix::operator()(i * m_row_factor, j * m_col_factor);
+            return Matrix::operator()(i *m_row_factor, j *m_col_factor);
         }
 
         using Matrix::data;

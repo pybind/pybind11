@@ -277,7 +277,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...), const Extra &...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-            (Return(*)(Class *, Arg...)) nullptr,
+            (Return (*)(Class *, Arg...)) nullptr,
             extra...);
     }
 
@@ -289,7 +289,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) &, const Extra &...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-            (Return(*)(Class *, Arg...)) nullptr,
+            (Return (*)(Class *, Arg...)) nullptr,
             extra...);
     }
 
@@ -299,7 +299,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) const, const Extra &...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-                   (Return(*)(const Class *, Arg...)) nullptr,
+                   (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
     }
 
@@ -311,7 +311,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) const &, const Extra &...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-                   (Return(*)(const Class *, Arg...)) nullptr,
+                   (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
     }
 
@@ -874,7 +874,7 @@ protected:
                 function_call call(func, parent);
 
                 // Protect std::min with parentheses
-                size_t args_to_copy = (std::min)(pos_args, n_args_in);
+                size_t args_to_copy = (std::min) (pos_args, n_args_in);
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -1515,13 +1515,6 @@ inline dict globals() {
     PyObject *p = PyEval_GetGlobals();
     return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
 #endif
-}
-
-template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
-PYBIND11_DEPRECATED("make_simple_namespace should be replaced with "
-                    "py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
-object make_simple_namespace(Args &&...args_) {
-    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2520,7 +2513,7 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline str enum_name(handle arg) {
-    dict entries = arg.get_type().attr("__entries");
+    dict entries = type::handle_of(arg).attr("__entries");
     for (auto kv : entries) {
         if (handle(kv.second[int_(0)]).equal(arg)) {
             return pybind11::str(kv.first);
