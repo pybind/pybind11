@@ -647,20 +647,13 @@ def test_mapping_caster_protocol(doc):
         doc(m.roundtrip_std_map_str_int)
         == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt]) -> dict[str, int]"
     )
-    assert m.roundtrip_std_map_str_int({"a": 1, "b": 2, "c": 3}) == {
-        "a": 1,
-        "b": 2,
-        "c": 3,
-    }
-    assert m.roundtrip_std_map_str_int(MappingLike(a=1, b=2, c=3)) == {
-        "a": 1,
-        "b": 2,
-        "c": 3,
-    }
+    a1b2c3 = {"a": 1, "b": 2, "c": 3}
+    assert m.roundtrip_std_map_str_int(a1b2c3) == a1b2c3
+    assert m.roundtrip_std_map_str_int(MappingLike(**a1b2c3)) == a1b2c3
     assert m.roundtrip_std_map_str_int({}) == {}
     assert m.roundtrip_std_map_str_int(MappingLike()) == {}
     with pytest.raises(TypeError):
-        m.roundtrip_std_map_str_int(FakeMappingLike(a=1, b=2, c=3))
+        m.roundtrip_std_map_str_int(FakeMappingLike(**a1b2c3))
 
 
 def test_set_caster_protocol(doc):
