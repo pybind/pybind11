@@ -581,7 +581,8 @@ def test_map_caster_fully_consumes_generator_object(items, expected_exception):
 def test_sequence_caster_protocol(doc):
     from collections.abc import Sequence
 
-    class SequenceLike(Sequence):
+    # Implements the Sequence protocol without explicitly inheriting from collections.abc.Sequence.
+    class BareSequenceLike:
         def __init__(self, *args):
             self.data = tuple(args)
 
@@ -591,15 +592,10 @@ def test_sequence_caster_protocol(doc):
         def __getitem__(self, index):
             return self.data[index]
 
-    class FakeSequenceLike:
-        def __init__(self, *args):
-            self.data = tuple(args)
-
-        def __len__(self):
-            return len(self.data)
-
-        def __getitem__(self, index):
-            return self.data[index]
+    # Implements the Sequence protocol by reusing BareSequenceLike's implementation.
+    # Additionally, inherits from collections.abc.Sequence.
+    class FormalSequenceLike(BareSequenceLike, Sequence):
+        pass
 
     assert (
         doc(m.roundtrip_std_vector_int)
@@ -607,17 +603,18 @@ def test_sequence_caster_protocol(doc):
     )
     assert m.roundtrip_std_vector_int([1, 2, 3]) == [1, 2, 3]
     assert m.roundtrip_std_vector_int((1, 2, 3)) == [1, 2, 3]
-    assert m.roundtrip_std_vector_int(SequenceLike(1, 2, 3)) == [1, 2, 3]
-    assert m.roundtrip_std_vector_int(FakeSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int(FormalSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int(BareSequenceLike(1, 2, 3)) == [1, 2, 3]
     assert m.roundtrip_std_vector_int([]) == []
     assert m.roundtrip_std_vector_int(()) == []
-    assert m.roundtrip_std_vector_int(FakeSequenceLike()) == []
+    assert m.roundtrip_std_vector_int(BareSequenceLike()) == []
 
 
 def test_mapping_caster_protocol(doc):
     from collections.abc import Mapping
 
-    class MappingLike(Mapping):
+    # Implements the Mapping protocol without explicitly inheriting from collections.abc.Mapping.
+    class BareMappingLike:
         def __init__(self, **kwargs):
             self.data = dict(kwargs)
 
@@ -630,18 +627,10 @@ def test_mapping_caster_protocol(doc):
         def __iter__(self):
             yield from self.data
 
-    class FakeMappingLike:
-        def __init__(self, **kwargs):
-            self.data = dict(kwargs)
-
-        def __len__(self):
-            return len(self.data)
-
-        def __getitem__(self, key):
-            return self.data[key]
-
-        def __iter__(self):
-            yield from self.data
+    # Implements the Mapping protocol by reusing BareMappingLike's implementation.
+    # Additionally, inherits from collections.abc.Mapping.
+    class FormalMappingLike(BareMappingLike, Mapping):
+        pass
 
     assert (
         doc(m.roundtrip_std_map_str_int)
@@ -649,17 +638,18 @@ def test_mapping_caster_protocol(doc):
     )
     a1b2c3 = {"a": 1, "b": 2, "c": 3}
     assert m.roundtrip_std_map_str_int(a1b2c3) == a1b2c3
-    assert m.roundtrip_std_map_str_int(MappingLike(**a1b2c3)) == a1b2c3
+    assert m.roundtrip_std_map_str_int(FormalMappingLike(**a1b2c3)) == a1b2c3
     assert m.roundtrip_std_map_str_int({}) == {}
-    assert m.roundtrip_std_map_str_int(MappingLike()) == {}
+    assert m.roundtrip_std_map_str_int(FormalMappingLike()) == {}
     with pytest.raises(TypeError):
-        m.roundtrip_std_map_str_int(FakeMappingLike(**a1b2c3))
+        m.roundtrip_std_map_str_int(BareMappingLike(**a1b2c3))
 
 
 def test_set_caster_protocol(doc):
     from collections.abc import Set
 
-    class SetLike(Set):
+    # Implements the Set protocol without explicitly inheriting from collections.abc.Set.
+    class BareSetLike:
         def __init__(self, *args):
             self.data = set(args)
 
@@ -672,26 +662,18 @@ def test_set_caster_protocol(doc):
         def __iter__(self):
             yield from self.data
 
-    class FakeSetLike:
-        def __init__(self, *args):
-            self.data = set(args)
-
-        def __len__(self):
-            return len(self.data)
-
-        def __contains__(self, item):
-            return item in self.data
-
-        def __iter__(self):
-            yield from self.data
+    # Implements the Set protocol by reusing BareSetLike's implementation.
+    # Additionally, inherits from collections.abc.Set.
+    class FormalSetLike(BareSetLike, Set):
+        pass
 
     assert (
         doc(m.roundtrip_std_set_int)
         == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt]) -> set[int]"
     )
     assert m.roundtrip_std_set_int({1, 2, 3}) == {1, 2, 3}
-    assert m.roundtrip_std_set_int(SetLike(1, 2, 3)) == {1, 2, 3}
+    assert m.roundtrip_std_set_int(FormalSetLike(1, 2, 3)) == {1, 2, 3}
     assert m.roundtrip_std_set_int(set()) == set()
-    assert m.roundtrip_std_set_int(SetLike()) == set()
+    assert m.roundtrip_std_set_int(FormalSetLike()) == set()
     with pytest.raises(TypeError):
-        m.roundtrip_std_set_int(FakeSetLike(1, 2, 3))
+        m.roundtrip_std_set_int(BareSetLike(1, 2, 3))
