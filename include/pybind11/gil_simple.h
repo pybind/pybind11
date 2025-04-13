@@ -18,7 +18,6 @@ public:
     gil_scoped_acquire_simple(const gil_scoped_acquire_simple &) = delete;
     gil_scoped_acquire_simple &operator=(const gil_scoped_acquire_simple &) = delete;
     ~gil_scoped_acquire_simple() { PyGILState_Release(state); }
-    void disarm() {}
 };
 
 class gil_scoped_release_simple {
@@ -33,7 +32,6 @@ public:
     gil_scoped_release_simple(const gil_scoped_release_simple &) = delete;
     gil_scoped_release_simple &operator=(const gil_scoped_release_simple &) = delete;
     ~gil_scoped_release_simple() { PyEval_RestoreThread(state); }
-    void disarm() {}
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
