@@ -9,14 +9,11 @@
 
 #pragma once
 
-#include "common.h"
-
-#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-#    include <pybind11/gil.h>
-#endif
-
 #include <pybind11/conduit/pybind11_platform_abi_id.h>
+#include <pybind11/gil_simple.h>
 #include <pybind11/pytypes.h>
+
+#include "common.h"
 
 #include <exception>
 #include <mutex>
@@ -425,19 +422,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
-#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-    gil_scoped_acquire gil;
-#else
-    // Ensure that the GIL is held since we will need to make Python calls.
-    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-    struct gil_scoped_acquire_local {
-        gil_scoped_acquire_local() : state(PyGILState_Ensure()) {}
-        gil_scoped_acquire_local(const gil_scoped_acquire_local &) = delete;
-        gil_scoped_acquire_local &operator=(const gil_scoped_acquire_local &) = delete;
-        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
-        const PyGILState_STATE state;
-    } gil;
-#endif
+    gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
     dict state_dict = get_python_state_dict();
