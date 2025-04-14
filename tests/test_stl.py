@@ -20,7 +20,10 @@ def test_vector(doc):
     assert m.load_bool_vector((True, False))
 
     assert doc(m.cast_vector) == "cast_vector() -> list[int]"
-    assert doc(m.load_vector) == "load_vector(arg0: list[typing.SupportsInt]) -> bool"
+    assert (
+        doc(m.load_vector)
+        == "load_vector(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
+    )
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
@@ -42,10 +45,13 @@ def test_array(doc):
     assert m.load_array(lst)
     assert m.load_array(tuple(lst))
 
-    assert doc(m.cast_array) == "cast_array() -> Annotated[list[int], FixedSize(2)]"
+    assert (
+        doc(m.cast_array)
+        == 'cast_array() -> typing.Annotated[list[int], "FixedSize(2)"]'
+    )
     assert (
         doc(m.load_array)
-        == "load_array(arg0: Annotated[list[typing.SupportsInt], FixedSize(2)]) -> bool"
+        == 'load_array(arg0: typing.Annotated[collections.abc.Sequence[typing.SupportsInt], "FixedSize(2)"]) -> bool'
     )
 
 
@@ -65,7 +71,8 @@ def test_valarray(doc):
 
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
     assert (
-        doc(m.load_valarray) == "load_valarray(arg0: list[typing.SupportsInt]) -> bool"
+        doc(m.load_valarray)
+        == "load_valarray(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
     )
 
 
@@ -79,7 +86,9 @@ def test_map(doc):
     assert m.load_map(d)
 
     assert doc(m.cast_map) == "cast_map() -> dict[str, str]"
-    assert doc(m.load_map) == "load_map(arg0: dict[str, str]) -> bool"
+    assert (
+        doc(m.load_map) == "load_map(arg0: collections.abc.Mapping[str, str]) -> bool"
+    )
 
 
 def test_set(doc):
@@ -91,7 +100,7 @@ def test_set(doc):
     assert m.load_set(frozenset(s))
 
     assert doc(m.cast_set) == "cast_set() -> set[str]"
-    assert doc(m.load_set) == "load_set(arg0: set[str]) -> bool"
+    assert doc(m.load_set) == "load_set(arg0: collections.abc.Set[str]) -> bool"
 
 
 def test_recursive_casting():
@@ -273,7 +282,7 @@ def test_fs_path(doc):
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths)
-        == "parent_paths(arg0: list[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
+        == "parent_paths(arg0: collections.abc.Sequence[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
     )
     # py::typing::List
     assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
@@ -364,7 +373,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: list[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
 
         Invoked with:
     """
@@ -376,7 +385,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: list[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
 
         Invoked with: None
     """
@@ -567,3 +576,145 @@ def test_map_caster_fully_consumes_generator_object(items, expected_exception):
     with pytest.raises(expected_exception):
         m.pass_std_map_int(FakePyMappingGenObj(gen_obj))
     assert not tuple(gen_obj)
+
+
+def test_sequence_caster_protocol(doc):
+    from collections.abc import Sequence
+
+    # Implements the Sequence protocol without explicitly inheriting from collections.abc.Sequence.
+    class BareSequenceLike:
+        def __init__(self, *args):
+            self.data = tuple(args)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+    # Implements the Sequence protocol by reusing BareSequenceLike's implementation.
+    # Additionally, inherits from collections.abc.Sequence.
+    class FormalSequenceLike(BareSequenceLike, Sequence):
+        pass
+
+    # convert mode
+    assert (
+        doc(m.roundtrip_std_vector_int)
+        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt]) -> list[int]"
+    )
+    assert m.roundtrip_std_vector_int([1, 2, 3]) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int((1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int(FormalSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int(BareSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int([]) == []
+    assert m.roundtrip_std_vector_int(()) == []
+    assert m.roundtrip_std_vector_int(BareSequenceLike()) == []
+    # noconvert mode
+    assert (
+        doc(m.roundtrip_std_vector_int_noconvert)
+        == "roundtrip_std_vector_int_noconvert(v: list[int]) -> list[int]"
+    )
+    assert m.roundtrip_std_vector_int_noconvert([1, 2, 3]) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int_noconvert((1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int_noconvert(FormalSequenceLike(1, 2, 3)) == [
+        1,
+        2,
+        3,
+    ]
+    assert m.roundtrip_std_vector_int_noconvert(BareSequenceLike(1, 2, 3)) == [1, 2, 3]
+    assert m.roundtrip_std_vector_int_noconvert([]) == []
+    assert m.roundtrip_std_vector_int_noconvert(()) == []
+    assert m.roundtrip_std_vector_int_noconvert(BareSequenceLike()) == []
+
+
+def test_mapping_caster_protocol(doc):
+    from collections.abc import Mapping
+
+    # Implements the Mapping protocol without explicitly inheriting from collections.abc.Mapping.
+    class BareMappingLike:
+        def __init__(self, **kwargs):
+            self.data = dict(kwargs)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, key):
+            return self.data[key]
+
+        def __iter__(self):
+            yield from self.data
+
+    # Implements the Mapping protocol by reusing BareMappingLike's implementation.
+    # Additionally, inherits from collections.abc.Mapping.
+    class FormalMappingLike(BareMappingLike, Mapping):
+        pass
+
+    a1b2c3 = {"a": 1, "b": 2, "c": 3}
+    # convert mode
+    assert (
+        doc(m.roundtrip_std_map_str_int)
+        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt]) -> dict[str, int]"
+    )
+    assert m.roundtrip_std_map_str_int(a1b2c3) == a1b2c3
+    assert m.roundtrip_std_map_str_int(FormalMappingLike(**a1b2c3)) == a1b2c3
+    assert m.roundtrip_std_map_str_int({}) == {}
+    assert m.roundtrip_std_map_str_int(FormalMappingLike()) == {}
+    with pytest.raises(TypeError):
+        m.roundtrip_std_map_str_int(BareMappingLike(**a1b2c3))
+    # noconvert mode
+    assert (
+        doc(m.roundtrip_std_map_str_int_noconvert)
+        == "roundtrip_std_map_str_int_noconvert(m: dict[str, int]) -> dict[str, int]"
+    )
+    assert m.roundtrip_std_map_str_int_noconvert(a1b2c3) == a1b2c3
+    assert m.roundtrip_std_map_str_int_noconvert({}) == {}
+    with pytest.raises(TypeError):
+        m.roundtrip_std_map_str_int_noconvert(FormalMappingLike(**a1b2c3))
+    with pytest.raises(TypeError):
+        m.roundtrip_std_map_str_int_noconvert(BareMappingLike(**a1b2c3))
+
+
+def test_set_caster_protocol(doc):
+    from collections.abc import Set
+
+    # Implements the Set protocol without explicitly inheriting from collections.abc.Set.
+    class BareSetLike:
+        def __init__(self, *args):
+            self.data = set(args)
+
+        def __len__(self):
+            return len(self.data)
+
+        def __contains__(self, item):
+            return item in self.data
+
+        def __iter__(self):
+            yield from self.data
+
+    # Implements the Set protocol by reusing BareSetLike's implementation.
+    # Additionally, inherits from collections.abc.Set.
+    class FormalSetLike(BareSetLike, Set):
+        pass
+
+    # convert mode
+    assert (
+        doc(m.roundtrip_std_set_int)
+        == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt]) -> set[int]"
+    )
+    assert m.roundtrip_std_set_int({1, 2, 3}) == {1, 2, 3}
+    assert m.roundtrip_std_set_int(FormalSetLike(1, 2, 3)) == {1, 2, 3}
+    assert m.roundtrip_std_set_int(set()) == set()
+    assert m.roundtrip_std_set_int(FormalSetLike()) == set()
+    with pytest.raises(TypeError):
+        m.roundtrip_std_set_int(BareSetLike(1, 2, 3))
+    # noconvert mode
+    assert (
+        doc(m.roundtrip_std_set_int_noconvert)
+        == "roundtrip_std_set_int_noconvert(s: set[int]) -> set[int]"
+    )
+    assert m.roundtrip_std_set_int_noconvert({1, 2, 3}) == {1, 2, 3}
+    assert m.roundtrip_std_set_int_noconvert(set()) == set()
+    with pytest.raises(TypeError):
+        m.roundtrip_std_set_int_noconvert(FormalSetLike(1, 2, 3))
+    with pytest.raises(TypeError):
+        m.roundtrip_std_set_int_noconvert(BareSetLike(1, 2, 3))
