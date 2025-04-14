@@ -275,14 +275,17 @@ inline internals **&get_internals_pp() {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
         static thread_local internals **t_internals_pp = nullptr;
-        // Whenever the interpreter changes we need to invalidate the internals_pp.  That is slow,
-        // so we only do it when the PyThreadState has changed, which indicates the interpreter
-        // might have changed as well.
-        static thread_local PyThreadState *tstate_cached = nullptr;
+        static thread_local PyInterpreterState *istate_cached = nullptr;
+        // Whenever the interpreter changes on the current thread we need to invalidate the
+        // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
+        // so we use the current PyThreadState to check if it is necessary.  The caller will see a
+        // null return and do the fetch from the state dict or create a new one (as needed).
         auto *tstate = get_thread_state_unchecked();
-        if (tstate != tstate_cached) {
-            tstate_cached = tstate;
-            // the caller will fetch the instance from the state dict or create a new one
+        if (!tstate) {
+            istate_cached = nullptr;
+            t_internals_pp = nullptr;
+        } else if (tstate->interp != istate_cached) {
+            istate_cached = tstate->interp;
             t_internals_pp = nullptr;
         }
         return t_internals_pp;
@@ -538,14 +541,17 @@ inline local_internals **&get_local_internals_pp() {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
         static thread_local local_internals **t_internals_pp = nullptr;
-        // Whenever the interpreter changes we need to invalidate the internals_pp.  That is slow,
-        // so we only do it when the PyThreadState has changed, which indicates the interpreter
-        // might have changed as well.
-        static thread_local PyThreadState *tstate_cached = nullptr;
+        static thread_local PyInterpreterState *istate_cached = nullptr;
+        // Whenever the interpreter changes on the current thread we need to invalidate the
+        // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
+        // so we use the current PyThreadState to check if it is necessary.  The caller will see a
+        // null return and do the fetch from the state dict or create a new one (as needed).
         auto *tstate = get_thread_state_unchecked();
-        if (tstate != tstate_cached) {
-            tstate_cached = tstate;
-            // the caller will fetch the instance from the state dict or create a new one
+        if (!tstate) {
+            istate_cached = nullptr;
+            t_internals_pp = nullptr;
+        } else if (tstate->interp != istate_cached) {
+            istate_cached = tstate->interp;
             t_internals_pp = nullptr;
         }
         return t_internals_pp;
