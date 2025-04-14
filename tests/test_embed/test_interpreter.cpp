@@ -343,7 +343,7 @@ TEST_CASE("Subinterpreter") {
     auto *main_tstate = PyThreadState_Get();
     auto *sub_tstate = Py_NewInterpreter();
 
-    py::detail::get_interpreter_count()++;
+    py::detail::get_interpreter_counter()++;
 
     // Subinterpreters get their own copy of builtins.
     REQUIRE_FALSE(has_state_dict_internals_obj());
@@ -378,7 +378,7 @@ TEST_CASE("Subinterpreter") {
 
     // Restore main interpreter.
     Py_EndInterpreter(sub_tstate);
-    py::detail::get_interpreter_count() = 1;
+    py::detail::get_interpreter_counter() = 1;
     PyThreadState_Swap(main_tstate);
 
     REQUIRE(py::hasattr(py::module_::import("__main__"), "main_tag"));
@@ -398,7 +398,7 @@ TEST_CASE("Multiple Subinterpreters") {
 
     /// Create and switch to a subinterpreter.
     auto *sub1_tstate = Py_NewInterpreter();
-    py::detail::get_interpreter_count()++;
+    py::detail::get_interpreter_counter()++;
 
     py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
@@ -407,24 +407,24 @@ TEST_CASE("Multiple Subinterpreters") {
     REQUIRE(sub1_ext != main_ext);
     REQUIRE_FALSE(py::hasattr(py::module_::import("external_module"), "multi_interp"));
     py::module_::import("external_module").attr("multi_interp") = "2";
-    // The sub-interpreter also has its own internals
+    // The subinterpreter also has its own internals
     auto sub1_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
     REQUIRE(sub1_int != main_int);
 
     // Create another interpreter
     auto *sub2_tstate = Py_NewInterpreter();
-    py::detail::get_interpreter_count()++;
+    py::detail::get_interpreter_counter()++;
 
     py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
-    // The second subinterpreter is separate from both main and the other sub-interpreter
+    // The second subinterpreter is separate from both main and the other subinterpreter
     auto *sub2_ext = py::module_::import("external_module").ptr();
     REQUIRE(sub2_ext != main_ext);
     REQUIRE(sub2_ext != sub1_ext);
     REQUIRE_FALSE(py::hasattr(py::module_::import("external_module"), "multi_interp"));
     py::module_::import("external_module").attr("multi_interp") = "3";
-    // The sub-interpreter also has its own internals
+    // The subinterpreter also has its own internals
     auto sub2_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
     REQUIRE(sub2_int != main_int);
@@ -450,7 +450,7 @@ TEST_CASE("Multiple Subinterpreters") {
     PyThreadState_Swap(sub2_tstate);
     Py_EndInterpreter(sub2_tstate);
 
-    py::detail::get_interpreter_count() = 1;
+    py::detail::get_interpreter_counter() = 1;
     PyThreadState_Swap(main_tstate);
 }
 #endif
@@ -496,7 +496,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
         auto status = Py_NewInterpreterFromConfig(&sub, &cfg);
         T_REQUIRE(!PyStatus_IsError(status));
 
-        py::detail::get_interpreter_count()++;
+        py::detail::get_interpreter_counter()++;
 
         py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
@@ -590,7 +590,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
             == "1");
 
     // the threads are stopped. we can now lower this for the rest of the test
-    py::detail::get_interpreter_count() = 1;
+    py::detail::get_interpreter_counter() = 1;
 
     // make sure nothing unexpected happened inside the threads, now that they are completed
     REQUIRE(failure == 0);
