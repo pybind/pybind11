@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import shutil
 import string
 import subprocess
 import sys
@@ -12,6 +13,9 @@ import zipfile
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(DIR))
+
+HAS_UV = shutil.which("uv") is not None
+UV_ARGS = ["--installer=uv"] if HAS_UV else []
 
 PKGCONFIG = """\
 prefix=${{pcfiledir}}/../../
@@ -168,7 +172,8 @@ def test_build_sdist(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
 
     subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", f"--outdir={tmpdir}"], check=True
+        [sys.executable, "-m", "build", "--sdist", f"--outdir={tmpdir}", *UV_ARGS],
+        check=True,
     )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
@@ -218,7 +223,8 @@ def test_build_global_dist(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
     subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmpdir)], check=True
+        [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmpdir), *UV_ARGS],
+        check=True,
     )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
@@ -266,7 +272,8 @@ def tests_build_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
 
     subprocess.run(
-        [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)], check=True
+        [sys.executable, "-m", "build", "--wheel", "--outdir", str(tmpdir), *UV_ARGS],
+        check=True,
     )
 
     (wheel,) = tmpdir.visit("*.whl")
@@ -294,7 +301,8 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
 
     subprocess.run(
-        [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)], check=True
+        [sys.executable, "-m", "build", "--wheel", "--outdir", str(tmpdir), *UV_ARGS],
+        check=True,
     )
 
     (wheel,) = tmpdir.visit("*.whl")
