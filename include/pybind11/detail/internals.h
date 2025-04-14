@@ -455,7 +455,7 @@ inline InternalsType **find_internals_pp(char const *state_dict_key) {
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto &internals_pp = get_internals_pp();
+    auto **&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp) {
         return **internals_pp;
     }
@@ -573,7 +573,7 @@ inline char const *get_local_internals_id() {
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-    auto &local_internals_pp = get_local_internals_pp();
+    auto **&local_internals_pp = get_local_internals_pp();
     if (local_internals_pp && *local_internals_pp) {
         return **local_internals_pp;
     }
