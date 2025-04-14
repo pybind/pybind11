@@ -237,11 +237,16 @@ inline void finalize_interpreter() {
     // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
     // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
-    auto &internals_ptr_ptr = detail::get_internals_pp();
-    internals_ptr_ptr = detail::find_internals_pp<detail::internals>(PYBIND11_INTERNALS_ID);
-    auto &local_internals_ptr_ptr = detail::get_local_internals_pp();
-    local_internals_ptr_ptr
-        = detail::find_internals_pp<detail::local_internals>(detail::get_local_internals_id());
+    auto **&internals_ptr_ptr = detail::get_internals_pp();
+    auto **&local_internals_ptr_ptr = detail::get_local_internals_pp();
+    {
+        dict state_dict = detail::get_python_state_dict();
+        internals_ptr_ptr = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
+            state_dict, PYBIND11_INTERNALS_ID);
+        local_internals_ptr_ptr
+            = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
+                state_dict, detail::get_local_internals_id());
+    }
 
     Py_Finalize();
 
