@@ -434,22 +434,6 @@ inline uint64_t round_up_to_next_pow2(uint64_t x) {
     return x;
 }
 
-#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-using internals_safe_gil_scoped_acquire = gil_scoped_acquire;
-#else
-// Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
-struct internals_safe_gil_scoped_acquire {
-    internals_safe_gil_scoped_acquire() : state(PyGILState_Ensure()) {}
-    internals_safe_gil_scoped_acquire(const internals_safe_gil_scoped_acquire &) = delete;
-    internals_safe_gil_scoped_acquire &operator=(const internals_safe_gil_scoped_acquire &)
-        = delete;
-    internals_safe_gil_scoped_acquire(internals_safe_gil_scoped_acquire &&) = delete;
-    internals_safe_gil_scoped_acquire &operator=(internals_safe_gil_scoped_acquire &&) = delete;
-    ~internals_safe_gil_scoped_acquire() { PyGILState_Release(state); }
-    const PyGILState_STATE state;
-};
-#endif
-
 template <typename InternalsType>
 inline InternalsType **find_internals_pp(char const *state_dict_key) {
     dict state_dict = get_python_state_dict();
@@ -473,6 +457,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         return **internals_pp;
     }
 
+    // Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
     gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
@@ -587,8 +572,8 @@ inline local_internals &get_local_internals() {
         return **local_internals_pp;
     }
 
-    internals_safe_gil_scoped_acquire gil;
-
+    // Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
+    gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
     local_internals_pp = find_internals_pp<local_internals>(get_local_internals_id());
