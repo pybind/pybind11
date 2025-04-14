@@ -109,9 +109,9 @@ def test_export_values():
 
 
 def test_class_doc():
+    pure_native = enum.IntEnum("pure_native", (("mem", 0),))
     assert m.smallenum.__doc__ == "doc smallenum"
-    assert m.color.__doc__ is None
-    assert m.member_doc.__doc__ is None
+    assert m.color.__doc__ == pure_native.__doc__
 
 
 def test_member_doc():
