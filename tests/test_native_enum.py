@@ -110,8 +110,8 @@ def test_export_values():
 
 def test_class_doc():
     assert m.smallenum.__doc__ == "doc smallenum"
-    assert m.color.__doc__ == ""
-    assert m.member_doc.__doc__ == ""
+    assert m.color.__doc__ is None
+    assert m.member_doc.__doc__ is None
 
 
 def test_member_doc():

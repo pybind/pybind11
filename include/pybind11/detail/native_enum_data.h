@@ -72,7 +72,7 @@ private:
     object parent_scope;
     str enum_name;
     str native_type_name;
-    str enum_doc;
+    std::string enum_doc;
 
 protected:
     list members;
@@ -194,7 +194,8 @@ inline void native_enum_data::finalize() {
             parent_scope.attr(member_name) = py_enum[member_name];
         }
     }
-    py_enum.attr("__doc__") = enum_doc;
+    if (!enum_doc.empty())
+        py_enum.attr("__doc__") = enum_doc.c_str();
     for (auto doc : docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
