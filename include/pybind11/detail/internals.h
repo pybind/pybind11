@@ -438,8 +438,8 @@ inline uint64_t round_up_to_next_pow2(uint64_t x) {
 }
 
 template <typename InternalsType>
-inline InternalsType **find_internals_pp(char const *state_dict_key) {
-    dict state_dict = get_python_state_dict();
+inline InternalsType **get_internals_pp_from_capsule_in_state_dict(dict &state_dict,
+                                                                   char const *state_dict_key) {
     auto internals_obj
         = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), state_dict_key));
     if (internals_obj) {
@@ -464,7 +464,9 @@ PYBIND11_NOINLINE internals &get_internals() {
     gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
-    internals_pp = find_internals_pp<internals>(PYBIND11_INTERNALS_ID);
+    dict state_dict = get_python_state_dict();
+    internals_pp = get_internals_pp_from_capsule_in_state_dict<internals>(state_dict,
+                                                                          PYBIND11_INTERNALS_ID);
 
     if (internals_pp && *internals_pp) {
         // We loaded the internals through `state_dict`, which means that our `error_already_set`
@@ -485,8 +487,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     } else {
         if (!internals_pp) {
             internals_pp = new internals *(nullptr);
-            dict state = get_python_state_dict();
-            state[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
+            state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
         }
 
         auto *&internals_ptr = *internals_pp;
@@ -582,11 +583,13 @@ inline local_internals &get_local_internals() {
     gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
-    local_internals_pp = find_internals_pp<local_internals>(get_local_internals_id());
+    dict state_dict = get_python_state_dict();
+    local_internals_pp = get_internals_pp_from_capsule_in_state_dict<local_internals>(
+        state_dict, get_local_internals_id());
     if (!local_internals_pp) {
         local_internals_pp = new local_internals *(nullptr);
-        dict state = get_python_state_dict();
-        state[get_local_internals_id()] = capsule(reinterpret_cast<void *>(local_internals_pp));
+        state_dict[get_local_internals_id()]
+            = capsule(reinterpret_cast<void *>(local_internals_pp));
     }
     if (!*local_internals_pp) {
         *local_internals_pp = new local_internals();
