@@ -195,7 +195,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 #endif
 
     // There is exactly one interpreter alive currently.
-    detail::get_interpreter_count() = 1;
+    detail::get_interpreter_counter() = 1;
 }
 
 /** \rst
@@ -258,7 +258,7 @@ inline void finalize_interpreter() {
     }
 
     // We know there is no interpreter alive now, so we can reset the count
-    detail::get_interpreter_count() = 0;
+    detail::get_interpreter_counter() = 0;
 }
 
 /** \rst
