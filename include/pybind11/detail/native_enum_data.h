@@ -194,8 +194,9 @@ inline void native_enum_data::finalize() {
             parent_scope.attr(member_name) = py_enum[member_name];
         }
     }
-    if (!enum_doc.empty())
+    if (!enum_doc.empty()) {
         py_enum.attr("__doc__") = enum_doc.c_str();
+    }
     for (auto doc : docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
