@@ -134,6 +134,7 @@ jobs:
       if: runner.os == 'Linux'
       run: uv pip install --python=python --system pytest-github-actions-annotate-failures
 
+    # TODO Resolve Windows Ninja shared object issue on Python 3.8+
     - name: Use Ninja except on Windows
       if: runner.os != 'Windows'
       run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
