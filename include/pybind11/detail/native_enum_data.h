@@ -182,6 +182,10 @@ inline void native_enum_data::finalize() {
     if (module_name) {
         py_enum.attr("__module__") = module_name;
     }
+    if (hasattr(parent_scope, "__qualname__")) {
+        const auto parent_qualname = parent_scope.attr("__qualname__").cast<std::string>();
+        py_enum.attr("__qualname__") = str(parent_qualname + "." + enum_name.cast<std::string>());
+    }
     parent_scope.attr(enum_name) = py_enum;
     if (export_values_flag) {
         for (auto member : members) {

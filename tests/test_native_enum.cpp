@@ -29,6 +29,8 @@ enum class member_doc { mem0, mem1, mem2 };
 
 struct class_with_enum {
     enum class in_class { one, two };
+
+    in_class value = in_class::one;
 };
 
 // https://github.com/protocolbuffers/protobuf/blob/d70b5c5156858132decfdbae0a1103e6a5cb1345/src/google/protobuf/generated_enum_util.h#L52-L53
@@ -125,6 +127,8 @@ TEST_SUBMODULE(native_enum, m) {
         .value("one", class_with_enum::in_class::one)
         .value("two", class_with_enum::in_class::two)
         .finalize();
+
+    py_class_with_enum.def(py::init()).def_readwrite("value", &class_with_enum::value);
 
     py::native_enum<native>(m, "Native", "enum.Enum").value("x", native::x).finalize();
 
