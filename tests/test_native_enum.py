@@ -108,6 +108,12 @@ def test_export_values():
     assert m.exv1 is m.export_values.exv1
 
 
+def test_class_doc():
+    pure_native = enum.IntEnum("pure_native", (("mem", 0),))
+    assert m.smallenum.__doc__ == "doc smallenum"
+    assert m.color.__doc__ == pure_native.__doc__
+
+
 def test_member_doc():
     pure_native = enum.IntEnum("pure_native", (("mem", 0),))
     assert m.member_doc.mem0.__doc__ == "docA"

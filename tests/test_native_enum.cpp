@@ -76,7 +76,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 TEST_SUBMODULE(native_enum, m) {
     using namespace test_native_enum;
 
-    py::native_enum<smallenum>(m, "smallenum", "enum.IntEnum")
+    py::native_enum<smallenum>(m, "smallenum", "enum.IntEnum", "doc smallenum")
         .value("a", smallenum::a)
         .value("b", smallenum::b)
         .value("c", smallenum::c)
@@ -89,7 +89,7 @@ TEST_SUBMODULE(native_enum, m) {
         .value("blue", color::blue)
         .finalize();
 
-    py::native_enum<altitude>(m, "altitude")
+    py::native_enum<altitude>(m, "altitude", "enum.Enum")
         .value("high", altitude::high)
         .value("low", altitude::low)
         .finalize();
@@ -189,7 +189,7 @@ TEST_SUBMODULE(native_enum, m) {
         py::native_enum<fake>(m, "fake_double_registration_native_enum", "enum.IntEnum")
             .value("x", fake::x)
             .finalize();
-        py::native_enum<fake>(m, "fake_double_registration_native_enum");
+        py::native_enum<fake>(m, "fake_double_registration_native_enum", "enum.Enum");
     });
 
     m.def("native_enum_name_clash", [](py::module_ &m) {
