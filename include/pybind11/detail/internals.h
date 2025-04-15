@@ -54,6 +54,7 @@ constexpr const char *internals_function_record_capsule_name = "pybind11_functio
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
 inline PyObject *make_object_base_type(PyTypeObject *metaclass);
+inline void translate_exception(std::exception_ptr p);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
@@ -179,9 +180,9 @@ struct internals {
                                                          // extensions
     std::forward_list<std::string> static_strings;       // Stores the std::strings backing
                                                          // detail::c_str()
-    PyTypeObject *static_property_type;
-    PyTypeObject *default_metaclass;
-    PyObject *instance_base;
+    PyTypeObject *static_property_type = nullptr;
+    PyTypeObject *default_metaclass = nullptr;
+    PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
@@ -190,7 +191,36 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    internals() = default;
+    internals() {
+        PyThreadState *curtstate = PyThreadState_Get();
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
+        if (!PYBIND11_TLS_KEY_CREATE(tstate)) {
+            pybind11_fail(
+                "internals constructor: could not successfully initialize the tstate TSS key!");
+        }
+        PYBIND11_TLS_REPLACE_VALUE(tstate, curtstate);
+
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
+        if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
+            pybind11_fail("internals constructor: could not successfully initialize the "
+                          "loader_life_support TSS key!");
+        }
+
+        istate = curtstate->interp;
+        registered_exception_translators.push_front(&translate_exception);
+        static_property_type = make_static_property_type();
+        default_metaclass = make_default_metaclass();
+#ifdef Py_GIL_DISABLED
+        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
+        auto num_shards
+            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        if (num_shards == 0) {
+            num_shards = 1;
+        }
+        instance_shards.reset(new instance_map_shard[num_shards]);
+        instance_shards_mask = num_shards - 1;
+#endif
+    }
     internals(const internals &other) = delete;
     internals &operator=(const internals &other) = delete;
     ~internals() {
@@ -458,8 +488,11 @@ inline InternalsType **get_internals_pp_from_capsule_in_state_dict(dict &state_d
 PYBIND11_NOINLINE internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp) {
+        // This is the fast path, everything is already setup, just return it
         return **internals_pp;
     }
+
+    // Slow path, something needs fetched from the state dict or created
 
     // Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
     gil_scoped_acquire_simple gil;
@@ -468,8 +501,12 @@ PYBIND11_NOINLINE internals &get_internals() {
     dict state_dict = get_python_state_dict();
     internals_pp = get_internals_pp_from_capsule_in_state_dict<internals>(state_dict,
                                                                           PYBIND11_INTERNALS_ID);
+    if (!internals_pp) {
+        internals_pp = new internals *(nullptr);
+        state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
+    }
 
-    if (internals_pp && *internals_pp) {
+    if (*internals_pp) {
         // We loaded the internals through `state_dict`, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
         // initial exception translator, below, so add another for our local exception classes.
@@ -486,43 +523,16 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
 #endif
     } else {
-        if (!internals_pp) {
-            internals_pp = new internals *(nullptr);
-            state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
-        }
-
-        auto *&internals_ptr = *internals_pp;
+        auto &internals_ptr = *internals_pp;
         internals_ptr = new internals();
 
-        PyThreadState *tstate = PyThreadState_Get();
-        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
-        if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
-            pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
+        if (!internals_ptr->instance_base) {
+            // This calls get_internals, so cannot be called from within the internals constructor
+            // called above because internals_ptr must be set before get_internals is called again
+            internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
         }
-        PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
-
-        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
-        if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
-            pybind11_fail("get_internals: could not successfully initialize the "
-                          "loader_life_support TSS key!");
-        }
-
-        internals_ptr->istate = tstate->interp;
-        internals_ptr->registered_exception_translators.push_front(&translate_exception);
-        internals_ptr->static_property_type = make_static_property_type();
-        internals_ptr->default_metaclass = make_default_metaclass();
-        internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
-#ifdef Py_GIL_DISABLED
-        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
-        auto num_shards
-            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
-        if (num_shards == 0) {
-            num_shards = 1;
-        }
-        internals_ptr->instance_shards.reset(new instance_map_shard[num_shards]);
-        internals_ptr->instance_shards_mask = num_shards - 1;
-#endif // Py_GIL_DISABLED
     }
+
     return **internals_pp;
 }
 
