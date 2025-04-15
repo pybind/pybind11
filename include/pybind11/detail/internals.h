@@ -445,10 +445,11 @@ inline InternalsType **get_internals_pp_from_capsule_in_state_dict(dict &state_d
     if (internals_obj) {
         void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
         if (!raw_ptr) {
-            pybind11_fail("find_or_create_internals_pp: broken capsule!");
-        } else {
-            return reinterpret_cast<InternalsType **>(raw_ptr);
+            raise_from(PyExc_SystemError,
+                       "pybind11::detail::get_internals_pp_from_capsule_in_state_dict() FAILED");
+            throw error_already_set();
         }
+        return reinterpret_cast<InternalsType **>(raw_ptr);
     }
     return nullptr;
 }
