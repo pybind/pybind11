@@ -76,7 +76,7 @@ private:
 
 protected:
     list members;
-    list docs;
+    list member_docs;
     bool export_values_flag : 1; // Attention: It is best to keep the bools together.
 
 private:
@@ -197,7 +197,7 @@ inline void native_enum_data::finalize() {
     if (!class_doc.empty()) {
         py_enum.attr("__doc__") = class_doc.c_str();
     }
-    for (auto doc : docs) {
+    for (auto doc : member_docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
     global_internals_native_enum_type_map_set_item(enum_type_index, py_enum.release().ptr());

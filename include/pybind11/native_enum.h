@@ -54,7 +54,7 @@ public:
         disarm_finalize_check("value after finalize");
         members.append(make_tuple(name, static_cast<Underlying>(value)));
         if (doc) {
-            docs.append(make_tuple(name, doc));
+            member_docs.append(make_tuple(name, doc));
         }
         arm_finalize_check(); // There was no exception.
         return *this;
