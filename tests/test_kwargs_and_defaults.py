@@ -22,7 +22,7 @@ def test_function_signatures(doc):
     assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
     assert (
         doc(m.kw_func4)
-        == "kw_func4(myList: list[typing.SupportsInt] = [13, 17]) -> str"
+        == "kw_func4(myList: collections.abc.Sequence[typing.SupportsInt] = [13, 17]) -> str"
     )
     assert (
         doc(m.kw_func_udl)

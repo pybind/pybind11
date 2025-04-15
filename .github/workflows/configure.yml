@@ -12,11 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  PIP_BREAK_SYSTEM_PACKAGES: 1
-  # For cmake:
-  VERBOSE: 1
-
 jobs:
   # This tests various versions of CMake in various combinations, to make sure
   # the configure step passes.
@@ -28,10 +23,10 @@ jobs:
         - runs-on: ubuntu-22.04
           cmake: "3.15"
 
-        - runs-on: ubuntu-22.04
+        - runs-on: ubuntu-24.04
           cmake: "3.26"
 
-        - runs-on: ubuntu-22.04
+        - runs-on: ubuntu-24.04
           cmake: "3.29"
 
         - runs-on: macos-13
@@ -57,8 +52,11 @@ jobs:
       with:
         python-version: 3.11
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt
+      run: uv pip install --python=python --system -r tests/requirements.txt
 
     # An action for adding a specific version of CMake:
     #   https://github.com/jwlawson/actions-setup-cmake
@@ -68,17 +66,9 @@ jobs:
         cmake-version: ${{ matrix.cmake }}
 
     # These steps use a directory with a space in it intentionally
-    - name: Make build directories
-      run: mkdir "build dir"
-
     - name: Configure
-      working-directory: build dir
       shell: bash
-      run: >
-        cmake ..
-        -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
-        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+      run: cmake -S. -B"build dir" -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
 
     # Only build and test if this was manually triggered in the GitHub UI
     - name: Build

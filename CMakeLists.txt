@@ -158,6 +158,7 @@ set(PYBIND11_HEADERS
     include/pybind11/eval.h
     include/pybind11/gil.h
     include/pybind11/gil_safe_call_once.h
+    include/pybind11/gil_simple.h
     include/pybind11/iostream.h
     include/pybind11/functional.h
     include/pybind11/native_enum.h
