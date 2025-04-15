@@ -40,6 +40,8 @@ enum some_proto_enum : int { Zero, One };
 template <>
 struct is_proto_enum<some_proto_enum> : std::true_type {};
 
+enum class native { x };
+
 } // namespace test_native_enum
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -123,6 +125,8 @@ TEST_SUBMODULE(native_enum, m) {
         .value("one", class_with_enum::in_class::one)
         .value("two", class_with_enum::in_class::two)
         .finalize();
+
+    py::native_enum<native>(m, "Native", "enum.Enum").value("x", native::x).finalize();
 
     m.def("isinstance_color", [](const py::object &obj) { return py::isinstance<color>(obj); });
 
@@ -233,4 +237,6 @@ TEST_SUBMODULE(native_enum, m) {
 #else
     m.attr("native_enum_missing_finalize_failure") = "For local testing only: terminates process";
 #endif
+
+    m.def("function_with_native_enum", [](native n) { return n; }, py::arg("n"));
 }

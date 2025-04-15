@@ -139,7 +139,7 @@ def test_pass_color_success():
 def test_pass_color_fail():
     with pytest.raises(TypeError) as excinfo:
         m.pass_color(None)
-    assert "test_native_enum::color" in str(excinfo.value)
+    assert "pybind11_tests.native_enum.color" in str(excinfo.value)
 
 
 def test_return_color_success():
@@ -301,3 +301,9 @@ def test_native_enum_missing_finalize_failure():
     if not isinstance(m.native_enum_missing_finalize_failure, str):
         m.native_enum_missing_finalize_failure()
         pytest.fail("Process termination expected.")
+
+
+def test_function_signature():
+    assert m.function_with_native_enum.__doc__.startswith(
+        "function_with_native_enum(n: pybind11_tests.native_enum.Native) -> pybind11_tests.native_enum.Native"
+    )
