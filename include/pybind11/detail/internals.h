@@ -151,6 +151,20 @@ struct instance_map_shard {
 
 static_assert(sizeof(instance_map_shard) % 64 == 0,
               "instance_map_shard size is not a multiple of 64 bytes");
+
+inline uint64_t round_up_to_next_pow2(uint64_t x) {
+    // Round-up to the next power of two.
+    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    x--;
+    x |= (x >> 1);
+    x |= (x >> 2);
+    x |= (x >> 4);
+    x |= (x >> 8);
+    x |= (x >> 16);
+    x |= (x >> 32);
+    x++;
+    return x;
+}
 #endif
 
 /// Internal data structure used to track registered instances and types.
@@ -451,20 +465,6 @@ inline object get_python_state_dict() {
         throw error_already_set();
     }
     return state_dict;
-}
-
-inline uint64_t round_up_to_next_pow2(uint64_t x) {
-    // Round-up to the next power of two.
-    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-    x--;
-    x |= (x >> 1);
-    x |= (x >> 2);
-    x |= (x >> 4);
-    x |= (x >> 8);
-    x |= (x >> 16);
-    x |= (x >> 32);
-    x++;
-    return x;
 }
 
 template <typename InternalsType>
