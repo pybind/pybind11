@@ -29,11 +29,11 @@ public:
     native_enum_data(const object &parent_scope,
                      const char *enum_name,
                      const char *native_type_name,
-                     const char *enum_doc,
+                     const char *class_doc,
                      const std::type_index &enum_type_index)
         : enum_name_encoded{enum_name}, native_type_name_encoded{native_type_name},
           enum_type_index{enum_type_index}, parent_scope(parent_scope), enum_name{enum_name},
-          native_type_name{native_type_name}, enum_doc(enum_doc), export_values_flag{false},
+          native_type_name{native_type_name}, class_doc(class_doc), export_values_flag{false},
           finalize_needed{false} {}
 
     void finalize();
@@ -72,7 +72,7 @@ private:
     object parent_scope;
     str enum_name;
     str native_type_name;
-    std::string enum_doc;
+    std::string class_doc;
 
 protected:
     list members;
@@ -194,8 +194,8 @@ inline void native_enum_data::finalize() {
             parent_scope.attr(member_name) = py_enum[member_name];
         }
     }
-    if (!enum_doc.empty()) {
-        py_enum.attr("__doc__") = enum_doc.c_str();
+    if (!class_doc.empty()) {
+        py_enum.attr("__doc__") = class_doc.c_str();
     }
     for (auto doc : docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];

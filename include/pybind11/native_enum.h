@@ -25,9 +25,9 @@ public:
     native_enum(const object &parent_scope,
                 const char *name,
                 const char *native_type_name,
-                const char *enum_doc = "")
+                const char *class_doc = "")
         : detail::native_enum_data(
-              parent_scope, name, native_type_name, enum_doc, std::type_index(typeid(EnumType))) {
+              parent_scope, name, native_type_name, class_doc, std::type_index(typeid(EnumType))) {
         if (detail::get_local_type_info(typeid(EnumType)) != nullptr
             || detail::get_global_type_info(typeid(EnumType)) != nullptr) {
             pybind11_fail(
