@@ -604,6 +604,7 @@ def test_number_protocol():
 def test_list_slicing():
     li = list(range(100))
     assert li[::2] == m.test_list_slicing(li)
+    assert li[::] == m.test_list_slicing_default(li)
 
 
 def test_issue2361():

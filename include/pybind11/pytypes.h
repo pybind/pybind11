@@ -1942,13 +1942,14 @@ private:
 
 class slice : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
+    PYBIND11_OBJECT(slice, object, PySlice_Check)
     slice(handle start, handle stop, handle step)
         : object(PySlice_New(start.ptr(), stop.ptr(), step.ptr()), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate slice object!");
         }
     }
+    slice() : slice(none(), none(), none()) {}
 
 #ifdef PYBIND11_HAS_OPTIONAL
     slice(std::optional<ssize_t> start, std::optional<ssize_t> stop, std::optional<ssize_t> step)
