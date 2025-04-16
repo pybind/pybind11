@@ -54,6 +54,8 @@ MEMBER_DOC_MEMBERS = (
     ("mem2", 2),
 )
 
+FUNC_SIG_RENDERING_MEMBERS = ()
+
 ENUM_TYPES_AND_MEMBERS = (
     (m.smallenum, SMALLENUM_MEMBERS),
     (m.color, COLOR_MEMBERS),
@@ -62,6 +64,7 @@ ENUM_TYPES_AND_MEMBERS = (
     (m.flags_uint, FLAGS_UINT_MEMBERS),
     (m.export_values, EXPORT_VALUES_MEMBERS),
     (m.member_doc, MEMBER_DOC_MEMBERS),
+    (m.func_sig_rendering, FUNC_SIG_RENDERING_MEMBERS),
     (m.class_with_enum.in_class, CLASS_WITH_ENUM_IN_CLASS_MEMBERS),
 )
 
@@ -84,15 +87,10 @@ def test_enum_members(enum_type, members):
 def test_pickle_roundtrip(enum_type, members):
     for name, _ in members:
         orig = enum_type[name]
-        if enum_type is m.class_with_enum.in_class:
-            # This is a general pickle limitation.
-            with pytest.raises(pickle.PicklingError):
-                pickle.dumps(orig)
-        else:
-            # This only works if __module__ is correct.
-            serialized = pickle.dumps(orig)
-            restored = pickle.loads(serialized)
-            assert restored == orig
+        # This only works if __module__ is correct.
+        serialized = pickle.dumps(orig)
+        restored = pickle.loads(serialized)
+        assert restored == orig
 
 
 @pytest.mark.parametrize("enum_type", [m.flags_uchar, m.flags_uint])
@@ -139,7 +137,7 @@ def test_pass_color_success():
 def test_pass_color_fail():
     with pytest.raises(TypeError) as excinfo:
         m.pass_color(None)
-    assert "test_native_enum::color" in str(excinfo.value)
+    assert "pybind11_tests.native_enum.color" in str(excinfo.value)
 
 
 def test_return_color_success():
@@ -153,6 +151,22 @@ def test_return_color_fail():
     with pytest.raises(ValueError) as excinfo_cast:
         m.return_color(2)
     assert str(excinfo_cast.value) == str(excinfo_direct.value)
+
+
+def test_property_type_hint():
+    prop = m.class_with_enum.__dict__["nested_value"]
+    assert isinstance(prop, property)
+    assert prop.fget.__doc__.startswith(
+        "(self: pybind11_tests.native_enum.class_with_enum)"
+        " -> pybind11_tests.native_enum.class_with_enum.in_class"
+    )
+
+
+def test_func_sig_rendering():
+    assert m.pass_and_return_func_sig_rendering.__doc__.startswith(
+        "pass_and_return_func_sig_rendering(e: pybind11_tests.native_enum.func_sig_rendering)"
+        " -> pybind11_tests.native_enum.func_sig_rendering"
+    )
 
 
 def test_type_caster_enum_type_enabled_false():
