@@ -130,6 +130,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_trampoline_shared_from_this
     test_class_sh_trampoline_shared_ptr_cpp_arg
     test_class_sh_trampoline_unique_ptr
+    test_class_sh_trampoline_weak_ptr
     test_class_sh_unique_ptr_custom_deleter
     test_class_sh_unique_ptr_member
     test_class_sh_virtual_py_cpp_mix
