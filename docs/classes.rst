@@ -556,7 +556,7 @@ The binding code for this example looks as follows:
         .def_readwrite("type", &Pet::type)
         .def_readwrite("attr", &Pet::attr);
 
-    py::native_enum<Pet::Kind>(pet, "Kind")
+    py::native_enum<Pet::Kind>(pet, "Kind", "enum.Enum")
         .value("Dog", Pet::Kind::Dog)
         .value("Cat", Pet::Kind::Cat)
         .export_values()
@@ -593,16 +593,20 @@ once. To achieve this, ``py::native_enum`` acts as a buffer to collect the
 name/value pairs. The ``.finalize()`` call uses the accumulated name/value
 pairs to build the arguments for constructing a native Python enum type.
 
-The ``py::native_enum`` constructor supports a third optional
-``native_type_name`` string argument, with default value ``"enum.Enum"``.
-Other types can be specified like this:
+The ``py::native_enum`` constructor takes a third argument,
+``native_type_name``, which specifies the fully qualified name of the Python
+base class to use — e.g., ``"enum.Enum"`` or ``"enum.IntEnum"``. A fourth
+optional argument, ``class_doc``, provides the docstring for the generated
+class.
+
+For example:
 
 .. code-block:: cpp
 
-    py::native_enum<Pet::Kind>(pet, "Kind", "enum.IntEnum")
+    py::native_enum<Pet::Kind>(pet, "Kind", "enum.IntEnum", "Constant specifying the kind of pet")
 
-Any fully-qualified Python name can be specified. The only requirement is
-that the named type is similar to
+You may use any fully qualified Python name for ``native_type_name``.
+The only requirement is that the named type is similar to
 `enum.Enum <https://docs.python.org/3/library/enum.html#enum.Enum>`_
 in these ways:
 

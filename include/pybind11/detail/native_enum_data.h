@@ -29,10 +29,12 @@ public:
     native_enum_data(const object &parent_scope,
                      const char *enum_name,
                      const char *native_type_name,
+                     const char *class_doc,
                      const std::type_index &enum_type_index)
         : enum_name_encoded{enum_name}, native_type_name_encoded{native_type_name},
           enum_type_index{enum_type_index}, parent_scope(parent_scope), enum_name{enum_name},
-          native_type_name{native_type_name}, export_values_flag{false}, finalize_needed{false} {}
+          native_type_name{native_type_name}, class_doc(class_doc), export_values_flag{false},
+          finalize_needed{false} {}
 
     void finalize();
 
@@ -70,10 +72,11 @@ private:
     object parent_scope;
     str enum_name;
     str native_type_name;
+    std::string class_doc;
 
 protected:
     list members;
-    list docs;
+    list member_docs;
     bool export_values_flag : 1; // Attention: It is best to keep the bools together.
 
 private:
@@ -191,7 +194,10 @@ inline void native_enum_data::finalize() {
             parent_scope.attr(member_name) = py_enum[member_name];
         }
     }
-    for (auto doc : docs) {
+    if (!class_doc.empty()) {
+        py_enum.attr("__doc__") = class_doc.c_str();
+    }
+    for (auto doc : member_docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
     global_internals_native_enum_type_map_set_item(enum_type_index, py_enum.release().ptr());
