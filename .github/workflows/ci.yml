@@ -432,7 +432,7 @@ jobs:
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
   ubuntu-nvhpc7:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
 
     env:
@@ -550,7 +550,7 @@ jobs:
 
   # Testing on ICC using the oneAPI apt repo
   icc:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     name: "🐍 3 • ICC latest • x64"
 
