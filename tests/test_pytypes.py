@@ -603,7 +603,8 @@ def test_number_protocol():
 
 def test_list_slicing():
     li = list(range(100))
-    assert li[::2] == m.test_list_slicing(li)
+    assert li[0:-1:2] == m.test_list_slicing(li)
+    assert li[::] == m.test_list_slicing_default(li)
 
 
 def test_issue2361():
@@ -1254,7 +1255,7 @@ def test_arg_return_type_hints(doc):
     # std::vector<T>
     assert (
         doc(m.half_of_number_vector)
-        == "half_of_number_vector(arg0: list[Union[float, int]]) -> list[float]"
+        == "half_of_number_vector(arg0: collections.abc.Sequence[Union[float, int]]) -> list[float]"
     )
     # Tuple<T, T>
     assert (

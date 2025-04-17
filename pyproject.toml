@@ -16,6 +16,9 @@ ignore = [
     "noxfile.py",
 ]
 
+# Can't use tool.uv.sources with requirements.txt
+[tool.uv]
+index-strategy = "unsafe-best-match"
 
 [tool.mypy]
 files = ["pybind11"]

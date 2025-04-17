@@ -671,6 +671,8 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("test_list_slicing", [](const py::list &a) { return a[py::slice(0, -1, 2)]; });
 
+    m.def("test_list_slicing_default", [](const py::list &a) { return a[py::slice()]; });
+
     // See #2361
     m.def("issue2361_str_implicit_copy_none", []() {
         py::str is_this_none = py::none();
