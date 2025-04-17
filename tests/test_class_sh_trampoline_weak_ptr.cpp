@@ -35,9 +35,6 @@ struct WpBaseTester {
     void set_object(std::shared_ptr<WpBase> obj) { m_obj = obj; }
     bool is_expired() { return m_obj.expired(); }
     bool is_base_used() { return m_obj.lock()->is_base_used(); }
-    //    bool has_instance() { return (bool) m_obj.lock(); }
-    //    bool has_python_instance() { return m_obj.lock() && m_obj.lock()->has_python_instance();
-    //    } void set_nonpython_instance() { m_obj = std::make_shared<WpBase>(); }
     std::weak_ptr<WpBase> m_obj;
 };
 
@@ -61,8 +58,4 @@ TEST_SUBMODULE(class_sh_trampoline_weak_ptr, m) {
         .def("set_object", &WpBaseTester::set_object)
         .def("is_expired", &WpBaseTester::is_expired)
         .def("is_base_used", &WpBaseTester::is_base_used);
-    //        .def("has_instance", &WpBaseTester::has_instance)
-    //        .def("has_python_instance", &WpBaseTester::has_python_instance)
-    //        .def("set_nonpython_instance", &WpBaseTester::set_nonpython_instance)
-    //        .def_readwrite("obj", &WpBaseTester::m_obj);
 }
