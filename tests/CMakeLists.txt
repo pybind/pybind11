@@ -137,6 +137,7 @@ set(PYBIND11_TEST_FILES
     test_constants_and_functions
     test_copy_move
     test_cpp_conduit
+    test_cprofile_compatibility.py
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
@@ -241,6 +242,7 @@ tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_cpp_conduit.py"
                     "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
+tests_extra_targets("test_cprofile_compatibility.py" "cprofile_compatibility_ext")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
