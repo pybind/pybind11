@@ -160,6 +160,9 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
                 handle th((PyObject *) tinfo->type);
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
+            } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
+                signature += th.attr("__module__").cast<std::string>() + "."
+                             + th.attr("__qualname__").cast<std::string>();
             } else if (func_rec->is_new_style_constructor && arg_index == 0) {
                 // A new-style `__init__` takes `self` as `value_and_holder`.
                 // Rewrite it to the proper class type.

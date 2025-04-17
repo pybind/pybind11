@@ -29,6 +29,8 @@ enum class member_doc { mem0, mem1, mem2 };
 
 struct class_with_enum {
     enum class in_class { one, two };
+
+    in_class nested_value = in_class::one;
 };
 
 // https://github.com/protocolbuffers/protobuf/blob/d70b5c5156858132decfdbae0a1103e6a5cb1345/src/google/protobuf/generated_enum_util.h#L52-L53
@@ -39,6 +41,8 @@ enum some_proto_enum : int { Zero, One };
 
 template <>
 struct is_proto_enum<some_proto_enum> : std::true_type {};
+
+enum class func_sig_rendering {};
 
 } // namespace test_native_enum
 
@@ -124,10 +128,19 @@ TEST_SUBMODULE(native_enum, m) {
         .value("two", class_with_enum::in_class::two)
         .finalize();
 
+    py_class_with_enum.def(py::init())
+        .def_readwrite("nested_value", &class_with_enum::nested_value);
+
     m.def("isinstance_color", [](const py::object &obj) { return py::isinstance<color>(obj); });
 
     m.def("pass_color", [](color e) { return static_cast<int>(e); });
     m.def("return_color", [](int i) { return static_cast<color>(i); });
+
+    py::native_enum<func_sig_rendering>(m, "func_sig_rendering", "enum.Enum").finalize();
+    m.def(
+        "pass_and_return_func_sig_rendering",
+        [](func_sig_rendering e) { return e; },
+        py::arg("e"));
 
     m.def("pass_some_proto_enum", [](some_proto_enum) { return py::none(); });
     m.def("return_some_proto_enum", []() { return some_proto_enum::Zero; });
