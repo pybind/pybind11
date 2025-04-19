@@ -12,7 +12,7 @@ class PyDrvd(m.VirtBase):
 
 
 @pytest.mark.parametrize(("vtype", "expected_code"), [(m.VirtBase, 100), (PyDrvd, 200)])
-def test_weak_ptr_base(vtype, expected_code):
+def test_weak_ptr_owner(vtype, expected_code):
     wpo = m.WpOwner()
     assert wpo.get_code() == -999
 
