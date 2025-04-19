@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import env  # noqa: F401
+import env
 import pybind11_tests.class_sp_trampoline_weak_ptr as m
 
 
@@ -11,7 +11,6 @@ class PyDrvd(m.VirtBase):
         return 200
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 @pytest.mark.parametrize(("vtype", "expected_code"), [(m.VirtBase, 100), (PyDrvd, 200)])
 def test_weak_ptr_base(vtype, expected_code):
     wpo = m.WpOwner()
@@ -24,4 +23,6 @@ def test_weak_ptr_base(vtype, expected_code):
     assert wpo.get_code() == expected_code
 
     del obj
+    if env.PYPY or env.GRAALPY:
+        pytest.skip("Cannot reliably trigger GC")
     assert wpo.get_code() == -999
