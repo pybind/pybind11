@@ -20,7 +20,7 @@ struct PyVirtBase : VirtBase, py::trampoline_self_life_support {
 };
 
 struct WpOwner {
-    void set_wp(std::shared_ptr<VirtBase> sp) { wp = sp; }
+    void set_wp(const std::shared_ptr<VirtBase> &sp) { wp = sp; }
 
     int get_code() {
         auto sp = wp.lock();
