@@ -6,31 +6,22 @@ import env  # noqa: F401
 import pybind11_tests.class_sh_trampoline_weak_ptr as m
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
-def test_weak_ptr_base():
-    tester = m.WpBaseTester()
-
-    obj = m.WpBase()
-
-    tester.set_object(obj)
-
-    assert tester.is_expired() is False
-    assert tester.is_base_used() is True
-    assert tester.get_object().is_base_used() is True
+class PyDrvd(m.VirtBase):
+    def get_code(self):
+        return 200
 
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
-def test_weak_ptr_child():
-    class PyChild(m.WpBase):
-        def is_base_used(self):
-            return False
+@pytest.mark.parametrize(("vtype", "expected_code"), [(m.VirtBase, 100), (PyDrvd, 200)])
+def test_weak_ptr_base(vtype, expected_code):
+    wpo = m.WpOwner()
+    assert wpo.get_code() == -999
 
-    tester = m.WpBaseTester()
+    obj = vtype()
+    assert obj.get_code() == expected_code
 
-    obj = PyChild()
+    wpo.set_wp(obj)
+    assert wpo.get_code() == expected_code
 
-    tester.set_object(obj)
-
-    assert tester.is_expired() is False
-    assert tester.is_base_used() is False
-    assert tester.get_object().is_base_used() is False
+    del obj
+    assert wpo.get_code() == -999
