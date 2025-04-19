@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 import env  # noqa: F401
-import pybind11_tests.class_sh_trampoline_weak_ptr as m
+import pybind11_tests.class_sp_trampoline_weak_ptr as m
 
 
 class PyDrvd(m.VirtBase):
@@ -21,10 +21,7 @@ def test_weak_ptr_base(vtype, expected_code):
     assert obj.get_code() == expected_code
 
     wpo.set_wp(obj)
-    if vtype is m.VirtBase:
-        assert wpo.get_code() == expected_code
-    else:
-        assert wpo.get_code() == -999  # THIS NEEDS FIXING (issue #5623)
+    assert wpo.get_code() == expected_code
 
     del obj
     assert wpo.get_code() == -999

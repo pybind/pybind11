@@ -134,6 +134,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_unique_ptr_custom_deleter
     test_class_sh_unique_ptr_member
     test_class_sh_virtual_py_cpp_mix
+    test_class_sp_trampoline_weak_ptr
     test_const_name
     test_constants_and_functions
     test_copy_move
