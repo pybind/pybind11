@@ -34,6 +34,20 @@ private:
     std::weak_ptr<VirtBase> wp;
 };
 
+struct SpOwner {
+    void set_sp(const std::shared_ptr<VirtBase> &sp) { this->sp = sp; }
+
+    int get_code() {
+        if (!sp) {
+            return -888;
+        }
+        return sp->get_code();
+    }
+
+private:
+    std::shared_ptr<VirtBase> sp;
+};
+
 } // namespace class_sp_trampoline_weak_ptr
 } // namespace pybind11_tests
 
@@ -48,4 +62,9 @@ TEST_SUBMODULE(class_sp_trampoline_weak_ptr, m) {
         .def(py::init<>())
         .def("set_wp", &WpOwner::set_wp)
         .def("get_code", &WpOwner::get_code);
+
+    py::class_<SpOwner>(m, "SpOwner")
+        .def(py::init<>())
+        .def("set_sp", &SpOwner::set_sp)
+        .def("get_code", &SpOwner::get_code);
 }
