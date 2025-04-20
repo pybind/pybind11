@@ -41,7 +41,7 @@ private:
 };
 
 struct SpOwner {
-    void set_sp(const std::shared_ptr<VirtBase> &sp) { this->sp = sp; }
+    void set_sp(const std::shared_ptr<VirtBase> &sp_) { sp = sp_; }
 
     int get_code() {
         if (!sp) {
