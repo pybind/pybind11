@@ -14,9 +14,15 @@ struct VirtBase {
     virtual int get_code() { return 100; }
 };
 
-struct PyVirtBase : VirtBase, py::trampoline_self_life_support {
+struct PyVirtBase : VirtBase /*, py::trampoline_self_life_support */ {
     using VirtBase::VirtBase;
     int get_code() override { PYBIND11_OVERRIDE(int, VirtBase, get_code); }
+
+    ~PyVirtBase() override {
+        fflush(stderr);
+        printf("\nLOOOK ~PyVirtBase()\n");
+        fflush(stdout);
+    }
 };
 
 struct WpOwner {
@@ -34,6 +40,10 @@ private:
     std::weak_ptr<VirtBase> wp;
 };
 
+std::shared_ptr<VirtBase> pass_through_sp_VirtBase(const std::shared_ptr<VirtBase> &sp) {
+    return sp;
+}
+
 } // namespace class_sh_trampoline_weak_ptr
 } // namespace pybind11_tests
 
@@ -48,4 +58,6 @@ TEST_SUBMODULE(class_sh_trampoline_weak_ptr, m) {
         .def(py::init<>())
         .def("set_wp", &WpOwner::set_wp)
         .def("get_code", &WpOwner::get_code);
+
+    m.def("pass_through_sp_VirtBase", pass_through_sp_VirtBase);
 }

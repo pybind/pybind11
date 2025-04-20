@@ -776,6 +776,14 @@ struct load_helper : value_and_holder_helper {
                 if (released_ptr) {
                     return std::shared_ptr<T>(released_ptr, type_raw_ptr);
                 }
+                auto *self_life_support
+                    = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(type_raw_ptr);
+                if (self_life_support == nullptr) {
+                    std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
+                    std::shared_ptr<T> to_be_released(void_shd_ptr, type_raw_ptr);
+                    vptr_gd_ptr->released_ptr = to_be_released;
+                    return to_be_released;
+                }
                 std::shared_ptr<T> to_be_released(
                     type_raw_ptr, shared_ptr_trampoline_self_life_support(loaded_v_h.inst));
                 vptr_gd_ptr->released_ptr = to_be_released;

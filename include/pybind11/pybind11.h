@@ -3416,14 +3416,23 @@ PYBIND11_NAMESPACE_END(detail)
 template <class T>
 function get_override(const T *this_ptr, const char *name) {
     auto *tinfo = detail::get_type_info(typeid(T));
+    fflush(stderr);
+    printf("\nLOOOK get_override tinfo truthy = %s\n", tinfo ? "YES" : "NO");
+    fflush(stdout);
     return tinfo ? detail::get_type_override(this_ptr, tinfo, name) : function();
 }
 
 #define PYBIND11_OVERRIDE_IMPL(ret_type, cname, name, ...)                                        \
     do {                                                                                          \
         pybind11::gil_scoped_acquire gil;                                                         \
+        fflush(stderr);                                                                           \
+        printf("\nLOOOK BEFORE static_cast<const cname *>(this)\n");                              \
+        fflush(stdout);                                                                           \
         pybind11::function override                                                               \
             = pybind11::get_override(static_cast<const cname *>(this), name);                     \
+        fflush(stderr);                                                                           \
+        printf("\nLOOOK  AFTER static_cast<const cname *>(this)\n");                              \
+        fflush(stdout);                                                                           \
         if (override) {                                                                           \
             auto o = override(__VA_ARGS__);                                                       \
             PYBIND11_WARNING_PUSH                                                                 \

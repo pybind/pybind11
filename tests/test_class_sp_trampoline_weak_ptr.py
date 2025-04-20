@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+
 import pytest
 
 import env
@@ -42,7 +44,9 @@ def test_with_sp_owner(vtype, expected_code):
     del obj
     if env.PYPY or env.GRAALPY:
         pytest.skip("Cannot reliably trigger GC")
+    print("\nLOOOK BEFORE spo.get_code() AFTER del obj", flush=True)
     assert spo.get_code() == 100  # Inheritance slicing (issue #1333)
+    print("\nLOOOK  AFTER spo.get_code() AFTER del obj", flush=True)
 
 
 @pytest.mark.parametrize(("vtype", "expected_code"), [(m.VirtBase, 100), (PyDrvd, 200)])
@@ -67,3 +71,16 @@ def test_with_sp_and_wp_owners(vtype, expected_code):
 
     del spo
     assert wpo.get_code() == -999
+
+
+@pytest.mark.parametrize(("vtype", "expected_code"), [(m.VirtBase, 100), (PyDrvd, 200)])
+def test_pass_through_sp_VirtBase(vtype, expected_code):
+    obj = vtype()
+    ptr = m.pass_through_sp_VirtBase(obj)
+    print("\nLOOOK BEFORE del obj", flush=True)
+    del obj
+    print("\nLOOOK  AFTER del obj", flush=True)
+    gc.collect()
+    print("\nLOOOK  AFTER gc.collect()", flush=True)
+    assert ptr.get_code() == expected_code
+    print("\nLOOOK  AFTER ptr.get_code()", flush=True)
