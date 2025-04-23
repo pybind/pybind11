@@ -177,6 +177,10 @@ struct type_caster<RealNumber> {
 } // namespace detail
 } // namespace pybind11
 
+namespace {
+class Foo {};
+} // namespace
+
 TEST_SUBMODULE(pytypes, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -1206,4 +1210,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
         return py::isinstance<RealNumber>(x);
     });
+
+    // test register different classes with same name (in anonymous namespace)
+    py::class_<Foo>(m, "Foo");
 }

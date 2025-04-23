@@ -60,6 +60,10 @@ class Args : public py::args {};
 
 } // namespace test_class
 
+namespace {
+class Foo {};
+} // namespace
+
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "");
 static_assert(
     py::detail::is_same_or_base_of<py::args,
@@ -577,6 +581,9 @@ TEST_SUBMODULE(class_, m) {
     });
 
     test_class::pr4220_tripped_over_this::bind_empty0(m);
+
+    // test register different classes with same name (in anonymous namespace)
+    py::class_<Foo>(m, "Foo");
 }
 
 template <int N>
