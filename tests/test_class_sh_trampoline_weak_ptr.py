@@ -22,10 +22,7 @@ def test_weak_ptr_owner(vtype, expected_code):
     assert obj.get_code() == expected_code
 
     wpo.set_wp(obj)
-    if vtype is m.VirtBase:
-        assert wpo.get_code() == expected_code
-    else:
-        assert wpo.get_code() == -999  # THIS NEEDS FIXING (issue #5623)
+    assert wpo.get_code() == expected_code
 
     del obj
     if env.PYPY or env.GRAALPY:

@@ -983,6 +983,16 @@ public:
         return shared_ptr_storage;
     }
 
+    std::shared_ptr<type> &potentially_slicing_shared_ptr() {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+            shared_ptr_storage
+                = sh_load_helper.load_as_shared_ptr(value,
+                                                    /*responsible_parent=*/nullptr,
+                                                    /*force_potentially_slicing_shared_ptr=*/true);
+        }
+        return shared_ptr_storage;
+    }
+
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
         const auto *ptr = src.get();
@@ -1076,6 +1086,21 @@ protected:
 /// Specialize for the common std::shared_ptr, so users don't need to
 template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> {};
+
+PYBIND11_NAMESPACE_END(detail)
+
+template <typename T>
+std::shared_ptr<T> potentially_slicing_shared_ptr(handle obj) {
+    detail::make_caster<std::shared_ptr<T>> caster;
+    if (caster.load(obj, /*convert=*/true)) {
+        return caster.potentially_slicing_shared_ptr();
+    }
+    const char *type_name_obj = detail::obj_class_name(obj.ptr());
+    throw type_error("\"" + std::string(type_name_obj)
+                     + "\" object is not convertible to std::shared_ptr<T>");
+}
+
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // SMART_HOLDER_BAKEIN_FOLLOW_ON: Rewrite comment, with reference to unique_ptr specialization.
 /// Type caster for holder types like std::unique_ptr.

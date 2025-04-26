@@ -58,7 +58,7 @@ TEST_SUBMODULE(class_sh_trampoline_weak_ptr, m) {
         .def(py::init<>())
         .def("set_wp",
              [](WpOwner &self, py::handle obj) {
-                 self.set_wp(obj.cast<std::shared_ptr<VirtBase>>());
+                 self.set_wp(py::potentially_slicing_shared_ptr<VirtBase>(obj));
              })
         .def("get_code", &WpOwner::get_code);
 
