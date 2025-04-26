@@ -56,7 +56,10 @@ TEST_SUBMODULE(class_sh_trampoline_weak_ptr, m) {
 
     py::classh<WpOwner>(m, "WpOwner")
         .def(py::init<>())
-        .def("set_wp", &WpOwner::set_wp)
+        .def("set_wp",
+             [](WpOwner &self, py::handle obj) {
+                 self.set_wp(obj.cast<std::shared_ptr<VirtBase>>());
+             })
         .def("get_code", &WpOwner::get_code);
 
     m.def("pass_through_sp_VirtBase", pass_through_sp_VirtBase);
