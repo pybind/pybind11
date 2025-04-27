@@ -130,11 +130,9 @@ set(PYBIND11_TEST_FILES
     test_class_sh_trampoline_shared_from_this
     test_class_sh_trampoline_shared_ptr_cpp_arg
     test_class_sh_trampoline_unique_ptr
-    test_class_sh_trampoline_weak_ptr
     test_class_sh_unique_ptr_custom_deleter
     test_class_sh_unique_ptr_member
     test_class_sh_virtual_py_cpp_mix
-    test_class_sp_trampoline_weak_ptr
     test_const_name
     test_constants_and_functions
     test_copy_move
@@ -163,6 +161,7 @@ set(PYBIND11_TEST_FILES
     test_opaque_types
     test_operator_overloading
     test_pickling
+    test_potentially_slicing_shared_ptr
     test_python_multiple_inheritance
     test_pytypes
     test_sequences_and_iterators
