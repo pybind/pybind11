@@ -41,3 +41,13 @@ def test_pass_through_sp_VirtBase(vtype, expected_code):
     print("\nLOOOK  AFTER gc.collect()", flush=True)
     assert ptr.get_code() == expected_code
     print("\nLOOOK  AFTER ptr.get_code()", flush=True)
+
+
+def test_potentially_slicing_shared_ptr_not_convertible_error():
+    wpo = m.WpOwner()
+    with pytest.raises(Exception) as excinfo:
+        wpo.set_wp("")
+    assert str(excinfo.value) == (
+        '"str" object is not convertible to std::shared_ptr<T>'
+        " (with T = pybind11_tests::class_sh_trampoline_weak_ptr::VirtBase)"
+    )

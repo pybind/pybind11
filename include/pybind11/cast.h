@@ -1095,9 +1095,10 @@ std::shared_ptr<T> potentially_slicing_shared_ptr(handle obj) {
     if (caster.load(obj, /*convert=*/true)) {
         return caster.potentially_slicing_shared_ptr();
     }
-    const char *type_name_obj = detail::obj_class_name(obj.ptr());
-    throw type_error("\"" + std::string(type_name_obj)
-                     + "\" object is not convertible to std::shared_ptr<T>");
+    const char *obj_type_name = detail::obj_class_name(obj.ptr());
+    throw type_error("\"" + std::string(obj_type_name)
+                     + "\" object is not convertible to std::shared_ptr<T> (with T = "
+                     + type_id<T>() + ")");
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
