@@ -71,12 +71,17 @@ def test_rtrn_obj_cast_shared_ptr(holder_kind, rtrn_kind, expected_code):
 def test_with_sp_owner(holder_kind, expected_code):
     spo = SP_OWNER_TYPES[holder_kind]()
     assert spo.get_code() == -888
+    assert spo.get_trampoline_state() == "sp nullptr"
 
     obj = VIRT_BASE_TYPES[holder_kind][expected_code]()
     assert obj.get_code() == expected_code
 
     spo.set_sp(obj)
     assert spo.get_code() == expected_code
+    expected_trampoline_state = (
+        "dynamic_cast failed" if expected_code == 100 else "trampoline alive"
+    )
+    assert spo.get_trampoline_state() == expected_trampoline_state
 
     del obj
     gc.collect()
@@ -86,6 +91,7 @@ def test_with_sp_owner(holder_kind, expected_code):
         assert (
             spo.get_code() == 100
         )  # see issue #1333 (inheritance slicing) and PR #5624
+    assert spo.get_trampoline_state() == expected_trampoline_state
 
 
 @pytest.mark.parametrize("expected_code", [100, 200])
@@ -94,6 +100,7 @@ def test_with_sp_owner(holder_kind, expected_code):
 def test_with_wp_owner(holder_kind, set_meth, expected_code):
     wpo = WP_OWNER_TYPES[holder_kind]()
     assert wpo.get_code() == -999
+    assert wpo.get_trampoline_state() == "sp nullptr"
 
     obj = VIRT_BASE_TYPES[holder_kind][expected_code]()
     assert obj.get_code() == expected_code
@@ -107,6 +114,13 @@ def test_with_wp_owner(holder_kind, set_meth, expected_code):
         assert wpo.get_code() == expected_code
     else:
         assert wpo.get_code() == -999  # see issue #5623 (weak_ptr expired) and PR #5624
+    if expected_code == 100:
+        expected_trampoline_state = "dynamic_cast failed"
+    elif holder_kind == "SH" and set_meth == "set_wp":
+        expected_trampoline_state = "sp nullptr"
+    else:
+        expected_trampoline_state = "trampoline alive"
+    assert wpo.get_trampoline_state() == expected_trampoline_state
 
     del obj
     gc.collect()
