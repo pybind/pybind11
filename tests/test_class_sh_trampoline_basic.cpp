@@ -21,25 +21,13 @@ struct Abase {
 };
 
 template <int SerNo>
-struct AbaseAlias : Abase<SerNo> {
+struct AbaseAlias : Abase<SerNo>, py::trampoline_self_life_support {
     using Abase<SerNo>::Abase;
 
     int Add(int other_val) const override {
         PYBIND11_OVERRIDE_PURE(int,          /* Return type */
                                Abase<SerNo>, /* Parent class */
                                Add,          /* Name of function in C++ (must match Python name) */
-                               other_val);
-    }
-};
-
-template <>
-struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
-    using Abase<1>::Abase;
-
-    int Add(int other_val) const override {
-        PYBIND11_OVERRIDE_PURE(int,      /* Return type */
-                               Abase<1>, /* Parent class */
-                               Add,      /* Name of function in C++ (must match Python name) */
                                other_val);
     }
 };
@@ -76,7 +64,4 @@ void wrap(py::module_ m, const char *py_class_name) {
 
 using namespace pybind11_tests::class_sh_trampoline_basic;
 
-TEST_SUBMODULE(class_sh_trampoline_basic, m) {
-    wrap<0>(m, "Abase0");
-    wrap<1>(m, "Abase1");
-}
+TEST_SUBMODULE(class_sh_trampoline_basic, m) { wrap<0>(m, "Abase0"); }

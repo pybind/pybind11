@@ -64,7 +64,7 @@ struct with_alias {
     with_alias &operator=(const with_alias &) = default;
     with_alias &operator=(with_alias &&) = default;
 };
-struct with_alias_alias : with_alias {};
+struct with_alias_alias : with_alias, py::trampoline_self_life_support {};
 struct sddwaa : std::default_delete<with_alias_alias> {};
 
 } // namespace class_sh_factory_constructors
