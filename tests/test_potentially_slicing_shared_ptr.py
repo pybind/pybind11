@@ -1,3 +1,34 @@
+# Copyright (c) 2025 The pybind Community.
+# All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+# This module tests the interaction of pybind11's shared_ptr and smart_holder
+# mechanisms with trampoline object lifetime management and inheritance slicing.
+#
+# The following combinations are covered:
+#
+# - Holder type: std::shared_ptr (class_ holder) vs.
+#                py::smart_holder
+# - Conversion function: obj.cast<std::shared_ptr<T>>() vs.
+#                        py::potentially_slicing_shared_ptr<T>(obj)
+# - Python object type: C++ base class vs.
+#                       Python-derived trampoline class
+#
+# The tests verify
+#
+# - that casting or passing Python objects into functions returns usable
+#   std::shared_ptr<T> instances.
+# - that inheritance slicing occurs as expected in controlled cases
+#   (issue #1333).
+# - that surprising weak_ptr behavior (issue #5623) can be reproduced when
+#   smart_holder is used.
+# - that the trampoline object remains alive in all situations
+#   (no use-after-free) as long as the C++ shared_ptr exists.
+#
+# Where applicable, trampoline state is introspected to confirm whether the
+# C++ object retains knowledge of the Python override or has fallen back to
+# the base implementation.
+
 from __future__ import annotations
 
 import gc
