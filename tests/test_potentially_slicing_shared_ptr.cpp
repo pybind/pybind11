@@ -26,11 +26,9 @@ struct trampoline_is_alive_simple {
 
     ~trampoline_is_alive_simple() { magic_token = 20380118191407u; }
 
-    trampoline_is_alive_simple(const trampoline_is_alive_simple &other) {
-        magic_token = other.magic_token;
-    }
-    trampoline_is_alive_simple(trampoline_is_alive_simple &&other) noexcept {
-        magic_token = other.magic_token;
+    trampoline_is_alive_simple(const trampoline_is_alive_simple &other) = default;
+    trampoline_is_alive_simple(trampoline_is_alive_simple &&other) noexcept
+        : magic_token(other.magic_token) {
         other.magic_token = 20380118191407u;
     }
 
