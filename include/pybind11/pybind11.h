@@ -1985,11 +1985,13 @@ public:
     static_assert(!has_alias || std::is_polymorphic<type>::value,
                   "Cannot use an alias class (aka trampoline) with a non-polymorphic type");
 
+#ifndef PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
     static_assert(!has_alias || !detail::is_smart_holder<holder_type>::value
                       || std::is_base_of<trampoline_self_life_support, type_alias>::value,
                   "Alias class (aka trampoline) must inherit from"
                   " pybind11::trampoline_self_life_support if used in combination with"
                   " pybind11::smart_holder");
+#endif
     static_assert(!has_alias || detail::is_smart_holder<holder_type>::value
                       || !std::is_base_of<trampoline_self_life_support, type_alias>::value,
                   "pybind11::trampoline_self_life_support is a smart_holder feature, therefore"
