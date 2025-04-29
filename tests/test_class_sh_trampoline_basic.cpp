@@ -32,7 +32,7 @@ struct AbaseAlias : Abase, py::trampoline_self_life_support {
 
 int AddInCppRawPtr(const Abase *obj, int other_val) { return obj->Add(other_val) * 10 + 7; }
 
-int AddInCppSharedPtr(std::shared_ptr<Abase> obj, int other_val) {
+int AddInCppSharedPtr(const std::shared_ptr<Abase> &obj, int other_val) {
     return obj->Add(other_val) * 100 + 11;
 }
 
