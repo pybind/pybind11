@@ -173,9 +173,6 @@ inline int tp_init_impl(PyObject *, PyObject *, PyObject *) {
     // return -1; // Unreachable.
 }
 
-// The implementation needs the definition of `class cpp_function`.
-void tp_dealloc_impl(PyObject *self);
-
 inline void tp_free_impl(void *) {
     pybind11_fail("UNEXPECTED CALL OF function_record_PyTypeObject_methods::tp_free_impl");
 }
