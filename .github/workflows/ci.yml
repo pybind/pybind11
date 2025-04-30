@@ -199,7 +199,7 @@ jobs:
       run: |
         uv pip install --python=python --system setuptools
         pytest tests/extra_setuptools
-      if: "!(matrix.runs-on == 'windows-2022')"
+      if: matrix.runs-on != 'windows-2022'
 
   manylinux:
     name: Manylinux on 🐍 3.13t • GIL
@@ -330,9 +330,10 @@ jobs:
             container_suffix: "-bullseye"
           - clang: 18
             std: 20
+            cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
             container_suffix: "-bookworm"
 
-    name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
+    name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
 
     steps:
@@ -348,6 +349,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -491,9 +493,9 @@ jobs:
           - { gcc: 9, std: 20 }
           - { gcc: 10, std: 17 }
           - { gcc: 10, std: 20 }
-          - { gcc: 13, std: 20 }
+          - { gcc: 13, std: 20, cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls" }
 
-    name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
+    name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "gcc:${{ matrix.gcc }}"
 
     steps:
@@ -515,6 +517,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build

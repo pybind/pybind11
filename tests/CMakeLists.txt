@@ -363,7 +363,7 @@ elseif(MSVC)
 else()
   file(
     WRITE ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
-    "#include <filesystem>\nint main(int argc, char ** argv) {\n  std::filesystem::path p(argv[0]);\n  return p.string().length();\n}"
+    "#include <filesystem>\nint main(int /*argc*/, char ** argv) {\n  std::filesystem::path p(argv[0]);\n  return p.string().length();\n}"
   )
   try_compile(
     STD_FS_NO_LIB_NEEDED ${CMAKE_CURRENT_BINARY_DIR}
