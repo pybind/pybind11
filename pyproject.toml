@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core >=0.11.0"]
+requires = ["scikit-build-core >=0.11.2"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -79,9 +79,9 @@ regex = '''(?sx)
 '''
 result = "{major}.{minor}.{patch}"
 
-# Can't use tool.uv.sources with requirements.txt
-[tool.uv]
-index-strategy = "unsafe-best-match"
+[tool.scikit-build.metadata.optional-dependencies]
+provider = "scikit_build_core.metadata.template"
+result = { global = ["pybind11-global=={project[version]}"]}
 
 [[tool.scikit-build.generate]]
 path = "pybind11/_version.py"
@@ -99,6 +99,11 @@ def _to_int(s: str) -> int | str:
 __version__ = "$version"
 version_info = tuple(_to_int(s) for s in __version__.split("."))
 '''
+
+
+# Can't use tool.uv.sources with requirements.txt
+[tool.uv]
+index-strategy = "unsafe-best-match"
 
 
 [tool.mypy]

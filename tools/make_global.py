@@ -19,6 +19,7 @@ def get_global() -> str:
     del pyproject["project"]["optional-dependencies"]
     del pyproject["project"]["entry-points"]
     del pyproject["project"]["scripts"]
+    del pyproject["tool"]["scikit-build"]["metadata"]["optional-dependencies"]
     pyproject["project"]["name"] = "pybind11-global"
     pyproject["tool"]["scikit-build"]["experimental"] = True
     pyproject["tool"]["scikit-build"]["wheel"]["install-dir"] = "/data"
