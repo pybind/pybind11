@@ -983,7 +983,7 @@ public:
         return shared_ptr_storage;
     }
 
-    std::shared_ptr<type> &potentially_slicing_shared_ptr() {
+    std::weak_ptr<type> potentially_slicing_weak_ptr() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             shared_ptr_storage
                 = sh_load_helper.load_as_shared_ptr(value,
@@ -1122,15 +1122,15 @@ PYBIND11_NAMESPACE_END(detail)
 ///     - the std::shared_ptr would own a reference to the derived Python object,
 ///       completing the cycle
 template <typename T>
-std::shared_ptr<T> potentially_slicing_shared_ptr(handle obj) {
+std::weak_ptr<T> potentially_slicing_weak_ptr(handle obj) {
     detail::make_caster<std::shared_ptr<T>> caster;
     if (caster.load(obj, /*convert=*/true)) {
-        return caster.potentially_slicing_shared_ptr();
+        return caster.potentially_slicing_weak_ptr();
     }
     const char *obj_type_name = detail::obj_class_name(obj.ptr());
     throw type_error("\"" + std::string(obj_type_name)
-                     + "\" object is not convertible to std::shared_ptr<T> (with T = "
-                     + type_id<T>() + ")");
+                     + "\" object is not convertible to std::weak_ptr<T> (with T = " + type_id<T>()
+                     + ")");
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)

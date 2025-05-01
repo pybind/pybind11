@@ -163,12 +163,12 @@ def test_potentially_slicing_shared_ptr_not_convertible_error():
     with pytest.raises(Exception) as excinfo:
         m.SH_rtrn_potentially_slicing_shared_ptr("")
     assert str(excinfo.value) == (
-        '"str" object is not convertible to std::shared_ptr<T>'
+        '"str" object is not convertible to std::weak_ptr<T>'
         " (with T = pybind11_tests::potentially_slicing_shared_ptr::VirtBase<0>)"
     )
     with pytest.raises(Exception) as excinfo:
         m.SP_rtrn_potentially_slicing_shared_ptr([])
     assert str(excinfo.value) == (
-        '"list" object is not convertible to std::shared_ptr<T>'
+        '"list" object is not convertible to std::weak_ptr<T>'
         " (with T = pybind11_tests::potentially_slicing_shared_ptr::VirtBase<1>)"
     )

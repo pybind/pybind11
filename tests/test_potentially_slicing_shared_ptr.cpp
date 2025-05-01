@@ -71,7 +71,7 @@ std::shared_ptr<VB> rtrn_obj_cast_shared_ptr(py::handle obj) {
 
 template <typename VB>
 std::shared_ptr<VB> rtrn_potentially_slicing_shared_ptr(py::handle obj) {
-    return py::potentially_slicing_shared_ptr<VB>(obj);
+    return py::potentially_slicing_weak_ptr<VB>(obj).lock();
 }
 
 template <typename VB>
@@ -93,7 +93,7 @@ private:
 
 template <typename VB>
 struct WpOwner {
-    void set_wp(const std::shared_ptr<VB> &sp) { wp = sp; }
+    void set_wp(const std::weak_ptr<VB> &wp_) { wp = wp_; }
 
     int get_code() const {
         auto sp = wp.lock();
@@ -126,10 +126,13 @@ void wrap(py::module_ &m,
 
     py::classh<WpOwner<VB>>(m, wpo_pyname)
         .def(py::init<>())
-        .def("set_wp", &WpOwner<VB>::set_wp)
+        .def("set_wp",
+             [](WpOwner<VB> &self, py::handle obj) {
+                 self.set_wp(obj.cast<std::shared_ptr<VB>>());
+             })
         .def("set_wp_potentially_slicing",
              [](WpOwner<VB> &self, py::handle obj) {
-                 self.set_wp(py::potentially_slicing_shared_ptr<VB>(obj));
+                 self.set_wp(py::potentially_slicing_weak_ptr<VB>(obj));
              })
         .def("get_code", &WpOwner<VB>::get_code)
         .def("get_trampoline_state", &WpOwner<VB>::get_trampoline_state);
