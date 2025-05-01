@@ -827,11 +827,8 @@ struct load_helper : value_and_holder_helper {
 
         auto *self_life_support
             = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
-        if (self_life_support == nullptr && python_instance_is_alias) {
-            throw value_error("Alias class (also known as trampoline) does not inherit from "
-                              "py::trampoline_self_life_support, therefore the ownership of this "
-                              "instance cannot safely be transferred to C++.");
-        }
+        // This is enforced indirectly by a static_assert in the class_ implementation:
+        assert(!python_instance_is_alias || self_life_support);
 
         std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(context);
 
