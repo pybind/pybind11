@@ -82,15 +82,21 @@ helper class that is defined as follows:
 
 The ``py::trampoline_self_life_support`` base class is needed to ensure
 that a ``std::unique_ptr`` can safely be passed between Python and C++. To
-steer clear of notorious pitfalls (e.g. inheritance slicing), it is best
-practice to always use the base class, in combination with
+help you steer clear of notorious pitfalls (e.g. inheritance slicing),
+pybind11 enforces that trampoline classes inherit from
+``py::trampoline_self_life_support`` if used in in combination with
 ``py::smart_holder``.
 
 .. note::
     For completeness, the base class has no effect if a holder other than
     ``py::smart_holder`` used, including the default ``std::unique_ptr<T>``.
-    Please think twice, though, the pitfalls are very real, and the overhead
-    for using the safer ``py::smart_holder`` is very likely to be in the noise.
+    To avoid confusion, pybind11 will fail to compile bindings that combine
+    ``py::trampoline_self_life_support`` with a holder other than
+    ``py::smart_holder``.
+
+    Please think twice, though, before deciding to not use the safer
+    ``py::smart_holder``. The pitfalls associated with avoiding it are very
+    real, and the overhead for using it is very likely in the noise.
 
 The macro :c:macro:`PYBIND11_OVERRIDE_PURE` should be used for pure virtual
 functions, and :c:macro:`PYBIND11_OVERRIDE` should be used for functions which have
