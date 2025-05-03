@@ -1,3 +1,4 @@
+prune .distro
 prune tests
 recursive-include pybind11/include/pybind11 *.h
 recursive-include pybind11 *.py

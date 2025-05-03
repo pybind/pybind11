@@ -1,0 +1,7 @@
+plan:
+  import:
+    url: https://github.com/packit/tmt-plans
+    ref: main
+    name: /plans/rpminspect
+environment:
+  RPMINSPECT_EXCLUDE: metadata,upstream
