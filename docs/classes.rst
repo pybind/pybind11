@@ -583,6 +583,13 @@ The older ``py::enum_`` is not PEP 435 compatible
 but remains supported indefinitely for backward compatibility.
 New bindings should prefer ``py::native_enum``.
 
+.. important::
+
+    The enum types created by ``py::native_enum`` are native Python types, while
+    the enum types created by the older ``py::enum_`` are C++ pybind11 types.
+    Developers **SHOULD NOT** call ``PyType_*`` Python C APIs on the enum types
+    created by ``py:native_enum``.
+
 .. note::
 
     The deprecated ``py::enum_`` is :ref:`documented here <deprecated_enum>`.
