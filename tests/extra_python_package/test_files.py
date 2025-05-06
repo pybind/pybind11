@@ -184,16 +184,23 @@ def test_build_sdist(monkeypatch, tmpdir):
     )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
+    version = sdist.basename.split("-")[1][:-7]
 
     with tarfile.open(str(sdist), "r:gz") as tar:
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
+        (pkg_info_path,) = (n for n in simpler if n.endswith("PKG-INFO"))
 
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
+        pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
     files = headers | sdist_files
     assert files <= simpler
 
     assert b'name = "pybind11"' in pyproject_toml
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" in pkg_info
+    assert f'Requires-Dist: pybind11-global=={version}; extra == "global"' in pkg_info
 
 
 def test_build_global_dist(monkeypatch, tmpdir):
@@ -216,13 +223,19 @@ def test_build_global_dist(monkeypatch, tmpdir):
 
     with tarfile.open(str(sdist), "r:gz") as tar:
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
+        (pkg_info_path,) = (n for n in simpler if n.endswith("PKG-INFO"))
 
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
+        pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
     files = headers | sdist_files
     assert files <= simpler
 
     assert b'name = "pybind11-global"' in pyproject_toml
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" not in pkg_info
+    assert 'Requires-Dist: pybind11-global; extra == "global"' not in pkg_info
 
 
 def tests_build_wheel(monkeypatch, tmpdir):
@@ -251,6 +264,8 @@ def tests_build_wheel(monkeypatch, tmpdir):
         cmakeconfig = (share / "cmake/pybind11/pybind11Config.cmake").read_text(
             encoding="utf-8"
         )
+        (pkg_info_path,) = (n for n in names if n.endswith("METADATA"))
+        pkg_info = zipfile.Path(z, pkg_info_path).read_text(encoding="utf-8")
 
     trimmed = {n for n in names if "dist-info" not in n}
     trimmed |= {f"dist-info/{n.split('/', 1)[-1]}" for n in names if "dist-info" in n}
@@ -263,6 +278,11 @@ def tests_build_wheel(monkeypatch, tmpdir):
     simple_version = ".".join(version.split(".")[:3])
     pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
     assert pkgconfig_expected == pkgconfig
+
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" in pkg_info
+    assert f'Requires-Dist: pybind11-global=={version}; extra == "global"' in pkg_info
 
 
 def tests_build_global_wheel(monkeypatch, tmpdir):
@@ -302,6 +322,14 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
         cmakeconfig = (share / "cmake/pybind11/pybind11Config.cmake").read_text(
             encoding="utf-8"
         )
+
+        (pkg_info_path,) = (n for n in names if n.endswith("METADATA"))
+        pkg_info = zipfile.Path(z, pkg_info_path).read_text(encoding="utf-8")
+
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" not in pkg_info
+    assert 'Requires-Dist: pybind11-global; extra == "global"' not in pkg_info
 
     trimmed = {n[len(beginning) + 1 :] for n in names}
 
