@@ -50,3 +50,4 @@ CMakeUserPresents.json
 /tmp*
 .ruby-version
 .*cache*/
+*.lock

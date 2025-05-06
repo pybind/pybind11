@@ -16,7 +16,6 @@ PYPROJECT = DIR.parent / "pyproject.toml"
 def get_global() -> str:
     pyproject = tomlkit.parse(PYPROJECT.read_text())
     del pyproject["tool"]["scikit-build"]["generate"]
-    del pyproject["project"]["optional-dependencies"]
     del pyproject["project"]["entry-points"]
     del pyproject["project"]["scripts"]
     del pyproject["tool"]["scikit-build"]["metadata"]["optional-dependencies"]
