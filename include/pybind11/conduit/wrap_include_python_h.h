@@ -50,7 +50,7 @@
 #endif
 
 #if defined(PYBIND11_DEBUG_MARKER)
-#    define _DEBUG
+#    define _DEBUG 1
 #    undef PYBIND11_DEBUG_MARKER
 #endif
 
