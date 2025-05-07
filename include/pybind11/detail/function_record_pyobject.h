@@ -13,6 +13,7 @@
 #include "common.h"
 
 #include <cstring>
+#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -188,9 +189,11 @@ inline PyObject *reduce_ex_impl(PyObject *self, PyObject *, PyObject *) {
         && PyModule_Check(rec->scope.ptr()) != 0) {
         object scope_module = get_scope_module(rec->scope);
         if (scope_module) {
-            return make_tuple(reinterpret_borrow<object>(PyEval_GetBuiltins())["eval"],
-                              make_tuple(str("__import__('importlib').import_module('")
-                                         + scope_module + str("')")))
+            auto builtins = reinterpret_borrow<dict>(PyEval_GetBuiltins());
+            auto builtins_eval = builtins["eval"];
+            auto reconstruct_args = make_tuple(str("__import__('importlib').import_module('")
+                                               + scope_module + str("')"));
+            return make_tuple(std::move(builtins_eval), std::move(reconstruct_args))
                 .release()
                 .ptr();
         }
