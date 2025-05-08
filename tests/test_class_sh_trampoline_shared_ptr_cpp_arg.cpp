@@ -28,7 +28,7 @@ struct SpBase {
 
 std::shared_ptr<SpBase> pass_through_shd_ptr(const std::shared_ptr<SpBase> &obj) { return obj; }
 
-struct PySpBase : SpBase {
+struct PySpBase : SpBase, py::trampoline_self_life_support {
     using SpBase::SpBase;
     bool is_base_used() override { PYBIND11_OVERRIDE(bool, SpBase, is_base_used); }
 };

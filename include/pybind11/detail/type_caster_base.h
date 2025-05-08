@@ -511,8 +511,13 @@ inline PyThreadState *get_thread_state_unchecked() {
 void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
+
 // PYBIND11:REMINDER: Needs refactoring of existing pybind11 code.
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
+
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(smart_holder_type_caster_support)
 
@@ -822,11 +827,8 @@ struct load_helper : value_and_holder_helper {
 
         auto *self_life_support
             = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
-        if (self_life_support == nullptr && python_instance_is_alias) {
-            throw value_error("Alias class (also known as trampoline) does not inherit from "
-                              "py::trampoline_self_life_support, therefore the ownership of this "
-                              "instance cannot safely be transferred to C++.");
-        }
+        // This is enforced indirectly by a static_assert in the class_ implementation:
+        assert(!python_instance_is_alias || self_life_support);
 
         std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(context);
 
