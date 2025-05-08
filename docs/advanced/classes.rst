@@ -434,9 +434,9 @@ Avoiding Inheritance Slicing and ``std::weak_ptr`` surprises
 When working with classes that use virtual functions and are subclassed
 in Python, special care must be taken when converting Python objects to
 ``std::shared_ptr<T>``. Depending on whether the class uses a plain
-``std::shared_ptr`` holder or ``py::smart_holder``, the resulting pointer
-may either allow inheritance slicing or lead to potentially surprising behavior
-when constructing ``std::weak_ptr`` instances.
+``std::shared_ptr`` holder or ``py::smart_holder``, the resulting
+``shared_ptr`` may either allow inheritance slicing or lead to potentially
+surprising behavior when constructing ``std::weak_ptr`` instances.
 
 This section explains how ``std::shared_ptr`` and ``py::smart_holder`` manage
 object lifetimes differently, how these differences affect trampoline-derived
@@ -446,9 +446,9 @@ desired behavior.
 When using ``std::shared_ptr`` as the holder type, converting a Python object
 to a ``std::shared_ptr<T>`` (e.g., ``obj.cast<std::shared_ptr<T>>()``, or simply
 passing the Python object as an argument to a ``.def()``-ed function) returns
-a pointer that shares ownership with the original ``class_`` holder, usually
-preserving object lifetime. However, for Python classes that derive from a
-trampoline, if the Python object is destroyed, only the base C++ object may
+a ``shared_ptr`` that shares ownership with the original ``class_`` holder,
+usually preserving object lifetime. However, for Python classes that derive from
+a trampoline, if the Python object is destroyed, only the base C++ object may
 remain alive, leading to inheritance slicing
 (see `#1333 <https://github.com/pybind/pybind11/issues/1333>`_).
 
