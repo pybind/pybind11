@@ -12,10 +12,10 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
-#ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
-#    define PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+#    include <pybind11/stl/filesystem.h>
 #endif
-#include <pybind11/stl/filesystem.h>
+
 #include <pybind11/typing.h>
 
 #include <string>

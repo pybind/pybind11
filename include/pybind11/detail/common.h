@@ -50,6 +50,21 @@
 #    endif
 #endif
 
+// These PYBIND11_HAS_... macros are consolidated in pybind11/detail/common.h
+// to simplify backward compatibility handling for users (e.g., via #ifdef checks):
+#define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS 1
+#define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT 1
+#define PYBIND11_HAS_CPP_CONDUIT 1
+#define PYBIND11_HAS_NATIVE_ENUM 1
+
+#if defined(PYBIND11_CPP17) && defined(__has_include)
+#    if __has_include(<filesystem>)
+#        define PYBIND11_HAS_FILESYSTEM 1
+#    elif __has_include(<experimental/filesystem>)
+#        define PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM 1
+#    endif
+#endif
+
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #    define PYBIND11_STD_LAUNDER std::launder
 #    define PYBIND11_HAS_STD_LAUNDER 1
@@ -168,14 +183,9 @@
 #    define PYBIND11_HAS_VARIANT 1
 #endif
 
-#if defined(PYBIND11_CPP17)
-#    if defined(__has_include)
-#        if __has_include(<string_view>)
-#            define PYBIND11_HAS_STRING_VIEW
-#        endif
-#    elif defined(_MSC_VER)
-#        define PYBIND11_HAS_STRING_VIEW
-#    endif
+#if defined(PYBIND11_CPP17)                                                                       \
+    && ((defined(__has_include) && __has_include(<string_view>)) || defined(_MSC_VER))
+#    define PYBIND11_HAS_STRING_VIEW 1
 #endif
 
 #if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
@@ -213,7 +223,7 @@
 
 // Must be after including <version> or one of the other headers specified by the standard
 #if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
-#    define PYBIND11_HAS_U8STRING
+#    define PYBIND11_HAS_U8STRING 1
 #endif
 
 // See description of PR #4246:
