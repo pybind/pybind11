@@ -10,7 +10,7 @@
 # - Holder type: std::shared_ptr (class_ holder) vs.
 #                py::smart_holder
 # - Conversion function: obj.cast<std::shared_ptr<T>>() vs.
-#                        py::potentially_slicing_shared_ptr<T>(obj)
+#                        py::potentially_slicing_weak_ptr<T>(obj)
 # - Python object type: C++ base class vs.
 #                       Python-derived trampoline class
 #
@@ -37,7 +37,7 @@ import weakref
 import pytest
 
 import env
-import pybind11_tests.potentially_slicing_shared_ptr as m
+import pybind11_tests.potentially_slicing_weak_ptr as m
 
 
 class PyDrvdSH(m.VirtBaseSH):
@@ -159,16 +159,16 @@ def test_with_wp_owner(holder_kind, set_meth, expected_code):
         assert wpo.get_code() == -999
 
 
-def test_potentially_slicing_shared_ptr_not_convertible_error():
+def test_potentially_slicing_weak_ptr_not_convertible_error():
     with pytest.raises(Exception) as excinfo:
         m.SH_rtrn_potentially_slicing_shared_ptr("")
     assert str(excinfo.value) == (
         '"str" object is not convertible to std::weak_ptr<T>'
-        " (with T = pybind11_tests::potentially_slicing_shared_ptr::VirtBase<0>)"
+        " (with T = pybind11_tests::potentially_slicing_weak_ptr::VirtBase<0>)"
     )
     with pytest.raises(Exception) as excinfo:
         m.SP_rtrn_potentially_slicing_shared_ptr([])
     assert str(excinfo.value) == (
         '"list" object is not convertible to std::weak_ptr<T>'
-        " (with T = pybind11_tests::potentially_slicing_shared_ptr::VirtBase<1>)"
+        " (with T = pybind11_tests::potentially_slicing_weak_ptr::VirtBase<1>)"
     )

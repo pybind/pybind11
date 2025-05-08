@@ -7,7 +7,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace potentially_slicing_shared_ptr {
+namespace potentially_slicing_weak_ptr {
 
 template <int> // Using int as a trick to easily generate multiple types.
 struct VirtBase {
@@ -138,12 +138,12 @@ void wrap(py::module_ &m,
         .def("get_trampoline_state", &WpOwner<VB>::get_trampoline_state);
 }
 
-} // namespace potentially_slicing_shared_ptr
+} // namespace potentially_slicing_weak_ptr
 } // namespace pybind11_tests
 
-using namespace pybind11_tests::potentially_slicing_shared_ptr;
+using namespace pybind11_tests::potentially_slicing_weak_ptr;
 
-TEST_SUBMODULE(potentially_slicing_shared_ptr, m) {
+TEST_SUBMODULE(potentially_slicing_weak_ptr, m) {
     py::classh<VirtBaseSH, PyVirtBaseSH>(m, "VirtBaseSH")
         .def(py::init<>())
         .def("get_code", &VirtBaseSH::get_code);
