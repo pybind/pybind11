@@ -459,9 +459,9 @@ inheritance slicing but can lead to unintended behavior when creating
 ``std::weak_ptr`` instances
 (see `#5623 <https://github.com/pybind/pybind11/issues/5623>`_).
 
-If it is necessary to obtain a ``std::shared_ptr`` that shares the control block
+If it is necessary to obtain a ``std::weak_ptr`` that shares the control block
 with the ``smart_holder``—at the cost of reintroducing potential inheritance
-slicing—you can use ``py::potentially_slicing_shared_ptr<T>(obj)``.
+slicing—you can use ``py::potentially_slicing_weak_ptr<T>(obj)``.
 
 When precise lifetime management of derived Python objects is important,
 using a Python-side ``weakref`` is the most reliable approach, as it avoids
@@ -470,8 +470,8 @@ semantics in C++.
 
 .. seealso::
 
-    * :func:`potentially_slicing_shared_ptr` C++ documentation
-    * :file:`tests/test_potentially_slicing_shared_ptr.cpp`
+    * :func:`potentially_slicing_weak_ptr` C++ documentation
+    * :file:`tests/test_potentially_slicing_weak_ptr.cpp`
 
 
 .. _custom_constructors:

@@ -985,6 +985,7 @@ public:
 
     std::weak_ptr<type> potentially_slicing_weak_ptr() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+            // Reusing shared_ptr code to minimize code complexity.
             shared_ptr_storage
                 = sh_load_helper.load_as_shared_ptr(value,
                                                     /*responsible_parent=*/nullptr,
@@ -1094,17 +1095,17 @@ PYBIND11_NAMESPACE_END(detail)
 /// does NOT keep any derived Python objects alive (see issue #1333).
 ///
 /// For class_-wrapped types using std::shared_ptr as the holder, the following expressions
-/// produce equivalent results (see tests/test_potentially_slicing_shared_ptr.cpp,py):
+/// produce equivalent results (see tests/test_potentially_slicing_weak_ptr.cpp,py):
 ///
 ///     - obj.cast<std::shared_ptr<T>>()
-///     - py::potentially_slicing_shared_ptr<T>(obj)
+///     - py::potentially_slicing_weak_ptr<T>(obj).lock()
 ///
 /// For class_-wrapped types with trampolines and using py::smart_holder, obj.cast<>()
 /// produces a std::shared_ptr that keeps any derived Python objects alive for its own lifetime,
 /// but this is achieved by introducing a std::shared_ptr control block that is independent of
 /// the one owned by the py::smart_holder. This can lead to surprising std::weak_ptr behavior
-/// (see issue #5623). An easy solution is to use py::potentially_slicing_shared_ptr<>(obj),
-/// as exercised in tests/test_potentially_slicing_shared_ptr.cpp,py (look for
+/// (see issue #5623). An easy solution is to use py::potentially_slicing_weak_ptr<>(obj),
+/// as exercised in tests/test_potentially_slicing_weak_ptr.cpp,py (look for
 /// "set_wp_potentially_slicing"). Note, however, that this reintroduces the inheritance
 /// slicing issue (see issue #1333). The ideal — but usually more involved — solution is to use
 /// a Python weakref to the derived Python object, instead of a C++ base-class std::weak_ptr.

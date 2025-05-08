@@ -69,6 +69,8 @@ std::shared_ptr<VB> rtrn_obj_cast_shared_ptr(py::handle obj) {
     return obj.cast<std::shared_ptr<VB>>();
 }
 
+// There is no type_caster<std::weak_ptr<VB>>, and to minimize code complexity
+// we do not want to add one, therefore we have to return a shared_ptr here.
 template <typename VB>
 std::shared_ptr<VB> rtrn_potentially_slicing_shared_ptr(py::handle obj) {
     return py::potentially_slicing_weak_ptr<VB>(obj).lock();
