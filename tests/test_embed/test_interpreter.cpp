@@ -262,7 +262,7 @@ bool has_state_dict_internals_obj() {
 
 bool has_pybind11_internals_static() {
     auto *&ipp = py::detail::get_internals_pp();
-    return ipp && (*ipp != nullptr);
+    return (ipp != nullptr) && *ipp;
 }
 
 TEST_CASE("Restart the interpreter") {
