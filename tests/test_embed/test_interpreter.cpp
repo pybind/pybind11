@@ -61,6 +61,9 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m) {
         .def_property_readonly("the_message", &Widget::the_message);
 
     m.def("add", [](int i, int j) { return i + j; });
+
+    auto sub = m.def_submodule("sub");
+    sub.def("add", [](int i, int j) { return i + j; });
 }
 
 PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
@@ -169,6 +172,12 @@ TEST_CASE("There can be only one interpreter") {
         auto pyi2 = std::move(pyi1);
     }
     py::initialize_interpreter();
+}
+
+TEST_CASE("Submodule access") {
+    auto m = py::module_::import("widget_module");
+    REQUIRE(m.attr("add")(1, 41).cast<int>() == 42);
+    REQUIRE(m.attr("sub").attr("add")(1, 41).cast<int>() == 42);
 }
 
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
