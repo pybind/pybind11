@@ -206,9 +206,6 @@ struct internals {
     }
 };
 
-// For backwards compatibility (i.e. #ifdef guards):
-#define PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
-
 enum class holder_enum_t : uint8_t {
     undefined,
     std_unique_ptr, // Default, lacking interop with std::shared_ptr.
