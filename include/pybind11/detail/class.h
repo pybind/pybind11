@@ -586,10 +586,10 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_basicsize += (ssize_t) sizeof(PyObject *); // and allocate enough space for it
 #else
     type->tp_flags |= Py_TPFLAGS_MANAGED_DICT;
-#if PY_VERSION_HEX >= 0x030D00A1
+#    if PY_VERSION_HEX >= 0x030D00A1
     // Workaround for https://github.com/python/cpython/issues/115776
     type->tp_flags &= ~Py_TPFLAGS_INLINE_VALUES;
-#endif
+#    endif
 #endif
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
