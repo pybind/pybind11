@@ -137,11 +137,7 @@ TEST_CASE("Override cache") {
 }
 
 TEST_CASE("Import error handling") {
-    auto module_ = py::module_::import("widget_module");
-
-    // Also verify submodules work
-    REQUIRE(module_.attr("add")(1, 41).cast<int>() == 42);
-    REQUIRE(module_.attr("sub").attr("add")(1, 41).cast<int>() == 42);
+    REQUIRE_NOTHROW(py::module_::import("widget_module"));
 
     REQUIRE_THROWS_WITH(py::module_::import("throw_exception"), "ImportError: C++ Error");
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
@@ -323,6 +319,9 @@ TEST_CASE("Restart the interpreter") {
     // C++ modules can be reloaded.
     auto cpp_module = py::module_::import("widget_module");
     REQUIRE(cpp_module.attr("add")(1, 2).cast<int>() == 3);
+    
+    // Also verify submodules work
+    REQUIRE(module_.attr("sub").attr("add")(1, 41).cast<int>() == 42);
 
     // C++ type information is reloaded and can be used in python modules.
     auto py_module = py::module_::import("test_interpreter");
