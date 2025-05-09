@@ -261,8 +261,8 @@ bool has_state_dict_internals_obj() {
 }
 
 bool has_pybind11_internals_static() {
-    auto **&ipp = py::detail::get_internals_pp();
-    return (ipp != nullptr) && (*ipp != nullptr);
+    auto *&ipp = py::detail::get_internals_pp();
+    return ipp && (*ipp != nullptr);
 }
 
 TEST_CASE("Restart the interpreter") {
@@ -274,7 +274,7 @@ TEST_CASE("Restart the interpreter") {
             == 123);
 
     // local and foreign module internals should point to the same internals:
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
+    REQUIRE(reinterpret_cast<uintptr_t>(py::detail::get_internals_pp()->get())
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
@@ -290,7 +290,7 @@ TEST_CASE("Restart the interpreter") {
     pybind11::detail::get_internals();
     REQUIRE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
+    REQUIRE(reinterpret_cast<uintptr_t>(py::detail::get_internals_pp()->get())
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
@@ -357,7 +357,7 @@ TEST_CASE("Subinterpreter") {
     auto ext_int = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
     py::detail::get_internals();
     REQUIRE(has_pybind11_internals_static());
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) == ext_int);
+    REQUIRE(reinterpret_cast<uintptr_t>(py::detail::get_internals_pp()->get()) == ext_int);
 #else
     // This static is still defined
     REQUIRE(has_pybind11_internals_static());
