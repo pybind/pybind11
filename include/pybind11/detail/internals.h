@@ -339,9 +339,6 @@ inline internals **&get_internals_pp() {
     return s_internals_pp;
 }
 
-// forward decl
-inline void translate_exception(std::exception_ptr);
-
 template <class T,
           enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
