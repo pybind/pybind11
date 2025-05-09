@@ -137,7 +137,12 @@ TEST_CASE("Override cache") {
 }
 
 TEST_CASE("Import error handling") {
-    REQUIRE_NOTHROW(py::module_::import("widget_module"));
+    auto module_ = REQUIRE_NOTHROW(py::module_::import("widget_module"));
+
+    // Also verify submodules work
+    REQUIRE(module_.attr("add")(1, 41).cast<int>() == 42);
+    REQUIRE(module_.attr("sub").attr("add")(1, 41).cast<int>() == 42);
+
     REQUIRE_THROWS_WITH(py::module_::import("throw_exception"), "ImportError: C++ Error");
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: initialization failed"));
@@ -172,12 +177,6 @@ TEST_CASE("There can be only one interpreter") {
         auto pyi2 = std::move(pyi1);
     }
     py::initialize_interpreter();
-}
-
-TEST_CASE("Submodule access") {
-    auto m = py::module_::import("widget_module");
-    REQUIRE(m.attr("add")(1, 41).cast<int>() == 42);
-    REQUIRE(m.attr("sub").attr("add")(1, 41).cast<int>() == 42);
 }
 
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
