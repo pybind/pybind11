@@ -30,10 +30,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-22.04, windows-2022, macos-13]
+        runs-on: [ubuntu-24.04, windows-2022, macos-13]
         python:
         - '3.8'
         - '3.13'
+        - '3.14'
         - 'pypy-3.10'
         - 'pypy-3.11'
         - 'graalpy-24.2'
