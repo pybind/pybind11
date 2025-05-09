@@ -137,7 +137,7 @@ TEST_CASE("Override cache") {
 }
 
 TEST_CASE("Import error handling") {
-    auto module_ = REQUIRE_NOTHROW(py::module_::import("widget_module"));
+    REQUIRE_NOTHROW(auto module_ = py::module_::import("widget_module"););
 
     // Also verify submodules work
     REQUIRE(module_.attr("add")(1, 41).cast<int>() == 42);
