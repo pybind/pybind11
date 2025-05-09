@@ -3,22 +3,14 @@
 namespace py = pybind11;
 
 /* Simple test module/test class to check that the referenced internals data of external pybind11
- * modules aren't preserved over a finalize/initialize.
+ * modules are different across subinterpreters
  */
 
-PYBIND11_MODULE(external_module,
+PYBIND11_MODULE(mod_test_interpreters,
                 m,
                 py::mod_multi_interpreter_one_gil(),
                 py::mod_gil_not_used(),
                 py::mod_per_interpreter_gil()) {
-    class A {
-    public:
-        explicit A(int value) : v{value} {};
-        int v;
-    };
-
-    py::class_<A>(m, "A").def(py::init<int>()).def_readwrite("value", &A::v);
-
     m.def("internals_at",
           []() { return reinterpret_cast<uintptr_t>(&py::detail::get_internals()); });
 }
