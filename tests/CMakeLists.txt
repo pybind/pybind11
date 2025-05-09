@@ -148,6 +148,7 @@ set(PYBIND11_TEST_FILES
     test_exceptions
     test_factory_constructors
     test_gil_scoped
+    test_interpreters.py
     test_iostream
     test_kwargs_and_defaults
     test_local_bindings
@@ -561,6 +562,19 @@ add_custom_target(
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
+
+if(NOT PYBIND11_CUDA_TESTS)
+  # This module doesn't get mixed with other test modules because those aren't subinterpreter safe.
+  pybind11_add_module(mod_test_interpreters THIN_LTO mod_test_interpreters.cpp)
+  set_target_properties(mod_test_interpreters PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                                         "${CMAKE_CURRENT_BINARY_DIR}")
+  foreach(config ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${config} config)
+    set_target_properties(mod_test_interpreters PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                           "${CMAKE_CURRENT_BINARY_DIR}")
+  endforeach()
+  add_dependencies(pytest mod_test_interpreters)
+endif()
 
 if(PYBIND11_TEST_OVERRIDE)
   add_custom_command(
