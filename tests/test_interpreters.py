@@ -7,12 +7,12 @@ import sys
 import pytest
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten") or sys.version_info < (3, 12),
+    reason="Requires indepedent subinterpreter support",
+)
 def test_interpreters():
     """Makes sure the internals object differs across subinterpreters"""
-
-    if sys.version_info < (3, 12):
-        pytest.skip("Test requires independent subinterpreter support (3.12+)")
-        return
 
     sys.path.append(".")
 
