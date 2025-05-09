@@ -9,7 +9,7 @@ import pytest
 
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten") or sys.version_info < (3, 12),
-    reason="Requires indepedent subinterpreter support",
+    reason="Requires independent subinterpreter support",
 )
 def test_interpreters():
     """Makes sure the internals object differs across subinterpreters"""
