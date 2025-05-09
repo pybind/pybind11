@@ -313,12 +313,12 @@ inline std::atomic<int> &get_interpreter_counter() {
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-inline internals **&get_internals_pp() {
+inline std::unique_ptr<internals> *&get_internals_pp() {
 #ifdef PYBIND11_SUBINTERPRETER_SUPPORT
     if (get_interpreter_counter() > 1) {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
-        static thread_local internals **t_internals_pp = nullptr;
+        static thread_local std::unique_ptr<internals> *t_internals_pp = nullptr;
         static thread_local PyInterpreterState *istate_cached = nullptr;
         // Whenever the interpreter changes on the current thread we need to invalidate the
         // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
@@ -335,7 +335,7 @@ inline internals **&get_internals_pp() {
         return t_internals_pp;
     }
 #endif
-    static internals **s_internals_pp = nullptr;
+    static std::unique_ptr<internals> *s_internals_pp = nullptr;
     return s_internals_pp;
 }
 
@@ -465,8 +465,8 @@ inline object get_python_state_dict() {
 }
 
 template <typename InternalsType>
-inline InternalsType **get_internals_pp_from_capsule_in_state_dict(dict &state_dict,
-                                                                   char const *state_dict_key) {
+inline std::unique_ptr<InternalsType> *
+get_internals_pp_from_capsule_in_state_dict(dict &state_dict, char const *state_dict_key) {
     auto internals_obj
         = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), state_dict_key));
     if (internals_obj) {
@@ -476,14 +476,14 @@ inline InternalsType **get_internals_pp_from_capsule_in_state_dict(dict &state_d
                        "pybind11::detail::get_internals_pp_from_capsule_in_state_dict() FAILED");
             throw error_already_set();
         }
-        return reinterpret_cast<InternalsType **>(raw_ptr);
+        return reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
     }
     return nullptr;
 }
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto **&internals_pp = get_internals_pp();
+    auto *&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp) {
         // This is the fast path, everything is already setup, just return it
         return **internals_pp;
@@ -499,7 +499,7 @@ PYBIND11_NOINLINE internals &get_internals() {
     internals_pp = get_internals_pp_from_capsule_in_state_dict<internals>(state_dict,
                                                                           PYBIND11_INTERNALS_ID);
     if (!internals_pp) {
-        internals_pp = new internals *(nullptr);
+        internals_pp = new std::unique_ptr<internals>;
         state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
     }
 
@@ -521,7 +521,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 #endif
     } else {
         auto &internals_ptr = *internals_pp;
-        internals_ptr = new internals();
+        internals_ptr.reset(new internals());
 
         if (!internals_ptr->instance_base) {
             // This calls get_internals, so cannot be called from within the internals constructor
@@ -544,12 +544,12 @@ struct local_internals {
     std::forward_list<ExceptionTranslator> registered_exception_translators;
 };
 
-inline local_internals **&get_local_internals_pp() {
+inline std::unique_ptr<local_internals> *&get_local_internals_pp() {
 #ifdef PYBIND11_SUBINTERPRETER_SUPPORT
     if (get_interpreter_counter() > 1) {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
-        static thread_local local_internals **t_internals_pp = nullptr;
+        static thread_local std::unique_ptr<local_internals> *t_internals_pp = nullptr;
         static thread_local PyInterpreterState *istate_cached = nullptr;
         // Whenever the interpreter changes on the current thread we need to invalidate the
         // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
@@ -566,7 +566,7 @@ inline local_internals **&get_local_internals_pp() {
         return t_internals_pp;
     }
 #endif
-    static local_internals **s_internals_pp = nullptr;
+    static std::unique_ptr<local_internals> *s_internals_pp = nullptr;
     return s_internals_pp;
 }
 
@@ -582,7 +582,7 @@ inline char const *get_local_internals_id() {
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-    auto **&local_internals_pp = get_local_internals_pp();
+    auto *&local_internals_pp = get_local_internals_pp();
     if (local_internals_pp && *local_internals_pp) {
         return **local_internals_pp;
     }
@@ -595,12 +595,12 @@ inline local_internals &get_local_internals() {
     local_internals_pp = get_internals_pp_from_capsule_in_state_dict<local_internals>(
         state_dict, get_local_internals_id());
     if (!local_internals_pp) {
-        local_internals_pp = new local_internals *(nullptr);
+        local_internals_pp = new std::unique_ptr<local_internals>;
         state_dict[get_local_internals_id()]
             = capsule(reinterpret_cast<void *>(local_internals_pp));
     }
     if (!*local_internals_pp) {
-        *local_internals_pp = new local_internals();
+        local_internals_pp->reset(new local_internals());
     }
 
     return **local_internals_pp;

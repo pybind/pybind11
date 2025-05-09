@@ -237,8 +237,8 @@ inline void finalize_interpreter() {
     // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
     // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
-    auto **&internals_ptr_ptr = detail::get_internals_pp();
-    auto **&local_internals_ptr_ptr = detail::get_local_internals_pp();
+    auto *&internals_ptr_ptr = detail::get_internals_pp();
+    auto *&local_internals_ptr_ptr = detail::get_local_internals_pp();
     {
         dict state_dict = detail::get_python_state_dict();
         internals_ptr_ptr = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
@@ -251,15 +251,13 @@ inline void finalize_interpreter() {
     Py_Finalize();
 
     if (internals_ptr_ptr) {
-        delete *internals_ptr_ptr;
-        *internals_ptr_ptr = nullptr;
+        internals_ptr_ptr->reset();
     }
 
     // Local internals contains data managed by the current interpreter, so we must clear them to
     // avoid undefined behaviors when initializing another interpreter
-    if (local_internals_ptr_ptr && *local_internals_ptr_ptr) {
-        delete *local_internals_ptr_ptr;
-        *local_internals_ptr_ptr = nullptr;
+    if (local_internals_ptr_ptr) {
+        local_internals_ptr_ptr->reset();
     }
 
     // We know there is no interpreter alive now, so we can reset the count
