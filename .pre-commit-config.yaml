@@ -108,15 +108,6 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
-# Checks the manifest for missing files (native support)
-- repo: https://github.com/mgedmin/check-manifest
-  rev: "0.50"
-  hooks:
-  - id: check-manifest
-    # This is a slow hook, so only run this if --hook-stage manual is passed
-    stages: [manual]
-    additional_dependencies: [cmake, ninja]
-
 # Check for spelling
 # Use tools/codespell_ignore_lines_from_errors.py
 # to rebuild .codespell-ignore-lines

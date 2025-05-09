@@ -45,3 +45,9 @@ pybind11Targets.cmake
 .ipynb_checkpoints/
 tests/main.cpp
 CMakeUserPresents.json
+
+/Python
+/tmp*
+.ruby-version
+.*cache*/
+*.lock
