@@ -568,7 +568,7 @@ extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *a
 
 /// dynamic_attr: Allow the GC to clear the dictionary.
 extern "C" inline int pybind11_clear(PyObject *self) {
-#if PY_VERSION_HEX >= 0x030D0000
+#if PY_VERSION_HEX >= 0x030D00A4
     PyObject_ClearManagedDict(self);
 #else
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -586,6 +586,10 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     type->tp_basicsize += (ssize_t) sizeof(PyObject *); // and allocate enough space for it
 #else
     type->tp_flags |= Py_TPFLAGS_MANAGED_DICT;
+#if PY_VERSION_HEX >= 0x030D00A1
+    // Workaround for https://github.com/python/cpython/issues/115776
+    type->tp_flags &= ~Py_TPFLAGS_INLINE_VALUES;
+#endif
 #endif
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
