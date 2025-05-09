@@ -428,6 +428,51 @@ Python side by allowing the Python function to return ``None`` or an ``int``:
         return false;  // Alternatively return MyClass::myMethod(value);
     }
 
+Avoiding Inheritance Slicing and ``std::weak_ptr`` surprises
+------------------------------------------------------------
+
+When working with classes that use virtual functions and are subclassed
+in Python, special care must be taken when converting Python objects to
+``std::shared_ptr<T>``. Depending on whether the class uses a plain
+``std::shared_ptr`` holder or ``py::smart_holder``, the resulting
+``shared_ptr`` may either allow inheritance slicing or lead to potentially
+surprising behavior when constructing ``std::weak_ptr`` instances.
+
+This section explains how ``std::shared_ptr`` and ``py::smart_holder`` manage
+object lifetimes differently, how these differences affect trampoline-derived
+objects, and what options are available to achieve the situation-specific
+desired behavior.
+
+When using ``std::shared_ptr`` as the holder type, converting a Python object
+to a ``std::shared_ptr<T>`` (e.g., ``obj.cast<std::shared_ptr<T>>()``, or simply
+passing the Python object as an argument to a ``.def()``-ed function) returns
+a ``shared_ptr`` that shares ownership with the original ``class_`` holder,
+usually preserving object lifetime. However, for Python classes that derive from
+a trampoline, if the Python object is destroyed, only the base C++ object may
+remain alive, leading to inheritance slicing
+(see `#1333 <https://github.com/pybind/pybind11/issues/1333>`_).
+
+In contrast, with ``py::smart_holder``, converting a Python object to
+a ``std::shared_ptr<T>`` returns a new ``shared_ptr`` with an independent
+control block that keeps the derived Python object alive. This avoids
+inheritance slicing but can lead to unintended behavior when creating
+``std::weak_ptr`` instances
+(see `#5623 <https://github.com/pybind/pybind11/issues/5623>`_).
+
+If it is necessary to obtain a ``std::weak_ptr`` that shares the control block
+with the ``smart_holder``—at the cost of reintroducing potential inheritance
+slicing—you can use ``py::potentially_slicing_weak_ptr<T>(obj)``.
+
+When precise lifetime management of derived Python objects is important,
+using a Python-side ``weakref`` is the most reliable approach, as it avoids
+both inheritance slicing and unintended interactions with ``std::weak_ptr``
+semantics in C++.
+
+.. seealso::
+
+    * :func:`potentially_slicing_weak_ptr` C++ documentation
+    * :file:`tests/test_potentially_slicing_weak_ptr.cpp`
+
 
 .. _custom_constructors:
 

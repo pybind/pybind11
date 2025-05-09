@@ -161,6 +161,7 @@ set(PYBIND11_TEST_FILES
     test_opaque_types
     test_operator_overloading
     test_pickling
+    test_potentially_slicing_weak_ptr
     test_python_multiple_inheritance
     test_pytypes
     test_sequences_and_iterators
