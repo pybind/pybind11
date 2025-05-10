@@ -4,8 +4,6 @@
 
 #pragma once
 
-#define PYBIND11_HAS_NATIVE_ENUM
-
 #include "../pytypes.h"
 #include "common.h"
 #include "internals.h"

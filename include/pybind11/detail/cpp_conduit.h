@@ -71,7 +71,5 @@ inline void *try_raw_pointer_ephemeral_from_cpp_conduit(handle src,
     return nullptr;
 }
 
-#define PYBIND11_HAS_CPP_CONDUIT 1
-
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
