@@ -1342,8 +1342,8 @@ public:
         // GraalPy doesn't support PyModule_GetFilenameObject,
         // so getting by attribute (see PR #5584)
         handle this_module = m_ptr;
-        if (hasattr(this_module, "__file__")) {
-            result.attr("__file__") = this_module.attr("__file__");
+        if (object this_file = getattr(this_module, "__file__", none())) {
+            result.attr("__file__") = this_file;
         }
 #else
         handle this_file = PyModule_GetFilenameObject(m_ptr);
