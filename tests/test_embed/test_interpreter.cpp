@@ -61,6 +61,9 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m) {
         .def_property_readonly("the_message", &Widget::the_message);
 
     m.def("add", [](int i, int j) { return i + j; });
+
+    auto sub = m.def_submodule("sub");
+    sub.def("add", [](int i, int j) { return i + j; });
 }
 
 PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
@@ -315,6 +318,9 @@ TEST_CASE("Restart the interpreter") {
     // C++ modules can be reloaded.
     auto cpp_module = py::module_::import("widget_module");
     REQUIRE(cpp_module.attr("add")(1, 2).cast<int>() == 3);
+
+    // Also verify submodules work
+    REQUIRE(cpp_module.attr("sub").attr("add")(1, 41).cast<int>() == 42);
 
     // C++ type information is reloaded and can be used in python modules.
     auto py_module = py::module_::import("test_interpreter");
