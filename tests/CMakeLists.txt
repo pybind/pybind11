@@ -567,12 +567,7 @@ if(NOT PYBIND11_CUDA_TESTS)
   # This module doesn't get mixed with other test modules because those aren't subinterpreter safe.
   pybind11_add_module(mod_test_interpreters THIN_LTO mod_test_interpreters.cpp)
   set_target_properties(mod_test_interpreters PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                         "${CMAKE_CURRENT_BINARY_DIR}")
-  foreach(config ${CMAKE_CONFIGURATION_TYPES})
-    string(TOUPPER ${config} config)
-    set_target_properties(mod_test_interpreters PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
-                                                           "${CMAKE_CURRENT_BINARY_DIR}")
-  endforeach()
+                                                         "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
   add_dependencies(pytest mod_test_interpreters)
 endif()
 
