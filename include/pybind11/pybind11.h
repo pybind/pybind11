@@ -1349,14 +1349,12 @@ public:
         handle this_file = PyModule_GetFilenameObject(m_ptr);
         if (this_file) {
             result.attr("__file__") = this_file;
-        }
-        else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
+        } else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
             PyErr_Clear();
-        }
-        else {
+        } else {
             throw error_already_set();
         }
-#end
+#endif
         attr(name) = result;
         return result;
     }

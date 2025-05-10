@@ -318,7 +318,7 @@ TEST_CASE("Restart the interpreter") {
     // C++ modules can be reloaded.
     auto cpp_module = py::module_::import("widget_module");
     REQUIRE(cpp_module.attr("add")(1, 2).cast<int>() == 3);
-    
+
     // Also verify submodules work
     REQUIRE(cpp_module.attr("sub").attr("add")(1, 41).cast<int>() == 42);
 
