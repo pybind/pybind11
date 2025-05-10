@@ -1267,24 +1267,19 @@ private:
     bool flag_;
 };
 
-// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
-class mod_per_interpreter_gil {
+class multiple_interpreters {
 public:
-    explicit mod_per_interpreter_gil(bool flag = true) : flag_(flag) {}
-    bool flag() const { return flag_; }
+    enum level {
+        not_supported,      /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED
+        shared_gil,         /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED
+        per_interpreter_gil /// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+    };
+
+    explicit multiple_interpreters(level l) : level_(l) {}
+    level value() const { return level_; }
 
 private:
-    bool flag_;
-};
-
-// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED
-class mod_multi_interpreter_one_gil {
-public:
-    explicit mod_multi_interpreter_one_gil(bool flag = true) : flag_(flag) {}
-    bool flag() const { return flag_; }
-
-private:
-    bool flag_;
+    level level_;
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -1302,29 +1297,20 @@ inline bool gil_not_used_option(F &&, O &&...o) {
 }
 
 #ifdef Py_mod_multiple_interpreters
-inline void *multi_interp_option() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
-template <typename F, typename... O>
-void *multi_interp_option(F &&, O &&...o);
+inline void *multi_interp_slot() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
 template <typename... O>
-void *multi_interp_option(mod_multi_interpreter_one_gil f, O &&...o);
-template <typename... O>
-inline void *multi_interp_option(mod_per_interpreter_gil f, O &&...o) {
-    if (f.flag()) {
+inline void *multi_interp_slot(multiple_interpreters mi, O &&...o) {
+    if (mi.value() == multiple_interpreters::per_interpreter_gil) {
         return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
+    } else if (mi.value() == multiple_interpreters::shared_gil) {
+        return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+    } else {
+        return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED;
     }
-    return multi_interp_option(o...);
-}
-template <typename... O>
-inline void *multi_interp_option(mod_multi_interpreter_one_gil f, O &&...o) {
-    void *others = multi_interp_option(o...);
-    if (!f.flag() || others == Py_MOD_PER_INTERPRETER_GIL_SUPPORTED) {
-        return others;
-    }
-    return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
 }
 template <typename F, typename... O>
-inline void *multi_interp_option(F &&, O &&...o) {
-    return multi_interp_option(o...);
+inline void *multi_interp_slot(F &&, O &&...o) {
+    return multi_interp_slot(o...);
 }
 #endif
 
@@ -1506,8 +1492,7 @@ public:
         if (next_slot >= term_slot) {
             pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
         }
-        slots[next_slot++]
-            = {Py_mod_multiple_interpreters, detail::multi_interp_option(options...)};
+        slots[next_slot++] = {Py_mod_multiple_interpreters, detail::multi_interp_slot(options...)};
 #endif
 
         if (detail::gil_not_used_option(options...)) {

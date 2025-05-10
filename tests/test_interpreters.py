@@ -49,8 +49,6 @@ with open(pipeo, 'wb') as f:
         # do this while the two interpreters are active
         import mod_test_interpreters as m2
 
-        print(dir(m))
-        print(dir(m2))
         assert m.internals_at() == m2.internals_at(), (
             "internals should be the same within the main interpreter"
         )
@@ -61,3 +59,10 @@ with open(pipeo, 'wb') as f:
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
     assert res2 != m.internals_at(), "internals should differ from main interpreter"
     assert res1 != res2, "internals should differ between interpreters"
+
+    # do this after the two interpreters are destroyed and only one remains
+    import mod_test_interpreters as m3
+
+    assert m.internals_at() == m3.internals_at(), (
+        "internals should be the same within the main interpreter"
+    )
