@@ -760,6 +760,8 @@ struct load_helper : value_and_holder_helper {
 
     std::shared_ptr<T> load_as_shared_ptr(void *void_raw_ptr,
                                           handle responsible_parent = nullptr,
+                                          // to support py::potentially_slicing_weak_ptr
+                                          // with minimal added code complexity:
                                           bool force_potentially_slicing_shared_ptr
                                           = false) const {
         if (!have_holder()) {
