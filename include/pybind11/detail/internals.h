@@ -306,7 +306,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 /// We use this counter to figure out if there are or have been multiple subinterpreters active at
 /// any point. This must never decrease while any interpreter may be running in any thread!
-inline std::atomic<int> &get_interpreter_counter() {
+inline std::atomic<int> &get_num_interpreters_seen() {
     static std::atomic<int> counter(0);
     return counter;
 }
@@ -315,7 +315,7 @@ inline std::atomic<int> &get_interpreter_counter() {
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
 inline std::unique_ptr<internals> *&get_internals_pp() {
 #ifdef PYBIND11_SUBINTERPRETER_SUPPORT
-    if (get_interpreter_counter() > 1) {
+    if (get_num_interpreters_seen() > 1) {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
         static thread_local std::unique_ptr<internals> *t_internals_pp = nullptr;
@@ -546,7 +546,7 @@ struct local_internals {
 
 inline std::unique_ptr<local_internals> *&get_local_internals_pp() {
 #ifdef PYBIND11_SUBINTERPRETER_SUPPORT
-    if (get_interpreter_counter() > 1) {
+    if (get_num_interpreters_seen() > 1) {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
         static thread_local std::unique_ptr<local_internals> *t_internals_pp = nullptr;

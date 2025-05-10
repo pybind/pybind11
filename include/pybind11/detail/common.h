@@ -414,7 +414,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
         return m.ptr();                                                                           \
     }                                                                                             \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
-        pybind11::detail::get_interpreter_counter()++;                                            \
+        pybind11::detail::get_num_interpreters_seen() += 1;                                       \
         try {                                                                                     \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
