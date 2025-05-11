@@ -36,7 +36,12 @@ with open(pipeo, 'wb') as f:
     interp1 = interpreters.create()
     interp2 = interpreters.create()
     try:
-        res0 = interpreters.run_string(interp1, "import mod_test_interpreters2")
+        try:
+            res0 = interpreters.run_string(interp1, "import mod_test_interpreters2")
+            if res0 is not None:
+                res0 = res0.msg
+        except Exception as e:
+            res0 = str(e)
 
         pipei, pipeo = os.pipe()
         interpreters.run_string(interp1, code, shared={"pipeo": pipeo})
@@ -58,7 +63,7 @@ with open(pipeo, 'wb') as f:
         interpreters.destroy(interp1)
         interpreters.destroy(interp2)
 
-    assert "does not support loading in subinterpreters" in res0.msg, (
+    assert "does not support loading in subinterpreters" in res0, (
         "cannot use shared_gil in a default subinterpreter"
     )
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
@@ -99,7 +104,11 @@ with open(pipeo, 'wb') as f:
     pickle.dump(m.internals_at(), f)
 """
 
-    interp1 = interpreters.create("legacy")
+    try:
+        interp1 = interpreters.create("legacy")
+    except TypeError:
+        pytest.skip("interpreters module needs to support legacy config")
+
     try:
         pipei, pipeo = os.pipe()
         interpreters.run_string(interp1, code, shared={"pipeo": pipeo})
