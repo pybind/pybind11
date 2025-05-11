@@ -1305,7 +1305,7 @@ inline void *multi_interp_slot(multiple_interpreters mi, O &&...o) {
     } else if (mi.value() == multiple_interpreters::shared_gil) {
         return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
     } else {
-        return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED;
+        return multi_interp_slot(o...);
     }
 }
 template <typename F, typename... O>
