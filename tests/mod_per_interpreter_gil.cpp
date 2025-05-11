@@ -6,7 +6,7 @@ namespace py = pybind11;
  * modules are different across subinterpreters
  */
 
-PYBIND11_MODULE(mod_test_interpreters,
+PYBIND11_MODULE(mod_per_interpreter_gil,
                 m,
                 py::mod_gil_not_used(),
                 py::multiple_interpreters(py::multiple_interpreters::per_interpreter_gil)) {

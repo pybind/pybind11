@@ -6,7 +6,7 @@ namespace py = pybind11;
  * modules are different across subinterpreters
  */
 
-PYBIND11_MODULE(mod_test_interpreters2,
+PYBIND11_MODULE(mod_shared_interpreter_gil,
                 m,
                 py::multiple_interpreters(py::multiple_interpreters::shared_gil)) {
     m.def("internals_at",

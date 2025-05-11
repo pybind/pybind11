@@ -24,10 +24,10 @@ def test_independent_subinterpreters():
     else:
         pytest.skip("Test requires a the interpreters stdlib module")
 
-    import mod_test_interpreters as m
+    import mod_per_interpreter_gil as m
 
     code = """
-import mod_test_interpreters as m
+import mod_per_interpreter_gil as m
 import pickle
 with open(pipeo, 'wb') as f:
     pickle.dump(m.internals_at(), f)
@@ -37,7 +37,7 @@ with open(pipeo, 'wb') as f:
     interp2 = interpreters.create()
     try:
         try:
-            res0 = interpreters.run_string(interp1, "import mod_test_interpreters2")
+            res0 = interpreters.run_string(interp1, "import mod_shared_interpreter_gil")
             if res0 is not None:
                 res0 = res0.msg
         except Exception as e:
@@ -54,7 +54,7 @@ with open(pipeo, 'wb') as f:
             res2 = pickle.load(f)
 
         # do this while the two interpreters are active
-        import mod_test_interpreters as m2
+        import mod_per_interpreter_gil as m2
 
         assert m.internals_at() == m2.internals_at(), (
             "internals should be the same within the main interpreter"
@@ -71,7 +71,7 @@ with open(pipeo, 'wb') as f:
     assert res1 != res2, "internals should differ between interpreters"
 
     # do this after the two interpreters are destroyed and only one remains
-    import mod_test_interpreters as m3
+    import mod_per_interpreter_gil as m3
 
     assert m.internals_at() == m3.internals_at(), (
         "internals should be the same within the main interpreter"
@@ -95,10 +95,10 @@ def test_dependent_subinterpreters():
     else:
         pytest.skip("Test requires a the interpreters stdlib module")
 
-    import mod_test_interpreters2 as m
+    import mod_shared_interpreter_gil as m
 
     code = """
-import mod_test_interpreters2 as m
+import mod_shared_interpreter_gil as m
 import pickle
 with open(pipeo, 'wb') as f:
     pickle.dump(m.internals_at(), f)
@@ -115,8 +115,8 @@ with open(pipeo, 'wb') as f:
         with open(pipei, "rb") as f:
             res1 = pickle.load(f)
 
-        # do this while the two interpreters are active
-        import mod_test_interpreters2 as m2
+        # do this while the other interpreter is active
+        import mod_shared_interpreter_gil as m2
 
         assert m.internals_at() == m2.internals_at(), (
             "internals should be the same within the main interpreter"
@@ -126,8 +126,8 @@ with open(pipeo, 'wb') as f:
 
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
 
-    # do this after the two interpreters are destroyed and only one remains
-    import mod_test_interpreters2 as m3
+    # do this after the other interpreters are destroyed and only one remains
+    import mod_shared_interpreter_gil as m3
 
     assert m.internals_at() == m3.internals_at(), (
         "internals should be the same within the main interpreter"
