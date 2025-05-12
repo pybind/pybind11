@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import multiprocessing
 import weakref
 
 import pytest
@@ -10,6 +11,12 @@ import pybind11_tests
 from pybind11_tests import invalid_holder_access as m
 
 XFAIL_REASON = "Known issues: https://github.com/pybind/pybind11/pull/5654"
+
+
+try:
+    spawn_context = multiprocessing.get_context("spawn")
+except ValueError:
+    spawn_context = None
 
 
 @pytest.mark.skipif(
@@ -34,16 +41,13 @@ def test_no_init():
         vec.__init__()
 
 
-# The test might succeed on some platforms with some compilers, but
-# it is not guaranteed to work everywhere. It is marked as xfail.
-@pytest.mark.xfail(reason=XFAIL_REASON, raises=SystemError, strict=False)
-def test_manual_new():
+def manual_new_target():
     # Repeatedly trigger allocation without initialization (raw malloc'ed) to
     # detect uninitialized memory bugs.
     for _ in range(32):
         # The holder is a pointer variable while the C++ ctor is not called.
         vec = m.VectorOwns4PythonObjects.__new__(m.VectorOwns4PythonObjects)
-        if vec.is_empty():
+        if vec.is_empty():  # <= this line could cause a segfault
             # The C++ compiler initializes container correctly.
             assert vec.size() == 0
         else:
@@ -54,6 +58,23 @@ def test_manual_new():
         vec.append(2)
         vec.append(3)
         vec.append(4)
+
+
+# This test might succeed on some platforms with some compilers, but it is not
+# guaranteed to work everywhere. It is marked as non-strict xfail.
+@pytest.mark.xfail(reason=XFAIL_REASON, raises=SystemError, strict=False)
+@pytest.mark.skipif(spawn_context is None, reason="spawn context not available")
+def test_manual_new():
+    process = spawn_context.Process(
+        target=manual_new_target,
+        name="manual_new_target",
+    )
+    process.start()
+    process.join()
+    if process.exitcode != 0:
+        raise SystemError(
+            "Segmentation Fault: The C++ compiler initializes container incorrectly."
+        )
 
 
 @pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="Cannot reliably trigger GC")
