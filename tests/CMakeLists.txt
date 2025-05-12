@@ -148,6 +148,7 @@ set(PYBIND11_TEST_FILES
     test_exceptions
     test_factory_constructors
     test_gil_scoped
+    test_invalid_holder_access
     test_iostream
     test_kwargs_and_defaults
     test_local_bindings

@@ -75,6 +75,19 @@ const char *cpp_std() {
 #endif
 }
 
+int cpp_std_num() {
+    return
+#if defined(PYBIND11_CPP20)
+        20;
+#elif defined(PYBIND11_CPP17)
+        17;
+#elif defined(PYBIND11_CPP14)
+        14;
+#else
+        11;
+#endif
+}
+
 PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 test module";
 
@@ -88,6 +101,7 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.attr("compiler_info") = py::none();
 #endif
     m.attr("cpp_std") = cpp_std();
+    m.attr("cpp_std_num") = cpp_std_num();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
     // Free threaded Python uses UINT32_MAX for immortal objects.
     m.attr("PYBIND11_REFCNT_IMMORTAL") = UINT32_MAX;
