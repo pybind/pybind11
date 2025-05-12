@@ -5,6 +5,7 @@ import weakref
 
 import pytest
 
+import env  # noqa: F401
 import pybind11_tests
 from pybind11_tests import invalid_holder_access as m
 
@@ -55,6 +56,7 @@ def test_manual_new():
         vec.append(4)
 
 
+@pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="Cannot reliably trigger GC")
 @pytest.mark.skipif(
     pybind11_tests.cpp_std_num < 14,
     reason="std::{unique_ptr,make_unique} not available in C++11",
