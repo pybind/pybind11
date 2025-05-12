@@ -557,7 +557,7 @@ set(PYBIND11_PYTEST_ARGS
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
+  COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -X faulthandler -m pytest
           ${PYBIND11_ABS_PYTEST_FILES} ${PYBIND11_PYTEST_ARGS}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
