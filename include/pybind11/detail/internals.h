@@ -206,13 +206,13 @@ struct internals {
     type_map<PyObject *> native_enum_type_map;
 
     internals() {
-        PyThreadState *curtstate = PyThreadState_Get();
+        PyThreadState *cur_tstate = PyThreadState_Get();
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(tstate)) {
             pybind11_fail(
                 "internals constructor: could not successfully initialize the tstate TSS key!");
         }
-        PYBIND11_TLS_REPLACE_VALUE(tstate, curtstate);
+        PYBIND11_TLS_REPLACE_VALUE(tstate, cur_tstate);
 
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
@@ -220,7 +220,7 @@ struct internals {
                           "loader_life_support TSS key!");
         }
 
-        istate = curtstate->interp;
+        istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
         static_property_type = make_static_property_type();
         default_metaclass = make_default_metaclass();
