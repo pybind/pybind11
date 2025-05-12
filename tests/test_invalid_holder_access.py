@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import gc
 import multiprocessing
+import signal
+import sys
 import weakref
 
 import pytest
@@ -14,8 +16,10 @@ XFAIL_REASON = "Known issues: https://github.com/pybind/pybind11/pull/5654"
 
 
 try:
+    import multiprocessing
+
     spawn_context = multiprocessing.get_context("spawn")
-except ValueError:
+except (ImportError, ValueError):
     spawn_context = None
 
 
@@ -51,9 +55,9 @@ def manual_new_target():
             # The C++ compiler initializes container correctly.
             assert vec.size() == 0
         else:
-            raise SystemError(
-                "Segmentation Fault: The C++ compiler initializes container incorrectly."
-            )
+            # The program is not supposed to reach here. It will abort with
+            # SIGSEGV on `vec.is_empty()`.
+            sys.exit(signal.SIGSEGV)  # manually trigger SIGSEGV if not raised
         vec.append(1)
         vec.append(2)
         vec.append(3)
@@ -64,6 +68,10 @@ def manual_new_target():
 # guaranteed to work everywhere. It is marked as non-strict xfail.
 @pytest.mark.xfail(reason=XFAIL_REASON, raises=SystemError, strict=False)
 @pytest.mark.skipif(spawn_context is None, reason="spawn context not available")
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"),
+    reason="Requires multiprocessing",
+)
 def test_manual_new():
     process = spawn_context.Process(
         target=manual_new_target,
@@ -71,6 +79,7 @@ def test_manual_new():
     )
     process.start()
     process.join()
+    assert abs(process.exitcode) in (0, signal.SIGSEGV, signal.SIGABRT)
     if process.exitcode != 0:
         raise SystemError(
             "Segmentation Fault: The C++ compiler initializes container incorrectly."
