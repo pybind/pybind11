@@ -251,6 +251,17 @@ struct internals {
     }
 };
 
+// the internals struct (above) is shared between all the modules. local_internals are only
+// for a single module. Any changes made to internals may require an update to
+// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
+// restricted to a single module. Whether a module has local internals or not should not
+// impact any other modules, because the only things accessing the local internals is the
+// module that contains them.
+struct local_internals {
+    type_map<type_info *> registered_types_cpp;
+    std::forward_list<ExceptionTranslator> registered_exception_translators;
+};
+
 enum class holder_enum_t : uint8_t {
     undefined,
     std_unique_ptr, // Default, lacking interop with std::shared_ptr.
@@ -311,14 +322,13 @@ inline std::atomic<int> &get_num_interpreters_seen() {
     return counter;
 }
 
-/// Each module locally stores a pointer to the `internals` data. The data
-/// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-inline std::unique_ptr<internals> *&get_internals_pp() {
+template <typename InternalsType>
+inline std::unique_ptr<InternalsType> *&get_internals_pp() {
 #ifdef PYBIND11_SUBINTERPRETER_SUPPORT
     if (get_num_interpreters_seen() > 1) {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
-        static thread_local std::unique_ptr<internals> *t_internals_pp = nullptr;
+        static thread_local std::unique_ptr<InternalsType> *t_internals_pp = nullptr;
         static thread_local PyInterpreterState *istate_cached = nullptr;
         // Whenever the interpreter changes on the current thread we need to invalidate the
         // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
@@ -335,7 +345,7 @@ inline std::unique_ptr<internals> *&get_internals_pp() {
         return t_internals_pp;
     }
 #endif
-    static std::unique_ptr<internals> *s_internals_pp = nullptr;
+    static std::unique_ptr<InternalsType> *s_internals_pp = nullptr;
     return s_internals_pp;
 }
 
@@ -483,7 +493,7 @@ get_internals_pp_from_capsule_in_state_dict(dict &state_dict, char const *state_
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto *&internals_pp = get_internals_pp();
+    auto *&internals_pp = get_internals_pp<internals>();
     if (internals_pp && *internals_pp) {
         // This is the fast path, everything is already setup, just return it
         return **internals_pp;
@@ -533,43 +543,6 @@ PYBIND11_NOINLINE internals &get_internals() {
     return **internals_pp;
 }
 
-// the internals struct (above) is shared between all the modules. local_internals are only
-// for a single module. Any changes made to internals may require an update to
-// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
-// restricted to a single module. Whether a module has local internals or not should not
-// impact any other modules, because the only things accessing the local internals is the
-// module that contains them.
-struct local_internals {
-    type_map<type_info *> registered_types_cpp;
-    std::forward_list<ExceptionTranslator> registered_exception_translators;
-};
-
-inline std::unique_ptr<local_internals> *&get_local_internals_pp() {
-#ifdef PYBIND11_SUBINTERPRETER_SUPPORT
-    if (get_num_interpreters_seen() > 1) {
-        // Internals is one per interpreter. When multiple interpreters are alive in different
-        // threads we have to allow them to have different internals, so we need a thread_local.
-        static thread_local std::unique_ptr<local_internals> *t_internals_pp = nullptr;
-        static thread_local PyInterpreterState *istate_cached = nullptr;
-        // Whenever the interpreter changes on the current thread we need to invalidate the
-        // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
-        // so we use the current PyThreadState to check if it is necessary.  The caller will see a
-        // null return and do the fetch from the state dict or create a new one (as needed).
-        auto *tstate = get_thread_state_unchecked();
-        if (!tstate) {
-            istate_cached = nullptr;
-            t_internals_pp = nullptr;
-        } else if (tstate->interp != istate_cached) {
-            istate_cached = tstate->interp;
-            t_internals_pp = nullptr;
-        }
-        return t_internals_pp;
-    }
-#endif
-    static std::unique_ptr<local_internals> *s_internals_pp = nullptr;
-    return s_internals_pp;
-}
-
 /// A string key uniquely describing this module
 inline char const *get_local_internals_id() {
     // Use the address of this static itself as part of the key, so that the value is uniquely tied
@@ -582,7 +555,7 @@ inline char const *get_local_internals_id() {
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-    auto *&local_internals_pp = get_local_internals_pp();
+    auto *&local_internals_pp = get_internals_pp<local_internals>();
     if (local_internals_pp && *local_internals_pp) {
         return **local_internals_pp;
     }

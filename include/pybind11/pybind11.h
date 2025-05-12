@@ -1300,13 +1300,16 @@ inline bool gil_not_used_option(F &&, O &&...o) {
 inline void *multi_interp_slot() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
 template <typename... O>
 inline void *multi_interp_slot(multiple_interpreters mi, O &&...o) {
-    if (mi.value() == multiple_interpreters::per_interpreter_gil) {
-        return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
-    } else if (mi.value() == multiple_interpreters::shared_gil) {
-        return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
-    } else {
-        return multi_interp_slot(o...);
+    switch (mi.value()) {
+        case multiple_interpreters::per_interpreter_gil:
+            return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
+        case multiple_interpreters::shared_gil:
+            return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+        case multiple_interpreters::not_supported:
+            return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED;
     }
+    // silence warnings with this unreachable line:
+    return multi_interp_slot(o...);
 }
 template <typename F, typename... O>
 inline void *multi_interp_slot(F &&, O &&...o) {
