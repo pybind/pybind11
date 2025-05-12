@@ -79,8 +79,16 @@ def test_manual_new():
     )
     process.start()
     process.join()
-    assert abs(process.exitcode) in (0, signal.SIGSEGV, signal.SIGABRT)
-    if process.exitcode != 0:
+    rc = abs(process.exitcode)
+    if 128 < rc < 256:
+        rc -= 128
+    assert rc in (
+        0,
+        signal.SIGSEGV,
+        signal.SIGABRT,
+        0xC0000005,  # STATUS_ACCESS_VIOLATION on Windows
+    )
+    if rc != 0:
         raise SystemError(
             "Segmentation Fault: The C++ compiler initializes container incorrectly."
         )
