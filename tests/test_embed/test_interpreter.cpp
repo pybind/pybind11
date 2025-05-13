@@ -548,8 +548,8 @@ TEST_CASE("Per-Subinterpreter GIL") {
             main_tstate); // switch back so the scoped_acquire can release the GIL properly
     };
 
-    std::thread(thread_main, 1).detach();
-    std::thread(thread_main, 2).detach();
+    std::thread t1(thread_main, 1);
+    std::thread t2(thread_main, 2);
 
     // we spawned two threads, at this point they are both waiting for started to increase
     ++started;
@@ -589,6 +589,9 @@ TEST_CASE("Per-Subinterpreter GIL") {
         while (finished != 3)
             std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
+
+    t1.join();
+    t2.join();
 
     // now we have the gil again, sanity check
     REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
