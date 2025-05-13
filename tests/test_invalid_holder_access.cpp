@@ -4,14 +4,9 @@
 #include <memory>
 #include <vector>
 
-class VectorOwns4PythonObjects {
+class VecOwnsObjs {
 public:
-    void append(const py::object &obj) {
-        if (size() >= 4) {
-            throw std::out_of_range("Index out of range");
-        }
-        vec.emplace_back(obj);
-    }
+    void append(const py::object &obj) { vec.emplace_back(obj); }
 
     void set_item(py::ssize_t i, const py::object &obj) {
         if (!(i >= 0 && i < size())) {
@@ -31,63 +26,120 @@ public:
 
     bool is_empty() const { return vec.empty(); }
 
-    void sanity_check() const {
-        auto current_size = size();
-        if (current_size < 0 || current_size > 4) {
-            throw std::out_of_range("Invalid size");
-        }
-    }
-
     static int tp_traverse(PyObject *self_base, visitproc visit, void *arg) {
 #if PY_VERSION_HEX >= 0x03090000 // Python 3.9
         Py_VISIT(Py_TYPE(self_base));
 #endif
-        auto *const instance = reinterpret_cast<py::detail::instance *>(self_base);
-        if (!instance->get_value_and_holder().holder_constructed()) {
-            // The holder has not been constructed yet. Skip the traversal to avoid segmentation
-            // faults.
-            return 0;
+        if (should_check_holder_initialization) {
+            auto *const instance = reinterpret_cast<py::detail::instance *>(self_base);
+            if (!instance->get_value_and_holder().holder_constructed()) {
+                // The holder has not been constructed yet. Skip the traversal to avoid
+                // segmentation faults.
+                return 0;
+            }
         }
-        auto &self = py::cast<VectorOwns4PythonObjects &>(py::handle{self_base});
+        auto &self = py::cast<VecOwnsObjs &>(py::handle{self_base});
         for (const auto &obj : self.vec) {
             Py_VISIT(obj.ptr());
         }
         return 0;
     }
 
+    static int tp_clear(PyObject *self_base) {
+        if (should_check_holder_initialization) {
+            auto *const instance = reinterpret_cast<py::detail::instance *>(self_base);
+            if (!instance->get_value_and_holder().holder_constructed()) {
+                // The holder has not been constructed yet. Skip the traversal to avoid
+                // segmentation faults.
+                return 0;
+            }
+        }
+        auto &self = py::cast<VecOwnsObjs &>(py::handle{self_base});
+        for (auto &obj : self.vec) {
+            Py_CLEAR(obj.ptr());
+        }
+        self.vec.clear();
+        return 0;
+    }
+
+    py::object get_state() const {
+        py::list state{};
+        for (const auto &item : vec) {
+            state.append(item);
+        }
+        return py::tuple(state);
+    }
+
+    static bool get_should_check_holder_initialization() {
+        return should_check_holder_initialization;
+    }
+
+    static void set_should_check_holder_initialization(bool value) {
+        should_check_holder_initialization = value;
+    }
+
+    static bool get_should_raise_error_on_set_state() { return should_raise_error_on_set_state; }
+
+    static void set_should_raise_error_on_set_state(bool value) {
+        should_raise_error_on_set_state = value;
+    }
+
+    static bool should_check_holder_initialization;
+    static bool should_raise_error_on_set_state;
+
 private:
     std::vector<py::object> vec{};
 };
+
+bool VecOwnsObjs::should_check_holder_initialization = false;
+bool VecOwnsObjs::should_raise_error_on_set_state = false;
 
 TEST_SUBMODULE(invalid_holder_access, m) {
     m.doc() = "Test invalid holder access";
 
 #if defined(PYBIND11_CPP14)
-    m.def("create_vector", []() -> std::unique_ptr<VectorOwns4PythonObjects> {
-        auto vec = std::make_unique<VectorOwns4PythonObjects>();
-        vec->append(py::none());
-        vec->append(py::int_(1));
-        vec->append(py::str("test"));
-        vec->append(py::tuple());
+    m.def("create_vector", [](const py::iterable &iterable) -> std::unique_ptr<VecOwnsObjs> {
+        auto vec = std::make_unique<VecOwnsObjs>();
+        for (const auto &item : iterable) {
+            vec->append(py::reinterpret_borrow<py::object>(item));
+        }
         return vec;
     });
 #endif
 
-    py::class_<VectorOwns4PythonObjects>(
-        m,
-        "VectorOwns4PythonObjects",
-        py::custom_type_setup([](PyHeapTypeObject *heap_type) -> void {
+    py::class_<VecOwnsObjs>(
+        m, "VecOwnsObjs", py::custom_type_setup([](PyHeapTypeObject *heap_type) -> void {
             auto *const type = &heap_type->ht_type;
             type->tp_flags |= Py_TPFLAGS_HAVE_GC;
-            type->tp_traverse = &VectorOwns4PythonObjects::tp_traverse;
+            type->tp_traverse = &VecOwnsObjs::tp_traverse;
+            type->tp_clear = &VecOwnsObjs::tp_clear;
         }))
-        .def("append", &VectorOwns4PythonObjects::append, py::arg("obj"))
-        .def("set_item", &VectorOwns4PythonObjects::set_item, py::arg("i"), py::arg("obj"))
-        .def("get_item", &VectorOwns4PythonObjects::get_item, py::arg("i"))
-        .def("size", &VectorOwns4PythonObjects::size)
-        .def("is_empty", &VectorOwns4PythonObjects::is_empty)
-        .def("__setitem__", &VectorOwns4PythonObjects::set_item, py::arg("i"), py::arg("obj"))
-        .def("__getitem__", &VectorOwns4PythonObjects::get_item, py::arg("i"))
-        .def("__len__", &VectorOwns4PythonObjects::size)
-        .def("sanity_check", &VectorOwns4PythonObjects::sanity_check);
+        .def_static("set_should_check_holder_initialization",
+                    &VecOwnsObjs::set_should_check_holder_initialization,
+                    py::arg("value"))
+        .def_static("set_should_raise_error_on_set_state",
+                    &VecOwnsObjs::set_should_raise_error_on_set_state,
+                    py::arg("value"))
+#if defined(PYBIND11_CPP14)
+        .def(py::pickle([](const VecOwnsObjs &self) -> py::object { return self.get_state(); },
+                        [](const py::object &state) -> std::unique_ptr<VecOwnsObjs> {
+                            if (!py::isinstance<py::tuple>(state)) {
+                                throw std::runtime_error("Invalid state");
+                            }
+                            auto vec = std::make_unique<VecOwnsObjs>();
+                            if (VecOwnsObjs::get_should_raise_error_on_set_state()) {
+                                throw std::runtime_error("raise error on set_state for testing");
+                            }
+                            for (const auto &item : state) {
+                                vec->append(py::reinterpret_borrow<py::object>(item));
+                            }
+                            return vec;
+                        }),
+             py::arg("state"))
+#endif
+        .def("append", &VecOwnsObjs::append, py::arg("obj"))
+        .def("is_empty", &VecOwnsObjs::is_empty)
+        .def("__setitem__", &VecOwnsObjs::set_item, py::arg("i"), py::arg("obj"))
+        .def("__getitem__", &VecOwnsObjs::get_item, py::arg("i"))
+        .def("__len__", &VecOwnsObjs::size);
 }
