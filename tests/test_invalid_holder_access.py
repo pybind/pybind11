@@ -114,6 +114,8 @@ def test_set_state_with_error_no_segfault_if_gc_checks_holder_has_initialized():
     # The `__init__` method is not called during unpickling.
     # So, if the `__setstate__` method raises an error, the object will be in
     # an uninitialized state.
+    # If `tp_traverse` and `tp_clear` functions check if the holder has been
+    # initialized, the functions can exit early and do not cause segfault on GC.
     m.VecOwnsObjs.set_should_raise_error_on_set_state(True)
     serialized = pickle.dumps(vec)
     with pytest.raises(

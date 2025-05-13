@@ -27,9 +27,11 @@ public:
     bool is_empty() const { return vec.empty(); }
 
     static int tp_traverse(PyObject *self_base, visitproc visit, void *arg) {
+        // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
 #if PY_VERSION_HEX >= 0x03090000 // Python 3.9
         Py_VISIT(Py_TYPE(self_base));
 #endif
+
         if (should_check_holder_initialization) {
             auto *const instance = reinterpret_cast<py::detail::instance *>(self_base);
             if (!instance->get_value_and_holder().holder_constructed()) {
@@ -38,6 +40,8 @@ public:
                 return 0;
             }
         }
+
+        // The actual logic of the tp_traverse function goes here.
         auto &self = py::cast<VecOwnsObjs &>(py::handle{self_base});
         for (const auto &obj : self.vec) {
             Py_VISIT(obj.ptr());
@@ -54,6 +58,8 @@ public:
                 return 0;
             }
         }
+
+        // The actual logic of the tp_clear function goes here.
         auto &self = py::cast<VecOwnsObjs &>(py::handle{self_base});
         for (auto &obj : self.vec) {
             Py_CLEAR(obj.ptr());

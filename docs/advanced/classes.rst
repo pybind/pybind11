@@ -1339,11 +1339,32 @@ You can do that using ``py::custom_type_setup``:
            auto *type = &heap_type->ht_type;
            type->tp_flags |= Py_TPFLAGS_HAVE_GC;
            type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
+               // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
+   #if PY_VERSION_HEX >= 0x03090000  // Python 3.9
+               Py_VISIT(Py_TYPE(self_base));
+   #endif
+
+               auto* const instance = reinterpret_cast<py::detail::instance*>(self_base);
+               if (!instance->get_value_and_holder().holder_constructed()) [[unlikely]] {
+                   // The holder has not been constructed yet.
+                   // Skip the traversal to avoid segmentation faults.
+                   return 0;
+               }
+
+               // The actual logic of the tp_clear function goes here.
                auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
                Py_VISIT(self.value.ptr());
                return 0;
            };
            type->tp_clear = [](PyObject *self_base) {
+               auto* const instance = reinterpret_cast<py::detail::instance*>(self_base);
+               if (!instance->get_value_and_holder().holder_constructed()) [[unlikely]] {
+                   // The holder has not been constructed yet.
+                   // Skip the traversal to avoid segmentation faults.
+                   return 0;
+               }
+
+               // The actual logic of the tp_clear function goes here.
                auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
                self.value = py::none();
                return 0;
