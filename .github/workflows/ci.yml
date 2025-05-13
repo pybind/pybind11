@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-22.04, windows-2022, macos-13]
+        runs-on: [ubuntu-24.04, windows-2022, macos-14]
         python:
         - '3.8'
         - '3.13'
@@ -88,17 +88,26 @@ jobs:
             python: '3.11'
             args: >
               -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+          - runs-on: macos-13
+            python: 'pypy-3.10'
           - runs-on: windows-2022
             python: '3.10'
             args: >
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
           - runs-on: 'ubuntu-latest'
             python: 'graalpy-24.1'
+
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
           - python: 'graalpy-24.2'
             runs-on: 'windows-2022'
+          # No SciPy for Python 3.8 ARM
+          - runs-on: macos-14
+            python: '3.8'
+          # No NumPy for PyPy 3.10 ARM
+          - runs-on: macos-14
+            python: 'pypy-3.10'
 
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
