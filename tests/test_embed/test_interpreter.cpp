@@ -540,7 +540,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
         T_REQUIRE(sub_int != main_int);
 
         Py_EndInterpreter(sub);
-        
+
         PyThreadState_Swap(
             main_tstate); // switch back so the scoped_acquire can release the GIL properly
     };
