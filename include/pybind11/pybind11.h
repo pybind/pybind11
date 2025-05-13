@@ -1275,15 +1275,9 @@ public:
         per_interpreter_gil /// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
     };
 
-    static constexpr level not_supported() {
-        return level::not_supported;
-    }
-    static constexpr level shared_gil() {
-        return level::shared_gil;
-    }
-    static constexpr level per_interpreter_gil() {
-        return level::per_interpreter_gil;
-    }
+    static constexpr level not_supported() { return level::not_supported; }
+    static constexpr level shared_gil() { return level::shared_gil; }
+    static constexpr level per_interpreter_gil() { return level::per_interpreter_gil; }
 
     explicit multiple_interpreters(level l) : level_(l) {}
     level value() const { return level_; }
