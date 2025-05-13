@@ -1269,11 +1269,21 @@ private:
 
 class multiple_interpreters {
 public:
-    enum level {
+    enum class level {
         not_supported,      /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED
         shared_gil,         /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED
         per_interpreter_gil /// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
     };
+
+    static constexpr level not_supported() {
+        return level::not_supported;
+    }
+    static constexpr level shared_gil() {
+        return level::shared_gil;
+    }
+    static constexpr level per_interpreter_gil() {
+        return level::per_interpreter_gil;
+    }
 
     explicit multiple_interpreters(level l) : level_(l) {}
     level value() const { return level_; }
@@ -1301,11 +1311,11 @@ inline void *multi_interp_slot() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPO
 template <typename... O>
 inline void *multi_interp_slot(multiple_interpreters mi, O &&...o) {
     switch (mi.value()) {
-        case multiple_interpreters::per_interpreter_gil:
+        case multiple_interpreters::level::per_interpreter_gil:
             return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
-        case multiple_interpreters::shared_gil:
+        case multiple_interpreters::level::shared_gil:
             return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
-        case multiple_interpreters::not_supported:
+        case multiple_interpreters::level::not_supported:
             return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED;
     }
     // silence warnings with this unreachable line:

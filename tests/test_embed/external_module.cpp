@@ -9,7 +9,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(external_module,
                 m,
                 py::mod_gil_not_used(),
-                py::multiple_interpreters(py::multiple_interpreters::per_interpreter_gil)) {
+                py::multiple_interpreters::per_interpreter_gil()) {
 
     class A {
     public:

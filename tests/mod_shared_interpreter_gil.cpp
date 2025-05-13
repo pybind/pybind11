@@ -8,7 +8,7 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(mod_shared_interpreter_gil,
                 m,
-                py::multiple_interpreters(py::multiple_interpreters::shared_gil)) {
+                py::multiple_interpreters::shared_gil()) {
     m.def("internals_at",
           []() { return reinterpret_cast<uintptr_t>(&py::detail::get_internals()); });
 }
