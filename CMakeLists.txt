@@ -126,6 +126,7 @@ if(PYBIND11_MASTER_PROJECT)
   if(NOT DEFINED Python3_EXECUTABLE
      AND NOT DEFINED Python_EXECUTABLE
      AND NOT DEFINED Python_ROOT_SIR
+     AND NOT DEFINED ENV{VIRTUALENV}
      AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
     message(STATUS "Autodetecting Python in virtual environment")
     set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
