@@ -1351,7 +1351,7 @@ You can do that using ``py::custom_type_setup``:
                    return 0;
                }
 
-               // The actual logic of the tp_clear function goes here.
+               // The actual logic of the tp_traverse function goes here.
                auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
                Py_VISIT(self.value.ptr());
                return 0;
