@@ -4,9 +4,14 @@
     {
       "name": "default",
       "displayName": "Default",
-      "binaryDir": "build/default",
+      "binaryDir": "build",
       "generator": "Ninja",
+      "errors": {
+        "dev": true,
+        "deprecated": true
+      },
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
         "PYBIND11_FINDPYTHON": "NEW",
         "PYBIND11_WERROR": true,
         "DOWNLOAD_CATCH": true,
@@ -16,9 +21,9 @@
     {
       "name": "venv",
       "displayName": "Venv",
-      "binaryDir": "build/venv",
-      "generator": "Ninja",
+      "inherits": "default",
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
         "PYBIND11_CREATE_WITH_UV": "python3",
         "Python_ROOT_DIR": ".venv",
         "PYBIND11_WERROR": true,
@@ -41,13 +46,13 @@
     },
     {
       "name": "tests",
-      "displayName": "Default Tests Build",
+      "displayName": "Tests (for workflow)",
       "configurePreset": "default",
       "targets": ["pytest", "cpptest", "test_cmake_build"]
     },
     {
       "name": "testsvenv",
-      "displayName": "Venv Tests Build",
+      "displayName": "Tests Venv (for workflow)",
       "configurePreset": "venv",
       "targets": ["pytest", "cpptest", "test_cmake_build"]
     }
