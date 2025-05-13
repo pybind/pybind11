@@ -465,10 +465,9 @@ TEST_CASE("Per-Subinterpreter GIL") {
     auto main_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
 
-    std::atomic<int> started, sync, finished, failure;
+    std::atomic<int> started, sync, failure;
     started = 0;
     sync = 0;
-    finished = 0;
     failure = 0;
 
 // REQUIRE throws on failure, so we can't use it within the thread
@@ -541,9 +540,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
         T_REQUIRE(sub_int != main_int);
 
         Py_EndInterpreter(sub);
-
-        ++finished;
-
+        
         PyThreadState_Swap(
             main_tstate); // switch back so the scoped_acquire can release the GIL properly
     };
@@ -583,15 +580,10 @@ TEST_CASE("Per-Subinterpreter GIL") {
         // so we move sync so that thread 2 can finish executing
         ++sync;
 
-        ++finished;
-
         // now wait for both threads to complete
-        while (finished != 3)
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
+        t1.join();
+        t2.join();
     }
-
-    t1.join();
-    t2.join();
 
     // now we have the gil again, sanity check
     REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))

@@ -401,17 +401,19 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                              \
-        slots[0]                                                                                  \
-            = {Py_mod_exec, reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};    \
-        slots[1] = {0, nullptr};                                                                  \
-        auto m = ::pybind11::module_::initialize_multiphase_module_def(                           \
-            PYBIND11_TOSTRING(name),                                                              \
-            nullptr,                                                                              \
-            &PYBIND11_CONCAT(pybind11_module_def_, name),                                         \
-            slots,                                                                                \
-            ##__VA_ARGS__);                                                                       \
-        return m.ptr();                                                                           \
+        static auto result = []() {                                                               \
+            auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
+            slots[0] = {Py_mod_exec,                                                              \
+                        reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
+            slots[1] = {0, nullptr};                                                              \
+            return ::pybind11::module_::initialize_multiphase_module_def(                         \
+                PYBIND11_TOSTRING(name),                                                          \
+                nullptr,                                                                          \
+                &PYBIND11_CONCAT(pybind11_module_def_, name),                                     \
+                slots,                                                                            \
+                ##__VA_ARGS__);                                                                   \
+        }();                                                                                      \
+        return result.ptr();                                                                      \
     }                                                                                             \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         pybind11::detail::get_num_interpreters_seen() += 1;                                       \
