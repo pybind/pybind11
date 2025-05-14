@@ -51,10 +51,10 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 constexpr const char *internals_function_record_capsule_name = "pybind11_function_record_capsule";
 
 // Forward declarations
-inline PyTypeObject *make_static_property_type();
-inline PyTypeObject *make_default_metaclass();
-inline PyObject *make_object_base_type(PyTypeObject *metaclass);
-inline void translate_exception(std::exception_ptr p);
+PyTypeObject *make_static_property_type();
+PyTypeObject *make_default_metaclass();
+PyObject *make_object_base_type(PyTypeObject *metaclass);
+void translate_exception(std::exception_ptr p);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
