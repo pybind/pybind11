@@ -160,34 +160,39 @@ struct handle_type_name<typing::Tuple<>> {
 template <typename T>
 struct handle_type_name<typing::Tuple<T, ellipsis>> {
     // PEP 484 specifies this syntax for a variable-length tuple
-    static constexpr auto name
-        = const_name(PYBIND11_TUPLE_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name(", ...]");
+    static constexpr auto name = const_name(PYBIND11_TUPLE_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name(", ...]");
 };
 
 template <typename K, typename V>
 struct handle_type_name<typing::Dict<K, V>> {
-    static constexpr auto name = const_name(PYBIND11_DICT_TYPE_HINT) + const_name("[") + make_caster<K>::name + const_name(", ")
-                                 + make_caster<V>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_DICT_TYPE_HINT) + const_name("[")
+                                 + make_caster<K>::name + const_name(", ") + make_caster<V>::name
+                                 + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::List<T>> {
-    static constexpr auto name = const_name(PYBIND11_LIST_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_LIST_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Set<T>> {
-    static constexpr auto name = const_name(PYBIND11_SET_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_SET_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterable<T>> {
-    static constexpr auto name = const_name(PYBIND11_ITERABLE_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_ITERABLE_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterator<T>> {
-    static constexpr auto name = const_name(PYBIND11_ITERATOR_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_ITERATOR_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <typename Return, typename... Args>
@@ -223,7 +228,8 @@ struct handle_type_name<typing::Union<Types...>> {
 
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-    static constexpr auto name = const_name("typing.Optional[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name
+        = const_name("typing.Optional[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
@@ -235,17 +241,20 @@ struct handle_type_name<typing::Final<T>> {
 
 template <typename T>
 struct handle_type_name<typing::ClassVar<T>> {
-    static constexpr auto name = const_name("typing.ClassVar[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name
+        = const_name("typing.ClassVar[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
-    static constexpr auto name = const_name("typing.TypeGuard[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name
+        = const_name("typing.TypeGuard[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
-    static constexpr auto name = const_name("typing.TypeIs[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name
+        = const_name("typing.TypeIs[") + make_caster<T>::name + const_name("]");
 };
 
 template <>
