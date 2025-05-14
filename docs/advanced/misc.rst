@@ -156,9 +156,9 @@ following checklist.
 Free-threading support
 ==================================================================
 
-pybind11 supports the experimental free-threaded Python build.  pybind11's internal data
-structures are thread safe. To enable your modules to be used with free-threading, pass the
-:class:`mod_gil_not_used` tag as the third argument to ``PYBIND11_MODULE``.
+pybind11 supports the experimental free-threaded Python 3.13t and 3.14t builds.  pybind11's
+internal data structures are thread safe. To enable your modules to be used with free-threading,
+pass the :class:`mod_gil_not_used` tag as the third argument to ``PYBIND11_MODULE``.
 
 For example:
 
@@ -170,23 +170,23 @@ For example:
     }
 
 Note, of course, enabling your module to be used in free threading is also your promise that
-your code is thread safe. Modules must still be built against the Python free-threading branch to enable
-free-threading, even if they specify this tag.  Adding this tag does not break compatibility with non-free-threaded
-Python.
+your code is thread safe.  Modules must still be built against the Python free-threading branch to
+enable free-threading, even if they specify this tag.  Adding this tag does not break
+compatibility with non-free-threaded Python.
 
 Sub-interpreter support
 ==================================================================
 
-pybind11 supports isolated sub-interpreters.  Pybind11's internal data structures are
-sub-interpreter safe. To enable your modules to be imported in isolated sub-interpreters, pass the
-:func:`multiple_interpreters::per_interpreter_gil()` tag as the third or later argument to
-``PYBIND11_MODULE``.
+pybind11 supports isolated sub-interpreters, which are stable in Python 3.12+.  Pybind11's
+internal data structures are sub-interpreter safe. To enable your modules to be imported in
+isolated sub-interpreters, pass the :func:`multiple_interpreters::per_interpreter_gil()`
+tag as the third or later argument to ``PYBIND11_MODULE``.
 
 For example:
 
 .. code-block:: cpp
     :emphasize-lines: 1
-    PYBIND11_MODULE(example, m, py::mod_gil_not_used(), py::multiple_interpreters_per_interpreter_gil()) {
+    PYBIND11_MODULE(example, m, py::multiple_interpreters_per_interpreter_gil()) {
         py::class_<Animal> animal(m, "Animal");
         // etc
     }
@@ -195,29 +195,123 @@ Sub-interpreter Tips:
 
 - Your initialization function will run for each interpreter that imports your module.
 
-- Never share python objects across different sub-interpreters.
+- Never share Python objects across different sub-interpreters.
 
 - Keep state it in the interpreter's state dict if necessary. Avoid global/static state
   whenever possible.
 
-- Avoid trying to "cache" python objects in C++ variables across function calls (this is an easy
+- Modules without any global/static state in their C++ code may already be sub-interpreter safe
+  without any additional work!
+
+- Avoid trying to "cache" Python objects in C++ variables across function calls (this is an easy
   way to accidentally introduce sub-interpreter bugs).
 
 - While sub-interpreters each have their own GIL, there can now be multiple independent GILs in one
-  program so concurrent calls into a module from two different sub-interpreters are still possible.
-  Therefore, your module still needs to consider thread safety.
+  program, so concurrent calls into a module from two different sub-interpreters are still
+  possible. Therefore, your module still needs to consider thread safety.
 
-pybind11 also supports "legacy" sub-interpreters which shared a single global GIL.  You can enable
-legacy behavior by using the :func:`multiple_interpreters::shared_gil()` tag in
-```PYBIND11_MODULE``.
+pybind11 also supports "legacy" sub-interpreters which shared a single global GIL. You can enable
+legacy-only behavior by using the :func:`multiple_interpreters::shared_gil()` tag in
+``PYBIND11_MODULE``.
 
-You can explicitly disable multiple interpreter support in your module by using the
+You can explicitly disable sub-interpreter support in your module by using the
 :func:`multiple_interpreter::not_supported()` tag. This is the default behavior if you do not
 specify a multiple_interpreters tag.
 
-Note: Sub-interpreter support does not imply free-threading support or vice-versa.
-Free-threaded modules can still have global/static state, but multiple interpreter modules cannot.
-Likewise, sub-interpreter modules can still use the GIL, but free-threaded modules cannot.
+Parallel Python exposition
+==========================
+
+Sub-interpreter support does not imply free-threading support or vice versa.  Free-threading safe
+modules can still have global/static state (as long as access to them is thread-safe), but
+sub-interpreter safe modules cannot.  Likewise, sub-interpreter safe modules can still rely on the
+GIL, but free-threading safe modules cannot.
+
+Here is a simple example module which has a function that returns the previous value for a given
+key.
+
+.. code-block:: cpp
+    PYBIND11_MODULE(example, m) {
+        static py::dict mydict;
+        m.def("get_last", [](py::object key, py::object next) {
+            py::object old = py::none();
+            if (mydict.contains(key))
+                old = mydict[key];
+            mydict[key] = next;
+            return old;
+        });
+
+This module is not free-threading safe because there are not locks for synchronization.  It is
+relatively easy to make this free-threading safe:
+
+.. code-block:: cpp
+    :emphasize-lines: 1,3,5
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
+        static py::dict mydict;
+        static std::mutex mydict_lock;
+        m.def("get_last", [](py::object key, py::object next) {
+            std::lock_guard<std::mutex> guard(mydict_lock);
+            py::object old = py::none();
+            if (mydict.contains(key))
+                old = mydict[key];
+            mydict[key] = next;
+            return old;
+        });
+    }
+
+The mutex guarantees a consistent behavior from this function even when called currently from
+multiple threads at the same time.
+
+However, the global/static dict is not sub-interpreter safe, because python objects cannot be
+shared or moved between interpreters. To fix it, the state needs to be specific to each
+interpreter.  One way to do that is by storing the state on another Python object.  For this
+simple example, we will store it in :func:`globals`.
+
+.. code-block:: cpp
+    :emphasize-lines: 3,4,5
+    PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil()) {
+        m.def("get_last", [](py::object key, py::object next) {
+            if (!py::globals().contains("mydict"))
+                py::globals()["mydict"] = py::dict();
+            py::dict mydict = py::globals()["mydict"];
+            py::object old = py::none();
+            if (mydict.contains(key))
+                old = mydict[key];
+            mydict[key] = next;
+            return old;
+        });
+    }
+
+This module is sub-interpreter safe, for both ``shared_gil`` ("legacy") and
+``per_interpreter_gil`` ("default") varieties. Multiple sub-interpreters might each call this same
+function concurrently from different threads. This is safe because each sub-interpreter's GIL
+protects it's own Python objects from concurrent access.
+
+However, the module is no longer free-threading safe, because we left out the mutex. If we put it
+back, then we can make a module that supports both free-threading and sub-interpreters:
+
+.. code-block:: cpp
+    :emphasize-lines: 3,4
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used(), py::multiple_interpreters::per_interpreter_gil()) {
+        m.def("get_last", [](py::object key, py::object next) {
+            static std::mutex mymutex;
+            std::lock_guard<std::mutex> guard(mymutex);
+            if (!py::globals().contains("mydict"))
+                py::globals()["mydict"] = py::dict();
+            py::dict mydict = py::globals()["mydict"];
+            py::object old = py::none();
+            if (mydict.contains(key))
+                old = mydict[key];
+            mydict[key] = next;
+            return old;
+        });
+    }
+
+The module is now both sub-interpreter safe and free-threading safe. The mutex is still
+global/static state, so it is still shared between interpreters. The thread-safe nature of
+the mutex and the fact that it is not a Python object make it safe to use concurrently in
+sub-interpreters.  However, it is a slight pessimization to do so, because the sub-interpreters
+could block each other unnecessarily. Moving the mutex into per-interpreter storage would solve
+this problem.  It is left as an exercise for the reader.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
