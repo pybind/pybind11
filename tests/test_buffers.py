@@ -228,10 +228,11 @@ def test_ctypes_from_buffer():
 
 
 def test_buffer_docstring():
-    assert (
-        m.get_buffer_info.__doc__.strip()
-        == "get_buffer_info(arg0: collections.abc.Buffer) -> pybind11_tests.buffers.buffer_info"
-    )
+    if (3, 12) <= sys.version_info:
+        docstring = "get_buffer_info(arg0: collections.abc.Buffer) -> pybind11_tests.buffers.buffer_info"
+    else:
+        docstring = "get_buffer_info(arg0: typing_extensions.Buffer) -> pybind11_tests.buffers.buffer_info"
+    assert (m.get_buffer_info.__doc__.strip() == docstring)
 
 
 def test_buffer_exception():
