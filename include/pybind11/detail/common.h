@@ -232,6 +232,12 @@
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
+// 3.13
+#if 0x030C0000 <= PY_VERSION_HEX
+    #define PYBIND11_BUFFER_TYPE_HINT "collections.abc.Buffer"
+#else
+	#define PYBIND11_BUFFER_TYPE_HINT "typing_extensions.Buffer"
+#endif
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
 //             (probably surprising and never documented, but this was the
