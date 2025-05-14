@@ -193,9 +193,9 @@ For example:
 
 To make your module sub-interpreter safe, global/static state is strongly discouraged.  Instead,
 any state that your module keeps outside of Python objects must be carefully to the current
-interpreter (where, of course, there can now be more than one).  Python objects (except immortal
-objects) may not be shared between different interpreters, modules must take care not to
-accidentally share Python objects across sub-interpreters.
+sub-interpreter (where, of course, there can now be more than one).  Python objects (except 
+immortal objects) may not be shared between different sub-interpreters, modules must take care not 
+to accidentally share Python objects across sub-interpreters.
 
 Sub-interpreter Tips:
 
@@ -208,7 +208,7 @@ Sub-interpreter Tips:
 - Avoid trying to "cache" python objects in C++ variables across function calls (this is an easy
   way to accidentally introduce bugs).
 
-- While the interpreters each have their own global interpreter lock, isolated/independent
+- While the interpreters each have their own GIL, isolated/independent
   sub-interpreters each have their own lock, so concurrent calls into a module from two different
   sub-interpreters are still possible.
 
@@ -219,6 +219,10 @@ legacy behavior by using the :func:`multiple_interpreters::shared_gil()` tag in
 You can explicitly disable multiple interpreter support in your module by using the
 :func:`multiple_interpreter::not_supported()` tag. This is the default behavior if you do not
 specify a multiple_interpreters tag.
+
+Note: Sub-interpreter support does not imply free-threading support or vice-versa. 
+Free-threaded modules can still have global/static state, but multiple interpreter modules cannot. 
+Likewise, sub-interpreter modules can still use the GIL, but free-threaded modules cannot.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
