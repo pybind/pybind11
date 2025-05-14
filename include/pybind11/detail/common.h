@@ -239,7 +239,7 @@
 #    define PYBIND11_SUBINTERPRETER_SUPPORT
 #endif
 
-// 3.13
+// 3.12 Compatibility
 #if 0x030C0000 <= PY_VERSION_HEX
     #define PYBIND11_BUFFER_TYPE_HINT "collections.abc.Buffer"
 #else
