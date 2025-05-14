@@ -170,9 +170,9 @@ For example:
     }
 
 Note, of course, enabling your module to be used in free threading is also your promise that
-your code is thread safe. Modules must still be built against the Python free-threading branch to enable 
-free-threading, even if they specify this tag.  Adding this tag does not break compatibility with non-free-threaded 
-Python. 
+your code is thread safe. Modules must still be built against the Python free-threading branch to enable
+free-threading, even if they specify this tag.  Adding this tag does not break compatibility with non-free-threaded
+Python.
 
 Sub-interpreter support
 ==================================================================
@@ -197,7 +197,7 @@ Sub-interpreter Tips:
 
 - Never share python objects across different sub-interpreters.
 
-- Keep state it in the interpreter's state dict if necessary. Avoid global/static state 
+- Keep state it in the interpreter's state dict if necessary. Avoid global/static state
   whenever possible.
 
 - Avoid trying to "cache" python objects in C++ variables across function calls (this is an easy
