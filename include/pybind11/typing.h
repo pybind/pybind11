@@ -146,7 +146,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename... Types>
 struct handle_type_name<typing::Tuple<Types...>> {
-    static constexpr auto name = const_name("tuple[")
+    static constexpr auto name = const_name(PYBIND11_TUPLE_TYPE_HINT) + const_name("[")
                                  + ::pybind11::detail::concat(make_caster<Types>::name...)
                                  + const_name("]");
 };
@@ -154,47 +154,47 @@ struct handle_type_name<typing::Tuple<Types...>> {
 template <>
 struct handle_type_name<typing::Tuple<>> {
     // PEP 484 specifies this syntax for an empty tuple
-    static constexpr auto name = const_name("tuple[()]");
+    static constexpr auto name = const_name(PYBIND11_TUPLE_TYPE_HINT) + const_name("[()]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Tuple<T, ellipsis>> {
     // PEP 484 specifies this syntax for a variable-length tuple
     static constexpr auto name
-        = const_name("tuple[") + make_caster<T>::name + const_name(", ...]");
+        = const_name(PYBIND11_TUPLE_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name(", ...]");
 };
 
 template <typename K, typename V>
 struct handle_type_name<typing::Dict<K, V>> {
-    static constexpr auto name = const_name("dict[") + make_caster<K>::name + const_name(", ")
+    static constexpr auto name = const_name(PYBIND11_DICT_TYPE_HINT) + const_name("[") + make_caster<K>::name + const_name(", ")
                                  + make_caster<V>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::List<T>> {
-    static constexpr auto name = const_name("list[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_LIST_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Set<T>> {
-    static constexpr auto name = const_name("set[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_SET_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterable<T>> {
-    static constexpr auto name = const_name("Iterable[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_ITERABLE_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterator<T>> {
-    static constexpr auto name = const_name("Iterator[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_ITERATOR_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename Return, typename... Args>
 struct handle_type_name<typing::Callable<Return(Args...)>> {
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
     static constexpr auto name
-        = const_name("Callable[[")
+        = const_name(PYBIND11_CALLABLE_TYPE_HINT) + const_name("[[")
           + ::pybind11::detail::concat(::pybind11::detail::arg_descr(make_caster<Args>::name)...)
           + const_name("], ") + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
           + const_name("]");
@@ -204,7 +204,7 @@ template <typename Return>
 struct handle_type_name<typing::Callable<Return(ellipsis)>> {
     // PEP 484 specifies this syntax for defining only return types of callables
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
-    static constexpr auto name = const_name("Callable[..., ")
+    static constexpr auto name = const_name(PYBIND11_CALLABLE_TYPE_HINT) + const_name("[..., ")
                                  + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
                                  + const_name("]");
 };
@@ -216,46 +216,46 @@ struct handle_type_name<typing::Type<T>> {
 
 template <typename... Types>
 struct handle_type_name<typing::Union<Types...>> {
-    static constexpr auto name = const_name("Union[")
+    static constexpr auto name = const_name("typing.Union[")
                                  + ::pybind11::detail::concat(make_caster<Types>::name...)
                                  + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-    static constexpr auto name = const_name("Optional[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("typing.Optional[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Final<T>> {
-    static constexpr auto name = const_name("Final[")
+    static constexpr auto name = const_name("typing.Final[")
                                  + ::pybind11::detail::return_descr(make_caster<T>::name)
                                  + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::ClassVar<T>> {
-    static constexpr auto name = const_name("ClassVar[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("typing.ClassVar[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
-    static constexpr auto name = const_name("TypeGuard[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("typing.TypeGuard[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
-    static constexpr auto name = const_name("TypeIs[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("typing.TypeIs[") + make_caster<T>::name + const_name("]");
 };
 
 template <>
 struct handle_type_name<typing::NoReturn> {
-    static constexpr auto name = const_name("NoReturn");
+    static constexpr auto name = const_name("typing.NoReturn");
 };
 
 template <>
 struct handle_type_name<typing::Never> {
-    static constexpr auto name = const_name("Never");
+    static constexpr auto name = const_name("typing.Never");
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
@@ -281,7 +281,7 @@ consteval auto sanitize_string_literal() {
 template <typing::StringLiteral... Literals>
 struct handle_type_name<typing::Literal<Literals...>> {
     static constexpr auto name
-        = const_name("Literal[")
+        = const_name("typing.Literal[")
           + pybind11::detail::concat(const_name(sanitize_string_literal<Literals>().name)...)
           + const_name("]");
 };
