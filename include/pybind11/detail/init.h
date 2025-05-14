@@ -451,7 +451,16 @@ void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) 
         // See PR #2972 for details.
         return;
     }
-    setattr((PyObject *) v_h.inst, "__dict__", d);
+    // Our tests never run into an unset dict, but being careful here for now (see #5658)
+    auto dict = getattr((PyObject *) v_h.inst, "__dict__", none());
+    if (dict.is_none()) {
+        setattr((PyObject *) v_h.inst, "__dict__", d);
+    } else {
+        // Keep the original object dict and just update it
+        if (PyDict_Update(dict.ptr(), d.ptr()) < 0) {
+            throw error_already_set();
+        }
+    }
 }
 
 /// Implementation for py::pickle(GetState, SetState)
