@@ -13,6 +13,7 @@ ignore = [
     "pybind11/include/**",
     "pybind11/share/**",
     "CMakeLists.txt",
+    "CMakePresets.json",
     "noxfile.py",
 ]
 
