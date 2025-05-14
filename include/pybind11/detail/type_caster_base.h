@@ -499,7 +499,7 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 
 // Forward declarations
 void keep_alive_impl(handle nurse, handle patient);
-inline PyObject *make_new_instance(PyTypeObject *type);
+PyObject *make_new_instance(PyTypeObject *type);
 
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
