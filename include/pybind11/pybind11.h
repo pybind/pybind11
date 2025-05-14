@@ -1267,6 +1267,29 @@ private:
     bool flag_;
 };
 
+class multiple_interpreters {
+public:
+    enum class level {
+        not_supported,      /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED
+        shared_gil,         /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED
+        per_interpreter_gil /// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+    };
+
+    static multiple_interpreters not_supported() {
+        return multiple_interpreters(level::not_supported);
+    }
+    static multiple_interpreters shared_gil() { return multiple_interpreters(level::shared_gil); }
+    static multiple_interpreters per_interpreter_gil() {
+        return multiple_interpreters(level::per_interpreter_gil);
+    }
+
+    explicit constexpr multiple_interpreters(level l) : level_(l) {}
+    level value() const { return level_; }
+
+private:
+    level level_;
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline bool gil_not_used_option() { return false; }
@@ -1280,6 +1303,27 @@ template <typename F, typename... O>
 inline bool gil_not_used_option(F &&, O &&...o) {
     return gil_not_used_option(o...);
 }
+
+#ifdef Py_mod_multiple_interpreters
+inline void *multi_interp_slot() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
+template <typename... O>
+inline void *multi_interp_slot(multiple_interpreters mi, O &&...o) {
+    switch (mi.value()) {
+        case multiple_interpreters::level::per_interpreter_gil:
+            return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
+        case multiple_interpreters::level::shared_gil:
+            return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+        case multiple_interpreters::level::not_supported:
+            return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED;
+    }
+    // silence warnings with this unreachable line:
+    return multi_interp_slot(o...);
+}
+template <typename F, typename... O>
+inline void *multi_interp_slot(F &&, O &&...o) {
+    return multi_interp_slot(o...);
+}
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -1437,7 +1481,7 @@ public:
 
     /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
     /// the sentinel (0) end slot.
-    using slots_array = std::array<PyModuleDef_Slot, 3>;
+    using slots_array = std::array<PyModuleDef_Slot, 4>;
 
     /** \rst
         Initialized a module def for use with multi-phase module initialization.
@@ -1460,8 +1504,14 @@ public:
             ++next_slot;
         }
 
-        bool nogil PYBIND11_MAYBE_UNUSED = detail::gil_not_used_option(options...);
-        if (nogil) {
+#ifdef Py_mod_multiple_interpreters
+        if (next_slot >= term_slot) {
+            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
+        }
+        slots[next_slot++] = {Py_mod_multiple_interpreters, detail::multi_interp_slot(options...)};
+#endif
+
+        if (detail::gil_not_used_option(options...)) {
 #if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
             if (next_slot >= term_slot) {
                 pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
