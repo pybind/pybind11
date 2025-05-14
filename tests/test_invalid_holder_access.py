@@ -105,7 +105,7 @@ def test_set_state_with_error_no_segfault_if_gc_checks_holder_has_initialized():
     pickle.loads(pickle.dumps(vec))
 
     # During the unpickling process, Python firstly allocates the object with
-    # the `__new__` method and then calls the `__setstate__`` method to set the
+    # the `__new__` method and then calls the `__setstate__` method to set the
     # state of the object.
     #
     #     obj = cls.__new__(cls)
@@ -136,7 +136,7 @@ def unpicklable_with_error_target():
     # detect uninitialized memory bugs.
     for _ in range(32):
         # During the unpickling process, Python firstly allocates the object with
-        # the `__new__` method and then calls the `__setstate__`` method to set the
+        # the `__new__` method and then calls the `__setstate__` method to set the
         # state of the object.
         #
         #     obj = cls.__new__(cls)

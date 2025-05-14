@@ -759,7 +759,11 @@ struct load_helper : value_and_holder_helper {
     }
 
     std::shared_ptr<T> load_as_shared_ptr(void *void_raw_ptr,
-                                          handle responsible_parent = nullptr) const {
+                                          handle responsible_parent = nullptr,
+                                          // to support py::potentially_slicing_weak_ptr
+                                          // with minimal added code complexity:
+                                          bool force_potentially_slicing_shared_ptr
+                                          = false) const {
         if (!have_holder()) {
             return nullptr;
         }
@@ -774,7 +778,7 @@ struct load_helper : value_and_holder_helper {
             throw std::runtime_error("Non-owning holder (load_as_shared_ptr).");
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
-        if (python_instance_is_alias) {
+        if (python_instance_is_alias && !force_potentially_slicing_shared_ptr) {
             auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();

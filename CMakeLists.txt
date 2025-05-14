@@ -113,13 +113,60 @@ set(PYBIND11_FINDPYTHON
     ${_pybind11_findpython_default}
     CACHE STRING "Force new FindPython - NEW, OLD, COMPAT")
 
-# Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
-# (makes transition easier while we support both modes).
-if(PYBIND11_MASTER_PROJECT
-   AND PYBIND11_FINDPYTHON
-   AND DEFINED PYTHON_EXECUTABLE
-   AND NOT DEFINED Python_EXECUTABLE)
-  set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
+if(PYBIND11_MASTER_PROJECT)
+
+  # Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
+  # (makes transition easier while we support both modes).
+  if(PYBIND11_FINDPYTHON
+     AND DEFINED PYTHON_EXECUTABLE
+     AND NOT DEFINED Python_EXECUTABLE)
+    set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
+  endif()
+
+  if(NOT DEFINED Python3_EXECUTABLE
+     AND NOT DEFINED Python_EXECUTABLE
+     AND NOT DEFINED Python_ROOT_DIR
+     AND NOT DEFINED ENV{VIRTUALENV}
+     AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
+    message(STATUS "Autodetecting Python in virtual environment")
+    set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
+  endif()
+
+  # This is a shortcut that is primarily for the venv cmake preset,
+  # but can be used to quickly setup tests manually, too
+  set(PYBIND11_CREATE_WITH_UV
+      ""
+      CACHE STRING "Create a virtualenv in Python_ROOT_DIR with uv if it doesn't exist")
+
+  if(NOT PYBIND11_CREATE_WITH_UV STREQUAL "")
+    if(NOT DEFINED Python_ROOT_DIR)
+      message(FATAL_ERROR "Python_ROOT_DIR must be defined to use PYBIND11_CREATE_WITH_UV")
+    endif()
+    if(EXISTS "${Python_ROOT_DIR}")
+      message(STATUS "Using existing venv at ${Python_ROOT_DIR}, remove to recreate")
+    else()
+      find_program(UV uv REQUIRED)
+      # CMake 3.19+ would be able to use COMMAND_ERROR_IS_FATAL
+      message(
+        STATUS "Creating venv with ${UV} venv -p ${PYBIND11_CREATE_WITH_UV} '${Python_ROOT_DIR}'")
+      execute_process(COMMAND ${UV} venv -p ${PYBIND11_CREATE_WITH_UV} "${Python_ROOT_DIR}"
+                      RESULT_VARIABLE _venv_result)
+      if(_venv_result AND NOT _venv_result EQUAL 0)
+        message(FATAL_ERROR "uv venv failed with '${_venv_result}'")
+      endif()
+      message(
+        STATUS
+          "Installing deps with ${UV} pip install -p '${Python_ROOT_DIR}' -r tests/requirements.txt"
+      )
+      execute_process(
+        COMMAND ${UV} pip install -p "${Python_ROOT_DIR}" -r
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/requirements.txt" RESULT_VARIABLE _pip_result)
+      if(_pip_result AND NOT _pip_result EQUAL 0)
+        message(FATAL_ERROR "uv pip install failed with '${_pip_result}'")
+      endif()
+    endif()
+  endif()
+
 endif()
 
 # NB: when adding a header don't forget to also add it to setup.py

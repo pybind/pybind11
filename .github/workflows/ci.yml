@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-22.04, windows-2022, macos-13]
+        runs-on: [ubuntu-24.04, windows-2022, macos-14]
         python:
         - '3.8'
         - '3.13'
@@ -88,17 +88,26 @@ jobs:
             python: '3.11'
             args: >
               -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+          - runs-on: macos-13
+            python: 'pypy-3.10'
           - runs-on: windows-2022
             python: '3.10'
             args: >
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
           - runs-on: 'ubuntu-latest'
             python: 'graalpy-24.1'
+
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
           - python: 'graalpy-24.2'
             runs-on: 'windows-2022'
+          # No SciPy for Python 3.8 ARM
+          - runs-on: macos-14
+            python: '3.8'
+          # No NumPy for PyPy 3.10 ARM
+          - runs-on: macos-14
+            python: 'pypy-3.10'
 
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
@@ -211,25 +220,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prepare venv
-        run: python3.13t -m venv .venv
+      - name: Prepare uv's path
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install Python deps
-        run: .venv/bin/pip install -r tests/requirements.txt
+      - name: Install ninja
+        run: uv tool install ninja
 
-      - name: Configure C++11
-        run: >
-          cmake -S. -Bbuild
-          -DPYBIND11_WERROR=ON
-          -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=ON
-          -DPython_ROOT_DIR=.venv
+      - name: Configure via preset
+        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.13t
 
       - name: Build C++11
-        run: cmake --build build -j2
+        run: cmake --build --preset venv
 
       - name: Python tests C++11
-        run: cmake --build build --target pytest -j2
+        run: cmake --build --preset testsvenv -t pytest
 
   deadsnakes:
     strategy:
@@ -283,33 +287,27 @@ jobs:
       run: |
         sudo make install
         sudo apt-get update
-        sudo apt-get install libc6-dbg  # Needed by Valgrind
+        sudo apt-get install ninja-build libc6-dbg
 
     - name: Prepare env
       run: |
         python -m pip install -r tests/requirements.txt
 
     - name: Configure
-      run: >
-        cmake -S . -B build
-        -DCMAKE_BUILD_TYPE=Debug
-        -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=ON
-        -DCMAKE_CXX_STANDARD=17
+      run: cmake --preset default -DCMAKE_CXX_STANDARD=17
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build --preset default
 
     - name: Python tests
-      run: cmake --build build --target pytest
+      run: cmake --build --preset default --target pytest
 
     - name: C++ tests
-      run: cmake --build build --target cpptest
+      run: cmake --build --preset default --target cpptest
 
     - name: Run Valgrind on Python tests
       if: matrix.valgrind
-      run: cmake --build build --target memcheck
+      run: cmake --build --preset default --target memcheck
 
 
   # Testing on clang using the excellent silkeh clang docker images
