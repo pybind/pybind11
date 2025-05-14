@@ -170,9 +170,9 @@ For example:
     }
 
 Note, of course, enabling your module to be used in free threading is also your promise that
-your code is thread safe. To actually enable the feature your module must also be compiled
-with the Python free-threading source tree. Adding this tag does not break compatibility with
-non-free-threaded Python.
+your code is thread safe. Modules must still be built against the Python free-threading branch to enable 
+free-threading, even if they specify this tag.  Adding this tag does not break compatibility with non-free-threaded 
+Python. 
 
 Sub-interpreter support
 ==================================================================
@@ -191,26 +191,21 @@ For example:
         // etc
     }
 
-To make your module sub-interpreter safe, global/static state is strongly discouraged.  Instead,
-any state that your module keeps outside of Python objects must be carefully to the current
-sub-interpreter (where, of course, there can now be more than one).  Python objects (except
-immortal objects) may not be shared between different sub-interpreters, modules must take care not
-to accidentally share Python objects across sub-interpreters.
-
 Sub-interpreter Tips:
 
-- Your initialization function will run for each interpreter that imports your module
+- Your initialization function will run for each interpreter that imports your module.
 
-- Never share python objects across interpreter boundaries.
+- Never share python objects across different sub-interpreters.
 
-- Keep state it in the interpreter's state dict if necessary. No global/static state!
+- Keep state it in the interpreter's state dict if necessary. Avoid global/static state 
+  whenever possible.
 
 - Avoid trying to "cache" python objects in C++ variables across function calls (this is an easy
-  way to accidentally introduce bugs).
+  way to accidentally introduce sub-interpreter bugs).
 
-- While the interpreters each have their own GIL, isolated/independent
-  sub-interpreters each have their own lock, so concurrent calls into a module from two different
-  sub-interpreters are still possible.
+- While sub-interpreters each have their own GIL, there can now be multiple independent GILs in one
+  program so concurrent calls into a module from two different sub-interpreters are still possible.
+  Therefore, your module still needs to consider thread safety.
 
 pybind11 also supports "legacy" sub-interpreters which shared a single global GIL.  You can enable
 legacy behavior by using the :func:`multiple_interpreters::shared_gil()` tag in
