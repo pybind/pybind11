@@ -232,64 +232,54 @@ modules can still have global/static state (as long as access to them is thread-
 sub-interpreter safe modules cannot.  Likewise, sub-interpreter safe modules can still rely on the
 GIL, but free-threading safe modules cannot.
 
-Here is a simple example module which has a function that returns the previous value for a given
-key.
+Here is a simple example module which has a function that calculates a value and returns the result
+of the previous calculation.
 
 .. code-block:: cpp
 
     PYBIND11_MODULE(example, m) {
-        static py::dict mydict;
-        m.def("get_last", [](py::object key, py::object next) {
-            py::object old = py::none();
-            if (mydict.contains(key))
-                old = mydict[key];
-            mydict[key] = next;
+        static size_t seed = 0;
+        m.def("calc_next", []() {
+            auto old = seed;
+            seed = (seed + 1) * 10;
             return old;
         });
 
-This module is not free-threading safe because there are no locks for synchronization.  It is
-relatively easy to make this free-threading safe:
+This module is not free-threading safe because there is no synchronization on the number variable.
+It is relatively easy to make this free-threading safe.  One way is by using atomics, like this:
 
 .. code-block:: cpp
-    :emphasize-lines: 1,3,5
+    :emphasize-lines: 1,2
 
     PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
-        static py::dict mydict;
-        static std::mutex mydict_lock;
-        m.def("get_last", [](py::object key, py::object next) {
-            std::lock_guard<std::mutex> guard(mydict_lock);
-            py::object old = py::none();
-            if (mydict.contains(key))
-                old = mydict[key];
-            mydict[key] = next;
+        static std::atomic<size_t> seed(0);
+        m.def("calc_next", []() {
+            size_t old, next;
+            do {
+                old = seed.load();
+                next = (old + 1) * 10;
+            } while (!seed.compare_exchange_weak(old, next));
             return old;
         });
     }
 
-The mutex guarantees a consistent behavior from this function even when called currently from
-multiple threads at the same time.  Note that modules with free-threading support cannot guarantee
-that the the GIL is not enabled, so they must still take care not to introduce deadlocks,
-including those that can be accidentally introduced by combining the GIL with C++ locks. [#f3]_
+The atomic variable and the compare-exchange guarantee a consistent behavior from this function even
+when called currently from multiple threads at the same time.
 
-.. [#f3] See :ref:`commongilproblems` and docs/advanced/deadlock.md for more information.
-
-However, the global/static dict is not sub-interpreter safe, because python objects cannot be
-shared or moved between interpreters. To fix it, the state needs to be specific to each
-interpreter.  One way to do that is by storing the state on another Python object.  For this
-simple example, we will store it in :func:`globals`.
+However, the global/static integer is not sub-interpreter safe, because the calls in one
+sub-interpreter will change what is seen in another. To fix it, the state needs to be specific to
+each interpreter.  One way to do that is by storing the state on another Python object, such as a
+member of a class. For this simple example, we will store it in :func:`globals`.
 
 .. code-block:: cpp
-    :emphasize-lines: 3,4,5
+    :emphasize-lines: 1,6
 
     PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil()) {
-        m.def("get_last", [](py::object key, py::object next) {
-            if (!py::globals().contains("mydict"))
-                py::globals()["mydict"] = py::dict();
-            py::dict mydict = py::globals()["mydict"];
-            py::object old = py::none();
-            if (mydict.contains(key))
-                old = mydict[key];
-            mydict[key] = next;
+        m.def("calc_next", []() {
+            if (!py::globals().contains("myseed"))
+                py::globals()["myseed"] = 0;
+            size_t old = py::globals()["myseed"];
+            py::globals()["myseed"] = (old + 1) * 10;
             return old;
         });
     }
@@ -299,34 +289,27 @@ This module is sub-interpreter safe, for both ``shared_gil`` ("legacy") and
 function concurrently from different threads. This is safe because each sub-interpreter's GIL
 protects it's own Python objects from concurrent access.
 
-However, the module is no longer free-threading safe, because we left out the mutex. If we put it
-back, then we can make a module that supports both free-threading and sub-interpreters:
+However, the module is no longer free-threading safe, for the same reason as before, because the
+calculation is not synchronized. We can synchronize it using a Python critical section.
 
 .. code-block:: cpp
-    :emphasize-lines: 1,3,4
+    :emphasize-lines: 1,5,10
 
-    PYBIND11_MODULE(example, m, py::mod_gil_not_used(), py::multiple_interpreters::per_interpreter_gil()) {
+    PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil(), py::mod_gil_not_used()) {
         m.def("get_last", [](py::object key, py::object next) {
-            static std::mutex mymutex;
-            std::lock_guard<std::mutex> guard(mymutex);
-            if (!py::globals().contains("mydict"))
-                py::globals()["mydict"] = py::dict();
-            py::dict mydict = py::globals()["mydict"];
-            py::object old = py::none();
-            if (mydict.contains(key))
-                old = mydict[key];
-            mydict[key] = next;
+            size_t old;
+            py::dict g = py::globals();
+            Py_BEGIN_CRITICAL_SECTION(g);
+            if (!g.contains("myseed"))
+                g["myseed"] = 0;
+            old = g["myseed"];
+            g["myseed"] = (old + 1) * 10;
+            Py_END_CRITICAL_SECTION();
             return old;
         });
     }
 
-The module is now both sub-interpreter safe and free-threading safe. The mutex is still
-global/static state shared between interpreters. But the thread-safe nature of the
-mutex and the fact that it is not a Python object make it safe to use concurrently in
-sub-interpreters.  However, it is a slight pessimization to do so, because the sub-interpreters
-could block each other unnecessarily by sharing a global mutex instead of a mutex per-interpreter.
-Moving the mutex into per-interpreter storage would solve this problem.  It is left as an
-exercise for the reader.
+The module is now both sub-interpreter safe and free-threading safe.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
