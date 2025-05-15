@@ -194,7 +194,7 @@ def test_sequence_length():
 
 
 def test_sequence_doc():
-    assert m.sequence_length.__doc__.strip() == "sequence_length(arg0: Sequence) -> int"
+    assert m.sequence_length.__doc__.strip() == "sequence_length(arg0: collections.abc.Sequence) -> int"
 
 
 def test_map_iterator():
