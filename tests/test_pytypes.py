@@ -1022,7 +1022,7 @@ def test_type_guard_annotations(doc):
 
 
 def test_type_is_annotations(doc):
-    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> TypeIs[str]"
+    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> typing.TypeIs[str]"
 
 
 def test_no_return_annotation(doc):
@@ -1338,4 +1338,4 @@ def test_arg_return_type_hints(doc):
         == "check_type_guard(arg0: list[object]) -> typing.TypeGuard[list[float]]"
     )
     # TypeIs<T>
-    assert doc(m.check_type_is) == "check_type_is(arg0: object) -> TypeIs[float]"
+    assert doc(m.check_type_is) == "check_type_is(arg0: object) -> typing.TypeIs[float]"
