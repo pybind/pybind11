@@ -17,7 +17,7 @@ def test_independent_subinterpreters():
 
     if sys.version_info >= (3, 15):
         import interpreters
-    elif sys.version_info >= (3, 14):
+    elif sys.version_info >= (3, 13):
         import _interpreters as interpreters
     elif sys.version_info >= (3, 12):
         import _xxsubinterpreters as interpreters
