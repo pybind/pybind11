@@ -1300,27 +1300,27 @@ def test_arg_return_type_hints(doc):
     # Callable<R(A)> identity
     assert (
         doc(m.identity_callable)
-        == "identity_callable(arg0: Callable[[typing.Union[float, int]], float]) -> Callable[[typing.Union[float, int]], float]"
+        == "identity_callable(arg0: collections.abc.Callable[[typing.Union[float, int]], float]) -> collections.abc.Callable[[typing.Union[float, int]], float]"
     )
     # Callable<R(...)> identity
     assert (
         doc(m.identity_callable_ellipsis)
-        == "identity_callable_ellipsis(arg0: Callable[..., float]) -> Callable[..., float]"
+        == "identity_callable_ellipsis(arg0: collections.abc.Callable[..., float]) -> collections.abc.Callable[..., float]"
     )
     # Nested Callable<R(A)> identity
     assert (
         doc(m.identity_nested_callable)
-        == "identity_nested_callable(arg0: Callable[[Callable[[typing.Union[float, int]], float]], Callabletyping.Union[float, int]], float]]) -> Callable[[Callable[[typing.Union[float, int]], float]], Callable[[typing.Union[float, int]], float]]"
+        == "identity_nested_callable(arg0: collections.abc.Callable[[collections.abc.Callable[[typing.Union[float, int]], float]], Callabletyping.Union[float, int]], float]]) -> collections.abc.Callable[[collections.abc.Callable[[typing.Union[float, int]], float]], collections.abc.Callable[[typing.Union[float, int]], float]]"
     )
     # Callable<R(A)>
     assert (
         doc(m.apply_callable)
-        == "apply_callable(arg0: typing.Union[float, int], arg1: Callable[[typing.Union[float, int]], float]) -> float"
+        == "apply_callable(arg0: typing.Union[float, int], arg1: collections.abc.Callable[[typing.Union[float, int]], float]) -> float"
     )
     # Callable<R(...)>
     assert (
         doc(m.apply_callable_ellipsis)
-        == "apply_callable_ellipsis(arg0: typing.Union[float, int], arg1: Callable[..., float]) -> float"
+        == "apply_callable_ellipsis(arg0: typing.Union[float, int], arg1: collections.abc.Callable[..., float]) -> float"
     )
     # Union<T1, T2>
     assert (
