@@ -1047,40 +1047,40 @@ def test_optional_object_annotations(doc):
 def test_literal(doc):
     assert (
         doc(m.annotate_literal)
-        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
+        == 'annotate_literal(arg0: typing.Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
     )
     # The characters !, @, %, {, } and -> are used in the signature parser as special characters, but Literal should escape those for the parser to work.
     assert (
         doc(m.identity_literal_exclamation)
-        == 'identity_literal_exclamation(arg0: Literal["!"]) -> Literal["!"]'
+        == 'identity_literal_exclamation(arg0: typing.Literal["!"]) -> typing.Literal["!"]'
     )
     assert (
         doc(m.identity_literal_at)
-        == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'
+        == 'identity_literal_at(arg0: typing.Literal["@"]) -> typing.Literal["@"]'
     )
     assert (
         doc(m.identity_literal_percent)
-        == 'identity_literal_percent(arg0: Literal["%"]) -> Literal["%"]'
+        == 'identity_literal_percent(arg0: typing.Literal["%"]) -> typing.Literal["%"]'
     )
     assert (
         doc(m.identity_literal_curly_open)
-        == 'identity_literal_curly_open(arg0: Literal["{"]) -> Literal["{"]'
+        == 'identity_literal_curly_open(arg0: typing.Literal["{"]) -> typing.Literal["{"]'
     )
     assert (
         doc(m.identity_literal_curly_close)
-        == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
+        == 'identity_literal_curly_close(arg0: typing.Literal["}"]) -> typing.Literal["}"]'
     )
     assert (
         doc(m.identity_literal_arrow_with_io_name)
-        == 'identity_literal_arrow_with_io_name(arg0: Literal["->"], arg1: typing.Union[float, int]) -> Literal["->"]'
+        == 'identity_literal_arrow_with_io_name(arg0: typing.Literal["->"], arg1: typing.Union[float, int]) -> typing.Literal["->"]'
     )
     assert (
         doc(m.identity_literal_arrow_with_callable)
-        == 'identity_literal_arrow_with_callable(arg0: Callable[[Literal["->"], typing.Union[float, int]], float]) -> Callable[[Literal["->"], typing.Union[float, int]], float]'
+        == 'identity_literal_arrow_with_callable(arg0: Callable[[typing.Literal["->"], typing.Union[float, int]], float]) -> Callable[[typing.Literal["->"], typing.Union[float, int]], float]'
     )
     assert (
         doc(m.identity_literal_all_special_chars)
-        == 'identity_literal_all_special_chars(arg0: Literal["!@!!->{%}"]) -> Literal["!@!!->{%}"]'
+        == 'identity_literal_all_special_chars(arg0: typing.Literal["!@!!->{%}"]) -> typing.Literal["!@!!->{%}"]'
     )
 
 
