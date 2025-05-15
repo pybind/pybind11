@@ -239,6 +239,13 @@
 #    define PYBIND11_SUBINTERPRETER_SUPPORT
 #endif
 
+// 3.12 Compatibility
+#if 0x030C0000 <= PY_VERSION_HEX
+#    define PYBIND11_BUFFER_TYPE_HINT "collections.abc.Buffer"
+#else
+#    define PYBIND11_BUFFER_TYPE_HINT "typing_extensions.Buffer"
+#endif
+
 // Python 3.9+ Compatibility #5663
 //#if 0x03090000 <= PY_VERSION_HEX
 #define PYBIND11_TYPE_HINT_ITERABLE "collections.abc.Iterable"

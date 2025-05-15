@@ -1387,7 +1387,7 @@ struct handle_type_name<bytes> {
 };
 template <>
 struct handle_type_name<buffer> {
-    static constexpr auto name = const_name("collections.abc.Buffer");
+    static constexpr auto name = const_name(PYBIND11_BUFFER_TYPE_HINT);
 };
 template <>
 struct handle_type_name<int_> {
