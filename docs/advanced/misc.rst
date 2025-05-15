@@ -156,20 +156,22 @@ following checklist.
 Free-threading support
 ==================================================================
 
-pybind11 supports the experimental free-threaded Python 3.13t and 3.14t builds.  pybind11's
-internal data structures are thread safe. To enable your modules to be used with free-threading,
-pass the :class:`mod_gil_not_used` tag as the third argument to ``PYBIND11_MODULE``.
+pybind11 supports the experimental free-threaded builds of Python versions 3.13 and 3.14.
+pybind11's internal data structures are thread safe. To enable your modules to be used with
+free-threading, pass the :class:`mod_gil_not_used` tag as the third argument to
+``PYBIND11_MODULE``.
 
 For example:
 
 .. code-block:: cpp
     :emphasize-lines: 1
+
     PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Animal> animal(m, "Animal");
         // etc
     }
 
-Note, of course, enabling your module to be used in free threading is also your promise that
+Importantly, enabling your module to be used in free threading is also your promise that
 your code is thread safe.  Modules must still be built against the Python free-threading branch to
 enable free-threading, even if they specify this tag.  Adding this tag does not break
 compatibility with non-free-threaded Python.
@@ -186,12 +188,13 @@ For example:
 
 .. code-block:: cpp
     :emphasize-lines: 1
+
     PYBIND11_MODULE(example, m, py::multiple_interpreters_per_interpreter_gil()) {
         py::class_<Animal> animal(m, "Animal");
         // etc
     }
 
-Sub-interpreter Tips:
+Best Practices for Sub-interpreter Safety:
 
 - Your initialization function will run for each interpreter that imports your module.
 
@@ -230,6 +233,7 @@ Here is a simple example module which has a function that returns the previous v
 key.
 
 .. code-block:: cpp
+
     PYBIND11_MODULE(example, m) {
         static py::dict mydict;
         m.def("get_last", [](py::object key, py::object next) {
@@ -245,6 +249,7 @@ relatively easy to make this free-threading safe:
 
 .. code-block:: cpp
     :emphasize-lines: 1,3,5
+
     PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         static py::dict mydict;
         static std::mutex mydict_lock;
@@ -268,6 +273,7 @@ simple example, we will store it in :func:`globals`.
 
 .. code-block:: cpp
     :emphasize-lines: 3,4,5
+
     PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil()) {
         m.def("get_last", [](py::object key, py::object next) {
             if (!py::globals().contains("mydict"))
@@ -282,7 +288,7 @@ simple example, we will store it in :func:`globals`.
     }
 
 This module is sub-interpreter safe, for both ``shared_gil`` ("legacy") and
-``per_interpreter_gil`` ("default") varieties. Multiple sub-interpreters might each call this same
+``per_interpreter_gil`` ("default") varieties. Multiple sub-interpreters could each call this same
 function concurrently from different threads. This is safe because each sub-interpreter's GIL
 protects it's own Python objects from concurrent access.
 
@@ -290,7 +296,8 @@ However, the module is no longer free-threading safe, because we left out the mu
 back, then we can make a module that supports both free-threading and sub-interpreters:
 
 .. code-block:: cpp
-    :emphasize-lines: 3,4
+    :emphasize-lines: 1,3,4
+
     PYBIND11_MODULE(example, m, py::mod_gil_not_used(), py::multiple_interpreters::per_interpreter_gil()) {
         m.def("get_last", [](py::object key, py::object next) {
             static std::mutex mymutex;
@@ -307,11 +314,12 @@ back, then we can make a module that supports both free-threading and sub-interp
     }
 
 The module is now both sub-interpreter safe and free-threading safe. The mutex is still
-global/static state, so it is still shared between interpreters. The thread-safe nature of
-the mutex and the fact that it is not a Python object make it safe to use concurrently in
+global/static state shared between interpreters. But the thread-safe nature of the
+mutex and the fact that it is not a Python object make it safe to use concurrently in
 sub-interpreters.  However, it is a slight pessimization to do so, because the sub-interpreters
-could block each other unnecessarily. Moving the mutex into per-interpreter storage would solve
-this problem.  It is left as an exercise for the reader.
+could block each other unnecessarily by sharing a global mutex instead of a mutex per-interpreter.
+Moving the mutex into per-interpreter storage would solve this problem.  It is left as an
+exercise for the reader.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
