@@ -1010,7 +1010,7 @@ def test_union_object_annotations(doc):
 def test_optional_annotations(doc):
     assert (
         doc(m.annotate_optional)
-        == "annotate_optional(arg0: list) -> list[Optional[str]]"
+        == "annotate_optional(arg0: list) -> list[typing.Optional[str]]"
     )
 
 
@@ -1036,7 +1036,7 @@ def test_never_annotation(doc):
 def test_optional_object_annotations(doc):
     assert (
         doc(m.annotate_optional_to_object)
-        == "annotate_optional_to_object(arg0: Optional[typing.SupportsInt]) -> object"
+        == "annotate_optional_to_object(arg0: typing.Optional[typing.SupportsInt]) -> object"
     )
 
 
@@ -1330,7 +1330,7 @@ def test_arg_return_type_hints(doc):
     # Optional<T>
     assert (
         doc(m.identity_optional)
-        == "identity_optional(arg0: Optional[typing.Union[float, int]]) -> Optional[float]"
+        == "identity_optional(arg0: typing.Optional[typing.Union[float, int]]) -> typing.Optional[float]"
     )
     # TypeGuard<T>
     assert (

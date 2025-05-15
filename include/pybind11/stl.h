@@ -557,7 +557,7 @@ struct optional_caster {
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("Optional[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, const_name("typing.Optional[") + value_conv::name + const_name("]"));
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
