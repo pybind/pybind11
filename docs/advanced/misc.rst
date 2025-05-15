@@ -189,7 +189,7 @@ For example:
 .. code-block:: cpp
     :emphasize-lines: 1
 
-    PYBIND11_MODULE(example, m, py::multiple_interpreters_per_interpreter_gil()) {
+    PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil()) {
         py::class_<Animal> animal(m, "Animal");
         // etc
     }
