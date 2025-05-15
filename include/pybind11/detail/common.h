@@ -247,7 +247,7 @@
 #endif
 
 // Python 3.9+ Compatibility #5663
-//#if 0x03090000 <= PY_VERSION_HEX
+// #if 0x03090000 <= PY_VERSION_HEX
 #define PYBIND11_TYPE_HINT_ITERABLE "collections.abc.Iterable"
 #define PYBIND11_TYPE_HINT_ITERATOR "collections.abc.Iterator"
 #define PYBIND11_TYPE_HINT_CALLABLE "collections.abc.Callable"

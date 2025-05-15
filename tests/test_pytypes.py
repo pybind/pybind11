@@ -130,7 +130,10 @@ def test_set(capture, doc):
     assert m.anyset_contains({"foo"}, "foo")
 
     assert doc(m.get_set) == "get_set() -> set"
-    assert doc(m.print_anyset) == "print_anyset(arg0: typing.Union[set, frozenset]) -> None"
+    assert (
+        doc(m.print_anyset)
+        == "print_anyset(arg0: typing.Union[set, frozenset]) -> None"
+    )
 
 
 def test_frozenset(capture, doc):
@@ -1022,7 +1025,10 @@ def test_type_guard_annotations(doc):
 
 
 def test_type_is_annotations(doc):
-    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> typing.TypeIs[str]"
+    assert (
+        doc(m.annotate_type_is)
+        == "annotate_type_is(arg0: object) -> typing.TypeIs[str]"
+    )
 
 
 def test_no_return_annotation(doc):
@@ -1193,7 +1199,8 @@ def test_class_attribute_types() -> None:
     assert empty_annotations is None
     assert static_annotations["x"] == "typing.ClassVar[typing.SupportsFloat]"
     assert (
-        static_annotations["dict_str_int"] == "typing.ClassVar[dict[str, typing.SupportsInt]]"
+        static_annotations["dict_str_int"]
+        == "typing.ClassVar[dict[str, typing.SupportsInt]]"
     )
 
     assert m.Static.x == 1.0
@@ -1239,7 +1246,10 @@ def test_final_annotation() -> None:
 
 
 def test_arg_return_type_hints(doc):
-    assert doc(m.half_of_number) == "half_of_number(arg0: typing.Union[float, int]) -> float"
+    assert (
+        doc(m.half_of_number)
+        == "half_of_number(arg0: typing.Union[float, int]) -> float"
+    )
     assert (
         doc(m.half_of_number_convert)
         == "half_of_number_convert(x: typing.Union[float, int]) -> float"
