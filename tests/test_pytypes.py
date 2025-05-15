@@ -1191,9 +1191,9 @@ def test_class_attribute_types() -> None:
     instance_annotations = get_annotations_helper(m.Instance)
 
     assert empty_annotations is None
-    assert static_annotations["x"] == "ClassVar[typing.SupportsFloat]"
+    assert static_annotations["x"] == "typing.ClassVar[typing.SupportsFloat]"
     assert (
-        static_annotations["dict_str_int"] == "ClassVar[dict[str, typing.SupportsInt]]"
+        static_annotations["dict_str_int"] == "typing.ClassVar[dict[str, typing.SupportsInt]]"
     )
 
     assert m.Static.x == 1.0
