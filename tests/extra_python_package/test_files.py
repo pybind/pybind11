@@ -3,16 +3,23 @@ from __future__ import annotations
 import contextlib
 import os
 import shutil
-import string
 import subprocess
 import sys
 import tarfile
 import zipfile
+from pathlib import Path
+from typing import Generator
 
 # These tests must be run explicitly
 
-DIR = os.path.abspath(os.path.dirname(__file__))
-MAIN_DIR = os.path.dirname(os.path.dirname(DIR))
+DIR = Path(__file__).parent.resolve()
+MAIN_DIR = DIR.parent.parent
+
+
+# Newer pytest has global path setting, but keeping old pytest for now
+sys.path.append(str(MAIN_DIR / "tools"))
+
+from make_global import get_global  # noqa: E402
 
 HAS_UV = shutil.which("uv") is not None
 UV_ARGS = ["--installer=uv"] if HAS_UV else []
@@ -120,44 +127,44 @@ py_files = {
 }
 
 headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
-src_files = headers | cmake_files | pkgconfig_files
-all_files = src_files | py_files
-
+generated_files = cmake_files | pkgconfig_files
+all_files = headers | generated_files | py_files
 
 sdist_files = {
-    "pybind11",
-    "pybind11/include",
-    "pybind11/include/pybind11",
-    "pybind11/include/pybind11/conduit",
-    "pybind11/include/pybind11/detail",
-    "pybind11/include/pybind11/eigen",
-    "pybind11/include/pybind11/stl",
-    "pybind11/share",
-    "pybind11/share/cmake",
-    "pybind11/share/cmake/pybind11",
-    "pybind11/share/pkgconfig",
     "pyproject.toml",
-    "setup.cfg",
-    "setup.py",
     "LICENSE",
-    "MANIFEST.in",
     "README.rst",
     "PKG-INFO",
     "SECURITY.md",
 }
 
-local_sdist_files = {
-    ".egg-info",
-    ".egg-info/PKG-INFO",
-    ".egg-info/SOURCES.txt",
-    ".egg-info/dependency_links.txt",
-    ".egg-info/not-zip-safe",
-    ".egg-info/top_level.txt",
-}
+
+@contextlib.contextmanager
+def preserve_file(filename: Path) -> Generator[str, None, None]:
+    old_stat = filename.stat()
+    old_file = filename.read_text(encoding="utf-8")
+    try:
+        yield old_file
+    finally:
+        filename.write_text(old_file, encoding="utf-8")
+        os.utime(filename, (old_stat.st_atime, old_stat.st_mtime))
+
+
+@contextlib.contextmanager
+def build_global() -> Generator[None, None, None]:
+    """
+    Build global SDist and wheel.
+    """
+
+    pyproject = MAIN_DIR / "pyproject.toml"
+    with preserve_file(pyproject):
+        newer_txt = get_global()
+        pyproject.write_text(newer_txt, encoding="utf-8")
+        yield
 
 
 def read_tz_file(tar: tarfile.TarFile, name: str) -> bytes:
-    start = tar.getnames()[0] + "/"
+    start = tar.getnames()[0].split("/")[0] + "/"
     inner_file = tar.extractfile(tar.getmember(f"{start}{name}"))
     assert inner_file
     with contextlib.closing(inner_file) as f:
@@ -177,95 +184,58 @@ def test_build_sdist(monkeypatch, tmpdir):
     )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
+    version = sdist.basename.split("-")[1][:-7]
 
     with tarfile.open(str(sdist), "r:gz") as tar:
-        start = tar.getnames()[0] + "/"
-        version = start[9:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
+        (pkg_info_path,) = (n for n in simpler if n.endswith("PKG-INFO"))
 
-        setup_py = read_tz_file(tar, "setup.py")
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
-        pkgconfig = read_tz_file(tar, "pybind11/share/pkgconfig/pybind11.pc")
-        cmake_cfg = read_tz_file(
-            tar, "pybind11/share/cmake/pybind11/pybind11Config.cmake"
-        )
+        pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
-    assert (
-        'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")'
-        in cmake_cfg.decode("utf-8")
-    )
+    files = headers | sdist_files
+    assert files <= simpler
 
-    files = {f"pybind11/{n}" for n in all_files}
-    files |= sdist_files
-    files |= {f"pybind11{n}" for n in local_sdist_files}
-    files.add("pybind11.egg-info/entry_points.txt")
-    files.add("pybind11.egg-info/requires.txt")
-    assert simpler == files
-
-    with open(os.path.join(MAIN_DIR, "tools", "setup_main.py.in"), "rb") as f:
-        contents = (
-            string.Template(f.read().decode("utf-8"))
-            .substitute(version=version, extra_cmd="")
-            .encode("utf-8")
-        )
-    assert setup_py == contents
-
-    with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
-        contents = f.read()
-    assert pyproject_toml == contents
-
-    simple_version = ".".join(version.split(".")[:3])
-    pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version).encode("utf-8")
-    assert normalize_line_endings(pkgconfig) == pkgconfig_expected
+    assert b'name = "pybind11"' in pyproject_toml
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" in pkg_info
+    assert f'Requires-Dist: pybind11-global=={version}; extra == "global"' in pkg_info
 
 
 def test_build_global_dist(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
-    monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
-    subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmpdir), *UV_ARGS],
-        check=True,
-    )
+    with build_global():
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "build",
+                "--sdist",
+                "--outdir",
+                str(tmpdir),
+                *UV_ARGS,
+            ],
+            check=True,
+        )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
 
     with tarfile.open(str(sdist), "r:gz") as tar:
-        start = tar.getnames()[0] + "/"
-        version = start[16:-1]
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
+        (pkg_info_path,) = (n for n in simpler if n.endswith("PKG-INFO"))
 
-        setup_py = read_tz_file(tar, "setup.py")
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
-        pkgconfig = read_tz_file(tar, "pybind11/share/pkgconfig/pybind11.pc")
-        cmake_cfg = read_tz_file(
-            tar, "pybind11/share/cmake/pybind11/pybind11Config.cmake"
-        )
+        pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
-    assert (
-        'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")'
-        in cmake_cfg.decode("utf-8")
-    )
+    files = headers | sdist_files
+    assert files <= simpler
 
-    files = {f"pybind11/{n}" for n in all_files}
-    files |= sdist_files
-    files |= {f"pybind11_global{n}" for n in local_sdist_files}
-    assert simpler == files
-
-    with open(os.path.join(MAIN_DIR, "tools", "setup_global.py.in"), "rb") as f:
-        contents = (
-            string.Template(f.read().decode())
-            .substitute(version=version, extra_cmd="")
-            .encode("utf-8")
-        )
-        assert setup_py == contents
-
-    with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
-        contents = f.read()
-        assert pyproject_toml == contents
-
-    simple_version = ".".join(version.split(".")[:3])
-    pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version).encode("utf-8")
-    assert normalize_line_endings(pkgconfig) == pkgconfig_expected
+    assert b'name = "pybind11-global"' in pyproject_toml
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" not in pkg_info
+    assert 'Requires-Dist: pybind11-global; extra == "global"' not in pkg_info
 
 
 def tests_build_wheel(monkeypatch, tmpdir):
@@ -280,47 +250,94 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
     files = {f"pybind11/{n}" for n in all_files}
     files |= {
-        "dist-info/LICENSE",
+        "dist-info/licenses/LICENSE",
         "dist-info/METADATA",
         "dist-info/RECORD",
         "dist-info/WHEEL",
         "dist-info/entry_points.txt",
-        "dist-info/top_level.txt",
     }
 
     with zipfile.ZipFile(str(wheel)) as z:
         names = z.namelist()
+        share = zipfile.Path(z, "pybind11/share")
+        pkgconfig = (share / "pkgconfig/pybind11.pc").read_text(encoding="utf-8")
+        cmakeconfig = (share / "cmake/pybind11/pybind11Config.cmake").read_text(
+            encoding="utf-8"
+        )
+        (pkg_info_path,) = (n for n in names if n.endswith("METADATA"))
+        pkg_info = zipfile.Path(z, pkg_info_path).read_text(encoding="utf-8")
 
     trimmed = {n for n in names if "dist-info" not in n}
     trimmed |= {f"dist-info/{n.split('/', 1)[-1]}" for n in names if "dist-info" in n}
+
     assert files == trimmed
+
+    assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmakeconfig
+
+    version = wheel.basename.split("-")[1]
+    simple_version = ".".join(version.split(".")[:3])
+    pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
+    assert pkgconfig_expected == pkgconfig
+
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" in pkg_info
+    assert f'Requires-Dist: pybind11-global=={version}; extra == "global"' in pkg_info
 
 
 def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
-    monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
-
-    subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--outdir", str(tmpdir), *UV_ARGS],
-        check=True,
-    )
+    with build_global():
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "build",
+                "--wheel",
+                "--outdir",
+                str(tmpdir),
+                *UV_ARGS,
+            ],
+            check=True,
+        )
 
     (wheel,) = tmpdir.visit("*.whl")
 
-    files = {f"data/data/{n}" for n in src_files}
+    files = {f"data/data/{n}" for n in headers}
     files |= {f"data/headers/{n[8:]}" for n in headers}
+    files |= {f"data/data/{n}" for n in generated_files}
     files |= {
-        "dist-info/LICENSE",
+        "dist-info/licenses/LICENSE",
         "dist-info/METADATA",
         "dist-info/WHEEL",
-        "dist-info/top_level.txt",
         "dist-info/RECORD",
     }
 
     with zipfile.ZipFile(str(wheel)) as z:
         names = z.namelist()
+        beginning = names[0].split("/", 1)[0].rsplit(".", 1)[0]
 
-    beginning = names[0].split("/", 1)[0].rsplit(".", 1)[0]
+        share = zipfile.Path(z, f"{beginning}.data/data/share")
+        pkgconfig = (share / "pkgconfig/pybind11.pc").read_text(encoding="utf-8")
+        cmakeconfig = (share / "cmake/pybind11/pybind11Config.cmake").read_text(
+            encoding="utf-8"
+        )
+
+        (pkg_info_path,) = (n for n in names if n.endswith("METADATA"))
+        pkg_info = zipfile.Path(z, pkg_info_path).read_text(encoding="utf-8")
+
+    assert "License-Expression: BSD-3-Clause" in pkg_info
+    assert "License-File: LICENSE" in pkg_info
+    assert "Provides-Extra: global" not in pkg_info
+    assert 'Requires-Dist: pybind11-global; extra == "global"' not in pkg_info
+
     trimmed = {n[len(beginning) + 1 :] for n in names}
 
     assert files == trimmed
+
+    assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmakeconfig
+
+    version = wheel.basename.split("-")[1]
+    simple_version = ".".join(version.split(".")[:3])
+    pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
+    assert pkgconfig_expected == pkgconfig
