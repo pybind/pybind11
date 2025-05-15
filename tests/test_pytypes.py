@@ -1310,7 +1310,7 @@ def test_arg_return_type_hints(doc):
     # Nested Callable<R(A)> identity
     assert (
         doc(m.identity_nested_callable)
-        == "identity_nested_callable(arg0: collections.abc.Callable[[collections.abc.Callable[[typing.Union[float, int]], float]], Callabletyping.Union[float, int]], float]]) -> collections.abc.Callable[[collections.abc.Callable[[typing.Union[float, int]], float]], collections.abc.Callable[[typing.Union[float, int]], float]]"
+        == "identity_nested_callable(arg0: collections.abc.Callable[[collections.abc.Callable[[typing.Union[float, int]], float]], Callable[[typing.Union[float, int]], float]]) -> collections.abc.Callable[[collections.abc.Callable[[typing.Union[float, int]], float]], collections.abc.Callable[[typing.Union[float, int]], float]]"
     )
     # Callable<R(A)>
     assert (
