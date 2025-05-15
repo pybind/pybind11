@@ -1235,7 +1235,7 @@ def test_redeclaration_attr_with_type_hint() -> None:
 )
 def test_final_annotation() -> None:
     module_annotations = get_annotations_helper(m)
-    assert module_annotations["CONST_INT"] == "Final[int]"
+    assert module_annotations["CONST_INT"] == "typing.Final[int]"
 
 
 def test_arg_return_type_hints(doc):
