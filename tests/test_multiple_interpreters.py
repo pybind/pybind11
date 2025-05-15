@@ -86,7 +86,7 @@ def test_dependent_subinterpreters():
 
     sys.path.append(".")
 
-    if sys.version_info >= (3, 14):
+    if sys.version_info >= (3, 15):
         import interpreters
     elif sys.version_info >= (3, 13):
         import _interpreters as interpreters
