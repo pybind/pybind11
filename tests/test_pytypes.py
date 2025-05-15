@@ -31,7 +31,7 @@ def test_int(doc):
 
 
 def test_iterator(doc):
-    assert doc(m.get_iterator) == "get_iterator() -> Iterator"
+    assert doc(m.get_iterator) == "get_iterator() -> collections.abc.Iterator"
 
 
 @pytest.mark.parametrize(
@@ -962,7 +962,7 @@ def test_iterable_annotations(doc):
 def test_iterator_annotations(doc):
     assert (
         doc(m.annotate_iterator_int)
-        == "annotate_iterator_int(arg0: Iterator[typing.SupportsInt]) -> None"
+        == "annotate_iterator_int(arg0: collections.abc.Iterator[typing.SupportsInt]) -> None"
     )
 
 
@@ -1295,7 +1295,7 @@ def test_arg_return_type_hints(doc):
     # Iterator<T>
     assert (
         doc(m.identity_iterator)
-        == "identity_iterator(arg0: Iterator[typing.Union[float, int]]) -> Iterator[float]"
+        == "identity_iterator(arg0: collections.abc.Iterator[typing.Union[float, int]]) -> Iterator[float]"
     )
     # Callable<R(A)> identity
     assert (
