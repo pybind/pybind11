@@ -1295,7 +1295,7 @@ def test_arg_return_type_hints(doc):
     # Iterator<T>
     assert (
         doc(m.identity_iterator)
-        == "identity_iterator(arg0: collections.abc.Iterator[typing.Union[float, int]]) -> Iterator[float]"
+        == "identity_iterator(arg0: collections.abc.Iterator[typing.Union[float, int]]) -> collections.abc.Iterator[float]"
     )
     # Callable<R(A)> identity
     assert (
