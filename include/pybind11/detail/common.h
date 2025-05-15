@@ -241,23 +241,23 @@
 
 // 3.9 Compatibility
 #if 0x03090000 <= PY_VERSION_HEX
-#    define PYBIND11_ITERABLE_TYPE_HINT "collections.abc.Iterable"
-#    define PYBIND11_ITERATOR_TYPE_HINT "collections.abc.Iterator"
-#    define PYBIND11_CALLABLE_TYPE_HINT "collections.abc.Callable"
-#    define PYBIND11_SEQUENCE_TYPE_HINT "collections.abc.Sequence"
-#    define PYBIND11_TUPLE_TYPE_HINT "tuple"
-#    define PYBIND11_DICT_TYPE_HINT "dict"
-#    define PYBIND11_LIST_TYPE_HINT "list"
-#    define PYBIND11_SET_TYPE_HINT "set"
+#    define PYBIND11_TYPE_HINT_ITERABLE "collections.abc.Iterable"
+#    define PYBIND11_TYPE_HINT_ITERATOR "collections.abc.Iterator"
+#    define PYBIND11_TYPE_HINT_CALLABLE "collections.abc.Callable"
+#    define PYBIND11_TYPE_HINT_SEQUENCE "collections.abc.Sequence"
+#    define PYBIND11_TYPE_HINT_TUPLE "tuple"
+#    define PYBIND11_TYPE_HINT_DICT "dict"
+#    define PYBIND11_TYPE_HINT_LIST "list"
+#    define PYBIND11_TYPE_HINT_SET "set"
 #else
-#    define PYBIND11_ITERABLE_TYPE_HINT "typing.Iterable"
-#    define PYBIND11_ITERATOR_TYPE_HINT "typing.Iterator"
-#    define PYBIND11_CALLABLE_TYPE_HINT "typing.Callable"
-#    define PYBIND11_SEQUENCE_TYPE_HINT "typing.Sequence"
-#    define PYBIND11_TUPLE_TYPE_HINT "typing.Tuple"
-#    define PYBIND11_DICT_TYPE_HINT "typing.Dict"
-#    define PYBIND11_LIST_TYPE_HINT "typing.List"
-#    define PYBIND11_SET_TYPE_HINT "typing.Set"
+#    define PYBIND11_TYPE_HINT_ITERABLE "typing.Iterable"
+#    define PYBIND11_TYPE_HINT_ITERATOR "typing.Iterator"
+#    define PYBIND11_TYPE_HINT_CALLABLE "typing.Callable"
+#    define PYBIND11_TYPE_HINT_SEQUENCE "typing.Sequence"
+#    define PYBIND11_TYPE_HINT_TUPLE "typing.Tuple"
+#    define PYBIND11_TYPE_HINT_DICT "typing.Dict"
+#    define PYBIND11_TYPE_HINT_LIST "typing.List"
+#    define PYBIND11_TYPE_HINT_SET "typing.Set"
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE

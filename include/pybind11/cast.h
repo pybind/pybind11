@@ -1395,11 +1395,11 @@ struct handle_type_name<int_> {
 };
 template <>
 struct handle_type_name<iterable> {
-    static constexpr auto name = const_name(PYBIND11_ITERABLE_TYPE_HINT);
+    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_ITERABLE);
 };
 template <>
 struct handle_type_name<iterator> {
-    static constexpr auto name = const_name(PYBIND11_ITERATOR_TYPE_HINT);
+    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_ITERATOR);
 };
 template <>
 struct handle_type_name<float_> {
@@ -1407,7 +1407,7 @@ struct handle_type_name<float_> {
 };
 template <>
 struct handle_type_name<function> {
-    static constexpr auto name = const_name(PYBIND11_CALLABLE_TYPE_HINT);
+    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_CALLABLE);
 };
 template <>
 struct handle_type_name<handle> {
@@ -1419,7 +1419,7 @@ struct handle_type_name<none> {
 };
 template <>
 struct handle_type_name<sequence> {
-    static constexpr auto name = const_name(PYBIND11_SEQUENCE_TYPE_HINT);
+    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_SEQUENCE);
 };
 template <>
 struct handle_type_name<bytearray> {
