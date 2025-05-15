@@ -232,6 +232,20 @@
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
+// Slightly faster code paths are available when PYBIND11_SUBINTERPRETER_SUPPORT is *not* defined,
+// so avoid defining it for implementations that do not support subinterpreters.
+// However, defining it unnecessarily is not expected to break anything.
+#if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#    define PYBIND11_SUBINTERPRETER_SUPPORT
+#endif
+
+// 3.12 Compatibility
+#if 0x030C0000 <= PY_VERSION_HEX
+#    define PYBIND11_BUFFER_TYPE_HINT "collections.abc.Buffer"
+#else
+#    define PYBIND11_BUFFER_TYPE_HINT "typing_extensions.Buffer"
+#endif
+
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
 //             (probably surprising and never documented, but this was the
@@ -394,19 +408,22 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                              \
-        slots[0]                                                                                  \
-            = {Py_mod_exec, reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};    \
-        slots[1] = {0, nullptr};                                                                  \
-        auto m = ::pybind11::module_::initialize_multiphase_module_def(                           \
-            PYBIND11_TOSTRING(name),                                                              \
-            nullptr,                                                                              \
-            &PYBIND11_CONCAT(pybind11_module_def_, name),                                         \
-            slots,                                                                                \
-            ##__VA_ARGS__);                                                                       \
-        return m.ptr();                                                                           \
+        static auto result = []() {                                                               \
+            auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
+            slots[0] = {Py_mod_exec,                                                              \
+                        reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
+            slots[1] = {0, nullptr};                                                              \
+            return ::pybind11::module_::initialize_multiphase_module_def(                         \
+                PYBIND11_TOSTRING(name),                                                          \
+                nullptr,                                                                          \
+                &PYBIND11_CONCAT(pybind11_module_def_, name),                                     \
+                slots,                                                                            \
+                ##__VA_ARGS__);                                                                   \
+        }();                                                                                      \
+        return result.ptr();                                                                      \
     }                                                                                             \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
+        pybind11::detail::get_num_interpreters_seen() += 1;                                       \
         try {                                                                                     \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
