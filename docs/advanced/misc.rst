@@ -122,6 +122,8 @@ The ``call_go`` wrapper can also be simplified using the ``call_guard`` policy
     m.def("call_go", &call_go, py::call_guard<py::gil_scoped_release>());
 
 
+.. _commongilproblems:
+
 Common Sources Of Global Interpreter Lock Errors
 ==================================================================
 
@@ -156,7 +158,7 @@ following checklist.
 Free-threading support
 ==================================================================
 
-pybind11 supports the experimental free-threaded builds of Python versions 3.13 and 3.14.
+pybind11 supports the experimental free-threaded builds of Python versions 3.13+.
 pybind11's internal data structures are thread safe. To enable your modules to be used with
 free-threading, pass the :class:`mod_gil_not_used` tag as the third argument to
 ``PYBIND11_MODULE``.
@@ -171,7 +173,7 @@ For example:
         // etc
     }
 
-Importantly, enabling your module to be used in free threading is also your promise that
+Importantly, enabling your module to be used with free-threading is also your promise that
 your code is thread safe.  Modules must still be built against the Python free-threading branch to
 enable free-threading, even if they specify this tag.  Adding this tag does not break
 compatibility with non-free-threaded Python.
@@ -200,8 +202,9 @@ Best Practices for Sub-interpreter Safety:
 
 - Never share Python objects across different sub-interpreters.
 
-- Keep state it in the interpreter's state dict if necessary. Avoid global/static state
-  whenever possible.
+- Avoid global/static state whenever possible. Instead, keep state within each interpreter,
+  such as in instance members tied to Python objects, :func:`globals()`, and the interpreter
+  state dict.
 
 - Modules without any global/static state in their C++ code may already be sub-interpreter safe
   without any additional work!
@@ -244,7 +247,7 @@ key.
             return old;
         });
 
-This module is not free-threading safe because there are not locks for synchronization.  It is
+This module is not free-threading safe because there are no locks for synchronization.  It is
 relatively easy to make this free-threading safe:
 
 .. code-block:: cpp
@@ -264,7 +267,11 @@ relatively easy to make this free-threading safe:
     }
 
 The mutex guarantees a consistent behavior from this function even when called currently from
-multiple threads at the same time.
+multiple threads at the same time.  Note that modules with free-threading support cannot guarantee
+that the the GIL is not enabled, so they must still take care not to introduce deadlocks,
+including those that can be accidentally introduced by combining the GIL with C++ locks. [#f3]_
+
+.. [#f3] See :ref:`commongilproblems` and docs/advanced/deadlock.md for more information.
 
 However, the global/static dict is not sub-interpreter safe, because python objects cannot be
 shared or moved between interpreters. To fix it, the state needs to be specific to each
