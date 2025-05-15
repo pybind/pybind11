@@ -296,7 +296,7 @@ calculation is not synchronized. We can synchronize it using a Python critical s
     :emphasize-lines: 1,5,10
 
     PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil(), py::mod_gil_not_used()) {
-        m.def("get_last", [](py::object key, py::object next) {
+        m.def("calc_next", []() {
             size_t old;
             py::dict g = py::globals();
             Py_BEGIN_CRITICAL_SECTION(g);
