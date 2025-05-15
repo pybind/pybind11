@@ -1026,7 +1026,7 @@ def test_type_is_annotations(doc):
 
 
 def test_no_return_annotation(doc):
-    assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
+    assert doc(m.annotate_no_return) == "annotate_no_return() -> typing.NoReturn"
 
 
 def test_never_annotation(doc):
