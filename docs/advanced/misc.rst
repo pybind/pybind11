@@ -218,7 +218,7 @@ legacy-only behavior by using the :func:`multiple_interpreters::shared_gil()` ta
 ``PYBIND11_MODULE``.
 
 You can explicitly disable sub-interpreter support in your module by using the
-:func:`multiple_interpreter::not_supported()` tag. This is the default behavior if you do not
+:func:`multiple_interpreters::not_supported()` tag. This is the default behavior if you do not
 specify a multiple_interpreters tag.
 
 Concurrency and Parallelism in Python with pybind11
