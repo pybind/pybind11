@@ -51,7 +51,7 @@ def test_from_iterable(pytype, from_iter_func):
 
 
 def test_iterable(doc):
-    assert doc(m.get_iterable) == "get_iterable() -> Iterable"
+    assert doc(m.get_iterable) == "get_iterable() -> collections.abc.Iterable"
     lst = [1, 2, 3]
     i = m.get_first_item_from_iterable(lst)
     assert i == 1
@@ -955,7 +955,7 @@ def test_set_annotations(doc):
 def test_iterable_annotations(doc):
     assert (
         doc(m.annotate_iterable_str)
-        == "annotate_iterable_str(arg0: Iterable[str]) -> None"
+        == "annotate_iterable_str(arg0: collections.abc.Iterable[str]) -> None"
     )
 
 
@@ -1290,7 +1290,7 @@ def test_arg_return_type_hints(doc):
     # Iterable<T>
     assert (
         doc(m.identity_iterable)
-        == "identity_iterable(arg0: Iterable[typing.Union[float, int]]) -> Iterable[float]"
+        == "identity_iterable(arg0: collections.abc.Iterable[typing.Union[float, int]]) -> collections.abc.Iterable[float]"
     )
     # Iterator<T>
     assert (
