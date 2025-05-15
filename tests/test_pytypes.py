@@ -130,7 +130,7 @@ def test_set(capture, doc):
     assert m.anyset_contains({"foo"}, "foo")
 
     assert doc(m.get_set) == "get_set() -> set"
-    assert doc(m.print_anyset) == "print_anyset(arg0: Union[set, frozenset]) -> None"
+    assert doc(m.print_anyset) == "print_anyset(arg0: typing.Union[set, frozenset]) -> None"
 
 
 def test_frozenset(capture, doc):
@@ -989,21 +989,21 @@ def test_type_annotation(doc):
 def test_union_annotations(doc):
     assert (
         doc(m.annotate_union)
-        == "annotate_union(arg0: list[Union[str, typing.SupportsInt, object]], arg1: str, arg2: typing.SupportsInt, arg3: object) -> list[Union[str, int, object]]"
+        == "annotate_union(arg0: list[typing.Union[str, typing.SupportsInt, object]], arg1: str, arg2: typing.SupportsInt, arg3: object) -> list[typing.Union[str, int, object]]"
     )
 
 
 def test_union_typing_only(doc):
     assert (
         doc(m.union_typing_only)
-        == "union_typing_only(arg0: list[Union[str]]) -> list[Union[int]]"
+        == "union_typing_only(arg0: list[typing.Union[str]]) -> list[typing.Union[int]]"
     )
 
 
 def test_union_object_annotations(doc):
     assert (
         doc(m.annotate_union_to_object)
-        == "annotate_union_to_object(arg0: Union[typing.SupportsInt, str]) -> object"
+        == "annotate_union_to_object(arg0: typing.Union[typing.SupportsInt, str]) -> object"
     )
 
 
@@ -1072,11 +1072,11 @@ def test_literal(doc):
     )
     assert (
         doc(m.identity_literal_arrow_with_io_name)
-        == 'identity_literal_arrow_with_io_name(arg0: Literal["->"], arg1: Union[float, int]) -> Literal["->"]'
+        == 'identity_literal_arrow_with_io_name(arg0: Literal["->"], arg1: typing.Union[float, int]) -> Literal["->"]'
     )
     assert (
         doc(m.identity_literal_arrow_with_callable)
-        == 'identity_literal_arrow_with_callable(arg0: Callable[[Literal["->"], Union[float, int]], float]) -> Callable[[Literal["->"], Union[float, int]], float]'
+        == 'identity_literal_arrow_with_callable(arg0: Callable[[Literal["->"], typing.Union[float, int]], float]) -> Callable[[Literal["->"], typing.Union[float, int]], float]'
     )
     assert (
         doc(m.identity_literal_all_special_chars)
@@ -1160,7 +1160,7 @@ def test_module_attribute_types() -> None:
     assert module_annotations["foo"] == "pybind11_tests.pytypes.foo"
     assert (
         module_annotations["foo_union"]
-        == "Union[pybind11_tests.pytypes.foo, pybind11_tests.pytypes.foo2, pybind11_tests.pytypes.foo3]"
+        == "typing.Union[pybind11_tests.pytypes.foo, pybind11_tests.pytypes.foo2, pybind11_tests.pytypes.foo3]"
     )
 
 
@@ -1239,10 +1239,10 @@ def test_final_annotation() -> None:
 
 
 def test_arg_return_type_hints(doc):
-    assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
+    assert doc(m.half_of_number) == "half_of_number(arg0: typing.Union[float, int]) -> float"
     assert (
         doc(m.half_of_number_convert)
-        == "half_of_number_convert(x: Union[float, int]) -> float"
+        == "half_of_number_convert(x: typing.Union[float, int]) -> float"
     )
     assert (
         doc(m.half_of_number_noconvert) == "half_of_number_noconvert(x: float) -> float"
@@ -1255,52 +1255,52 @@ def test_arg_return_type_hints(doc):
     # std::vector<T>
     assert (
         doc(m.half_of_number_vector)
-        == "half_of_number_vector(arg0: collections.abc.Sequence[Union[float, int]]) -> list[float]"
+        == "half_of_number_vector(arg0: collections.abc.Sequence[typing.Union[float, int]]) -> list[float]"
     )
     # Tuple<T, T>
     assert (
         doc(m.half_of_number_tuple)
-        == "half_of_number_tuple(arg0: tuple[Union[float, int], Union[float, int]]) -> tuple[float, float]"
+        == "half_of_number_tuple(arg0: tuple[typing.Union[float, int], typing.Union[float, int]]) -> tuple[float, float]"
     )
     # Tuple<T, ...>
     assert (
         doc(m.half_of_number_tuple_ellipsis)
-        == "half_of_number_tuple_ellipsis(arg0: tuple[Union[float, int], ...]) -> tuple[float, ...]"
+        == "half_of_number_tuple_ellipsis(arg0: tuple[typing.Union[float, int], ...]) -> tuple[float, ...]"
     )
     # Dict<K, V>
     assert (
         doc(m.half_of_number_dict)
-        == "half_of_number_dict(arg0: dict[str, Union[float, int]]) -> dict[str, float]"
+        == "half_of_number_dict(arg0: dict[str, typing.Union[float, int]]) -> dict[str, float]"
     )
     # List<T>
     assert (
         doc(m.half_of_number_list)
-        == "half_of_number_list(arg0: list[Union[float, int]]) -> list[float]"
+        == "half_of_number_list(arg0: list[typing.Union[float, int]]) -> list[float]"
     )
     # List<List<T>>
     assert (
         doc(m.half_of_number_nested_list)
-        == "half_of_number_nested_list(arg0: list[list[Union[float, int]]]) -> list[list[float]]"
+        == "half_of_number_nested_list(arg0: list[list[typing.Union[float, int]]]) -> list[list[float]]"
     )
     # Set<T>
     assert (
         doc(m.identity_set)
-        == "identity_set(arg0: set[Union[float, int]]) -> set[float]"
+        == "identity_set(arg0: set[typing.Union[float, int]]) -> set[float]"
     )
     # Iterable<T>
     assert (
         doc(m.identity_iterable)
-        == "identity_iterable(arg0: Iterable[Union[float, int]]) -> Iterable[float]"
+        == "identity_iterable(arg0: Iterable[typing.Union[float, int]]) -> Iterable[float]"
     )
     # Iterator<T>
     assert (
         doc(m.identity_iterator)
-        == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
+        == "identity_iterator(arg0: Iterator[typing.Union[float, int]]) -> Iterator[float]"
     )
     # Callable<R(A)> identity
     assert (
         doc(m.identity_callable)
-        == "identity_callable(arg0: Callable[[Union[float, int]], float]) -> Callable[[Union[float, int]], float]"
+        == "identity_callable(arg0: Callable[[typing.Union[float, int]], float]) -> Callable[[typing.Union[float, int]], float]"
     )
     # Callable<R(...)> identity
     assert (
@@ -1310,27 +1310,27 @@ def test_arg_return_type_hints(doc):
     # Nested Callable<R(A)> identity
     assert (
         doc(m.identity_nested_callable)
-        == "identity_nested_callable(arg0: Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]) -> Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]"
+        == "identity_nested_callable(arg0: Callable[[Callable[[typing.Union[float, int]], float]], Callabletyping.Union[float, int]], float]]) -> Callable[[Callable[[typing.Union[float, int]], float]], Callable[[typing.Union[float, int]], float]]"
     )
     # Callable<R(A)>
     assert (
         doc(m.apply_callable)
-        == "apply_callable(arg0: Union[float, int], arg1: Callable[[Union[float, int]], float]) -> float"
+        == "apply_callable(arg0: typing.Union[float, int], arg1: Callable[[typing.Union[float, int]], float]) -> float"
     )
     # Callable<R(...)>
     assert (
         doc(m.apply_callable_ellipsis)
-        == "apply_callable_ellipsis(arg0: Union[float, int], arg1: Callable[..., float]) -> float"
+        == "apply_callable_ellipsis(arg0: typing.Union[float, int], arg1: Callable[..., float]) -> float"
     )
     # Union<T1, T2>
     assert (
         doc(m.identity_union)
-        == "identity_union(arg0: Union[Union[float, int], str]) -> Union[float, str]"
+        == "identity_union(arg0: typing.Union[typing.Union[float, int], str]) -> typing.Union[float, str]"
     )
     # Optional<T>
     assert (
         doc(m.identity_optional)
-        == "identity_optional(arg0: Optional[Union[float, int]]) -> Optional[float]"
+        == "identity_optional(arg0: Optional[typing.Union[float, int]]) -> Optional[float]"
     )
     # TypeGuard<T>
     assert (
