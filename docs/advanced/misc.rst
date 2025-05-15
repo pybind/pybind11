@@ -179,7 +179,7 @@ compatibility with non-free-threaded Python.
 Sub-interpreter support
 ==================================================================
 
-pybind11 supports isolated sub-interpreters, which are stable in Python 3.12+.  Pybind11's
+pybind11 supports isolated sub-interpreters, which are stable in Python 3.12+.  pybind11's
 internal data structures are sub-interpreter safe. To enable your modules to be imported in
 isolated sub-interpreters, pass the :func:`multiple_interpreters::per_interpreter_gil()`
 tag as the third or later argument to ``PYBIND11_MODULE``.
