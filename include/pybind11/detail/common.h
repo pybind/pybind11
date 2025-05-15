@@ -239,7 +239,7 @@
 #    define PYBIND11_SUBINTERPRETER_SUPPORT
 #endif
 
-// 3.9 Compatibility
+// Python 3.9+ Compatibility
 #if 0x03090000 <= PY_VERSION_HEX
 #    define PYBIND11_TYPE_HINT_ITERABLE "collections.abc.Iterable"
 #    define PYBIND11_TYPE_HINT_ITERATOR "collections.abc.Iterator"
