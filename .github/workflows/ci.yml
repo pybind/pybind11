@@ -97,6 +97,9 @@ jobs:
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
           - runs-on: 'ubuntu-latest'
             python: 'graalpy-24.1'
+          # Only working one for 3.14.0b1 on Windows
+          - runs-on: windows-2022
+            python: '3.14t'
 
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
@@ -109,6 +112,9 @@ jobs:
           # No NumPy for PyPy 3.10 ARM
           - runs-on: macos-14
             python: 'pypy-3.10'
+          # Beta 1 broken for compiling on GHA (thinks it's free-threaded)
+          - runs-on: windows-2022
+            python: '3.14'
 
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
