@@ -256,16 +256,18 @@ interpreter.  Sub-interpreters are created and managed with a separate API from
 the main interpreter. Beginning in Python 3.12, sub-interpreters each have
 their own Global Interpreter Lock (GIL), which means that running a
 sub-interpreter in a separate thread from the main interpreter can achieve true
-concurrency.
+concurrency. 
 
-Managing multiple threads and the lifetimes of multiple interpreters and their
-GILs can be challenging.  Proceed with caution (and lots of testing)!
+pybind11's sub-interpreter API can be found in ``pybind11/subinterpreter.h``.
+
+pybind11 :class:`subinterpreter` instances can be safely moved and shared between 
+threads as needed. However, managing multiple threads and the lifetimes of multiple 
+interpreters and their GILs can be challenging. 
+Proceed with caution (and lots of testing)!
 
 The main interpreter must be initialized before creating a sub-interpreter, and
 the main interpreter must outlive all sub-interpreters. Sub-interpreters are
 managed through a different API than the main interpreter.
-
-The sub-interpreter API can be found in ``pybind11/subinterpreter.h``.
 
 The :class:`subinterpreter` class manages the lifetime of sub-interpreters.
 Instances are movable, but not copyable. Default constructing this class does
@@ -391,6 +393,10 @@ it when it goes out of scope.
 
 Best Practices for sub-interpreter safety:
 
+- Avoid moving or disarming RAII objects managing GIL and sub-interpreter lifetimes. Doing so can 
+  lead to confusion about lifetimes.  (For example, accidentally extending a 
+  :class:`subinterpreter_scoped_activate` past the lifetime of it's :class:`subinterpreter`.)
+
 - Never share Python objects across different interpreters.
 
 - Avoid global/static state whenever possible. Instead, keep state within each interpreter,
@@ -404,5 +410,9 @@ Best Practices for sub-interpreter safety:
   resulting Python object when the wrong interpreter was active.
 
 - While sub-interpreters each have their own GIL, there can now be multiple independent GILs in one
-  program, so your code needs to consider thread safety of within the C++ code, and the possibility
-  of deadlocks caused by multiple GILs and/or the interactions of the GIL(s) and C++'s own locking.
+  program you need to consider the possibility of deadlocks caused by multiple GILs and/or the 
+  interactions of the GIL(s) and your C++ code's own locking.
+
+- When using multiple threads to run independent sub-interpreters, the independent GILs allow
+  concurrent calls from different interpreters into the same C++ code from different threads. 
+  So you must still consider the thread safety of your C++ code.
