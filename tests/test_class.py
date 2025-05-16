@@ -403,8 +403,9 @@ def test_class_refcount():
         pytest.gc_collect()
         refcount_3 = refcount_immortal(cls)
 
+        # Python may report a large value here (above 30 bits), that's also fine
         assert refcount_1 == refcount_3
-        assert (refcount_2 > refcount_1) or (refcount_2 == refcount_1 == UINT32MAX)
+        assert (refcount_2 > refcount_1) or (refcount_2 == refcount_1 and refcount_1 >= 2**29)
 
 
 def test_reentrant_implicit_conversion_failure(msg):
