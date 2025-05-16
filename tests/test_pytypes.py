@@ -1146,7 +1146,10 @@ def get_annotations_helper(o):
     if sys.version_info >= (3, 14):
         import annotationlib
 
-        return annotationlib.get_annotations(o)
+        try:
+            return annotationlib.get_annotations(o) or None
+        except TypeError:
+            return None
     if isinstance(o, type):
         return o.__dict__.get("__annotations__", None)
     return getattr(o, "__annotations__", None)
