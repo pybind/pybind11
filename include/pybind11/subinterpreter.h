@@ -46,8 +46,9 @@ private:
 /// Holds a Python subinterpreter instance
 class subinterpreter {
 public:
-    subinterpreter() = default; /// empty/unusable, but move-assignable.  use create() to create a subinterpreter.
-    
+    /// empty/unusable, but move-assignable.  use create() to create a subinterpreter.
+    subinterpreter() = default;
+
     subinterpreter(subinterpreter const &copy) = delete;
     subinterpreter &operator=(subinterpreter const &copy) = delete;
 
@@ -56,14 +57,15 @@ public:
         old.istate_ = nullptr;
     }
 
-    subinterpreter &operator = (subinterpreter &&old) {
+    subinterpreter &operator=(subinterpreter &&old) {
         std::swap(old.tstate_, tstate_);
         std::swap(old.istate_, istate_);
         return *this;
     }
 
     /// Create a new subinterpreter with the specified configuration
-    /// Note Well:
+    /// @note This function acquires (and then releases) the main interpreter GIL, but the main
+    /// interpreter and its GIL are not required to be held prior to calling this function.
     static inline subinterpreter create(PyInterpreterConfig const &cfg) {
         error_scope err_scope;
         auto main_guard = main_scoped_activate();
@@ -92,7 +94,7 @@ public:
         return result;
     }
 
-    /// Call create() with a default configuration of an isolated interpreter that disallows fork,
+    /// Calls create() with a default configuration of an isolated interpreter that disallows fork,
     /// exec, and Python threads.
     static inline subinterpreter create() {
         // same as the default config in the python docs
