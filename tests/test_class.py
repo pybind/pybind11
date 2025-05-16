@@ -405,7 +405,9 @@ def test_class_refcount():
 
         # Python may report a large value here (above 30 bits), that's also fine
         assert refcount_1 == refcount_3
-        assert (refcount_2 > refcount_1) or (refcount_2 == refcount_1 and refcount_1 >= 2**29)
+        assert (refcount_2 > refcount_1) or (
+            refcount_2 == refcount_1 and refcount_1 >= 2**29
+        )
 
 
 def test_reentrant_implicit_conversion_failure(msg):
