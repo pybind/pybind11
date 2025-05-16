@@ -1,3 +1,12 @@
+/*
+    pybind11/subinterpreters.h: Support for creating and using subinterpreters
+
+    Copyright (c) 2025 The Pybind Development Team.
+
+    All rights reserved. Use of this source code is governed by a
+    BSD-style license that can be found in the LICENSE file.
+*/
+
 #pragma once
 
 #include "detail/common.h"
@@ -34,9 +43,11 @@ private:
     bool simple_gil_ = false;
 };
 
+/// Holds a Python subinterpreter instance
 class subinterpreter {
 public:
-    subinterpreter() = default;
+    subinterpreter() = default; /// empty/unusable, but move-assignable.  use create() to create a subinterpreter.
+    
     subinterpreter(subinterpreter const &copy) = delete;
     subinterpreter &operator=(subinterpreter const &copy) = delete;
 
@@ -45,34 +56,72 @@ public:
         old.istate_ = nullptr;
     }
 
-    subinterpreter &operator=(subinterpreter &&old) {
+    subinterpreter &operator = (subinterpreter &&old) {
         std::swap(old.tstate_, tstate_);
         std::swap(old.istate_, istate_);
         return *this;
     }
 
+    /// Create a new subinterpreter with the specified configuration
+    /// Note Well:
+    static inline subinterpreter create(PyInterpreterConfig const &cfg) {
+        error_scope err_scope;
+        auto main_guard = main_scoped_activate();
+        subinterpreter result;
+        {
+            // we must hold the main GIL in order to create a subinterpreter
+            gil_scoped_acquire gil;
+
+            auto prev_tstate = PyThreadState_Get();
+
+            auto status = Py_NewInterpreterFromConfig(&result.tstate_, &cfg);
+
+            // this doesn't raise a normal Python exception, it provides an exit() status code.
+            if (PyStatus_Exception(status)) {
+                pybind11_fail("failed to create new sub-interpreter");
+            }
+
+            // upon success, the new interpreter is activated in this thread
+            result.istate_ = result.tstate_->interp;
+            detail::get_num_interpreters_seen() += 1; // there are now many interpreters
+            detail::get_internals(); // initialize internals.tstate, amongst other things...
+
+            // we have to switch back to main, and then the scopes will handle cleanup
+            PyThreadState_Swap(prev_tstate);
+        }
+        return result;
+    }
+
+    /// Call create() with a default configuration of an isolated interpreter that disallows fork,
+    /// exec, and Python threads.
+    static inline subinterpreter create() {
+        // same as the default config in the python docs
+        PyInterpreterConfig cfg;
+        memset(&cfg, 0, sizeof(cfg));
+        cfg.check_multi_interp_extensions = 1;
+        cfg.gil = PyInterpreterConfig_OWN_GIL;
+        return create(cfg);
+    }
+
     ~subinterpreter() {
         if (tstate_) {
             PyThreadState *old_tstate;
-            /* 
-              If it is not, the interpreter destruction can hang inside Python threading cleanup.
-            So in that case, we make sure to create a new thread state to be used for cleanup
-            */
+
             bool wrong_thread = true;
-            #ifdef PY_HAVE_THREAD_NATIVE_ID
+#ifdef PY_HAVE_THREAD_NATIVE_ID
             wrong_thread = PyThread_get_thread_native_id() != tstate_->native_thread_id;
-            #endif
+#endif
             if (wrong_thread) {
                 // The PyThreadState used in Py_EndInterpreter must be created on this OS thread.
-                // So create a new thread state here on the right thread
+                // (If it is not, subinterpreter cleanup will hang within Python's threading
+                // module.) So create a new thread state here on the right OS thread.
                 auto *temp = PyThreadState_New(tstate_->interp);
                 old_tstate = PyThreadState_Swap(temp);
-                // and make to clear the other one, because there must be only one at cleanup time
+                // delete the other one because there must be only one at cleanup
                 PyThreadState_Clear(tstate_);
                 PyThreadState_Delete(tstate_);
                 tstate_ = temp;
-            }
-            else {
+            } else {
                 old_tstate = PyThreadState_Swap(tstate_);
             }
 
@@ -128,47 +177,6 @@ public:
         m.istate_ = PyInterpreterState_Main();
         m.disarm(); // make destruct a noop
         return subinterpreter_scoped_activate(m);
-    }
-
-    /// Create a new subinterpreter with the specified configuration
-    /// Note Well:
-    static inline subinterpreter create(PyInterpreterConfig const &cfg) {
-        error_scope err_scope;
-        auto main_guard = main_scoped_activate();
-        subinterpreter result;
-        {
-            // we must hold the main GIL in order to create a subinterpreter
-            gil_scoped_acquire gil;
-
-            auto prev_tstate = PyThreadState_Get();
-
-            auto status = Py_NewInterpreterFromConfig(&result.tstate_, &cfg);
-
-            // this doesn't raise a normal Python exception, it provides an exit() status code.
-            if (PyStatus_Exception(status)) {
-                pybind11_fail("failed to create new sub-interpreter");
-            }
-
-            // upon success, the new interpreter is activated in this thread
-            result.istate_ = result.tstate_->interp;
-            detail::get_num_interpreters_seen() += 1; // there are now many interpreters
-            detail::get_internals(); // initialize internals.tstate, amongst other things...
-
-            // we have to switch back to main, and then the scopes will handle cleanup
-            PyThreadState_Swap(prev_tstate);
-        }
-        return result;
-    }
-
-    /// Call create() with a default configuration of an isolated interpreter that disallows fork,
-    /// exec, and Python threads.
-    static inline subinterpreter create() {
-        // same as the default config in the python docs
-        PyInterpreterConfig cfg;
-        memset(&cfg, 0, sizeof(cfg));
-        cfg.check_multi_interp_extensions = 1;
-        cfg.gil = PyInterpreterConfig_OWN_GIL;
-        return create(cfg);
     }
 
 private:
