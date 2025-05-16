@@ -77,7 +77,6 @@ TEST_CASE("Single Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
-
 TEST_CASE("Move Subinterpreter") {
 
     auto ssi = std::make_unique<py::subinterpreter>(py::subinterpreter::create());
@@ -92,8 +91,7 @@ TEST_CASE("Move Subinterpreter") {
         py::module_::import("external_module");
     }
 
-    std::thread temp([ssi=std::move(ssi)]() mutable {
-
+    std::thread temp([ssi = std::move(ssi)]() mutable {
         // Use it again
         {
             py::subinterpreter_scoped_activate activate(*ssi);
@@ -232,7 +230,8 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
             // we have switched to the new interpreter and released the main gil
 
-            // trampoline_module did not provide the per_interpreter_gil tag, so it cannot be imported
+            // trampoline_module did not provide the per_interpreter_gil tag, so it cannot be
+            // imported
             bool caught = false;
             try {
                 py::module_::import("trampoline_module");
