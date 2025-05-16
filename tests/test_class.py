@@ -6,8 +6,16 @@ from unittest import mock
 import pytest
 
 import env
-from pybind11_tests import is_immortal, ConstructorStats, UserType
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
+
+UINT32MAX = 2**32 - 1
+
+
+def refcount_immortal(ob: object) -> int:
+    if _is_immortal := getattr(sys, "_is_immortal", None):
+        return UINT32MAX if _is_immortal(ob) else sys.getrefcount(ob)
+    return sys.getrefcount(ob)
 
 
 def test_obj_class_name():
@@ -382,24 +390,21 @@ def test_brace_initialization():
 @pytest.mark.xfail("env.PYPY or env.GRAALPY")
 def test_class_refcount():
     """Instances must correctly increase/decrease the reference count of their types (#1029)"""
-    from sys import getrefcount
 
     class PyDog(m.Dog):
         pass
 
     for cls in m.Dog, PyDog:
-        refcount_1 = getrefcount(cls)
+        refcount_1 = refcount_immortal(cls)
         molly = [cls("Molly") for _ in range(10)]
-        refcount_2 = getrefcount(cls)
+        refcount_2 = refcount_immortal(cls)
 
         del molly
         pytest.gc_collect()
-        refcount_3 = getrefcount(cls)
+        refcount_3 = refcount_immortal(cls)
 
         assert refcount_1 == refcount_3
-        assert (refcount_2 > refcount_1) or (
-            is_immortal(refcount_2) and is_immortal(refcount_1)
-        )
+        assert (refcount_2 > refcount_1) or (refcount_2 == refcount_1 == UINT32MAX)
 
 
 def test_reentrant_implicit_conversion_failure(msg):

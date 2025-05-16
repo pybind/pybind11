@@ -75,15 +75,6 @@ const char *cpp_std() {
 #endif
 }
 
-bool is_immortal(py::handle object) {
-    // If Python doesn't support immortal objects, this returns False
-#if PY_VERSION_HEX >= 0x030E0000
-    return PyUnstable_IsImmortal(object.ptr()) != 0;
-#else
-    return Py_REFCNT(object.ptr()) == UINT32_MAX;
-#endif
-}
-
 PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 test module";
 
@@ -113,8 +104,6 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
 #else
     m.attr("detailed_error_messages_enabled") = false;
 #endif
-
-    m.def("is_immortal", &is_immortal, "Returns true if Python supports it and the object is immortal");
 
     py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")
         .def(py::init<>())
