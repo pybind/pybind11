@@ -109,6 +109,100 @@ TEST_CASE("Move Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
+TEST_CASE("GIL Subinterpreter") {
+
+    PyInterpreterState *main_interp = PyInterpreterState_Get();
+
+    {
+        auto ssi = py::subinterpreter::create();
+
+        REQUIRE(main_interp == PyInterpreterState_Get());
+
+        PyInterpreterState *sub_interp = nullptr;
+
+        {
+            py::subinterpreter_scoped_activate activate(ssi);
+
+            sub_interp = PyInterpreterState_Get();
+            REQUIRE(sub_interp != main_interp);
+
+            py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+            py::module_::import("datetime");
+            py::module_::import("threading");
+            py::module_::import("external_module");
+
+            {
+                auto main_activate = py::subinterpreter::main_scoped_activate();
+                REQUIRE(PyInterpreterState_Get() == main_interp);
+
+                {
+                    py::gil_scoped_release nogil{};
+                    {
+                        py::gil_scoped_acquire yesgil{};
+                        REQUIRE(PyInterpreterState_Get() == main_interp);
+                    }
+                }
+
+                REQUIRE(PyInterpreterState_Get() == main_interp);
+            }
+
+            REQUIRE(PyInterpreterState_Get() == sub_interp);
+
+            {
+                py::gil_scoped_release nogil{};
+                {
+                    py::gil_scoped_acquire yesgil{};
+                    REQUIRE(PyInterpreterState_Get() == sub_interp);
+                }
+            }
+
+            REQUIRE(PyInterpreterState_Get() == sub_interp);
+        }
+
+        REQUIRE(PyInterpreterState_Get() == main_interp);
+
+        {
+            py::gil_scoped_release nogil{};
+            {
+                py::gil_scoped_acquire yesgil{};
+                REQUIRE(PyInterpreterState_Get() == main_interp);
+            }
+        }
+
+        REQUIRE(PyInterpreterState_Get() == main_interp);
+
+        bool thread_result;
+
+        {
+            thread_result = false;
+            py::gil_scoped_release nogil{};
+            std::thread([&]() {
+                {
+                    py::subinterpreter_scoped_activate ssa{ssi};
+                }
+                {
+                    py::gil_scoped_acquire gil{};
+                    thread_result = (PyInterpreterState_Get() == main_interp);
+                }
+            }).join();
+        }
+        REQUIRE(thread_result);
+
+        {
+            thread_result = false;
+            py::gil_scoped_release nogil{};
+            std::thread([&]() {
+                py::gil_scoped_acquire gil{};
+                thread_result = (PyInterpreterState_Get() == main_interp);
+            }).join();
+        }
+        REQUIRE(thread_result);
+    }
+
+    REQUIRE(PyInterpreterState_Get() == main_interp);
+    unsafe_reset_internals_for_single_interpreter();
+}
+
 TEST_CASE("Multiple Subinterpreters") {
     // Make sure the module is in the main interpreter and save its pointer
     auto *main_ext = py::module_::import("external_module").ptr();
