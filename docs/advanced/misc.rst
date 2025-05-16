@@ -155,6 +155,8 @@ following checklist.
   within pybind11 that will throw exceptions on certain GIL handling errors
   (reference counting operations).
 
+.. _misc_free_threading:
+
 Free-threading support
 ==================================================================
 
@@ -177,6 +179,8 @@ Importantly, enabling your module to be used with free-threading is also your pr
 your code is thread safe.  Modules must still be built against the Python free-threading branch to
 enable free-threading, even if they specify this tag.  Adding this tag does not break
 compatibility with non-free-threaded Python.
+
+.. _misc_subinterp:
 
 Sub-interpreter support
 ==================================================================
@@ -223,6 +227,8 @@ legacy-only behavior by using the :func:`multiple_interpreters::shared_gil()` ta
 You can explicitly disable sub-interpreter support in your module by using the
 :func:`multiple_interpreters::not_supported()` tag. This is the default behavior if you do not
 specify a multiple_interpreters tag.
+
+.. _misc_concurrency:
 
 Concurrency and Parallelism in Python with pybind11
 ===================================================
