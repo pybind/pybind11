@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 
 import env
-from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, ConstructorStats, UserType
+from pybind11_tests import is_immortal, ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
 
@@ -398,7 +398,7 @@ def test_class_refcount():
 
         assert refcount_1 == refcount_3
         assert (refcount_2 > refcount_1) or (
-            refcount_2 == refcount_1 == PYBIND11_REFCNT_IMMORTAL
+            is_immortal(refcount_2) and is_immortal(refcount_1)
         )
 
 
