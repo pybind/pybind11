@@ -71,7 +71,7 @@ class test_override_cache_helper_trampoline : public test_override_cache_helper 
     int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
 };
 
-PYBIND11_EMBEDDED_MODULE(widget_module, m) {
+PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
