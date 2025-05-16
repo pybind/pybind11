@@ -20,6 +20,15 @@
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
+PyInterpreterState *get_interpreter_state_unchecked() {
+    auto cur_tstate = get_thread_state_unchecked();
+    if (cur_tstate)
+        return cur_tstate->interp;
+    else
+        return nullptr;
+}
+PYBIND11_NAMESPACE_END()
 
 class subinterpreter;
 
@@ -38,7 +47,7 @@ public:
 
 private:
     PyThreadState *old_tstate_ = nullptr;
-    PyThreadState *free_tstate_ = nullptr;
+    PyThreadState *tstate_ = nullptr;
     PyGILState_STATE gil_state_;
     bool simple_gil_ = false;
 };
@@ -139,13 +148,13 @@ public:
             auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
             auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
             {
-                dict state_dict = detail::get_python_state_dict();
+                dict sd = state_dict();
                 internals_ptr_ptr
                     = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-                        state_dict, PYBIND11_INTERNALS_ID);
+                        sd, PYBIND11_INTERNALS_ID);
                 local_internals_ptr_ptr
                     = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
-                        state_dict, detail::get_local_internals_id());
+                        sd, detail::get_local_internals_id());
             }
 
             // End it
@@ -167,10 +176,6 @@ public:
         }
     }
 
-    /// abandon cleanup of this subinterpreter (leak it). this might be needed during
-    /// finalization...
-    void disarm() { tstate_ = nullptr; }
-
     /// Get a handle to the main interpreter that can be used with subinterpreter_scoped_activate
     /// Note that destructing the handle is a noop, the main interpreter can only be ended by
     /// py::finalize_interpreter()
@@ -180,6 +185,30 @@ public:
         m.disarm(); // make destruct a noop
         return subinterpreter_scoped_activate(m);
     }
+
+    /// Get a non-owning wrapper of the currently active interpreter (if any)
+    static subinterpreter current() {
+        subinterpreter c;
+        c.istate_ = detail::get_interpreter_state_unchecked();
+        c.disarm(); // make destruct a noop, we don't own this...
+        return c;
+    }
+
+    /// Get the numerical identifier for the sub-interpreter
+    int64_t id() const { return PyInterpreterState_GetID(istate_); }
+
+    /// Get the interpreter's state dict.  This interpreter's GIL must be held before calling!
+    dict state_dict() { return reinterpret_borrow<dict>(PyInterpreterState_GetDict(istate_)); }
+
+    /// abandon cleanup of this subinterpreter (leak it). this might be needed during
+    /// finalization...
+    void disarm() { tstate_ = nullptr; }
+
+    /// An empty wrapper cannot be activated
+    bool empty() const { return istate_ == nullptr; }
+
+    /// Is this wrapper non-empty
+    explicit operator bool() const { return !empty(); }
 
 private:
     friend class subinterpreter_scoped_activate;
@@ -200,14 +229,11 @@ private:
 };
 
 inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpreter const &si) {
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
     if (!si.istate_) {
         pybind11_fail("null subinterpreter");
     }
-#endif
 
-    auto cur_tstate = detail::get_thread_state_unchecked();
-    if (cur_tstate && cur_tstate->interp == si.istate_) {
+    if (detail::get_interpreter_state_unchecked() == si.istate_) {
         // we are already on this interpreter, make sure we hold the GIL
         simple_gil_ = true;
         gil_state_ = PyGILState_Ensure();
@@ -216,13 +242,13 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
 
     // we can't really innteract with the interpreter at all until we switch to it
     // not even to, for example, look in it's state dict or touch its internals
-    free_tstate_ = PyThreadState_New(si.istate_);
+    tstate_ = PyThreadState_New(si.istate_);
 
     // make the interpreter active and acquire the GIL
-    old_tstate_ = PyThreadState_Swap(free_tstate_);
+    old_tstate_ = PyThreadState_Swap(tstate_);
 
     // save this in internals for scoped_gil calls
-    PYBIND11_TLS_REPLACE_VALUE(detail::get_internals().tstate, free_tstate_);
+    PYBIND11_TLS_REPLACE_VALUE(detail::get_internals().tstate, tstate_);
 }
 
 inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
@@ -230,14 +256,14 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
         // We were on this interpreter already, so just make sure the GIL goes back as it was
         PyGILState_Release(gil_state_);
     } else {
-        if (free_tstate_) {
+        if (tstate_) {
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            if (detail::get_thread_state_unchecked() != free_tstate_) {
+            if (detail::get_thread_state_unchecked() != tstate_) {
                 pybind11_fail("~subinterpreter_scoped_activate: thread state must be current!");
             }
 #endif
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
-            PyThreadState_Clear(free_tstate_);
+            PyThreadState_Clear(tstate_);
             PyThreadState_DeleteCurrent();
         }
 
