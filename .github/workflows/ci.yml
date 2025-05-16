@@ -34,7 +34,9 @@ jobs:
         python:
         - '3.8'
         - '3.13'
+        - '3.13t'
         - '3.14'
+        - '3.14t'
         - 'pypy-3.10'
         - 'pypy-3.11'
         - 'graalpy-24.2'
@@ -97,9 +99,6 @@ jobs:
               -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
           - runs-on: 'ubuntu-latest'
             python: 'graalpy-24.1'
-          # Only working one for 3.14.0b1 on Windows
-          - runs-on: windows-2022
-            python: '3.14t'
 
         exclude:
           # The setup-python action currently doesn't have graalpy for windows
