@@ -1,17 +1,17 @@
 #include <pybind11/embed.h>
 #ifdef PYBIND11_SUBINTERPRETER_SUPPORT
-#include <pybind11/subinterpreter.h>
+#    include <pybind11/subinterpreter.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
-#include <catch.hpp>
-#include <cstdlib>
-#include <fstream>
-#include <functional>
-#include <thread>
-#include <utility>
+#    include <catch.hpp>
+#    include <cstdlib>
+#    include <fstream>
+#    include <functional>
+#    include <thread>
+#    include <utility>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -21,7 +21,8 @@ bool has_pybind11_internals_static();
 uintptr_t get_details_as_uintptr();
 
 void unsafe_reset_internals_for_single_interpreter() {
-    // unsafe normally, but for subsequent tests, put this back.. we know there are no threads running and only 1 interpreter
+    // unsafe normally, but for subsequent tests, put this back.. we know there are no threads
+    // running and only 1 interpreter
     py::detail::get_num_interpreters_seen() = 1;
     py::detail::get_internals_pp<py::detail::internals>() = nullptr;
     py::detail::get_internals();
@@ -49,12 +50,13 @@ TEST_CASE("Single Subinterpreter") {
     {
         py::scoped_subinterpreter ssi;
 
-        // The subinterpreter has internals populated 
+        // The subinterpreter has internals populated
         REQUIRE(has_pybind11_internals_static());
 
         py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
-        auto ext_int = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+        auto ext_int
+            = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
         py::detail::get_internals();
         REQUIRE(has_pybind11_internals_static());
         REQUIRE(get_details_as_uintptr() == ext_int);
@@ -98,7 +100,8 @@ TEST_CASE("Multiple Subinterpreters") {
             py::subinterpreter_scoped_activate scoped(si1);
             py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
-            // The subinterpreter has its own copy of this module which is completely separate from main
+            // The subinterpreter has its own copy of this module which is completely separate from
+            // main
             sub1_ext = py::module_::import("external_module").ptr();
             REQUIRE(sub1_ext != main_ext);
             REQUIRE_FALSE(py::hasattr(py::module_::import("external_module"), "multi_interp"));
@@ -111,7 +114,7 @@ TEST_CASE("Multiple Subinterpreters") {
             // while the old one is active, create a new one
             psi2 = std::make_unique<py::subinterpreter>(py::subinterpreter::create());
         }
-        
+
         {
             py::subinterpreter_scoped_activate scoped(*psi2);
             py::list(py::module_::import("sys").attr("path")).append(py::str("."));
@@ -128,15 +131,17 @@ TEST_CASE("Multiple Subinterpreters") {
             REQUIRE(sub2_int != main_int);
             REQUIRE(sub2_int != sub1_int);
         }
-    
+
         {
             py::subinterpreter_scoped_activate scoped(si1);
-            REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
-                    == "2");
+            REQUIRE(
+                py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
+                == "2");
         }
 
-        // out here we should be in the main interpreter, with the GIL, with the other 2 still alive
-    
+        // out here we should be in the main interpreter, with the GIL, with the other 2 still
+        // alive
+
         auto post_int
             = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
         // Make sure internals went back the way it was before
@@ -148,17 +153,18 @@ TEST_CASE("Multiple Subinterpreters") {
 
     // now back to just main
 
-    auto post_int = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    auto post_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
     // Make sure internals went back the way it was before
     REQUIRE(main_int == post_int);
 
     REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
-        == "1");
-    
+            == "1");
+
     unsafe_reset_internals_for_single_interpreter();
 }
 
-#ifdef Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+#    ifdef Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
 TEST_CASE("Per-Subinterpreter GIL") {
     auto main_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
@@ -169,12 +175,12 @@ TEST_CASE("Per-Subinterpreter GIL") {
     failure = 0;
 
 // REQUIRE throws on failure, so we can't use it within the thread
-#    define T_REQUIRE(status)                                                                     \
-        do {                                                                                      \
-            assert(status);                                                                       \
-            if (!(status))                                                                        \
-                ++failure;                                                                        \
-        } while (0)
+#        define T_REQUIRE(status)                                                                 \
+            do {                                                                                  \
+                assert(status);                                                                   \
+                if (!(status))                                                                    \
+                    ++failure;                                                                    \
+            } while (0)
 
     auto &&thread_main = [&](int num) {
         while (started == 0)
@@ -232,7 +238,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
             T_REQUIRE(sub_int != main_int);
         }
     };
-#    undef T_REQUIRE
+#        undef T_REQUIRE
 
     std::thread t1(thread_main, 1);
     std::thread t2(thread_main, 2);
@@ -283,6 +289,6 @@ TEST_CASE("Per-Subinterpreter GIL") {
     // make sure nothing unexpected happened inside the threads, now that they are completed
     REQUIRE(failure == 0);
 }
-#endif//Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+#    endif // Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
 
-#endif// PYBIND11_SUBINTERPRETER_SUPPORT
+#endif // PYBIND11_SUBINTERPRETER_SUPPORT
