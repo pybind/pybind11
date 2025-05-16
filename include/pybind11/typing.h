@@ -160,39 +160,36 @@ struct handle_type_name<typing::Tuple<>> {
 template <typename T>
 struct handle_type_name<typing::Tuple<T, ellipsis>> {
     // PEP 484 specifies this syntax for a variable-length tuple
-    static constexpr auto name = const_name("tuple[")
-                                 + make_caster<T>::name + const_name(", ...]");
+    static constexpr auto name
+        = const_name("tuple[") + make_caster<T>::name + const_name(", ...]");
 };
 
 template <typename K, typename V>
 struct handle_type_name<typing::Dict<K, V>> {
-    static constexpr auto name = const_name("dict[")
-                                 + make_caster<K>::name + const_name(", ") + make_caster<V>::name
-                                 + const_name("]");
+    static constexpr auto name = const_name("dict[") + make_caster<K>::name + const_name(", ")
+                                 + make_caster<V>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::List<T>> {
-    static constexpr auto name = const_name("list[")
-                                 + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("list[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Set<T>> {
-    static constexpr auto name = const_name("set[")
-                                 + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name("set[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterable<T>> {
-    static constexpr auto name = const_name("collections.abc.Iterable[")
-                                 + make_caster<T>::name + const_name("]");
+    static constexpr auto name
+        = const_name("collections.abc.Iterable[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::Iterator<T>> {
-    static constexpr auto name = const_name("collections.abc.Iterator[")
-                                 + make_caster<T>::name + const_name("]");
+    static constexpr auto name
+        = const_name("collections.abc.Iterator[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename Return, typename... Args>
