@@ -246,27 +246,6 @@
 #    define PYBIND11_BUFFER_TYPE_HINT "typing_extensions.Buffer"
 #endif
 
-// Python 3.9+ Compatibility #5663
-// #if 0x03090000 <= PY_VERSION_HEX
-#define PYBIND11_TYPE_HINT_ITERABLE "collections.abc.Iterable"
-#define PYBIND11_TYPE_HINT_ITERATOR "collections.abc.Iterator"
-#define PYBIND11_TYPE_HINT_CALLABLE "collections.abc.Callable"
-#define PYBIND11_TYPE_HINT_SEQUENCE "collections.abc.Sequence"
-#define PYBIND11_TYPE_HINT_TUPLE "tuple"
-#define PYBIND11_TYPE_HINT_DICT "dict"
-#define PYBIND11_TYPE_HINT_LIST "list"
-#define PYBIND11_TYPE_HINT_SET "set"
-// #else
-// #    define PYBIND11_TYPE_HINT_ITERABLE "typing.Iterable"
-// #    define PYBIND11_TYPE_HINT_ITERATOR "typing.Iterator"
-// #    define PYBIND11_TYPE_HINT_CALLABLE "typing.Callable"
-// #    define PYBIND11_TYPE_HINT_SEQUENCE "typing.Sequence"
-// #    define PYBIND11_TYPE_HINT_TUPLE "typing.Tuple"
-// #    define PYBIND11_TYPE_HINT_DICT "typing.Dict"
-// #    define PYBIND11_TYPE_HINT_LIST "typing.List"
-// #    define PYBIND11_TYPE_HINT_SET "typing.Set"
-// #endif
-
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
 //             (probably surprising and never documented, but this was the

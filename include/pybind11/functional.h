@@ -137,7 +137,7 @@ public:
 
     PYBIND11_TYPE_CASTER(
         type,
-        const_name(PYBIND11_TYPE_HINT_CALLABLE) + const_name("[[")
+        const_name("collections.abc.Callable[[")
             + ::pybind11::detail::concat(::pybind11::detail::arg_descr(make_caster<Args>::name)...)
             + const_name("], ") + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
             + const_name("]"));

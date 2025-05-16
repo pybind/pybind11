@@ -1395,11 +1395,11 @@ struct handle_type_name<int_> {
 };
 template <>
 struct handle_type_name<iterable> {
-    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_ITERABLE);
+    static constexpr auto name = const_name("collections.abc.Iterable");
 };
 template <>
 struct handle_type_name<iterator> {
-    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_ITERATOR);
+    static constexpr auto name = const_name("collections.abc.Iterator");
 };
 template <>
 struct handle_type_name<float_> {
@@ -1407,7 +1407,7 @@ struct handle_type_name<float_> {
 };
 template <>
 struct handle_type_name<function> {
-    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_CALLABLE);
+    static constexpr auto name = const_name("collections.abc.Callable");
 };
 template <>
 struct handle_type_name<handle> {
@@ -1419,7 +1419,7 @@ struct handle_type_name<none> {
 };
 template <>
 struct handle_type_name<sequence> {
-    static constexpr auto name = const_name(PYBIND11_TYPE_HINT_SEQUENCE);
+    static constexpr auto name = const_name("collections.abc.Sequence");
 };
 template <>
 struct handle_type_name<bytearray> {
