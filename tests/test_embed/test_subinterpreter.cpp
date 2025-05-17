@@ -79,11 +79,11 @@ TEST_CASE("Single Subinterpreter") {
 
 TEST_CASE("Move Subinterpreter") {
 
-    py::subinterpreter sub = py::subinterpreter::create();
+    std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
 
     // on this thread, use the subinterpreter and import some non-trivial junk
     {
-        py::subinterpreter_scoped_activate activate(sub);
+        py::subinterpreter_scoped_activate activate(*sub);
 
         py::list(py::module_::import("sys").attr("path")).append(py::str("."));
         py::module_::import("datetime");
@@ -91,15 +91,17 @@ TEST_CASE("Move Subinterpreter") {
         py::module_::import("external_module");
     }
 
-    std::thread([s = std::move(sub)]() mutable {
+    std::thread([&]() {
         // Use it again
         {
-            py::subinterpreter_scoped_activate activate(s);
+            py::subinterpreter_scoped_activate activate(*sub);
             py::module_::import("external_module");
         }
-        // it will be freed at the end of the thread
+        sub.reset();
     }).join();
-    REQUIRE(!sub); // it was moved from and destroyed
+    
+    REQUIRE(!sub);
+
     unsafe_reset_internals_for_single_interpreter();
 }
 
