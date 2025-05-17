@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import re
 import sys
 import sysconfig
@@ -49,7 +50,10 @@ def print_includes() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    make_parser = functools.partial(argparse.ArgumentParser, allow_abbrev=False)
+    if sys.version_info >= (3, 14):
+        make_parser = functools.partial(make_parser, color=True, suggest_on_error=True)
+    parser = make_parser()
     parser.add_argument(
         "--version",
         action="version",

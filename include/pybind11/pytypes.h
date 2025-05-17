@@ -2583,7 +2583,8 @@ str_attr_accessor object_api<D>::doc() const {
 
 template <typename D>
 object object_api<D>::annotations() const {
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 9
+// This is needed again because of the lazy annotations added in 3.14+
+#if PY_VERSION_HEX < 0x030A0000 || PY_VERSION_HEX >= 0x030E0000
     // https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
     if (!hasattr(derived(), "__annotations__")) {
         setattr(derived(), "__annotations__", dict());
