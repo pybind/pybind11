@@ -122,6 +122,8 @@ The ``call_go`` wrapper can also be simplified using the ``call_guard`` policy
     m.def("call_go", &call_go, py::call_guard<py::gil_scoped_release>());
 
 
+.. _commongilproblems:
+
 Common Sources Of Global Interpreter Lock Errors
 ==================================================================
 
@@ -152,6 +154,162 @@ following checklist.
 - You should try running your code in a debug build. That will enable additional assertions
   within pybind11 that will throw exceptions on certain GIL handling errors
   (reference counting operations).
+
+Free-threading support
+==================================================================
+
+pybind11 supports the experimental free-threaded builds of Python versions 3.13+.
+pybind11's internal data structures are thread safe. To enable your modules to be used with
+free-threading, pass the :class:`mod_gil_not_used` tag as the third argument to
+``PYBIND11_MODULE``.
+
+For example:
+
+.. code-block:: cpp
+    :emphasize-lines: 1
+
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
+        py::class_<Animal> animal(m, "Animal");
+        // etc
+    }
+
+Importantly, enabling your module to be used with free-threading is also your promise that
+your code is thread safe.  Modules must still be built against the Python free-threading branch to
+enable free-threading, even if they specify this tag.  Adding this tag does not break
+compatibility with non-free-threaded Python.
+
+Sub-interpreter support
+==================================================================
+
+pybind11 supports isolated sub-interpreters, which are stable in Python 3.12+.  pybind11's
+internal data structures are sub-interpreter safe. To enable your modules to be imported in
+isolated sub-interpreters, pass the :func:`multiple_interpreters::per_interpreter_gil()`
+tag as the third or later argument to ``PYBIND11_MODULE``.
+
+For example:
+
+.. code-block:: cpp
+    :emphasize-lines: 1
+
+    PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil()) {
+        py::class_<Animal> animal(m, "Animal");
+        // etc
+    }
+
+Best Practices for Sub-interpreter Safety:
+
+- Your initialization function will run for each interpreter that imports your module.
+
+- Never share Python objects across different sub-interpreters.
+
+- Avoid global/static state whenever possible. Instead, keep state within each interpreter,
+  such as in instance members tied to Python objects, :func:`globals()`, and the interpreter
+  state dict.
+
+- Modules without any global/static state in their C++ code may already be sub-interpreter safe
+  without any additional work!
+
+- Avoid trying to "cache" Python objects in C++ variables across function calls (this is an easy
+  way to accidentally introduce sub-interpreter bugs).
+
+- While sub-interpreters each have their own GIL, there can now be multiple independent GILs in one
+  program, so concurrent calls into a module from two different sub-interpreters are still
+  possible. Therefore, your module still needs to consider thread safety.
+
+pybind11 also supports "legacy" sub-interpreters which shared a single global GIL. You can enable
+legacy-only behavior by using the :func:`multiple_interpreters::shared_gil()` tag in
+``PYBIND11_MODULE``.
+
+You can explicitly disable sub-interpreter support in your module by using the
+:func:`multiple_interpreters::not_supported()` tag. This is the default behavior if you do not
+specify a multiple_interpreters tag.
+
+Concurrency and Parallelism in Python with pybind11
+===================================================
+
+Sub-interpreter support does not imply free-threading support or vice versa.  Free-threading safe
+modules can still have global/static state (as long as access to them is thread-safe), but
+sub-interpreter safe modules cannot.  Likewise, sub-interpreter safe modules can still rely on the
+GIL, but free-threading safe modules cannot.
+
+Here is a simple example module which has a function that calculates a value and returns the result
+of the previous calculation.
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        static size_t seed = 0;
+        m.def("calc_next", []() {
+            auto old = seed;
+            seed = (seed + 1) * 10;
+            return old;
+        });
+
+This module is not free-threading safe because there is no synchronization on the number variable.
+It is relatively easy to make this free-threading safe.  One way is by using atomics, like this:
+
+.. code-block:: cpp
+    :emphasize-lines: 1,2
+
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
+        static std::atomic<size_t> seed(0);
+        m.def("calc_next", []() {
+            size_t old, next;
+            do {
+                old = seed.load();
+                next = (old + 1) * 10;
+            } while (!seed.compare_exchange_weak(old, next));
+            return old;
+        });
+    }
+
+The atomic variable and the compare-exchange guarantee a consistent behavior from this function even
+when called currently from multiple threads at the same time.
+
+However, the global/static integer is not sub-interpreter safe, because the calls in one
+sub-interpreter will change what is seen in another. To fix it, the state needs to be specific to
+each interpreter.  One way to do that is by storing the state on another Python object, such as a
+member of a class. For this simple example, we will store it in :func:`globals`.
+
+.. code-block:: cpp
+    :emphasize-lines: 1,6
+
+    PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil()) {
+        m.def("calc_next", []() {
+            if (!py::globals().contains("myseed"))
+                py::globals()["myseed"] = 0;
+            size_t old = py::globals()["myseed"];
+            py::globals()["myseed"] = (old + 1) * 10;
+            return old;
+        });
+    }
+
+This module is sub-interpreter safe, for both ``shared_gil`` ("legacy") and
+``per_interpreter_gil`` ("default") varieties. Multiple sub-interpreters could each call this same
+function concurrently from different threads. This is safe because each sub-interpreter's GIL
+protects it's own Python objects from concurrent access.
+
+However, the module is no longer free-threading safe, for the same reason as before, because the
+calculation is not synchronized. We can synchronize it using a Python critical section.
+
+.. code-block:: cpp
+    :emphasize-lines: 1,5,10
+
+    PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil(), py::mod_gil_not_used()) {
+        m.def("calc_next", []() {
+            size_t old;
+            py::dict g = py::globals();
+            Py_BEGIN_CRITICAL_SECTION(g);
+            if (!g.contains("myseed"))
+                g["myseed"] = 0;
+            old = g["myseed"];
+            g["myseed"] = (old + 1) * 10;
+            Py_END_CRITICAL_SECTION();
+            return old;
+        });
+    }
+
+The module is now both sub-interpreter safe and free-threading safe.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================

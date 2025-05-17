@@ -34,6 +34,7 @@ jobs:
         python:
         - '3.8'
         - '3.13'
+        - '3.14'
         - 'pypy-3.10'
         - 'pypy-3.11'
         - 'graalpy-24.2'
@@ -108,6 +109,9 @@ jobs:
           # No NumPy for PyPy 3.10 ARM
           - runs-on: macos-14
             python: 'pypy-3.10'
+          # Beta 1 broken for compiling on GHA (thinks it's free-threaded)
+          - runs-on: windows-2022
+            python: '3.14'
 
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
