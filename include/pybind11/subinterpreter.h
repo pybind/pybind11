@@ -195,11 +195,12 @@ public:
     }
 
     /// Get the numerical identifier for the sub-interpreter
-    int64_t id() const { 
+    int64_t id() const {
         if (istate_ != nullptr)
             return PyInterpreterState_GetID(istate_);
         else
-            return -1; // CPython uses one-up numbers from 0, so negative should be safe to return here.
+            return -1; // CPython uses one-up numbers from 0, so negative should be safe to return
+                       // here.
     }
 
     /// Get the interpreter's state dict.  This interpreter's GIL must be held before calling!
