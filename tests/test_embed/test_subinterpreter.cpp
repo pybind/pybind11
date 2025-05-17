@@ -79,11 +79,11 @@ TEST_CASE("Single Subinterpreter") {
 
 TEST_CASE("Move Subinterpreter") {
 
-    auto ssi = std::make_unique<py::subinterpreter>(py::subinterpreter::create());
+    py::subinterpreter sub = py::subinterpreter::create();
 
     // on this thread, use the subinterpreter and import some non-trivial junk
     {
-        py::subinterpreter_scoped_activate activate(*ssi);
+        py::subinterpreter_scoped_activate activate(sub);
 
         py::list(py::module_::import("sys").attr("path")).append(py::str("."));
         py::module_::import("datetime");
@@ -91,18 +91,15 @@ TEST_CASE("Move Subinterpreter") {
         py::module_::import("external_module");
     }
 
-    std::thread temp([ssi = std::move(ssi)]() mutable {
+    std::thread([s = std::move(sub)]() mutable {
         // Use it again
         {
-            py::subinterpreter_scoped_activate activate(*ssi);
+            py::subinterpreter_scoped_activate activate(s);
             py::module_::import("external_module");
         }
-
-        // free it
-        ssi.reset();
-    });
-    temp.join();
-    REQUIRE(!ssi);
+        // it will be freed at the end of the thread
+    }).join();
+    REQUIRE(!sub); // it was moved from and destroyed
     unsafe_reset_internals_for_single_interpreter();
 }
 
@@ -111,14 +108,14 @@ TEST_CASE("GIL Subinterpreter") {
     PyInterpreterState *main_interp = PyInterpreterState_Get();
 
     {
-        auto ssi = py::subinterpreter::create();
+        auto sub = py::subinterpreter::create();
 
         REQUIRE(main_interp == PyInterpreterState_Get());
 
         PyInterpreterState *sub_interp = nullptr;
 
         {
-            py::subinterpreter_scoped_activate activate(ssi);
+            py::subinterpreter_scoped_activate activate(sub);
 
             sub_interp = PyInterpreterState_Get();
             REQUIRE(sub_interp != main_interp);
@@ -175,7 +172,7 @@ TEST_CASE("GIL Subinterpreter") {
             py::gil_scoped_release nogil{};
             std::thread([&]() {
                 {
-                    py::subinterpreter_scoped_activate ssa{ssi};
+                    py::subinterpreter_scoped_activate ssa{sub};
                 }
                 {
                     py::gil_scoped_acquire gil{};
@@ -232,7 +229,7 @@ TEST_CASE("Multiple Subinterpreters") {
             REQUIRE(sub1_int != main_int);
 
             // while the old one is active, create a new one
-            psi2 = std::make_unique<py::subinterpreter>(py::subinterpreter::create());
+            psi2.reset(new py::subinterpreter(py::subinterpreter::create()));
         }
 
         {
