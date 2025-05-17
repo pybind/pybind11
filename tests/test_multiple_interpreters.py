@@ -15,6 +15,7 @@ def test_independent_subinterpreters():
 
     sys.path.append(".")
 
+    # This is supposed to be added to PyPI sometime in 3.14's lifespan
     if sys.version_info >= (3, 15):
         import interpreters
     elif sys.version_info >= (3, 13):
