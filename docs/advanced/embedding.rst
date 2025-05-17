@@ -341,7 +341,7 @@ Here is an example showing how to create and activate sub-interpreters:
     }
 
     int main() {
-        py::scoped_interpreter main_int{};
+        py::scoped_interpreter main_interp;
 
         py::module_::import("printer").attr("which")("First init");
 
@@ -351,7 +351,7 @@ Here is an example showing how to create and activate sub-interpreters:
             py::module_::import("printer").attr("which")("Created sub");
 
             {
-                py::subinterpreter_scoped_activate ssa(sub);
+                py::subinterpreter_scoped_activate guard(sub);
                 py::module_::import("printer").attr("which")("Activated sub");
             }
 
@@ -360,9 +360,9 @@ Here is an example showing how to create and activate sub-interpreters:
             {
                 py::gil_scoped_release nogil;
                 {
-                    py::subinterpreter_scoped_activate ssa(sub);
+                    py::subinterpreter_scoped_activate guard(sub);
                     {
-                        auto main_sa = py::subinterpreter::main_scoped_activate();
+                        py::subinterpreter_scoped_activate main_guard(py::subinterpreter::main());
                         py::module_::import("printer").attr("which")("Main within sub");
                     }
                     py::module_::import("printer").attr("which")("After Main, still within sub");

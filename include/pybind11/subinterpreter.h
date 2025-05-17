@@ -28,7 +28,7 @@ PyInterpreterState *get_interpreter_state_unchecked() {
     else
         return nullptr;
 }
-PYBIND11_NAMESPACE_END()
+PYBIND11_NAMESPACE_END(detail)
 
 class subinterpreter;
 
@@ -77,7 +77,7 @@ public:
     /// interpreter and its GIL are not required to be held prior to calling this function.
     static inline subinterpreter create(PyInterpreterConfig const &cfg) {
         error_scope err_scope;
-        auto main_guard = main_scoped_activate();
+        subinterpreter_scoped_activate main_guard(main());
         subinterpreter result;
         {
             // we must hold the main GIL in order to create a subinterpreter
@@ -179,11 +179,11 @@ public:
     /// Get a handle to the main interpreter that can be used with subinterpreter_scoped_activate
     /// Note that destructing the handle is a noop, the main interpreter can only be ended by
     /// py::finalize_interpreter()
-    static subinterpreter_scoped_activate main_scoped_activate() {
+    static subinterpreter main() {
         subinterpreter m;
         m.istate_ = PyInterpreterState_Main();
         m.disarm(); // make destruct a noop
-        return subinterpreter_scoped_activate(m);
+        return m;
     }
 
     /// Get a non-owning wrapper of the currently active interpreter (if any)

@@ -132,7 +132,7 @@ TEST_CASE("GIL Subinterpreter") {
             py::module_::import("external_module");
 
             {
-                auto main_activate = py::subinterpreter::main_scoped_activate();
+                py::subinterpreter_scoped_activate main(py::subinterpreter::main());
                 REQUIRE(PyInterpreterState_Get() == main_interp);
 
                 {
