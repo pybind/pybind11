@@ -64,12 +64,20 @@ def test_generalized_iterators_simple():
 
 
 def test_iterator_doc_annotations():
-    assert m.IntPairs.nonref.__doc__.endswith("-> Iterator[tuple[int, int]]\n")
-    assert m.IntPairs.nonref_keys.__doc__.endswith("-> Iterator[int]\n")
-    assert m.IntPairs.nonref_values.__doc__.endswith("-> Iterator[int]\n")
-    assert m.IntPairs.simple_iterator.__doc__.endswith("-> Iterator[tuple[int, int]]\n")
-    assert m.IntPairs.simple_keys.__doc__.endswith("-> Iterator[int]\n")
-    assert m.IntPairs.simple_values.__doc__.endswith("-> Iterator[int]\n")
+    assert m.IntPairs.nonref.__doc__.endswith(
+        "-> collections.abc.Iterator[tuple[int, int]]\n"
+    )
+    assert m.IntPairs.nonref_keys.__doc__.endswith("-> collections.abc.Iterator[int]\n")
+    assert m.IntPairs.nonref_values.__doc__.endswith(
+        "-> collections.abc.Iterator[int]\n"
+    )
+    assert m.IntPairs.simple_iterator.__doc__.endswith(
+        "-> collections.abc.Iterator[tuple[int, int]]\n"
+    )
+    assert m.IntPairs.simple_keys.__doc__.endswith("-> collections.abc.Iterator[int]\n")
+    assert m.IntPairs.simple_values.__doc__.endswith(
+        "-> collections.abc.Iterator[int]\n"
+    )
 
 
 def test_iterator_referencing():
@@ -194,7 +202,10 @@ def test_sequence_length():
 
 
 def test_sequence_doc():
-    assert m.sequence_length.__doc__.strip() == "sequence_length(arg0: Sequence) -> int"
+    assert (
+        m.sequence_length.__doc__.strip()
+        == "sequence_length(arg0: collections.abc.Sequence) -> int"
+    )
 
 
 def test_map_iterator():

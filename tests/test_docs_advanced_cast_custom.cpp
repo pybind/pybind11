@@ -23,8 +23,9 @@ struct type_caster<user_space::Point2D> {
     // This macro inserts a lot of boilerplate code and sets the type hint.
     // `io_name` is used to specify different type hints for arguments and return values.
     // The signature of our negate function would then look like:
-    // `negate(Sequence[float]) -> tuple[float, float]`
-    PYBIND11_TYPE_CASTER(user_space::Point2D, io_name("Sequence[float]", "tuple[float, float]"));
+    // `negate(collections.abc.Sequence[float]) -> tuple[float, float]`
+    PYBIND11_TYPE_CASTER(user_space::Point2D,
+                         io_name("collections.abc.Sequence[float]", "tuple[float, float]"));
 
     // C++ -> Python: convert `Point2D` to `tuple[float, float]`. The second and third arguments
     // are used to indicate the return value policy and parent object (for
