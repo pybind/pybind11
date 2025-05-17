@@ -1,5 +1,5 @@
 /*
-    pybind11/subinterpreters.h: Support for creating and using subinterpreters
+    pybind11/subinterpreter.h: Support for creating and using subinterpreters
 
     Copyright (c) 2025 The Pybind Development Team.
 
@@ -195,7 +195,12 @@ public:
     }
 
     /// Get the numerical identifier for the sub-interpreter
-    int64_t id() const { return PyInterpreterState_GetID(istate_); }
+    int64_t id() const { 
+        if (istate_ != nullptr)
+            return PyInterpreterState_GetID(istate_);
+        else
+            return -1; // CPython uses one-up numbers from 0, so negative should be safe to return here.
+    }
 
     /// Get the interpreter's state dict.  This interpreter's GIL must be held before calling!
     dict state_dict() { return reinterpret_borrow<dict>(PyInterpreterState_GetDict(istate_)); }
