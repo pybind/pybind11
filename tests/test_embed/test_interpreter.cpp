@@ -638,7 +638,7 @@ TEST_CASE("Threads") {
             threads.emplace_back([&]() {
                 py::gil_scoped_acquire gil{};
 #ifdef Py_GIL_DISABLED
-                Py_BEGIN_CRITICAL_SECTION(locals);
+                Py_BEGIN_CRITICAL_SECTION(locals.ptr());
                 locals["count"] = locals["count"].cast<int>() + 1;
                 Py_END_CRITICAL_SECTION();
 #else
