@@ -13,7 +13,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Forward declaration needed here: Refactoring opportunity.
-extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
+extern "C" PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *);
 
 inline bool type_is_managed_by_our_internals(PyTypeObject *type_obj) {
 #if defined(PYPY_VERSION)
