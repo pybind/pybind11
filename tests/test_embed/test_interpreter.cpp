@@ -55,7 +55,7 @@ class test_override_cache_helper_trampoline : public test_override_cache_helper 
     int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
 };
 
-PYBIND11_EMBEDDED_MODULE(widget_module, m) {
+PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
@@ -512,10 +512,11 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
         // we have switched to the new interpreter and released the main gil
 
-        // widget_module did not provide the mod_per_interpreter_gil tag, so it cannot be imported
+        // trampoline_module did not provide the per_interpreter_gil tag, so it cannot be
+        // imported
         bool caught = false;
         try {
-            py::module_::import("widget_module");
+            py::module_::import("trampoline_module");
         } catch (pybind11::error_already_set &pe) {
             T_REQUIRE(pe.matches(PyExc_ImportError));
             std::string msg(pe.what());
@@ -524,6 +525,15 @@ TEST_CASE("Per-Subinterpreter GIL") {
             caught = true;
         }
         T_REQUIRE(caught);
+
+        // widget_module did provide the per_interpreter_gil tag, so it this does not throw
+        try {
+            py::module_::import("widget_module");
+            caught = false;
+        } catch (pybind11::error_already_set &pe) {
+            caught = true;
+        }
+        T_REQUIRE(!caught);
 
         T_REQUIRE(!py::hasattr(py::module_::import("external_module"), "multi_interp"));
         py::module_::import("external_module").attr("multi_interp") = std::to_string(num);
