@@ -47,6 +47,7 @@ cats_descr = {
     "tests": "Tests",
     "ci": "CI",
     "chore": "Other",
+    "chore(cmake)": "",
     "unknown": "Uncategorised",
 }
 cats: dict[str, list[str]] = {c: [] for c in cats_descr}
