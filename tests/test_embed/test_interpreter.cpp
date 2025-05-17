@@ -530,7 +530,7 @@ TEST_CASE("Per-Subinterpreter GIL") {
         try {
             py::module_::import("widget_module");
             caught = false;
-        } catch (pybind11::error_already_set &pe) {
+        } catch (pybind11::error_already_set &) {
             caught = true;
         }
         T_REQUIRE(!caught);
