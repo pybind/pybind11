@@ -637,7 +637,13 @@ TEST_CASE("Threads") {
         for (auto i = 0; i < num_threads; ++i) {
             threads.emplace_back([&]() {
                 py::gil_scoped_acquire gil{};
+#ifdef Py_GIL_DISABLED
+                Py_BEGIN_CRITICAL_SECTION(locals);
                 locals["count"] = locals["count"].cast<int>() + 1;
+                Py_END_CRITICAL_SECTION();
+#else
+                locals["count"] = locals["count"].cast<int>() + 1;
+#endif
             });
         }
 
