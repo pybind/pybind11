@@ -99,7 +99,7 @@ TEST_CASE("Move Subinterpreter") {
         }
         sub.reset();
     }).join();
-    
+
     REQUIRE(!sub);
 
     unsafe_reset_internals_for_single_interpreter();
