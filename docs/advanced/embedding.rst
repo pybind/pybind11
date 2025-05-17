@@ -335,7 +335,7 @@ Here is an example showing how to create and activate sub-interpreters:
     PYBIND11_EMBEDDED_MODULE(printer, m, py::multiple_interpreters::per_interpreter_gil()) {
         m.def("which", [](const std::string& when) {
             std::cout << when << "; Current Interpreter is "
-                    << PyInterpreterState_GetID(PyInterpreterState_Get())
+                    << py::subinterpreter::current().id()
                     << std::endl;
         });
     }
