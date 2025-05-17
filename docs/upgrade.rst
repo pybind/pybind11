@@ -54,6 +54,10 @@ long-standing obstacle when using pybind11-bound functions with Python features
 that rely on pickling, such as multiprocessing and caching tools.
 See #5580 <https://github.com/pybind/pybind11/pull/5580>_ for details.
 
+Anything producing a deprecation warning in the 2.x series may be removed in a
+future minor release of 3.x. Most of these are still present in 3.0 in order to ease
+transition. The new :doc:`deprecated` page details deprecations.
+
 Migration Recommendations
 -------------------------
 

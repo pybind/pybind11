@@ -1,5 +1,62 @@
+.. _deprecated:
+
 Deprecated
 ##########
+
+The following features were deprecated before pybind11 3.0, and may be removed
+in minor releases of pybind11 3.x.
+
+.. list-table:: Deprecated Features
+   :header-rows: 1
+   :widths: 30 15 10
+
+   * - Feature
+     - Deprecated Version
+     - Year
+   * - ``py::metaclass()``
+     - 2.1
+     - 2017
+   * - ``PYBIND11_PLUGIN``
+     - 2.2
+     - 2017
+   * - ``py::set_error()`` replacing ``operator()``
+     - 2.12
+     - 2024
+   * - ``get_type_overload``
+     - 2.6
+     - 2020
+   * - ``call()``
+     - 2.0
+     - 2016
+   * - ``.str()``
+     - ?
+     -
+   * - ``.get_type()``
+     - 2.6
+     -
+   * - ``==`` and ``!=``
+     - 2.2
+     - 2017
+   * - ``.check()``
+     - ?
+     -
+   * - ``object(handle, bool)``
+     - ?
+     -
+   * - ``error_already_set.clear()``
+     - 2.2
+     - 2017
+   * - ``obj.attr(…)`` as ``bool``
+     - ?
+     -
+   * - ``.contains``
+     - ? (maybe 2.4)
+     -
+   * - ``py::capsule`` two-argument with destructor
+     - ?
+     -
+
+
 
 .. _deprecated_enum:
 
