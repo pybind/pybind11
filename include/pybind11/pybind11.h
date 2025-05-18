@@ -1484,7 +1484,7 @@ public:
     using slots_array = std::array<PyModuleDef_Slot, 4>;
 
     /** \rst
-        Initialized a module def for use with multi-phase module initialization.
+        Initialize a module def for use with multi-phase module initialization.
 
         ``def`` should point to a statically allocated module_def.
         ``slots`` must already contain a Py_mod_exec or Py_mod_create slot and will be filled with

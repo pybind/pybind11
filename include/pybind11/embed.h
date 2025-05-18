@@ -38,24 +38,43 @@
             });
         }
  \endrst */
-#define PYBIND11_EMBEDDED_MODULE(name, variable)                                                  \
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+#define PYBIND11_EMBEDDED_MODULE(name, variable, ...)                                             \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name);           \
+    static ::pybind11::module_::slots_array PYBIND11_CONCAT(pybind11_module_slots_, name);        \
+    static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     static PyObject PYBIND11_CONCAT(*pybind11_init_wrapper_, name)() {                            \
-        auto m = ::pybind11::module_::create_extension_module(                                    \
-            PYBIND11_TOSTRING(name), nullptr, &PYBIND11_CONCAT(pybind11_module_def_, name));      \
-        try {                                                                                     \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
-            return m.ptr();                                                                       \
-        }                                                                                         \
-        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
-        return nullptr;                                                                           \
+        static auto result = []() {                                                               \
+            auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
+            slots[0] = {Py_mod_exec,                                                              \
+                        reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
+            slots[1] = {0, nullptr};                                                              \
+            return ::pybind11::module_::initialize_multiphase_module_def(                         \
+                PYBIND11_TOSTRING(name),                                                          \
+                nullptr,                                                                          \
+                &PYBIND11_CONCAT(pybind11_module_def_, name),                                     \
+                slots,                                                                            \
+                ##__VA_ARGS__);                                                                   \
+        }();                                                                                      \
+        return result.ptr();                                                                      \
     }                                                                                             \
     PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                           \
     ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name)(                  \
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(pybind11_init_impl_, name));                     \
+    int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
+        try {                                                                                     \
+            auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
+            return 0;                                                                             \
+        }                                                                                         \
+        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+        return -1;                                                                                \
+    }                                                                                             \
     void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
                                                & variable) // NOLINT(bugprone-macro-parentheses)
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
