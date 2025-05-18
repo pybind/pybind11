@@ -237,31 +237,172 @@ global data. All the details can be found in the CPython documentation.
 
     Creating two concurrent ``scoped_interpreter`` guards is a fatal error. So is
     calling ``initialize_interpreter`` for a second time after the interpreter
-    has already been initialized.
+    has already been initialized. Use :class:`scoped_subinterpreter` to create
+    a sub-interpreter.  See :ref:`subinterp` for important details on sub-interpreters.
 
     Do not use the raw CPython API functions ``Py_Initialize`` and
     ``Py_Finalize`` as these do not properly handle the lifetime of
     pybind11's internal data.
 
 
+.. _subinterp:
+
 Sub-interpreter support
 =======================
 
-Creating multiple copies of ``scoped_interpreter`` is not possible because it
-represents the main Python interpreter. Sub-interpreters are something different
-and they do permit the existence of multiple interpreters. This is an advanced
-feature of the CPython API and should be handled with care. pybind11 does not
-currently offer a C++ interface for sub-interpreters, so refer to the CPython
-documentation for all the details regarding this feature.
+A sub-interpreter is a separate interpreter instance which provides a
+separate, isolated interpreter environment within the same process as the main
+interpreter.  Sub-interpreters are created and managed with a separate API from
+the main interpreter. Beginning in Python 3.12, sub-interpreters each have
+their own Global Interpreter Lock (GIL), which means that running a
+sub-interpreter in a separate thread from the main interpreter can achieve true
+concurrency.
 
-We'll just mention a couple of caveats the sub-interpreters support in pybind11:
+Managing multiple threads and the lifetimes of multiple interpreters and their
+GILs can be challenging.  Proceed with caution (and lots of testing)!
 
- 1. Sub-interpreters will not receive independent copies of embedded modules.
-    Instead, these are shared and modifications in one interpreter may be
-    reflected in another.
+The main interpreter must be initialized before creating a sub-interpreter, and
+the main interpreter must outlive all sub-interpreters. Sub-interpreters are
+managed through a different API than the main interpreter.
 
- 2. Managing multiple threads, multiple interpreters and the GIL can be
-    challenging and there are several caveats here, even within the pure
-    CPython API (please refer to the Python docs for details). As for
-    pybind11, keep in mind that ``gil_scoped_release`` and ``gil_scoped_acquire``
-    do not take sub-interpreters into account.
+The sub-interpreter API can be found in ``pybind11/subinterpreter.h``.
+
+The :class:`subinterpreter` class manages the lifetime of sub-interpreters.
+Instances are movable, but not copyable. Default constructing this class does
+*not* create a sub-interpreter (it creates an empty holder).  To create a
+sub-interpreter, call :func:`subinterpreter::create()`.
+
+.. warning::
+
+    Sub-interpreter creation acquires (and subsequently releases) the main
+    interpreter GIL. If another thread holds the main GIL, the function will
+    block until the main GIL can be acquired.
+
+    Sub-interpreter destruction temporarily activates the sub-interpreter. The
+    sub-interpreter must not be active (on any threads) at the time the
+    :class:`subinterpreter` destructor is called.
+
+    Both actions will re-acquire any interpreter's GIL that was held prior to
+    the call before returning (or return to no active interpreter if none was
+    active at the time of the call).
+
+Once a sub-interpreter is created, you can "activate" it on a thread (and
+acquire it's GIL) by creating a :class:`subinterpreter_scoped_activate`
+instance and passing it the sub-intepreter to be activated.  The function
+will acquire the sub-interpreter's GIL and make the sub-interpreter the
+current active interpreter on the current thread for the lifetime of the
+instance. When the :class:`subinterpreter_scoped_activate` instance goes out
+of scope, the sub-interpreter GIL is released and the prior interpreter that
+was active on the thread (if any) is reactivated and it's GIL is re-acquired.
+
+The :func:`subinterpreter::activate_main()` function activates the main
+interpreter, acquiring it's GIL, and returns a
+:class:`subinterpreter_scoped_activate` instance which will automatically
+deactivate the main interpreter and release it's GIL when it goes out of
+scope, just as :class:`subinterpreter_scoped_activate` also does for
+sub-interpreters.
+
+:class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be used to
+manage the GIL of a sub-interpreter just as they do for the main interpreter.
+They both manage the GIL of the currently active interpreter, without the
+programmer having to do anything special or different. There is one important 
+caveat:
+
+.. note::
+
+    When no interpreter is active through a
+    :class:`subinterpreter_scoped_activate` instance (such as on a new thread),
+    :class:`gil_scoped_acquire` will acquire the **main** GIL and
+    activate the **main** interpreter.
+
+Each sub-interpreter will import a separate copy of each ``PYBIND11_EMBEDDED_MODULE``
+when those modules specify a ``multiple_interpreters`` tag. If a module does not
+specify a ``multiple_interpreters`` tag, then Python will report an ``ImportError`` 
+if it is imported in a sub-interpreter.
+
+Here is an example showing how to create and activate sub-interpreters:
+
+.. code-block:: cpp
+
+    #include <iostream>
+    #include <pybind11/embed.h>
+    #include <pybind11/subinterpreter.h>
+
+    namespace py = pybind11;
+
+    PYBIND11_EMBEDDED_MODULE(printer, m, py::multiple_interpreters::per_interpreter_gil()) {
+        m.def("which", [](const std::string& when) {
+            std::cout << when << "; Current Interpreter is "
+                    << PyInterpreterState_GetID(PyInterpreterState_Get())
+                    << std::endl;
+        });
+    }
+
+    int main() {
+        py::scoped_interpreter main_int{};
+
+        py::module_::import("printer").attr("which")("First init");
+
+        {
+            py::subinterpreter sub = py::subinterpreter::create();
+
+            py::module_::import("printer").attr("which")("Created sub");
+
+            {
+                py::subinterpreter_scoped_activate ssa(sub);
+                py::module_::import("printer").attr("which")("Activated sub");
+            }
+
+            py::module_::import("printer").attr("which")("Deactivated sub");
+
+            {
+                py::gil_scoped_release nogil;
+                {
+                    py::subinterpreter_scoped_activate ssa(sub);
+                    {
+                        auto main_sa = py::subinterpreter::main_scoped_activate();
+                        py::module_::import("printer").attr("which")("Main within sub");
+                    }
+                    py::module_::import("printer").attr("which")("After Main, still within sub");
+                }
+            }
+        }
+
+        py::module_::import("printer").attr("which")("At end");
+
+        return 0;
+    }
+
+Expected output:
+
+.. code-block:: text
+
+    First init; Current Interpreter is 0
+    Created sub; Current Interpreter is 0
+    Activated sub; Current Interpreter is 1
+    Deactivated sub; Current Interpreter is 0
+    Main within sub; Current Interpreter is 0
+    After Main, still within sub; Current Interpreter is 1
+    At end; Current Interpreter is 0
+
+pybind11 also has a :class:`scoped_subinterpreter` class, which creates and
+activates a sub-interpreter when it is constructed, and deactivates and deletes
+it when it goes out of scope.
+
+Best Practices for sub-interpreter safety:
+
+- Never share Python objects across different interpreters.
+
+- Avoid global/static state whenever possible. Instead, keep state within each interpreter,
+  such as within the interpreter state dict, which can be accessed via
+  ``subinterpreter::current().state_dict()``, or within instance members and tied to
+  Python objects.
+
+- Avoid trying to "cache" Python objects in C++ variables across function calls (this is an easy
+  way to accidentally introduce sub-interpreter bugs). In the code example above, note that we
+  did not save the result of :func:`module_::import`, in order to avoid accidentally using the
+  resulting Python object when the wrong interpreter was active.
+
+- While sub-interpreters each have their own GIL, there can now be multiple independent GILs in one
+  program, so your code needs to consider thread safety of within the C++ code, and the possibility
+  of deadlocks caused by multiple GILs and/or the interactions of the GIL(s) and C++'s own locking.
