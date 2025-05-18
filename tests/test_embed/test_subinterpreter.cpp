@@ -44,7 +44,8 @@ TEST_CASE("Single Subinterpreter") {
     REQUIRE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
 
-    auto main_int = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+    auto main_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
 
     /// Create and switch to a subinterpreter.
     {
