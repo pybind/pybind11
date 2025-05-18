@@ -28,7 +28,7 @@ endif()
 
 find_package(Threads REQUIRED)
 
-add_executable(test_embed catch.cpp test_interpreter.cpp)
+add_executable(test_embed catch.cpp test_interpreter.cpp test_subinterpreter.cpp)
 pybind11_enable_warnings(test_embed)
 
 target_link_libraries(test_embed PRIVATE pybind11::embed Catch2::Catch2 Threads::Threads)
