@@ -627,15 +627,23 @@ TEST_CASE("Threads") {
 
     {
         py::gil_scoped_release gil_release{};
+#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030E0000
+        std::mutex mutex;
+#endif
 
         auto threads = std::vector<std::thread>();
         for (auto i = 0; i < num_threads; ++i) {
             threads.emplace_back([&]() {
                 py::gil_scoped_acquire gil{};
 #ifdef Py_GIL_DISABLED
+#    if PY_VERSION_HEX < 0x030E0000
+                std::lock_guard<std::mutex> lock(mutex);
+                locals["count"] = locals["count"].cast<int>() + 1;
+#    else
                 Py_BEGIN_CRITICAL_SECTION(locals.ptr());
                 locals["count"] = locals["count"].cast<int>() + 1;
                 Py_END_CRITICAL_SECTION();
+#    endif
 #else
                 locals["count"] = locals["count"].cast<int>() + 1;
 #endif
