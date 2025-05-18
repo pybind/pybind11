@@ -25,9 +25,9 @@ cross-extension-module compatibility, it is recommended to rebuild all
 pybind11-based extensions with v3.0.
 
 CMake support now defaults to the modern FindPython module. If you haven't
-moved, we do some backward compatibility ``PYTHON_*`` variables, but
-please update to using ``Python_*`` variables (and setting ``PYTHON_*``
-variables will not affect the build anymore).
+updated yet, we provide some backward compatibility for ``PYTHON_*`` variables,
+but you should switch to using ``Python_*`` variables instead. Note that
+setting ``PYTHON_*`` variables no longer affects the build.
 
 A major new feature in this release is the integration of
 ``py::smart_holder``, which improves support for ``std::unique_ptr``
