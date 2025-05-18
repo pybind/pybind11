@@ -32,13 +32,10 @@ public:
         Py_VISIT(Py_TYPE(self_base));
 #endif
 
-        if (should_check_holder_initialization) {
-            auto *const instance = reinterpret_cast<py::detail::instance *>(self_base);
-            if (!instance->get_value_and_holder().holder_constructed()) {
-                // The holder has not been constructed yet. Skip the traversal to avoid
-                // segmentation faults.
-                return 0;
-            }
+        if (should_check_holder_initialization && !py::detail::is_holder_constructed(self_base)) {
+            // The holder has not been constructed yet. Skip the traversal to avoid
+            // segmentation faults.
+            return 0;
         }
 
         // The actual logic of the tp_traverse function goes here.
@@ -50,13 +47,10 @@ public:
     }
 
     static int tp_clear(PyObject *self_base) {
-        if (should_check_holder_initialization) {
-            auto *const instance = reinterpret_cast<py::detail::instance *>(self_base);
-            if (!instance->get_value_and_holder().holder_constructed()) {
-                // The holder has not been constructed yet. Skip the traversal to avoid
-                // segmentation faults.
-                return 0;
-            }
+        if (should_check_holder_initialization && !py::detail::is_holder_constructed(self_base)) {
+            // The holder has not been constructed yet. Skip the traversal to avoid
+            // segmentation faults.
+            return 0;
         }
 
         // The actual logic of the tp_clear function goes here.

@@ -1388,27 +1388,17 @@ You can do that using ``py::custom_type_setup``:
    #if PY_VERSION_HEX >= 0x03090000  // Python 3.9
                Py_VISIT(Py_TYPE(self_base));
    #endif
-               if (!py::detail::is_holder_constructed(self_base)) [[unlikely]] {
-                   // The holder has not been constructed yet.
-                   // Skip the traversal to avoid segmentation faults.
-                   return 0;
+               if (py::detail::is_holder_constructed(self_base)) {
+                   auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+                   Py_VISIT(self.value.ptr());
                }
-
-               // The actual logic of the tp_traverse function goes here.
-               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
-               Py_VISIT(self.value.ptr());
                return 0;
            };
            type->tp_clear = [](PyObject *self_base) {
-               if (!py::detail::is_holder_constructed(self_base)) [[unlikely]] {
-                   // The holder has not been constructed yet.
-                   // Skip the traversal to avoid segmentation faults.
-                   return 0;
+               if (py::detail::is_holder_constructed(self_base)) {
+                   auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
+                   self.value = py::none();
                }
-
-               // The actual logic of the tp_clear function goes here.
-               auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
-               self.value = py::none();
                return 0;
            };
        }));

@@ -81,7 +81,7 @@ struct value_and_holder {
 // Example usage: https://pybind11.readthedocs.io/en/stable/advanced/classes.html#custom-type-setup
 //                for `tp_traverse` and `tp_clear` implementations.
 // WARNING: The caller is responsible for ensuring that the `reinterpret_cast` is valid.
-extern "C" [[nodiscard]] PYBIND11_NOINLINE bool is_holder_constructed(PyObject *obj) {
+inline bool is_holder_constructed(PyObject *obj) {
     auto *const instance = reinterpret_cast<pybind11::detail::instance *>(obj);
     return instance->get_value_and_holder().holder_constructed();
 }
