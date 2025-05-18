@@ -1388,9 +1388,7 @@ You can do that using ``py::custom_type_setup``:
    #if PY_VERSION_HEX >= 0x03090000  // Python 3.9
                Py_VISIT(Py_TYPE(self_base));
    #endif
-
-               auto* const instance = reinterpret_cast<py::detail::instance*>(self_base);
-               if (!instance->get_value_and_holder().holder_constructed()) [[unlikely]] {
+               if (!py::detail::is_holder_constructed(self_base)) [[unlikely]] {
                    // The holder has not been constructed yet.
                    // Skip the traversal to avoid segmentation faults.
                    return 0;
@@ -1402,8 +1400,7 @@ You can do that using ``py::custom_type_setup``:
                return 0;
            };
            type->tp_clear = [](PyObject *self_base) {
-               auto* const instance = reinterpret_cast<py::detail::instance*>(self_base);
-               if (!instance->get_value_and_holder().holder_constructed()) [[unlikely]] {
+               if (!py::detail::is_holder_constructed(self_base)) [[unlikely]] {
                    // The holder has not been constructed yet.
                    // Skip the traversal to avoid segmentation faults.
                    return 0;
