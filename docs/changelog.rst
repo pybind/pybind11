@@ -94,7 +94,6 @@ New Features (typing):
   ``pybind11::typing`` to use correct arg/return type hints for nested types.
   `#5450 <https://github.com/pybind/pybind11/pull/5450>`_
 
-
 * Updated type hint for ``py::capsule`` to ``type.CapsuleType``.
   `#5567 <https://github.com/pybind/pybind11/pull/5567>`_
 
@@ -141,7 +140,6 @@ Removals:
   `#5512 <https://github.com/pybind/pybind11/pull/5512>`_ |
   `#5530 <https://github.com/pybind/pybind11/pull/5530>`_
 
-
 * Remove ``make_simple_namespace`` (added in 2.8.0, deprecated in 2.8.1).
   `#5597 <https://github.com/pybind/pybind11/pull/5597>`_
 
@@ -150,6 +148,7 @@ Removals:
 
 * Add a deprecation warning to ``.get_type`` (deprecated in pybind11 2.6 in 2020).
   `#5596 <https://github.com/pybind/pybind11/pull/5596>`_
+
 
 Bug fixes:
 
@@ -207,7 +206,6 @@ Bug fixes:
 
 * Change the behavior of the default constructor of ``py::slice`` to be equivalent to ``::`` in Python.
   `#5620 <https://github.com/pybind/pybind11/pull/5620>`_
-
 
 
 .. fix(cmake)
@@ -288,7 +286,6 @@ compiling using ``clang`` on Linux with the ``-funsigned-char`` flag.
 
 New and removed platforms:
 
-
 * Support Python 3.14 (beta 1).
   `#5646 <https://github.com/pybind/pybind11/pull/5646>`_
 
@@ -309,6 +306,7 @@ New and removed platforms:
 
 * Use scikit-build-core for the build backend for the PyPI ``pybind11``. The CMake generation has been moved to the sdist->wheel step. ``PYBIND11_GLOBAL_PREFIX`` has been removed.
   `#5598 <https://github.com/pybind/pybind11/pull/5598>`_
+
 
 Version 2.13.6 (September 13, 2024)
 -----------------------------------
