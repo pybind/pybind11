@@ -80,6 +80,37 @@ TEST_CASE("Single Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
+
+TEST_CASE("Move Subinterpreter") {
+
+    auto ssi = std::make_unique<py::subinterpreter>(py::subinterpreter::create());
+
+    // on this thread, use the subinterpreter and import some non-trivial junk
+    {
+        py::subinterpreter_scoped_activate activate(*ssi);
+
+        py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+        py::module_::import("datetime");
+        py::module_::import("threading");
+        py::module_::import("external_module");
+    }
+
+    std::thread temp([ssi=std::move(ssi)]() mutable {
+
+        // Use it again
+        {
+            py::subinterpreter_scoped_activate activate(*ssi);
+            py::module_::import("external_module");
+        }
+
+        // free it
+        ssi.reset();
+    });
+    temp.join();
+    REQUIRE(!ssi);
+    unsafe_reset_internals_for_single_interpreter();
+}
+
 TEST_CASE("Multiple Subinterpreters") {
     // Make sure the module is in the main interpreter and save its pointer
     auto *main_ext = py::module_::import("external_module").ptr();
@@ -204,15 +235,21 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
             // we have switched to the new interpreter and released the main gil
 
-            // trampoline_module did not provide the mod_per_interpreter_gil tag, so it cannot be
-            // imported
+            // trampoline_module did not provide the per_interpreter_gil tag, so it cannot be imported
             bool caught = false;
             try {
                 py::module_::import("trampoline_module");
             } catch (pybind11::error_already_set &pe) {
+                T_REQUIRE(pe.matches(PyExc_ImportError));
+                std::string msg(pe.what());
+                T_REQUIRE(msg.find("does not support loading in subinterpreters")
+                          != std::string::npos);
                 caught = true;
             }
-            T_REQUIRE(!caught);
+            T_REQUIRE(caught);
+
+            // widget_module did provide the per_interpreter_gil tag, so it this does not throw
+            py::module_::import("widget_module");
 
             // widget_module did provide the per_interpreter_gil tag, so it this does not throw
             py::module_::import("widget_module");

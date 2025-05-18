@@ -51,44 +51,31 @@ public:
         return *this;
     }
 
-    /**
-    Because a subinterpreter must be destructed using the original PyThreadState returned when it
-    was created. However, because that state has TSS/TLS values (just like any PyThreadState) it
-    cannot be trivially moved to a different OS thread. If someone moves the subinterpreter and
-    destructs it, it may deadlock in Python cleanup.
-
-    So we try to throw here instead, but if there is an active exception then we have to just leak
-    the interpreter.
-    */
-    ~subinterpreter() noexcept(false) {
+    ~subinterpreter() {
         if (tstate_) {
-#ifdef PY_HAVE_THREAD_NATIVE_ID
-            if (PyThread_get_thread_native_id() != tstate_->native_thread_id) {
-                auto cur_tstate = detail::get_thread_state_unchecked();
-                if (cur_tstate && cur_tstate->interp == tstate_->interp) {
-                    // the destructing subinterpreter was active, release the GIL
-                    PyThreadState_Swap(nullptr);
-                }
-
-                bool throwable;
-#    ifndef __cpp_lib_uncaught_exceptions
-                // std::uncaught_exception was removed in C++20
-                throwable = !std::uncaught_exception();
-#    else
-                // std::uncaught_exceptions was added in C++14
-                throwable = !(std::uncaught_exceptions() > 0);
-#    endif
-
-                if (throwable) {
-                    throw std::runtime_error("Cannot destruct a subinterpreter on a different "
-                                             "thread from the one that created it!");
-                }
-                return;
+            PyThreadState *old_tstate;
+            /* 
+              If it is not, the interpreter destruction can hang inside Python threading cleanup.
+            So in that case, we make sure to create a new thread state to be used for cleanup
+            */
+            bool wrong_thread = true;
+            #ifdef PY_HAVE_THREAD_NATIVE_ID
+            wrong_thread = PyThread_get_thread_native_id() != tstate_->native_thread_id;
+            #endif
+            if (wrong_thread) {
+                // The PyThreadState used in Py_EndInterpreter must be created on this OS thread.
+                // So create a new thread state here on the right thread
+                auto *temp = PyThreadState_New(tstate_->interp);
+                old_tstate = PyThreadState_Swap(temp);
+                // and make to clear the other one, because there must be only one at cleanup time
+                PyThreadState_Clear(tstate_);
+                PyThreadState_Delete(tstate_);
+                tstate_ = temp;
             }
-#endif
+            else {
+                old_tstate = PyThreadState_Swap(tstate_);
+            }
 
-            // switch into the expiring interpreter
-            auto old_tstate = PyThreadState_Swap(tstate_);
             bool switch_back = old_tstate && old_tstate->interp != tstate_->interp;
 
             // make sure we have the GIL for the interpreter we are ending
@@ -217,34 +204,15 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
         return;
     }
 
-    PyThreadState *desired_tstate = nullptr;
-
-    // get the state dict for the interpreter we want
-    dict idict = reinterpret_borrow<dict>(PyInterpreterState_GetDict(si.istate_));
-    // and get the internals from it
-    auto *internals_pp = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-        idict, PYBIND11_INTERNALS_ID);
-    if (internals_pp && *internals_pp) {
-        // see if there is already a tstate for this thread
-        desired_tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE((*internals_pp)->tstate);
-        if (!desired_tstate) {
-            // nope, we have to create one.
-            desired_tstate = PyThreadState_New(si.istate_);
-            free_tstate_ = desired_tstate;
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            if (!desired_tstate) {
-                pybind11_fail("subinterpreter_scoped_activate: could not create thread state!");
-            }
-#endif
-            PYBIND11_TLS_REPLACE_VALUE((*internals_pp)->tstate, desired_tstate);
-        }
-    } else {
-        desired_tstate = PyThreadState_New(si.istate_);
-        free_tstate_ = desired_tstate;
-    }
+    // we can't really innteract with the interpreter at all until we switch to it
+    // not even to, for example, look in it's state dict or touch its internals
+    free_tstate_ = PyThreadState_New(si.istate_);
 
     // make the interpreter active and acquire the GIL
-    old_tstate_ = PyThreadState_Swap(desired_tstate);
+    old_tstate_ = PyThreadState_Swap(free_tstate_);
+
+    // save this in internals for scoped_gil calls
+    PYBIND11_TLS_REPLACE_VALUE(detail::get_internals().tstate, free_tstate_);
 }
 
 inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
