@@ -212,6 +212,11 @@ naturally:
         assert(locals["message"].cast<std::string>() == "1 + 2 = 3");
     }
 
+``PYBIND11_EMBEDDED_MODULE`` also accepts
+:func:`py::mod_gil_not_used()`,
+:func:`py::multiple_interpreters::per_interpreter_gil()`, and
+:func:`py::multiple_interpreters::shared_gil()` tags just like ``PYBIND11_MODULE``.
+See :ref:`misc_subinterp` and :ref:`misc_free_threading` for more information.
 
 Interpreter lifetime
 ====================
