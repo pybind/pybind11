@@ -61,14 +61,15 @@ public:
     subinterpreter(subinterpreter const &copy) = delete;
     subinterpreter &operator=(subinterpreter const &copy) = delete;
 
-    subinterpreter(subinterpreter &&old) : tstate_(old.tstate_), istate_(old.istate_) {
-        old.tstate_ = nullptr;
+    subinterpreter(subinterpreter &&old)
+        : istate_(old.istate_), creation_tstate_(old.creation_tstate_) {
         old.istate_ = nullptr;
+        old.creation_tstate_ = nullptr;
     }
 
     subinterpreter &operator=(subinterpreter &&old) {
-        std::swap(old.tstate_, tstate_);
         std::swap(old.istate_, istate_);
+        std::swap(old.creation_tstate_, creation_tstate_);
         return *this;
     }
 
@@ -85,7 +86,7 @@ public:
 
             auto prev_tstate = PyThreadState_Get();
 
-            auto status = Py_NewInterpreterFromConfig(&result.tstate_, &cfg);
+            auto status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
             if (PyStatus_Exception(status)) {
@@ -93,9 +94,17 @@ public:
             }
 
             // upon success, the new interpreter is activated in this thread
-            result.istate_ = result.tstate_->interp;
+            result.istate_ = result.creation_tstate_->interp;
             detail::get_num_interpreters_seen() += 1; // there are now many interpreters
             detail::get_internals(); // initialize internals.tstate, amongst other things...
+
+            // In 3.13+ this state should be deleted right away, and the memory will be reused for
+            // the next threadstate on this interpreter. However, on 3.12 we cannot do that, we
+            // must keep it around (but not use it) ... see destructor.
+#if PY_VERSION_HEX >= 0x030D0000
+            PyThreadState_Clear(result.creation_tstate_);
+            PyThreadState_DeleteCurrent();
+#endif
 
             // we have to switch back to main, and then the scopes will handle cleanup
             PyThreadState_Swap(prev_tstate);
@@ -115,65 +124,58 @@ public:
     }
 
     ~subinterpreter() {
-        if (tstate_) {
-            PyThreadState *old_tstate;
-
-            bool wrong_thread = true;
-#ifdef PY_HAVE_THREAD_NATIVE_ID
-            wrong_thread = PyThread_get_thread_native_id() != tstate_->native_thread_id;
-#endif
-            if (wrong_thread) {
-                // The PyThreadState used in Py_EndInterpreter must be created on this OS thread.
-                // (If it is not, subinterpreter cleanup will hang within Python's threading
-                // module.) So create a new thread state here on the right OS thread.
-                auto *temp = PyThreadState_New(tstate_->interp);
-                old_tstate = PyThreadState_Swap(temp);
-                // delete the other one because there must be only one at cleanup
-                PyThreadState_Clear(tstate_);
-                PyThreadState_Delete(tstate_);
-                tstate_ = temp;
-            } else {
-                old_tstate = PyThreadState_Swap(tstate_);
-            }
-
-            bool switch_back = old_tstate && old_tstate->interp != tstate_->interp;
-
-            // make sure we have the GIL for the interpreter we are ending
-            (void) PyGILState_Ensure();
-
-            // Get the internals pointer (without creating it if it doesn't exist).  It's possible
-            // for the internals to be created during Py_EndInterpreter() (e.g. if a py::capsule
-            // calls `get_internals()` during destruction), so we get the pointer-pointer here and
-            // check it after.
-            auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
-            auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
-            {
-                dict sd = state_dict();
-                internals_ptr_ptr
-                    = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-                        sd, PYBIND11_INTERNALS_ID);
-                local_internals_ptr_ptr
-                    = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
-                        sd, detail::get_local_internals_id());
-            }
-
-            // End it
-            Py_EndInterpreter(tstate_);
-
-            // do NOT decrease detail::get_num_interpreters_seen, because it can never decrease
-            // while other threads are running...
-
-            if (internals_ptr_ptr) {
-                internals_ptr_ptr->reset();
-            }
-            if (local_internals_ptr_ptr) {
-                local_internals_ptr_ptr->reset();
-            }
-
-            // switch back to the old tstate and old GIL (if there was one)
-            if (switch_back)
-                PyThreadState_Swap(old_tstate);
+        if (!creation_tstate_) {
+            // non-owning wrapper, do nothing.
+            return;
         }
+
+        auto *temp = PyThreadState_New(istate_);
+        auto *old_tstate = PyThreadState_Swap(temp);
+
+        bool switch_back = old_tstate && old_tstate->interp != istate_;
+
+#if PY_VERSION_HEX < 0x030D0000
+        // In 3.12 we can only delete this thread state when we know we are about to End the
+        // interpreter... because otherwise Python will try to reuse it, and fail, and abort. We
+        // cannot use this one in the call to EndInterpreter either because it may have been
+        // created on a different OS thread.  So we have to make a new one first, switch to that
+        // one, and the delete this one finally.
+        PyThreadState_Clear(creation_tstate_);
+        PyThreadState_Delete(creation_tstate_);
+#endif
+
+        // Get the internals pointer (without creating it if it doesn't exist).  It's possible
+        // for the internals to be created during Py_EndInterpreter() (e.g. if a py::capsule
+        // calls `get_internals()` during destruction), so we get the pointer-pointer here and
+        // check it after.
+        auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
+        auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
+        {
+            dict sd = state_dict();
+            internals_ptr_ptr
+                = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
+                    sd, PYBIND11_INTERNALS_ID);
+            local_internals_ptr_ptr
+                = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
+                    sd, detail::get_local_internals_id());
+        }
+
+        // End it
+        Py_EndInterpreter(temp);
+
+        // do NOT decrease detail::get_num_interpreters_seen, because it can never decrease
+        // while other threads are running...
+
+        if (internals_ptr_ptr) {
+            internals_ptr_ptr->reset();
+        }
+        if (local_internals_ptr_ptr) {
+            local_internals_ptr_ptr->reset();
+        }
+
+        // switch back to the old tstate and old GIL (if there was one)
+        if (switch_back)
+            PyThreadState_Swap(old_tstate);
     }
 
     /// Get a handle to the main interpreter that can be used with subinterpreter_scoped_activate
@@ -208,7 +210,7 @@ public:
 
     /// abandon cleanup of this subinterpreter (leak it). this might be needed during
     /// finalization...
-    void disarm() { tstate_ = nullptr; }
+    void disarm() { creation_tstate_ = nullptr; }
 
     /// An empty wrapper cannot be activated
     bool empty() const { return istate_ == nullptr; }
@@ -218,8 +220,8 @@ public:
 
 private:
     friend class subinterpreter_scoped_activate;
-    PyThreadState *tstate_ = nullptr;
     PyInterpreterState *istate_ = nullptr;
+    PyThreadState *creation_tstate_ = nullptr;
 };
 
 class scoped_subinterpreter {
