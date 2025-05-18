@@ -395,7 +395,13 @@ Here is an example showing how to create and activate sub-interpreters:
 
             {
                 py::subinterpreter_scoped_activate guard(sub);
-                py::module_::import("printer").attr("which")("Activated sub");
+                try {
+                    py::module_::import("printer").attr("which")("Activated sub");
+                }
+                catch (py::error_already_set &e) {
+                    std::cerr << "EXCEPTION " << e.what() << std::endl;
+                    return 1;
+                }
             }
 
             py::module_::import("printer").attr("which")("Deactivated sub");
@@ -404,11 +410,23 @@ Here is an example showing how to create and activate sub-interpreters:
                 py::gil_scoped_release nogil;
                 {
                     py::subinterpreter_scoped_activate guard(sub);
-                    {
-                        py::subinterpreter_scoped_activate main_guard(py::subinterpreter::main());
-                        py::module_::import("printer").attr("which")("Main within sub");
+                    try {
+                        {
+                            py::subinterpreter_scoped_activate main_guard(py::subinterpreter::main());
+                            try {
+                                py::module_::import("printer").attr("which")("Main within sub");
+                            }
+                            catch (py::error_already_set &e) {
+                                std::cerr << "EXCEPTION " << e.what() << std::endl;
+                                return 1;
+                            }
+                        }
+                        py::module_::import("printer").attr("which")("After Main, still within sub");
                     }
-                    py::module_::import("printer").attr("which")("After Main, still within sub");
+                    catch (py::error_already_set &e) {
+                        std::cerr << "EXCEPTION " << e.what() << std::endl;
+                        return 1;
+                    }
                 }
             }
         }
@@ -438,7 +456,7 @@ Best Practices for sub-interpreter safety
 
 - :class:`error_already_set` objects contain a reference to the Python exception type,
   and :func:`error_already_set::what()` acquires the GIL. So Python exceptions must
-  **never** be allowed to propoagate past the enclosing
+  **never** be allowed to propagate past the enclosing
   :class:`subinterpreter_scoped_activate` instance!
   (So your try/catch should be *just inside* the scope covered by the :class:`subinterpreter_scoped_activate`.)
 

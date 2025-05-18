@@ -274,7 +274,7 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
         if (has_active_exception) {
             try {
                 std::rethrow_exception(std::current_exception());
-            } catch (error_already_set &e) {
+            } catch (error_already_set &) {
                 // Because error_already_set holds python objects and what() acquires the GIL, it
                 // is basically never OK to let these exceptions propagate outside the current
                 // active interpreter.
