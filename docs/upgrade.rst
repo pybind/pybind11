@@ -47,12 +47,12 @@ Also new in v3.0 is ``py::native_enum``, a modern API for exposing
 C++ enumerations as native Python types — typically standard-library
 ``enum.Enum`` or related subclasses. This provides improved integration with
 Python's enum system, compared to the older (now deprecated) ``py::enum_``.
-See #5555 <https://github.com/pybind/pybind11/pull/5555>_ for details.
+See `#5555 <https://github.com/pybind/pybind11/pull/5555>`_ for details.
 
 Functions exposed with pybind11 are now pickleable. This removes a
 long-standing obstacle when using pybind11-bound functions with Python features
 that rely on pickling, such as multiprocessing and caching tools.
-See #5580 <https://github.com/pybind/pybind11/pull/5580>_ for details.
+See `#5580 <https://github.com/pybind/pybind11/pull/5580>`_ for details.
 
 Anything producing a deprecation warning in the 2.x series may be removed in a
 future minor release of 3.x. Most of these are still present in 3.0 in order to ease
