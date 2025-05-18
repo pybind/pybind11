@@ -342,7 +342,13 @@ TEST_CASE("Per-Subinterpreter GIL") {
             T_REQUIRE(caught);
 
             // widget_module did provide the per_interpreter_gil tag, so it this does not throw
-            py::module_::import("widget_module");
+            try {
+                py::module_::import("widget_module");
+                caught = false;
+            } catch (pybind11::error_already_set &) {
+                caught = true;
+            }
+            T_REQUIRE(!caught);
 
             // widget_module did provide the per_interpreter_gil tag, so it this does not throw
             py::module_::import("widget_module");
