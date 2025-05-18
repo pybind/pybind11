@@ -436,6 +436,12 @@ Best Practices for sub-interpreter safety
 
 - Never share Python objects across different interpreters.
 
+- :class:`error_already_set` objects contain a reference to the Python exception type, 
+  and :func:`error_already_set::what()` acquires the GIL. So Python exceptions must 
+  **never** be allowed to propoagate past the enclosing 
+  :class:`subinterpreter_scoped_activate` instance!
+  (So your try/catch should be *just inside* the scope covered by the :class:`subinterpreter_scoped_activate`.)
+
 - Avoid global/static state whenever possible. Instead, keep state within each interpreter,
   such as within the interpreter state dict, which can be accessed via
   ``subinterpreter::current().state_dict()``, or within instance members and tied to

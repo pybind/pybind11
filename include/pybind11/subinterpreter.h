@@ -78,11 +78,10 @@ public:
     /// interpreter and its GIL are not required to be held prior to calling this function.
     static inline subinterpreter create(PyInterpreterConfig const &cfg) {
         error_scope err_scope;
-        subinterpreter_scoped_activate main_guard(main());
         subinterpreter result;
         {
             // we must hold the main GIL in order to create a subinterpreter
-            gil_scoped_acquire gil;
+            subinterpreter_scoped_activate main_guard(main());
 
             auto prev_tstate = PyThreadState_Get();
 
@@ -264,6 +263,28 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
         // We were on this interpreter already, so just make sure the GIL goes back as it was
         PyGILState_Release(gil_state_);
     } else {
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+        bool has_active_exception;
+#    if defined(__cpp_lib_uncaught_exceptions)
+        has_active_exception = std::uncaught_exceptions() > 0;
+#    else
+        // removed in C++20, replaced with uncaught_exceptions
+        has_active_exception = std::uncaught_exception();
+#    endif
+        if (has_active_exception) {
+            try {
+                std::rethrow_exception(std::current_exception());
+            } catch (error_already_set &e) {
+                // Because error_already_set holds python objects and what() acquires the GIL, it
+                // is basically never OK to let these exceptions propagate outside the current
+                // active interpreter.
+                pybind11_fail("~subinterpreter_scoped_activate: cannot propagate Python "
+                              "exceptions outside of their owning interpreter");
+            } catch (...) {
+            }
+        }
+#endif
+
         if (tstate_) {
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (detail::get_thread_state_unchecked() != tstate_) {
