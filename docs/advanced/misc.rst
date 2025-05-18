@@ -228,6 +228,8 @@ You can explicitly disable sub-interpreter support in your module by using the
 :func:`multiple_interpreters::not_supported()` tag. This is the default behavior if you do not
 specify a multiple_interpreters tag.
 
+.. _misc_concurrency:
+
 Concurrency and Parallelism in Python with pybind11
 ===================================================
 

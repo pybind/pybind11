@@ -247,8 +247,8 @@ global data. All the details can be found in the CPython documentation.
 
 .. _subinterp:
 
-Sub-interpreter support
-=======================
+Embedding Sub-interpreters
+==========================
 
 A sub-interpreter is a separate interpreter instance which provides a
 separate, isolated interpreter environment within the same process as the main
@@ -256,13 +256,13 @@ interpreter.  Sub-interpreters are created and managed with a separate API from
 the main interpreter. Beginning in Python 3.12, sub-interpreters each have
 their own Global Interpreter Lock (GIL), which means that running a
 sub-interpreter in a separate thread from the main interpreter can achieve true
-concurrency. 
+concurrency.
 
 pybind11's sub-interpreter API can be found in ``pybind11/subinterpreter.h``.
 
-pybind11 :class:`subinterpreter` instances can be safely moved and shared between 
-threads as needed. However, managing multiple threads and the lifetimes of multiple 
-interpreters and their GILs can be challenging. 
+pybind11 :class:`subinterpreter` instances can be safely moved and shared between
+threads as needed. However, managing multiple threads and the lifetimes of multiple
+interpreters and their GILs can be challenging.
 Proceed with caution (and lots of testing)!
 
 The main interpreter must be initialized before creating a sub-interpreter, and
@@ -307,7 +307,7 @@ sub-interpreters.
 :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be used to
 manage the GIL of a sub-interpreter just as they do for the main interpreter.
 They both manage the GIL of the currently active interpreter, without the
-programmer having to do anything special or different. There is one important 
+programmer having to do anything special or different. There is one important
 caveat:
 
 .. note::
@@ -319,7 +319,7 @@ caveat:
 
 Each sub-interpreter will import a separate copy of each ``PYBIND11_EMBEDDED_MODULE``
 when those modules specify a ``multiple_interpreters`` tag. If a module does not
-specify a ``multiple_interpreters`` tag, then Python will report an ``ImportError`` 
+specify a ``multiple_interpreters`` tag, then Python will report an ``ImportError``
 if it is imported in a sub-interpreter.
 
 Here is an example showing how to create and activate sub-interpreters:
@@ -393,8 +393,8 @@ it when it goes out of scope.
 
 Best Practices for sub-interpreter safety:
 
-- Avoid moving or disarming RAII objects managing GIL and sub-interpreter lifetimes. Doing so can 
-  lead to confusion about lifetimes.  (For example, accidentally extending a 
+- Avoid moving or disarming RAII objects managing GIL and sub-interpreter lifetimes. Doing so can
+  lead to confusion about lifetimes.  (For example, accidentally extending a
   :class:`subinterpreter_scoped_activate` past the lifetime of it's :class:`subinterpreter`.)
 
 - Never share Python objects across different interpreters.
@@ -410,9 +410,11 @@ Best Practices for sub-interpreter safety:
   resulting Python object when the wrong interpreter was active.
 
 - While sub-interpreters each have their own GIL, there can now be multiple independent GILs in one
-  program you need to consider the possibility of deadlocks caused by multiple GILs and/or the 
+  program you need to consider the possibility of deadlocks caused by multiple GILs and/or the
   interactions of the GIL(s) and your C++ code's own locking.
 
 - When using multiple threads to run independent sub-interpreters, the independent GILs allow
-  concurrent calls from different interpreters into the same C++ code from different threads. 
+  concurrent calls from different interpreters into the same C++ code from different threads.
   So you must still consider the thread safety of your C++ code.
+
+- Familiarize yourself with :ref:`misc_concurrency`.
