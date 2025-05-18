@@ -65,6 +65,13 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
   message(STATUS "CMake ${CMAKE_VERSION}")
 
+  if(DEFINED SKBUILD AND DEFINED $ENV{PYBIND11_GLOBAL_PREFIX})
+    message(
+      FATAL_ERROR
+        "PYBIND11_GLOBAL_PREFIX is not supported, use nox -s build_global or a pybind11-global SDist instead."
+    )
+  endif()
+
   if(CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_EXTENSIONS OFF)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -295,6 +302,9 @@ elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
 endif()
 
 if(PYBIND11_INSTALL)
+  if(DEFINED SKBUILD_PROJECT_NAME AND SKBUILD_PROJECT_NAME STREQUAL "pybind11_global")
+    install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION "${SKBUILD_HEADERS_DIR}")
+  endif()
   install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
@@ -360,6 +370,17 @@ if(PYBIND11_INSTALL)
                  "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"
           DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig/")
+
+  # When building a wheel, include __init__.py's for modules
+  # (see https://github.com/pybind/pybind11/pull/5552)
+  if(DEFINED SKBUILD_PROJECT_NAME AND SKBUILD_PROJECT_NAME STREQUAL "pybind11")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/empty")
+    file(TOUCH "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py"
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/empty/__init__.py"
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig/")
+  endif()
 
   # Uninstall target
   if(PYBIND11_MASTER_PROJECT)

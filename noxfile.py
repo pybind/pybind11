@@ -7,6 +7,13 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 import nox
 
@@ -99,13 +106,46 @@ def make_changelog(session: nox.Session) -> None:
 @nox.session(reuse_venv=True, default=False)
 def build(session: nox.Session) -> None:
     """
-    Build SDists and wheels.
+    Build SDist and wheel.
     """
 
     session.install("build")
     session.log("Building normal files")
     session.run("python", "-m", "build", *session.posargs)
-    session.log("Building pybind11-global files (PYBIND11_GLOBAL_SDIST=1)")
-    session.run(
-        "python", "-m", "build", *session.posargs, env={"PYBIND11_GLOBAL_SDIST": "1"}
-    )
+
+
+@contextlib.contextmanager
+def preserve_file(filename: Path) -> Generator[str, None, None]:
+    """
+    Causes a file to be stored and preserved when the context manager exits.
+    """
+    old_stat = filename.stat()
+    old_file = filename.read_text(encoding="utf-8")
+    try:
+        yield old_file
+    finally:
+        filename.write_text(old_file, encoding="utf-8")
+        os.utime(filename, (old_stat.st_atime, old_stat.st_mtime))
+
+
+@nox.session(reuse_venv=True)
+def build_global(session: nox.Session) -> None:
+    """
+    Build global SDist and wheel.
+    """
+
+    installer = ["--installer=uv"] if session.venv_backend == "uv" else []
+    session.install("build", "tomlkit")
+    session.log("Building pybind11-global files")
+    pyproject = Path("pyproject.toml")
+    with preserve_file(pyproject):
+        newer_txt = session.run("python", "tools/make_global.py", silent=True)
+        assert isinstance(newer_txt, str)
+        pyproject.write_text(newer_txt, encoding="utf-8")
+        session.run(
+            "python",
+            "-m",
+            "build",
+            *installer,
+            *session.posargs,
+        )

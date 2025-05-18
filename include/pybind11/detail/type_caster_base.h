@@ -497,16 +497,6 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
     });
 }
 
-inline PyThreadState *get_thread_state_unchecked() {
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
-    return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x030D0000
-    return _PyThreadState_UncheckedGet();
-#else
-    return PyThreadState_GetUnchecked();
-#endif
-}
-
 // Forward declarations
 void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);

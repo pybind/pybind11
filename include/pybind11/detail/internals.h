@@ -15,6 +15,7 @@
 
 #include "common.h"
 
+#include <atomic>
 #include <exception>
 #include <mutex>
 #include <thread>
@@ -53,6 +54,7 @@ constexpr const char *internals_function_record_capsule_name = "pybind11_functio
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
 inline PyObject *make_object_base_type(PyTypeObject *metaclass);
+inline void translate_exception(std::exception_ptr p);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
@@ -149,6 +151,20 @@ struct instance_map_shard {
 
 static_assert(sizeof(instance_map_shard) % 64 == 0,
               "instance_map_shard size is not a multiple of 64 bytes");
+
+inline uint64_t round_up_to_next_pow2(uint64_t x) {
+    // Round-up to the next power of two.
+    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    x--;
+    x |= (x >> 1);
+    x |= (x >> 2);
+    x |= (x >> 4);
+    x |= (x >> 8);
+    x |= (x >> 16);
+    x |= (x >> 32);
+    x++;
+    return x;
+}
 #endif
 
 /// Internal data structure used to track registered instances and types.
@@ -178,9 +194,9 @@ struct internals {
                                                          // extensions
     std::forward_list<std::string> static_strings;       // Stores the std::strings backing
                                                          // detail::c_str()
-    PyTypeObject *static_property_type;
-    PyTypeObject *default_metaclass;
-    PyObject *instance_base;
+    PyTypeObject *static_property_type = nullptr;
+    PyTypeObject *default_metaclass = nullptr;
+    PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PYBIND11_TLS_KEY_INIT(tstate)
     PYBIND11_TLS_KEY_INIT(loader_life_support_tls_key)
@@ -189,7 +205,36 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    internals() = default;
+    internals() {
+        PyThreadState *cur_tstate = PyThreadState_Get();
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
+        if (!PYBIND11_TLS_KEY_CREATE(tstate)) {
+            pybind11_fail(
+                "internals constructor: could not successfully initialize the tstate TSS key!");
+        }
+        PYBIND11_TLS_REPLACE_VALUE(tstate, cur_tstate);
+
+        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
+        if (!PYBIND11_TLS_KEY_CREATE(loader_life_support_tls_key)) {
+            pybind11_fail("internals constructor: could not successfully initialize the "
+                          "loader_life_support TSS key!");
+        }
+
+        istate = cur_tstate->interp;
+        registered_exception_translators.push_front(&translate_exception);
+        static_property_type = make_static_property_type();
+        default_metaclass = make_default_metaclass();
+#ifdef Py_GIL_DISABLED
+        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
+        auto num_shards
+            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        if (num_shards == 0) {
+            num_shards = 1;
+        }
+        instance_shards.reset(new instance_map_shard[num_shards]);
+        instance_shards_mask = num_shards - 1;
+#endif
+    }
     internals(const internals &other) = delete;
     internals &operator=(const internals &other) = delete;
     ~internals() {
@@ -204,6 +249,17 @@ struct internals {
         // that the `tstate` be allocated with the CPython allocator.
         PYBIND11_TLS_FREE(tstate);
     }
+};
+
+// the internals struct (above) is shared between all the modules. local_internals are only
+// for a single module. Any changes made to internals may require an update to
+// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
+// restricted to a single module. Whether a module has local internals or not should not
+// impact any other modules, because the only things accessing the local internals is the
+// module that contains them.
+struct local_internals {
+    type_map<type_info *> registered_types_cpp;
+    std::forward_list<ExceptionTranslator> registered_exception_translators;
 };
 
 enum class holder_enum_t : uint8_t {
@@ -249,15 +305,49 @@ struct type_info {
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
 
-/// Each module locally stores a pointer to the `internals` data. The data
-/// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-inline internals **&get_internals_pp() {
-    static internals **internals_pp = nullptr;
-    return internals_pp;
+inline PyThreadState *get_thread_state_unchecked() {
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+    return PyThreadState_GET();
+#elif PY_VERSION_HEX < 0x030D0000
+    return _PyThreadState_UncheckedGet();
+#else
+    return PyThreadState_GetUnchecked();
+#endif
 }
 
-// forward decl
-inline void translate_exception(std::exception_ptr);
+/// We use this counter to figure out if there are or have been multiple subinterpreters active at
+/// any point. This must never decrease while any interpreter may be running in any thread!
+inline std::atomic<int> &get_num_interpreters_seen() {
+    static std::atomic<int> counter(0);
+    return counter;
+}
+
+template <typename InternalsType>
+inline std::unique_ptr<InternalsType> *&get_internals_pp() {
+#ifdef PYBIND11_SUBINTERPRETER_SUPPORT
+    if (get_num_interpreters_seen() > 1) {
+        // Internals is one per interpreter. When multiple interpreters are alive in different
+        // threads we have to allow them to have different internals, so we need a thread_local.
+        static thread_local std::unique_ptr<InternalsType> *t_internals_pp = nullptr;
+        static thread_local PyInterpreterState *istate_cached = nullptr;
+        // Whenever the interpreter changes on the current thread we need to invalidate the
+        // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
+        // so we use the current PyThreadState to check if it is necessary.  The caller will see a
+        // null return and do the fetch from the state dict or create a new one (as needed).
+        auto *tstate = get_thread_state_unchecked();
+        if (!tstate) {
+            istate_cached = nullptr;
+            t_internals_pp = nullptr;
+        } else if (tstate->interp != istate_cached) {
+            istate_cached = tstate->interp;
+            t_internals_pp = nullptr;
+        }
+        return t_internals_pp;
+    }
+#endif
+    static std::unique_ptr<InternalsType> *s_internals_pp = nullptr;
+    return s_internals_pp;
+}
 
 template <class T,
           enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
@@ -384,49 +474,46 @@ inline object get_python_state_dict() {
     return state_dict;
 }
 
-inline object get_internals_obj_from_state_dict(handle state_dict) {
-    return reinterpret_steal<object>(
-        dict_getitemstringref(state_dict.ptr(), PYBIND11_INTERNALS_ID));
-}
-
-inline internals **get_internals_pp_from_capsule(handle obj) {
-    void *raw_ptr = PyCapsule_GetPointer(obj.ptr(), /*name=*/nullptr);
-    if (raw_ptr == nullptr) {
-        raise_from(PyExc_SystemError, "pybind11::detail::get_internals_pp_from_capsule() FAILED");
-        throw error_already_set();
+template <typename InternalsType>
+inline std::unique_ptr<InternalsType> *
+get_internals_pp_from_capsule_in_state_dict(dict &state_dict, char const *state_dict_key) {
+    auto internals_obj
+        = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), state_dict_key));
+    if (internals_obj) {
+        void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
+        if (!raw_ptr) {
+            raise_from(PyExc_SystemError,
+                       "pybind11::detail::get_internals_pp_from_capsule_in_state_dict() FAILED");
+            throw error_already_set();
+        }
+        return reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
     }
-    return static_cast<internals **>(raw_ptr);
-}
-
-inline uint64_t round_up_to_next_pow2(uint64_t x) {
-    // Round-up to the next power of two.
-    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-    x--;
-    x |= (x >> 1);
-    x |= (x >> 2);
-    x |= (x >> 4);
-    x |= (x >> 8);
-    x |= (x >> 16);
-    x |= (x >> 32);
-    x++;
-    return x;
+    return nullptr;
 }
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
-    auto **&internals_pp = get_internals_pp();
+    auto *&internals_pp = get_internals_pp<internals>();
     if (internals_pp && *internals_pp) {
+        // This is the fast path, everything is already setup, just return it
         return **internals_pp;
     }
 
+    // Slow path, something needs fetched from the state dict or created
+
+    // Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
     gil_scoped_acquire_simple gil;
     error_scope err_scope;
 
     dict state_dict = get_python_state_dict();
-    if (object internals_obj = get_internals_obj_from_state_dict(state_dict)) {
-        internals_pp = get_internals_pp_from_capsule(internals_obj);
+    internals_pp = get_internals_pp_from_capsule_in_state_dict<internals>(state_dict,
+                                                                          PYBIND11_INTERNALS_ID);
+    if (!internals_pp) {
+        internals_pp = new std::unique_ptr<internals>;
+        state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
     }
-    if (internals_pp && *internals_pp) {
+
+    if (*internals_pp) {
         // We loaded the internals through `state_dict`, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
         // initial exception translator, below, so add another for our local exception classes.
@@ -435,68 +522,61 @@ PYBIND11_NOINLINE internals &get_internals() {
         // libc++ with CPython doesn't require this (types are explicitly exported)
         // libc++ with PyPy still need it, awaiting further investigation
 #if !defined(__GLIBCXX__)
-        (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
+        if ((*internals_pp)->registered_exception_translators.empty()
+            || (*internals_pp)->registered_exception_translators.front()
+                   != &translate_local_exception) {
+            (*internals_pp)
+                ->registered_exception_translators.push_front(&translate_local_exception);
+        }
 #endif
     } else {
-        if (!internals_pp) {
-            internals_pp = new internals *();
-        }
-        auto *&internals_ptr = *internals_pp;
-        internals_ptr = new internals();
+        auto &internals_ptr = *internals_pp;
+        internals_ptr.reset(new internals());
 
-        PyThreadState *tstate = PyThreadState_Get();
-        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
-        if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->tstate)) {
-            pybind11_fail("get_internals: could not successfully initialize the tstate TSS key!");
+        if (!internals_ptr->instance_base) {
+            // This calls get_internals, so cannot be called from within the internals constructor
+            // called above because internals_ptr must be set before get_internals is called again
+            internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
         }
-        PYBIND11_TLS_REPLACE_VALUE(internals_ptr->tstate, tstate);
-
-        // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
-        if (!PYBIND11_TLS_KEY_CREATE(internals_ptr->loader_life_support_tls_key)) {
-            pybind11_fail("get_internals: could not successfully initialize the "
-                          "loader_life_support TSS key!");
-        }
-
-        internals_ptr->istate = tstate->interp;
-        state_dict[PYBIND11_INTERNALS_ID] = capsule(reinterpret_cast<void *>(internals_pp));
-        internals_ptr->registered_exception_translators.push_front(&translate_exception);
-        internals_ptr->static_property_type = make_static_property_type();
-        internals_ptr->default_metaclass = make_default_metaclass();
-        internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
-#ifdef Py_GIL_DISABLED
-        // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
-        auto num_shards
-            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
-        if (num_shards == 0) {
-            num_shards = 1;
-        }
-        internals_ptr->instance_shards.reset(new instance_map_shard[num_shards]);
-        internals_ptr->instance_shards_mask = num_shards - 1;
-#endif // Py_GIL_DISABLED
     }
+
     return **internals_pp;
 }
 
-// the internals struct (above) is shared between all the modules. local_internals are only
-// for a single module. Any changes made to internals may require an update to
-// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
-// restricted to a single module. Whether a module has local internals or not should not
-// impact any other modules, because the only things accessing the local internals is the
-// module that contains them.
-struct local_internals {
-    type_map<type_info *> registered_types_cpp;
-    std::forward_list<ExceptionTranslator> registered_exception_translators;
-};
+/// A string key uniquely describing this module
+inline char const *get_local_internals_id() {
+    // Use the address of this static itself as part of the key, so that the value is uniquely tied
+    // to where the module is loaded in memory
+    static const std::string this_module_idstr
+        = PYBIND11_MODULE_LOCAL_ID
+          + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
+    return this_module_idstr.c_str();
+}
 
 /// Works like `get_internals`, but for things which are locally registered.
 inline local_internals &get_local_internals() {
-    // Current static can be created in the interpreter finalization routine. If the later will be
-    // destroyed in another static variable destructor, creation of this static there will cause
-    // static deinitialization fiasco. In order to avoid it we avoid destruction of the
-    // local_internals static. One can read more about the problem and current solution here:
-    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
-    static auto *locals = new local_internals();
-    return *locals;
+    auto *&local_internals_pp = get_internals_pp<local_internals>();
+    if (local_internals_pp && *local_internals_pp) {
+        return **local_internals_pp;
+    }
+
+    // Cannot use py::gil_scoped_acquire inside get_internals since that calls get_internals.
+    gil_scoped_acquire_simple gil;
+    error_scope err_scope;
+
+    dict state_dict = get_python_state_dict();
+    local_internals_pp = get_internals_pp_from_capsule_in_state_dict<local_internals>(
+        state_dict, get_local_internals_id());
+    if (!local_internals_pp) {
+        local_internals_pp = new std::unique_ptr<local_internals>;
+        state_dict[get_local_internals_id()]
+            = capsule(reinterpret_cast<void *>(local_internals_pp));
+    }
+    if (!*local_internals_pp) {
+        local_internals_pp->reset(new local_internals());
+    }
+
+    return **local_internals_pp;
 }
 
 #ifdef Py_GIL_DISABLED
