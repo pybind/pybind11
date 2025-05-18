@@ -16,7 +16,7 @@
 
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_PATCH 0.rc1
+#define PYBIND11_VERSION_PATCH 0rc1
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // Use 0xA0 for dev
