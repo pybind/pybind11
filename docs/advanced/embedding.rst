@@ -448,6 +448,14 @@ Expected output:
     After Main, still within sub; Current Interpreter is 1
     At end; Current Interpreter is 0
 
+.. warning::
+
+    In Python 3.12 sub-interpreters must be destroyed in the same OS thread
+    that created them.  Failure to follow this rule may result in deadlocks
+    or crashes when destroying the sub-interpreter on the wrong thread.
+
+    This constraint is not present in Python 3.13+.
+
 
 Best Practices for sub-interpreter safety
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -458,7 +466,8 @@ Best Practices for sub-interpreter safety
   and :func:`error_already_set::what()` acquires the GIL. So Python exceptions must
   **never** be allowed to propagate past the enclosing
   :class:`subinterpreter_scoped_activate` instance!
-  (So your try/catch should be *just inside* the scope covered by the :class:`subinterpreter_scoped_activate`.)
+  (So your try/catch should be *just inside* the scope covered by the
+  :class:`subinterpreter_scoped_activate`.)
 
 - Avoid global/static state whenever possible. Instead, keep state within each interpreter,
   such as within the interpreter state dict, which can be accessed via
@@ -480,6 +489,7 @@ Best Practices for sub-interpreter safety
 
 - When using multiple threads to run independent sub-interpreters, the independent GILs allow
   concurrent calls from different interpreters into the same C++ code from different threads.
-  So you must still consider the thread safety of your C++ code.
+  So you must still consider the thread safety of your C++ code.  Remember, in Python 3.12
+  sub-interpreters must be destroyed on the same thread that they were created on.
 
 - Familiarize yourself with :ref:`misc_concurrency`.
