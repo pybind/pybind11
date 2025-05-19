@@ -28,7 +28,7 @@ public:
 
     static int tp_traverse(PyObject *self_base, visitproc visit, void *arg) {
         // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
-#if PY_VERSION_HEX >= 0x03090000 // Python 3.9
+#if PY_VERSION_HEX >= 0x03090000
         Py_VISIT(Py_TYPE(self_base));
 #endif
 

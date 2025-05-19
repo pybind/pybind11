@@ -130,28 +130,23 @@ if(PYBIND11_MASTER_PROJECT)
     set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
   endif()
 
-  if(NOT DEFINED Python3_EXECUTABLE
-     AND NOT DEFINED Python_EXECUTABLE
-     AND NOT DEFINED Python_ROOT_DIR
-     AND NOT DEFINED ENV{VIRTUALENV}
-     AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
-    message(STATUS "Autodetecting Python in virtual environment")
-    set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
-  endif()
-
   # This is a shortcut that is primarily for the venv cmake preset,
   # but can be used to quickly setup tests manually, too
   set(PYBIND11_CREATE_WITH_UV
       ""
-      CACHE STRING "Create a virtualenv in Python_ROOT_DIR with uv if it doesn't exist")
+      CACHE STRING "Create a virtualenv if it doesn't exist")
 
   if(NOT PYBIND11_CREATE_WITH_UV STREQUAL "")
-    if(NOT DEFINED Python_ROOT_DIR)
-      message(FATAL_ERROR "Python_ROOT_DIR must be defined to use PYBIND11_CREATE_WITH_UV")
-    endif()
+    set(Python_ROOT_DIR "${CMAKE_CURRENT_BINARY_DIR}/.venv")
     if(EXISTS "${Python_ROOT_DIR}")
-      message(STATUS "Using existing venv at ${Python_ROOT_DIR}, remove to recreate")
-    else()
+      if(EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt")
+        message(STATUS "Using existing venv at ${Python_ROOT_DIR}, remove or --fresh to recreate")
+      else()
+        # --fresh used to remove the cache
+        file(REMOVE_RECURSE "${CMAKE_CURRENT_BINARY_DIR}/.venv")
+      endif()
+    endif()
+    if(NOT EXISTS "${Python_ROOT_DIR}")
       find_program(UV uv REQUIRED)
       # CMake 3.19+ would be able to use COMMAND_ERROR_IS_FATAL
       message(
@@ -172,8 +167,16 @@ if(PYBIND11_MASTER_PROJECT)
         message(FATAL_ERROR "uv pip install failed with '${_pip_result}'")
       endif()
     endif()
+  else()
+    if(NOT DEFINED Python3_EXECUTABLE
+       AND NOT DEFINED Python_EXECUTABLE
+       AND NOT DEFINED Python_ROOT_DIR
+       AND NOT DEFINED ENV{VIRTUALENV}
+       AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
+      message(STATUS "Autodetecting Python in virtual environment")
+      set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
+    endif()
   endif()
-
 endif()
 
 # NB: when adding a header don't forget to also add it to setup.py
