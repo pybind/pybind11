@@ -276,19 +276,19 @@ def test_fs_path(doc):
     assert m.parent_path(PseudoBytesPath()) == Path("foo")
     assert (
         doc(m.parent_path)
-        == "parent_path(arg0: Union[os.PathLike, str, bytes]) -> pathlib.Path"
+        == "parent_path(arg0: typing.Union[os.PathLike, str, bytes]) -> pathlib.Path"
     )
     # std::vector
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths)
-        == "parent_paths(arg0: collections.abc.Sequence[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
+        == "parent_paths(arg0: collections.abc.Sequence[typing.Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
     )
     # py::typing::List
     assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     assert (
         doc(m.parent_paths_list)
-        == "parent_paths_list(arg0: list[Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
+        == "parent_paths_list(arg0: list[typing.Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
     )
     # Nested py::typing::List
     assert m.parent_paths_nested_list([["foo/bar"], ["foo/baz", "foo/buzz"]]) == [
@@ -297,13 +297,13 @@ def test_fs_path(doc):
     ]
     assert (
         doc(m.parent_paths_nested_list)
-        == "parent_paths_nested_list(arg0: list[list[Union[os.PathLike, str, bytes]]]) -> list[list[pathlib.Path]]"
+        == "parent_paths_nested_list(arg0: list[list[typing.Union[os.PathLike, str, bytes]]]) -> list[list[pathlib.Path]]"
     )
     # py::typing::Tuple
     assert m.parent_paths_tuple(("foo/bar", "foo/baz")) == (Path("foo"), Path("foo"))
     assert (
         doc(m.parent_paths_tuple)
-        == "parent_paths_tuple(arg0: tuple[Union[os.PathLike, str, bytes], Union[os.PathLike, str, bytes]]) -> tuple[pathlib.Path, pathlib.Path]"
+        == "parent_paths_tuple(arg0: tuple[typing.Union[os.PathLike, str, bytes], typing.Union[os.PathLike, str, bytes]]) -> tuple[pathlib.Path, pathlib.Path]"
     )
     # py::typing::Dict
     assert m.parent_paths_dict(
@@ -319,7 +319,7 @@ def test_fs_path(doc):
     }
     assert (
         doc(m.parent_paths_dict)
-        == "parent_paths_dict(arg0: dict[str, Union[os.PathLike, str, bytes]]) -> dict[str, pathlib.Path]"
+        == "parent_paths_dict(arg0: dict[str, typing.Union[os.PathLike, str, bytes]]) -> dict[str, pathlib.Path]"
     )
 
 
@@ -337,7 +337,7 @@ def test_variant(doc):
 
     assert (
         doc(m.load_variant)
-        == "load_variant(arg0: Union[typing.SupportsInt, str, typing.SupportsFloat, None]) -> str"
+        == "load_variant(arg0: typing.Union[typing.SupportsInt, str, typing.SupportsFloat, None]) -> str"
     )
 
 
@@ -353,7 +353,7 @@ def test_variant_monostate(doc):
 
     assert (
         doc(m.load_monostate_variant)
-        == "load_monostate_variant(arg0: Union[None, typing.SupportsInt, str]) -> str"
+        == "load_monostate_variant(arg0: typing.Union[None, typing.SupportsInt, str]) -> str"
     )
 
 
