@@ -55,7 +55,7 @@ class test_override_cache_helper_trampoline : public test_override_cache_helper 
     int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
 };
 
-PYBIND11_EMBEDDED_MODULE(widget_module, m) {
+PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
@@ -336,6 +336,7 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
 }
 
+#if defined(PYBIND11_SUBINTERPRETER_SUPPORT)
 TEST_CASE("Subinterpreter") {
     py::module_::import("external_module"); // in the main interpreter
 
@@ -347,6 +348,10 @@ TEST_CASE("Subinterpreter") {
 
         REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
     }
+
+    auto main_int
+        = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
+
     REQUIRE(has_state_dict_internals_obj());
     REQUIRE(has_pybind11_internals_static());
 
@@ -359,7 +364,6 @@ TEST_CASE("Subinterpreter") {
     // Subinterpreters get their own copy of builtins.
     REQUIRE_FALSE(has_state_dict_internals_obj());
 
-#if defined(PYBIND11_SUBINTERPRETER_SUPPORT) && PY_VERSION_HEX >= 0x030C0000
     // internals hasn't been populated yet, but will be different for the subinterpreter
     REQUIRE_FALSE(has_pybind11_internals_static());
 
@@ -369,14 +373,12 @@ TEST_CASE("Subinterpreter") {
     py::detail::get_internals();
     REQUIRE(has_pybind11_internals_static());
     REQUIRE(get_details_as_uintptr() == ext_int);
-#else
-    // This static is still defined
-    REQUIRE(has_pybind11_internals_static());
-#endif
+    REQUIRE(main_int != ext_int);
 
     // Modules tags should be gone.
     REQUIRE_FALSE(py::hasattr(py::module_::import("__main__"), "tag"));
     {
+        REQUIRE_NOTHROW(py::module_::import("widget_module"));
         auto m = py::module_::import("widget_module");
         REQUIRE_FALSE(py::hasattr(m, "extension_module_tag"));
 
@@ -397,7 +399,6 @@ TEST_CASE("Subinterpreter") {
     REQUIRE(has_state_dict_internals_obj());
 }
 
-#if defined(PYBIND11_SUBINTERPRETER_SUPPORT)
 TEST_CASE("Multiple Subinterpreters") {
     // Make sure the module is in the main interpreter and save its pointer
     auto *main_ext = py::module_::import("external_module").ptr();
@@ -512,10 +513,11 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
         // we have switched to the new interpreter and released the main gil
 
-        // widget_module did not provide the mod_per_interpreter_gil tag, so it cannot be imported
+        // trampoline_module did not provide the per_interpreter_gil tag, so it cannot be
+        // imported
         bool caught = false;
         try {
-            py::module_::import("widget_module");
+            py::module_::import("trampoline_module");
         } catch (pybind11::error_already_set &pe) {
             T_REQUIRE(pe.matches(PyExc_ImportError));
             std::string msg(pe.what());
@@ -524,6 +526,9 @@ TEST_CASE("Per-Subinterpreter GIL") {
             caught = true;
         }
         T_REQUIRE(caught);
+
+        // widget_module did provide the per_interpreter_gil tag, so it this does not throw
+        py::module_::import("widget_module");
 
         T_REQUIRE(!py::hasattr(py::module_::import("external_module"), "multi_interp"));
         py::module_::import("external_module").attr("multi_interp") = std::to_string(num);
@@ -547,8 +552,8 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
         Py_EndInterpreter(sub);
 
-        PyThreadState_Swap(
-            main_tstate); // switch back so the scoped_acquire can release the GIL properly
+        // switch back so the scoped_acquire can release the GIL properly
+        PyThreadState_Swap(main_tstate);
     };
 
     std::thread t1(thread_main, 1);
@@ -622,12 +627,26 @@ TEST_CASE("Threads") {
 
     {
         py::gil_scoped_release gil_release{};
+#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030E0000
+        std::mutex mutex;
+#endif
 
         auto threads = std::vector<std::thread>();
         for (auto i = 0; i < num_threads; ++i) {
             threads.emplace_back([&]() {
                 py::gil_scoped_acquire gil{};
+#ifdef Py_GIL_DISABLED
+#    if PY_VERSION_HEX < 0x030E0000
+                std::lock_guard<std::mutex> lock(mutex);
                 locals["count"] = locals["count"].cast<int>() + 1;
+#    else
+                Py_BEGIN_CRITICAL_SECTION(locals.ptr());
+                locals["count"] = locals["count"].cast<int>() + 1;
+                Py_END_CRITICAL_SECTION();
+#    endif
+#else
+                locals["count"] = locals["count"].cast<int>() + 1;
+#endif
             });
         }
 
