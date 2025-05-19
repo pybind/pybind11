@@ -283,8 +283,10 @@
 #define PYBIND11_BUILTINS_MODULE "builtins"
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
+#define PYBIND11_PLUGIN_DECL(name)                                                                \
+    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();
 #define PYBIND11_PLUGIN_IMPL(name)                                                                \
-    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();                   \
+    PYBIND11_PLUGIN_DECL(name)                                                                    \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code

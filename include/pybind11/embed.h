@@ -57,7 +57,7 @@
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_EMBEDDED_MODULE(name, variable, ...)                                             \
-    extern "C" PyObject PYBIND11_CONCAT(*PyInit_, name)();                                        \
+    PYBIND11_PLUGIN_DECL(name);                                                                   \
     ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name)(                  \
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(PyInit_, name));                                 \
     PYBIND11_MODULE_BASE(name, variable, {}, ##__VA_ARGS__)
