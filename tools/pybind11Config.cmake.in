@@ -68,11 +68,11 @@ maximum version of CMake to 3.27+, then FindPython is the default (since
 FindPythonInterp/FindPythonLibs has been removed via policy `CMP0148`).
 
 Starting in pybind11 3.0, the new mode is the default, but we provide backward
-compatible names (`PYTHON_*` vs. the new `Python_* names). Set the mode
+compatible names (``PYTHON_*`` vs. the new ``Python_*`` names). Set the mode
 explicitly to avoid the compatibility defines. You can specify this mode
-explicitly by setting `PYBIND11_FINDPYTHON` to `COMPAT`, but if you are changing
-your CMakeLists anyway, please just use the `ON` mode. A future release may
-default to `ON`.
+explicitly by setting ``PYBIND11_FINDPYTHON`` to ``COMPAT``, but if you are changing
+your CMakeLists anyway, please just use the ``ON`` mode. A future release may
+default to ``ON``.
 
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^

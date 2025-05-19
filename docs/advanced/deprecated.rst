@@ -1,5 +1,71 @@
+.. _deprecated:
+
 Deprecated
 ##########
+
+Support for Python 3.8 is deprecated and will be removed in 3.1.
+
+Support for C++11 is deprecated and will be removed in a future version. Please
+use at least C++14.
+
+Support for FindPythonLibs (not available in CMake 3.26+ mode) is deprecated
+and will be removed in a future version. The default mode is also going to
+change to ``"new"`` from ``"compat"`` in the future.
+
+The following features were deprecated before pybind11 3.0, and may be removed
+in minor releases of pybind11 3.x.
+
+.. list-table:: Deprecated Features
+   :header-rows: 1
+   :widths: 30 15 10
+
+   * - Feature
+     - Deprecated Version
+     - Year
+   * - ``py::metaclass()``
+     - 2.1
+     - 2017
+   * - ``PYBIND11_PLUGIN``
+     - 2.2
+     - 2017
+   * - ``py::set_error()`` replacing ``operator()``
+     - 2.12
+     - 2024
+   * - ``get_type_overload``
+     - 2.6
+     - 2020
+   * - ``call()``
+     - 2.0
+     - 2016
+   * - ``.str()``
+     - ?
+     -
+   * - ``.get_type()``
+     - 2.6
+     -
+   * - ``==`` and ``!=``
+     - 2.2
+     - 2017
+   * - ``.check()``
+     - ?
+     -
+   * - ``object(handle, bool)``
+     - ?
+     -
+   * - ``error_already_set.clear()``
+     - 2.2
+     - 2017
+   * - ``obj.attr(…)`` as ``bool``
+     - ?
+     -
+   * - ``.contains``
+     - ? (maybe 2.4)
+     -
+   * - ``py::capsule`` two-argument with destructor
+     - ?
+     -
+
+
 
 .. _deprecated_enum:
 

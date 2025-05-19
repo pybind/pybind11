@@ -42,10 +42,12 @@ cats_descr = {
     "fix": "Bug fixes",
     "fix(types)": "",
     "fix(cmake)": "",
+    "fix(free-threading)": "",
     "docs": "Documentation",
     "tests": "Tests",
     "ci": "CI",
     "chore": "Other",
+    "chore(cmake)": "",
     "unknown": "Uncategorised",
 }
 cats: dict[str, list[str]] = {c: [] for c in cats_descr}
