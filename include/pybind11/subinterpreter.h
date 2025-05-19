@@ -148,13 +148,13 @@ public:
             destroy_tstate = PyThreadState_New(istate_);
             old_tstate = PyThreadState_Swap(destroy_tstate);
 
-            // We can use temp, the one we just created, and delete the creation state.
+            // We can use the one we just created, so we must delete the creation state.
             PyThreadState_Clear(creation_tstate_);
             PyThreadState_Delete(creation_tstate_);
         }
 #else
-        destroy_state = PyThreadState_New(istate_);
-        old_tstate = PyThreadState_Swap(destroy_state);
+        destroy_tstate = PyThreadState_New(istate_);
+        old_tstate = PyThreadState_Swap(destroy_tstate);
 #endif
 
         bool switch_back = old_tstate && old_tstate->interp != istate_;
