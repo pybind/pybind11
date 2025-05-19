@@ -128,20 +128,35 @@ public:
             return;
         }
 
-        auto *temp = PyThreadState_New(istate_);
-        auto *old_tstate = PyThreadState_Swap(temp);
+        PyThreadState *destroy_tstate;
+        PyThreadState *old_tstate;
 
-        bool switch_back = old_tstate && old_tstate->interp != istate_;
-
+        // Python 3.12 requires us to keep the original PyThreadState alive until we are ready to destroy the interpreter.  We prefer to use that to destroy the interpreter.
 #if PY_VERSION_HEX < 0x030D0000
-        // In 3.12 we can only delete this thread state when we know we are about to End the
-        // interpreter... because otherwise Python will try to reuse it, and fail, and abort. We
-        // cannot use this one in the call to EndInterpreter either because it may have been
-        // created on a different OS thread.  So we have to make a new one first, switch to that
-        // one, and the delete this one finally.
-        PyThreadState_Clear(creation_tstate_);
-        PyThreadState_Delete(creation_tstate_);
+        // The tstate passed to Py_EndInterpreter MUST have been created on the current OS thread.
+        bool same_thread = false;
+        #ifdef PY_HAVE_THREAD_NATIVE_ID
+        same_thread = PyThread_get_thread_native_id() == creation_tstate_->native_thread_id;
+        #endif
+        if (same_thread) {
+            // OK it is safe to use the creation state here
+            destroy_tstate = creation_tstate_;
+            old_tstate = PyThreadState_Swap(destroy_tstate);
+        } else {
+            // We have to make a new tstate on this thread and use that.
+            destroy_tstate = PyThreadState_New(istate_);
+            old_tstate = PyThreadState_Swap(destroy_tstate);
+
+            // We can use temp, the one we just created, and delete the creation state.
+            PyThreadState_Clear(creation_tstate_);
+            PyThreadState_Delete(creation_tstate_);
+        }
+#else
+        destroy_state = PyThreadState_New(istate_);
+        old_tstate = PyThreadState_Swap(destroy_state);
 #endif
+        
+        bool switch_back = old_tstate && old_tstate->interp != istate_;
 
         // Get the internals pointer (without creating it if it doesn't exist).  It's possible
         // for the internals to be created during Py_EndInterpreter() (e.g. if a py::capsule
@@ -160,7 +175,7 @@ public:
         }
 
         // End it
-        Py_EndInterpreter(temp);
+        Py_EndInterpreter(destroy_tstate);
 
         // do NOT decrease detail::get_num_interpreters_seen, because it can never decrease
         // while other threads are running...
