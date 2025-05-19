@@ -81,8 +81,8 @@ TEST_CASE("Single Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
+#if PY_VERSION_HEX >= 0x030D0000
 TEST_CASE("Move Subinterpreter") {
-
     std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
 
     // on this thread, use the subinterpreter and import some non-trivial junk
@@ -108,6 +108,7 @@ TEST_CASE("Move Subinterpreter") {
 
     unsafe_reset_internals_for_single_interpreter();
 }
+#endif
 
 TEST_CASE("GIL Subinterpreter") {
 
