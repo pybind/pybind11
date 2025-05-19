@@ -10,11 +10,11 @@ Changes will be added here periodically from the "Suggested changelog entry"
 block in pull request descriptions.
 
 
-IN DEVELOPMENT (v3.0.0)
------------------------
+3.0.0 RC 1
+----------
 
-Changes will be summarized here periodically.
-
+We may add one more opt-in feature (embedded subinterperters) before the final
+release.
 
 New Features:
 
@@ -25,6 +25,10 @@ New Features:
   and ``std::enable_shared_from_this``.
   `#5542 <https://github.com/pybind/pybind11/pull/5542>`_
 
+* Changed ``PYBIND11_MODULE`` macro implementation to perform multi-phase
+  module initialization (PEP 489) behind the scenes.
+  `#5574 <https://github.com/pybind/pybind11/pull/5574>`_
+
 * Support for sub-interpreters (both isolated (with separate GILs) and legacy
   (with a global GIL). Add the
   ``py::multiple_interpreters::per_interpreter_gil()`` tag (or,
@@ -33,9 +37,11 @@ New Features:
   module supports running with sub-interpreters.
   `#5564 <https://github.com/pybind/pybind11/pull/5564>`_
 
-* (CMake) Enable FindPython mode by default, with a ``COMPAT`` mode that sets
-  some of the old variables to ease transition.
-  `#5553 <https://github.com/pybind/pybind11/pull/5553>`_
+* Changed ``PYBIND11_EMBEDDED_MODULE`` macro implementation to perform
+  multi-phase module initialization (PEP 489) behind the scenes and to support
+  ``py::mod_gil_not_used()``, ``py::multiple_interpreters::per_interpreter_gil()``
+  and ``py::multiple_interpreters::shared_gil()``.
+  `#5665 <https://github.com/pybind/pybind11/pull/5665>`_
 
 * ``py::native_enum`` was added, for conversions between Python's native (stdlib) enum types and C++ enums.
   `#5555 <https://github.com/pybind/pybind11/pull/5555>`_
@@ -74,20 +80,18 @@ New Features:
   systems).
   `#5375 <https://github.com/pybind/pybind11/pull/5375>`_
 
-* Changed ``PYBIND11_MODULE`` macro implementation to perform multi-phase
-  module initialization (PEP 489) behind the scenes.
-  `#5574 <https://github.com/pybind/pybind11/pull/5574>`_
-
 * Added support for finding pybind11 using pkgconf distributed on pypi.
   `#5552 <https://github.com/pybind/pybind11/pull/5552>`_
 
 * Support ``--extension-suffix`` on the pybind11 command.
   `#5360 <https://github.com/pybind/pybind11/pull/5360>`_
 
+* Add semi-public API: ``pybind11::detail::is_holder_constructed`` and update
+  example for ``pybind11::custom_type_setup`` in documentation.
+  `#5669 <https://github.com/pybind/pybind11/pull/5669>`_
+
 
 New Features (typing):
-
-.. feat(types)
 
 * Added option for different arg/return type hints to ``type_caster``. Updated
   ``stl/filesystem`` to use correct arg/return type hints. Updated
@@ -208,9 +212,11 @@ Bug fixes:
   `#5620 <https://github.com/pybind/pybind11/pull/5620>`_
 
 
-.. fix(cmake)
-
 Bug fixes (CMake):
+
+* (CMake) Enable FindPython mode by default, with a ``COMPAT`` mode that sets
+  some of the old variables to ease transition.
+  `#5553 <https://github.com/pybind/pybind11/pull/5553>`_
 
 * Add an author warning that auto-calculated ``PYTHON_MODULE_EXTENSION`` may not respect ``SETUPTOOLS_EXT_SUFFIX`` during cross-compilation.
   `#5495 <https://github.com/pybind/pybind11/pull/5495>`_
@@ -230,10 +236,11 @@ Bug fixes (CMake):
 * Add support for running pybind11's tests via presets in CMake 3.25+.
   `#5655 <https://github.com/pybind/pybind11/pull/5655>`_
 
+* Restructure venv support to support ``--fresh``, make in build folder.
+  `#5668 <https://github.com/pybind/pybind11/pull/5668>`_
+
 
 Bug fixes (free-threading):
-
-.. fix(free-threading)
 
 * Fix data race in free threaded CPython when accessing a shared static variable.
   `#5494 <https://github.com/pybind/pybind11/pull/5494>`_
@@ -243,6 +250,7 @@ Bug fixes (free-threading):
 
 * Added exception translator specific mutex used with ``try_translate_exceptions`` in the free-threaded build for internal locking.
   `#5362 <https://github.com/pybind/pybind11/pull/5362>`_
+
 
 Internals:
 
@@ -267,6 +275,7 @@ Documentation:
 
 * Add documenting for free-threading and subinterpreters.
   `#5659 <https://github.com/pybind/pybind11/pull/5659>`_
+
 
 Tests:
 
