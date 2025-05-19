@@ -131,13 +131,14 @@ public:
         PyThreadState *destroy_tstate;
         PyThreadState *old_tstate;
 
-        // Python 3.12 requires us to keep the original PyThreadState alive until we are ready to destroy the interpreter.  We prefer to use that to destroy the interpreter.
+        // Python 3.12 requires us to keep the original PyThreadState alive until we are ready to
+        // destroy the interpreter.  We prefer to use that to destroy the interpreter.
 #if PY_VERSION_HEX < 0x030D0000
         // The tstate passed to Py_EndInterpreter MUST have been created on the current OS thread.
         bool same_thread = false;
-        #ifdef PY_HAVE_THREAD_NATIVE_ID
+#    ifdef PY_HAVE_THREAD_NATIVE_ID
         same_thread = PyThread_get_thread_native_id() == creation_tstate_->native_thread_id;
-        #endif
+#    endif
         if (same_thread) {
             // OK it is safe to use the creation state here
             destroy_tstate = creation_tstate_;
@@ -155,7 +156,7 @@ public:
         destroy_state = PyThreadState_New(istate_);
         old_tstate = PyThreadState_Swap(destroy_state);
 #endif
-        
+
         bool switch_back = old_tstate && old_tstate->interp != istate_;
 
         // Get the internals pointer (without creating it if it doesn't exist).  It's possible
