@@ -32,8 +32,8 @@ PYBIND11_NAMESPACE_END(detail)
 
 class subinterpreter;
 
-/// Activate the subinterpreter and acquire it's GIL, while also releasing any GIL and interpreter
-/// currently held. Upon exiting the scope, the previous subinterpreter (if any) and it's
+/// Activate the subinterpreter and acquire its GIL, while also releasing any GIL and interpreter
+/// currently held. Upon exiting the scope, the previous subinterpreter (if any) and its
 /// associated GIL are restored to their state as they were before the scope was entered.
 class subinterpreter_scoped_activate {
 public:
@@ -263,8 +263,8 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
         return;
     }
 
-    // we can't really innteract with the interpreter at all until we switch to it
-    // not even to, for example, look in it's state dict or touch its internals
+    // we can't really interact with the interpreter at all until we switch to it
+    // not even to, for example, look in its state dict or touch its internals
     tstate_ = PyThreadState_New(si.istate_);
 
     // make the interpreter active and acquire the GIL
