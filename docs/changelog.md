@@ -258,9 +258,9 @@ Tests:
 - Download the final Catch2 2.x release if Catch download is requested.
   [#5568](https://github.com/pybind/pybind11/pull/5568)
 
-\* Explicitly used `signed char` for two numpy dtype tests. As seen when
-compiling using `clang` on Linux with the `-funsigned-char` flag.
-[#5545](https://github.com/pybind/pybind11/pull/5545)
+- Explicitly used `signed char` for two numpy dtype tests. As seen when
+  compiling using `clang` on Linux with the `-funsigned-char` flag.
+  [#5545](https://github.com/pybind/pybind11/pull/5545)
 
 - Test PyPy3.11 in CI.
   [#5534](https://github.com/pybind/pybind11/pull/5534)
