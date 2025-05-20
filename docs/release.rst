@@ -39,7 +39,7 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Ensure that all the information in ``setup.cfg`` is up-to-date, like
     supported Python versions.
 
-- Add release date in ``docs/changelog.rst`` and integrate the output of
+- Add release date in ``docs/changelog.md`` and integrate the output of
   ``nox -s make_changelog``.
 
   - Note that the ``nox -s make_changelog`` command inspects
@@ -90,10 +90,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
     click "Draft a new release" on the far right, fill in the tag name
     (if you didn't tag above, it will be made here), fill in a release name
     like "Version X.Y.Z", and copy-and-paste the markdown-formatted (!) changelog
-    into the description. You can use ``cat docs/changelog.rst | pandoc -f rst -t gfm``,
-    then manually remove line breaks and strip links to PRs and issues,
-    e.g. to a bare ``#1234``, without the surrounding ``<...>_`` hyperlink markup.
-    Check "pre-release" if this is a beta/RC.
+    into the description. You can remove line breaks and strip links to PRs and
+    issues, e.g. to a bare ``#1234`` without the hyperlink markup.  Check
+    "pre-release" if this is a beta/RC.
 
   - CLI method: with ``gh`` installed, run ``gh release create vX.Y.Z -t "Version X.Y.Z"``
     If this is a pre-release, add ``-p``.
@@ -110,7 +109,7 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
   - If the release was a new MINOR version, add a new ``IN DEVELOPMENT``
-    section in ``docs/changelog.rst``.
+    section in ``docs/changelog.md``.
 
   - ``git add``, ``git commit``, ``git push``
 

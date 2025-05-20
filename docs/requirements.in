@@ -1,5 +1,6 @@
 breathe
 furo
+myst_parser
 sphinx
 sphinx-copybutton
 sphinxcontrib-moderncmakedomain
