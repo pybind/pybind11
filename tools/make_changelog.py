@@ -12,7 +12,8 @@ import ghapi.all
 from rich import print
 from rich.syntax import Syntax
 
-MD_ENTRY = re.compile( r"""
+MD_ENTRY = re.compile(
+    r"""
     \#\#\ Suggested\ changelog\ entry:  # Match the heading exactly
     (?:\s*<!--.*?-->)? \s*              # Optionally match one HTML comment, allowing surrounding whitespace
     (?P<content>.*?)                    # Lazily capture everything after (non-greedy)

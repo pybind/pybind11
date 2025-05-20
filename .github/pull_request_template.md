@@ -13,4 +13,3 @@ It is recommended to use conventional commit format, see conventionalcommits.org
      but do not delete the header if an entry is needed! Will be collected via a script. -->
 
 * Placeholder.
-
