@@ -12,14 +12,20 @@ import ghapi.all
 from rich import print
 from rich.syntax import Syntax
 
+
 MD_ENTRY = re.compile(
     r"""
-    \#\#\ Suggested\ changelog\ entry:  # Match the heading exactly
-    (?:\s*<!--.*?-->)? \s*              # Optionally match one HTML comment, allowing surrounding whitespace
-    (?P<content>.*?)                    # Lazily capture everything after (non-greedy)
-    \s*\Z                               # Allow and trim trailing whitespace until end of string
+    \#\#\ Suggested\ changelog\ entry:     # Match the heading exactly
+    (?:\s*<!--.*?-->)?                     # Optionally match one comment
+    (?P<content>.*?)                       # Lazily capture content until...
+    (?=                                    # Lookahead for one of the following:
+        ^-{3,}\s*$                         #   A line with 3 or more dashes
+      | ^<!--\s*readthedocs                #   A comment starting with 'readthedocs'
+      | ^\#\#                              #   A new heading
+      | \Z                                 #   End of string
+    )
     """,
-    re.DOTALL | re.VERBOSE,
+    re.DOTALL | re.VERBOSE | re.MULTILINE,
 )
 print()
 
@@ -59,7 +65,7 @@ for issue in issues:
         missing.append(issue)
         continue
 
-    msg = changelog.group("content")
+    msg = changelog.group("content").strip()
     if msg.startswith("- "):
         msg = msg[2:]
     if not msg.startswith("* "):
