@@ -1,5 +1,11 @@
 # Changelog
 
+<style>
+ul.simple > li > p {
+  padding-bottom: .2em;
+}
+</style>
+
 Starting with version 1.8.0, pybind11 releases use a [semantic
 versioning](http://semver.org) policy.
 
@@ -225,11 +231,11 @@ Bug fixes (free-threading):
 
 Internals:
 
-\* Consolidated all `PYBIND11_HAS_...` feature macros into
-`pybind11/detail/common.h` to streamline backward compatibility checks
-and simplify internal refactoring. This change ensures consistent macro
-availability regardless of header inclusion order.
-[#5647](https://github.com/pybind/pybind11/pull/5647)
+- Consolidated all `PYBIND11_HAS_...` feature macros into
+  `pybind11/detail/common.h` to streamline backward compatibility checks and
+  simplify internal refactoring. This change ensures consistent macro
+  availability regardless of header inclusion order.
+  [#5647](https://github.com/pybind/pybind11/pull/5647)
 
 - `pybind11/gil_simple.h` was factored out from `pybind11/gil.h`, so
   that it can easily be reused.
