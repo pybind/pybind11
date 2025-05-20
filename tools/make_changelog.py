@@ -12,19 +12,14 @@ import ghapi.all
 from rich import print
 from rich.syntax import Syntax
 
-MD_ENTRY = re.compile(
-    r"""
-    <!--
-    \s*block\s*
-    -->
-    (.*?)
-    <!--
-    \s*endblock\s*
-    -->
+MD_ENTRY = re.compile( r"""
+    \#\#\ Suggested\ changelog\ entry:  # Match the heading exactly
+    (?:\s*<!--.*?-->)? \s*              # Optionally match one HTML comment, allowing surrounding whitespace
+    (?P<content>.*?)                    # Lazily capture everything after (non-greedy)
+    \s*\Z                               # Allow and trim trailing whitespace until end of string
     """,
     re.DOTALL | re.VERBOSE,
 )
-
 print()
 
 
@@ -35,6 +30,7 @@ issues_pages = ghapi.page.paged(
 )
 issues = (issue for page in issues_pages for issue in page)
 missing = []
+old = []
 cats_descr = {
     "feat": "New Features",
     "feat(types)": "",
@@ -53,30 +49,35 @@ cats_descr = {
 cats: dict[str, list[str]] = {c: [] for c in cats_descr}
 
 for issue in issues:
-    changelog = MD_ENTRY.findall(issue.body or "")
-    if not changelog or not changelog[0]:
-        missing.append(issue)
-    else:
-        msg = changelog[0].strip()
-        if msg.startswith("- "):
-            msg = msg[2:]
-        if not msg.startswith("* "):
-            msg = "* " + msg
-        if not msg.endswith("."):
-            msg += "."
+    if "```rst" in issue.body:
+        old.append(issue)
+        continue
 
-        msg += f"\n  [#{issue.number}]({issue.html_url})"
-        for cat, cat_list in cats.items():
-            if issue.title.lower().startswith(f"{cat}:"):
-                cat_list.append(msg)
-                break
-        else:
-            cats["unknown"].append(msg)
+    changelog = MD_ENTRY.search(issue.body or "")
+    if not changelog:
+        missing.append(issue)
+        continue
+
+    msg = changelog.group("content")
+    if msg.startswith("- "):
+        msg = msg[2:]
+    if not msg.startswith("* "):
+        msg = "* " + msg
+    if not msg.endswith("."):
+        msg += "."
+
+    msg += f"\n  [#{issue.number}]({issue.html_url})"
+    for cat, cat_list in cats.items():
+        if issue.title.lower().startswith(f"{cat}:"):
+            cat_list.append(msg)
+            break
+    else:
+        cats["unknown"].append(msg)
 
 for cat, msgs in cats.items():
     if msgs:
         desc = cats_descr[cat]
-        print(f"[bold]{desc}:" if desc else f".. {cat}")
+        print(f"[bold]{desc}:" if desc else f"<!-- {cat} -->")
         print()
         for msg in msgs:
             print(Syntax(msg, "md", theme="ansi_light", word_wrap=True))
@@ -93,7 +94,16 @@ if missing:
         print(f"[red]  {issue.html_url}\n")
 
     print("[bold]Template:\n")
-    msg = "## Suggested changelog entry:\n\n<!-- block -->\n\n<!-- endblock -->"
+    msg = "## Suggested changelog entry:"
     print(Syntax(msg, "md", theme="ansi_light"))
+
+if old:
+    print()
+    print("[red]" + "-" * 30)
+    print()
+
+    for issue in old:
+        print(f"[red bold]Old:[/red bold][red] {issue.title}")
+        print(f"[red]  {issue.html_url}\n")
 
 print()
