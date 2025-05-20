@@ -26,7 +26,7 @@ TEST_SUBMODULE(custom_type_setup, m) {
             auto *type = &heap_type->ht_type;
             type->tp_flags |= Py_TPFLAGS_HAVE_GC;
             type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
-        // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
+// https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
 #if PY_VERSION_HEX >= 0x03090000
                 Py_VISIT(Py_TYPE(self_base));
 #endif

@@ -1252,7 +1252,7 @@ PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
 template <>
 struct handle_type_name<cpp_function> {
-    static constexpr auto name = const_name("Callable");
+    static constexpr auto name = const_name("collections.abc.Callable");
 };
 
 PYBIND11_NAMESPACE_END(detail)

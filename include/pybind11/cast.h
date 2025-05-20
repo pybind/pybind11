@@ -1359,7 +1359,7 @@ struct handle_type_name<dict> {
 };
 template <>
 struct handle_type_name<anyset> {
-    static constexpr auto name = const_name("Union[set, frozenset]");
+    static constexpr auto name = const_name("typing.Union[set, frozenset]");
 };
 template <>
 struct handle_type_name<set> {
@@ -1395,11 +1395,11 @@ struct handle_type_name<int_> {
 };
 template <>
 struct handle_type_name<iterable> {
-    static constexpr auto name = const_name("Iterable");
+    static constexpr auto name = const_name("collections.abc.Iterable");
 };
 template <>
 struct handle_type_name<iterator> {
-    static constexpr auto name = const_name("Iterator");
+    static constexpr auto name = const_name("collections.abc.Iterator");
 };
 template <>
 struct handle_type_name<float_> {
@@ -1407,7 +1407,7 @@ struct handle_type_name<float_> {
 };
 template <>
 struct handle_type_name<function> {
-    static constexpr auto name = const_name("Callable");
+    static constexpr auto name = const_name("collections.abc.Callable");
 };
 template <>
 struct handle_type_name<handle> {
@@ -1419,7 +1419,7 @@ struct handle_type_name<none> {
 };
 template <>
 struct handle_type_name<sequence> {
-    static constexpr auto name = const_name("Sequence");
+    static constexpr auto name = const_name("collections.abc.Sequence");
 };
 template <>
 struct handle_type_name<bytearray> {

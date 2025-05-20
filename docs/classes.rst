@@ -642,7 +642,7 @@ As of Python 3.13, the compatible `types in the stdlib enum module
         template <typename FancyEnum>
         struct type_caster_enum_type_enabled<
             FancyEnum,
-            std::enable_if_t<is_fancy_enum<FancyEnum>::value>> : std::false_type {};
+            enable_if_t<is_fancy_enum<FancyEnum>::value>> : std::false_type {};
         }
         #endif
 
