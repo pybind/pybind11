@@ -50,7 +50,7 @@ breathe_domain_by_extension = {"h": "cpp"}
 templates_path = [".templates"]
 
 # The suffix(es) of source filenames.
-source_suffix = ['.rst', '.md']
+source_suffix = [".rst", ".md"]
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
