@@ -61,13 +61,13 @@ public:
     subinterpreter(subinterpreter const &copy) = delete;
     subinterpreter &operator=(subinterpreter const &copy) = delete;
 
-    subinterpreter(subinterpreter &&old)
+    subinterpreter(subinterpreter &&old) noexcept
         : istate_(old.istate_), creation_tstate_(old.creation_tstate_) {
         old.istate_ = nullptr;
         old.creation_tstate_ = nullptr;
     }
 
-    subinterpreter &operator=(subinterpreter &&old) {
+    subinterpreter &operator=(subinterpreter &&old) noexcept {
         std::swap(old.istate_, istate_);
         std::swap(old.creation_tstate_, creation_tstate_);
         return *this;
