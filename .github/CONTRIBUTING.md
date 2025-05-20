@@ -110,7 +110,7 @@ you can use:
 cmake --workflow venv
 ```
 
-to setup an venv and run all tests. You can break this up into components
+to setup a venv and run all tests. You can break this up into components
 if you want to use a specific version of Python (or any other config option) or
 build only one of the valid targets (listed below).
 
