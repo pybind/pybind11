@@ -65,7 +65,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
   message(STATUS "CMake ${CMAKE_VERSION}")
 
-  if(DEFINED SKBUILD AND DEFINED $ENV{PYBIND11_GLOBAL_PREFIX})
+  if(DEFINED SKBUILD AND DEFINED ENV{PYBIND11_GLOBAL_PREFIX})
     message(
       FATAL_ERROR
         "PYBIND11_GLOBAL_PREFIX is not supported, use nox -s build_global or a pybind11-global SDist instead."
