@@ -169,6 +169,7 @@ set(PYBIND11_TEST_FILES
     test_smart_ptr
     test_stl
     test_stl_binders
+    test_stubgen
     test_tagbased_polymorphic
     test_thread
     test_type_caster_pyobject_ptr
