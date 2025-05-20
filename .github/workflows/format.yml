@@ -55,3 +55,6 @@ jobs:
 
     - name: Build
       run: cmake --build build -j 2 -- --keep-going
+
+    - name: Embedded
+      run: cmake --build build -t cpptest -j 2 -- --keep-going
