@@ -25,8 +25,8 @@ the following rules to make the process as smooth as possible:
 * Make a new branch for every feature you're working on.
 * Make small and clean pull requests that are easy to review but make sure they
   do add value by themselves.
-* Add tests for any new functionality and run the test suite (`cmake --build
-  build --target pytest`) to ensure that no existing features break.
+* Add tests for any new functionality and run the test suite (`cmake --workflow
+  venv`) to ensure that no existing features break.
 * Please run [`pre-commit`][pre-commit] to check your code matches the
   project style. (Note that `gawk` is required.) Use `pre-commit run
   --all-files` before committing (or use installed-mode, check pre-commit docs)
@@ -84,8 +84,8 @@ To setup an ideal development environment, run the following commands on a
 system with CMake 3.15+:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r tests/requirements.txt
 cmake -S . -B build -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON
 cmake --build build -j4
@@ -98,11 +98,31 @@ Tips:
   will be ignored by git.
 * If you don't have CMake 3.15+, just add "cmake" to the pip install command.
 * You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython.
-* In classic mode, you may need to set `-DPYTHON_EXECUTABLE=/path/to/python`.
-  FindPython uses `-DPython_ROOT_DIR=/path/to` or
+* For a specific Python, you can use `-DPython_ROOT_DIR=/path/to` or
   `-DPython_EXECUTABLE=/path/to/python`.
 
-### Configuration options
+## CMake presets
+
+We also support CMake presets. If you have [uv](https://docs.astral.sh/uv/),
+you can use:
+
+```bash
+cmake --workflow venv
+```
+
+to setup a venv and run all tests. You can break this up into components
+if you want to use a specific version of Python (or any other config option) or
+build only one of the valid targets (listed below).
+
+```bash
+cmake --preset venv -DPYBIND11_CREATE_WITH_UV=3.13t
+cmake --build --preset venv
+cmake --build --preset testsvenv -t cpptest
+```
+
+The `default` preset will use an existing venv or Python install.
+
+## Configuration options
 
 In CMake, configuration options are given with "-D". Options are stored in the
 build directory, in the `CMakeCache.txt` file, so they are remembered for each
@@ -299,84 +319,14 @@ files inside the package, that you get access to via functions in the package,
 and a `pybind11-global` package that can be included via `pybind11[global]` if
 you want the more invasive but discoverable file locations.
 
-If you want to install or package the GitHub source, it is best to have Pip 10
-or newer on Windows, macOS, or Linux (manylinux1 compatible, includes most
-distributions).  You can then build the SDists, or run any procedure that makes
-SDists internally, like making wheels or installing.
+If you want to package the GitHub source for the "global" package, you need
+to use nox. Normal packaging will only make the normal package.
 
 
 ```bash
-# Editable development install example
-python3 -m pip install -e .
+nox -s build
+nox -s build_global
 ```
-
-Since Pip itself does not have an `sdist` command (it does have `wheel` and
-`install`), you may want to use the upcoming `build` package:
-
-```bash
-python3 -m pip install build
-
-# Normal package
-python3 -m build -s .
-
-# Global extra
-PYBIND11_GLOBAL_SDIST=1 python3 -m build -s .
-```
-
-If you want to use the classic "direct" usage of `python setup.py`, you will
-need CMake 3.15+ and either `make` or `ninja` preinstalled (possibly via `pip
-install cmake ninja`), since directly running Python on `setup.py` cannot pick
-up and install `pyproject.toml` requirements. As long as you have those two
-things, though, everything works the way you would expect:
-
-```bash
-# Normal package
-python3 setup.py sdist
-
-# Global extra
-PYBIND11_GLOBAL_SDIST=1 python3 setup.py sdist
-```
-
-A detailed explanation of the build procedure design for developers wanting to
-work on or maintain the packaging system is as follows:
-
-#### 1. Building from the source directory
-
-When you invoke any `setup.py` command from the source directory, including
-`pip wheel .` and `pip install .`, you will activate a full source build. This
-is made of the following steps:
-
-1. If the tool is PEP 518 compliant, like Pip 10+, it will create a temporary
-   virtual environment and install the build requirements (mostly CMake) into
-   it. (if you are not on Windows, macOS, or a manylinux compliant system, you
-   can disable this with `--no-build-isolation` as long as you have CMake 3.15+
-   installed)
-2. The environment variable `PYBIND11_GLOBAL_SDIST` is checked - if it is set
-   and truthy, this will be make the accessory `pybind11-global` package,
-   instead of the normal `pybind11` package. This package is used for
-   installing the files directly to your environment root directory, using
-   `pybind11[global]`.
-2. `setup.py` reads the version from `pybind11/_version.py` and verifies it
-   matches `includes/pybind11/detail/common.h`.
-3. CMake is run with `-DCMAKE_INSTALL_PREIFX=pybind11`. Since the CMake install
-   procedure uses only relative paths and is identical on all platforms, these
-   files are valid as long as they stay in the correct relative position to the
-   includes. `pybind11/share/cmake/pybind11` has the CMake files, and
-   `pybind11/include` has the includes. The build directory is discarded.
-4. Simpler files are placed in the SDist: `tools/setup_*.py.in`,
-   `tools/pyproject.toml` (`main` or `global`)
-5. The package is created by running the setup function in the
-   `tools/setup_*.py`.  `setup_main.py` fills in Python packages, and
-   `setup_global.py` fills in only the data/header slots.
-6. A context manager cleans up the temporary CMake install directory (even if
-   an error is thrown).
-
-### 2. Building from SDist
-
-Since the SDist has the rendered template files in `tools` along with the
-includes and CMake files in the correct locations, the builds are completely
-trivial and simple. No extra requirements are required. You can even use Pip 9
-if you really want to.
 
 
 [pre-commit]: https://pre-commit.com

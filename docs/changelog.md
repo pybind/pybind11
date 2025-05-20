@@ -285,7 +285,7 @@ New and removed platforms:
   [#5304](https://github.com/pybind/pybind11/pull/5304)
 - Use scikit-build-core for the build backend for the PyPI `pybind11`.
   The CMake generation has been moved to the sdist-\>wheel step.
-  `PYBIND11_GLOBAL_PREFIX` has been removed.
+  `PYBIND11_GLOBAL_SDIST` has been removed.
   [#5598](https://github.com/pybind/pybind11/pull/5598)
 
 ## Version 2.13.6 (September 13, 2024)
