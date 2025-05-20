@@ -116,7 +116,7 @@ public:
     static inline subinterpreter create() {
         // same as the default config in the python docs
         PyInterpreterConfig cfg;
-        memset(&cfg, 0, sizeof(cfg));
+        std::memset(&cfg, 0, sizeof(cfg));
         cfg.check_multi_interp_extensions = 1;
         cfg.gil = PyInterpreterConfig_OWN_GIL;
         return create(cfg);
