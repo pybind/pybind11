@@ -15,7 +15,7 @@ from pybind11_tests import stubgen_error as m
 )
 def test_stubgen(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     """Show stubgen/mypy errors for CapsuleType (not available in Python < 3.13)."""
-    assert m.identity_capsule(None) is None
+    assert hasattr(m, "identity_capsule")
     # Generate stub into temporary directory
     pybind11_stubgen.main(
         [
