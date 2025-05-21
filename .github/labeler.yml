@@ -2,7 +2,7 @@ docs:
   all:
     - changed-files:
       - all-globs-to-all-files:
-        - '!docs/changelog.rst'
+        - '!docs/changelog.md'
         - '!docs/upgrade.rst'
     - base-branch: "^(?!dependabot).*"
     - base-branch: "^(?!pre-commit-ci).*"

@@ -1,0 +1,41 @@
+name: Read the Docs PR preview
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  documentation-links:
+    runs-on: ubuntu-latest
+    if: github.event.repository.fork == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for docs changes
+        id: docs_changes
+        run: |
+          # Fetch the PR head
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-head
+
+          # Show diff between base (current checkout) and PR head
+          if git diff --name-only HEAD pr-head | grep -q '^docs/'; then
+            echo "docs_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: readthedocs/actions/preview@v1
+        if: steps.docs_changes.outputs.docs_changed == 'true'
+        with:
+          project-slug: "pybind11"
+          single-version: "true"

@@ -58,15 +58,15 @@ jobs:
       uses: astral-sh/setup-uv@v6
 
     - name: Prepare env
-      run: uv pip install --system -r tests/requirements.txt twine
+      run: uv pip install --system -r tests/requirements.txt twine nox
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
 
     - name: Build SDist and wheels
       run: |
-        uv build
-        PYBIND11_GLOBAL_SDIST=1 uv build
+        nox -s build
+        nox -s build_global
 
     - name: Check metadata
       run: twine check dist/*
@@ -81,7 +81,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: global
-        path: dist/pybind11_global-*
+        path: dist/*global-*
 
 
 
