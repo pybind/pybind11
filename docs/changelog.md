@@ -16,13 +16,16 @@ entry" block in pull request descriptions.
 
 Since this is a large release, we are providing a release candidate to give
 projects time to test! We also now provide
-[SPEC 4](https://scientific-python.org/specs/spec-0004/) nightly wheels.
+[SPEC 4](https://scientific-python.org/specs/spec-0004/) nightly wheels. We
+are hoping to split up `std.h`; that work is approved to be added during the
+RC phase if it's ready in time. We expect the RC phase to last around a week.
 
 Pybind11 3.0 includes an ABI bump, the first required bump in many years
-on Unix (Windows has had required bumps more often). This release contains the smart-holder branch, multi-phase
-init and subinterpreter support, `py::native_enum`, an interface to warnings,
-typing improvements, and more. CMake now defaults to FindPython mode. Please
-check our upgrade guide for more info on upgrading!
+on Unix (Windows has had required bumps more often). This release contains
+the smart-holder branch, multi-phase init and subinterpreter support,
+`py::native_enum`, an interface to warnings, typing improvements, and more.
+CMake now defaults to FindPython mode. Please check our upgrade guide for
+more info on upgrading!
 
 Support for Python 3.14, 3.14t, GraalPy, and PyPy 3.11 has been added, while
 legacy support for Python 3.7, PyPy 3.8/3.9, and CMake \<3.15 has been removed.
