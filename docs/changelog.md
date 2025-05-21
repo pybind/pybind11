@@ -19,7 +19,7 @@ projects time to test! We also now provide
 [SPEC 4](https://scientific-python.org/specs/spec-0004/) nightly wheels.
 
 Pybind11 3.0 includes an ABI bump, the first required bump in many years
-(except on Windows). This release contains the smart-holder branch, multi-phase
+on Unix (Windows has had required bumps more often). This release contains the smart-holder branch, multi-phase
 init and subinterpreter support, `py::native_enum`, an interface to warnings,
 typing improvements, and more. CMake now defaults to FindPython mode. Please
 check our upgrade guide for more info on upgrading!
