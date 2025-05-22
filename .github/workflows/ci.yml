@@ -143,7 +143,7 @@ jobs:
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python --system -r tests/requirements.txt
+      run: uv pip install --python=python -r tests/requirements.txt
 
     - name: Setup annotations on Linux
       if: runner.os == 'Linux'
@@ -352,7 +352,7 @@ jobs:
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python3 --system -r tests/requirements.txt
+      run: uv pip install --python=python3 -r tests/requirements.txt
 
     - name: Configure
       shell: bash
@@ -396,7 +396,7 @@ jobs:
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python3 --system -r tests/requirements.txt
+      run: uv pip install --python=python3 -r tests/requirements.txt
 
     - name: Configure
       run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
@@ -475,7 +475,7 @@ jobs:
         sudo apt-get install -y --no-install-recommends nvhpc-23-5 && \
         sudo rm -rf /var/lib/apt/lists/*
         python3 -m pip install --upgrade pip
-        python3 -m pip install --system -r tests/requirements.txt
+        python3 -m pip install -r tests/requirements.txt
 
     # On some systems, you many need further workarounds:
     # https://github.com/pybind/pybind11/pull/2475
@@ -530,7 +530,7 @@ jobs:
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python3 --system -r tests/requirements.txt
+      run: uv pip install --python=python3 -r tests/requirements.txt
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v2.0
@@ -1016,7 +1016,7 @@ jobs:
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python --system -r tests/requirements.txt
+      run: uv pip install --python=python -r tests/requirements.txt
 
 
     - name: Configure C++11
