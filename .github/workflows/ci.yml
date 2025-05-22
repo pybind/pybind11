@@ -1000,6 +1000,7 @@ jobs:
           mingw-w64-${{matrix.env}}-python-pip
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
+          mingw-w64-${{matrix.env}}-python-pytest
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
 
@@ -1008,6 +1009,8 @@ jobs:
       with:
         msystem: ${{matrix.sys}}
         install: >-
+          mingw-w64-${{matrix.env}}-python-numpy
+          mingw-w64-${{matrix.env}}-python-scipy
           mingw-w64-${{matrix.env}}-eigen3
 
     - uses: actions/checkout@v4
