@@ -232,11 +232,11 @@
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
-// Slightly faster code paths are available when PYBIND11_SUBINTERPRETER_SUPPORT is *not* defined,
-// so avoid defining it for implementations that do not support subinterpreters.
-// However, defining it unnecessarily is not expected to break anything.
+// Slightly faster code paths are available when PYBIND11_HAS_SUBINTERPRETER_SUPPORT is *not*
+// defined, so avoid defining it for implementations that do not support subinterpreters. However,
+// defining it unnecessarily is not expected to break anything.
 #if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-#    define PYBIND11_SUBINTERPRETER_SUPPORT
+#    define PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #endif
 
 // 3.12 Compatibility
