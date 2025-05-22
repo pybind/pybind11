@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pybind11_stubgen
+import pytest
 from mypy import api
 
 from pybind11_tests import stubgen as m
 
 
+@pytest.mark.xfail(
+    sys.version_info >= (3, 14), reason="mypy does not support Python 3.14+ yet"
+)
 def test_stubgen(tmp_path: Path) -> None:
     assert m.add_int(1, 2) == 3
     # Generate stub into temporary directory
