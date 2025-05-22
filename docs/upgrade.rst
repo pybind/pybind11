@@ -93,7 +93,7 @@ features as the need arises or as part of ongoing maintenance efforts.
 If you are using CMake, update to FindPython variables (mostly changing
 variables from ``PYTHON_*`` -> ``Python_*``). You should see if you can use
 ``set(PYBIND11_FINDPYTHON ON)``, which has been supported for years and will
-avoid setting the compatibly mode variables.
+avoid setting the compatibility mode variables (and will avoid a warning).
 
 Potential stumbling blocks when migrating to v3.0
 -------------------------------------------------

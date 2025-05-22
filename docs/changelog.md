@@ -12,14 +12,30 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 RC 1
+## 3.0.0 RC 1 (May 21, 2025)
 
-We may add one more opt-in feature (embedded subinterperters) before the
-final release.
+Since this is a large release, we are providing a release candidate to give
+projects time to test! We also now provide
+[SPEC 4](https://scientific-python.org/specs/spec-0004/) nightly wheels. We
+are hoping to split up `std.h`; that work is approved to be added during the
+RC phase if it's ready in time. We expect the RC phase to last around a week.
+
+Pybind11 3.0 includes an ABI bump, the first required bump in many years
+on Unix (Windows has had required bumps more often). This release contains
+the smart-holder branch, multi-phase init and subinterpreter support,
+`py::native_enum`, an interface to warnings, typing improvements, and more.
+CMake now defaults to FindPython mode. Please check our upgrade guide for
+more info on upgrading!
+
+Support for Python 3.14, 3.14t, GraalPy, and PyPy 3.11 has been added, while
+legacy support for Python 3.7, PyPy 3.8/3.9, and CMake \<3.15 has been removed.
+Most deprecated features have been kept for this release, but anything
+producing a warning in 3.0 may be removed in a future 3.x version. We also now
+have a deprecation page.
 
 New Features:
 
-- The `smart-holder` branch has been merged, enabling
+- The `smart_holder` branch has been merged, enabling
   `py::class_<T, py::smart_holder>`, which handles two-way conversion
   with `std::unique_ptr<T>` and `std::shared_ptr<T>` (simultaneously),
   disowning a Python object being passed to `std::unique_ptr<T>`,
@@ -43,7 +59,11 @@ New Features:
   support `py::mod_gil_not_used()`,
   `py::multiple_interpreters::per_interpreter_gil()` and
   `py::multiple_interpreters::shared_gil()`.
-  [#5665](https://github.com/pybind/pybind11/pull/5665)
+  [#5665](https://github.com/pybind/pybind11/pull/5665) and consolidate code
+  [#5670](https://github.com/pybind/pybind11/pull/5670)
+
+* Added API in `pybind11/subinterpreter.h` for embedding sub-intepreters (requires Python 3.12+).
+  [#5666](https://github.com/pybind/pybind11/pull/5666)
 
 - `py::native_enum` was added, for conversions between Python's native
   (stdlib) enum types and C++ enums.
@@ -52,7 +72,7 @@ New Features:
   - Add class doc string to `py::native_enum`.
     [#5617](https://github.com/pybind/pybind11/pull/5617).
 
-  - Fix signature for functions with a native_enum in the signature.
+  - Fix signature for functions with a `native_enum` in the signature.
     [#5619](https://github.com/pybind/pybind11/pull/5619)
 
 - A `py::release_gil_before_calling_cpp_dtor` option (for `py::class_`)
@@ -70,7 +90,7 @@ New Features:
   Python warnings.
   [#5291](https://github.com/pybind/pybind11/pull/5291)
 
-- stl.h `list|set|map_caster` were made more user friendly: it is no
+- `stl.h` `list|set|map_caster` were made more user friendly: it is no
   longer necessary to explicitly convert Python iterables to `tuple()`,
   `set()`, or `map()` in many common situations.
   [#4686](https://github.com/pybind/pybind11/pull/4686)
@@ -94,7 +114,7 @@ New Features:
   update example for `pybind11::custom_type_setup` in documentation.
   [#5669](https://github.com/pybind/pybind11/pull/5669)
 
-New Features (typing):
+New Features / fixes (typing):
 
 - Added option for different arg/return type hints to `type_caster`.
   Updated `stl/filesystem` to use correct arg/return type hints. Updated
@@ -120,9 +140,6 @@ New Features (typing):
   [#5357](https://github.com/pybind/pybind11/pull/5357)
 - Switched to `numpy.typing.NDArray` and `numpy.typing.ArrayLike`.
   [#5212](https://github.com/pybind/pybind11/pull/5212)
-
-<!-- -->
-
 - Use `numpy.object_` instead of `object`.
   [#5571](https://github.com/pybind/pybind11/pull/5571)
 - Fix module type hint.
@@ -132,6 +149,8 @@ New Features (typing):
 - Added support for `collections.abc` in type hints and convertible
   checks of STL casters and `py::buffer`.
   [#5566](https://github.com/pybind/pybind11/pull/5566)
+- Fix `typing` and `collections.abc` type hint ambiguity.
+  [#5663](https://github.com/pybind/pybind11/pull/5663)
 
 Removals:
 
@@ -200,7 +219,7 @@ Bug fixes:
 
 Bug fixes (CMake):
 
-- (CMake) Enable FindPython mode by default, with a `COMPAT` mode that
+- Enable FindPython mode by default, with a `COMPAT` mode that
   sets some of the old variables to ease transition.
   [#5553](https://github.com/pybind/pybind11/pull/5553)
 - Add an author warning that auto-calculated `PYTHON_MODULE_EXTENSION`
@@ -215,7 +234,8 @@ Bug fixes (CMake):
 - Use CMake's warnings as errors if available (CMake 3.24+).
   [#5612](https://github.com/pybind/pybind11/pull/5612)
 - Add support for running pybind11's tests via presets in CMake 3.25+.
-  [#5655](https://github.com/pybind/pybind11/pull/5655)
+  [#5655](https://github.com/pybind/pybind11/pull/5655) and support `--fresh`.
+  [#5668](https://github.com/pybind/pybind11/pull/5668)
 - Restructure venv support to support `--fresh`, make in build folder.
   [#5668](https://github.com/pybind/pybind11/pull/5668)
 
@@ -264,9 +284,14 @@ Tests:
 
 - Test PyPy3.11 in CI.
   [#5534](https://github.com/pybind/pybind11/pull/5534)
+
 - CI testing now includes
   `-Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls`
-  in some jobs. [#5523](https://github.com/pybind/pybind11/pull/5523)
+  in some jobs.
+  [#5523](https://github.com/pybind/pybind11/pull/5523)
+
+* Add nightly wheels to scientific-python's nightly wheelhouse.
+  [#5675](https://github.com/pybind/pybind11/pull/5675)
 
 New and removed platforms:
 
@@ -286,7 +311,8 @@ New and removed platforms:
 - Use scikit-build-core for the build backend for the PyPI `pybind11`.
   The CMake generation has been moved to the sdist-\>wheel step.
   `PYBIND11_GLOBAL_SDIST` has been removed.
-  [#5598](https://github.com/pybind/pybind11/pull/5598)
+  [#5598](https://github.com/pybind/pybind11/pull/5598) and updated
+  docs/ci. [#5676](https://github.com/pybind/pybind11/pull/5676)
 
 ## Version 2.13.6 (September 13, 2024)
 
