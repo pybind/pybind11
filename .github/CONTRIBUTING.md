@@ -117,10 +117,21 @@ build only one of the valid targets (listed below).
 ```bash
 cmake --preset venv -DPYBIND11_CREATE_WITH_UV=3.13t
 cmake --build --preset venv
-cmake --build --preset testsvenv -t cpptest
+cmake --build --preset venv -t cpptest
 ```
 
-The `default` preset will use an existing venv or Python install.
+The `default` preset will use an existing venv or Python install. If you'd like
+to run pytest yourself, say to easily control the options:
+
+```bash
+cd build
+source .venv/bin/activate
+cd tests
+python -m pytest
+```
+
+The `.so` file is not installed into the venv, so you need to run from this
+directory, the local directory is included with `python -m`.
 
 ## Configuration options
 
