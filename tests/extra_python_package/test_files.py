@@ -354,10 +354,14 @@ def test_version_matches():
     text = header.read_text()
 
     # Extract the relevant macro values
-    micro = re.search(r'#define\s+PYBIND11_VERSION_MICRO\s+(\d+)', text).group(1)
-    release_level = re.search(r'#define\s+PYBIND11_VERSION_RELEASE_LEVEL\s+([A-Za-z0-9_]+)', text).group(1)
-    release_serial = re.search(r'#define\s+PYBIND11_VERSION_RELEASE_SERIAL\s+(\d+)', text).group(1)
-    patch = re.search(r'#define\s+PYBIND11_VERSION_PATCH\s+([^\s]+)', text).group(1)
+    micro = re.search(r"#define\s+PYBIND11_VERSION_MICRO\s+(\d+)", text).group(1)
+    release_level = re.search(
+        r"#define\s+PYBIND11_VERSION_RELEASE_LEVEL\s+([A-Za-z0-9_]+)", text
+    ).group(1)
+    release_serial = re.search(
+        r"#define\s+PYBIND11_VERSION_RELEASE_SERIAL\s+(\d+)", text
+    ).group(1)
+    patch = re.search(r"#define\s+PYBIND11_VERSION_PATCH\s+([^\s]+)", text).group(1)
 
     # Map release level macro to string
     level_map = {
