@@ -349,10 +349,11 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
+        activate-environment: true
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python3 --system -r tests/requirements.txt
+      run: uv pip install -r tests/requirements.txt
 
     - name: Configure
       shell: bash
@@ -527,10 +528,11 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
+        activate-environment: true
         enable-cache: true
 
     - name: Prepare env
-      run: uv pip install --python=python3 --system -r tests/requirements.txt
+      run: uv pip install -r tests/requirements.txt
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v2.0
