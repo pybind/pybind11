@@ -37,7 +37,9 @@ def test_stubgen(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     # Run mypy on the generated stub file
     # normal_report -> stdout, error_report -> stderr
     # Type errors seem to go into normal_report
-    normal_report, error_report, exit_status = api.run([stub_file.as_posix()])
+    normal_report, error_report, exit_status = api.run(
+        [stub_file.as_posix(), "--no-color-output"]
+    )
     print("Normal report:")
     print(normal_report)
     print("Error report:")
