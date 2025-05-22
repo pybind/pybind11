@@ -2,13 +2,30 @@
 
 from __future__ import annotations
 
-import exo_planet_c_api
-import exo_planet_pybind11
-import home_planet_very_lonely_traveler
+import importlib
+import sys
+
 import pytest
 
 import env
 from pybind11_tests import cpp_conduit as home_planet
+
+
+def import_warns_freethreaded(name):
+    if name not in sys.modules and not getattr(sys, "_is_gil_enabled", lambda: True)():
+        with pytest.warns(
+            RuntimeWarning, match=f"has been enabled to load module '{name}'"
+        ):
+            return importlib.import_module(name)
+
+    return importlib.import_module(name)
+
+
+exo_planet_c_api = import_warns_freethreaded("exo_planet_c_api")
+exo_planet_pybind11 = import_warns_freethreaded("exo_planet_pybind11")
+home_planet_very_lonely_traveler = import_warns_freethreaded(
+    "home_planet_very_lonely_traveler"
+)
 
 
 def test_traveler_getattr_actually_exists():
