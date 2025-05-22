@@ -1002,6 +1002,7 @@ jobs:
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
+          mingw-w64-${{matrix.env}}-uv
 
     - uses: msys2/setup-msys2@v2
       if: matrix.sys == 'mingw64'
@@ -1011,11 +1012,6 @@ jobs:
           mingw-w64-${{matrix.env}}-eigen3
 
     - uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-      with:
-        enable-cache: true
 
     - name: Prepare env
       run: uv pip install --python=python --system -r tests/requirements.txt
