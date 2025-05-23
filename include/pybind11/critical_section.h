@@ -29,8 +29,8 @@ public:
         }
     }
 #else
-    explicit scoped_critical_section(handle _obj) = default;
-    scoped_critical_section(handle _obj1, handle _obj2) = default;
+    explicit scoped_critical_section(handle) {};
+    scoped_critical_section(handle, handle) {};
     ~scoped_critical_section() = default;
 #endif
 
