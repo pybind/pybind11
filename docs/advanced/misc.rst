@@ -301,7 +301,10 @@ using a Python critical section. This will do nothing if not in free-threaded
 Python. You can have it lock one or two Python objects. You cannot nest it.
 
 .. code-block:: cpp
-    :emphasize-lines: 1,5,10
+    :emphasize-lines: 1,4,8
+
+    #include <pybind11/critical_section.h>
+    // ...
 
     PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil(), py::mod_gil_not_used()) {
         m.def("calc_next", []() {
