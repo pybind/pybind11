@@ -28,7 +28,7 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Update the version number
 
   - Update ``PYBIND11_VERSION_MAJOR`` etc. in
-    ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
+    ``include/pybind11/detail/common.h``. MICRO should be a simple integer.
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
