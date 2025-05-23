@@ -22,7 +22,7 @@ public:
     }
 
     ~scoped_critical_section() {
-        if(has2) {
+        if (has2) {
             PyCriticalSection2_End(&section2);
         } else {
             PyCriticalSection_End(&section);
