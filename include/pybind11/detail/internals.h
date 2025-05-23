@@ -324,7 +324,7 @@ inline std::atomic<int> &get_num_interpreters_seen() {
 
 template <typename InternalsType>
 inline std::unique_ptr<InternalsType> *&get_internals_pp() {
-#ifdef PYBIND11_SUBINTERPRETER_SUPPORT
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
     if (get_num_interpreters_seen() > 1) {
         // Internals is one per interpreter. When multiple interpreters are alive in different
         // threads we have to allow them to have different internals, so we need a thread_local.
