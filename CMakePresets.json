@@ -12,10 +12,12 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PYBIND11_FINDPYTHON": "NEW",
-        "PYBIND11_WERROR": true,
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "DOWNLOAD_CATCH": true,
-        "DOWNLOAD_EIGEN": true
+        "DOWNLOAD_EIGEN": true,
+        "PYBIND11_FINDPYTHON": "NEW",
+        "PYBIND11_WERROR": true
+
       }
     },
     {
@@ -24,12 +26,13 @@
       "inherits": "default",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PYBIND11_CREATE_WITH_UV": "python3",
-        "Python_ROOT_DIR": ".venv",
-        "PYBIND11_WERROR": true,
-        "PYBIND11_FINDPYTHON": "NEW",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "DOWNLOAD_CATCH": true,
-        "DOWNLOAD_EIGEN": true
+        "DOWNLOAD_EIGEN": true,
+        "PYBIND11_CREATE_WITH_UV": "python3",
+        "PYBIND11_FINDPYTHON": "NEW",
+        "PYBIND11_WERROR": true,
+        "Python_ROOT_DIR": ".venv"
       }
     }
   ],
