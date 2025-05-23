@@ -1,3 +1,4 @@
+#include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
@@ -365,15 +366,11 @@ TEST_CASE("Threads") {
 #ifdef Py_GIL_DISABLED
 #    if PY_VERSION_HEX < 0x030E0000
                 std::lock_guard<std::mutex> lock(mutex);
-                locals["count"] = locals["count"].cast<int>() + 1;
 #    else
-                Py_BEGIN_CRITICAL_SECTION(locals.ptr());
-                locals["count"] = locals["count"].cast<int>() + 1;
-                Py_END_CRITICAL_SECTION();
+                py::scoped_critical_section lock(locals);
 #    endif
-#else
-                locals["count"] = locals["count"].cast<int>() + 1;
 #endif
+                locals["count"] = locals["count"].cast<int>() + 1;
             });
         }
 

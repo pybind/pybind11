@@ -295,22 +295,29 @@ This module is sub-interpreter safe, for both ``shared_gil`` ("legacy") and
 function concurrently from different threads. This is safe because each sub-interpreter's GIL
 protects it's own Python objects from concurrent access.
 
-However, the module is no longer free-threading safe, for the same reason as before, because the
-calculation is not synchronized. We can synchronize it using a Python critical section.
+However, the module is no longer free-threading safe, for the same reason as
+before, because the calculation is not synchronized. We can synchronize it
+using a Python critical section. This will do nothing if not in free-threaded
+Python. You can have it lock one or two Python objects. You cannot nest it.
+(Note: In Python 3.13t, Python re-locks if you enter a critical section again,
+which happens in various places. This was optimized away in 3.14+. Use a
+``std::mutex`` instead if this is a problem).
 
 .. code-block:: cpp
-    :emphasize-lines: 1,5,10
+    :emphasize-lines: 1,4,8
+
+    #include <pybind11/critical_section.h>
+    // ...
 
     PYBIND11_MODULE(example, m, py::multiple_interpreters::per_interpreter_gil(), py::mod_gil_not_used()) {
         m.def("calc_next", []() {
             size_t old;
             py::dict g = py::globals();
-            Py_BEGIN_CRITICAL_SECTION(g);
+            py::scoped_critical_section guard(g);
             if (!g.contains("myseed"))
                 g["myseed"] = 0;
             old = g["myseed"];
             g["myseed"] = (old + 1) * 10;
-            Py_END_CRITICAL_SECTION();
             return old;
         });
     }
