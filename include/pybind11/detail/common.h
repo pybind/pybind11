@@ -309,6 +309,12 @@
         } while (0)
 #endif
 
+#ifdef _Py_IMMORTAL_REFCNT
+#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT(o.ptr(), _Py_IMMORTAL_REFCNT)
+#else
+#    define PYBIND11_IMMORTALIZE(o)
+#endif
+
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
     {                                                                                             \
         const char *compiled_ver                                                                  \
@@ -379,12 +385,14 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
             slots[0] = {Py_mod_exec,                                                              \
                         reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
             slots[1] = {0, nullptr};                                                              \
-            return ::pybind11::module_::initialize_multiphase_module_def(                         \
+            auto o = ::pybind11::module_::initialize_multiphase_module_def(                       \
                 PYBIND11_TOSTRING(name),                                                          \
                 nullptr,                                                                          \
                 &PYBIND11_CONCAT(pybind11_module_def_, name),                                     \
                 slots,                                                                            \
                 ##__VA_ARGS__);                                                                   \
+            PYBIND11_IMMORTALIZE(o);                                                              \
+            return o;                                                                             \
         }();                                                                                      \
         return result.ptr();                                                                      \
     }
