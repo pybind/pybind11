@@ -354,19 +354,25 @@ def test_version_matches():
     text = header.read_text()
 
     # Extract the relevant macro values
-    prefix = r"^\s*#\s*define\s+PYBIND11_VERSION_"
-    micro = re.search(rf"{prefix}MICRO\s+(\d+)", text).group(1)
-    release_level = re.search(
-        rf"{prefix}RELEASE_LEVEL\s+PY_RELEASE_LEVEL_(\w+)", text
+    regex_prefix = r"^\s*#\s*define\s+PYBIND11_VERSION_"
+    micro = re.search(rf"{regex_prefix}MICRO\s+(\d+)\b", text).group(1)
+    release_level = re.search(rf"{regex_prefix}RELEASE_LEVEL\s+(\w+)\b", text).group(1)
+    release_serial = re.search(
+        rf"{regex_prefix}RELEASE_SERIAL\s+(\d+)\b",
+        text,
     ).group(1)
-    release_serial = re.search(rf"{prefix}RELEASE_SERIAL\s+(\d+)", text).group(1)
-    patch = re.search(rf"{prefix}PATCH\s+([^\s]+)", text).group(1)
+    patch = re.search(rf"{regex_prefix}PATCH\s+([\w.-]+)\b", text).group(1)
 
     # Map release level macro to string
-    level_map = {"ALPHA": "a", "BETA": "b", "GAMMA": "rc", "FINAL": ""}
+    level_map = {
+        "PY_RELEASE_LEVEL_ALPHA": "a",
+        "PY_RELEASE_LEVEL_BETA": "b",
+        "PY_RELEASE_LEVEL_GAMMA": "rc",
+        "PY_RELEASE_LEVEL_FINAL": "",
+    }
     level_str = level_map[release_level]
 
-    if release_level == "FINAL":
+    if release_level == "PY_RELEASE_LEVEL_FINAL":
         assert level_str == ""
         assert release_serial == "0"
         expected_patch = micro
