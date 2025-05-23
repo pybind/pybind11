@@ -14,13 +14,35 @@
 #    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
 #endif
 
+// Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
+// See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
+/* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
+#define PYBIND11_VERSION_MICRO 0
+// ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
+// - The release level is set to "alpha" for development versions.
+//   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
+// - For stable releases, set the serial to 0.
+#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_GAMMA
+#define PYBIND11_VERSION_RELEASE_SERIAL 1
+// String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
 #define PYBIND11_VERSION_PATCH 0rc1
+/* -- end version constants -- */
 
-// Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
-// Use 0xA0 for dev
-#define PYBIND11_VERSION_HEX 0x030000C1
+#if !defined(Py_PACK_FULL_VERSION)
+// Stable API since Python 3.14.0a4
+#    define Py_PACK_FULL_VERSION(X, Y, Z, LEVEL, SERIAL)                                          \
+        ((((X) & 0xff) << 24) | (((Y) & 0xff) << 16) | (((Z) & 0xff) << 8)                        \
+         | (((LEVEL) & 0xf) << 4) | (((SERIAL) & 0xf) << 0))
+#endif
+// Version as a single 4-byte hex number, e.g. 0x030C04B5 == 3.12.4b5.
+#define PYBIND11_VERSION_HEX                                                                      \
+    Py_PACK_FULL_VERSION(PYBIND11_VERSION_MAJOR,                                                  \
+                         PYBIND11_VERSION_MINOR,                                                  \
+                         PYBIND11_VERSION_MICRO,                                                  \
+                         PYBIND11_VERSION_RELEASE_LEVEL,                                          \
+                         PYBIND11_VERSION_RELEASE_SERIAL)
 
 #include "pybind11_namespace_macros.h"
 

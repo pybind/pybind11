@@ -347,3 +347,36 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
 
     pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
     assert pkgconfig_expected == pkgconfig
+
+
+def test_version_matches():
+    header = MAIN_DIR / "include/pybind11/detail/common.h"
+    text = header.read_text()
+
+    # Extract the relevant macro values
+    regex_prefix = r"#\s*define\s+PYBIND11_VERSION_"
+    micro = re.search(rf"{regex_prefix}MICRO\s+(\d+)\b", text).group(1)
+    release_level = re.search(rf"{regex_prefix}RELEASE_LEVEL\s+(\w+)\b", text).group(1)
+    release_serial = re.search(
+        rf"{regex_prefix}RELEASE_SERIAL\s+(\d+)\b",
+        text,
+    ).group(1)
+    patch = re.search(rf"{regex_prefix}PATCH\s+([\w.-]+)\b", text).group(1)
+
+    # Map release level macro to string
+    level_map = {
+        "PY_RELEASE_LEVEL_ALPHA": "a",
+        "PY_RELEASE_LEVEL_BETA": "b",
+        "PY_RELEASE_LEVEL_GAMMA": "rc",
+        "PY_RELEASE_LEVEL_FINAL": "",
+    }
+    level_str = level_map[release_level]
+
+    if release_level == "PY_RELEASE_LEVEL_FINAL":
+        assert level_str == ""
+        assert release_serial == "0"
+        expected_patch = micro
+    else:
+        expected_patch = f"{micro}{level_str}{release_serial}"
+
+    assert patch == expected_patch
