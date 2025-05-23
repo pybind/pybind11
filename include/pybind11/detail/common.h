@@ -310,11 +310,11 @@
 #endif
 
 #ifdef _Py_IMMORTAL_REFCNT
-#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT(o.ptr(), _Py_IMMORTAL_REFCNT)
+#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT((o).ptr(), _Py_IMMORTAL_REFCNT)
 #elif defined(Py_SET_REFCNT)
-#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT(o.ptr(), (UINT_MAX >> 2))
+#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT((o).ptr(), (UINT_MAX >> 2))
 #else
-#    define PYBIND11_IMMORTALIZE(o) Py_INCREF(o.ptr())
+#    define PYBIND11_IMMORTALIZE(o) Py_INCREF((o).ptr())
 #endif
 
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
