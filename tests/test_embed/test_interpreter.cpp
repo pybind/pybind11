@@ -369,8 +369,8 @@ TEST_CASE("Threads") {
 #    else
                 py::scoped_critical_section lock(locals);
 #    endif
-                locals["count"] = locals["count"].cast<int>() + 1;
 #endif
+                locals["count"] = locals["count"].cast<int>() + 1;
             });
         }
 

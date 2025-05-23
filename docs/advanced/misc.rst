@@ -299,6 +299,9 @@ However, the module is no longer free-threading safe, for the same reason as
 before, because the calculation is not synchronized. We can synchronize it
 using a Python critical section. This will do nothing if not in free-threaded
 Python. You can have it lock one or two Python objects. You cannot nest it.
+(Note: In Python 3.13t, Python re-locks if you enter a critical section again,
+which happens in various places. This was optimized away in 3.14+. Use a
+``std::mutex`` instead if this is a problem).
 
 .. code-block:: cpp
     :emphasize-lines: 1,4,8
