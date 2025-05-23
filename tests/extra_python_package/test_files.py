@@ -354,7 +354,7 @@ def test_version_matches():
     text = header.read_text()
 
     # Extract the relevant macro values
-    regex_prefix = r"^\s*#\s*define\s+PYBIND11_VERSION_"
+    regex_prefix = r"#\s*define\s+PYBIND11_VERSION_"
     micro = re.search(rf"{regex_prefix}MICRO\s+(\d+)\b", text).group(1)
     release_level = re.search(rf"{regex_prefix}RELEASE_LEVEL\s+(\w+)\b", text).group(1)
     release_serial = re.search(
