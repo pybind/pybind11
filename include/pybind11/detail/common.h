@@ -366,7 +366,7 @@
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
-    static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name);           \
+    static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);                               \
     static ::pybind11::module_::slots_array PYBIND11_CONCAT(pybind11_module_slots_, name);        \
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
@@ -374,7 +374,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         pre_init;                                                                                 \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static auto def = []() {                                                                  \
+        static PyModuleDef *def = []() {                                                          \
             auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
             slots[0] = {Py_mod_exec,                                                              \
                         reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \

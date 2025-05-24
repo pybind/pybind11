@@ -1438,8 +1438,6 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-    using module_def = PyModuleDef; // TODO: Can this be removed (it was needed only for Python 2)?
-
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
@@ -1447,7 +1445,7 @@ public:
     \endrst */
     static module_ create_extension_module(const char *name,
                                            const char *doc,
-                                           module_def *def,
+                                           PyModuleDef *def,
                                            mod_gil_not_used gil_not_used
                                            = mod_gil_not_used(false)) {
         // module_def is PyModuleDef
@@ -1491,11 +1489,11 @@ public:
             additional slots from the supplied options (and the empty sentinel slot).
     \endrst */
     template <typename... Options>
-    static module_def *initialize_multiphase_module_def(const char *name,
-                                                        const char *doc,
-                                                        module_def *def,
-                                                        slots_array &slots,
-                                                        Options &&...options) {
+    static PyModuleDef *initialize_multiphase_module_def(const char *name,
+                                                         const char *doc,
+                                                         PyModuleDef *def,
+                                                         slots_array &slots,
+                                                         Options &&...options) {
         size_t next_slot = 0;
         size_t term_slot = slots.size() - 1;
 
