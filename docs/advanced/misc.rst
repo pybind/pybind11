@@ -305,7 +305,7 @@ Python. You can have it lock one or two Python objects. You cannot nest it.
    When using a ``py::scoped_critical_section``, make sure it is not nested and
    that no other synchronization primitives (such as a ``std::mutex``) are
    held, which could lead to deadlocks. In 3.13, taking the same lock causes it
-   to release then require, which means you can't use it to, for example, read
+   to release then reacquire, which means you can't use it to, for example, read
    and write to a dictionary, because the dictionary uses a critical section
    internally in CPython. Use a ``std::mutex`` instead if you need this on
    Python 3.13. In 3.14, taking a lock on a locked object no longer releases
