@@ -309,14 +309,6 @@
         } while (0)
 #endif
 
-#ifdef _Py_IMMORTAL_REFCNT
-#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT((o).ptr(), _Py_IMMORTAL_REFCNT)
-#elif defined(Py_SET_REFCNT)
-#    define PYBIND11_IMMORTALIZE(o) Py_SET_REFCNT((o).ptr(), (UINT_MAX >> 2))
-#else
-#    define PYBIND11_IMMORTALIZE(o) Py_INCREF((o).ptr())
-#endif
-
 #define PYBIND11_CHECK_PYTHON_VERSION                                                             \
     {                                                                                             \
         const char *compiled_ver                                                                  \
@@ -382,21 +374,19 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         pre_init;                                                                                 \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static auto result = []() {                                                               \
+        static auto def = []() {                                                                  \
             auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
             slots[0] = {Py_mod_exec,                                                              \
                         reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
             slots[1] = {0, nullptr};                                                              \
-            auto o = ::pybind11::module_::initialize_multiphase_module_def(                       \
+            return ::pybind11::module_::initialize_multiphase_module_def(                         \
                 PYBIND11_TOSTRING(name),                                                          \
                 nullptr,                                                                          \
                 &PYBIND11_CONCAT(pybind11_module_def_, name),                                     \
                 slots,                                                                            \
                 ##__VA_ARGS__);                                                                   \
-            PYBIND11_IMMORTALIZE(o);                                                              \
-            return o;                                                                             \
         }();                                                                                      \
-        return result.ptr();                                                                      \
+        return PyModuleDef_Init(def);                                                             \
     }
 
 PYBIND11_WARNING_POP
