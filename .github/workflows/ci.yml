@@ -332,7 +332,7 @@ jobs:
           - clang: 16
             std: 20
             container_suffix: "-bullseye"
-          - clang: 18
+          - clang: 20
             std: 20
             cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
             container_suffix: "-bookworm"
