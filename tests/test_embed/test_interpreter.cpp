@@ -365,8 +365,13 @@ TEST_CASE("Threads") {
                 py::gil_scoped_acquire gil{};
 #ifdef Py_GIL_DISABLED
 #    if PY_VERSION_HEX < 0x030E0000
+                // This will not run with the GIL, so it won't deadlock. That's
+                // because of how we run our tests. Be more careful of
+                // deadlocks if the "free-threaded" GIL could be enabled (at
+                // runtime).
                 std::lock_guard<std::mutex> lock(mutex);
 #    else
+                // CPython's thread-safe API in no-GIL mode.
                 py::scoped_critical_section lock(locals);
 #    endif
 #endif
