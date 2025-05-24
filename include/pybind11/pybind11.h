@@ -1441,14 +1441,13 @@ public:
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
-        ``def`` should point to a statically allocated module_def.
+        ``def`` should point to a statically allocated PyModuleDef.
     \endrst */
     static module_ create_extension_module(const char *name,
                                            const char *doc,
                                            PyModuleDef *def,
                                            mod_gil_not_used gil_not_used
                                            = mod_gil_not_used(false)) {
-        // module_def is PyModuleDef
         // Placement new (not an allocation).
         new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                               /* m_name */ name,
@@ -1484,7 +1483,7 @@ public:
     /** \rst
         Initialize a module def for use with multi-phase module initialization.
 
-        ``def`` should point to a statically allocated module_def.
+        ``def`` should point to a statically allocated PyModuleDef.
         ``slots`` must already contain a Py_mod_exec or Py_mod_create slot and will be filled with
             additional slots from the supplied options (and the empty sentinel slot).
     \endrst */
@@ -1524,7 +1523,6 @@ public:
         }
         slots[next_slot++] = {0, nullptr};
 
-        // module_def is PyModuleDef
         // Placement new (not an allocation).
         return new (def)
             PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
