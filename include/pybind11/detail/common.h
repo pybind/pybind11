@@ -365,6 +365,13 @@
 
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+/**
+Create a PyInit_ function for this module.
+
+Note that this is run once for each (sub-)interpreter the module is imported into, including
+possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
+PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
+ */
 #define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
