@@ -1491,11 +1491,11 @@ public:
             additional slots from the supplied options (and the empty sentinel slot).
     \endrst */
     template <typename... Options>
-    static object initialize_multiphase_module_def(const char *name,
-                                                   const char *doc,
-                                                   module_def *def,
-                                                   slots_array &slots,
-                                                   Options &&...options) {
+    static module_def *initialize_multiphase_module_def(const char *name,
+                                                        const char *doc,
+                                                        module_def *def,
+                                                        slots_array &slots,
+                                                        Options &&...options) {
         size_t next_slot = 0;
         size_t term_slot = slots.size() - 1;
 
@@ -1528,23 +1528,16 @@ public:
 
         // module_def is PyModuleDef
         // Placement new (not an allocation).
-        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                              /* m_name */ name,
-                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                              /* m_size */ 0,
-                              /* m_methods */ nullptr,
-                              /* m_slots */ &slots[0],
-                              /* m_traverse */ nullptr,
-                              /* m_clear */ nullptr,
-                              /* m_free */ nullptr};
-        auto *m = PyModuleDef_Init(def);
-        if (m == nullptr) {
-            if (PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            pybind11_fail("Internal error in module_::initialize_multiphase_module_def()");
-        }
-        return reinterpret_borrow<object>(m);
+        return new (def)
+            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                        /* m_name */ name,
+                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                        /* m_size */ 0,
+                        /* m_methods */ nullptr,
+                        /* m_slots */ &slots[0],
+                        /* m_traverse */ nullptr,
+                        /* m_clear */ nullptr,
+                        /* m_free */ nullptr};
     }
 };
 

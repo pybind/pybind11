@@ -396,7 +396,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         pre_init;                                                                                 \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static auto result = []() {                                                               \
+        static auto def = []() {                                                                  \
             auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
             slots[0] = {Py_mod_exec,                                                              \
                         reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
@@ -408,7 +408,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
                 slots,                                                                            \
                 ##__VA_ARGS__);                                                                   \
         }();                                                                                      \
-        return result.ptr();                                                                      \
+        return PyModuleDef_Init(def);                                                             \
     }
 
 PYBIND11_WARNING_POP
