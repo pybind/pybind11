@@ -222,7 +222,7 @@ struct handle_type_name<typing::Union<Types...>> {
     static constexpr auto name = ::pybind11::detail::union_concat(make_caster<Types>::name...);
 #else
     static constexpr auto name = const_name("typing.Union[")
-                                 + ::pybind11::detail::concat(make_caster<Ts>::name...)
+                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
                                  + const_name("]");
 #endif
 };
