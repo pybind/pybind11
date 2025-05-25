@@ -10,6 +10,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(memory)
 PYBIND11_NAMESPACE_BEGIN(smart_holder_poc) // Proof-of-Concept implementations.
 
+// NOLINTNEXTLINE(bugprone-incorrect-enable-shared-from-this)
 struct PrivateESFT : private std::enable_shared_from_this<PrivateESFT> {};
 static_assert(!type_has_shared_from_this(static_cast<PrivateESFT *>(nullptr)),
               "should detect inaccessible base");

@@ -818,7 +818,7 @@ protected:
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
         PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
         std::array<object, size> entries{{reinterpret_steal<object>(
-            make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...}};
+            make_caster<Ts>::cast(std::get<Is>(src), policy, parent))...}};
         for (const auto &entry : entries) {
             if (!entry) {
                 return handle();
