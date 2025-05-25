@@ -176,7 +176,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
 }
 
 template <typename S>
-py::list print_recarray(py::array_t<S, 0> arr) {
+py::list print_recarray(const py::array_t<S, 0> &arr) {
     const auto req = arr.request();
     auto *const ptr = static_cast<S *>(req.ptr);
     auto l = py::list();
@@ -301,7 +301,7 @@ py::list test_dtype_ctors() {
 }
 
 template <typename T>
-py::array_t<T> dispatch_array_increment(py::array_t<T> arr) {
+py::array_t<T> dispatch_array_increment(const py::array_t<T> &arr) {
     py::array_t<T> res(arr.shape(0));
     for (py::ssize_t i = 0; i < arr.shape(0); ++i) {
         res.mutable_at(i) = T(arr.at(i) + 1);
