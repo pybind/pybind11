@@ -155,7 +155,11 @@ namespace detail {
 
 template <>
 struct type_caster<RealNumber> {
-    PYBIND11_TYPE_CASTER(RealNumber, io_name("typing.Union[float, int]", "float"));
+    #if PYBIND11_USE_NEW_UNIONS
+        PYBIND11_TYPE_CASTER(RealNumber, io_name("float | int", "float"));
+    #else
+        PYBIND11_TYPE_CASTER(RealNumber, io_name("typing.Union[float, int]", "float"));
+    #endif
 
     static handle cast(const RealNumber &number, return_value_policy, handle) {
         return py::float_(number.value).release();
@@ -172,6 +176,7 @@ struct type_caster<RealNumber> {
         value.value = src.cast<double>();
         return true;
     }
+    // static void f/
 };
 
 } // namespace detail

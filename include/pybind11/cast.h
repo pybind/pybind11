@@ -404,7 +404,7 @@ public:
     template <typename T>
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
-    static constexpr auto name = const_name("types.CapsuleType");
+    static constexpr auto name = const_name(PYBIND11_CAPSULE_TYPE_TYPE_HINT);
 
 private:
     void *value = nullptr;
@@ -1359,7 +1359,11 @@ struct handle_type_name<dict> {
 };
 template <>
 struct handle_type_name<anyset> {
+#if PYBIND11_USE_NEW_UNIONS
+    static constexpr auto name = const_name("set | frozenset");
+#else
     static constexpr auto name = const_name("typing.Union[set, frozenset]");
+#endif
 };
 template <>
 struct handle_type_name<set> {
@@ -1439,7 +1443,7 @@ struct handle_type_name<type> {
 };
 template <>
 struct handle_type_name<capsule> {
-    static constexpr auto name = const_name("types.CapsuleType");
+    static constexpr auto name = const_name(PYBIND11_CAPSULE_TYPE_TYPE_HINT);
 };
 template <>
 struct handle_type_name<ellipsis> {

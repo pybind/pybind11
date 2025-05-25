@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import pytest
 
 import env
@@ -37,15 +38,27 @@ def test_pointers(msg):
 
     with pytest.raises(TypeError) as excinfo:
         m.get_void_ptr_value([1, 2, 3])  # This should not work
-    assert (
-        msg(excinfo.value)
-        == """
-        get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: types.CapsuleType) -> int
+    
+    if sys.version_info >= (3, 13):
+        assert (
+            msg(excinfo.value)
+            == """
+            get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
+                1. (arg0: types.CapsuleType) -> int
 
-        Invoked with: [1, 2, 3]
-    """
-    )
+            Invoked with: [1, 2, 3]
+        """
+        )
+    else:
+        assert (
+            msg(excinfo.value)
+            == """
+            get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
+                1. (arg0: typing_extensions.CapsuleType) -> int
+
+            Invoked with: [1, 2, 3]
+        """
+        )
 
     assert m.return_null_str() is None
     assert m.get_null_str_value(m.return_null_str()) is not None

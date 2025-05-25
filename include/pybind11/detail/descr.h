@@ -174,11 +174,29 @@ template <size_t N, typename... Ts, typename... Args>
 constexpr auto concat(const descr<N, Ts...> &d, const Args &...args) {
     return (d, ..., args);
 }
+
+template <size_t N1, size_t N2, typename... Ts1, typename... Ts2>
+constexpr descr<N1 + N2 + 3, Ts1..., Ts2...> operator|(const descr<N1, Ts1...> &a,
+                                                       const descr<N2, Ts2...> &b) {
+    return a + const_name(" | ") + b;
+}
+
+template <size_t N, typename... Ts, typename... Args>
+constexpr auto union_concat(const descr<N, Ts...> &d, const Args &...args) {
+    return (d | ... | args);
+}
+
 #else
 template <size_t N, typename... Ts, typename... Args>
 constexpr auto concat(const descr<N, Ts...> &d, const Args &...args)
     -> decltype(std::declval<descr<N + 2, Ts...>>() + concat(args...)) {
     return d + const_name(", ") + concat(args...);
+}
+
+template <size_t N, typename... Ts, typename... Args>
+constexpr auto union_concat(const descr<N, Ts...> &d, const Args &...args)
+    -> decltype(std::declval<descr<N + 3, Ts...>>() + union_concat(args...)) {
+    return d + const_name(" | ") + union_concat(args...);
 }
 #endif
 

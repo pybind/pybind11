@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import pytest
 
 import env  # noqa: F401
@@ -274,37 +275,17 @@ def test_fs_path(doc):
     assert m.parent_path(b"foo/bar") == Path("foo")
     assert m.parent_path(PseudoStrPath()) == Path("foo")
     assert m.parent_path(PseudoBytesPath()) == Path("foo")
-    assert (
-        doc(m.parent_path)
-        == "parent_path(arg0: typing.Union[os.PathLike, str, bytes]) -> pathlib.Path"
-    )
     # std::vector
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
-    assert (
-        doc(m.parent_paths)
-        == "parent_paths(arg0: collections.abc.Sequence[typing.Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
-    )
     # py::typing::List
     assert m.parent_paths_list(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
-    assert (
-        doc(m.parent_paths_list)
-        == "parent_paths_list(arg0: list[typing.Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
-    )
     # Nested py::typing::List
     assert m.parent_paths_nested_list([["foo/bar"], ["foo/baz", "foo/buzz"]]) == [
         [Path("foo")],
         [Path("foo"), Path("foo")],
     ]
-    assert (
-        doc(m.parent_paths_nested_list)
-        == "parent_paths_nested_list(arg0: list[list[typing.Union[os.PathLike, str, bytes]]]) -> list[list[pathlib.Path]]"
-    )
     # py::typing::Tuple
     assert m.parent_paths_tuple(("foo/bar", "foo/baz")) == (Path("foo"), Path("foo"))
-    assert (
-        doc(m.parent_paths_tuple)
-        == "parent_paths_tuple(arg0: tuple[typing.Union[os.PathLike, str, bytes], typing.Union[os.PathLike, str, bytes]]) -> tuple[pathlib.Path, pathlib.Path]"
-    )
     # py::typing::Dict
     assert m.parent_paths_dict(
         {
@@ -317,11 +298,71 @@ def test_fs_path(doc):
         "key2": Path("foo"),
         "key3": Path("foo"),
     }
-    assert (
-        doc(m.parent_paths_dict)
-        == "parent_paths_dict(arg0: dict[str, typing.Union[os.PathLike, str, bytes]]) -> dict[str, pathlib.Path]"
-    )
 
+@pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
+def test_path_typing(doc):
+    if sys.version_info >= (3, 10):
+        # Single argument
+        assert (
+            doc(m.parent_path)
+            == "parent_path(arg0: os.PathLike | str | bytes) -> pathlib.Path"
+        )
+        # std::vector
+        assert (
+            doc(m.parent_paths)
+            == "parent_paths(arg0: collections.abc.Sequence[os.PathLike | str | bytes]) -> list[pathlib.Path]"
+        )
+        # py::typing::List
+        assert (
+            doc(m.parent_paths_list)
+            == "parent_paths_list(arg0: list[os.PathLike | str | bytes]) -> list[pathlib.Path]"
+        )
+        # Nested py::typing::List
+        assert (
+            doc(m.parent_paths_nested_list)
+            == "parent_paths_nested_list(arg0: list[list[os.PathLike | str | bytes]]) -> list[list[pathlib.Path]]"
+        )
+        # py::typing::Tuple
+        assert (
+            doc(m.parent_paths_tuple)
+            == "parent_paths_tuple(arg0: tuple[os.PathLike | str | bytes, os.PathLike | str | bytes]) -> tuple[pathlib.Path, pathlib.Path]"
+        )
+        # py::typing::Dict
+        assert (
+            doc(m.parent_paths_dict)
+            == "parent_paths_dict(arg0: dict[str, os.PathLike | str | bytes]) -> dict[str, pathlib.Path]"
+        )
+    else:
+        # Single argument
+        assert (
+            doc(m.parent_path)
+            == "parent_path(arg0: typing.Union[os.PathLike, str, bytes]) -> pathlib.Path"
+        )
+        # std::vector
+        assert (
+            doc(m.parent_paths)
+            == "parent_paths(arg0: collections.abc.Sequence[typing.Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
+        )
+        # py::typing::List
+        assert (
+            doc(m.parent_paths_list)
+            == "parent_paths_list(arg0: list[typing.Union[os.PathLike, str, bytes]]) -> list[pathlib.Path]"
+        )
+        # Nested py::typing::List
+        assert (
+            doc(m.parent_paths_nested_list)
+            == "parent_paths_nested_list(arg0: list[list[typing.Union[os.PathLike, str, bytes]]]) -> list[list[pathlib.Path]]"
+        )
+        # py::typing::Tuple
+        assert (
+            doc(m.parent_paths_tuple)
+            == "parent_paths_tuple(arg0: tuple[typing.Union[os.PathLike, str, bytes], typing.Union[os.PathLike, str, bytes]]) -> tuple[pathlib.Path, pathlib.Path]"
+        )
+        # py::typing::Dict
+        assert (
+            doc(m.parent_paths_dict)
+            == "parent_paths_dict(arg0: dict[str, typing.Union[os.PathLike, str, bytes]]) -> dict[str, pathlib.Path]"
+        )
 
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
 def test_variant(doc):

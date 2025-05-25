@@ -216,18 +216,39 @@ struct handle_type_name<typing::Type<T>> {
     static constexpr auto name = const_name("type[") + make_caster<T>::name + const_name("]");
 };
 
+#if PYBIND11_USE_NEW_UNIONS
+template <typename... Ts>
+constexpr auto union_helper() {
+    return ::pybind11::detail::union_concat(make_caster<Ts>::name...);
+}
+#else
+template <typename... Ts>
+constexpr auto union_helper() {
+    return const_name("typing.Union[")
+                                 + ::pybind11::detail::concat(make_caster<Ts>::name...)
+                                 + const_name("]");
+}
+#endif
+
 template <typename... Types>
 struct handle_type_name<typing::Union<Types...>> {
-    static constexpr auto name = const_name("typing.Union[")
-                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
-                                 + const_name("]");
+    static constexpr auto name = union_helper<Types...>();
 };
 
+
+#if PYBIND11_USE_NEW_UNIONS
+template <typename T>
+struct handle_type_name<typing::Optional<T>> {
+    static constexpr auto name
+        = union_helper<T, none>();
+};
+#else
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
     static constexpr auto name
         = const_name("typing.Optional[") + make_caster<T>::name + const_name("]");
 };
+#endif
 
 template <typename T>
 struct handle_type_name<typing::Final<T>> {
@@ -245,13 +266,13 @@ struct handle_type_name<typing::ClassVar<T>> {
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
     static constexpr auto name
-        = const_name("typing.TypeGuard[") + make_caster<T>::name + const_name("]");
+        = const_name(PYBIND11_TYPE_GUARD_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
     static constexpr auto name
-        = const_name("typing.TypeIs[") + make_caster<T>::name + const_name("]");
+        = const_name(PYBIND11_TYPE_IS_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
 };
 
 template <>
@@ -261,7 +282,7 @@ struct handle_type_name<typing::NoReturn> {
 
 template <>
 struct handle_type_name<typing::Never> {
-    static constexpr auto name = const_name("typing.Never");
+    static constexpr auto name = const_name(PYBIND11_NEVER_TYPE_HINT);
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)
