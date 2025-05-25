@@ -73,7 +73,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
 class type_caster<RValueCaster> {
 public:
-    PYBIND11_TYPE_CASTER(RValueCaster, const_name("RValueCaster"));
+    PYBIND11_TYPE_CASTER(RValueCaster, const_name("typing.Literal[\"rvalue\", \"lvalue\"]"));
     static handle cast(RValueCaster &&, return_value_policy, handle) {
         return py::str("rvalue").release();
     }

@@ -20,7 +20,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
 class type_caster<ConstRefCasted> {
 public:
-    static constexpr auto name = const_name<ConstRefCasted>();
+    static constexpr auto name = const_name("typing.Annotated[typing.Any, \"ConstRefCasted\"]");
 
     // Input is unimportant, a new value will always be constructed based on the
     // cast operator.
