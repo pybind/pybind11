@@ -242,3 +242,16 @@ def pytest_report_header():
         lines.append("free-threaded Python build")
 
     return lines
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session,  # noqa: ARG001
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    if not config.getoption("-m"):
+        for item in items:
+            if "stubgen" in item.keywords:
+                item.add_marker(
+                    pytest.mark.skip(reason="Use `-m stubgen` to enable stubgen tests.")
+                )

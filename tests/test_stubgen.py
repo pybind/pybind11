@@ -56,6 +56,7 @@ def test_stubgen(tmp_path: Path) -> None:
     assert "Success: no issues found in 1 source file" in result.normal_report
 
 
+@pytest.mark.stubgen
 def test_stubgen_all(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     # Generate stub into temporary directory
     pybind11_stubgen.main(
