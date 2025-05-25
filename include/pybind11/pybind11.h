@@ -1470,6 +1470,9 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
+    // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
+    using module_def = PyModuleDef;
+
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
