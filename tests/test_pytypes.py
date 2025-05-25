@@ -131,10 +131,7 @@ def test_set(capture, doc):
 
     assert doc(m.get_set) == "get_set() -> set"
     if sys.version_info >= (3, 10):
-        assert (
-            doc(m.print_anyset)
-            == "print_anyset(arg0: set | frozenset) -> None"
-        )
+        assert doc(m.print_anyset) == "print_anyset(arg0: set | frozenset) -> None"
     else:
         assert (
             doc(m.print_anyset)
@@ -1087,9 +1084,9 @@ def test_never_annotation(doc):
 def test_optional_object_annotations(doc):
     if sys.version_info >= (3, 10):
         assert (
-        doc(m.annotate_optional_to_object)
-        == "annotate_optional_to_object(arg0: typing.SupportsInt | None) -> object"
-    )
+            doc(m.annotate_optional_to_object)
+            == "annotate_optional_to_object(arg0: typing.SupportsInt | None) -> object"
+        )
     else:
         assert (
             doc(m.annotate_optional_to_object)
@@ -1226,7 +1223,7 @@ def test_module_attribute_types() -> None:
     assert module_annotations["set_str"] == "set[str]"
     assert module_annotations["foo"] == "pybind11_tests.pytypes.foo"
 
-    if sys.version_info >= (3,10):
+    if sys.version_info >= (3, 10):
         assert (
             module_annotations["foo_union"]
             == "pybind11_tests.pytypes.foo | pybind11_tests.pytypes.foo2 | pybind11_tests.pytypes.foo3"
@@ -1315,10 +1312,7 @@ def test_final_annotation() -> None:
 
 def test_arg_return_type_hints(doc):
     if sys.version_info >= (3, 10):
-        assert (
-            doc(m.half_of_number)
-            == "half_of_number(arg0: float | int) -> float"
-        )
+        assert doc(m.half_of_number) == "half_of_number(arg0: float | int) -> float"
         assert (
             doc(m.half_of_number_convert)
             == "half_of_number_convert(x: float | int) -> float"
@@ -1374,8 +1368,7 @@ def test_arg_return_type_hints(doc):
         )
         # Set<T>
         assert (
-            doc(m.identity_set)
-            == "identity_set(arg0: set[float | int]) -> set[float]"
+            doc(m.identity_set) == "identity_set(arg0: set[float | int]) -> set[float]"
         )
         # Iterable<T>
         assert (
@@ -1429,10 +1422,16 @@ def test_arg_return_type_hints(doc):
         )
         # TypeIs<T>
         if sys.version_info >= (3, 13):
-            assert doc(m.check_type_is) == "check_type_is(arg0: object) -> typing.TypeIs[float]"
+            assert (
+                doc(m.check_type_is)
+                == "check_type_is(arg0: object) -> typing.TypeIs[float]"
+            )
         else:
-            assert doc(m.check_type_is) == "check_type_is(arg0: object) -> typing_extensions.TypeIs[float]"
-    else: 
+            assert (
+                doc(m.check_type_is)
+                == "check_type_is(arg0: object) -> typing_extensions.TypeIs[float]"
+            )
+    else:
         # std::vector<T>
         assert (
             doc(m.half_of_number_vector)
@@ -1519,4 +1518,7 @@ def test_arg_return_type_hints(doc):
             == "check_type_guard(arg0: list[object]) -> typing_extensions.TypeGuard[list[float]]"
         )
         # TypeIs<T>
-        assert doc(m.check_type_is) == "check_type_is(arg0: object) -> typing_extensions.TypeIs[float]"
+        assert (
+            doc(m.check_type_is)
+            == "check_type_is(arg0: object) -> typing_extensions.TypeIs[float]"
+        )

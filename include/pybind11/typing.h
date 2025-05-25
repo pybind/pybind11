@@ -224,9 +224,8 @@ constexpr auto union_helper() {
 #else
 template <typename... Ts>
 constexpr auto union_helper() {
-    return const_name("typing.Union[")
-                                 + ::pybind11::detail::concat(make_caster<Ts>::name...)
-                                 + const_name("]");
+    return const_name("typing.Union[") + ::pybind11::detail::concat(make_caster<Ts>::name...)
+           + const_name("]");
 }
 #endif
 
@@ -235,12 +234,10 @@ struct handle_type_name<typing::Union<Types...>> {
     static constexpr auto name = union_helper<Types...>();
 };
 
-
 #if PYBIND11_USE_NEW_UNIONS
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-    static constexpr auto name
-        = union_helper<T, none>();
+    static constexpr auto name = union_helper<T, none>();
 };
 #else
 template <typename T>
@@ -265,14 +262,14 @@ struct handle_type_name<typing::ClassVar<T>> {
 
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
-    static constexpr auto name
-        = const_name(PYBIND11_TYPE_GUARD_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_TYPE_GUARD_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
-    static constexpr auto name
-        = const_name(PYBIND11_TYPE_IS_TYPE_HINT) + const_name("[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_TYPE_IS_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <>

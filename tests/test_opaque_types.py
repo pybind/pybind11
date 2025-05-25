@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+
 import pytest
 
 import env
@@ -38,7 +39,7 @@ def test_pointers(msg):
 
     with pytest.raises(TypeError) as excinfo:
         m.get_void_ptr_value([1, 2, 3])  # This should not work
-    
+
     if sys.version_info >= (3, 13):
         assert (
             msg(excinfo.value)

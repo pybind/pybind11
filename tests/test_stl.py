@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+
 import pytest
 
 import env  # noqa: F401
@@ -299,6 +300,7 @@ def test_fs_path(doc):
         "key3": Path("foo"),
     }
 
+
 @pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
 def test_path_typing(doc):
     if sys.version_info >= (3, 10):
@@ -363,6 +365,7 @@ def test_path_typing(doc):
             doc(m.parent_paths_dict)
             == "parent_paths_dict(arg0: dict[str, typing.Union[os.PathLike, str, bytes]]) -> dict[str, pathlib.Path]"
         )
+
 
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
 def test_variant(doc):

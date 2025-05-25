@@ -96,11 +96,11 @@ public:
         return true;
     }
 
-    #if PYBIND11_USE_NEW_UNIONS
-        PYBIND11_TYPE_CASTER(T, io_name("os.PathLike | str | bytes", "pathlib.Path"));
-    #else
-        PYBIND11_TYPE_CASTER(T, io_name("typing.Union[os.PathLike, str, bytes]", "pathlib.Path"));
-    #endif
+#    if PYBIND11_USE_NEW_UNIONS
+    PYBIND11_TYPE_CASTER(T, io_name("os.PathLike | str | bytes", "pathlib.Path"));
+#    else
+    PYBIND11_TYPE_CASTER(T, io_name("typing.Union[os.PathLike, str, bytes]", "pathlib.Path"));
+#    endif
 };
 
 #endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
