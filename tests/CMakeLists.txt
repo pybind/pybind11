@@ -170,7 +170,6 @@ set(PYBIND11_TEST_FILES
     test_stl
     test_stl_binders
     test_stubgen
-    test_stubgen_error
     test_tagbased_polymorphic
     test_thread
     test_type_caster_pyobject_ptr

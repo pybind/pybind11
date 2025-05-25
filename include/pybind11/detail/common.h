@@ -245,6 +245,11 @@
 #else
 #    define PYBIND11_BUFFER_TYPE_HINT "typing_extensions.Buffer"
 #endif
+#if 0x030D0000 <= PY_VERSION_HEX
+#    define PYBIND11_CAPSULE_TYPE_HINT "types.CapsuleType"
+#else
+#    define PYBIND11_CAPSULE_TYPE_HINT "typing_extensions.CapsuleType"
+#endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
