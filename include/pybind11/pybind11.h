@@ -3043,6 +3043,7 @@ template <typename Access,
           typename Sentinel,
           typename ValueType,
           typename... Extra>
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
     using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
     // TODO: state captures only the types of Extra, not the values
@@ -3082,6 +3083,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
           typename... Extra>
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 typing::Iterator<ValueType> make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_access<Iterator>,
                                       Policy,
