@@ -159,7 +159,6 @@ constexpr descr<1, Type> _() {
 constexpr descr<0> concat() { return {}; }
 constexpr descr<0> union_concat() { return {}; }
 
-
 template <size_t N, typename... Ts>
 constexpr descr<N, Ts...> concat(const descr<N, Ts...> &descr) {
     return descr;
