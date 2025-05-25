@@ -1129,15 +1129,19 @@ def test_literal(doc):
             doc(m.identity_literal_arrow_with_io_name)
             == 'identity_literal_arrow_with_io_name(arg0: typing.Literal["->"], arg1: float | int) -> typing.Literal["->"]'
         )
+        assert (
+            doc(m.identity_literal_arrow_with_callable)
+            == 'identity_literal_arrow_with_callable(arg0: collections.abc.Callable[[typing.Literal["->"], float | int], float]) -> collections.abc.Callable[[typing.Literal["->"], float | int], float]'
+        )
     else:
         assert (
             doc(m.identity_literal_arrow_with_io_name)
             == 'identity_literal_arrow_with_io_name(arg0: typing.Literal["->"], arg1: typing.Union[float, int]) -> typing.Literal["->"]'
         )
-    assert (
-        doc(m.identity_literal_arrow_with_callable)
-        == 'identity_literal_arrow_with_callable(arg0: collections.abc.Callable[[typing.Literal["->"], typing.Union[float, int]], float]) -> collections.abc.Callable[[typing.Literal["->"], typing.Union[float, int]], float]'
-    )
+        assert (
+            doc(m.identity_literal_arrow_with_callable)
+            == 'identity_literal_arrow_with_callable(arg0: collections.abc.Callable[[typing.Literal["->"], typing.Union[float, int]], float]) -> collections.abc.Callable[[typing.Literal["->"], typing.Union[float, int]], float]'
+        )
     assert (
         doc(m.identity_literal_all_special_chars)
         == 'identity_literal_all_special_chars(arg0: typing.Literal["!@!!->{%}"]) -> typing.Literal["!@!!->{%}"]'

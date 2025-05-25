@@ -1453,7 +1453,7 @@ struct handle_type_name<ellipsis> {
 };
 template <>
 struct handle_type_name<weakref> {
-    static constexpr auto name = const_name("weakref");
+    static constexpr auto name = const_name("weakref.ReferenceType");
 };
 template <>
 struct handle_type_name<args> {
