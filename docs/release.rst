@@ -10,11 +10,13 @@ For example:
 
     #define PYBIND11_VERSION_MAJOR X
     #define PYBIND11_VERSION_MINOR Y
+    #define PYBIND11_VERSION_MICRO Z
+    #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
+    #define PYBIND11_VERSION_RELEASE_SERIAL 0
     #define PYBIND11_VERSION_PATCH Za0
 
 For beta, ``PYBIND11_VERSION_PATCH`` should be ``Zb1``. RC's can be ``Zrc1``.
-For a final release, this must be a simple integer. There is also
-``PYBIND11_VERSION_HEX`` just below that needs to be updated.
+For a final release, this must be a simple integer.
 
 
 To release a new version of pybind11:
@@ -26,9 +28,7 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Update the version number
 
   - Update ``PYBIND11_VERSION_MAJOR`` etc. in
-    ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
-
-  - Update ``PYBIND11_VERSION_HEX`` just below as well.
+    ``include/pybind11/detail/common.h``. MICRO should be a simple integer.
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 

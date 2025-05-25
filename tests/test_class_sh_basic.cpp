@@ -130,7 +130,8 @@ const std::unique_ptr<atyp> &rtrn_unique_ptr_cref(const std::string &mtxt) {
 }
 
 const std::unique_ptr<atyp> &unique_ptr_cref_roundtrip(const std::unique_ptr<atyp> &obj) {
-    return obj;
+    // This is passed in, so it can't be given a temporary
+    return obj; // NOLINT(bugprone-return-const-ref-from-parameter)
 }
 
 struct SharedPtrStash {

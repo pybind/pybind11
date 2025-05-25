@@ -25,14 +25,18 @@
       "displayName": "Venv",
       "inherits": "default",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "DOWNLOAD_CATCH": true,
-        "DOWNLOAD_EIGEN": true,
         "PYBIND11_CREATE_WITH_UV": "python3",
-        "PYBIND11_FINDPYTHON": "NEW",
-        "PYBIND11_WERROR": true,
         "Python_ROOT_DIR": ".venv"
+      }
+    },
+    {
+      "name": "tidy",
+      "displayName": "Clang-tidy",
+      "inherits": "default",
+      "binaryDir": "build-tidy",
+      "cacheVariables": {
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--use-color;--warnings-as-errors=*",
+        "CMAKE_CXX_STANDARD": "17"
       }
     }
   ],
@@ -46,6 +50,12 @@
       "name": "venv",
       "displayName": "Venv Build",
       "configurePreset": "venv"
+    },
+    {
+      "name": "tidy",
+      "displayName": "Clang-tidy Build",
+      "configurePreset": "tidy",
+      "nativeToolOptions": ["-k0"]
     },
     {
       "name": "tests",
