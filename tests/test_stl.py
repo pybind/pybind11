@@ -259,7 +259,7 @@ def test_reference_sensitive_optional():
 
 
 @pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
-def test_fs_path(doc):
+def test_fs_path():
     from pathlib import Path
 
     class PseudoStrPath:
