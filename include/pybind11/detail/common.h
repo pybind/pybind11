@@ -363,8 +363,10 @@
     }                                                                                             \
     PyObject *pybind11_init()
 
+// this push is for the next several macros
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+
 /**
 Create a PyInit_ function for this module.
 
@@ -391,8 +393,6 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
                                /* m_free */ nullptr};                                             \
         return PyModuleDef_Init(&def);                                                            \
     }
-
-PYBIND11_WARNING_POP
 
 #define PYBIND11_MODULE_EXEC(name, variable)                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
@@ -446,12 +446,12 @@ PYBIND11_WARNING_POP
         }
 
 \endrst */
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     PYBIND11_MODULE_PYINIT(                                                                       \
         name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \
     PYBIND11_MODULE_EXEC(name, variable)
+
+// pop gnu-zero-variadic-macro-arguments
 PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

@@ -1331,36 +1331,29 @@ using slots_array = std::array<PyModuleDef_Slot, 4>;
 
 /// Initialize an array of slots based on the supplied exec slot and options.
 template <typename... Options>
-static slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) {
-    size_t next_slot = 0;
+static slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+    /* NOTE: slots_array MUST be large enough to hold all possibile options.  If you add an option
+    here, you MUST also increase the size of slots_array in the typedef!  */
     slots_array slots;
-    constexpr size_t term_slot = slots.size() - 1;
+    size_t next_slot = 0;
 
     if (exec_fn != nullptr) {
         slots[next_slot++] = {Py_mod_exec, reinterpret_cast<void *>(exec_fn)};
     }
 
 #ifdef Py_mod_multiple_interpreters
-    if (next_slot >= term_slot) {
-        pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
-    }
     slots[next_slot++] = {Py_mod_multiple_interpreters, multi_interp_slot(options...)};
 #endif
 
     if (gil_not_used_option(options...)) {
 #if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
-        if (next_slot >= term_slot) {
-            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
-        }
         slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
 #endif
     }
 
     // slots must have a zero end sentinel
-    if (next_slot > term_slot) {
-        pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
-    }
     slots[next_slot++] = {0, nullptr};
+
     return slots;
 }
 
