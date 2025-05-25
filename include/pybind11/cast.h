@@ -817,8 +817,10 @@ protected:
     cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
         PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
         PYBIND11_WORKAROUND_INCORRECT_GCC_UNUSED_BUT_SET_PARAMETER(policy, parent);
+
         std::array<object, size> entries{{reinterpret_steal<object>(
-            make_caster<Ts>::cast(std::get<Is>(src), policy, parent))...}};
+            // NOLINTNEXTLINE(bugprone-use-after-move)
+            make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...}};
         for (const auto &entry : entries) {
             if (!entry) {
                 return handle();

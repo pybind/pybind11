@@ -48,7 +48,7 @@ jobs:
     - name: Configure
       run: cmake --preset tidy
     - name: Build
-      run: cmake --build -preset tidy
+      run: cmake --build --preset tidy
 
     - name: Embedded
       run: cmake --build --preset tidy -t cpptest
