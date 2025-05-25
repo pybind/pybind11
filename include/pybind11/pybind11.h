@@ -1332,7 +1332,7 @@ using slots_array = std::array<PyModuleDef_Slot, 4>;
 /// Initialize an array of slots based on the supplied exec slot and options.
 template <typename... Options>
 static slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
-    /* NOTE: slots_array MUST be large enough to hold all possibile options.  If you add an option
+    /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
     here, you MUST also increase the size of slots_array in the typedef!  */
     slots_array slots;
     size_t next_slot = 0;
