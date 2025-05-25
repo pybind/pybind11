@@ -164,6 +164,11 @@ constexpr descr<N, Ts...> concat(const descr<N, Ts...> &descr) {
     return descr;
 }
 
+template <size_t N, typename... Ts>
+constexpr descr<N, Ts...> union_concat(const descr<N, Ts...> &descr) {
+    return descr;
+}
+
 #ifdef __cpp_fold_expressions
 template <size_t N1, size_t N2, typename... Ts1, typename... Ts2>
 constexpr descr<N1 + N2 + 2, Ts1..., Ts2...> operator,(const descr<N1, Ts1...> &a,
