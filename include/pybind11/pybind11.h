@@ -1325,6 +1325,38 @@ inline void *multi_interp_slot(F &&, O &&...o) {
 }
 #endif
 
+/// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
+/// the sentinel (0) end slot.
+using slots_array = std::array<PyModuleDef_Slot, 4>;
+
+/// Initialize an array of slots based on the supplied exec slot and options.
+template <typename... Options>
+static slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+    /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
+    here, you MUST also increase the size of slots_array in the type alias above! */
+    slots_array slots;
+    size_t next_slot = 0;
+
+    if (exec_fn != nullptr) {
+        slots[next_slot++] = {Py_mod_exec, reinterpret_cast<void *>(exec_fn)};
+    }
+
+#ifdef Py_mod_multiple_interpreters
+    slots[next_slot++] = {Py_mod_multiple_interpreters, multi_interp_slot(options...)};
+#endif
+
+    if (gil_not_used_option(options...)) {
+#if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
+        slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
+#endif
+    }
+
+    // slots must have a zero end sentinel
+    slots[next_slot++] = {0, nullptr};
+
+    return slots;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Wrapper for Python extension modules
@@ -1438,19 +1470,19 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-    using module_def = PyModuleDef; // TODO: Can this be removed (it was needed only for Python 2)?
+    // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
+    using module_def = PyModuleDef;
 
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
-        ``def`` should point to a statically allocated module_def.
+        ``def`` should point to a statically allocated PyModuleDef.
     \endrst */
     static module_ create_extension_module(const char *name,
                                            const char *doc,
-                                           module_def *def,
+                                           PyModuleDef *def,
                                            mod_gil_not_used gil_not_used
                                            = mod_gil_not_used(false)) {
-        // module_def is PyModuleDef
         // Placement new (not an allocation).
         new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                               /* m_name */ name,
@@ -1477,74 +1509,6 @@ public:
         //       returned from PyInit_...
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
-    }
-
-    /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
-    /// the sentinel (0) end slot.
-    using slots_array = std::array<PyModuleDef_Slot, 4>;
-
-    /** \rst
-        Initialize a module def for use with multi-phase module initialization.
-
-        ``def`` should point to a statically allocated module_def.
-        ``slots`` must already contain a Py_mod_exec or Py_mod_create slot and will be filled with
-            additional slots from the supplied options (and the empty sentinel slot).
-    \endrst */
-    template <typename... Options>
-    static object initialize_multiphase_module_def(const char *name,
-                                                   const char *doc,
-                                                   module_def *def,
-                                                   slots_array &slots,
-                                                   Options &&...options) {
-        size_t next_slot = 0;
-        size_t term_slot = slots.size() - 1;
-
-        // find the end of the supplied slots
-        while (next_slot < term_slot && slots[next_slot].slot != 0) {
-            ++next_slot;
-        }
-
-#ifdef Py_mod_multiple_interpreters
-        if (next_slot >= term_slot) {
-            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
-        }
-        slots[next_slot++] = {Py_mod_multiple_interpreters, detail::multi_interp_slot(options...)};
-#endif
-
-        if (detail::gil_not_used_option(options...)) {
-#if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
-            if (next_slot >= term_slot) {
-                pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
-            }
-            slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
-#endif
-        }
-
-        // slots must have a zero end sentinel
-        if (next_slot > term_slot) {
-            pybind11_fail("initialize_multiphase_module_def: not enough space in slots");
-        }
-        slots[next_slot++] = {0, nullptr};
-
-        // module_def is PyModuleDef
-        // Placement new (not an allocation).
-        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                              /* m_name */ name,
-                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                              /* m_size */ 0,
-                              /* m_methods */ nullptr,
-                              /* m_slots */ &slots[0],
-                              /* m_traverse */ nullptr,
-                              /* m_clear */ nullptr,
-                              /* m_free */ nullptr};
-        auto *m = PyModuleDef_Init(def);
-        if (m == nullptr) {
-            if (PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            pybind11_fail("Internal error in module_::initialize_multiphase_module_def()");
-        }
-        return reinterpret_borrow<object>(m);
     }
 };
 
