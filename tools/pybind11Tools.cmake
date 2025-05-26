@@ -5,7 +5,7 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-include_guard(GLOBAL)
+include_guard(DIRECTORY)
 
 if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
