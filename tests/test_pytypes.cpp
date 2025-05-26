@@ -176,7 +176,6 @@ struct type_caster<RealNumber> {
         value.value = src.cast<double>();
         return true;
     }
-    // static void f/
 };
 
 } // namespace detail

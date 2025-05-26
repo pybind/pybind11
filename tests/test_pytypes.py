@@ -5,6 +5,7 @@ import sys
 import types
 
 import pytest
+from conftest import across_version_type_hint_checker
 
 import env
 from pybind11_tests import detailed_error_messages_enabled
@@ -1045,29 +1046,16 @@ def test_optional_annotations(doc):
 
 
 def test_type_guard_annotations(doc):
-    if sys.version_info >= (3, 10):
-        assert (
-            doc(m.annotate_type_guard)
-            == "annotate_type_guard(arg0: object) -> typing.TypeGuard[str]"
-        )
-    else:
-        assert (
-            doc(m.annotate_type_guard)
-            == "annotate_type_guard(arg0: object) -> typing_extensions.TypeGuard[str]"
-        )
+    across_version_type_hint_checker(
+        doc(m.annotate_type_guard),
+        "annotate_type_guard(arg0: object) -> typing.TypeGuard[str]",
+    )
 
 
 def test_type_is_annotations(doc):
-    if sys.version_info >= (3, 13):
-        assert (
-            doc(m.annotate_type_is)
-            == "annotate_type_is(arg0: object) -> typing.TypeIs[str]"
-        )
-    else:
-        assert (
-            doc(m.annotate_type_is)
-            == "annotate_type_is(arg0: object) -> typing_extensions.TypeIs[str]"
-        )
+    across_version_type_hint_checker(
+        doc(m.annotate_type_is), "annotate_type_is(arg0: object) -> typing.TypeIs[str]"
+    )
 
 
 def test_no_return_annotation(doc):
@@ -1075,10 +1063,9 @@ def test_no_return_annotation(doc):
 
 
 def test_never_annotation(doc):
-    if sys.version_info >= (3, 11):
-        assert doc(m.annotate_never) == "annotate_never() -> typing.Never"
-    else:
-        assert doc(m.annotate_never) == "annotate_never() -> typing_extensions.Never"
+    across_version_type_hint_checker(
+        doc(m.annotate_never), "annotate_never() -> typing.Never"
+    )
 
 
 def test_optional_object_annotations(doc):
@@ -1419,22 +1406,6 @@ def test_arg_return_type_hints(doc):
             doc(m.identity_optional)
             == "identity_optional(arg0: float | int | None) -> float | None"
         )
-        # TypeGuard<T>
-        assert (
-            doc(m.check_type_guard)
-            == "check_type_guard(arg0: list[object]) -> typing.TypeGuard[list[float]]"
-        )
-        # TypeIs<T>
-        if sys.version_info >= (3, 13):
-            assert (
-                doc(m.check_type_is)
-                == "check_type_is(arg0: object) -> typing.TypeIs[float]"
-            )
-        else:
-            assert (
-                doc(m.check_type_is)
-                == "check_type_is(arg0: object) -> typing_extensions.TypeIs[float]"
-            )
     else:
         # std::vector<T>
         assert (
@@ -1516,13 +1487,12 @@ def test_arg_return_type_hints(doc):
             doc(m.identity_optional)
             == "identity_optional(arg0: typing.Optional[typing.Union[float, int]]) -> typing.Optional[float]"
         )
-        # TypeGuard<T>
-        assert (
-            doc(m.check_type_guard)
-            == "check_type_guard(arg0: list[object]) -> typing_extensions.TypeGuard[list[float]]"
-        )
-        # TypeIs<T>
-        assert (
-            doc(m.check_type_is)
-            == "check_type_is(arg0: object) -> typing_extensions.TypeIs[float]"
-        )
+
+    # TypeIs<T>
+    across_version_type_hint_checker(
+        doc(m.check_type_is), "check_type_is(arg0: object) -> typing.TypeIs[float]"
+    )
+    across_version_type_hint_checker(
+        doc(m.check_type_guard),
+        "check_type_guard(arg0: list[object]) -> typing.TypeGuard[list[float]]",
+    )

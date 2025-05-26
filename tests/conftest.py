@@ -242,3 +242,29 @@ def pytest_report_header():
         lines.append("free-threaded Python build")
 
     return lines
+
+
+UNION_HINT = "typing.Union"
+
+
+def replace_unions(expected: str) -> str:
+    return expected
+
+
+def across_version_type_hint_checker(doc: str, expected: str) -> None:
+    if sys.version_info < (3, 13):
+        expected = expected.replace("typing.TypeIs", "typing_extensions.TypeIs")
+        expected = expected.replace(
+            "types.CapsuleType", "typing_extensions.CapsuleType"
+        )
+    if sys.version_info < (3, 12):
+        expected = expected.replace(
+            "collections.abc.Buffer", "typing_extensions.Buffer"
+        )
+    if sys.version_info < (3, 11):
+        expected = expected.replace("typing.Never", "typing_extensions.Never")
+    if sys.version_info < (3, 10):
+        expected = expected.replace("typing.TypeGuard", "typing_extensions.TypeGuard")
+        expected = replace_unions(expected)
+
+    assert doc == expected
