@@ -207,7 +207,7 @@ constexpr auto union_concat(const descr<N, Ts...> &d, const Args &...args)
 
 template <size_t N, typename... Args>
 constexpr auto operator|(const Args &...args)
-    ->decltype(std::declval<descr<N + 3>>() + union_concat(args...)) {
+    -> decltype(std::declval<descr<N + 3>>() + union_concat(args...)) {
     return union_concat(args...);
 }
 #endif
