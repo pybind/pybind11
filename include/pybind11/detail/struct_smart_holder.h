@@ -58,6 +58,18 @@ Details:
 #include <typeinfo>
 #include <utility>
 
+// IMPORTANT: This code block must stay BELOW the #include <stdexcept> above.
+#if !defined(PYBIND11_EXPORT_GUARDED_DELETE)
+#    if defined(_LIBCPP_EXCEPTION)
+#        if defined(WIN32) || defined(_WIN32)
+#            error "UNEXPECTED: defined(_LIBCPP_EXCEPTION) && (defined(WIN32) || defined(_WIN32))"
+#        endif
+#        define PYBIND11_EXPORT_GUARDED_DELETE __attribute__((visibility("default")))
+#    else
+#        define PYBIND11_EXPORT_GUARDED_DELETE
+#    endif
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(memory)
 
