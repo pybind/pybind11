@@ -1,0 +1,30 @@
+#pragma once
+
+#include <test_visibility_lib_export.h>
+#include <memory>
+
+#if defined(_MSC_VER)
+__pragma(warning(disable : 4251))
+#endif
+
+namespace lib {
+
+class TEST_VISIBILITY_LIB_EXPORT Base : public std::enable_shared_from_this<Base> {
+public:
+    Base(int a, int b);
+    virtual ~Base() = default;
+
+    virtual int get() const;
+
+    int a;
+    int b;
+};
+
+class TEST_VISIBILITY_LIB_EXPORT Foo : public Base {
+public:
+    Foo(int a, int b);
+
+    int get() const override;
+};
+
+}  // namespace lib
