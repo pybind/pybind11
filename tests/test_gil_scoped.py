@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import multiprocessing
 import sys
+import sysconfig
 import threading
 import time
 
@@ -10,8 +11,9 @@ import pytest
 import env
 from pybind11_tests import gil_scoped as m
 
+
 skipif_not_free_threaded = pytest.mark.skipif(
-    not getattr(sys, "_is_gil_enabled", lambda: True)(),
+    sysconfig.get_config_var("Py_GIL_DISABLED"),
     reason="Flaky without the GIL",
 )
 
