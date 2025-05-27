@@ -39,10 +39,8 @@ pybind11_add_module(test_visibility_bindings SHARED bindings.cpp)
 target_link_libraries(test_visibility_bindings PUBLIC test_visibility_lib::test_visibility_lib)
 
 add_executable(test_visibility_main catch.cpp test_visibility.cpp)
-target_link_libraries(test_visibility_main PUBLIC
-  test_visibility_lib::test_visibility_lib
-  pybind11::embed
-  Catch2::Catch2)
+target_link_libraries(test_visibility_main PUBLIC test_visibility_lib::test_visibility_lib
+                                                  pybind11::embed Catch2::Catch2)
 
 # Ensure that we have built the python bindings since we load them in main
 add_dependencies(test_visibility_main test_visibility_bindings)
@@ -58,6 +56,6 @@ add_custom_target(
   WORKING_DIRECTORY "$<TARGET_FILE_DIR:test_visibility_main>")
 
 set_target_properties(test_visibility_bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                 "${CMAKE_CURRENT_BINARY_DIR}")
+                                                          "${CMAKE_CURRENT_BINARY_DIR}")
 
 add_dependencies(check test_visibility)

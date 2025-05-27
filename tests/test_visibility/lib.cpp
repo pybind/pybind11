@@ -10,4 +10,4 @@ Foo::Foo(int a, int b) : Base{a, b} {}
 
 int Foo::get() const { return 2 * a + b; }
 
-}  // namespace lib
+} // namespace lib
