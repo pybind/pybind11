@@ -3,14 +3,14 @@ possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
    OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
-  message(STATUS "Skipping embed test on PyPy or GraalPy")
+  message(STATUS "Skipping visibility test on PyPy or GraalPy")
   add_custom_target(test_visibility) # Dummy target on PyPy or GraalPy. Embedding is not supported.
   set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
 endif()
 
 if(TARGET Python::Module AND NOT TARGET Python::Python)
-  message(STATUS "Skipping embed test since no embed libs found")
+  message(STATUS "Skipping visibility test since no embed libs found")
   add_custom_target(test_visibility) # Dummy target since embedding is not supported.
   set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
