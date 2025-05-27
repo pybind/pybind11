@@ -264,7 +264,10 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize(
     "test_fn",
-    [*ALL_BASIC_TESTS, pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded)],
+    [
+        *ALL_BASIC_TESTS,
+        pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
+    ],
 )
 @pytest.mark.skipif(
     "env.GRAALPY",
