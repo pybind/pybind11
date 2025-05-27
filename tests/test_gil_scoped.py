@@ -10,6 +10,11 @@ import pytest
 import env
 from pybind11_tests import gil_scoped as m
 
+skipif_not_free_threaded = pytest.mark.skipif(
+    not getattr(sys, "_is_gil_enabled", lambda: True)(),
+    reason="Flaky without the GIL",
+)
+
 
 class ExtendedVirtClass(m.VirtClass):
     def virtual_func(self):
@@ -155,7 +160,7 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_deadlock)
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -227,6 +232,7 @@ def test_run_in_process_one_thread(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
+@skipif_not_free_threaded
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
 @pytest.mark.skipif(
@@ -256,7 +262,13 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize(
+    "test_fn",
+    [
+        *ALL_BASIC_TESTS,
+        pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
+    ],
+)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
