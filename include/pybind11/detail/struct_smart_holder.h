@@ -90,7 +90,7 @@ static constexpr bool type_has_shared_from_this(const void *) {
     return false;
 }
 
-struct guarded_delete {
+struct PYBIND11_EXPORT_GUARDED_DELETE guarded_delete {
     std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
     std::function<void(void *)> del_fun; // Rare case.
     void (*del_ptr)(void *);             // Common case.
