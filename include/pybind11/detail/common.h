@@ -286,10 +286,8 @@
 
 // 3.10 Compatibility
 #if 0x030A0000 <= PY_VERSION_HEX
-#    define PYBIND11_USE_NEW_UNIONS true
 #    define PYBIND11_TYPE_GUARD_TYPE_HINT "typing.TypeGuard"
 #else
-#    define PYBIND11_USE_NEW_UNIONS false
 #    define PYBIND11_TYPE_GUARD_TYPE_HINT "typing_extensions.TypeGuard"
 #endif
 

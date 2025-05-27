@@ -558,7 +558,8 @@ struct optional_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("typing.Optional[") + value_conv::name + const_name("]"));
+                         ::pybind11::detail::union_concat(make_caster<value_conv>::name,
+                                                          make_caster<none>::name));
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
@@ -642,10 +643,7 @@ struct variant_caster<V<Ts...>> {
     }
 
     using Type = V<Ts...>;
-    PYBIND11_TYPE_CASTER(Type,
-                         const_name("typing.Union[")
-                             + ::pybind11::detail::concat(make_caster<Ts>::name...)
-                             + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, ::pybind11::detail::union_concat(make_caster<Ts>::name...));
 };
 
 #if defined(PYBIND11_HAS_VARIANT)

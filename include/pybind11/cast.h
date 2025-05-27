@@ -1361,11 +1361,7 @@ struct handle_type_name<dict> {
 };
 template <>
 struct handle_type_name<anyset> {
-#if PYBIND11_USE_NEW_UNIONS
     static constexpr auto name = const_name("set | frozenset");
-#else
-    static constexpr auto name = const_name("typing.Union[set, frozenset]");
-#endif
 };
 template <>
 struct handle_type_name<set> {

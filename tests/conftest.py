@@ -16,6 +16,7 @@ import sys
 import sysconfig
 import textwrap
 import traceback
+from typing import Callable
 
 import pytest
 
@@ -244,19 +245,25 @@ def pytest_report_header():
     return lines
 
 
-def across_version_type_hint_checker(doc: str, expected: str) -> None:
+@pytest.fixture
+def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
+    d = {}
     if sys.version_info < (3, 13):
-        expected = expected.replace("typing.TypeIs", "typing_extensions.TypeIs")
-        expected = expected.replace(
-            "types.CapsuleType", "typing_extensions.CapsuleType"
-        )
+        d["typing_extensions.TypeIs"] = "typing.TypeIs"
+        d["typing_extensions.CapsuleType"] = "types.CapsuleType"
     if sys.version_info < (3, 12):
-        expected = expected.replace(
-            "collections.abc.Buffer", "typing_extensions.Buffer"
-        )
+        d["typing_extensions.Buffer"] = "collections.abc.Buffer"
     if sys.version_info < (3, 11):
-        expected = expected.replace("typing.Never", "typing_extensions.Never")
+        d["typing_extensions.Never"] = "typing.Never"
     if sys.version_info < (3, 10):
-        expected = expected.replace("typing.TypeGuard", "typing_extensions.TypeGuard")
+        d["typing_extensions.TypeGuard"] = "typing.TypeGuard"
 
-    assert doc == expected
+    def backport(sanatized_string: SanitizedString) -> SanitizedString:
+        text = sanatized_string.string
+        for old, new in d.items():
+            text = text.replace(old, new)
+
+        sanatized_string.string = text
+        return sanatized_string
+
+    return backport

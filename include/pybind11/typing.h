@@ -218,24 +218,13 @@ struct handle_type_name<typing::Type<T>> {
 
 template <typename... Types>
 struct handle_type_name<typing::Union<Types...>> {
-#if PYBIND11_USE_NEW_UNIONS
     static constexpr auto name = ::pybind11::detail::union_concat(make_caster<Types>::name...);
-#else
-    static constexpr auto name = const_name("typing.Union[")
-                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
-                                 + const_name("]");
-#endif
 };
 
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-#if PYBIND11_USE_NEW_UNIONS
     static constexpr auto name
         = ::pybind11::detail::union_concat(make_caster<T>::name, make_caster<none>::name);
-#else
-    static constexpr auto name
-        = const_name("typing.Optional[") + make_caster<T>::name + const_name("]");
-#endif
 };
 
 template <typename T>
