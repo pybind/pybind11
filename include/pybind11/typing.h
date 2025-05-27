@@ -223,8 +223,7 @@ struct handle_type_name<typing::Union<Types...>> {
 
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-    static constexpr auto name
-        = make_caster<T>::name | make_caster<none>::name;
+    static constexpr auto name = make_caster<T>::name | make_caster<none>::name;
 };
 
 template <typename T>

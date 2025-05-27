@@ -557,8 +557,7 @@ struct optional_caster {
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(Type,
-                         value_conv::name | make_caster<none>::name);
+    PYBIND11_TYPE_CASTER(Type, value_conv::name | make_caster<none>::name);
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
