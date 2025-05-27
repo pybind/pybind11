@@ -558,8 +558,7 @@ struct optional_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         ::pybind11::detail::union_concat(make_caster<value_conv>::name,
-                                                          make_caster<none>::name));
+                         value_conv::name | make_caster<none>::name);
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)

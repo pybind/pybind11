@@ -227,10 +227,12 @@ def test_boost_optional():
     assert int(props.access_by_copy) == 42
 
 
-def test_reference_sensitive_optional():
+def test_reference_sensitive_optional(doc):
     assert m.double_or_zero_refsensitive(None) == 0
     assert m.double_or_zero_refsensitive(42) == 84
     pytest.raises(TypeError, m.double_or_zero_refsensitive, "foo")
+
+    assert doc(m.double_or_zero_refsensitive) == "double_or_zero_refsensitive(arg0: typing.SupportsInt | None) -> int"
 
     assert m.half_or_none_refsensitive(0) is None
     assert m.half_or_none_refsensitive(42) == 21

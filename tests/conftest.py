@@ -259,11 +259,9 @@ def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
         d["typing_extensions.TypeGuard"] = "typing.TypeGuard"
 
     def backport(sanatized_string: SanitizedString) -> SanitizedString:
-        text = sanatized_string.string
         for old, new in d.items():
-            text = text.replace(old, new)
+            sanatized_string.string = sanatized_string.string.replace(old, new)
 
-        sanatized_string.string = text
         return sanatized_string
 
     return backport
