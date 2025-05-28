@@ -324,11 +324,10 @@ TEST_SUBMODULE(virtual_functions, m) {
 
     // test_recursive_dispatch_issue
     // #3357: Recursive dispatch fails to find python function override
+    pybind11::class_<AdderBase::Data>(m, "Data").def(pybind11::init<>());
     pybind11::class_<AdderBase, Adder>(m, "Adder")
         .def(pybind11::init<>())
         .def("__call__", &AdderBase::operator());
-
-    pybind11::class_<AdderBase::Data>(m, "Data").def(pybind11::init<>());
 
     m.def("add2",
           [](const AdderBase::Data &first,

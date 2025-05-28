@@ -216,5 +216,6 @@ TEST_SUBMODULE(custom_type_casters, m) {
 
     m.def("other_lib_type", [](other_lib::MyType x) { return x; });
 
+    py::class_<ADL_issue::test>(m, "ADL_issue_test");
     m.def("_adl_issue", [](const ADL_issue::test &) {});
 }

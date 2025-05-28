@@ -550,6 +550,7 @@ TEST_SUBMODULE(stl, m) {
 
     // #528: templated constructor
     // (no python tests: the test here is that this compiles)
+    py::class_<TplCtorClass>(m, "TplCtorClass");
     m.def("tpl_ctor_vector", [](std::vector<TplCtorClass> &) {});
     m.def("tpl_ctor_map", [](std::unordered_map<TplCtorClass, TplCtorClass> &) {});
     m.def("tpl_ctor_set", [](std::unordered_set<TplCtorClass> &) {});
