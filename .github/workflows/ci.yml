@@ -1017,9 +1017,7 @@ jobs:
 
     - name: Prepare env
       run: |
-        python -m venv .venv
-        . .venv/bin/activate
-        python -m pip install pybind11-stubgen mypy
+        python -m pip install --break-system-packages pybind11-stubgen mypy
 
 
     - name: Configure C++11
