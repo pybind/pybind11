@@ -96,7 +96,7 @@ public:
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(T, io_name("typing.Union[os.PathLike, str, bytes]", "pathlib.Path"));
+    PYBIND11_TYPE_CASTER(T, io_name("os.PathLike | str | bytes", "pathlib.Path"));
 };
 
 #endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)

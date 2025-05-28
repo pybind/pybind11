@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sys
-
 import pytest
 
 import env
@@ -29,7 +27,7 @@ def test_string_list():
     assert m.print_opaque_list(cvp.stringList) == "Opaque list: [Element 1, Element 3]"
 
 
-def test_pointers(msg):
+def test_pointers(msg, backport_typehints):
     living_before = ConstructorStats.get(UserType).alive()
     assert m.get_void_ptr_value(m.return_void_ptr()) == 0x1234
     assert m.get_void_ptr_value(UserType())  # Should also work for other C++ types
@@ -39,19 +37,15 @@ def test_pointers(msg):
 
     with pytest.raises(TypeError) as excinfo:
         m.get_void_ptr_value([1, 2, 3])  # This should not work
-    capsule_type = (
-        "types.CapsuleType"
-        if sys.version_info >= (3, 13)
-        else "typing_extensions.CapsuleType"
-    )
-    assert (
-        msg(excinfo.value)
-        == f"""
-        get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: {capsule_type}) -> int
 
-        Invoked with: [1, 2, 3]
-    """
+    assert (
+        backport_typehints(msg(excinfo.value))
+        == """
+            get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
+                1. (arg0: types.CapsuleType) -> int
+
+            Invoked with: [1, 2, 3]
+        """
     )
 
     assert m.return_null_str() is None
