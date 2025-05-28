@@ -1001,7 +1001,6 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-mypy
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
 
@@ -1020,7 +1019,7 @@ jobs:
       run: |
         python -m venv .venv
         . .venv/bin/activate
-        python -m pip install pybind11-stubgen
+        python -m pip install pybind11-stubgen mypy
 
 
     - name: Configure C++11
