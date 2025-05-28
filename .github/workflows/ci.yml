@@ -1016,7 +1016,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt
+      run: python -m pip install -r pybind11-stubgen mypy
 
 
     - name: Configure C++11
