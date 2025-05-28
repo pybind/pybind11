@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -29,9 +28,6 @@ def run_mypy(stubs: Path) -> MypyResult:
     return MypyResult(normal_report, error_report, exit_status)
 
 
-@pytest.mark.xfail(
-    sys.version_info >= (3, 14), reason="mypy does not support Python 3.14+ yet"
-)
 def test_stubgen(tmp_path: Path) -> None:
     assert m.add_int(1, 2) == 3
     # Generate stub into temporary directory
