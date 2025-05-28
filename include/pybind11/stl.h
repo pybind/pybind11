@@ -178,7 +178,7 @@ private:
         return true;
     }
 
-    bool convert_anyset(anyset s, bool convert) {
+    bool convert_anyset(const anyset &s, bool convert) {
         value.clear();
         reserve_maybe(s, &value);
         return convert_iterable(s, convert);

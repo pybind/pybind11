@@ -19,6 +19,10 @@ template <typename derived>
 struct empty {
     static const derived &get_one() { return instance_; }
     static derived instance_;
+
+private:
+    empty() = default;
+    friend derived;
 };
 
 struct lacking_copy_ctor : public empty<lacking_copy_ctor> {
