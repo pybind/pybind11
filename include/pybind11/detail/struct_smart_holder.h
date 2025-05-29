@@ -64,7 +64,7 @@ Details:
 // https://github.com/llvm/llvm-project/blob/a9b64bb3180dab6d28bf800a641f9a9ad54d2c0c/libcxx/include/typeinfo#L271-L276
 // requiere it)
 #if !defined(PYBIND11_EXPORT_GUARDED_DELETE)
-#    if defined(__libcpp_version) && !defined(WIN32) && !defined(_WIN32)
+#    if defined(_LIBCPP_VERSION) && !defined(WIN32) && !defined(_WIN32)
 #        define PYBIND11_EXPORT_GUARDED_DELETE __attribute__((visibility("default")))
 #    else
 #        define PYBIND11_EXPORT_GUARDED_DELETE
