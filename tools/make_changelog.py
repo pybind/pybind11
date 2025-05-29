@@ -65,10 +65,10 @@ for issue in issues:
         continue
 
     msg = changelog.group("content").strip()
-    if msg.startswith("- "):
+    if msg.startswith("* "):
         msg = msg[2:]
-    if not msg.startswith("* "):
-        msg = "* " + msg
+    if not msg.startswith("- "):
+        msg = "- " + msg
     if not msg.endswith("."):
         msg += "."
 
