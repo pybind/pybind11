@@ -59,11 +59,11 @@ Details:
 #include <utility>
 
 // IMPORTANT: This code block must stay BELOW the #include <stdexcept> above.
+// This is only requried on some builds with libc++ (one of three implementations
+// in https://github.com/llvm/llvm-project/blob/a9b64bb3180dab6d28bf800a641f9a9ad54d2c0c/libcxx/include/typeinfo#L271-L276
+// requiere it)
 #if !defined(PYBIND11_EXPORT_GUARDED_DELETE)
-#    if defined(_LIBCPP_EXCEPTION)
-#        if defined(WIN32) || defined(_WIN32)
-#            error "UNEXPECTED: defined(_LIBCPP_EXCEPTION) && (defined(WIN32) || defined(_WIN32))"
-#        endif
+#    if defined(__libcpp_version) && !defined(WIN32) && !defined(_WIN32)
 #        define PYBIND11_EXPORT_GUARDED_DELETE __attribute__((visibility("default")))
 #    else
 #        define PYBIND11_EXPORT_GUARDED_DELETE
