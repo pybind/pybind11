@@ -12,7 +12,7 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 RC 1 (May 21, 2025)
+## 3.0.0 (RC 2) (May 29, 2025)
 
 Since this is a large release, we are providing a release candidate to give
 projects time to test! We also now provide
