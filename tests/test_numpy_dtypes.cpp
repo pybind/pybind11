@@ -354,6 +354,14 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // ... or after
     py::class_<PackedStruct>(m, "PackedStruct");
+    py::class_<SimpleStructReordered>(m, "SimpleStructReordered");
+    py::class_<NestedStruct>(m, "NestedStruct");
+    py::class_<PartialStruct>(m, "PartialStruct");
+    py::class_<PartialNestedStruct>(m, "PartialNestedStruct");
+    py::class_<StringStruct>(m, "StringStruct");
+    py::class_<ArrayStruct>(m, "ArrayStruct");
+    py::class_<EnumStruct>(m, "EnumStruct");
+    py::class_<ComplexStruct>(m, "ComplexStruct");
 
     PYBIND11_NUMPY_DTYPE_EX(StructWithUglyNames, __x__, "x", __y__, "y");
 

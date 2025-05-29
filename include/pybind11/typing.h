@@ -218,15 +218,12 @@ struct handle_type_name<typing::Type<T>> {
 
 template <typename... Types>
 struct handle_type_name<typing::Union<Types...>> {
-    static constexpr auto name = const_name("typing.Union[")
-                                 + ::pybind11::detail::concat(make_caster<Types>::name...)
-                                 + const_name("]");
+    static constexpr auto name = ::pybind11::detail::union_concat(make_caster<Types>::name...);
 };
 
 template <typename T>
 struct handle_type_name<typing::Optional<T>> {
-    static constexpr auto name
-        = const_name("typing.Optional[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = make_caster<T>::name | make_caster<none>::name;
 };
 
 template <typename T>
@@ -244,14 +241,14 @@ struct handle_type_name<typing::ClassVar<T>> {
 
 template <typename T>
 struct handle_type_name<typing::TypeGuard<T>> {
-    static constexpr auto name
-        = const_name("typing.TypeGuard[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_TYPE_GUARD_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <typename T>
 struct handle_type_name<typing::TypeIs<T>> {
-    static constexpr auto name
-        = const_name("typing.TypeIs[") + make_caster<T>::name + const_name("]");
+    static constexpr auto name = const_name(PYBIND11_TYPE_IS_TYPE_HINT) + const_name("[")
+                                 + make_caster<T>::name + const_name("]");
 };
 
 template <>
@@ -261,7 +258,7 @@ struct handle_type_name<typing::NoReturn> {
 
 template <>
 struct handle_type_name<typing::Never> {
-    static constexpr auto name = const_name("typing.Never");
+    static constexpr auto name = const_name(PYBIND11_NEVER_TYPE_HINT);
 };
 
 #if defined(PYBIND11_TYPING_H_HAS_STRING_LITERAL)

@@ -16,6 +16,7 @@ import sys
 import sysconfig
 import textwrap
 import traceback
+from typing import Callable
 
 import pytest
 
@@ -242,3 +243,38 @@ def pytest_report_header():
         lines.append("free-threaded Python build")
 
     return lines
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session,  # noqa: ARG001
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    if not config.getoption("-m"):
+        for item in items:
+            if "stubgen" in item.keywords:
+                item.add_marker(
+                    pytest.mark.skip(reason="Use `-m stubgen` to enable stubgen tests.")
+                )
+
+
+@pytest.fixture
+def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
+    d = {}
+    if sys.version_info < (3, 13):
+        d["typing_extensions.TypeIs"] = "typing.TypeIs"
+        d["typing_extensions.CapsuleType"] = "types.CapsuleType"
+    if sys.version_info < (3, 12):
+        d["typing_extensions.Buffer"] = "collections.abc.Buffer"
+    if sys.version_info < (3, 11):
+        d["typing_extensions.Never"] = "typing.Never"
+    if sys.version_info < (3, 10):
+        d["typing_extensions.TypeGuard"] = "typing.TypeGuard"
+
+    def backport(sanatized_string: SanitizedString) -> SanitizedString:
+        for old, new in d.items():
+            sanatized_string.string = sanatized_string.string.replace(old, new)
+
+        return sanatized_string
+
+    return backport

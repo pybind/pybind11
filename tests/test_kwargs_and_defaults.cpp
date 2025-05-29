@@ -297,7 +297,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def(
         "class_default_argument",
         [](py::object a) { return py::repr(std::move(a)); },
-        "a"_a = py::module_::import("decimal").attr("Decimal"));
+        py::arg_v("a", py::module_::import("decimal").attr("Decimal"), "decimal.Decimal"));
 
     // Initial implementation of kw_only was broken when used on a method/constructor before any
     // other arguments

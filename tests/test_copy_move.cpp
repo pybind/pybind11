@@ -111,7 +111,7 @@ PYBIND11_NAMESPACE_BEGIN(pybind11)
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
 struct type_caster<MoveOnlyInt> {
-    PYBIND11_TYPE_CASTER(MoveOnlyInt, const_name("MoveOnlyInt"));
+    PYBIND11_TYPE_CASTER(MoveOnlyInt, const_name("typing.Annotated[int, \"MoveOnlyInt\"]"));
     bool load(handle src, bool) {
         value = MoveOnlyInt(src.cast<int>());
         return true;
@@ -123,7 +123,7 @@ struct type_caster<MoveOnlyInt> {
 
 template <>
 struct type_caster<MoveOrCopyInt> {
-    PYBIND11_TYPE_CASTER(MoveOrCopyInt, const_name("MoveOrCopyInt"));
+    PYBIND11_TYPE_CASTER(MoveOrCopyInt, const_name("typing.Annotated[int, \"MoveOrCopyInt\"]"));
     bool load(handle src, bool) {
         value = MoveOrCopyInt(src.cast<int>());
         return true;
@@ -139,7 +139,7 @@ protected:
     CopyOnlyInt value;
 
 public:
-    static constexpr auto name = const_name("CopyOnlyInt");
+    static constexpr auto name = const_name("typing.Annotated[int, \"CopyOnlyInt\"]");
     bool load(handle src, bool) {
         value = CopyOnlyInt(src.cast<int>());
         return true;
