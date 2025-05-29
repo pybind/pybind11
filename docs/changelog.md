@@ -118,7 +118,7 @@ New Features:
   update example for `pybind11::custom_type_setup` in documentation.
   [#5669](https://github.com/pybind/pybind11/pull/5669)
 
-* Added `py::scoped_critical_section` for free-threaded use.
+* Added `py::scoped_critical_section` to support free-threaded mode.
   [#5684](https://github.com/pybind/pybind11/pull/5684)
 
 New Features / fixes (typing):
