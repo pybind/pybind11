@@ -18,8 +18,6 @@ Adds the following functions::
 
 #]======================================================]
 
-include_guard(GLOBAL)
-
 # If we are in subdirectory mode, all IMPORTED targets must be GLOBAL. If we
 # are in CONFIG mode, they should be "normal" targets instead.
 # In CMake 3.11+ you can promote a target to global after you create it,
@@ -28,8 +26,13 @@ get_property(
   is_config
   TARGET pybind11::headers
   PROPERTY IMPORTED)
+
 if(NOT is_config)
+  include_guard(GLOBAL)
   set(optional_global GLOBAL)
+else()
+  include_guard(DIRECTORY)
+  set(optional_global "")
 endif()
 
 # If not run in Python mode, we still would like this to at least

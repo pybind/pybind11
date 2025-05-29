@@ -273,7 +273,8 @@ struct constructor {
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
-            [](value_and_holder &v_h, Args... args) {
+            [](value_and_holder &v_h,
+               Args... args) { // NOLINT(performance-unnecessary-value-param)
                 v_h.value_ptr() = construct_or_initialize<Cpp<Class>>(std::forward<Args>(args)...);
             },
             is_new_style_constructor(),

@@ -340,7 +340,7 @@ struct smart_holder {
     }
 
     template <typename T>
-    static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
+    static smart_holder from_shared_ptr(const std::shared_ptr<T> &shd_ptr) {
         smart_holder hld;
         hld.vptr = std::static_pointer_cast<void>(shd_ptr);
         hld.vptr_is_external_shared_ptr = true;

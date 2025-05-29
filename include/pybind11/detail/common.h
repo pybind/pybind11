@@ -14,13 +14,35 @@
 #    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
 #endif
 
+// Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
+// See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
+/* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_PATCH 0.dev1
+#define PYBIND11_VERSION_MICRO 0
+// ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
+// - The release level is set to "alpha" for development versions.
+//   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
+// - For stable releases, set the serial to 0.
+#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_GAMMA
+#define PYBIND11_VERSION_RELEASE_SERIAL 2
+// String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
+#define PYBIND11_VERSION_PATCH 0rc2
+/* -- end version constants -- */
 
-// Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
-// Additional convention: 0xD = dev
-#define PYBIND11_VERSION_HEX 0x030000D1
+#if !defined(Py_PACK_FULL_VERSION)
+// Stable API since Python 3.14.0a4
+#    define Py_PACK_FULL_VERSION(X, Y, Z, LEVEL, SERIAL)                                          \
+        ((((X) & 0xff) << 24) | (((Y) & 0xff) << 16) | (((Z) & 0xff) << 8)                        \
+         | (((LEVEL) & 0xf) << 4) | (((SERIAL) & 0xf) << 0))
+#endif
+// Version as a single 4-byte hex number, e.g. 0x030C04B5 == 3.12.4b5.
+#define PYBIND11_VERSION_HEX                                                                      \
+    Py_PACK_FULL_VERSION(PYBIND11_VERSION_MAJOR,                                                  \
+                         PYBIND11_VERSION_MINOR,                                                  \
+                         PYBIND11_VERSION_MICRO,                                                  \
+                         PYBIND11_VERSION_RELEASE_LEVEL,                                          \
+                         PYBIND11_VERSION_RELEASE_SERIAL)
 
 #include "pybind11_namespace_macros.h"
 
@@ -232,11 +254,11 @@
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
-// Slightly faster code paths are available when PYBIND11_SUBINTERPRETER_SUPPORT is *not* defined,
-// so avoid defining it for implementations that do not support subinterpreters.
-// However, defining it unnecessarily is not expected to break anything.
+// Slightly faster code paths are available when PYBIND11_HAS_SUBINTERPRETER_SUPPORT is *not*
+// defined, so avoid defining it for implementations that do not support subinterpreters. However,
+// defining it unnecessarily is not expected to break anything.
 #if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-#    define PYBIND11_SUBINTERPRETER_SUPPORT
+#    define PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #endif
 
 // 3.12 Compatibility
@@ -283,8 +305,10 @@
 #define PYBIND11_BUILTINS_MODULE "builtins"
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
+#define PYBIND11_PLUGIN_DECL(name)                                                                \
+    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();
 #define PYBIND11_PLUGIN_IMPL(name)                                                                \
-    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name();                   \
+    PYBIND11_PLUGIN_DECL(name)                                                                    \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
@@ -361,11 +385,56 @@
     }                                                                                             \
     PyObject *pybind11_init()
 
+// this push is for the next several macros
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
+
+/**
+Create a PyInit_ function for this module.
+
+Note that this is run once for each (sub-)interpreter the module is imported into, including
+possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
+PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
+ */
+#define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
+    static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
+    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
+        PYBIND11_CHECK_PYTHON_VERSION                                                             \
+        pre_init;                                                                                 \
+        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        static ::pybind11::detail::slots_array slots = ::pybind11::detail::init_slots(            \
+            &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
+        static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
+                               /* m_name */ PYBIND11_TOSTRING(name),                              \
+                               /* m_doc */ nullptr,                                               \
+                               /* m_size */ 0,                                                    \
+                               /* m_methods */ nullptr,                                           \
+                               /* m_slots */ slots.data(),                                        \
+                               /* m_traverse */ nullptr,                                          \
+                               /* m_clear */ nullptr,                                             \
+                               /* m_free */ nullptr};                                             \
+        return PyModuleDef_Init(&def);                                                            \
+    }
+
+#define PYBIND11_MODULE_EXEC(name, variable)                                                      \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
+    int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
+        try {                                                                                     \
+            auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
+            return 0;                                                                             \
+        }                                                                                         \
+        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+        return -1;                                                                                \
+    }                                                                                             \
+    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_                                \
+                                               & variable) // NOLINT(bugprone-macro-parentheses)
+
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
     imports an extension module. The module name is given as the first argument and it
     should not be in quotes. The second macro argument defines a variable of type
-    `py::module_` which can be used to initialize the module.
+    ``py::module_`` which can be used to initialize the module.
 
     The entry point is marked as "maybe unused" to aid dead-code detection analysis:
     since the entry point is typically only looked up at runtime and not referenced
@@ -382,57 +451,29 @@
             });
         }
 
-    The third macro argument is optional (available since 2.13.0), and can be used to
-    mark the extension module as safe to run without the GIL under a free-threaded CPython
-    interpreter. Passing this argument has no effect on other interpreters.
+    The third and subsequent macro arguments are optional (available since 2.13.0), and
+    can be used to mark the extension module as supporting various Python features.
+
+    - ``mod_gil_not_used()``
+    - ``multiple_interpreters::per_interpreter_gil()``
+    - ``multiple_interpreters::per_interprshareeter_gil()``
 
     .. code-block:: cpp
 
         PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
             m.doc() = "pybind11 example module safe to run without the GIL";
-
-            // Add bindings here
             m.def("foo", []() {
                 return "Hello, Free-threaded World!";
             });
         }
 
 \endrst */
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
-    static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name);           \
-    static ::pybind11::module_::slots_array PYBIND11_CONCAT(pybind11_module_slots_, name);        \
-    static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
-    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static auto result = []() {                                                               \
-            auto &slots = PYBIND11_CONCAT(pybind11_module_slots_, name);                          \
-            slots[0] = {Py_mod_exec,                                                              \
-                        reinterpret_cast<void *>(&PYBIND11_CONCAT(pybind11_exec_, name))};        \
-            slots[1] = {0, nullptr};                                                              \
-            return ::pybind11::module_::initialize_multiphase_module_def(                         \
-                PYBIND11_TOSTRING(name),                                                          \
-                nullptr,                                                                          \
-                &PYBIND11_CONCAT(pybind11_module_def_, name),                                     \
-                slots,                                                                            \
-                ##__VA_ARGS__);                                                                   \
-        }();                                                                                      \
-        return result.ptr();                                                                      \
-    }                                                                                             \
-    int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
-        pybind11::detail::get_num_interpreters_seen() += 1;                                       \
-        try {                                                                                     \
-            auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
-            return 0;                                                                             \
-        }                                                                                         \
-        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
-        return -1;                                                                                \
-    }                                                                                             \
-    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ & (variable))
+    PYBIND11_MODULE_PYINIT(                                                                       \
+        name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \
+    PYBIND11_MODULE_EXEC(name, variable)
+
+// pop gnu-zero-variadic-macro-arguments
 PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

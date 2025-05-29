@@ -48,7 +48,7 @@ struct func_wrapper_base {
 template <typename Return, typename... Args>
 struct func_wrapper : func_wrapper_base {
     using func_wrapper_base::func_wrapper_base;
-    Return operator()(Args... args) const {
+    Return operator()(Args... args) const { // NOLINT(performance-unnecessary-value-param)
         gil_scoped_acquire acq;
         // casts the returned object as a rvalue to the return type
         return hfunc.f(std::forward<Args>(args)...).template cast<Return>();
@@ -137,7 +137,7 @@ public:
 
     PYBIND11_TYPE_CASTER(
         type,
-        const_name("Callable[[")
+        const_name("collections.abc.Callable[[")
             + ::pybind11::detail::concat(::pybind11::detail::arg_descr(make_caster<Args>::name)...)
             + const_name("], ") + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
             + const_name("]"));

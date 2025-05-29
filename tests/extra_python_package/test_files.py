@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,6 +16,7 @@ from typing import Generator
 DIR = Path(__file__).parent.resolve()
 MAIN_DIR = DIR.parent.parent
 
+FILENAME_VERSION = re.compile(r"[-_]((\d+\.\d+\.\d+)(?:[a-z]+\d*)?)(?:-|\.tar\.gz$)")
 
 # Newer pytest has global path setting, but keeping old pytest for now
 sys.path.append(str(MAIN_DIR / "tools"))
@@ -42,6 +44,7 @@ main_headers = {
     "include/pybind11/chrono.h",
     "include/pybind11/common.h",
     "include/pybind11/complex.h",
+    "include/pybind11/critical_section.h",
     "include/pybind11/eigen.h",
     "include/pybind11/embed.h",
     "include/pybind11/eval.h",
@@ -56,6 +59,7 @@ main_headers = {
     "include/pybind11/options.h",
     "include/pybind11/pybind11.h",
     "include/pybind11/pytypes.h",
+    "include/pybind11/subinterpreter.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
     "include/pybind11/trampoline_self_life_support.h",
@@ -184,7 +188,7 @@ def test_build_sdist(monkeypatch, tmpdir):
     )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
-    version = sdist.basename.split("-")[1][:-7]
+    version = FILENAME_VERSION.search(sdist.basename).group(1)
 
     with tarfile.open(str(sdist), "r:gz") as tar:
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
@@ -197,6 +201,7 @@ def test_build_sdist(monkeypatch, tmpdir):
     assert files <= simpler
 
     assert b'name = "pybind11"' in pyproject_toml
+    assert f"Version: {version}" in pkg_info
     assert "License-Expression: BSD-3-Clause" in pkg_info
     assert "License-File: LICENSE" in pkg_info
     assert "Provides-Extra: global" in pkg_info
@@ -220,6 +225,7 @@ def test_build_global_dist(monkeypatch, tmpdir):
         )
 
     (sdist,) = tmpdir.visit("*.tar.gz")
+    version = FILENAME_VERSION.search(sdist.basename).group(2)
 
     with tarfile.open(str(sdist), "r:gz") as tar:
         simpler = {n.split("/", 1)[-1] for n in tar.getnames()[1:]}
@@ -232,6 +238,7 @@ def test_build_global_dist(monkeypatch, tmpdir):
     assert files <= simpler
 
     assert b'name = "pybind11-global"' in pyproject_toml
+    assert f"Version: {version}" in pkg_info
     assert "License-Expression: BSD-3-Clause" in pkg_info
     assert "License-File: LICENSE" in pkg_info
     assert "Provides-Extra: global" not in pkg_info
@@ -247,6 +254,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
     )
 
     (wheel,) = tmpdir.visit("*.whl")
+    version, simple_version = FILENAME_VERSION.search(wheel.basename).groups()
 
     files = {f"pybind11/{n}" for n in all_files}
     files |= {
@@ -274,11 +282,10 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
     assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmakeconfig
 
-    version = wheel.basename.split("-")[1]
-    simple_version = ".".join(version.split(".")[:3])
     pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
     assert pkgconfig_expected == pkgconfig
 
+    assert f"Version: {version}" in pkg_info
     assert "License-Expression: BSD-3-Clause" in pkg_info
     assert "License-File: LICENSE" in pkg_info
     assert "Provides-Extra: global" in pkg_info
@@ -302,6 +309,7 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
         )
 
     (wheel,) = tmpdir.visit("*.whl")
+    version, simple_version = FILENAME_VERSION.search(wheel.basename).groups()
 
     files = {f"data/data/{n}" for n in headers}
     files |= {f"data/headers/{n[8:]}" for n in headers}
@@ -326,6 +334,7 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
         (pkg_info_path,) = (n for n in names if n.endswith("METADATA"))
         pkg_info = zipfile.Path(z, pkg_info_path).read_text(encoding="utf-8")
 
+    assert f"Version: {version}" in pkg_info
     assert "License-Expression: BSD-3-Clause" in pkg_info
     assert "License-File: LICENSE" in pkg_info
     assert "Provides-Extra: global" not in pkg_info
@@ -337,7 +346,38 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
 
     assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmakeconfig
 
-    version = wheel.basename.split("-")[1]
-    simple_version = ".".join(version.split(".")[:3])
     pkgconfig_expected = PKGCONFIG.format(VERSION=simple_version)
     assert pkgconfig_expected == pkgconfig
+
+
+def test_version_matches():
+    header = MAIN_DIR / "include/pybind11/detail/common.h"
+    text = header.read_text()
+
+    # Extract the relevant macro values
+    regex_prefix = r"#\s*define\s+PYBIND11_VERSION_"
+    micro = re.search(rf"{regex_prefix}MICRO\s+(\d+)\b", text).group(1)
+    release_level = re.search(rf"{regex_prefix}RELEASE_LEVEL\s+(\w+)\b", text).group(1)
+    release_serial = re.search(
+        rf"{regex_prefix}RELEASE_SERIAL\s+(\d+)\b",
+        text,
+    ).group(1)
+    patch = re.search(rf"{regex_prefix}PATCH\s+([\w.-]+)\b", text).group(1)
+
+    # Map release level macro to string
+    level_map = {
+        "PY_RELEASE_LEVEL_ALPHA": "a",
+        "PY_RELEASE_LEVEL_BETA": "b",
+        "PY_RELEASE_LEVEL_GAMMA": "rc",
+        "PY_RELEASE_LEVEL_FINAL": "",
+    }
+    level_str = level_map[release_level]
+
+    if release_level == "PY_RELEASE_LEVEL_FINAL":
+        assert level_str == ""
+        assert release_serial == "0"
+        expected_patch = micro
+    else:
+        expected_patch = f"{micro}{level_str}{release_serial}"
+
+    assert patch == expected_patch

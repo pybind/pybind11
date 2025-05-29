@@ -65,10 +65,10 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
   message(STATUS "CMake ${CMAKE_VERSION}")
 
-  if(DEFINED SKBUILD AND DEFINED $ENV{PYBIND11_GLOBAL_PREFIX})
+  if(DEFINED SKBUILD AND DEFINED ENV{PYBIND11_GLOBAL_SDIST})
     message(
       FATAL_ERROR
-        "PYBIND11_GLOBAL_PREFIX is not supported, use nox -s build_global or a pybind11-global SDist instead."
+        "PYBIND11_GLOBAL_SDIST is not supported, use nox -s build_global or a pybind11-global SDist instead."
     )
   endif()
 
@@ -179,7 +179,6 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-# NB: when adding a header don't forget to also add it to setup.py
 set(PYBIND11_HEADERS
     include/pybind11/detail/class.h
     include/pybind11/detail/common.h
@@ -206,6 +205,7 @@ set(PYBIND11_HEADERS
     include/pybind11/conduit/pybind11_conduit_v1.h
     include/pybind11/conduit/pybind11_platform_abi_id.h
     include/pybind11/conduit/wrap_include_python_h.h
+    include/pybind11/critical_section.h
     include/pybind11/options.h
     include/pybind11/eigen.h
     include/pybind11/eigen/common.h
@@ -223,6 +223,7 @@ set(PYBIND11_HEADERS
     include/pybind11/operators.h
     include/pybind11/pybind11.h
     include/pybind11/pytypes.h
+    include/pybind11/subinterpreter.h
     include/pybind11/stl.h
     include/pybind11/stl_bind.h
     include/pybind11/stl/filesystem.h

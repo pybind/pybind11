@@ -540,6 +540,7 @@ TEST_SUBMODULE(smart_ptr, m) {
             return list;
         });
 
+    // NOLINTNEXTLINE(bugprone-incorrect-enable-shared-from-this)
     class PrivateESFT : /* implicit private */ std::enable_shared_from_this<PrivateESFT> {};
     struct ContainerUsingPrivateESFT {
         std::shared_ptr<PrivateESFT> ptr;

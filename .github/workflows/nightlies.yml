@@ -1,0 +1,59 @@
+name: Upload nightly wheels to Anaconda Cloud
+
+on:
+  # Run daily at 2:34 UTC to upload nightly wheels to Anaconda Cloud
+  schedule:
+    - cron: "34 2 * * *"
+  # Run on demand with workflow dispatch
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_wheel:
+    name: Build and upload wheel
+    if: github.repository_owner == 'pybind'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build SDist and wheels
+        run: |
+          uv tool install nox
+          nox -s build
+          nox -s build_global
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Packages
+          path: dist/*
+
+  upload_nightly_wheels:
+    name: Upload nightly wheels to Anaconda Cloud
+    if: github.repository_owner == 'pybind'
+    needs: [build_wheel]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Packages
+          path: dist
+
+      - name: List wheel to be deployed
+        run: ls -lha dist/*.whl
+
+      - name: Upload wheel to Anaconda Cloud as nightly
+        uses: scientific-python/upload-nightly-action@b36e8c0c10dbcfd2e05bf95f17ef8c14fd708dbf # 0.6.2
+        with:
+          artifacts_path: dist
+          anaconda_nightly_upload_token: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
