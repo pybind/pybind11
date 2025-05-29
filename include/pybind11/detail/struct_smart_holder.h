@@ -58,6 +58,19 @@ Details:
 #include <typeinfo>
 #include <utility>
 
+// IMPORTANT: This code block must stay BELOW the #include <stdexcept> above.
+// This is only required on some builds with libc++ (one of three implementations
+// in
+// https://github.com/llvm/llvm-project/blob/a9b64bb3180dab6d28bf800a641f9a9ad54d2c0c/libcxx/include/typeinfo#L271-L276
+// require it)
+#if !defined(PYBIND11_EXPORT_GUARDED_DELETE)
+#    if defined(_LIBCPP_VERSION) && !defined(WIN32) && !defined(_WIN32)
+#        define PYBIND11_EXPORT_GUARDED_DELETE __attribute__((visibility("default")))
+#    else
+#        define PYBIND11_EXPORT_GUARDED_DELETE
+#    endif
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(memory)
 
@@ -78,7 +91,7 @@ static constexpr bool type_has_shared_from_this(const void *) {
     return false;
 }
 
-struct guarded_delete {
+struct PYBIND11_EXPORT_GUARDED_DELETE guarded_delete {
     std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
     std::function<void(void *)> del_fun; // Rare case.
     void (*del_ptr)(void *);             // Common case.
