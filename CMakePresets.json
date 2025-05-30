@@ -16,8 +16,8 @@
         "DOWNLOAD_CATCH": true,
         "DOWNLOAD_EIGEN": true,
         "PYBIND11_FINDPYTHON": "NEW",
-        "PYBIND11_WERROR": true
-
+        "PYBIND11_WERROR": true,
+        "CMAKE_COLOR_DIAGNOSTICS": true
       }
     },
     {
