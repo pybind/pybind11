@@ -3,6 +3,11 @@ name: CI
 on:
   workflow_dispatch:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
   push:
     branches:
       - master
@@ -27,6 +32,7 @@ jobs:
   # This is the "main" test suite, which tests a large number of different
   # versions of default compilers and Python versions in GitHub Actions.
   standard:
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -216,8 +222,10 @@ jobs:
         pytest tests/extra_setuptools
       if: matrix.runs-on != 'windows-2022'
 
+
   manylinux:
     name: Manylinux on 🐍 3.13t • GIL
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container: quay.io/pypa/musllinux_1_2_x86_64:latest
@@ -242,6 +250,7 @@ jobs:
         run: cmake --build --preset testsvenv -t pytest
 
   deadsnakes:
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -318,6 +327,7 @@ jobs:
 
   # Testing on clang using the excellent silkeh clang docker images
   clang:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -438,6 +448,7 @@ jobs:
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
   ubuntu-nvhpc7:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-22.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
 
@@ -489,6 +500,7 @@ jobs:
 
   # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -557,6 +569,7 @@ jobs:
 
   # Testing on ICC using the oneAPI apt repo
   icc:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-22.04
 
     name: "🐍 3 • ICC latest • x64"
@@ -652,6 +665,7 @@ jobs:
 
   # Testing on CentOS (manylinux uses a centos base).
   centos:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -713,6 +727,7 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
+    if: github.event.pull_request.draft == false
     name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
     container: i386/debian:bullseye
@@ -757,6 +772,7 @@ jobs:
   # This verifies that the documentation is not horribly broken, and does a
   # basic validation check on the SDist.
   doxygen:
+    if: github.event.pull_request.draft == false
     name: "Documentation build test"
     runs-on: ubuntu-latest
 
@@ -791,6 +807,7 @@ jobs:
         diff -rq $installed ./pybind11
 
   win32:
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -846,6 +863,7 @@ jobs:
       run: cmake --build build -t pytest
 
   win32-debug:
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -897,6 +915,7 @@ jobs:
 
 
   windows-2022:
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
@@ -956,6 +975,7 @@ jobs:
       run: cmake --build build_partial --target pytest
 
   mingw:
+    if: github.event.pull_request.draft == false
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
     defaults:
@@ -1055,6 +1075,7 @@ jobs:
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
 
   windows_clang:
+    if: github.event.pull_request.draft == false
 
     strategy:
       matrix:
@@ -1124,6 +1145,7 @@ jobs:
         run: git clean -fdx
 
   macos_brew_install_llvm:
+    if: github.event.pull_request.draft == false
     name: "macos-13 • brew install llvm"
     runs-on: macos-13
 
