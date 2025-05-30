@@ -47,7 +47,7 @@ jobs:
             cmake-args: -DCMAKE_CXX_STANDARD=23 -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
             python-version: '3.14t'
-            cmake-args: -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+            cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: ubuntu-latest
             python-version: 'pypy3.11'
             cmake-args: -DCMAKE_CXX_STANDARD=17
@@ -83,10 +83,10 @@ jobs:
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: ubuntu-latest
             python-version: '3.11'
-            cmake-args: -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE" -DCMAKE_CXX_STANDARD=17
+            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
             python-version: '3.12'
-            cmake-args: -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE" -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
+            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
             python-version: '3.13t'
             cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
@@ -105,7 +105,7 @@ jobs:
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: macos-13
             python-version: '3.11'
-            cmake-args: -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
@@ -125,7 +125,7 @@ jobs:
 
           - runs-on: windows-2019
             python-version: '3.9'
-            cmake-args:  -DCMAKE_CXX_FLAGS="-DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE"
+            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: windows-2022
             python-version: '3.8'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DPYBIND11_NUMPY_1_ONLY=ON
@@ -138,7 +138,7 @@ jobs:
           #   cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
           - runs-on: windows-2022
             python-version: '3.10'
-            cmake-args: -DCMAKE_CXX_FLAGS="/DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE /GR /EHsc"
+            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_FLAGS="/GR /EHsc"
           - runs-on: windows-2022
             python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL

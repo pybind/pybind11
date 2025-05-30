@@ -69,6 +69,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
+option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
@@ -499,6 +500,13 @@ foreach(target ${test_targets})
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
 
+  if(PYBIND11_TEST_SMART_HOLDER)
+    target_compile_definitions(
+      ${target}
+      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+    )
+  endif()
+
   target_link_libraries(${target} PRIVATE ${STD_FS_LIB})
 
   # Always write the output file directly into the 'tests' directory (even on MSVC)
@@ -572,6 +580,16 @@ if(NOT PYBIND11_CUDA_TESTS)
                                                            "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
   set_target_properties(mod_shared_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                               "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
+  if(PYBIND11_TEST_SMART_HOLDER)
+    target_compile_definitions(
+      mod_per_interpreter_gil
+      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+    )
+    target_compile_definitions(
+      mod_shared_interpreter_gil
+      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+    )
+  endif()
   add_dependencies(pytest mod_per_interpreter_gil mod_shared_interpreter_gil)
 endif()
 
