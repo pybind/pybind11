@@ -13,18 +13,27 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class scoped_critical_section {
 public:
 #ifdef Py_GIL_DISABLED
-    explicit scoped_critical_section(handle obj) : has2(false) {
-        PyCriticalSection_Begin(&section, obj.ptr());
+    scoped_critical_section(handle obj1, handle obj2) : m_ptr1(obj1.ptr()), m_ptr2(obj2.ptr()) {
+        if (m_ptr1 == nullptr) {
+            std::swap(m_ptr1, m_ptr2);
+        }
+        if (m_ptr2 != nullptr) {
+            PyCriticalSection2_Begin(&section2, m_ptr1, m_ptr2);
+        } else if (m_ptr1 != nullptr) {
+            PyCriticalSection_Begin(&section, m_ptr1);
+        }
     }
 
-    scoped_critical_section(handle obj1, handle obj2) : has2(true) {
-        PyCriticalSection2_Begin(&section2, obj1.ptr(), obj2.ptr());
+    explicit scoped_critical_section(handle obj) : m_ptr1(obj.ptr()) {
+        if (m_ptr1 != nullptr) {
+            PyCriticalSection_Begin(&section, m_ptr1);
+        }
     }
 
     ~scoped_critical_section() {
-        if (has2) {
+        if (m_ptr2 != nullptr) {
             PyCriticalSection2_End(&section2);
-        } else {
+        } else if (m_ptr1 != nullptr) {
             PyCriticalSection_End(&section);
         }
     }
@@ -39,7 +48,8 @@ public:
 
 private:
 #ifdef Py_GIL_DISABLED
-    bool has2;
+    PyObject *m_ptr1{nullptr};
+    PyObject *m_ptr2{nullptr};
     union {
         PyCriticalSection section;
         PyCriticalSection2 section2;
