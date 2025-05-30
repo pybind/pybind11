@@ -12,7 +12,7 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 RC 1 (May 21, 2025)
+## 3.0.0 (RC 2) (May 29, 2025)
 
 Since this is a large release, we are providing a release candidate to give
 projects time to test! We also now provide
@@ -44,7 +44,8 @@ New Features:
 
 - Changed `PYBIND11_MODULE` macro implementation to perform multi-phase
   module initialization (PEP 489) behind the scenes.
-  [#5574](https://github.com/pybind/pybind11/pull/5574)
+  [#5574](https://github.com/pybind/pybind11/pull/5574) and avoid destruction
+  [#5688](https://github.com/pybind/pybind11/pull/5688)
 
 - Support for sub-interpreters (both isolated (with separate GILs) and
   legacy (with a global GIL). Add the
@@ -54,15 +55,18 @@ New Features:
   indicate that a module supports running with sub-interpreters.
   [#5564](https://github.com/pybind/pybind11/pull/5564)
 
+  - Rename macro `PYBIND11_SUBINTERPRETER_SUPPORT` -> `PYBIND11_HAS_SUBINTERPRETER_SUPPORT` to meet naming convention.
+    [#5682](https://github.com/pybind/pybind11/pull/5682)
+
 - Changed `PYBIND11_EMBEDDED_MODULE` macro implementation to perform
   multi-phase module initialization (PEP 489) behind the scenes and to
   support `py::mod_gil_not_used()`,
   `py::multiple_interpreters::per_interpreter_gil()` and
   `py::multiple_interpreters::shared_gil()`.
   [#5665](https://github.com/pybind/pybind11/pull/5665) and consolidate code
-  [#5670](https://github.com/pybind/pybind11/pull/5670)
+  [#5670](https://github.com/pybind/pybind11/pull/5670).
 
-* Added API in `pybind11/subinterpreter.h` for embedding sub-intepreters (requires Python 3.12+).
+- Added API in `pybind11/subinterpreter.h` for embedding sub-intepreters (requires Python 3.12+).
   [#5666](https://github.com/pybind/pybind11/pull/5666)
 
 - `py::native_enum` was added, for conversions between Python's native
@@ -113,6 +117,9 @@ New Features:
 - Add semi-public API: `pybind11::detail::is_holder_constructed` and
   update example for `pybind11::custom_type_setup` in documentation.
   [#5669](https://github.com/pybind/pybind11/pull/5669)
+
+* Added `py::scoped_critical_section` to support free-threaded mode.
+  [#5684](https://github.com/pybind/pybind11/pull/5684)
 
 New Features / fixes (typing):
 
@@ -217,7 +224,7 @@ Bug fixes:
   equivalent to `::` in Python.
   [#5620](https://github.com/pybind/pybind11/pull/5620)
 
-Bug fixes (CMake):
+Bug fixes and features (CMake):
 
 - Enable FindPython mode by default, with a `COMPAT` mode that
   sets some of the old variables to ease transition.
@@ -238,6 +245,9 @@ Bug fixes (CMake):
   [#5668](https://github.com/pybind/pybind11/pull/5668)
 - Restructure venv support to support `--fresh`, make in build folder.
   [#5668](https://github.com/pybind/pybind11/pull/5668)
+
+* Presets now generate `compile_commands.json`.
+  [#5685](https://github.com/pybind/pybind11/pull/5685)
 
 Bug fixes (free-threading):
 
@@ -261,15 +271,21 @@ Internals:
   that it can easily be reused.
   [#5614](https://github.com/pybind/pybind11/pull/5614)
 
+* Use CPython macros to construct `PYBIND11_VERSION_HEX`.
+  [#5683](https://github.com/pybind/pybind11/pull/5683)
+
 Documentation:
 
 - Improved `reference_internal` policy documentation.
   [#5528](https://github.com/pybind/pybind11/pull/5528)
+
 - A new "Double locking, deadlocking, GIL" document was added.
   [#5394](https://github.com/pybind/pybind11/pull/5394)
+
 - Adds an answer (FAQ) for "What is a highly conclusive and simple way
   to find memory leaks?".
   [#5340](https://github.com/pybind/pybind11/pull/5340)
+
 - Add documenting for free-threading and subinterpreters.
   [#5659](https://github.com/pybind/pybind11/pull/5659)
 
@@ -293,26 +309,38 @@ Tests:
 * Add nightly wheels to scientific-python's nightly wheelhouse.
   [#5675](https://github.com/pybind/pybind11/pull/5675)
 
+* Expect free-threaded warning when loading a non-free-threaded module.
+  [#5680](https://github.com/pybind/pybind11/pull/5680)
+
 New and removed platforms:
 
 - Support Python 3.14 (beta 1).
   [#5646](https://github.com/pybind/pybind11/pull/5646)
+
 - Added support for GraalPy Python implementation
   (<https://github.com/oracle/graalpython>).
   [#5380](https://github.com/pybind/pybind11/pull/5380)
+
 - Support for PyPy 3.11 added.
   [#5508](https://github.com/pybind/pybind11/pull/5508)
+
 - Support for PyPy 3.8 and 3.9 was dropped.
   [#5578](https://github.com/pybind/pybind11/pull/5578)
+
 - Support for Python 3.7 was removed. (Official end-of-life:
   2023-06-27). [#5191](https://github.com/pybind/pybind11/pull/5191)
+
 - Support for CMake older than 3.15 removed. CMake 3.15-4.0 supported.
-  [#5304](https://github.com/pybind/pybind11/pull/5304)
+  [#5304](https://github.com/pybind/pybind11/pull/5304) and fix regression [#5688](https://github.com/pybind/pybind11/pull/5688).
+
 - Use scikit-build-core for the build backend for the PyPI `pybind11`.
   The CMake generation has been moved to the sdist-\>wheel step.
   `PYBIND11_GLOBAL_SDIST` has been removed.
   [#5598](https://github.com/pybind/pybind11/pull/5598) and updated
   docs/ci. [#5676](https://github.com/pybind/pybind11/pull/5676)
+
+* clang 20 tested and used for clang-tidy.
+  [#5692](https://github.com/pybind/pybind11/pull/5692)
 
 ## Version 2.13.6 (September 13, 2024)
 
