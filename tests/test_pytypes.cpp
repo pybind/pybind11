@@ -1010,7 +1010,8 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("transform_tuple_plus_one", [](py::tuple &tpl) {
         py::list ret{};
-        for (auto it : tpl | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
+        for (auto &&it :
+             tpl | std::views::transform([](const auto &o) { return py::cast<int>(o) + 1; })) {
             ret.append(py::int_(it));
         }
         return ret;
@@ -1025,7 +1026,8 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("transform_list_plus_one", [](py::list &lst) {
         py::list ret{};
-        for (auto it : lst | std::views::transform([](auto &o) { return py::cast<int>(o) + 1; })) {
+        for (auto &&it :
+             lst | std::views::transform([](const auto &o) { return py::cast<int>(o) + 1; })) {
             ret.append(py::int_(it));
         }
         return ret;
