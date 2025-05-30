@@ -51,6 +51,11 @@ function(pybind11_add_build_test name)
   add_dependencies(test_cmake_build test_build_${name})
 endfunction()
 
+if(PYBIND11_TEST_SMART_HOLDER)
+  add_compile_definitions(
+    -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+endif()
+
 possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
