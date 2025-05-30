@@ -1,5 +1,6 @@
 #include "smart_holder_poc.h"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -380,8 +381,17 @@ TEST_CASE("error_cannot_disown_nullptr", "[E]") {
 
 TEST_CASE("indestructible_int-from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
     using zombie = helpers::indestructible_int;
+
+// This is from C++17
+#ifdef __cpp_lib_byte
+    using raw_byte = std::byte;
+#else
+    using raw_byte = char;
+#endif
+
     // Using placement new instead of plain new, to not trigger leak sanitizer errors.
-    static std::aligned_storage<sizeof(zombie), alignof(zombie)>::type memory_block[1];
+    alignas(zombie) raw_byte memory_block[sizeof(zombie)];
+
     auto *value = new (memory_block) zombie(19);
     auto hld = smart_holder::from_raw_ptr_unowned(value);
     REQUIRE(hld.as_raw_ptr_unowned<zombie>()->valu == 19);
