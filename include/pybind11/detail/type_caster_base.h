@@ -94,7 +94,7 @@ public:
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
 // returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
 // just created.
-inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
+std::pair<decltype(internals::registered_types_py)::iterator, bool>
 all_type_info_get_cache(PyTypeObject *type);
 
 // Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
@@ -499,7 +499,7 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
 
 // Forward declarations
 void keep_alive_impl(handle nurse, handle patient);
-inline PyObject *make_new_instance(PyTypeObject *type);
+PyObject *make_new_instance(PyTypeObject *type);
 
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
