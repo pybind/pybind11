@@ -23,9 +23,12 @@ def test_independent_subinterpreters():
     elif sys.version_info >= (3, 12):
         import _xxsubinterpreters as interpreters
     else:
-        pytest.skip("Test requires a the interpreters stdlib module")
+        pytest.skip("Test requires the interpreters stdlib module")
 
-    import mod_per_interpreter_gil as m
+    m = pytest.importorskip("mod_per_interpreter_gil")
+
+    if not m.PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
+        pytest.skip("Does not have subinterpreter support compiled in")
 
     code = """
 import mod_per_interpreter_gil as m
@@ -94,9 +97,12 @@ def test_dependent_subinterpreters():
     elif sys.version_info >= (3, 12):
         import _xxsubinterpreters as interpreters
     else:
-        pytest.skip("Test requires a the interpreters stdlib module")
+        pytest.skip("Test requires the interpreters stdlib module")
 
-    import mod_shared_interpreter_gil as m
+    m = pytest.importorskip("mod_shared_interpreter_gil")
+
+    if not m.PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
+        pytest.skip("Does not have subinterpreter support compiled in")
 
     code = """
 import mod_shared_interpreter_gil as m
