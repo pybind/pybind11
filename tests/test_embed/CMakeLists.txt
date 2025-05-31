@@ -28,6 +28,11 @@ endif()
 
 find_package(Threads REQUIRED)
 
+if(PYBIND11_TEST_SMART_HOLDER)
+  add_compile_definitions(
+    -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+endif()
+
 add_executable(test_embed catch.cpp test_interpreter.cpp test_subinterpreter.cpp)
 pybind11_enable_warnings(test_embed)
 
