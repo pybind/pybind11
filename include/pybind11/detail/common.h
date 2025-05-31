@@ -256,9 +256,13 @@
 
 // Slightly faster code paths are available when PYBIND11_HAS_SUBINTERPRETER_SUPPORT is *not*
 // defined, so avoid defining it for implementations that do not support subinterpreters. However,
-// defining it unnecessarily is not expected to break anything.
-#if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-#    define PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+// defining it unnecessarily is not expected to break anything (other than old iOS targets).
+#ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#    if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 1
+#    else
+#        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 0
+#    endif
 #endif
 
 // 3.12 Compatibility
