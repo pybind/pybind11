@@ -8,11 +8,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-  push:
-    branches:
-      - master
-      - stable
-      - v*
 
 permissions: read-all
 
@@ -175,22 +170,22 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-            python: '3.9'
+            python-version: '3.9'
           - runs-on: macos-latest
-            python: '3.12'
+            python-version: '3.12'
           - runs-on: windows-latest
-            python: '3.11'
+            python-version: '3.11'
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 inplace C++14"
+    name: "🐍 ${{ matrix.python-version }} • ${{ matrix.runs-on }} • x64 inplace C++14"
     runs-on: ${{ matrix.runs-on }}
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Python ${{ matrix.python }}
+    - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python }}
+        python-version: ${{ matrix.python-version }}
         allow-prereleases: true
 
     - name: Install uv
