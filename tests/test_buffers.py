@@ -3,7 +3,6 @@ from __future__ import annotations
 import ctypes
 import io
 import struct
-import sys
 
 import pytest
 
@@ -228,12 +227,11 @@ def test_ctypes_from_buffer():
         assert not cinfo.readonly
 
 
-def test_buffer_docstring():
-    if sys.version_info >= (3, 12):
-        docstring = "get_buffer_info(arg0: collections.abc.Buffer) -> pybind11_tests.buffers.buffer_info"
-    else:
-        docstring = "get_buffer_info(arg0: typing_extensions.Buffer) -> pybind11_tests.buffers.buffer_info"
-    assert m.get_buffer_info.__doc__.strip() == docstring
+def test_buffer_docstring(doc, backport_typehints):
+    assert (
+        backport_typehints(doc(m.get_buffer_info))
+        == "get_buffer_info(arg0: collections.abc.Buffer) -> m.buffers.buffer_info"
+    )
 
 
 def test_buffer_exception():

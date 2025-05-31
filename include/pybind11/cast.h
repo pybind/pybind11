@@ -404,7 +404,7 @@ public:
     template <typename T>
     using cast_op_type = void *&;
     explicit operator void *&() { return value; }
-    static constexpr auto name = const_name("types.CapsuleType");
+    static constexpr auto name = const_name(PYBIND11_CAPSULE_TYPE_TYPE_HINT);
 
 private:
     void *value = nullptr;
@@ -1361,7 +1361,7 @@ struct handle_type_name<dict> {
 };
 template <>
 struct handle_type_name<anyset> {
-    static constexpr auto name = const_name("typing.Union[set, frozenset]");
+    static constexpr auto name = const_name("set | frozenset");
 };
 template <>
 struct handle_type_name<set> {
@@ -1441,7 +1441,7 @@ struct handle_type_name<type> {
 };
 template <>
 struct handle_type_name<capsule> {
-    static constexpr auto name = const_name("types.CapsuleType");
+    static constexpr auto name = const_name(PYBIND11_CAPSULE_TYPE_TYPE_HINT);
 };
 template <>
 struct handle_type_name<ellipsis> {
@@ -1449,7 +1449,7 @@ struct handle_type_name<ellipsis> {
 };
 template <>
 struct handle_type_name<weakref> {
-    static constexpr auto name = const_name("weakref");
+    static constexpr auto name = const_name("weakref.ReferenceType");
 };
 template <>
 struct handle_type_name<args> {
