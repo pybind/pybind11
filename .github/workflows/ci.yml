@@ -92,7 +92,7 @@ jobs:
             cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
           - runs-on: ubuntu-latest
             python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
+            cmake-args: -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=0"
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=14
