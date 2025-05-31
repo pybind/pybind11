@@ -1,9 +1,9 @@
 #include <pybind11/critical_section.h>
 
-#include "catch.hpp"
 #include "pybind11_tests.h"
 
 #include <atomic>
+#include <cassert>
 #include <thread>
 
 #ifdef PYBIND11_CPP20
@@ -36,7 +36,7 @@ void test_scoped_critical_section(py::class_<BoolWrapper> &cls) {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper};
         auto bw = bool_wrapper.cast<std::shared_ptr<BoolWrapper>>();
-        REQUIRE(bw->get() == true);
+        assert(bw->get() == true);
     });
 
     t1.join();
@@ -62,14 +62,14 @@ void test_scoped_critical_section2(py::class_<BoolWrapper> &cls) {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper1};
         auto bw1 = bool_wrapper1.cast<std::shared_ptr<BoolWrapper>>();
-        REQUIRE(bw1->get() == true);
+        assert(bw1->get() == true);
     });
 
     std::thread t3([&]() {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper2};
         auto bw2 = bool_wrapper2.cast<std::shared_ptr<BoolWrapper>>();
-        REQUIRE(bw2->get() == true);
+        assert(bw2->get() == true);
     });
 
     t1.join();
@@ -93,7 +93,7 @@ void test_scoped_critical_section2_same_object_no_deadlock(py::class_<BoolWrappe
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper};
         auto bw = bool_wrapper.cast<std::shared_ptr<BoolWrapper>>();
-        REQUIRE(bw->get() == true);
+        assert(bw->get() == true);
     });
 
     t1.join();
