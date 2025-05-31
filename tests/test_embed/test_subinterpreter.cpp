@@ -1,5 +1,5 @@
 #include <pybind11/embed.h>
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    include <pybind11/subinterpreter.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
