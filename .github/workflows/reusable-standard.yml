@@ -75,7 +75,7 @@ jobs:
         run: cmake --build build --target test_cmake_build
 
       - name: Visibility test
-        run: cmake --build . --target test_visibility
+        run: cmake --build build --target test_visibility
 
       - name: Setuptools helpers test
         run: |
