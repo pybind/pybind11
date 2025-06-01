@@ -265,11 +265,34 @@
 #    endif
 #endif
 
+// 3.13 Compatibility
+#if 0x030D0000 <= PY_VERSION_HEX
+#    define PYBIND11_TYPE_IS_TYPE_HINT "typing.TypeIs"
+#    define PYBIND11_CAPSULE_TYPE_TYPE_HINT "types.CapsuleType"
+#else
+#    define PYBIND11_TYPE_IS_TYPE_HINT "typing_extensions.TypeIs"
+#    define PYBIND11_CAPSULE_TYPE_TYPE_HINT "typing_extensions.CapsuleType"
+#endif
+
 // 3.12 Compatibility
 #if 0x030C0000 <= PY_VERSION_HEX
 #    define PYBIND11_BUFFER_TYPE_HINT "collections.abc.Buffer"
 #else
 #    define PYBIND11_BUFFER_TYPE_HINT "typing_extensions.Buffer"
+#endif
+
+// 3.11 Compatibility
+#if 0x030B0000 <= PY_VERSION_HEX
+#    define PYBIND11_NEVER_TYPE_HINT "typing.Never"
+#else
+#    define PYBIND11_NEVER_TYPE_HINT "typing_extensions.Never"
+#endif
+
+// 3.10 Compatibility
+#if 0x030A0000 <= PY_VERSION_HEX
+#    define PYBIND11_TYPE_GUARD_TYPE_HINT "typing.TypeGuard"
+#else
+#    define PYBIND11_TYPE_GUARD_TYPE_HINT "typing_extensions.TypeGuard"
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
