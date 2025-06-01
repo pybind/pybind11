@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: henryiii/cibuildwheel@72d263930ad04fb48fb9d660c1e38a79c9675bf7
+    - uses: pypa/cibuildwheel@c90accef518b1dd0253bf43b639ce21f765d6794
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
