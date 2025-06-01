@@ -34,6 +34,7 @@ add_library(test_visibility_lib SHARED lib.h lib.cpp)
 add_library(test_visibility_lib::test_visibility_lib ALIAS test_visibility_lib)
 target_include_directories(test_visibility_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(test_visibility_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_features(test_visibility_lib PUBLIC cxx_std_11)
 
 generate_export_header(test_visibility_lib)
 
