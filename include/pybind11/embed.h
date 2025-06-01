@@ -240,31 +240,20 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
  \endrst */
 inline void finalize_interpreter() {
-    // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
-    // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
-    // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
-    auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
-    auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
-    {
-        dict state_dict = detail::get_python_state_dict();
-        internals_ptr_ptr = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-            state_dict, PYBIND11_INTERNALS_ID);
-        local_internals_ptr_ptr
-            = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
-                state_dict, detail::get_local_internals_id());
-    }
+    auto &internals_ppmgr = detail::get_internals_pp_manager();
+    auto &local_internals_ppmgr = detail::get_local_internals_pp_manager();
+
+    // While the interpreter is alive, we prepare to destroy the internals
+    internals_ppmgr.pre_destroy();
+    local_internals_ppmgr.pre_destroy();
 
     Py_Finalize();
 
-    if (internals_ptr_ptr) {
-        internals_ptr_ptr->reset();
-    }
-
-    // Local internals contains data managed by the current interpreter, so we must clear them to
-    // avoid undefined behaviors when initializing another interpreter
-    if (local_internals_ptr_ptr) {
-        local_internals_ptr_ptr->reset();
-    }
+    // It's possible for the  internals to be used during Py_Finalize() (e.g. if a py::capsule
+    // calls `get_internals()` during destruction), so we call destroy only after python is
+    // finalized.
+    internals_ppmgr.destroy();
+    local_internals_ppmgr.destroy();
 
     // We know there is no interpreter alive now, so we can reset the count
     detail::get_num_interpreters_seen() = 0;

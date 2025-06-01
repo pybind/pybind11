@@ -159,34 +159,20 @@ public:
 
         bool switch_back = old_tstate && old_tstate->interp != istate_;
 
-        // Get the internals pointer (without creating it if it doesn't exist).  It's possible
-        // for the internals to be created during Py_EndInterpreter() (e.g. if a py::capsule
-        // calls `get_internals()` during destruction), so we get the pointer-pointer here and
-        // check it after.
-        auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
-        auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
-        {
-            dict sd = state_dict();
-            internals_ptr_ptr
-                = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-                    sd, PYBIND11_INTERNALS_ID);
-            local_internals_ptr_ptr
-                = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
-                    sd, detail::get_local_internals_id());
-        }
+        auto &internals_ppmgr = detail::get_internals_pp_manager();
+        auto &local_internals_ppmgr = detail::get_local_internals_pp_manager();
+
+        // While we hold the GIL, we prepare for destruction
+        internals_ppmgr.pre_destroy();
+        local_internals_ppmgr.pre_destroy();
 
         // End it
         Py_EndInterpreter(destroy_tstate);
 
-        // do NOT decrease detail::get_num_interpreters_seen, because it can never decrease
-        // while other threads are running...
-
-        if (internals_ptr_ptr) {
-            internals_ptr_ptr->reset();
-        }
-        if (local_internals_ptr_ptr) {
-            local_internals_ptr_ptr->reset();
-        }
+        // It's possible for the  internals to be created during endinterpreter (e.g. if a
+        // py::capsule calls `get_internals()` during destruction), so we destroy afterward.
+        internals_ppmgr.destroy();
+        local_internals_ppmgr.destroy();
 
         // switch back to the old tstate and old GIL (if there was one)
         if (switch_back)
