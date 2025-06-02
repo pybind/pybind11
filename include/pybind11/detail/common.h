@@ -262,7 +262,7 @@
 #    if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
 #        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 1
 #    endif
-# else
+#else
 #    if PYBIND11_HAS_SUBINTERPRETER_SUPPORT == 0
 #        undef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    endif
