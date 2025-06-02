@@ -80,7 +80,8 @@ public:
     thread_specific_storage() {
         // NOLINTNEXTLINE(bugprone-assignment-in-if-condition)
         if (!PYBIND11_TLS_KEY_CREATE(key_)) {
-            pybind11_fail("thread_local_storage constructor: could not initialize the TSS key!");
+            pybind11_fail(
+                "thread_specific_storage constructor: could not initialize the TSS key!");
         }
     }
 
@@ -115,7 +116,7 @@ public:
     }
 
 private:
-    PYBIND11_TLS_KEY_INIT(mutable key_);
+    PYBIND11_TLS_KEY_INIT(mutable key_)
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -503,7 +504,9 @@ inline object get_python_state_dict() {
 template <typename InternalsType>
 class internals_pp_manager {
 public:
-    explicit internals_pp_manager(char const *id) : holder_id_(id) {}
+    using on_fetch_function = void(InternalsType *);
+    explicit internals_pp_manager(char const *id, on_fetch_function *on_fetch = nullptr)
+        : holder_id_(id), on_fetch_(on_fetch) {}
 
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
@@ -566,7 +569,7 @@ private:
         dict state_dict = get_python_state_dict();
         auto internals_obj
             = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), holder_id_));
-        std::unique_ptr<InternalsType> *pp;
+        std::unique_ptr<InternalsType> *pp = nullptr;
         if (internals_obj) {
             void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
             if (!raw_ptr) {
@@ -575,14 +578,19 @@ private:
                 throw error_already_set();
             }
             pp = reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
+            if (on_fetch_ && pp) {
+                on_fetch_(pp->get());
+            }
         } else {
             pp = new std::unique_ptr<InternalsType>;
+            // NOLINTNEXTLINE(bugprone-casting-through-void)
             state_dict[holder_id_] = capsule(reinterpret_cast<void *>(pp));
         }
         return pp;
     }
 
     char const *holder_id_ = nullptr;
+    on_fetch_function *on_fetch_ = nullptr;
 #if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
     thread_specific_storage<PyInterpreterState> last_istate_;
     thread_specific_storage<std::unique_ptr<InternalsType>> internals_tls_p_;
@@ -590,8 +598,29 @@ private:
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
+inline void on_internals_fetch(internals *internals_ptr) {
+    // If We loaded the internals through `state_dict`, our `error_already_set`
+    // and `builtin_exception` may be different local classes than the ones set up in the
+    // initial exception translator, below, so add another for our local exception classes.
+    //
+    // libstdc++ doesn't require this (types there are identified only by name)
+    // libc++ with CPython doesn't require this (types are explicitly exported)
+    // libc++ with PyPy still need it, awaiting further investigation
+    if (internals_ptr) {
+#if !defined(__GLIBCXX__)
+        for (auto et : internals_ptr->registered_exception_translators) {
+            if (et == &translate_local_exception) {
+                return;
+            }
+        }
+        internals_ptr->registered_exception_translators.push_front(&translate_local_exception);
+#endif
+    }
+}
+
 inline internals_pp_manager<internals> &get_internals_pp_manager() {
-    static internals_pp_manager<internals> internals_pp_manager(PYBIND11_INTERNALS_ID);
+    static internals_pp_manager<internals> internals_pp_manager(PYBIND11_INTERNALS_ID,
+                                                                &on_internals_fetch);
     return internals_pp_manager;
 }
 
@@ -599,22 +628,7 @@ inline internals_pp_manager<internals> &get_internals_pp_manager() {
 PYBIND11_NOINLINE internals &get_internals() {
     auto &ppmgr = get_internals_pp_manager();
     auto &internals_ptr = *ppmgr.get_pp();
-    if (internals_ptr) {
-        // If We loaded the internals through `state_dict`, our `error_already_set`
-        // and `builtin_exception` may be different local classes than the ones set up in the
-        // initial exception translator, below, so add another for our local exception classes.
-        //
-        // libstdc++ doesn't require this (types there are identified only by name)
-        // libc++ with CPython doesn't require this (types are explicitly exported)
-        // libc++ with PyPy still need it, awaiting further investigation
-#if !defined(__GLIBCXX__)
-        if (internals_ptr->registered_exception_translators.empty()
-            || internals_ptr->registered_exception_translators.front()
-                   != &translate_local_exception) {
-            internals_ptr->registered_exception_translators.push_front(&translate_local_exception);
-        }
-#endif
-    } else {
+    if (!internals_ptr) {
         // Slow path, something needs fetched from the state dict or created
         gil_scoped_acquire_simple gil;
         error_scope err_scope;
