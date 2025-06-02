@@ -351,33 +351,6 @@ inline std::atomic<int> &get_num_interpreters_seen() {
     return counter;
 }
 
-template <typename InternalsType>
-inline std::unique_ptr<InternalsType> *&get_internals_pp() {
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    if (get_num_interpreters_seen() > 1) {
-        // Internals is one per interpreter. When multiple interpreters are alive in different
-        // threads we have to allow them to have different internals, so we need a thread_local.
-        static thread_local std::unique_ptr<InternalsType> *t_internals_pp = nullptr;
-        static thread_local PyInterpreterState *istate_cached = nullptr;
-        // Whenever the interpreter changes on the current thread we need to invalidate the
-        // internals_pp so that it can be pulled from the interpreter's state dict.  That is slow,
-        // so we use the current PyThreadState to check if it is necessary.  The caller will see a
-        // null return and do the fetch from the state dict or create a new one (as needed).
-        auto *tstate = get_thread_state_unchecked();
-        if (!tstate) {
-            istate_cached = nullptr;
-            t_internals_pp = nullptr;
-        } else if (tstate->interp != istate_cached) {
-            istate_cached = tstate->interp;
-            t_internals_pp = nullptr;
-        }
-        return t_internals_pp;
-    }
-#endif
-    static std::unique_ptr<InternalsType> *s_internals_pp = nullptr;
-    return s_internals_pp;
-}
-
 template <class T,
           enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
 bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
