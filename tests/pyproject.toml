@@ -8,10 +8,29 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "pybind11_tests"
 version = "0.0.1"
-dependencies = ["pytest", "pytest-timeout", "numpy", "scipy"]
+dependencies = ["pytest", "pytest-timeout"]
+
+
+[dependency-groups]
+numpy = ["numpy"]
+scipy = ["scipy"]
+
+
+[tool.scikit-build]
+build.verbose = true
+logging.level = "INFO"
 
 [tool.scikit-build.cmake.define]
 PYBIND11_FINDPYTHON = true
 
+
 [tool.cibuildwheel]
-test-command = "pytest -o timeout=0 -p no:cacheprovider {project}/tests/test_*.py"
+test-sources = ["tests", "pyproject.toml"]
+test-command = "python -m pytest -o timeout=0 -p no:cacheprovider tests"
+environment.PIP_ONLY_BINARY = "numpy"
+environment.PIP_PREFER_BINARY = "1"
+pyodide.test-groups = ["numpy", "scipy"]
+ios.test-groups = ["numpy"]
+ios.xbuild-tools = ["cmake", "ninja"]
+ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"
+ios.config-settings."cmake.define.CMAKE_CXX_FLAGS" = "-DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=0"
