@@ -46,7 +46,6 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ExceptionTranslator = void (*)(std::exception_ptr);
 
-
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
 // Avoid unnecessary allocation of `Py_tss_t`, since we cannot use
@@ -92,7 +91,8 @@ public:
         // nothing. PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
         // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX).
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
-        // that the `key` be allocated with the CPython allocator (as it is by PyThread_tss_create).
+        // that the `key` be allocated with the CPython allocator (as it is by
+        // PyThread_tss_create).
         PYBIND11_TLS_FREE(key_);
     }
 
@@ -101,16 +101,14 @@ public:
     thread_specific_storage &operator=(thread_specific_storage const &) = delete;
     thread_specific_storage &operator=(thread_specific_storage &&) = delete;
 
-    T *get() const { return reinterpret_cast<T*>(PYBIND11_TLS_GET_VALUE(key_)); }
+    T *get() const { return reinterpret_cast<T *>(PYBIND11_TLS_GET_VALUE(key_)); }
 
-    operator T* () const { return get(); }
-    T&operator*() const { return *get(); }
+    operator T *() const { return get(); }
+    T &operator*() const { return *get(); }
     explicit operator bool() const { return get() != nullptr; }
 
-    void clear() { PYBIND11_TLS_DELETE_VALUE(key_); }
-    void reset() { clear(); }
-
-    void set(T *val) { PYBIND11_TLS_REPLACE_VALUE(key_, reinterpret_cast<void*>(val)); }
+    void set(T *val) { PYBIND11_TLS_REPLACE_VALUE(key_, reinterpret_cast<void *>(val)); }
+    void reset(T *p = nullptr) { set(p); }
     thread_specific_storage &operator=(T *pval) {
         set(pval);
         return *this;
@@ -507,74 +505,69 @@ class internals_pp_manager {
 public:
     explicit internals_pp_manager(char const *id) : holder_id_(id) {}
 
-    std::unique_ptr<InternalsType> *get_pp() { return internal_get_pp<true>(); }
-
-    void pre_destroy() {
-        // Don't create anything if it did not already exist, just make sure the cache is primed.
-        internal_get_pp<false>();
-    }
-
-    void destroy() {
-        // Don't create anything, but if it was previously created then we need to delete it.
-        auto pp = internal_get_pp<false>();
-        if (pp) {
-            delete pp;
-        }
-
-#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        // Make sure subsequent calls on this thread report nullptr
-        last_istate_.reset();
-        internals_tls_p_.reset();
-#endif
-
-        // even if we're in sub-interpreter land, we want to make sure nothing is dangling
-        internals_singleton_pp_ = nullptr;
-    }
-
-private:
-    template <bool CreateIfNotExists>
-    std::unique_ptr<InternalsType> *internal_get_pp() {
+    /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
+    /// acquire the GIL. Will never return nullptr.
+    std::unique_ptr<InternalsType> *get_pp() {
 #if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate) {
-                last_istate_.reset();
-                if (CreateIfNotExists && !internals_tls_p_) {
-                    // We can't return null if CreateIfNotExists is set, but we can't create a PP
-                    // without an active interpreter, so we have to throw.
-                    // This should never happen.
-                    throw std::runtime_error(
-                        "internals_pp_manager::internal_get_pp: "
-                        "unable to create internals without an active interpreter");
-                }
-            } else if (tstate->interp != last_istate_.get()) {
+            if (!tstate || tstate->interp != last_istate_.get()) {
                 gil_scoped_acquire_simple gil;
-                last_istate_ = tstate->interp;
-                dict state_dict = get_python_state_dict();
-                auto pp = get_pp_from_dict(state_dict);
-                if (!pp && CreateIfNotExists) {
-                    pp = create_pp_in_dict(state_dict);
+                if (!tstate) {
+                    tstate = get_thread_state_unchecked();
                 }
-                internals_tls_p_ = pp;
+                last_istate_ = tstate->interp;
+                internals_tls_p_ = get_or_create_pp_in_state_dict();
             }
             return internals_tls_p_.get();
         }
 #endif
         if (!internals_singleton_pp_) {
             gil_scoped_acquire_simple gil;
-            dict state_dict = get_python_state_dict();
-            internals_singleton_pp_ = get_pp_from_dict(state_dict);
-            if (!internals_singleton_pp_ && CreateIfNotExists) {
-                internals_singleton_pp_ = create_pp_in_dict(state_dict);
-            }
+            internals_singleton_pp_ = get_or_create_pp_in_state_dict();
         }
         return internals_singleton_pp_;
     }
 
-    std::unique_ptr<InternalsType> *get_pp_from_dict(dict &state_dict) {
+    /// Drop all the references we're currently holding.
+    void unref() {
+#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        last_istate_.reset();
+        internals_tls_p_.reset();
+#endif
+        internals_singleton_pp_ = nullptr;
+    }
+
+    void destroy() {
+#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        if (get_num_interpreters_seen() > 1) {
+            auto *tstate = get_thread_state_unchecked();
+            // this could be called without an active interpreter, that's OK, just use what we
+            if (!tstate || tstate->interp == last_istate_.get()) {
+                auto tpp = internals_tls_p_.get();
+                if (tpp) {
+                    delete tpp;
+                }
+            }
+            unref();
+            return;
+        }
+#endif
+        // we can never delete the main interpreter PP because other modules may hold a copy of it
+        if (internals_singleton_pp_) {
+            // but we CAN and DO delete the internals inside.
+            internals_singleton_pp_->reset();
+        }
+        unref();
+    }
+
+private:
+    std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
+        error_scope err_scope;
+        dict state_dict = get_python_state_dict();
         auto internals_obj
             = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), holder_id_));
         if (internals_obj) {
@@ -586,14 +579,10 @@ private:
             }
             return reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
         } else {
-            return nullptr;
+            auto pp = new std::unique_ptr<InternalsType>;
+            state_dict[holder_id_] = capsule(reinterpret_cast<void *>(pp));
+            return pp;
         }
-    }
-
-    std::unique_ptr<InternalsType> *create_pp_in_dict(dict &state_dict) {
-        auto pp = new std::unique_ptr<InternalsType>;
-        state_dict[holder_id_] = capsule(reinterpret_cast<void *>(pp));
-        return pp;
     }
 
     char const *holder_id_ = nullptr;
@@ -630,6 +619,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 #endif
     } else {
         // Slow path, something needs fetched from the state dict or created
+        gil_scoped_acquire_simple gil;
         error_scope err_scope;
         internals_ptr.reset(new internals());
 
@@ -648,7 +638,8 @@ inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
     static const std::string this_module_idstr
         = PYBIND11_MODULE_LOCAL_ID
           + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-    static internals_pp_manager<local_internals> local_internals_pp_manager(this_module_idstr.c_str());
+    static internals_pp_manager<local_internals> local_internals_pp_manager(
+        this_module_idstr.c_str());
     return local_internals_pp_manager;
 }
 
@@ -657,7 +648,6 @@ inline local_internals &get_local_internals() {
     auto &ppmgr = get_local_internals_pp_manager();
     auto &internals_ptr = *ppmgr.get_pp();
     if (!internals_ptr) {
-        error_scope err_scope;
         internals_ptr.reset(new local_internals());
     }
     return *internals_ptr;

@@ -159,20 +159,19 @@ public:
 
         bool switch_back = old_tstate && old_tstate->interp != istate_;
 
-        auto &internals_ppmgr = detail::get_internals_pp_manager();
-        auto &local_internals_ppmgr = detail::get_local_internals_pp_manager();
-
-        // While we hold the GIL, we prepare for destruction
-        internals_ppmgr.pre_destroy();
-        local_internals_ppmgr.pre_destroy();
+        // Internals always exists in the subinterpreter, this class enforces it when it creates
+        // the subinterpreter. Even if it didn't, this only creates the pointer-to-pointer, not the
+        // internals themselves.
+        detail::get_internals_pp_manager().get_pp();
+        detail::get_local_internals_pp_manager().get_pp();
 
         // End it
         Py_EndInterpreter(destroy_tstate);
 
         // It's possible for the  internals to be created during endinterpreter (e.g. if a
         // py::capsule calls `get_internals()` during destruction), so we destroy afterward.
-        internals_ppmgr.destroy();
-        local_internals_ppmgr.destroy();
+        detail::get_internals_pp_manager().destroy();
+        detail::get_local_internals_pp_manager().destroy();
 
         // switch back to the old tstate and old GIL (if there was one)
         if (switch_back)
@@ -257,7 +256,7 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
     old_tstate_ = PyThreadState_Swap(tstate_);
 
     // save this in internals for scoped_gil calls
-    PYBIND11_TLS_REPLACE_VALUE(detail::get_internals().tstate, tstate_);
+    detail::get_internals().tstate = tstate_;
 }
 
 inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
@@ -293,7 +292,7 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
                 pybind11_fail("~subinterpreter_scoped_activate: thread state must be current!");
             }
 #endif
-            PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
+            detail::get_internals().tstate.reset();
             PyThreadState_Clear(tstate_);
             PyThreadState_DeleteCurrent();
         }

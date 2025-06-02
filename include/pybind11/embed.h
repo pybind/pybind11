@@ -240,20 +240,29 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
  \endrst */
 inline void finalize_interpreter() {
-    auto &internals_ppmgr = detail::get_internals_pp_manager();
-    auto &local_internals_ppmgr = detail::get_local_internals_pp_manager();
+    // get rid of any thread-local interpreter cache that currently exists
+    if (detail::get_num_interpreters_seen() > 1) {
+        detail::get_internals_pp_manager().unref();
+        detail::get_local_internals_pp_manager().unref();
 
-    // While the interpreter is alive, we prepare to destroy the internals
-    internals_ppmgr.pre_destroy();
-    local_internals_ppmgr.pre_destroy();
+        // We know there can be no other interpreter alive now, so we can lower the count
+        detail::get_num_interpreters_seen() = 1;
+    }
+
+    // Re-fetch the internals pointer-to-pointer (but not the internals itself, which might not
+    // exist). It's possible for the  internals to be created during Py_Finalize() (e.g. if a
+    // py::capsule calls `get_internals()` during destruction), so we get the pointer-pointer here
+    // and check it after Py_Finalize().
+    detail::get_internals_pp_manager().get_pp();
+    detail::get_local_internals_pp_manager().get_pp();
 
     Py_Finalize();
 
-    // It's possible for the  internals to be used during Py_Finalize() (e.g. if a py::capsule
-    // calls `get_internals()` during destruction), so we call destroy only after python is
-    // finalized.
-    internals_ppmgr.destroy();
-    local_internals_ppmgr.destroy();
+    detail::get_internals_pp_manager().destroy();
+
+    // Local internals contains data managed by the current interpreter, so we must clear them to
+    // avoid undefined behaviors when initializing another interpreter
+    detail::get_local_internals_pp_manager().destroy();
 
     // We know there is no interpreter alive now, so we can reset the count
     detail::get_num_interpreters_seen() = 0;
