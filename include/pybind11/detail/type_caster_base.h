@@ -49,7 +49,7 @@ public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
         auto &stack_top = get_internals().loader_life_support_tls;
-        parent = stack_top;
+        parent = stack_top.get();
         stack_top = this;
     }
 
@@ -68,7 +68,7 @@ public:
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = get_internals().loader_life_support_tls;
+        loader_life_support *frame = get_internals().loader_life_support_tls.get();
         if (!frame) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such

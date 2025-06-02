@@ -103,8 +103,8 @@ public:
 
     T *get() const { return reinterpret_cast<T *>(PYBIND11_TLS_GET_VALUE(key_)); }
 
-    operator T *() const { return get(); }
     T &operator*() const { return *get(); }
+    explicit operator T *() const { return get(); }
     explicit operator bool() const { return get() != nullptr; }
 
     void set(T *val) { PYBIND11_TLS_REPLACE_VALUE(key_, reinterpret_cast<void *>(val)); }
@@ -227,7 +227,7 @@ struct internals {
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py;
 #ifdef Py_GIL_DISABLED
     std::unique_ptr<instance_map_shard[]> instance_shards; // void * -> instance*
-    size_t instance_shards_mask;
+    size_t instance_shards_mask = 0;
 #else
     instance_map registered_instances; // void * -> instance*
 #endif
@@ -251,14 +251,14 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    internals() {
+    internals()
+        : static_property_type(make_static_property_type()),
+          default_metaclass(make_default_metaclass()) {
         PyThreadState *cur_tstate = PyThreadState_Get();
         tstate = cur_tstate;
 
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
-        static_property_type = make_static_property_type();
-        default_metaclass = make_default_metaclass();
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
         auto num_shards
@@ -566,6 +566,7 @@ private:
         dict state_dict = get_python_state_dict();
         auto internals_obj
             = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), holder_id_));
+        std::unique_ptr<InternalsType> *pp;
         if (internals_obj) {
             void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
             if (!raw_ptr) {
@@ -573,12 +574,12 @@ private:
                            "pybind11::detail::internals_pp_manager::get_pp_from_dict() FAILED");
                 throw error_already_set();
             }
-            return reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
+            pp = reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
         } else {
-            auto pp = new std::unique_ptr<InternalsType>;
+            pp = new std::unique_ptr<InternalsType>;
             state_dict[holder_id_] = capsule(reinterpret_cast<void *>(pp));
-            return pp;
         }
+        return pp;
     }
 
     char const *holder_id_ = nullptr;
