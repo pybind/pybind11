@@ -15,7 +15,7 @@
 
 #include <stdexcept>
 
-#if !PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    error "This platform does not support subinterpreters, do not include this file."
 #endif
 

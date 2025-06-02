@@ -12,5 +12,9 @@ PYBIND11_MODULE(mod_per_interpreter_gil,
                 py::multiple_interpreters::per_interpreter_gil()) {
     m.def("internals_at",
           []() { return reinterpret_cast<uintptr_t>(&py::detail::get_internals()); });
-    m.attr("PYBIND11_HAS_SUBINTERPRETER_SUPPORT") = PYBIND11_HAS_SUBINTERPRETER_SUPPORT;
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    m.attr("defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT") = true;
+#else
+    m.attr("defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT") = false;
+#endif
 }
