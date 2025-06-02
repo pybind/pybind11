@@ -545,7 +545,7 @@ public:
 #if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
             auto *tstate = get_thread_state_unchecked();
-            // this could be called without an active interpreter, that's OK, just use what we
+            // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_.get()) {
                 auto tpp = internals_tls_p_.get();
                 if (tpp) {
@@ -556,11 +556,7 @@ public:
             return;
         }
 #endif
-        // we can never delete the main interpreter PP because other modules may hold a copy of it
-        if (internals_singleton_pp_) {
-            // but we CAN and DO delete the internals inside.
-            internals_singleton_pp_->reset();
-        }
+        delete internals_singleton_pp_;
         unref();
     }
 

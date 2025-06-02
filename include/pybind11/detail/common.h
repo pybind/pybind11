@@ -345,7 +345,11 @@
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
-#define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
+#define PYBIND11_ENSURE_INTERNALS_READY                                                           \
+    {                                                                                             \
+        pybind11::detail::get_internals_pp_manager().unref();                                     \
+        pybind11::detail::get_internals();                                                        \
+    }
 
 #if !defined(GRAALVM_PYTHON)
 #    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
