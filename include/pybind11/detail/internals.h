@@ -513,7 +513,7 @@ public:
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
-#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
@@ -539,7 +539,7 @@ public:
 
     /// Drop all the references we're currently holding.
     void unref() {
-#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         last_istate_.reset();
         internals_tls_p_.reset();
 #endif
@@ -547,7 +547,7 @@ public:
     }
 
     void destroy() {
-#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
@@ -593,7 +593,7 @@ private:
 
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
-#if PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
     thread_specific_storage<PyInterpreterState> last_istate_;
     thread_specific_storage<std::unique_ptr<InternalsType>> internals_tls_p_;
 #endif
