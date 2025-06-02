@@ -272,12 +272,11 @@ TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_state_dict_internals_obj());
-    auto internals_addr = get_details_as_uintptr();
     REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>()
             == 123);
 
     // local and foreign module internals should point to the same internals:
-    REQUIRE(internals_addr
+    REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
@@ -289,11 +288,11 @@ TEST_CASE("Restart the interpreter") {
 
     // Internals are deleted after a restart.
     REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(get_details_as_uintptr() == 0);
     pybind11::detail::get_internals();
     REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(internals_addr != get_details_as_uintptr());
-    internals_addr = get_details_as_uintptr();
-    REQUIRE(internals_addr
+    REQUIRE(get_details_as_uintptr() != 0);
+    REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
@@ -313,7 +312,7 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(ran);
     py::initialize_interpreter();
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE(internals_addr != get_details_as_uintptr());
+    REQUIRE(get_details_as_uintptr() == 0);
 
     // C++ modules can be reloaded.
     auto cpp_module = py::module_::import("widget_module");

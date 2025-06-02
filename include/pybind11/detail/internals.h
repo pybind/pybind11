@@ -505,7 +505,7 @@ template <typename InternalsType>
 class internals_pp_manager {
 public:
     using on_fetch_function = void(InternalsType *);
-    explicit internals_pp_manager(char const *id, on_fetch_function *on_fetch = nullptr)
+    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
         : holder_id_(id), on_fetch_(on_fetch) {}
 
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
@@ -598,29 +598,35 @@ private:
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
-inline void on_internals_fetch(internals *internals_ptr) {
-    // If We loaded the internals through `state_dict`, our `error_already_set`
-    // and `builtin_exception` may be different local classes than the ones set up in the
-    // initial exception translator, below, so add another for our local exception classes.
-    //
-    // libstdc++ doesn't require this (types there are identified only by name)
-    // libc++ with CPython doesn't require this (types are explicitly exported)
-    // libc++ with PyPy still need it, awaiting further investigation
-    if (internals_ptr) {
 #if !defined(__GLIBCXX__)
+// If We loaded the internals through `state_dict`, our `error_already_set`
+// and `builtin_exception` may be different local classes than the ones set up in the
+// initial exception translator, below, so add another for our local exception classes.
+//
+// libstdc++ doesn't require this (types there are identified only by name)
+// libc++ with CPython doesn't require this (types are explicitly exported)
+// libc++ with PyPy still need it, awaiting further investigation
+inline void check_internals_local_exception_translator(internals *internals_ptr) {
+    if (internals_ptr) {
         for (auto et : internals_ptr->registered_exception_translators) {
             if (et == &translate_local_exception) {
                 return;
             }
         }
         internals_ptr->registered_exception_translators.push_front(&translate_local_exception);
-#endif
     }
 }
+#endif
 
 inline internals_pp_manager<internals> &get_internals_pp_manager() {
+#if defined(__GLIBCXX__)
+#    define ON_FETCH_FN nullptr
+#else
+#    define ON_FETCH_FN &check_internals_local_exception_translator
+#endif
     static internals_pp_manager<internals> internals_pp_manager(PYBIND11_INTERNALS_ID,
-                                                                &on_internals_fetch);
+                                                                ON_FETCH_FN);
+#undef ON_FETCH_FN
     return internals_pp_manager;
 }
 
@@ -650,7 +656,7 @@ inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
         = PYBIND11_MODULE_LOCAL_ID
           + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
     static internals_pp_manager<local_internals> local_internals_pp_manager(
-        this_module_idstr.c_str());
+        this_module_idstr.c_str(), nullptr);
     return local_internals_pp_manager;
 }
 
