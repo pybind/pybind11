@@ -74,6 +74,8 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
 #define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 
+/// A smart-pointer-like wrapper around a thread-specific value. get/set of the pointer applies to
+/// the current thread only.
 template <typename T>
 class thread_specific_storage {
 public:
@@ -598,7 +600,6 @@ private:
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
-#if !defined(__GLIBCXX__)
 // If We loaded the internals through `state_dict`, our `error_already_set`
 // and `builtin_exception` may be different local classes than the ones set up in the
 // initial exception translator, below, so add another for our local exception classes.
@@ -606,6 +607,7 @@ private:
 // libstdc++ doesn't require this (types there are identified only by name)
 // libc++ with CPython doesn't require this (types are explicitly exported)
 // libc++ with PyPy still need it, awaiting further investigation
+#if !defined(__GLIBCXX__)
 inline void check_internals_local_exception_translator(internals *internals_ptr) {
     if (internals_ptr) {
         for (auto et : internals_ptr->registered_exception_translators) {
