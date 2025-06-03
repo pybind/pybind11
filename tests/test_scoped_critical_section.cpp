@@ -3,10 +3,11 @@
 #include "pybind11_tests.h"
 
 #include <atomic>
-#include <cassert>
+#include <chrono>
 #include <thread>
+#include <utility>
 
-#if defined(__has_include) && __has_include(<barrier>)
+#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
 #    define PYBIND11_HAS_BARRIER 1
 #    include <barrier>
 #endif
@@ -19,18 +20,19 @@ public:
     void set(bool value) { value_.store(value, std::memory_order_release); }
 
 private:
-    std::atomic<bool> value_;
+    std::atomic<bool> value_{false};
 };
 
 #ifdef PYBIND11_HAS_BARRIER
-void test_scoped_critical_section(py::class_<BoolWrapper> &cls) {
+bool test_scoped_critical_section(const py::handle &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
+    bool output = false;
 
     std::thread t1([&]() {
         py::scoped_critical_section lock{bool_wrapper};
         barrier.arrive_and_wait();
-        auto bw = bool_wrapper.cast<std::shared_ptr<BoolWrapper>>();
+        auto *bw = bool_wrapper.cast<BoolWrapper *>();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         bw->set(true);
     });
@@ -38,25 +40,28 @@ void test_scoped_critical_section(py::class_<BoolWrapper> &cls) {
     std::thread t2([&]() {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper};
-        auto bw = bool_wrapper.cast<std::shared_ptr<BoolWrapper>>();
-        assert(bw->get() == true);
+        auto *bw = bool_wrapper.cast<BoolWrapper *>();
+        output = bw->get();
     });
 
     t1.join();
     t2.join();
+
+    return output;
 }
 
-void test_scoped_critical_section2(py::class_<BoolWrapper> &cls) {
+std::pair<bool, bool> test_scoped_critical_section2(const py::handle &cls) {
     auto barrier = std::barrier(3);
     auto bool_wrapper1 = cls(false);
     auto bool_wrapper2 = cls(false);
+    std::pair<bool, bool> output{false, false};
 
     std::thread t1([&]() {
         py::scoped_critical_section lock{bool_wrapper1, bool_wrapper2};
         barrier.arrive_and_wait();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        auto bw1 = bool_wrapper1.cast<std::shared_ptr<BoolWrapper>>();
-        auto bw2 = bool_wrapper2.cast<std::shared_ptr<BoolWrapper>>();
+        auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
+        auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
         bw1->set(true);
         bw2->set(true);
     });
@@ -64,43 +69,48 @@ void test_scoped_critical_section2(py::class_<BoolWrapper> &cls) {
     std::thread t2([&]() {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper1};
-        auto bw1 = bool_wrapper1.cast<std::shared_ptr<BoolWrapper>>();
-        assert(bw1->get() == true);
+        auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
+        output.first = bw1->get();
     });
 
     std::thread t3([&]() {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper2};
-        auto bw2 = bool_wrapper2.cast<std::shared_ptr<BoolWrapper>>();
-        assert(bw2->get() == true);
+        auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
+        output.second = bw2->get();
     });
 
     t1.join();
     t2.join();
     t3.join();
+
+    return output;
 }
 
-void test_scoped_critical_section2_same_object_no_deadlock(py::class_<BoolWrapper> &cls) {
+bool test_scoped_critical_section2_same_object_no_deadlock(const py::handle &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
+    bool output = false;
 
     std::thread t1([&]() {
         py::scoped_critical_section lock{bool_wrapper, bool_wrapper};
         barrier.arrive_and_wait();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        auto bw = bool_wrapper.cast<std::shared_ptr<BoolWrapper>>();
+        auto *bw = bool_wrapper.cast<BoolWrapper *>();
         bw->set(true);
     });
 
     std::thread t2([&]() {
         barrier.arrive_and_wait();
         py::scoped_critical_section lock{bool_wrapper};
-        auto bw = bool_wrapper.cast<std::shared_ptr<BoolWrapper>>();
-        assert(bw->get() == true);
+        auto *bw = bool_wrapper.cast<BoolWrapper *>();
+        output = bw->get();
     });
 
     t1.join();
     t2.join();
+
+    return output;
 }
 #endif
 
@@ -116,16 +126,19 @@ TEST_SUBMODULE(scoped_critical_section, m) {
                                 .def(py::init<bool>())
                                 .def("get", &BoolWrapper::get)
                                 .def("set", &BoolWrapper::set);
+    auto BoolWrapperHandle = py::handle(BoolWrapperClass);
 
 #ifdef PYBIND11_HAS_BARRIER
     m.attr("has_barrier") = true;
 
-    m.def("test_scoped_critical_section",
-          [&]() -> void { test_scoped_critical_section(BoolWrapperClass); });
-    m.def("test_scoped_critical_section2",
-          [&]() -> void { test_scoped_critical_section2(BoolWrapperClass); });
-    m.def("test_scoped_critical_section2_same_object_no_deadlock", [&]() -> void {
-        test_scoped_critical_section2_same_object_no_deadlock(BoolWrapperClass);
+    m.def("test_scoped_critical_section", [BoolWrapperHandle]() -> bool {
+        return test_scoped_critical_section(BoolWrapperHandle);
+    });
+    m.def("test_scoped_critical_section2", [BoolWrapperHandle]() -> std::pair<bool, bool> {
+        return test_scoped_critical_section2(BoolWrapperHandle);
+    });
+    m.def("test_scoped_critical_section2_same_object_no_deadlock", [BoolWrapperHandle]() -> bool {
+        return test_scoped_critical_section2_same_object_no_deadlock(BoolWrapperHandle);
     });
 #else
     m.attr("has_barrier") = false;
