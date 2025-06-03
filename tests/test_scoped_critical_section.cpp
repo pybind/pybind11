@@ -23,8 +23,9 @@ private:
     std::atomic<bool> value_{false};
 };
 
-#ifdef PYBIND11_HAS_BARRIER
-bool test_scoped_critical_section(const py::handle &cls) {
+#if defined(PYBIND11_HAS_BARRIER) && defined(Py_GIL_DISABLED)
+
+void test_scoped_critical_section(const py::handle &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
     bool output = false;
@@ -47,10 +48,12 @@ bool test_scoped_critical_section(const py::handle &cls) {
     t1.join();
     t2.join();
 
-    return output;
+    if (!output) {
+        throw std::runtime_error("Scoped critical section test failed: output is false");
+    }
 }
 
-std::pair<bool, bool> test_scoped_critical_section2(const py::handle &cls) {
+void test_scoped_critical_section2(const py::handle &cls) {
     auto barrier = std::barrier(3);
     auto bool_wrapper1 = cls(false);
     auto bool_wrapper2 = cls(false);
@@ -84,10 +87,13 @@ std::pair<bool, bool> test_scoped_critical_section2(const py::handle &cls) {
     t2.join();
     t3.join();
 
-    return output;
+    if (!output.first || !output.second) {
+        throw std::runtime_error(
+            "Scoped critical section test with two objects failed: output is false");
+    }
 }
 
-bool test_scoped_critical_section2_same_object_no_deadlock(const py::handle &cls) {
+void test_scoped_critical_section2_same_object_no_deadlock(const py::handle &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
     bool output = false;
@@ -110,8 +116,18 @@ bool test_scoped_critical_section2_same_object_no_deadlock(const py::handle &cls
     t1.join();
     t2.join();
 
-    return output;
+    if (!output) {
+        throw std::runtime_error(
+            "Scoped critical section test with same object failed: output is false");
+    }
 }
+
+#else
+
+void test_scoped_critical_section(const py::handle &) {}
+void test_scoped_critical_section2(const py::handle &) {}
+void test_scoped_critical_section2_same_object_no_deadlock(const py::handle &) {}
+
 #endif
 
 TEST_SUBMODULE(scoped_critical_section, m) {
@@ -132,14 +148,12 @@ TEST_SUBMODULE(scoped_critical_section, m) {
 #ifdef PYBIND11_HAS_BARRIER
     m.attr("has_barrier") = true;
 
-    m.def("test_scoped_critical_section", [BoolWrapperHandle]() -> bool {
-        return test_scoped_critical_section(BoolWrapperHandle);
-    });
-    m.def("test_scoped_critical_section2", [BoolWrapperHandle]() -> std::pair<bool, bool> {
-        return test_scoped_critical_section2(BoolWrapperHandle);
-    });
-    m.def("test_scoped_critical_section2_same_object_no_deadlock", [BoolWrapperHandle]() -> bool {
-        return test_scoped_critical_section2_same_object_no_deadlock(BoolWrapperHandle);
+    m.def("test_scoped_critical_section",
+          [BoolWrapperHandle]() -> void { test_scoped_critical_section(BoolWrapperHandle); });
+    m.def("test_scoped_critical_section2",
+          [BoolWrapperHandle]() -> void { test_scoped_critical_section2(BoolWrapperHandle); });
+    m.def("test_scoped_critical_section2_same_object_no_deadlock", [BoolWrapperHandle]() -> void {
+        test_scoped_critical_section2_same_object_no_deadlock(BoolWrapperHandle);
     });
 #else
     m.attr("has_barrier") = false;
