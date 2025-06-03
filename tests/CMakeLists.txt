@@ -649,4 +649,7 @@ if(NOT PYBIND11_CUDA_TESTS)
 
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)
+
+  # Test visibility of common symbols across shared libraries
+  add_subdirectory(test_cross_module_rtti)
 endif()

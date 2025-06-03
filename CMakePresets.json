@@ -61,13 +61,13 @@
       "name": "tests",
       "displayName": "Tests (for workflow)",
       "configurePreset": "default",
-      "targets": ["pytest", "cpptest", "test_cmake_build"]
+      "targets": ["pytest", "cpptest", "test_cmake_build", "test_cross_module_rtti"]
     },
     {
       "name": "testsvenv",
       "displayName": "Tests Venv (for workflow)",
       "configurePreset": "venv",
-      "targets": ["pytest", "cpptest", "test_cmake_build"]
+      "targets": ["pytest", "cpptest", "test_cmake_build", "test_cross_module_rtti"]
     }
   ],
   "workflowPresets": [
