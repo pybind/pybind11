@@ -41,9 +41,6 @@ jobs:
         - runs-on: macos-14
           cmake: "4.0"
 
-        - runs-on: windows-2019
-          cmake: "3.18"
-
         - runs-on: windows-latest
           cmake: "4.0"
 

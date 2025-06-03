@@ -118,7 +118,7 @@ jobs:
           - runs-on: macos-latest
             python-version: 'graalpy-24.2'
 
-          - runs-on: windows-2019
+          - runs-on: windows-latest
             python-version: '3.9'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: windows-2022
@@ -819,20 +819,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python:
-        - '3.8'
-        - '3.10'
-        - '3.13'
-
         include:
-          - python: '3.10'
-            args: -DCMAKE_CXX_STANDARD=20
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
+          - python: '3.10'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.13'
 
 
-    name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
-    runs-on: windows-2019
+    name: "🐍 ${{ matrix.python }} • MSVC 2022 • x86 ${{ matrix.args }}"
+    runs-on: windows-2022
 
     steps:
     - uses: actions/checkout@v4
@@ -855,11 +851,10 @@ jobs:
       run: |
         python -m pip install -r tests/requirements.txt
 
-    # First build - C++11 mode and inplace
     - name: Configure ${{ matrix.args }}
       run: >
         cmake -S . -B build
-        -G "Visual Studio 16 2019" -A Win32
+        -G "Visual Studio 17 2022" -A Win32
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -881,8 +876,8 @@ jobs:
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
 
-    name: "🐍 ${{ matrix.python }} • MSVC 2019 (Debug) • x86 ${{ matrix.args }}"
-    runs-on: windows-2019
+    name: "🐍 ${{ matrix.python }} • MSVC 2022 (Debug) • x86 ${{ matrix.args }}"
+    runs-on: windows-2022
 
     steps:
     - uses: actions/checkout@v4
@@ -905,11 +900,10 @@ jobs:
       run: |
         python -m pip install -r tests/requirements.txt
 
-    # First build - C++11 mode and inplace
     - name: Configure ${{ matrix.args }}
       run: >
         cmake -S . -B build
-        -G "Visual Studio 16 2019" -A Win32
+        -G "Visual Studio 17 2022" -A Win32
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
