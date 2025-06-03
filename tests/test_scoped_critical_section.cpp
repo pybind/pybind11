@@ -6,8 +6,10 @@
 #include <cassert>
 #include <thread>
 
-#ifdef PYBIND11_CPP20
+#if defined(__has_include) && __has_include(<barrier>)
+#    define PYBIND11_HAS_BARRIER 1
 #    include <barrier>
+#endif
 
 // Referenced test implementation: https://github.com/PyO3/pyo3/blob/v0.25.0/src/sync.rs#L874
 class BoolWrapper {
@@ -20,6 +22,7 @@ private:
     std::atomic<bool> value_;
 };
 
+#ifdef PYBIND11_HAS_BARRIER
 void test_scoped_critical_section(py::class_<BoolWrapper> &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
@@ -108,18 +111,14 @@ TEST_SUBMODULE(scoped_critical_section, m) {
 #else
         false;
 #endif
-    m.attr("has_barrier") =
-#if defined(PYBIND11_CPP20)
-        true;
-#else
-        false;
-#endif
 
-#ifdef PYBIND11_CPP20
     auto BoolWrapperClass = py::class_<BoolWrapper>(m, "BoolWrapper")
                                 .def(py::init<bool>())
                                 .def("get", &BoolWrapper::get)
                                 .def("set", &BoolWrapper::set);
+
+#ifdef PYBIND11_HAS_BARRIER
+    m.attr("has_barrier") = true;
 
     m.def("test_scoped_critical_section",
           [&]() -> void { test_scoped_critical_section(BoolWrapperClass); });
@@ -128,5 +127,7 @@ TEST_SUBMODULE(scoped_critical_section, m) {
     m.def("test_scoped_critical_section2_same_object_no_deadlock", [&]() -> void {
         test_scoped_critical_section2_same_object_no_deadlock(BoolWrapperClass);
     });
+#else
+    m.attr("has_barrier") = false;
 #endif
 }
