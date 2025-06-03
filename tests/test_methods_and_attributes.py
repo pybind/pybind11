@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import sys
 
 import pytest
@@ -17,6 +18,12 @@ NO_SETTER_MSG = (
 NO_DELETER_MSG = (
     "can't delete attribute" if sys.version_info < (3, 11) else "object has no deleter"
 )
+
+
+def gc_collect(repeat=5):
+    """Collect garbage multiple times to ensure that objects are actually deleted."""
+    for _ in range(repeat):
+        gc.collect()
 
 
 def test_self_only_pos_only():
@@ -337,19 +344,21 @@ def test_dynamic_attributes():
     cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
+    gc_collect(repeat=10)
     assert cstats.alive() == 0
 
     # Derived classes should work as well
     class PythonDerivedDynamicClass(m.DynamicClass):
         pass
 
-    for cls in m.CppDerivedDynamicClass, PythonDerivedDynamicClass:
+    for cls in (m.CppDerivedDynamicClass, PythonDerivedDynamicClass):
         derived = cls()
         derived.foobar = 100
         assert derived.foobar == 100
 
         assert cstats.alive() == 1
         del derived
+        gc_collect(repeat=10)
         assert cstats.alive() == 0
 
 
@@ -364,6 +373,7 @@ def test_cyclic_gc():
     cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
+    gc_collect(repeat=10)
     assert cstats.alive() == 0
 
     # Two object reference each other
@@ -374,6 +384,7 @@ def test_cyclic_gc():
 
     assert cstats.alive() == 2
     del i1, i2
+    gc_collect(repeat=10)
     assert cstats.alive() == 0
 
 
