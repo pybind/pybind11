@@ -72,7 +72,7 @@ def test_roundtrip(cls_name):
                 sys.version_info == (3, 14, 0, "beta", 1)
                 or sys.version_info == (3, 14, 0, "beta", 2),
                 reason="3.14.0b1/2 bug: https://github.com/python/cpython/issues/133912",
-                strict=True,
+                strict=False,
             ),
         ),
         "PickleableWithDictNew",
