@@ -79,9 +79,9 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- Python 3.8+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
-  implementation-agnostic interface (pybind11 2.9 was the last version to
-  support Python 2 and 3.5).
+- CPython 3.8+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
+  implementation-agnostic interface (see older versions for older CPython
+  and PyPy versions).
 
 - It is possible to bind C++11 lambda functions with captured
   variables. The lambda capture data is stored inside the resulting
@@ -124,11 +124,18 @@ Supported compilers
 1. Clang/LLVM 3.3 or newer (for Apple Xcode's clang, this is 5.0.0 or
    newer)
 2. GCC 4.8 or newer
-3. Microsoft Visual Studio 2017 or newer
+3. Microsoft Visual Studio 2022 or newer (2019 probably works, but was dropped in CI)
 4. Intel classic C++ compiler 18 or newer (ICC 20.2 tested in CI)
 5. Cygwin/GCC (previously tested on 2.5.1)
 6. NVCC (CUDA 11.0 tested in CI)
 7. NVIDIA PGI (20.9 tested in CI)
+
+Supported Platforms
+-------------------
+
+* Windows, Linux, macOS, and iOS
+* CPython 3.8+, Pyodide, PyPy, and GraalPy
+* C++11, C++14, C++17, C++20, and C++23
 
 About
 -----
