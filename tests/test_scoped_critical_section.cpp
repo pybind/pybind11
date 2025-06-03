@@ -127,6 +127,7 @@ TEST_SUBMODULE(scoped_critical_section, m) {
                                 .def("get", &BoolWrapper::get)
                                 .def("set", &BoolWrapper::set);
     auto BoolWrapperHandle = py::handle(BoolWrapperClass);
+    (void) BoolWrapperHandle.ptr(); // suppress unused variable warning
 
 #ifdef PYBIND11_HAS_BARRIER
     m.attr("has_barrier") = true;
