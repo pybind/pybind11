@@ -25,14 +25,8 @@ bool has_state_dict_internals_obj() {
     return state.contains(PYBIND11_INTERNALS_ID);
 }
 
-bool has_pybind11_internals_static() {
-    auto *&ipp = py::detail::get_internals_pp<py::detail::internals>();
-    return (ipp != nullptr) && *ipp;
-}
-
 uintptr_t get_details_as_uintptr() {
-    return reinterpret_cast<uintptr_t>(
-        py::detail::get_internals_pp<py::detail::internals>()->get());
+    return reinterpret_cast<uintptr_t>(py::detail::get_internals_pp_manager().get_pp()->get());
 }
 
 class Widget {
@@ -278,7 +272,6 @@ TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
     REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>()
             == 123);
 
@@ -295,10 +288,10 @@ TEST_CASE("Restart the interpreter") {
 
     // Internals are deleted after a restart.
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE_FALSE(has_pybind11_internals_static());
+    REQUIRE(get_details_as_uintptr() == 0);
     pybind11::detail::get_internals();
     REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
+    REQUIRE(get_details_as_uintptr() != 0);
     REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
@@ -311,18 +304,15 @@ TEST_CASE("Restart the interpreter") {
         = py::capsule(&ran, [](void *ran) {
               py::detail::get_internals();
               REQUIRE(has_state_dict_internals_obj());
-              REQUIRE(has_pybind11_internals_static());
               *static_cast<bool *>(ran) = true;
           });
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE_FALSE(has_pybind11_internals_static());
     REQUIRE_FALSE(ran);
     py::finalize_interpreter();
     REQUIRE(ran);
-    REQUIRE_FALSE(has_pybind11_internals_static());
     py::initialize_interpreter();
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE_FALSE(has_pybind11_internals_static());
+    REQUIRE(get_details_as_uintptr() == 0);
 
     // C++ modules can be reloaded.
     auto cpp_module = py::module_::import("widget_module");
@@ -348,7 +338,6 @@ TEST_CASE("Threads") {
     // Restart interpreter to ensure threads are not initialized
     py::finalize_interpreter();
     py::initialize_interpreter();
-    REQUIRE_FALSE(has_pybind11_internals_static());
 
     constexpr auto num_threads = 10;
     auto locals = py::dict("count"_a = 0);

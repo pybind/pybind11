@@ -45,27 +45,21 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
-    // Store stack pointer in thread-local storage.
-    static PYBIND11_TLS_KEY_REF get_stack_tls_key() {
-        return get_internals().loader_life_support_tls_key;
-    }
-    static loader_life_support *get_stack_top() {
-        return static_cast<loader_life_support *>(PYBIND11_TLS_GET_VALUE(get_stack_tls_key()));
-    }
-    static void set_stack_top(loader_life_support *value) {
-        PYBIND11_TLS_REPLACE_VALUE(get_stack_tls_key(), value);
-    }
-
 public:
     /// A new patient frame is created when a function is entered
-    loader_life_support() : parent{get_stack_top()} { set_stack_top(this); }
+    loader_life_support() {
+        auto &stack_top = get_internals().loader_life_support_tls;
+        parent = stack_top.get();
+        stack_top = this;
+    }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        if (get_stack_top() != this) {
+        auto &stack_top = get_internals().loader_life_support_tls;
+        if (stack_top.get() != this) {
             pybind11_fail("loader_life_support: internal error");
         }
-        set_stack_top(parent);
+        stack_top = parent;
         for (auto *item : keep_alive) {
             Py_DECREF(item);
         }
@@ -74,7 +68,7 @@ public:
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = get_stack_top();
+        loader_life_support *frame = get_internals().loader_life_support_tls.get();
         if (!frame) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such

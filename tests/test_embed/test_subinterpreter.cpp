@@ -17,20 +17,21 @@ namespace py = pybind11;
 using namespace py::literals;
 
 bool has_state_dict_internals_obj();
-bool has_pybind11_internals_static();
 uintptr_t get_details_as_uintptr();
 
 void unsafe_reset_internals_for_single_interpreter() {
     // unsafe normally, but for subsequent tests, put this back.. we know there are no threads
     // running and only 1 interpreter
+    py::detail::get_internals_pp_manager().unref();
+    py::detail::get_local_internals_pp_manager().unref();
     py::detail::get_num_interpreters_seen() = 1;
-    py::detail::get_internals_pp<py::detail::internals>() = nullptr;
     py::detail::get_internals();
-    py::detail::get_internals_pp<py::detail::local_internals>() = nullptr;
     py::detail::get_local_internals();
 }
 
 TEST_CASE("Single Subinterpreter") {
+    unsafe_reset_internals_for_single_interpreter();
+
     py::module_::import("external_module"); // in the main interpreter
 
     // Add tags to the modules in the main interpreter and test the basics.
@@ -42,7 +43,6 @@ TEST_CASE("Single Subinterpreter") {
         REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
     }
     REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
 
     auto main_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
@@ -52,14 +52,13 @@ TEST_CASE("Single Subinterpreter") {
         py::scoped_subinterpreter ssi;
 
         // The subinterpreter has internals populated
-        REQUIRE(has_pybind11_internals_static());
+        REQUIRE(has_state_dict_internals_obj());
 
         py::list(py::module_::import("sys").attr("path")).append(py::str("."));
 
         auto ext_int
             = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
         py::detail::get_internals();
-        REQUIRE(has_pybind11_internals_static());
         REQUIRE(get_details_as_uintptr() == ext_int);
         REQUIRE(ext_int != main_int);
 
@@ -205,6 +204,8 @@ TEST_CASE("GIL Subinterpreter") {
 }
 
 TEST_CASE("Multiple Subinterpreters") {
+    unsafe_reset_internals_for_single_interpreter();
+
     // Make sure the module is in the main interpreter and save its pointer
     auto *main_ext = py::module_::import("external_module").ptr();
     auto main_int
