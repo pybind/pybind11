@@ -42,9 +42,6 @@ jobs:
           cmake: "4.0"
 
         - runs-on: windows-latest
-          cmake: "3.18"
-
-        - runs-on: windows-latest
           cmake: "4.0"
 
     name: 🐍 3.11 • CMake ${{ matrix.cmake }} • ${{ matrix.runs-on }}
