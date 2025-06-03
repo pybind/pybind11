@@ -23,30 +23,38 @@ private:
     std::atomic<bool> value_{false};
 };
 
-#if defined(PYBIND11_HAS_BARRIER) && defined(Py_GIL_DISABLED)
+#if defined(PYBIND11_HAS_BARRIER)
 
 void test_scoped_critical_section(const py::handle &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
     bool output = false;
 
-    std::thread t1([&]() {
-        py::scoped_critical_section lock{bool_wrapper};
-        barrier.arrive_and_wait();
-        auto *bw = bool_wrapper.cast<BoolWrapper *>();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        bw->set(true);
-    });
+    {
+        py::gil_scoped_release gil_release{};
 
-    std::thread t2([&]() {
-        barrier.arrive_and_wait();
-        py::scoped_critical_section lock{bool_wrapper};
-        auto *bw = bool_wrapper.cast<BoolWrapper *>();
-        output = bw->get();
-    });
+        std::thread t1([&]() {
+            py::gil_scoped_acquire ensure_tstate{};
+            py::scoped_critical_section lock{bool_wrapper};
+            barrier.arrive_and_wait();
+            auto *bw = bool_wrapper.cast<BoolWrapper *>();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            bw->set(true);
+        });
 
-    t1.join();
-    t2.join();
+        std::thread t2([&]() {
+            barrier.arrive_and_wait();
+            {
+                py::gil_scoped_acquire ensure_tstate{};
+                py::scoped_critical_section lock{bool_wrapper};
+                auto *bw = bool_wrapper.cast<BoolWrapper *>();
+                output = bw->get();
+            }
+        });
+
+        t1.join();
+        t2.join();
+    }
 
     if (!output) {
         throw std::runtime_error("Scoped critical section test failed: output is false");
@@ -59,33 +67,44 @@ void test_scoped_critical_section2(const py::handle &cls) {
     auto bool_wrapper2 = cls(false);
     std::pair<bool, bool> output{false, false};
 
-    std::thread t1([&]() {
-        py::scoped_critical_section lock{bool_wrapper1, bool_wrapper2};
-        barrier.arrive_and_wait();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
-        auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
-        bw1->set(true);
-        bw2->set(true);
-    });
+    {
+        py::gil_scoped_release gil_release{};
 
-    std::thread t2([&]() {
-        barrier.arrive_and_wait();
-        py::scoped_critical_section lock{bool_wrapper1};
-        auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
-        output.first = bw1->get();
-    });
+        std::thread t1([&]() {
+            py::gil_scoped_acquire ensure_tstate{};
+            py::scoped_critical_section lock{bool_wrapper1, bool_wrapper2};
+            barrier.arrive_and_wait();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
+            auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
+            bw1->set(true);
+            bw2->set(true);
+        });
 
-    std::thread t3([&]() {
-        barrier.arrive_and_wait();
-        py::scoped_critical_section lock{bool_wrapper2};
-        auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
-        output.second = bw2->get();
-    });
+        std::thread t2([&]() {
+            barrier.arrive_and_wait();
+            {
+                py::gil_scoped_acquire ensure_tstate{};
+                py::scoped_critical_section lock{bool_wrapper1};
+                auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
+                output.first = bw1->get();
+            }
+        });
 
-    t1.join();
-    t2.join();
-    t3.join();
+        std::thread t3([&]() {
+            barrier.arrive_and_wait();
+            {
+                py::gil_scoped_acquire ensure_tstate{};
+                py::scoped_critical_section lock{bool_wrapper2};
+                auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
+                output.second = bw2->get();
+            }
+        });
+
+        t1.join();
+        t2.join();
+        t3.join();
+    }
 
     if (!output.first || !output.second) {
         throw std::runtime_error(
@@ -98,23 +117,31 @@ void test_scoped_critical_section2_same_object_no_deadlock(const py::handle &cls
     auto bool_wrapper = cls(false);
     bool output = false;
 
-    std::thread t1([&]() {
-        py::scoped_critical_section lock{bool_wrapper, bool_wrapper};
-        barrier.arrive_and_wait();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        auto *bw = bool_wrapper.cast<BoolWrapper *>();
-        bw->set(true);
-    });
+    {
+        py::gil_scoped_release gil_release{};
 
-    std::thread t2([&]() {
-        barrier.arrive_and_wait();
-        py::scoped_critical_section lock{bool_wrapper};
-        auto *bw = bool_wrapper.cast<BoolWrapper *>();
-        output = bw->get();
-    });
+        std::thread t1([&]() {
+            py::gil_scoped_acquire ensure_tstate{};
+            py::scoped_critical_section lock{bool_wrapper, bool_wrapper};
+            barrier.arrive_and_wait();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            auto *bw = bool_wrapper.cast<BoolWrapper *>();
+            bw->set(true);
+        });
 
-    t1.join();
-    t2.join();
+        std::thread t2([&]() {
+            barrier.arrive_and_wait();
+            {
+                py::gil_scoped_acquire ensure_tstate{};
+                py::scoped_critical_section lock{bool_wrapper};
+                auto *bw = bool_wrapper.cast<BoolWrapper *>();
+                output = bw->get();
+            }
+        });
+
+        t1.join();
+        t2.join();
+    }
 
     if (!output) {
         throw std::runtime_error(

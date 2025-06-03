@@ -20,7 +20,6 @@ env:
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
-  PYTEST_ADDOPTS: "-k critical_section"
   # For cmake:
   VERBOSE: 1
   CMAKE_COLOR_DIAGNOSTICS: 1
