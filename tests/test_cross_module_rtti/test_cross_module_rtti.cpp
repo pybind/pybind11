@@ -6,11 +6,11 @@
 #include <lib.h>
 
 static constexpr auto script = R"(
-import test_visibility_bindings
+import test_cross_module_rtti_bindings
 
-class Bar(test_visibility_bindings.Base):
+class Bar(test_cross_module_rtti_bindings.Base):
     def __init__(self, a, b):
-        test_visibility_bindings.Base.__init__(self, a, b)
+        test_cross_module_rtti_bindings.Base.__init__(self, a, b)
 
     def get(self):
         return 4 * self.a + self.b
@@ -23,7 +23,7 @@ def get_bar(a, b):
 
 TEST_CASE("Simple case where without is_alias") {
     // "Simple" case this will not have `python_instance_is_alias` set in type_cast_base.h:771
-    auto bindings = pybind11::module_::import("test_visibility_bindings");
+    auto bindings = pybind11::module_::import("test_cross_module_rtti_bindings");
     auto holder = bindings.attr("get_foo")(1, 2);
     auto foo = holder.cast<std::shared_ptr<lib::Base>>();
     REQUIRE(foo->get() == 4); // 2 * 1 + 2 = 4

@@ -651,5 +651,5 @@ if(NOT PYBIND11_CUDA_TESTS)
   add_subdirectory(test_cmake_build)
 
   # Test visibility of common symbols across shared libraries
-  add_subdirectory(test_visibility)
+  add_subdirectory(test_cross_module_rtti)
 endif()
