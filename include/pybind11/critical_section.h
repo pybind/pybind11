@@ -13,28 +13,33 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class scoped_critical_section {
 public:
 #ifdef Py_GIL_DISABLED
-    scoped_critical_section(handle obj1, handle obj2) : m_ptr1(obj1.ptr()), m_ptr2(obj2.ptr()) {
-        if (m_ptr1 == nullptr) {
-            std::swap(m_ptr1, m_ptr2);
-        }
-        if (m_ptr2 != nullptr) {
-            PyCriticalSection2_Begin(&section2, m_ptr1, m_ptr2);
-        } else if (m_ptr1 != nullptr) {
-            PyCriticalSection_Begin(&section, m_ptr1);
+    scoped_critical_section(handle obj1, handle obj2) {
+        if (obj1) {
+            if (obj2) {
+                PyCriticalSection2_Begin(&section2, obj1.ptr(), obj2.ptr());
+                rank = 2;
+            } else {
+                PyCriticalSection_Begin(&section, obj1.ptr());
+                rank = 1;
+            }
+        } else if (obj2) {
+            PyCriticalSection_Begin(&section, obj2.ptr());
+            rank = 1;
         }
     }
 
-    explicit scoped_critical_section(handle obj) : m_ptr1(obj.ptr()) {
-        if (m_ptr1 != nullptr) {
-            PyCriticalSection_Begin(&section, m_ptr1);
+    explicit scoped_critical_section(handle obj) {
+        if (obj) {
+            PyCriticalSection_Begin(&section, obj.ptr());
+            rank = 1;
         }
     }
 
     ~scoped_critical_section() {
-        if (m_ptr2 != nullptr) {
-            PyCriticalSection2_End(&section2);
-        } else if (m_ptr1 != nullptr) {
+        if (rank == 1) {
             PyCriticalSection_End(&section);
+        } else if (rank == 2) {
+            PyCriticalSection2_End(&section2);
         }
     }
 #else
@@ -48,8 +53,7 @@ public:
 
 private:
 #ifdef Py_GIL_DISABLED
-    PyObject *m_ptr1{nullptr};
-    PyObject *m_ptr2{nullptr};
+    int rank{0};
     union {
         PyCriticalSection section;
         PyCriticalSection2 section2;

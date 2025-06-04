@@ -14,6 +14,20 @@
 
 namespace test_scoped_critical_section_ns {
 
+void test_one_nullptr() { py::scoped_critical_section lock{py::handle{}}; }
+
+void test_two_nullptrs() { py::scoped_critical_section lock{py::handle{}, py::handle{}}; }
+
+void test_first_nullptr() {
+    py::dict d;
+    py::scoped_critical_section lock{py::handle{}, d};
+}
+
+void test_second_nullptr() {
+    py::dict d;
+    py::scoped_critical_section lock{d, py::handle{}};
+}
+
 // Referenced test implementation: https://github.com/PyO3/pyo3/blob/v0.25.0/src/sync.rs#L874
 class BoolWrapper {
 public:
@@ -164,12 +178,10 @@ void test_scoped_critical_section2_same_object_no_deadlock(const py::handle &) {
 TEST_SUBMODULE(scoped_critical_section, m) {
     using namespace test_scoped_critical_section_ns;
 
-    m.attr("defined_THREAD_SANITIZER") =
-#if defined(THREAD_SANITIZER)
-        true;
-#else
-        false;
-#endif
+    m.def("test_one_nullptr", test_one_nullptr);
+    m.def("test_two_nullptrs", test_two_nullptrs);
+    m.def("test_first_nullptr", test_first_nullptr);
+    m.def("test_second_nullptr", test_second_nullptr);
 
     auto BoolWrapperClass = py::class_<BoolWrapper>(m, "BoolWrapper")
                                 .def(py::init<bool>())
