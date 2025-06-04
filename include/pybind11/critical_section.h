@@ -13,24 +13,30 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class scoped_critical_section {
 public:
 #ifdef Py_GIL_DISABLED
-    explicit scoped_critical_section(handle obj) : has2(false) {
-        PyCriticalSection_Begin(&section, obj.ptr());
-    }
-
-    scoped_critical_section(handle obj1, handle obj2) : has2(true) {
-        PyCriticalSection2_Begin(&section2, obj1.ptr(), obj2.ptr());
+    explicit scoped_critical_section(handle obj1, handle obj2 = handle{}) {
+        if (obj1) {
+            if (obj2) {
+                PyCriticalSection2_Begin(&section2, obj1.ptr(), obj2.ptr());
+                rank = 2;
+            } else {
+                PyCriticalSection_Begin(&section, obj1.ptr());
+                rank = 1;
+            }
+        } else if (obj2) {
+            PyCriticalSection_Begin(&section, obj2.ptr());
+            rank = 1;
+        }
     }
 
     ~scoped_critical_section() {
-        if (has2) {
-            PyCriticalSection2_End(&section2);
-        } else {
+        if (rank == 1) {
             PyCriticalSection_End(&section);
+        } else if (rank == 2) {
+            PyCriticalSection2_End(&section2);
         }
     }
 #else
-    explicit scoped_critical_section(handle) {};
-    scoped_critical_section(handle, handle) {};
+    explicit scoped_critical_section(handle, handle = handle{}) {};
     ~scoped_critical_section() = default;
 #endif
 
@@ -39,7 +45,7 @@ public:
 
 private:
 #ifdef Py_GIL_DISABLED
-    bool has2;
+    int rank{0};
     union {
         PyCriticalSection section;
         PyCriticalSection2 section2;
