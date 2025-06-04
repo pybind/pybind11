@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: pypa/cibuildwheel@v3.0
+    - uses: mhsmith/cibuildwheel@android
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
@@ -30,8 +30,12 @@ jobs:
         only: cp312-pyodide_wasm32
 
   build-ios:
-    name: iOS wheel
-    runs-on: macos-latest
+    name: iOS wheel ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, macos-13]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -40,8 +44,27 @@ jobs:
 
     - run: brew upgrade cmake
 
-    - uses: pypa/cibuildwheel@v3.0
+    - uses: mhsmith/cibuildwheel@android
       env:
         CIBW_PLATFORM: ios
+      with:
+        package-dir: tests
+
+  build-android:
+    name: Android wheel ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, macos-13, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - uses: mhsmith/cibuildwheel@android
+      env:
+        CIBW_PLATFORM: android
       with:
         package-dir: tests

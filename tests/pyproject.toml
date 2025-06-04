@@ -33,3 +33,6 @@ pyodide.test-groups = ["numpy", "scipy"]
 ios.test-groups = ["numpy"]
 ios.xbuild-tools = ["cmake", "ninja"]
 ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"
+android.test-groups = ["numpy"]
+android.xbuild-tools = ["cmake", "ninja"]
+android.environment.PIP_EXTRA_INDEX_URL = "https://chaquo.com/pypi-13.1"
