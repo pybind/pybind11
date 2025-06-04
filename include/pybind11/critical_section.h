@@ -13,7 +13,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class scoped_critical_section {
 public:
 #ifdef Py_GIL_DISABLED
-    scoped_critical_section(handle obj1, handle obj2) {
+    explicit scoped_critical_section(handle obj1, handle obj2 = handle{}) {
         if (obj1) {
             if (obj2) {
                 PyCriticalSection2_Begin(&section2, obj1.ptr(), obj2.ptr());
@@ -28,13 +28,6 @@ public:
         }
     }
 
-    explicit scoped_critical_section(handle obj) {
-        if (obj) {
-            PyCriticalSection_Begin(&section, obj.ptr());
-            rank = 1;
-        }
-    }
-
     ~scoped_critical_section() {
         if (rank == 1) {
             PyCriticalSection_End(&section);
@@ -43,8 +36,7 @@ public:
         }
     }
 #else
-    explicit scoped_critical_section(handle) {};
-    scoped_critical_section(handle, handle) {};
+    explicit scoped_critical_section(handle, handle = handle{}) {};
     ~scoped_critical_section() = default;
 #endif
 
