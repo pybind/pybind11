@@ -12,7 +12,7 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 (RC 2) (May 29, 2025)
+## 3.0.0 (RC 3) (June 4, 2025)
 
 Since this is a large release, we are providing a release candidate to give
 projects time to test! We also now provide
@@ -125,7 +125,8 @@ New Features:
   [#5669](https://github.com/pybind/pybind11/pull/5669)
 
 * Added `py::scoped_critical_section` to support free-threaded mode.
-  [#5684](https://github.com/pybind/pybind11/pull/5684)
+  [#5684](https://github.com/pybind/pybind11/pull/5684) \|
+  [#5706](https://github.com/pybind/pybind11/pull/5706)
 
 New Features / fixes (typing):
 
