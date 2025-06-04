@@ -41,6 +41,11 @@ private:
 
 #if defined(PYBIND11_HAS_BARRIER)
 
+// Modifying the C/C++ members of a Python object from multiple threads requires a critical section
+// to ensure thread safety and data integrity.
+// These tests use a scoped critical section to ensure that the Python object is accessed in a
+// thread-safe manner.
+
 void test_scoped_critical_section(const py::handle &cls) {
     auto barrier = std::barrier(2);
     auto bool_wrapper = cls(false);
@@ -113,7 +118,7 @@ void test_scoped_critical_section2(const py::handle &cls) {
             // Enter the critical section with two different objects.
             // This will ensure that the critical section is locked for both objects.
             py::scoped_critical_section lock{bool_wrapper1, bool_wrapper2};
-            // At this point, objects is locked by this thread via the scoped_critical_section.
+            // At this point, objects are locked by this thread via the scoped_critical_section.
             // This barrier will ensure that other threads wait until this thread has released
             // the critical section before proceeding.
             barrier.arrive_and_wait();
