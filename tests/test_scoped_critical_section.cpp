@@ -12,6 +12,8 @@
 #    include <barrier>
 #endif
 
+namespace test_scoped_critical_section_ns {
+
 // Referenced test implementation: https://github.com/PyO3/pyo3/blob/v0.25.0/src/sync.rs#L874
 class BoolWrapper {
 public:
@@ -157,7 +159,11 @@ void test_scoped_critical_section2_same_object_no_deadlock(const py::handle &) {
 
 #endif
 
+} // namespace test_scoped_critical_section_ns
+
 TEST_SUBMODULE(scoped_critical_section, m) {
+    using namespace test_scoped_critical_section_ns;
+
     m.attr("defined_THREAD_SANITIZER") =
 #if defined(THREAD_SANITIZER)
         true;
