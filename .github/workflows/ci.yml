@@ -118,7 +118,7 @@ jobs:
           - runs-on: macos-latest
             python-version: 'graalpy-24.2'
 
-          - runs-on: windows-2019
+          - runs-on: windows-latest
             python-version: '3.9'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: windows-2022
@@ -230,6 +230,9 @@ jobs:
     - name: Interface test
       run: cmake --build . --target test_cmake_build
 
+    - name: Visibility test
+      run: cmake --build . --target test_cross_module_rtti
+
 
   manylinux:
     name: Manylinux on 🐍 3.13t • GIL
@@ -328,6 +331,9 @@ jobs:
     - name: C++ tests
       run: cmake --build --preset default --target cpptest
 
+    - name: Visibility test
+      run: cmake --build --preset default --target test_cross_module_rtti
+
     - name: Run Valgrind on Python tests
       if: matrix.valgrind
       run: cmake --build --preset default --target memcheck
@@ -386,6 +392,8 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti
 
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
@@ -505,6 +513,8 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti
 
   # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
@@ -555,6 +565,9 @@ jobs:
 
     - name: Interface test
       run: cmake --build build --target test_cmake_build
+
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti
 
     - name: Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
       if: matrix.gcc == '12'
@@ -638,6 +651,11 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-11 --target test_cmake_build
 
+    - name: Visibility test
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build-11 --target test_cross_module_rtti
+
     - name: Configure C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
@@ -670,6 +688,10 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-17 --target test_cmake_build
 
+    - name: Visibility test
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build-17 --target test_cross_module_rtti
 
   # Testing on CentOS (manylinux uses a centos base).
   centos:
@@ -731,6 +753,9 @@ jobs:
 
     - name: Interface test
       run: cmake --build build --target test_cmake_build
+
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti
 
 
   # This tests an "install" with the CMake tools
@@ -819,20 +844,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python:
-        - '3.8'
-        - '3.10'
-        - '3.13'
-
         include:
-          - python: '3.10'
-            args: -DCMAKE_CXX_STANDARD=20
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
+          - python: '3.10'
+            args: -DCMAKE_CXX_STANDARD=20
+          - python: '3.13'
 
 
-    name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
-    runs-on: windows-2019
+    name: "🐍 ${{ matrix.python }} • MSVC 2022 • x86 ${{ matrix.args }}"
+    runs-on: windows-2022
 
     steps:
     - uses: actions/checkout@v4
@@ -855,11 +876,10 @@ jobs:
       run: |
         python -m pip install -r tests/requirements.txt
 
-    # First build - C++11 mode and inplace
     - name: Configure ${{ matrix.args }}
       run: >
         cmake -S . -B build
-        -G "Visual Studio 16 2019" -A Win32
+        -G "Visual Studio 17 2022" -A Win32
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -881,8 +901,8 @@ jobs:
           - python: 3.8
             args: -DCMAKE_CXX_STANDARD=17
 
-    name: "🐍 ${{ matrix.python }} • MSVC 2019 (Debug) • x86 ${{ matrix.args }}"
-    runs-on: windows-2019
+    name: "🐍 ${{ matrix.python }} • MSVC 2022 (Debug) • x86 ${{ matrix.args }}"
+    runs-on: windows-2022
 
     steps:
     - uses: actions/checkout@v4
@@ -905,11 +925,10 @@ jobs:
       run: |
         python -m pip install -r tests/requirements.txt
 
-    # First build - C++11 mode and inplace
     - name: Configure ${{ matrix.args }}
       run: >
         cmake -S . -B build
-        -G "Visual Studio 16 2019" -A Win32
+        -G "Visual Studio 17 2022" -A Win32
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -966,6 +985,9 @@ jobs:
 
     - name: Interface test C++20
       run: cmake --build build --target test_cmake_build
+
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti
 
     - name: Configure C++20 - Exercise cmake -DPYBIND11_TEST_OVERRIDE
       run: >
@@ -1040,6 +1062,9 @@ jobs:
     - name: Interface test C++11
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cmake_build
 
+    - name: Visibility test
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cross_module_rtti
+
     - name: Clean directory
       run: git clean -fdx
 
@@ -1061,6 +1086,9 @@ jobs:
     - name: Interface test C++14
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cmake_build
 
+    - name: Visibility test
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cross_module_rtti
+
     - name: Clean directory
       run: git clean -fdx
 
@@ -1081,6 +1109,9 @@ jobs:
 
     - name: Interface test C++17
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cmake_build
+
+    - name: Visibility test
+      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cross_module_rtti
 
   windows_clang:
     if: github.event.pull_request.draft == false
@@ -1149,6 +1180,9 @@ jobs:
       - name: Interface test
         run: cmake --build . --target test_cmake_build -j 2
 
+      - name: Visibility test
+        run: cmake --build . --target test_cross_module_rtti -j 2
+
       - name: Clean directory
         run: git clean -fdx
 
@@ -1215,6 +1249,9 @@ jobs:
 
       - name: Interface test
         run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Visibility test
+        run: cmake --build . --target test_cross_module_rtti -j 2
 
       - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
         run: >

@@ -256,7 +256,7 @@
 
 // Slightly faster code paths are available when PYBIND11_HAS_SUBINTERPRETER_SUPPORT is *not*
 // defined, so avoid defining it for implementations that do not support subinterpreters. However,
-// defining it unnecessarily is not expected to break anything (other than old iOS targets).
+// defining it unnecessarily is not expected to break anything.
 // This can be overridden by the user with -DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=1 or 0
 #ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
@@ -345,7 +345,11 @@
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
-#define PYBIND11_ENSURE_INTERNALS_READY pybind11::detail::get_internals();
+#define PYBIND11_ENSURE_INTERNALS_READY                                                           \
+    {                                                                                             \
+        pybind11::detail::get_internals_pp_manager().unref();                                     \
+        pybind11::detail::get_internals();                                                        \
+    }
 
 #if !defined(GRAALVM_PYTHON)
 #    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)

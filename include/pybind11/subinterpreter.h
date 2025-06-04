@@ -159,34 +159,19 @@ public:
 
         bool switch_back = old_tstate && old_tstate->interp != istate_;
 
-        // Get the internals pointer (without creating it if it doesn't exist).  It's possible
-        // for the internals to be created during Py_EndInterpreter() (e.g. if a py::capsule
-        // calls `get_internals()` during destruction), so we get the pointer-pointer here and
-        // check it after.
-        auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
-        auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
-        {
-            dict sd = state_dict();
-            internals_ptr_ptr
-                = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-                    sd, PYBIND11_INTERNALS_ID);
-            local_internals_ptr_ptr
-                = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
-                    sd, detail::get_local_internals_id());
-        }
+        // Internals always exists in the subinterpreter, this class enforces it when it creates
+        // the subinterpreter. Even if it didn't, this only creates the pointer-to-pointer, not the
+        // internals themselves.
+        detail::get_internals_pp_manager().get_pp();
+        detail::get_local_internals_pp_manager().get_pp();
 
         // End it
         Py_EndInterpreter(destroy_tstate);
 
-        // do NOT decrease detail::get_num_interpreters_seen, because it can never decrease
-        // while other threads are running...
-
-        if (internals_ptr_ptr) {
-            internals_ptr_ptr->reset();
-        }
-        if (local_internals_ptr_ptr) {
-            local_internals_ptr_ptr->reset();
-        }
+        // It's possible for the  internals to be created during endinterpreter (e.g. if a
+        // py::capsule calls `get_internals()` during destruction), so we destroy afterward.
+        detail::get_internals_pp_manager().destroy();
+        detail::get_local_internals_pp_manager().destroy();
 
         // switch back to the old tstate and old GIL (if there was one)
         if (switch_back)
@@ -271,7 +256,7 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
     old_tstate_ = PyThreadState_Swap(tstate_);
 
     // save this in internals for scoped_gil calls
-    PYBIND11_TLS_REPLACE_VALUE(detail::get_internals().tstate, tstate_);
+    detail::get_internals().tstate = tstate_;
 }
 
 inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
@@ -307,7 +292,7 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
                 pybind11_fail("~subinterpreter_scoped_activate: thread state must be current!");
             }
 #endif
-            PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
+            detail::get_internals().tstate.reset();
             PyThreadState_Clear(tstate_);
             PyThreadState_DeleteCurrent();
         }

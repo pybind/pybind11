@@ -240,31 +240,29 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
  \endrst */
 inline void finalize_interpreter() {
-    // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
-    // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
-    // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
-    auto *&internals_ptr_ptr = detail::get_internals_pp<detail::internals>();
-    auto *&local_internals_ptr_ptr = detail::get_internals_pp<detail::local_internals>();
-    {
-        dict state_dict = detail::get_python_state_dict();
-        internals_ptr_ptr = detail::get_internals_pp_from_capsule_in_state_dict<detail::internals>(
-            state_dict, PYBIND11_INTERNALS_ID);
-        local_internals_ptr_ptr
-            = detail::get_internals_pp_from_capsule_in_state_dict<detail::local_internals>(
-                state_dict, detail::get_local_internals_id());
+    // get rid of any thread-local interpreter cache that currently exists
+    if (detail::get_num_interpreters_seen() > 1) {
+        detail::get_internals_pp_manager().unref();
+        detail::get_local_internals_pp_manager().unref();
+
+        // We know there can be no other interpreter alive now, so we can lower the count
+        detail::get_num_interpreters_seen() = 1;
     }
+
+    // Re-fetch the internals pointer-to-pointer (but not the internals itself, which might not
+    // exist). It's possible for the  internals to be created during Py_Finalize() (e.g. if a
+    // py::capsule calls `get_internals()` during destruction), so we get the pointer-pointer here
+    // and check it after Py_Finalize().
+    detail::get_internals_pp_manager().get_pp();
+    detail::get_local_internals_pp_manager().get_pp();
 
     Py_Finalize();
 
-    if (internals_ptr_ptr) {
-        internals_ptr_ptr->reset();
-    }
+    detail::get_internals_pp_manager().destroy();
 
     // Local internals contains data managed by the current interpreter, so we must clear them to
     // avoid undefined behaviors when initializing another interpreter
-    if (local_internals_ptr_ptr) {
-        local_internals_ptr_ptr->reset();
-    }
+    detail::get_local_internals_pp_manager().destroy();
 
     // We know there is no interpreter alive now, so we can reset the count
     detail::get_num_interpreters_seen() = 0;

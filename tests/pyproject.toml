@@ -33,4 +33,3 @@ pyodide.test-groups = ["numpy", "scipy"]
 ios.test-groups = ["numpy"]
 ios.xbuild-tools = ["cmake", "ninja"]
 ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"
-ios.config-settings."cmake.define.CMAKE_CXX_FLAGS" = "-DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=0"
