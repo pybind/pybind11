@@ -36,7 +36,7 @@ public:
     void set(bool value) { value_.store(value, std::memory_order_release); }
 
 private:
-    std::atomic<bool> value_{false};
+    std::atomic_bool value_{false};
 };
 
 #if defined(PYBIND11_HAS_BARRIER)
@@ -47,22 +47,40 @@ void test_scoped_critical_section(const py::handle &cls) {
     bool output = false;
 
     {
+        // Release the GIL to allow run threads in parallel.
         py::gil_scoped_release gil_release{};
 
         std::thread t1([&]() {
+            // Use gil_scoped_acquire to ensure we have a valid Python thread state
+            // before entering the critical section. Otherwise, the critical section
+            // will cause a segmentation fault.
             py::gil_scoped_acquire ensure_tstate{};
+            // Enter the critical section with the same object as the second thread.
             py::scoped_critical_section lock{bool_wrapper};
+            // At this point, the object is locked by this thread via the scoped_critical_section.
+            // This barrier will ensure that the second thread waits until this thread has released
+            // the critical section before proceeding.
             barrier.arrive_and_wait();
-            auto *bw = bool_wrapper.cast<BoolWrapper *>();
+            // Sleep for a short time to simulate some work in the critical section.
+            // This sleep is necessary to test the locking mechanism properly.
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            auto *bw = bool_wrapper.cast<BoolWrapper *>();
             bw->set(true);
         });
 
         std::thread t2([&]() {
+            // This thread will wait until the first thread has entered the critical section due to
+            // the barrier.
             barrier.arrive_and_wait();
             {
+                // Use gil_scoped_acquire to ensure we have a valid Python thread state
+                // before entering the critical section. Otherwise, the critical section
+                // will cause a segmentation fault.
                 py::gil_scoped_acquire ensure_tstate{};
+                // Enter the critical section with the same object as the first thread.
                 py::scoped_critical_section lock{bool_wrapper};
+                // At this point, the critical section is released by the first thread, the value
+                // is set to true.
                 auto *bw = bool_wrapper.cast<BoolWrapper *>();
                 output = bw->get();
             }
@@ -84,12 +102,23 @@ void test_scoped_critical_section2(const py::handle &cls) {
     std::pair<bool, bool> output{false, false};
 
     {
+        // Release the GIL to allow run threads in parallel.
         py::gil_scoped_release gil_release{};
 
         std::thread t1([&]() {
+            // Use gil_scoped_acquire to ensure we have a valid Python thread state
+            // before entering the critical section. Otherwise, the critical section
+            // will cause a segmentation fault.
             py::gil_scoped_acquire ensure_tstate{};
+            // Enter the critical section with two different objects.
+            // This will ensure that the critical section is locked for both objects.
             py::scoped_critical_section lock{bool_wrapper1, bool_wrapper2};
+            // At this point, objects is locked by this thread via the scoped_critical_section.
+            // This barrier will ensure that other threads wait until this thread has released
+            // the critical section before proceeding.
             barrier.arrive_and_wait();
+            // Sleep for a short time to simulate some work in the critical section.
+            // This sleep is necessary to test the locking mechanism properly.
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
             auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
@@ -98,20 +127,36 @@ void test_scoped_critical_section2(const py::handle &cls) {
         });
 
         std::thread t2([&]() {
+            // This thread will wait until the first thread has entered the critical section due to
+            // the barrier.
             barrier.arrive_and_wait();
             {
+                // Use gil_scoped_acquire to ensure we have a valid Python thread state
+                // before entering the critical section. Otherwise, the critical section
+                // will cause a segmentation fault.
                 py::gil_scoped_acquire ensure_tstate{};
+                // Enter the critical section with the same object as the first thread.
                 py::scoped_critical_section lock{bool_wrapper1};
+                // At this point, the critical section is released by the first thread, the value
+                // is set to true.
                 auto *bw1 = bool_wrapper1.cast<BoolWrapper *>();
                 output.first = bw1->get();
             }
         });
 
         std::thread t3([&]() {
+            // This thread will wait until the first thread has entered the critical section due to
+            // the barrier.
             barrier.arrive_and_wait();
             {
+                // Use gil_scoped_acquire to ensure we have a valid Python thread state
+                // before entering the critical section. Otherwise, the critical section
+                // will cause a segmentation fault.
                 py::gil_scoped_acquire ensure_tstate{};
+                // Enter the critical section with the same object as the first thread.
                 py::scoped_critical_section lock{bool_wrapper2};
+                // At this point, the critical section is released by the first thread, the value
+                // is set to true.
                 auto *bw2 = bool_wrapper2.cast<BoolWrapper *>();
                 output.second = bw2->get();
             }
@@ -134,22 +179,40 @@ void test_scoped_critical_section2_same_object_no_deadlock(const py::handle &cls
     bool output = false;
 
     {
+        // Release the GIL to allow run threads in parallel.
         py::gil_scoped_release gil_release{};
 
         std::thread t1([&]() {
+            // Use gil_scoped_acquire to ensure we have a valid Python thread state
+            // before entering the critical section. Otherwise, the critical section
+            // will cause a segmentation fault.
             py::gil_scoped_acquire ensure_tstate{};
-            py::scoped_critical_section lock{bool_wrapper, bool_wrapper};
+            // Enter the critical section with the same object as the second thread.
+            py::scoped_critical_section lock{bool_wrapper, bool_wrapper}; // same object used here
+            // At this point, the object is locked by this thread via the scoped_critical_section.
+            // This barrier will ensure that the second thread waits until this thread has released
+            // the critical section before proceeding.
             barrier.arrive_and_wait();
+            // Sleep for a short time to simulate some work in the critical section.
+            // This sleep is necessary to test the locking mechanism properly.
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             auto *bw = bool_wrapper.cast<BoolWrapper *>();
             bw->set(true);
         });
 
         std::thread t2([&]() {
+            // This thread will wait until the first thread has entered the critical section due to
+            // the barrier.
             barrier.arrive_and_wait();
             {
+                // Use gil_scoped_acquire to ensure we have a valid Python thread state
+                // before entering the critical section. Otherwise, the critical section
+                // will cause a segmentation fault.
                 py::gil_scoped_acquire ensure_tstate{};
+                // Enter the critical section with the same object as the first thread.
                 py::scoped_critical_section lock{bool_wrapper};
+                // At this point, the critical section is released by the first thread, the value
+                // is set to true.
                 auto *bw = bool_wrapper.cast<BoolWrapper *>();
                 output = bw->get();
             }
@@ -190,8 +253,12 @@ TEST_SUBMODULE(scoped_critical_section, m) {
     auto BoolWrapperHandle = py::handle(BoolWrapperClass);
     (void) BoolWrapperHandle.ptr(); // suppress unused variable warning
 
+    m.attr("has_barrier") =
 #ifdef PYBIND11_HAS_BARRIER
-    m.attr("has_barrier") = true;
+        true;
+#else
+        false;
+#endif
 
     m.def("test_scoped_critical_section",
           [BoolWrapperHandle]() -> void { test_scoped_critical_section(BoolWrapperHandle); });
@@ -200,7 +267,4 @@ TEST_SUBMODULE(scoped_critical_section, m) {
     m.def("test_scoped_critical_section2_same_object_no_deadlock", [BoolWrapperHandle]() -> void {
         test_scoped_critical_section2_same_object_no_deadlock(BoolWrapperHandle);
     });
-#else
-    m.attr("has_barrier") = false;
-#endif
 }
