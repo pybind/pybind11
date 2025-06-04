@@ -16,12 +16,14 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PYTHONDEVMODE: 1
   PIP_BREAK_SYSTEM_PACKAGES: 1
   PIP_ONLY_BINARY: numpy
   FORCE_COLOR: 3
   PYTEST_TIMEOUT: 300
   # For cmake:
   VERBOSE: 1
+  CMAKE_BUILD_PARALLEL_LEVEL: 2
   CMAKE_COLOR_DIAGNOSTICS: 1
 
 jobs:
