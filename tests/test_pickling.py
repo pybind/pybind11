@@ -68,11 +68,9 @@ def test_roundtrip(cls_name):
     [
         pytest.param(
             "PickleableWithDict",
-            marks=pytest.mark.xfail(
-                sys.version_info == (3, 14, 0, "beta", 1)
-                or sys.version_info == (3, 14, 0, "beta", 2),
+            marks=pytest.mark.skipif(
+                sys.version_info in ((3, 14, 0, "beta", 1), (3, 14, 0, "beta", 2)),
                 reason="3.14.0b1/2 bug: https://github.com/python/cpython/issues/133912",
-                strict=True,
             ),
         ),
         "PickleableWithDictNew",

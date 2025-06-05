@@ -305,11 +305,9 @@ def test_property_rvalue_policy():
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
-@pytest.mark.xfail(
-    sys.version_info == (3, 14, 0, "beta", 1)
-    or sys.version_info == (3, 14, 0, "beta", 2),
+@pytest.mark.skipif(
+    sys.version_info in ((3, 14, 0, "beta", 1), (3, 14, 0, "beta", 2)),
     reason="3.14.0b1/2 bug: https://github.com/python/cpython/issues/133912",
-    strict=True,
 )
 def test_dynamic_attributes():
     instance = m.DynamicClass()
