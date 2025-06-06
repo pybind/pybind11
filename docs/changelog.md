@@ -12,7 +12,7 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 (RC 2) (May 29, 2025)
+## 3.0.0 (RC 3) (June 4, 2025)
 
 Since this is a large release, we are providing a release candidate to give
 projects time to test! We also now provide
@@ -57,6 +57,12 @@ New Features:
 
   - Rename macro `PYBIND11_SUBINTERPRETER_SUPPORT` -> `PYBIND11_HAS_SUBINTERPRETER_SUPPORT` to meet naming convention.
     [#5682](https://github.com/pybind/pybind11/pull/5682)
+
+  - Allow subinterpreter support to be disabled if defined to 0. This is mostly an emergency workaround, and is not exposed in CMake.
+    [#5708](https://github.com/pybind/pybind11/pull/5708) and [#5710](https://github.com/pybind/pybind11/pull/5710)
+
+  - Modify internals pointer-to-pointer implementation to not use `thread_local` (better iOS support).
+    [#5709](https://github.com/pybind/pybind11/pull/5709)
 
 - Changed `PYBIND11_EMBEDDED_MODULE` macro implementation to perform
   multi-phase module initialization (PEP 489) behind the scenes and to
@@ -119,7 +125,8 @@ New Features:
   [#5669](https://github.com/pybind/pybind11/pull/5669)
 
 * Added `py::scoped_critical_section` to support free-threaded mode.
-  [#5684](https://github.com/pybind/pybind11/pull/5684)
+  [#5684](https://github.com/pybind/pybind11/pull/5684) \|
+  [#5706](https://github.com/pybind/pybind11/pull/5706)
 
 New Features / fixes (typing):
 
@@ -158,6 +165,8 @@ New Features / fixes (typing):
   [#5566](https://github.com/pybind/pybind11/pull/5566)
 - Fix `typing` and `collections.abc` type hint ambiguity.
   [#5663](https://github.com/pybind/pybind11/pull/5663)
+- Add `typing_extensions` alternatives for all types that need them.
+  [#5693](https://github.com/pybind/pybind11/pull/5693)
 
 Removals:
 
@@ -223,6 +232,8 @@ Bug fixes:
 - Change the behavior of the default constructor of `py::slice` to be
   equivalent to `::` in Python.
   [#5620](https://github.com/pybind/pybind11/pull/5620)
+- Expose required symbol when using clang.
+  [#5700](https://github.com/pybind/pybind11/pull/5700)
 
 Bug fixes and features (CMake):
 
@@ -314,12 +325,15 @@ Tests:
 
 New and removed platforms:
 
-- Support Python 3.14 (beta 1).
+- Support Python 3.14 (beta 1+).
   [#5646](https://github.com/pybind/pybind11/pull/5646)
 
 - Added support for GraalPy Python implementation
   (<https://github.com/oracle/graalpython>).
   [#5380](https://github.com/pybind/pybind11/pull/5380)
+
+- Support and test iOS in CI.
+  [#5705](https://github.com/pybind/pybind11/pull/5705)
 
 - Support for PyPy 3.11 added.
   [#5508](https://github.com/pybind/pybind11/pull/5508)
@@ -339,8 +353,15 @@ New and removed platforms:
   [#5598](https://github.com/pybind/pybind11/pull/5598) and updated
   docs/ci. [#5676](https://github.com/pybind/pybind11/pull/5676)
 
-* clang 20 tested and used for clang-tidy.
+- clang 20 tested and used for clang-tidy.
   [#5692](https://github.com/pybind/pybind11/pull/5692)
+
+- Drop testing on MSVC 2019 (as it is being removed from GitHub).
+  [#5712](https://github.com/pybind/pybind11/pull/5712)
+
+- Support Windows C++20 and Linux C++23 in tests.
+  [#5707](https://github.com/pybind/pybind11/pull/5707)
+
 
 ## Version 2.13.6 (September 13, 2024)
 
