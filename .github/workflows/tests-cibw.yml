@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: pypa/cibuildwheel@c90accef518b1dd0253bf43b639ce21f765d6794
+    - uses: pypa/cibuildwheel@v3.0.0rc2
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
@@ -40,7 +40,7 @@ jobs:
 
     - run: brew upgrade cmake
 
-    - uses: pypa/cibuildwheel@c90accef518b1dd0253bf43b639ce21f765d6794
+    - uses: pypa/cibuildwheel@v3.0.0rc2
       env:
         CIBW_PLATFORM: ios
       with:
