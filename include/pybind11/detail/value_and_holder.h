@@ -33,7 +33,11 @@ struct value_and_holder {
 
     template <typename V = void>
     V *&value_ptr() const {
-        return reinterpret_cast<V *&>(vh[0]);
+        if constexpr (std::is_const_v<V>) {
+            return reinterpret_cast<V *&>(const_cast<const void *&>(vh[0]));
+        } else {
+            return reinterpret_cast<V *&>(vh[0]);
+        }
     }
     // True if this `value_and_holder` has a non-null value pointer
     explicit operator bool() const { return value_ptr() != nullptr; }
