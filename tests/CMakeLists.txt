@@ -135,6 +135,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_unique_ptr_member
     test_class_sh_virtual_py_cpp_mix
     test_const_name
+    test_const_smart_ptr
     test_constants_and_functions
     test_copy_move
     test_cpp_conduit
