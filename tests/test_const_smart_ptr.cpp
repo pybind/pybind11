@@ -5,10 +5,12 @@
 #include <string>
 #include <utility>
 
+namespace const_smart_ptr {
+
 template <class T>
-class SingleThreadedSharedPtr {
+class non_sync_const_shared_ptr {
 public:
-    explicit SingleThreadedSharedPtr(const T *ptr) {
+    explicit non_sync_const_shared_ptr(const T *ptr) {
         try {
             counter_ = new uint64_t(1);
         } catch (...) {
@@ -18,16 +20,16 @@ public:
         ptr_ = ptr;
     }
 
-    SingleThreadedSharedPtr(const SingleThreadedSharedPtr &other)
+    non_sync_const_shared_ptr(const non_sync_const_shared_ptr &other)
         : ptr_(other.ptr_), counter_(other.counter_) {
         ++*counter_;
     }
 
-    SingleThreadedSharedPtr(SingleThreadedSharedPtr &&other) noexcept
+    non_sync_const_shared_ptr(non_sync_const_shared_ptr &&other) noexcept
         : ptr_(std::exchange(other.ptr_, nullptr)),
           counter_(std::exchange(other.counter_, nullptr)) {}
 
-    ~SingleThreadedSharedPtr() {
+    ~non_sync_const_shared_ptr() {
         if (!counter_) {
             return;
         }
@@ -49,12 +51,10 @@ private:
     uint64_t *counter_ = nullptr;
 };
 
-PYBIND11_DECLARE_HOLDER_TYPE(T, SingleThreadedSharedPtr<T>, true)
-
 class MyData {
 public:
-    static SingleThreadedSharedPtr<MyData> create(std::string name) {
-        return SingleThreadedSharedPtr<MyData>(new MyData(std::move(name)));
+    static non_sync_const_shared_ptr<MyData> create(std::string name) {
+        return non_sync_const_shared_ptr<MyData>(new MyData(std::move(name)));
     }
 
     const std::string &getName() const { return name_; }
@@ -64,9 +64,14 @@ private:
 
     std::string name_;
 };
+} // namespace const_smart_ptr
+
+PYBIND11_DECLARE_HOLDER_TYPE(T, const_smart_ptr::non_sync_const_shared_ptr<T>, true)
 
 TEST_SUBMODULE(const_module, m) {
-    py::class_<MyData, SingleThreadedSharedPtr<MyData>>(m, "Data")
-        .def(py::init([](const std::string &name) { return MyData::create(name); }))
-        .def_property_readonly("name", &MyData::getName);
+    py::class_<const_smart_ptr::MyData,
+               const_smart_ptr::non_sync_const_shared_ptr<const_smart_ptr::MyData>>(m, "Data")
+        .def(py::init(
+            [](const std::string &name) { return const_smart_ptr::MyData::create(name); }))
+        .def_property_readonly("name", &const_smart_ptr::MyData::getName);
 }
