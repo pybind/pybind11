@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace const_smart_ptr {
+namespace const_only_smart_ptr {
 
 template <class T>
 class non_sync_const_shared_ptr {
@@ -64,14 +64,15 @@ private:
 
     std::string name_;
 };
-} // namespace const_smart_ptr
+} // namespace const_only_smart_ptr
 
-PYBIND11_DECLARE_HOLDER_TYPE(T, const_smart_ptr::non_sync_const_shared_ptr<T>, true)
+PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_smart_ptr::non_sync_const_shared_ptr<T>, true)
 
 TEST_SUBMODULE(const_module, m) {
-    py::class_<const_smart_ptr::MyData,
-               const_smart_ptr::non_sync_const_shared_ptr<const_smart_ptr::MyData>>(m, "Data")
+    py::class_<const_only_smart_ptr::MyData,
+               const_only_smart_ptr::non_sync_const_shared_ptr<const_only_smart_ptr::MyData>>(
+        m, "Data")
         .def(py::init(
-            [](const std::string &name) { return const_smart_ptr::MyData::create(name); }))
-        .def_property_readonly("name", &const_smart_ptr::MyData::getName);
+            [](const std::string &name) { return const_only_smart_ptr::MyData::create(name); }))
+        .def_property_readonly("name", &const_only_smart_ptr::MyData::getName);
 }
