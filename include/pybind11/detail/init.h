@@ -167,7 +167,7 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
                          "is not an alias instance");
     }
 
-    v_h.value_ptr<std::remove_pointer_t<decltype(ptr)>>() = ptr;
+    v_h.value_ptr<typename std::remove_pointer<decltype(ptr)>::type>() = ptr;
     v_h.type->init_instance(v_h.inst, &holder);
 }
 
