@@ -22,7 +22,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, StaticPtr<T>, true)
 class MyData {
 public:
     static StaticPtr<MyData> create(std::string name) {
-        return StaticPtr(new MyData(std::move(name)));
+        return StaticPtr<MyData>(new MyData(std::move(name)));
     }
 
     const std::string &getName() const { return name_; }
