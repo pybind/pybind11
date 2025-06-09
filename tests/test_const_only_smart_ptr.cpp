@@ -3,7 +3,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 namespace const_only_smart_ptr {
 
@@ -26,8 +25,10 @@ public:
     }
 
     non_sync_const_shared_ptr(non_sync_const_shared_ptr &&other) noexcept
-        : ptr_(std::exchange(other.ptr_, nullptr)),
-          counter_(std::exchange(other.counter_, nullptr)) {}
+        : ptr_(other.ptr_), counter_(other.counter_) {
+        other.ptr_ = nullptr;
+        other.counter_ = nullptr;
+    }
 
     ~non_sync_const_shared_ptr() {
         if (!counter_) {
