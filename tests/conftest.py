@@ -206,6 +206,8 @@ def gc_collect():
     gc.collect()
     gc.collect()
     gc.collect()
+    gc.collect()
+    gc.collect()
 
 
 def pytest_configure():

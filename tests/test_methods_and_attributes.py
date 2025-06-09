@@ -305,11 +305,9 @@ def test_property_rvalue_policy():
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
-@pytest.mark.xfail(
-    sys.version_info == (3, 14, 0, "beta", 1)
-    or sys.version_info == (3, 14, 0, "beta", 2),
-    reason="3.14.0b1/2 bug: https://github.com/python/cpython/issues/133912",
-    strict=True,
+@pytest.mark.skipif(
+    sys.version_info in ((3, 14, 0, "beta", 1), (3, 14, 0, "beta", 2)),
+    reason="3.14.0b1/2 managed dict bug: https://github.com/python/cpython/issues/133912",
 )
 def test_dynamic_attributes():
     instance = m.DynamicClass()
@@ -337,25 +335,31 @@ def test_dynamic_attributes():
     cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
+    pytest.gc_collect()
     assert cstats.alive() == 0
 
     # Derived classes should work as well
     class PythonDerivedDynamicClass(m.DynamicClass):
         pass
 
-    for cls in m.CppDerivedDynamicClass, PythonDerivedDynamicClass:
+    for cls in (m.CppDerivedDynamicClass, PythonDerivedDynamicClass):
         derived = cls()
         derived.foobar = 100
         assert derived.foobar == 100
 
         assert cstats.alive() == 1
         del derived
+        pytest.gc_collect()
         assert cstats.alive() == 0
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+@pytest.mark.skipif(
+    sys.version_info in ((3, 14, 0, "beta", 1), (3, 14, 0, "beta", 2)),
+    reason="3.14.0b1/2 managed dict bug: https://github.com/python/cpython/issues/133912",
+)
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()
@@ -364,6 +368,7 @@ def test_cyclic_gc():
     cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
+    pytest.gc_collect()
     assert cstats.alive() == 0
 
     # Two object reference each other
@@ -374,6 +379,7 @@ def test_cyclic_gc():
 
     assert cstats.alive() == 2
     del i1, i2
+    pytest.gc_collect()
     assert cstats.alive() == 0
 
 
