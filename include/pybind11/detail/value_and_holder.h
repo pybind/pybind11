@@ -33,7 +33,7 @@ struct value_and_holder {
 
     template <typename V = void>
     V *&value_ptr() const {
-        return cast_void<V>(vh[0]);
+        return reinterpret_cast<V *&>(vh[0]);
     }
     // True if this `value_and_holder` has a non-null value pointer
     explicit operator bool() const { return value_ptr() != nullptr; }
@@ -71,17 +71,6 @@ struct value_and_holder {
         } else {
             inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_instance_registered;
         }
-    }
-
-private:
-    template <typename V, detail::enable_if_t<!std::is_const<V>::value, bool> = true>
-    static V *&cast_void(void *&ptr) {
-        return reinterpret_cast<V *&>(ptr);
-    }
-
-    template <typename V, detail::enable_if_t<std::is_const<V>::value, bool> = true>
-    static V *&cast_void(void *&ptr) {
-        return reinterpret_cast<V *&>(const_cast<const void *&>(ptr));
     }
 };
 

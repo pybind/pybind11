@@ -167,7 +167,12 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
                          "is not an alias instance");
     }
 
-    v_h.value_ptr<typename std::remove_pointer<decltype(ptr)>::type>() = ptr;
+    // Cast away constness to store in void* storage.
+    // The value_and_holder storage is fundamentally untyped (void**), so we lose
+    // const-correctness here by design. The const qualifier will be restored
+    // when the pointer is later retrieved and cast back to the original type.
+    // This explicit const_cast makes the const-removal clearly visible.
+    v_h.value_ptr() = const_cast<void *>(static_cast<const void *>(ptr));
     v_h.type->init_instance(v_h.inst, &holder);
 }
 
