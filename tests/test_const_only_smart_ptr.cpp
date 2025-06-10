@@ -4,16 +4,21 @@
 #include <memory>
 #include <string>
 
-namespace test_const_only_smart_ptr {
+namespace const_only_smart_ptr {
 
 template <class T>
 class non_sync_const_shared_ptr {
 public:
+    non_sync_const_shared_ptr() = default;
+
     explicit non_sync_const_shared_ptr(const T *ptr) {
-        try {
-            counter_ = new uint64_t(1);
-        } catch (...) {
-            delete ptr;
+        if (ptr) {
+            try {
+                counter_ = new size_t(1);
+            } catch (...) {
+                delete ptr;
+                throw;
+            }
         }
 
         ptr_ = ptr;
@@ -21,7 +26,9 @@ public:
 
     non_sync_const_shared_ptr(const non_sync_const_shared_ptr &other)
         : ptr_(other.ptr_), counter_(other.counter_) {
-        ++*counter_;
+        if (counter_) {
+            ++*counter_;
+        }
     }
 
     non_sync_const_shared_ptr(non_sync_const_shared_ptr &&other) noexcept
@@ -30,7 +37,50 @@ public:
         other.counter_ = nullptr;
     }
 
-    ~non_sync_const_shared_ptr() {
+    non_sync_const_shared_ptr &operator=(const non_sync_const_shared_ptr &other) {
+        if (this == &other) {
+            return *this;
+        }
+
+        release();
+
+        ptr_ = other.ptr_;
+        counter_ = other.counter_;
+
+        if (counter_) {
+            ++*counter_;
+        }
+
+        return *this;
+    }
+
+    non_sync_const_shared_ptr &operator=(non_sync_const_shared_ptr &&other) noexcept {
+        if (this == &other) {
+            return *this;
+        }
+
+        release();
+
+        ptr_ = other.ptr_;
+        counter_ = other.counter_;
+
+        other.ptr_ = nullptr;
+        other.counter_ = nullptr;
+
+        return *this;
+    }
+
+    ~non_sync_const_shared_ptr() { release(); }
+
+    const T *get() const { return ptr_; }
+
+    const T &operator*() const { return *ptr_; }
+    const T *operator->() const { return ptr_; }
+
+    explicit operator bool() const { return ptr_ != nullptr; }
+
+private:
+    void release() noexcept {
         if (!counter_) {
             return;
         }
@@ -39,17 +89,15 @@ public:
 
         if (*counter_ == 0) {
             delete ptr_;
+            delete counter_;
         }
+
+        ptr_ = nullptr;
+        counter_ = nullptr;
     }
 
-    const T *get() const { return ptr_; }
-
-    const T &operator*() const { return *ptr_; }
-    const T *operator->() const { return ptr_; }
-
-private:
     const T *ptr_ = nullptr;
-    uint64_t *counter_ = nullptr;
+    size_t *counter_ = nullptr;
 };
 
 class MyData {
@@ -65,10 +113,9 @@ private:
 
     std::string name_;
 };
+} // namespace const_only_smart_ptr
 
-} // namespace test_const_only_smart_ptr
-
-using namespace test_const_only_smart_ptr;
+using namespace const_only_smart_ptr;
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, non_sync_const_shared_ptr<T>, true)
 
