@@ -7,7 +7,7 @@ babel==2.14.0
 beautifulsoup4==4.12.3
     # via furo
 breathe==4.35.0
-    # via -r docs/requirements.in
+    # via -r requirements.in
 certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
@@ -18,10 +18,12 @@ docutils==0.20.1
     #   myst-parser
     #   sphinx
 furo==2024.1.29
-    # via -r docs/requirements.in
+    # via -r requirements.in
 idna==3.7
     # via requests
 imagesize==1.4.1
+    # via sphinx
+importlib-metadata==8.7.0
     # via sphinx
 jinja2==3.1.6
     # via
@@ -37,8 +39,8 @@ mdit-py-plugins==0.4.2
     # via myst-parser
 mdurl==0.1.2
     # via markdown-it-py
-myst-parser==4.0.1
-    # via -r docs/requirements.in
+myst-parser==3.0.1
+    # via -r requirements.in
 packaging==24.0
     # via sphinx
 pygments==2.17.2
@@ -47,7 +49,7 @@ pygments==2.17.2
     #   sphinx
 pyyaml==6.0.2
     # via myst-parser
-requests==2.32.3
+requests==2.32.4
     # via sphinx
 snowballstemmer==2.2.0
     # via sphinx
@@ -55,7 +57,7 @@ soupsieve==2.5
     # via beautifulsoup4
 sphinx==7.2.6
     # via
-    #   -r docs/requirements.in
+    #   -r requirements.in
     #   breathe
     #   furo
     #   myst-parser
@@ -66,7 +68,7 @@ sphinx==7.2.6
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinx-copybutton==0.5.2
-    # via -r docs/requirements.in
+    # via -r requirements.in
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
 sphinxcontrib-devhelp==1.0.6
@@ -76,12 +78,14 @@ sphinxcontrib-htmlhelp==2.0.5
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
 sphinxcontrib-moderncmakedomain==3.27.0
-    # via -r docs/requirements.in
+    # via -r requirements.in
 sphinxcontrib-qthelp==1.0.7
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 sphinxcontrib-svg2pdfconverter==1.2.2
-    # via -r docs/requirements.in
+    # via -r requirements.in
 urllib3==2.2.2
     # via requests
+zipp==3.23.0
+    # via importlib-metadata
