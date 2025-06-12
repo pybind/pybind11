@@ -69,6 +69,20 @@ public:
     T **operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
 };
 
+// Simple custom holder that imitates smart pointer, that always stores cpointer to const
+template <class T>
+class const_only_shared_ptr {
+    std::shared_ptr<const T> ptr_;
+
+public:
+    const_only_shared_ptr() = default;
+    explicit const_only_shared_ptr(const T *ptr) : ptr_(ptr) {}
+    const T *get() const { return ptr_.get(); }
+
+private:
+    // for demonstration purpose only, this imitates smart pointer with a const-only pointer
+};
+
 // Custom object with builtin reference counting (see 'object.h' for the implementation)
 class MyObject1 : public Object {
 public:
@@ -283,6 +297,7 @@ struct holder_helper<ref<T>> {
 
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
+PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>)
@@ -396,6 +411,11 @@ TEST_SUBMODULE(smart_ptr, m) {
           [](const std::shared_ptr<MyObject2> &obj) { py::print(obj->toString()); });
     m.def("print_myobject2_4",
           [](const std::shared_ptr<MyObject2> *obj) { py::print((*obj)->toString()); });
+
+    m.def("make_myobject2_3",
+          [](int val) { return const_only_shared_ptr<MyObject2>(new MyObject2(val)); });
+    m.def("print_myobject2_5",
+          [](const const_only_shared_ptr<MyObject2> &obj) { py::print(obj.get()->toString()); });
 
     py::class_<MyObject3, std::shared_ptr<MyObject3>>(m, "MyObject3").def(py::init<int>());
     m.def("make_myobject3_1", []() { return new MyObject3(8); });

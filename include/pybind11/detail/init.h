@@ -37,7 +37,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(initimpl)
 
-inline void no_nullptr(void *ptr) {
+inline void no_nullptr(const void *ptr) {
     if (!ptr) {
         throw type_error("pybind11::init(): factory function returned nullptr");
     }
@@ -61,7 +61,7 @@ bool is_alias(Cpp<Class> *ptr) {
 }
 // Failing fallback version of the above for a no-alias class (always returns false)
 template <typename /*Class*/>
-constexpr bool is_alias(void *) {
+constexpr bool is_alias(const void *) {
     return false;
 }
 
@@ -167,7 +167,12 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
                          "is not an alias instance");
     }
 
-    v_h.value_ptr() = ptr;
+    // Cast away constness to store in void* storage.
+    // The value_and_holder storage is fundamentally untyped (void**), so we lose
+    // const-correctness here by design. The const qualifier will be restored
+    // when the pointer is later retrieved and cast back to the original type.
+    // This explicit const_cast makes the const-removal clearly visible.
+    v_h.value_ptr() = const_cast<void *>(static_cast<const void *>(ptr));
     v_h.type->init_instance(v_h.inst, &holder);
 }
 
