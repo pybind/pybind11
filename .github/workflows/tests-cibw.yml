@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: mhsmith/cibuildwheel@android
+    - uses: pypa/cibuildwheel@3.0
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
@@ -44,7 +44,7 @@ jobs:
 
     - run: brew upgrade cmake
 
-    - uses: mhsmith/cibuildwheel@android
+    - uses: pypa/cibuildwheel@3.0
       env:
         CIBW_PLATFORM: ios
       with:
@@ -66,5 +66,6 @@ jobs:
     - uses: mhsmith/cibuildwheel@android
       env:
         CIBW_PLATFORM: android
+        CIBW_ENVIRONMENT_ANDROID: ANDROID_API_LEVEL="24"
       with:
         package-dir: tests
