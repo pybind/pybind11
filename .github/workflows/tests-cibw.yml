@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: pypa/cibuildwheel@3.0
+    - uses: pypa/cibuildwheel@v3.0
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
@@ -44,7 +44,7 @@ jobs:
 
     - run: brew upgrade cmake
 
-    - uses: pypa/cibuildwheel@3.0
+    - uses: pypa/cibuildwheel@v3.0
       env:
         CIBW_PLATFORM: ios
       with:
@@ -63,7 +63,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - run: pipx install wheel
+    - run: pipx install wheel patchelf
 
     - uses: mhsmith/cibuildwheel@android
       env:
