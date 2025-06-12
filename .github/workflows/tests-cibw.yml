@@ -68,6 +68,7 @@ jobs:
     - uses: mhsmith/cibuildwheel@android
       env:
         CIBW_PLATFORM: android
+        # Needed to include C++ in the wheel
         CIBW_ENVIRONMENT_ANDROID: ANDROID_API_LEVEL="24"
       with:
         package-dir: tests
