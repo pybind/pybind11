@@ -63,6 +63,8 @@ jobs:
         submodules: true
         fetch-depth: 0
 
+    - run: pipx install wheel
+
     - uses: mhsmith/cibuildwheel@android
       env:
         CIBW_PLATFORM: android
