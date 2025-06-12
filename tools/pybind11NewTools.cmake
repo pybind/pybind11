@@ -243,6 +243,17 @@ if(TARGET ${_Python}::Python)
 endif()
 
 if(TARGET ${_Python}::Module)
+  # On Android, older versions of CMake don't know that modules need to link against
+  # libpython, so Python::Module will be an INTERFACE target with no associated library
+  # files.
+  get_target_property(module_target_type ${_Python}::Module TYPE)
+  if(ANDROID AND module_target_type STREQUAL INTERFACE_LIBRARY)
+    set_property(
+      TARGET ${_Python}::Module
+      APPEND
+      PROPERTY INTERFACE_LINK_LIBRARIES "${${_Python}_LIBRARIES}")
+  endif()
+
   set_property(
     TARGET pybind11::module
     APPEND

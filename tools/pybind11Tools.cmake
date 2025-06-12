@@ -119,7 +119,8 @@ target_link_libraries(
   pybind11::module
   INTERFACE
     pybind11::python_link_helper
-    "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:pybind11::_ClassicPythonLibraries>")
+    "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>,$<PLATFORM_ID:Android>>:pybind11::_ClassicPythonLibraries>"
+)
 
 target_link_libraries(pybind11::embed INTERFACE pybind11::pybind11
                                                 pybind11::_ClassicPythonLibraries)

@@ -30,8 +30,12 @@ jobs:
         only: cp312-pyodide_wasm32
 
   build-ios:
-    name: iOS wheel
-    runs-on: macos-latest
+    name: iOS wheel ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, macos-13]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -43,5 +47,28 @@ jobs:
     - uses: pypa/cibuildwheel@v3.0
       env:
         CIBW_PLATFORM: ios
+      with:
+        package-dir: tests
+
+  build-android:
+    name: Android wheel ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, macos-13, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - run: pipx install wheel patchelf
+
+    - uses: mhsmith/cibuildwheel@android
+      env:
+        CIBW_PLATFORM: android
+        # Needed to include C++ in the wheel
+        CIBW_ENVIRONMENT_ANDROID: ANDROID_API_LEVEL="24"
       with:
         package-dir: tests
