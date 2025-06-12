@@ -6,6 +6,7 @@ import sysconfig
 
 import pytest
 
+ANDROID = sys.platform.startswith("android")
 LINUX = sys.platform.startswith("linux")
 MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
