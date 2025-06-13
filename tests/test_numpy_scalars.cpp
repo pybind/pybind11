@@ -19,7 +19,7 @@ namespace py = pybind11;
 template <typename T>
 struct add {
     T x;
-    add(T x) : x(x) {}
+    explicit add(T x) : x(x) {}
     T operator()(T y) const { return static_cast<T>(x + y); }
 };
 

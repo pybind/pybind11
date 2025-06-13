@@ -438,24 +438,14 @@ DECL_NPY_SCALAR(signed char, NPY_BYTE);
 DECL_NPY_SCALAR(unsigned char, NPY_UBYTE);
 
 // signed integer types
-DECL_NPY_SCALAR(std::int16_t, NPY_SHORT);
-DECL_NPY_SCALAR(std::int32_t, NPY_INT);
-DECL_NPY_SCALAR(std::int64_t, NPY_LONG);
-#if defined(__linux__)
-DECL_NPY_SCALAR(long long, NPY_LONG);
-#else
-DECL_NPY_SCALAR(long, NPY_LONG);
-#endif
+DECL_NPY_SCALAR(std::int16_t, NPY_INT16);
+DECL_NPY_SCALAR(std::int32_t, NPY_INT32);
+DECL_NPY_SCALAR(std::int64_t, NPY_INT64);
 
 // unsigned integer types
-DECL_NPY_SCALAR(std::uint16_t, NPY_USHORT);
-DECL_NPY_SCALAR(std::uint32_t, NPY_UINT);
-DECL_NPY_SCALAR(std::uint64_t, NPY_ULONG);
-#if defined(__linux__)
-DECL_NPY_SCALAR(unsigned long long, NPY_ULONG);
-#else
-DECL_NPY_SCALAR(unsigned long, NPY_ULONG);
-#endif
+DECL_NPY_SCALAR(std::uint16_t, NPY_UINT16);
+DECL_NPY_SCALAR(std::uint32_t, NPY_UINT32);
+DECL_NPY_SCALAR(std::uint64_t, NPY_UINT64);
 
 // floating point types
 DECL_NPY_SCALAR(float, NPY_FLOAT);
@@ -819,9 +809,9 @@ struct numpy_scalar {
     value_type value;
 
     numpy_scalar() = default;
-    numpy_scalar(value_type value) : value(value) {}
+    explicit numpy_scalar(value_type value) : value(value) {}
 
-    operator value_type() { return value; }
+    explicit operator value_type() { return value; }
     numpy_scalar &operator=(value_type value) {
         this->value = value;
         return *this;
