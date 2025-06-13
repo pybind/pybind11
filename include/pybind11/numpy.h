@@ -393,25 +393,30 @@ struct npy_format_descriptor_name;
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
     static constexpr auto name = const_name<std::is_same<T, bool>::value>(
-        const_name("bool"),
-        const_name<std::is_signed<T>::value>("int", "uint") + const_name<sizeof(T) * 8>());
+        const_name("numpy.bool"),
+        const_name<std::is_signed<T>::value>("numpy.int", "numpy.uint")
+            + const_name<sizeof(T) * 8>());
 };
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
-    static constexpr auto name
-        = const_name < std::is_same<T, float>::value
-          || std::is_same<T, double>::value
-                 > (const_name("float") + const_name<sizeof(T) * 8>(), const_name("longdouble"));
+    static constexpr auto name = const_name < std::is_same<T, float>::value
+                                 || std::is_same<T, const float>::value
+                                 || std::is_same<T, double>::value
+                                 || std::is_same<T, const double>::value
+                                        > (const_name("numpy.float") + const_name<sizeof(T) * 8>(),
+                                           const_name("numpy.longdouble"));
 };
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
-    static constexpr auto name
-        = const_name < std::is_same<typename T::value_type, float>::value
-          || std::is_same<typename T::value_type, double>::value
-                 > (const_name("complex") + const_name<sizeof(typename T::value_type) * 16>(),
-                    const_name("longcomplex"));
+    static constexpr auto name = const_name < std::is_same<typename T::value_type, float>::value
+                                 || std::is_same<typename T::value_type, const float>::value
+                                 || std::is_same<typename T::value_type, double>::value
+                                 || std::is_same<typename T::value_type, const double>::value
+                                        > (const_name("numpy.complex")
+                                               + const_name<sizeof(typename T::value_type) * 16>(),
+                                           const_name("numpy.longcomplex"));
 };
 
 template <typename T>
