@@ -136,7 +136,7 @@ jobs:
             python-version: '3.10'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_FLAGS="/GR /EHsc"
           - runs-on: windows-2022
-            python-version: '3.13'
+            python-version: '3.13.3'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
           - runs-on: windows-latest
             python-version: '3.13t'
@@ -850,7 +850,7 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=17
           - python: '3.10'
             args: -DCMAKE_CXX_STANDARD=20
-          - python: '3.13'
+          - python: '3.13.3'
 
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 • x86 ${{ matrix.args }}"
