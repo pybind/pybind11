@@ -49,6 +49,9 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 class dtype; // Forward declaration
 class array; // Forward declaration
 
+template <typename>
+struct numpy_scalar; // Forward declaration
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <>
@@ -245,6 +248,21 @@ struct npy_api {
         NPY_UINT64_
         = platform_lookup<std::uint64_t, unsigned long, unsigned long long, unsigned int>(
             NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
+        NPY_FLOAT32_ = platform_lookup<float, double, float, long double>(
+            NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_FLOAT64_ = platform_lookup<double, double, float, long double>(
+            NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_COMPLEX64_
+        = platform_lookup<std::complex<float>,
+                          std::complex<double>,
+                          std::complex<float>,
+                          std::complex<long double>>(NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_COMPLEX128_
+        = platform_lookup<std::complex<double>,
+                          std::complex<double>,
+                          std::complex<float>,
+                          std::complex<long double>>(NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_CHAR_ = std::is_signed<char>::value ? NPY_BYTE_ : NPY_UBYTE_,
     };
 
     unsigned int PyArray_RUNTIME_VERSION_;
@@ -268,6 +286,7 @@ struct npy_api {
 
     unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
     PyObject *(*PyArray_DescrFromType_)(int);
+    PyObject *(*PyArray_TypeObjectFromType_)(int);
     PyObject *(*PyArray_NewFromDescr_)(PyTypeObject *,
                                        PyObject *,
                                        int,
@@ -284,6 +303,8 @@ struct npy_api {
     PyTypeObject *PyVoidArrType_Type_;
     PyTypeObject *PyArrayDescr_Type_;
     PyObject *(*PyArray_DescrFromScalar_)(PyObject *);
+    PyObject *(*PyArray_Scalar_)(void *, PyObject *, PyObject *);
+    void (*PyArray_ScalarAsCtype_)(PyObject *, void *);
     PyObject *(*PyArray_FromAny_)(PyObject *, PyObject *, int, int, int, PyObject *);
     int (*PyArray_DescrConverter_)(PyObject *, PyObject **);
     bool (*PyArray_EquivTypes_)(PyObject *, PyObject *);
@@ -301,7 +322,10 @@ private:
         API_PyArrayDescr_Type = 3,
         API_PyVoidArrType_Type = 39,
         API_PyArray_DescrFromType = 45,
+        API_PyArray_TypeObjectFromType = 46,
         API_PyArray_DescrFromScalar = 57,
+        API_PyArray_Scalar = 60,
+        API_PyArray_ScalarAsCtype = 62,
         API_PyArray_FromAny = 69,
         API_PyArray_Resize = 80,
         // CopyInto was slot 82 and 50 was effectively an alias. NumPy 2 removed 82.
@@ -336,7 +360,10 @@ private:
         DECL_NPY_API(PyVoidArrType_Type);
         DECL_NPY_API(PyArrayDescr_Type);
         DECL_NPY_API(PyArray_DescrFromType);
+        DECL_NPY_API(PyArray_TypeObjectFromType);
         DECL_NPY_API(PyArray_DescrFromScalar);
+        DECL_NPY_API(PyArray_Scalar);
+        DECL_NPY_API(PyArray_ScalarAsCtype);
         DECL_NPY_API(PyArray_FromAny);
         DECL_NPY_API(PyArray_Resize);
         DECL_NPY_API(PyArray_CopyInto);
@@ -354,6 +381,88 @@ private:
         return api;
     }
 };
+
+template <typename T>
+struct is_complex : std::false_type {};
+template <typename T>
+struct is_complex<std::complex<T>> : std::true_type {};
+
+template <typename T, typename = void>
+struct npy_format_descriptor_name;
+
+template <typename T>
+struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
+    static constexpr auto name = const_name<std::is_same<T, bool>::value>(
+        const_name("bool"),
+        const_name<std::is_signed<T>::value>("int", "uint") + const_name<sizeof(T) * 8>());
+};
+
+template <typename T>
+struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
+    static constexpr auto name
+        = const_name < std::is_same<T, float>::value
+          || std::is_same<T, double>::value
+                 > (const_name("float") + const_name<sizeof(T) * 8>(), const_name("longdouble"));
+};
+
+template <typename T>
+struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
+    static constexpr auto name
+        = const_name < std::is_same<typename T::value_type, float>::value
+          || std::is_same<typename T::value_type, double>::value
+                 > (const_name("complex") + const_name<sizeof(typename T::value_type) * 16>(),
+                    const_name("longcomplex"));
+};
+
+template <typename T>
+struct numpy_scalar_info {};
+
+#define DECL_NPY_SCALAR(ctype_, typenum_)                                                         \
+    template <>                                                                                   \
+    struct numpy_scalar_info<ctype_> {                                                            \
+        static constexpr auto name = npy_format_descriptor_name<ctype_>::name;                    \
+        static constexpr int typenum = npy_api::typenum_##_;                                      \
+    }
+
+// boolean type
+DECL_NPY_SCALAR(bool, NPY_BOOL);
+
+// character types
+DECL_NPY_SCALAR(char, NPY_CHAR);
+DECL_NPY_SCALAR(signed char, NPY_BYTE);
+DECL_NPY_SCALAR(unsigned char, NPY_UBYTE);
+
+// signed integer types
+DECL_NPY_SCALAR(std::int16_t, NPY_SHORT);
+DECL_NPY_SCALAR(std::int32_t, NPY_INT);
+DECL_NPY_SCALAR(std::int64_t, NPY_LONG);
+#if defined(__linux__)
+DECL_NPY_SCALAR(long long, NPY_LONG);
+#else
+DECL_NPY_SCALAR(long, NPY_LONG);
+#endif
+
+// unsigned integer types
+DECL_NPY_SCALAR(std::uint16_t, NPY_USHORT);
+DECL_NPY_SCALAR(std::uint32_t, NPY_UINT);
+DECL_NPY_SCALAR(std::uint64_t, NPY_ULONG);
+#if defined(__linux__)
+DECL_NPY_SCALAR(unsigned long long, NPY_ULONG);
+#else
+DECL_NPY_SCALAR(unsigned long, NPY_ULONG);
+#endif
+
+// floating point types
+DECL_NPY_SCALAR(float, NPY_FLOAT);
+DECL_NPY_SCALAR(double, NPY_DOUBLE);
+DECL_NPY_SCALAR(long double, NPY_LONGDOUBLE);
+
+// complex types
+DECL_NPY_SCALAR(std::complex<float>, NPY_CFLOAT);
+DECL_NPY_SCALAR(std::complex<double>, NPY_CDOUBLE);
+DECL_NPY_SCALAR(std::complex<long double>, NPY_CLONGDOUBLE);
+
+#undef DECL_NPY_SCALAR
 
 // This table normalizes typenums by mapping NPY_INT_, NPY_LONG, ... to NPY_INT32_, NPY_INT64, ...
 // This is needed to correctly handle situations where multiple typenums map to the same type,
@@ -453,10 +562,6 @@ template <typename T>
 struct is_std_array : std::false_type {};
 template <typename T, size_t N>
 struct is_std_array<std::array<T, N>> : std::true_type {};
-template <typename T>
-struct is_complex : std::false_type {};
-template <typename T>
-struct is_complex<std::complex<T>> : std::true_type {};
 
 template <typename T>
 struct array_info_scalar {
@@ -670,7 +775,58 @@ template <typename T, ssize_t Dim>
 struct type_caster<unchecked_mutable_reference<T, Dim>>
     : type_caster<unchecked_reference<T, Dim>> {};
 
+template <typename T>
+struct type_caster<numpy_scalar<T>> {
+    using value_type = T;
+    using type_info = numpy_scalar_info<T>;
+
+    PYBIND11_TYPE_CASTER(numpy_scalar<T>, type_info::name);
+
+    static handle &target_type() {
+        static handle tp = npy_api::get().PyArray_TypeObjectFromType_(type_info::typenum);
+        return tp;
+    }
+
+    static handle &target_dtype() {
+        static handle tp = npy_api::get().PyArray_DescrFromType_(type_info::typenum);
+        return tp;
+    }
+
+    bool load(handle src, bool) {
+        if (isinstance(src, target_type())) {
+            npy_api::get().PyArray_ScalarAsCtype_(src.ptr(), &value.value);
+            return true;
+        }
+        return false;
+    }
+
+    static handle cast(numpy_scalar<T> src, return_value_policy, handle) {
+        return npy_api::get().PyArray_Scalar_(&src.value, target_dtype().ptr(), nullptr);
+    }
+};
+
 PYBIND11_NAMESPACE_END(detail)
+
+template <typename T>
+struct numpy_scalar {
+    using value_type = T;
+
+    value_type value;
+
+    numpy_scalar() = default;
+    numpy_scalar(value_type value) : value(value) {}
+
+    operator value_type() { return value; }
+    numpy_scalar &operator=(value_type value) {
+        this->value = value;
+        return *this;
+    }
+};
+
+template <typename T>
+numpy_scalar<T> make_scalar(T value) {
+    return numpy_scalar<T>(value);
+}
 
 class dtype : public object {
 public:
@@ -1407,38 +1563,6 @@ struct compare_buffer_info<T, detail::enable_if_t<detail::is_pod_struct<T>::valu
     static bool compare(const buffer_info &b) {
         return npy_api::get().PyArray_EquivTypes_(dtype::of<T>().ptr(), dtype(b).ptr());
     }
-};
-
-template <typename T, typename = void>
-struct npy_format_descriptor_name;
-
-template <typename T>
-struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
-    static constexpr auto name = const_name<std::is_same<T, bool>::value>(
-        const_name("bool"),
-        const_name<std::is_signed<T>::value>("numpy.int", "numpy.uint")
-            + const_name<sizeof(T) * 8>());
-};
-
-template <typename T>
-struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
-    static constexpr auto name = const_name < std::is_same<T, float>::value
-                                 || std::is_same<T, const float>::value
-                                 || std::is_same<T, double>::value
-                                 || std::is_same<T, const double>::value
-                                        > (const_name("numpy.float") + const_name<sizeof(T) * 8>(),
-                                           const_name("numpy.longdouble"));
-};
-
-template <typename T>
-struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
-    static constexpr auto name = const_name < std::is_same<typename T::value_type, float>::value
-                                 || std::is_same<typename T::value_type, const float>::value
-                                 || std::is_same<typename T::value_type, double>::value
-                                 || std::is_same<typename T::value_type, const double>::value
-                                        > (const_name("numpy.complex")
-                                               + const_name<sizeof(typename T::value_type) * 16>(),
-                                           const_name("numpy.longcomplex"));
 };
 
 template <typename T>
