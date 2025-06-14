@@ -352,8 +352,6 @@ def test_move_only_holder_caster_shared_ptr_with_smart_holder_support_enabled():
     )
 
 
-def test_const_only_holder(capture):
-    o = m.make_myobject2_3(4)
-    with capture:
-        m.print_myobject2_5(o)
-    assert capture == "MyObject2[4]\n"
+def test_const_only_holder():
+    o = m.MyObject6("my_data")
+    assert o.value == "my_data"
