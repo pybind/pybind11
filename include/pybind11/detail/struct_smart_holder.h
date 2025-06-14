@@ -231,8 +231,7 @@ struct smart_holder {
         }
     }
 
-    void reset_vptr_deleter_armed_flag(bool armed_flag) const {
-        auto *vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
+    void reset_vptr_deleter_armed_flag(guarded_delete *vptr_del_ptr, bool armed_flag) const {
         if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
@@ -242,8 +241,7 @@ struct smart_holder {
 
     // Caller is responsible for precondition: ensure_compatible_rtti_uqp_del<T, D>() must succeed.
     template <typename T, typename D>
-    std::unique_ptr<D> extract_deleter(const char *context) const {
-        const auto *gd = std::get_deleter<guarded_delete>(vptr);
+    std::unique_ptr<D> extract_deleter(const char *context, const guarded_delete *gd) const {
         if (gd && gd->use_del_fun) {
             const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter<T, D>>();
             if (custom_deleter_ptr == nullptr) {
@@ -288,15 +286,15 @@ struct smart_holder {
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void disown() {
-        reset_vptr_deleter_armed_flag(false);
+    void disown(guarded_delete *vptr_del_ptr) {
+        reset_vptr_deleter_armed_flag(vptr_del_ptr, false);
         is_disowned = true;
     }
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void reclaim_disowned() {
-        reset_vptr_deleter_armed_flag(true);
+    void reclaim_disowned(guarded_delete *vptr_del_ptr) {
+        reset_vptr_deleter_armed_flag(vptr_del_ptr, true);
         is_disowned = false;
     }
 
@@ -312,8 +310,8 @@ struct smart_holder {
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void release_ownership() {
-        reset_vptr_deleter_armed_flag(false);
+    void release_ownership(guarded_delete *vptr_del_ptr) {
+        reset_vptr_deleter_armed_flag(vptr_del_ptr, false);
         release_disowned();
     }
 
