@@ -532,7 +532,7 @@ struct value_and_holder_helper {
 
     // have_holder() must be true or this function will fail.
     void throw_if_instance_is_currently_owned_by_shared_ptr() const {
-        auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(holder().vptr);
+        auto *vptr_gd_ptr = get_internals().get_memory_guarded_delete(holder().vptr);
         if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
             throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
@@ -576,7 +576,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
                 }
                 // Critical transfer-of-ownership section. This must stay together.
                 self_life_support->deactivate_life_support();
-                holder.reclaim_disowned();
+                holder.reclaim_disowned(get_internals().get_memory_guarded_delete(holder.vptr));
                 (void) src.release();
                 // Critical section end.
                 return existing_inst;
@@ -763,7 +763,7 @@ struct load_helper : value_and_holder_helper {
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
         if (python_instance_is_alias && !force_potentially_slicing_shared_ptr) {
-            auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(hld.vptr);
+            auto *vptr_gd_ptr = get_internals().get_memory_guarded_delete(holder().vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
                 if (released_ptr) {
@@ -818,13 +818,14 @@ struct load_helper : value_and_holder_helper {
         // This is enforced indirectly by a static_assert in the class_ implementation:
         assert(!python_instance_is_alias || self_life_support);
 
-        std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(context);
+        std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(
+            context, get_internals().get_memory_guarded_delete(holder().vptr));
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
-            holder().disown();
+            holder().disown(get_internals().get_memory_guarded_delete(holder().vptr));
         } else {
-            holder().release_ownership();
+            holder().release_ownership(get_internals().get_memory_guarded_delete(holder().vptr));
         }
         auto result = unique_with_deleter<T, D>(raw_type_ptr, std::move(extracted_deleter));
         if (self_life_support != nullptr) {
@@ -849,7 +850,9 @@ struct load_helper : value_and_holder_helper {
         }
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         return unique_with_deleter<T, D>(
-            raw_type_ptr, std::move(holder().template extract_deleter<T, D>(context)));
+            raw_type_ptr,
+            std::move(holder().template extract_deleter<T, D>(
+                context, get_internals().get_memory_guarded_delete(holder().vptr))));
     }
 };
 

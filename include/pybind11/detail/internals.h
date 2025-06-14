@@ -10,6 +10,7 @@
 #pragma once
 
 #include <pybind11/conduit/pybind11_platform_abi_id.h>
+#include <pybind11/detail/struct_smart_holder.h>
 #include <pybind11/gil_simple.h>
 #include <pybind11/pytypes.h>
 
@@ -17,6 +18,7 @@
 
 #include <atomic>
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -35,11 +37,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 10
+#    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 10
-#    error "PYBIND11_INTERNALS_VERSION 10 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 11
+#    error "PYBIND11_INTERNALS_VERSION 11 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -254,6 +256,10 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
+    using get_memory_guarded_delete_fn
+        = memory::guarded_delete *(*) (const std::shared_ptr<void> &);
+    get_memory_guarded_delete_fn get_memory_guarded_delete = nullptr;
+
     internals()
         : static_property_type(make_static_property_type()),
           default_metaclass(make_default_metaclass()) {
@@ -272,6 +278,9 @@ struct internals {
         instance_shards.reset(new instance_map_shard[num_shards]);
         instance_shards_mask = num_shards - 1;
 #endif
+        get_memory_guarded_delete = [](const std::shared_ptr<void> &ptr) {
+            return std::get_deleter<memory::guarded_delete>(ptr);
+        };
     }
     internals(const internals &other) = delete;
     internals(internals &&other) = delete;
