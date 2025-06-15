@@ -79,6 +79,7 @@ static constexpr bool type_has_shared_from_this(const void *) {
 }
 
 struct guarded_delete {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
     std::function<void(void *)> del_fun; // Rare case.
     void (*del_ptr)(void *);             // Common case.
@@ -126,6 +127,7 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 
 template <typename T, typename D>
 struct custom_deleter {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     D deleter;
     explicit custom_deleter(D &&deleter) : deleter{std::forward<D>(deleter)} {}
     void operator()(void *raw_ptr) { deleter(static_cast<T *>(raw_ptr)); }
@@ -144,6 +146,7 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
 }
 
 struct smart_holder {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     const std::type_info *rtti_uqp_del = nullptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
@@ -238,12 +241,12 @@ struct smart_holder {
     }
 
     void reset_vptr_deleter_armed_flag(const get_guarded_delete_fn ggd_fn, bool armed_flag) const {
-        auto *vptr_del_ptr = ggd_fn(vptr);
-        if (vptr_del_ptr == nullptr) {
+        auto *gd = ggd_fn(vptr);
+        if (gd == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
         }
-        vptr_del_ptr->armed_flag = armed_flag;
+        gd->armed_flag = armed_flag;
     }
 
     // Caller is responsible for precondition: ensure_compatible_rtti_uqp_del<T, D>() must succeed.
