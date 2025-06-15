@@ -255,6 +255,8 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
+    // Note: get_internals().get_memory_guarded_delete does
+    //       not need to be wrapped in with_internals().
     memory::get_guarded_delete_fn get_memory_guarded_delete = memory::get_guarded_delete;
 
     internals()
