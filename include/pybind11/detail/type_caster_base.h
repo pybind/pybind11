@@ -576,7 +576,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
                 }
                 // Critical transfer-of-ownership section. This must stay together.
                 self_life_support->deactivate_life_support();
-                holder.reclaim_disowned(get_internals().get_memory_guarded_delete(holder.vptr));
+                holder.reclaim_disowned(get_internals().get_memory_guarded_delete);
                 (void) src.release();
                 // Critical section end.
                 return existing_inst;
@@ -819,13 +819,13 @@ struct load_helper : value_and_holder_helper {
         assert(!python_instance_is_alias || self_life_support);
 
         std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(
-            context, get_internals().get_memory_guarded_delete(holder().vptr));
+            context, get_internals().get_memory_guarded_delete);
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
-            holder().disown(get_internals().get_memory_guarded_delete(holder().vptr));
+            holder().disown(get_internals().get_memory_guarded_delete);
         } else {
-            holder().release_ownership(get_internals().get_memory_guarded_delete(holder().vptr));
+            holder().release_ownership(get_internals().get_memory_guarded_delete);
         }
         auto result = unique_with_deleter<T, D>(raw_type_ptr, std::move(extracted_deleter));
         if (self_life_support != nullptr) {
@@ -849,10 +849,9 @@ struct load_helper : value_and_holder_helper {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
-        return unique_with_deleter<T, D>(
-            raw_type_ptr,
-            std::move(holder().template extract_deleter<T, D>(
-                context, get_internals().get_memory_guarded_delete(holder().vptr))));
+        return unique_with_deleter<T, D>(raw_type_ptr,
+                                         std::move(holder().template extract_deleter<T, D>(
+                                             context, get_internals().get_memory_guarded_delete)));
     }
 };
 

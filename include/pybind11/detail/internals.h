@@ -18,7 +18,6 @@
 
 #include <atomic>
 #include <exception>
-#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -256,9 +255,7 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    using get_memory_guarded_delete_fn
-        = memory::guarded_delete *(*) (const std::shared_ptr<void> &);
-    get_memory_guarded_delete_fn get_memory_guarded_delete = nullptr;
+    memory::get_guarded_delete_fn get_memory_guarded_delete = memory::get_guarded_delete;
 
     internals()
         : static_property_type(make_static_property_type()),
@@ -278,9 +275,6 @@ struct internals {
         instance_shards.reset(new instance_map_shard[num_shards]);
         instance_shards_mask = num_shards - 1;
 #endif
-        get_memory_guarded_delete = [](const std::shared_ptr<void> &ptr) {
-            return std::get_deleter<memory::guarded_delete>(ptr);
-        };
     }
     internals(const internals &other) = delete;
     internals(internals &&other) = delete;

@@ -100,6 +100,12 @@ struct guarded_delete {
     }
 };
 
+inline guarded_delete *get_guarded_delete(const std::shared_ptr<void> &ptr) {
+    return std::get_deleter<guarded_delete>(ptr);
+}
+
+using get_guarded_delete_fn = guarded_delete *(*) (const std::shared_ptr<void> &);
+
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
 inline void builtin_delete_if_destructible(void *raw_ptr) {
     std::default_delete<T>{}(static_cast<T *>(raw_ptr));
@@ -231,7 +237,8 @@ struct smart_holder {
         }
     }
 
-    void reset_vptr_deleter_armed_flag(guarded_delete *vptr_del_ptr, bool armed_flag) const {
+    void reset_vptr_deleter_armed_flag(const get_guarded_delete_fn ggd_fn, bool armed_flag) const {
+        auto *vptr_del_ptr = ggd_fn(vptr);
         if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
@@ -241,7 +248,9 @@ struct smart_holder {
 
     // Caller is responsible for precondition: ensure_compatible_rtti_uqp_del<T, D>() must succeed.
     template <typename T, typename D>
-    std::unique_ptr<D> extract_deleter(const char *context, const guarded_delete *gd) const {
+    std::unique_ptr<D> extract_deleter(const char *context,
+                                       const get_guarded_delete_fn ggd_fn) const {
+        auto *gd = ggd_fn(vptr);
         if (gd && gd->use_del_fun) {
             const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter<T, D>>();
             if (custom_deleter_ptr == nullptr) {
@@ -286,15 +295,15 @@ struct smart_holder {
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void disown(guarded_delete *vptr_del_ptr) {
-        reset_vptr_deleter_armed_flag(vptr_del_ptr, false);
+    void disown(const get_guarded_delete_fn ggd_fn) {
+        reset_vptr_deleter_armed_flag(ggd_fn, false);
         is_disowned = true;
     }
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void reclaim_disowned(guarded_delete *vptr_del_ptr) {
-        reset_vptr_deleter_armed_flag(vptr_del_ptr, true);
+    void reclaim_disowned(const get_guarded_delete_fn ggd_fn) {
+        reset_vptr_deleter_armed_flag(ggd_fn, true);
         is_disowned = false;
     }
 
@@ -310,8 +319,8 @@ struct smart_holder {
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void release_ownership(guarded_delete *vptr_del_ptr) {
-        reset_vptr_deleter_armed_flag(vptr_del_ptr, false);
+    void release_ownership(const get_guarded_delete_fn ggd_fn) {
+        reset_vptr_deleter_armed_flag(ggd_fn, false);
         release_disowned();
     }
 

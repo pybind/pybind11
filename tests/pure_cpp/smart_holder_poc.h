@@ -36,7 +36,7 @@ T *as_raw_ptr_release_ownership(smart_holder &hld,
                                 const char *context = "as_raw_ptr_release_ownership") {
     hld.ensure_can_release_ownership(context);
     T *raw_ptr = hld.as_raw_ptr_unowned<T>();
-    hld.release_ownership(std::get_deleter<guarded_delete>(hld.vptr));
+    hld.release_ownership(get_guarded_delete);
     return raw_ptr;
 }
 
@@ -46,7 +46,7 @@ std::unique_ptr<T, D> as_unique_ptr(smart_holder &hld) {
     hld.ensure_compatible_rtti_uqp_del<T, D>(context);
     hld.ensure_use_count_1(context);
     T *raw_ptr = hld.as_raw_ptr_unowned<T>();
-    hld.release_ownership(std::get_deleter<guarded_delete>(hld.vptr));
+    hld.release_ownership(get_guarded_delete);
     // KNOWN DEFECT (see PR #4850): Does not copy the deleter.
     return std::unique_ptr<T, D>(raw_ptr);
 }
