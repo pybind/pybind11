@@ -20,11 +20,21 @@ bool has_state_dict_internals_obj();
 uintptr_t get_details_as_uintptr();
 
 void unsafe_reset_internals_for_single_interpreter() {
-    // unsafe normally, but for subsequent tests, put this back.. we know there are no threads
-    // running and only 1 interpreter
+    // NOTE: This code is NOT SAFE unless the caller guarantees no other threads are alive
+    // NOTE: This code is tied to the precise implementation of the internals holder
+
+    // first, unref the thread local internals
     py::detail::get_internals_pp_manager().unref();
     py::detail::get_local_internals_pp_manager().unref();
+
+    // we know there are no other interpreters, so we can lower this. SUPER DANGEROUS
     py::detail::get_num_interpreters_seen() = 1;
+
+    // now we unref the static global singleton internals
+    py::detail::get_internals_pp_manager().unref();
+    py::detail::get_local_internals_pp_manager().unref();
+
+    // finally, we reload the static global singleton
     py::detail::get_internals();
     py::detail::get_local_internals();
 }

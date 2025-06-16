@@ -513,8 +513,11 @@ public:
     /// Drop all the references we're currently holding.
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        last_istate_.reset();
-        internals_tls_p_.reset();
+        if (get_num_interpreters_seen() > 1) {
+            last_istate_.reset();
+            internals_tls_p_.reset();
+            return;
+        }
 #endif
         internals_singleton_pp_ = nullptr;
     }
