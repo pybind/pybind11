@@ -19,9 +19,9 @@ def test_independent_subinterpreters():
     if sys.version_info >= (3, 15):
         import interpreters
     elif sys.version_info >= (3, 13):
-        import _interpreters as interpreters
+        interpreters = pytest.importorskip("_interpreters")
     elif sys.version_info >= (3, 12):
-        import _xxsubinterpreters as interpreters
+        interpreters = pytest.importorskip("_xxsubinterpreters")
     else:
         pytest.skip("Test requires the interpreters stdlib module")
 
@@ -93,9 +93,9 @@ def test_dependent_subinterpreters():
     if sys.version_info >= (3, 15):
         import interpreters
     elif sys.version_info >= (3, 13):
-        import _interpreters as interpreters
+        interpreters = pytest.importorskip("_interpreters")
     elif sys.version_info >= (3, 12):
-        import _xxsubinterpreters as interpreters
+        interpreters = pytest.importorskip("_xxsubinterpreters")
     else:
         pytest.skip("Test requires the interpreters stdlib module")
 
