@@ -193,6 +193,20 @@ public:
     int value;
 };
 
+// test const_only_shared_ptr
+class MyObject6 {
+public:
+    static const_only_shared_ptr<MyObject6> createObject(std::string value) {
+        return const_only_shared_ptr<MyObject6>(new MyObject6(std::move(value)));
+    }
+
+    const std::string &value() const { return value_; }
+
+private:
+    explicit MyObject6(std::string &&value) : value_{std::move(value)} {}
+    std::string value_;
+};
+
 // test_shared_ptr_and_references
 struct SharedPtrRef {
     struct A {
@@ -412,11 +426,6 @@ TEST_SUBMODULE(smart_ptr, m) {
     m.def("print_myobject2_4",
           [](const std::shared_ptr<MyObject2> *obj) { py::print((*obj)->toString()); });
 
-    m.def("make_myobject2_3",
-          [](int val) { return const_only_shared_ptr<MyObject2>(new MyObject2(val)); });
-    m.def("print_myobject2_5",
-          [](const const_only_shared_ptr<MyObject2> &obj) { py::print(obj.get()->toString()); });
-
     py::class_<MyObject3, std::shared_ptr<MyObject3>>(m, "MyObject3").def(py::init<int>());
     m.def("make_myobject3_1", []() { return new MyObject3(8); });
     m.def("make_myobject3_2", []() { return std::make_shared<MyObject3>(9); });
@@ -458,6 +467,10 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<MyObject5, huge_unique_ptr<MyObject5>>(m, "MyObject5")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject5::value);
+
+    py::class_<MyObject6, const_only_shared_ptr<MyObject6>>(m, "MyObject6")
+        .def(py::init([](const std::string &value) { return MyObject6::createObject(value); }))
+        .def_property_readonly("value", &MyObject6::value);
 
     // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
