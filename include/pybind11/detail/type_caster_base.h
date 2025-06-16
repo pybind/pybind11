@@ -564,8 +564,9 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     assert(st.second != nullptr);
     const detail::type_info *tinfo = st.second;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
-        auto *self_life_support
-            = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(src.get());
+        auto *self_life_support = tinfo->get_trampoline_self_life_support
+                                      ? tinfo->get_trampoline_self_life_support(src.get())
+                                      : nullptr;
         if (self_life_support != nullptr) {
             value_and_holder &v_h = self_life_support->v_h;
             if (v_h.inst != nullptr && v_h.vh != nullptr) {
@@ -800,7 +801,8 @@ struct load_helper : value_and_holder_helper {
     }
 
     template <typename D>
-    std::unique_ptr<T, D> load_as_unique_ptr(void *raw_void_ptr,
+    std::unique_ptr<T, D> load_as_unique_ptr(const type_info *tinfo,
+                                             void *raw_void_ptr,
                                              const char *context = "load_as_unique_ptr") {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
@@ -813,8 +815,9 @@ struct load_helper : value_and_holder_helper {
 
         T *raw_type_ptr = static_cast<T *>(raw_void_ptr);
 
-        auto *self_life_support
-            = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
+        auto *self_life_support = tinfo->get_trampoline_self_life_support
+                                      ? tinfo->get_trampoline_self_life_support(raw_type_ptr)
+                                      : nullptr;
         // This is enforced indirectly by a static_assert in the class_ implementation:
         assert(!python_instance_is_alias || self_life_support);
 

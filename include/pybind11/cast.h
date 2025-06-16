@@ -1240,7 +1240,7 @@ public:
 
     explicit operator std::unique_ptr<type, deleter>() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            return sh_load_helper.template load_as_unique_ptr<deleter>(value);
+            return sh_load_helper.template load_as_unique_ptr<deleter>(typeinfo, value);
         }
         pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }

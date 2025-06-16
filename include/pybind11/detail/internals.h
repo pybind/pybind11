@@ -13,6 +13,7 @@
 #include <pybind11/detail/struct_smart_holder.h>
 #include <pybind11/gil_simple.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/trampoline_self_life_support.h>
 
 #include "common.h"
 
@@ -312,6 +313,7 @@ struct type_info {
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
+    get_trampoline_self_life_support_fn get_trampoline_self_life_support = nullptr;
     std::vector<PyObject *(*) (PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*) (void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
