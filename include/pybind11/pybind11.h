@@ -2068,6 +2068,9 @@ public:
         }
 
         if (std::is_base_of<trampoline_self_life_support, type_alias>::value) {
+            // Store a cross-DSO-safe getter.
+            // This lambda is defined in the same DSO that instantiates
+            // class_<type, alias_type>, but it can be called safely from any other DSO.
             record.get_trampoline_self_life_support = [](void *type_ptr) {
                 return dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(
                     static_cast<type *>(type_ptr));

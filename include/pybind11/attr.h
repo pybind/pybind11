@@ -314,8 +314,10 @@ struct type_record {
     void (*dealloc)(detail::value_and_holder &) = nullptr;
 
     /// Function pointer for casting alias class (aka trampoline) pointer to
-    /// trampoline_self_life_support pointer.
-    get_trampoline_self_life_support_fn get_trampoline_self_life_support = nullptr;
+    /// trampoline_self_life_support pointer. Sidesteps dynamic_cast RTTI issues
+    /// on platforms like macOS.
+    get_trampoline_self_life_support_fn get_trampoline_self_life_support
+        = [](void *) -> trampoline_self_life_support * { return nullptr; };
 
     /// List of base classes of the newly created type
     list bases;
