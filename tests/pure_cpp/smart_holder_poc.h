@@ -43,7 +43,7 @@ T *as_raw_ptr_release_ownership(smart_holder &hld,
 template <typename T, typename D = std::default_delete<T>>
 std::unique_ptr<T, D> as_unique_ptr(smart_holder &hld) {
     static const char *context = "as_unique_ptr";
-    hld.ensure_compatible_rtti_uqp_del<T, D>(context);
+    hld.ensure_compatible_uqp_del<T, D>(context);
     hld.ensure_use_count_1(context);
     T *raw_ptr = hld.as_raw_ptr_unowned<T>();
     hld.release_ownership(get_guarded_delete);

@@ -808,7 +808,7 @@ struct load_helper : value_and_holder_helper {
         throw_if_uninitialized_or_disowned_holder(typeid(T));
         throw_if_instance_is_currently_owned_by_shared_ptr();
         holder().ensure_is_not_disowned(context);
-        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
+        holder().template ensure_compatible_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
 
         T *raw_type_ptr = static_cast<T *>(raw_void_ptr);
@@ -848,7 +848,7 @@ struct load_helper : value_and_holder_helper {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
-        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
+        holder().template ensure_compatible_uqp_del<T, D>(context);
         return unique_with_deleter<T, D>(raw_type_ptr,
                                          std::move(holder().template extract_deleter<T, D>(
                                              context, find_memory_guarded_delete)));
