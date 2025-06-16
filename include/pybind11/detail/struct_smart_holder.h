@@ -109,12 +109,12 @@ inline guarded_delete *get_guarded_delete(const std::shared_ptr<void> &ptr) {
 using get_guarded_delete_fn = guarded_delete *(*) (const std::shared_ptr<void> &);
 
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
-inline void builtin_delete_if_destructible(void *raw_ptr) {
+inline void std_default_delete_if_destructible(void *raw_ptr) {
     std::default_delete<T>{}(static_cast<T *>(raw_ptr));
 }
 
 template <typename T, typename std::enable_if<!std::is_destructible<T>::value, int>::type = 0>
-inline void builtin_delete_if_destructible(void *) {
+inline void std_default_delete_if_destructible(void *) {
     // This noop operator is needed to avoid a compilation error (for `delete raw_ptr;`), but
     // throwing an exception from a destructor will std::terminate the process. Therefore the
     // runtime check for lifetime-management correctness is implemented elsewhere (in
@@ -122,8 +122,8 @@ inline void builtin_delete_if_destructible(void *) {
 }
 
 template <typename T>
-guarded_delete make_guarded_builtin_delete(bool armed_flag) {
-    return guarded_delete(builtin_delete_if_destructible<T>, armed_flag);
+guarded_delete make_guarded_std_default_delete(bool armed_flag) {
+    return guarded_delete(std_default_delete_if_destructible<T>, armed_flag);
 }
 
 template <typename T, typename D>
@@ -295,7 +295,7 @@ struct smart_holder {
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
-        auto gd = make_guarded_builtin_delete<T>(true);
+        auto gd = make_guarded_std_default_delete<T>(true);
         if (void_cast_raw_ptr) {
             hld.vptr.reset(static_cast<void *>(raw_ptr), std::move(gd));
         } else {
@@ -345,7 +345,7 @@ struct smart_holder {
         hld.vptr_is_using_std_default_delete = uqp_del_is_std_default_delete<T, D>();
         guarded_delete gd{nullptr, false};
         if (hld.vptr_is_using_std_default_delete) {
-            gd = make_guarded_builtin_delete<T>(true);
+            gd = make_guarded_std_default_delete<T>(true);
         } else {
             gd = make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
         }
