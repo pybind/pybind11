@@ -32,7 +32,7 @@ template <typename To,
           typename From,
           detail::enable_if_t<dynamic_raw_ptr_cast_is_possible<To, From>::value, int> = 0>
 To *dynamic_raw_ptr_cast_if_possible(From *ptr) {
-    return dynamic_cast<To *>(ptr);
+    return ptr ? dynamic_cast<To *>(ptr) : nullptr;
 }
 
 PYBIND11_NAMESPACE_END(detail)
