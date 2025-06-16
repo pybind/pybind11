@@ -255,9 +255,7 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    // Note: get_internals().get_memory_guarded_delete does
-    //       not need to be wrapped in with_internals().
-    memory::get_guarded_delete_fn get_memory_guarded_delete = memory::get_guarded_delete;
+    std::vector<memory::get_guarded_delete_fn> memory_guarded_delete_fns; // See PRs #5728, #5700.
 
     internals()
         : static_property_type(make_static_property_type()),
@@ -267,6 +265,7 @@ struct internals {
 
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
+        memory_guarded_delete_fns.push_back(memory::get_guarded_delete);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
         auto num_shards
@@ -674,6 +673,19 @@ inline auto with_exception_translators(const F &cb)
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,
               local_internals.registered_exception_translators);
+}
+
+// Traverse all DSOs to find memory::guarded_delete with matching RTTI.
+inline memory::guarded_delete *find_memory_guarded_delete(const std::shared_ptr<void> &ptr) {
+    return with_internals([&](detail::internals &internals) -> memory::guarded_delete * {
+        for (auto fn : internals.memory_guarded_delete_fns) {
+            memory::guarded_delete *gd = fn(ptr);
+            if (gd) {
+                return gd;
+            }
+        }
+        return nullptr;
+    });
 }
 
 inline std::uint64_t mix64(std::uint64_t z) {
