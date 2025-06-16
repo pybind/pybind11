@@ -256,8 +256,6 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    std::vector<memory::get_guarded_delete_fn> memory_guarded_delete_fns; // See PRs #5728, #5700.
-
     internals()
         : static_property_type(make_static_property_type()),
           default_metaclass(make_default_metaclass()) {
@@ -266,7 +264,6 @@ struct internals {
 
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
-        memory_guarded_delete_fns.push_back(memory::get_guarded_delete);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
         auto num_shards
@@ -313,7 +310,11 @@ struct type_info {
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
+
+    // Cross-DSO-safe function pointers (to sidestep cross-DSO RTTI issues):
+    memory::get_guarded_delete_fn get_memory_guarded_delete = memory::get_guarded_delete;
     get_trampoline_self_life_support_fn get_trampoline_self_life_support = nullptr;
+
     std::vector<PyObject *(*) (PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*) (void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
@@ -675,19 +676,6 @@ inline auto with_exception_translators(const F &cb)
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,
               local_internals.registered_exception_translators);
-}
-
-// Traverse all DSOs to find memory::guarded_delete with matching RTTI.
-inline memory::guarded_delete *find_memory_guarded_delete(const std::shared_ptr<void> &ptr) {
-    return with_internals([&](detail::internals &internals) -> memory::guarded_delete * {
-        for (auto fn : internals.memory_guarded_delete_fns) {
-            memory::guarded_delete *gd = fn(ptr);
-            if (gd) {
-                return gd;
-            }
-        }
-        return nullptr;
-    });
 }
 
 inline std::uint64_t mix64(std::uint64_t z) {
