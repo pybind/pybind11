@@ -13,11 +13,11 @@ def test_atyp_factories():
     # sert m.atyp_cptr().get_mtxt() == "Cptr"
     assert m.atyp_mptr().get_mtxt() == "Mptr"
     assert m.atyp_shmp().get_mtxt() == "Shmp"
-    # sert m.atyp_shcp().get_mtxt() == "Shcp"
+    assert m.atyp_shcp().get_mtxt() == "Shcp"
     assert m.atyp_uqmp().get_mtxt() == "Uqmp"
-    # sert m.atyp_uqcp().get_mtxt() == "Uqcp"
+    assert m.atyp_uqcp().get_mtxt() == "Uqcp"
     assert m.atyp_udmp().get_mtxt() == "Udmp"
-    # sert m.atyp_udcp().get_mtxt() == "Udcp"
+    assert m.atyp_udcp().get_mtxt() == "Udcp"
 
 
 @pytest.mark.parametrize(
