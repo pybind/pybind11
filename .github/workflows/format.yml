@@ -32,29 +32,23 @@ jobs:
     - name: Add matchers
       run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
     - uses: pre-commit/action@v3.0.1
-      with:
-        # Slow hooks are marked with manual - slow is okay here, run them too
-        extra_args: --hook-stage manual --all-files
 
   clang-tidy:
     # When making changes here, please also review the "Clang-Tidy" section
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
     runs-on: ubuntu-latest
-    container: silkeh/clang:18-bookworm
+    container: silkeh/clang:20
     steps:
     - uses: actions/checkout@v4
 
     - name: Install requirements
-      run: apt-get update && apt-get install -y git python3-dev python3-pytest
+      run: apt-get update && apt-get install -y git python3-dev python3-pytest ninja-build
 
     - name: Configure
-      run: >
-        cmake -S . -B build
-        -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);--use-color;--warnings-as-errors=*"
-        -DDOWNLOAD_EIGEN=ON
-        -DDOWNLOAD_CATCH=ON
-        -DCMAKE_CXX_STANDARD=17
-
+      run: cmake --preset tidy
     - name: Build
-      run: cmake --build build -j 2 -- --keep-going
+      run: cmake --build --preset tidy
+
+    - name: Embedded
+      run: cmake --build --preset tidy -t cpptest

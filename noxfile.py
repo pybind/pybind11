@@ -1,11 +1,23 @@
+#!/usr/bin/env -S uv run
+
+# /// script
+# dependencies = ["nox>=2025.2.9"]
+# ///
+
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 import nox
 
-nox.needs_version = ">=2024.3.2"
-nox.options.sessions = ["lint", "tests", "tests_packaging"]
+nox.needs_version = ">=2025.2.9"
 nox.options.default_venv_backend = "uv|virtualenv"
 
 
@@ -49,7 +61,7 @@ def tests_packaging(session: nox.Session) -> None:
     session.run("pytest", "tests/extra_python_package", *session.posargs)
 
 
-@nox.session(reuse_venv=True)
+@nox.session(reuse_venv=True, default=False)
 def docs(session: nox.Session) -> None:
     """
     Build the docs. Pass --non-interactive to avoid serving.
@@ -83,25 +95,57 @@ def docs(session: nox.Session) -> None:
         session.run("sphinx-build", "--keep-going", *shared_args)
 
 
-@nox.session(reuse_venv=True)
+@nox.session(reuse_venv=True, default=False)
 def make_changelog(session: nox.Session) -> None:
     """
     Inspect the closed issues and make entries for a changelog.
     """
-    session.install("ghapi", "rich")
-    session.run("python", "tools/make_changelog.py")
+    session.install_and_run_script("tools/make_changelog.py")
 
 
-@nox.session(reuse_venv=True)
+@nox.session(reuse_venv=True, default=False)
 def build(session: nox.Session) -> None:
     """
-    Build SDists and wheels.
+    Build SDist and wheel.
     """
 
     session.install("build")
     session.log("Building normal files")
     session.run("python", "-m", "build", *session.posargs)
-    session.log("Building pybind11-global files (PYBIND11_GLOBAL_SDIST=1)")
-    session.run(
-        "python", "-m", "build", *session.posargs, env={"PYBIND11_GLOBAL_SDIST": "1"}
-    )
+
+
+@contextlib.contextmanager
+def preserve_file(filename: Path) -> Generator[str, None, None]:
+    """
+    Causes a file to be stored and preserved when the context manager exits.
+    """
+    old_stat = filename.stat()
+    old_file = filename.read_text(encoding="utf-8")
+    try:
+        yield old_file
+    finally:
+        filename.write_text(old_file, encoding="utf-8")
+        os.utime(filename, (old_stat.st_atime, old_stat.st_mtime))
+
+
+@nox.session(reuse_venv=True)
+def build_global(session: nox.Session) -> None:
+    """
+    Build global SDist and wheel.
+    """
+
+    installer = ["--installer=uv"] if session.venv_backend == "uv" else []
+    session.install("build", "tomlkit")
+    session.log("Building pybind11-global files")
+    pyproject = Path("pyproject.toml")
+    with preserve_file(pyproject):
+        newer_txt = session.run("python", "tools/make_global.py", silent=True)
+        assert isinstance(newer_txt, str)
+        pyproject.write_text(newer_txt, encoding="utf-8")
+        session.run(
+            "python",
+            "-m",
+            "build",
+            *installer,
+            *session.posargs,
+        )

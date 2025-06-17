@@ -52,7 +52,23 @@ void bind_empty0(py::module_ &m) {
 }
 
 } // namespace pr4220_tripped_over_this
+
+namespace pr5396_forward_declared_class {
+class ForwardClass;
+class Args : public py::args {};
+} // namespace pr5396_forward_declared_class
+
 } // namespace test_class
+
+static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "");
+static_assert(
+    py::detail::is_same_or_base_of<py::args,
+                                   test_class::pr5396_forward_declared_class::Args>::value,
+    "");
+static_assert(!py::detail::is_same_or_base_of<
+                  py::args,
+                  test_class::pr5396_forward_declared_class::ForwardClass>::value,
+              "");
 
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
@@ -88,6 +104,12 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init([]() { return nullptr; })) // Need a NOOP __init__
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
+
+    // test_pass_unique_ptr
+    struct ToBeHeldByUniquePtr {};
+    py::class_<ToBeHeldByUniquePtr, std::unique_ptr<ToBeHeldByUniquePtr>>(m, "ToBeHeldByUniquePtr")
+        .def(py::init<>());
+    m.def("pass_unique_ptr", [](std::unique_ptr<ToBeHeldByUniquePtr> &&) {});
 
     // test_inheritance
     class Pet {
@@ -197,7 +219,7 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });
 
-    m.def("get_type_classic", [](py::handle h) { return h.get_type(); });
+    m.def("get_type_classic", [](py::handle h) { return py::type::handle_of(h); });
 
     m.def("as_type", [](const py::object &ob) { return py::type(ob); });
 
@@ -211,11 +233,12 @@ TEST_SUBMODULE(class_, m) {
     m.def("mismatched_holder_1", []() {
         auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
-        py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
+        py::class_<MismatchDerived1, std::unique_ptr<MismatchDerived1>, MismatchBase1>(
+            mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
         auto mod = py::module_::import("__main__");
-        py::class_<MismatchBase2>(mod, "MismatchBase2");
+        py::class_<MismatchBase2, std::unique_ptr<MismatchBase2>>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>, MismatchBase2>(
             mod, "MismatchDerived2");
     });
@@ -609,8 +632,10 @@ CHECK_NOALIAS(8);
 CHECK_HOLDER(1, unique);
 CHECK_HOLDER(2, unique);
 CHECK_HOLDER(3, unique);
+#ifndef PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
 CHECK_HOLDER(4, unique);
 CHECK_HOLDER(5, unique);
+#endif
 CHECK_HOLDER(6, shared);
 CHECK_HOLDER(7, shared);
 CHECK_HOLDER(8, shared);

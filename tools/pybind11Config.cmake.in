@@ -67,6 +67,13 @@ from 3.12+ forward (3.15+ _highly_ recommended). If you set the minimum or
 maximum version of CMake to 3.27+, then FindPython is the default (since
 FindPythonInterp/FindPythonLibs has been removed via policy `CMP0148`).
 
+Starting in pybind11 3.0, the new mode is the default, but we provide backward
+compatible names (``PYTHON_*`` vs. the new ``Python_*`` names). Set the mode
+explicitly to avoid the compatibility defines. You can specify this mode
+explicitly by setting ``PYBIND11_FINDPYTHON`` to ``COMPAT``, but if you are changing
+your CMakeLists anyway, please just use the ``ON`` mode. A future release may
+default to ``ON``.
+
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^
 
@@ -87,7 +94,7 @@ you can either use the basic targets, or use the FindPython tools:
   target_link_libraries(MyModule2 PUBLIC pybind11::headers)
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
-                                  CXX_VISIBILITY_PRESET ON
+                                  CXX_VISIBILITY_PRESET hidden
                                   VISIBILITY_INLINES_HIDDEN ON)
 
 If you build targets yourself, you may be interested in stripping the output
@@ -152,7 +159,7 @@ default is ``MODULE``. There are several options:
   Use thin LTO instead of regular if there's a choice (pybind11's selection
   is disabled if ``CMAKE_INTERPROCEDURAL_OPTIMIZATIONS`` is set).
 ``WITHOUT_SOABI``
-  Disable the SOABI component (``PYBIND11_NEWPYTHON`` mode only).
+  Disable the SOABI component (``PYBIND11_FINDPYTHON`` mode only).
 ``NO_EXTRAS``
   Disable all extras, exit immediately after making the module.
 

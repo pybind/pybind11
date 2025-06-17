@@ -294,7 +294,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
                                  static_cast<py::str (ExampleMandA::*)(int, int)>(
                                      &ExampleMandA::overloaded));
                     })
-        .def("__str__", &ExampleMandA::toString)
+        .def("__str__", &ExampleMandA::toString, py::pos_only())
         .def_readwrite("value", &ExampleMandA::value);
 
     // test_copy_method

@@ -11,6 +11,9 @@
 
 #include "pybind11_tests.h"
 
+#include <cstdint>
+#include <stdexcept>
+
 #ifdef __GNUC__
 #    define PYBIND11_PACKED(cls) cls __attribute__((__packed__))
 #else
@@ -173,7 +176,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
 }
 
 template <typename S>
-py::list print_recarray(py::array_t<S, 0> arr) {
+py::list print_recarray(const py::array_t<S, 0> &arr) {
     const auto req = arr.request();
     auto *const ptr = static_cast<S *>(req.ptr);
     auto l = py::list();
@@ -295,6 +298,15 @@ py::list test_dtype_ctors() {
     list.append(py::dtype(py::buffer_info((void *) nullptr, 0, "T{i:a:f:b:}", 1)));
     list.append(py::dtype(py::detail::npy_api::NPY_DOUBLE_));
     return list;
+}
+
+template <typename T>
+py::array_t<T> dispatch_array_increment(const py::array_t<T> &arr) {
+    py::array_t<T> res(arr.shape(0));
+    for (py::ssize_t i = 0; i < arr.shape(0); ++i) {
+        res.mutable_at(i) = T(arr.at(i) + 1);
+    }
+    return res;
 }
 
 struct A {};
@@ -495,6 +507,98 @@ TEST_SUBMODULE(numpy_dtypes, m) {
             list.append(py::dtype(dt_name).flags());
         }
         return list;
+    });
+    m.def("test_dtype_num_of", []() -> py::list {
+        py::list res;
+#define TEST_DTYPE(T) res.append(py::make_tuple(py::dtype::of<T>().num(), py::dtype::num_of<T>()));
+        TEST_DTYPE(bool)
+        TEST_DTYPE(signed char)
+        TEST_DTYPE(unsigned char)
+        TEST_DTYPE(short)
+        TEST_DTYPE(unsigned short)
+        TEST_DTYPE(int)
+        TEST_DTYPE(unsigned int)
+        TEST_DTYPE(long)
+        TEST_DTYPE(unsigned long)
+        TEST_DTYPE(long long)
+        TEST_DTYPE(unsigned long long)
+        TEST_DTYPE(float)
+        TEST_DTYPE(double)
+        TEST_DTYPE(long double)
+        TEST_DTYPE(std::complex<float>)
+        TEST_DTYPE(std::complex<double>)
+        TEST_DTYPE(std::complex<long double>)
+        TEST_DTYPE(int8_t)
+        TEST_DTYPE(uint8_t)
+        TEST_DTYPE(int16_t)
+        TEST_DTYPE(uint16_t)
+        TEST_DTYPE(int32_t)
+        TEST_DTYPE(uint32_t)
+        TEST_DTYPE(int64_t)
+        TEST_DTYPE(uint64_t)
+#undef TEST_DTYPE
+        return res;
+    });
+    m.def("test_dtype_normalized_num", []() -> py::list {
+        py::list res;
+#define TEST_DTYPE(NT, T)                                                                         \
+    res.append(py::make_tuple(py::dtype(py::detail::npy_api::NT).normalized_num(),                \
+                              py::dtype::num_of<T>()));
+        TEST_DTYPE(NPY_BOOL_, bool)
+        TEST_DTYPE(NPY_BYTE_, signed char);
+        TEST_DTYPE(NPY_UBYTE_, unsigned char);
+        TEST_DTYPE(NPY_SHORT_, short);
+        TEST_DTYPE(NPY_USHORT_, unsigned short);
+        TEST_DTYPE(NPY_INT_, int);
+        TEST_DTYPE(NPY_UINT_, unsigned int);
+        TEST_DTYPE(NPY_LONG_, long);
+        TEST_DTYPE(NPY_ULONG_, unsigned long);
+        TEST_DTYPE(NPY_LONGLONG_, long long);
+        TEST_DTYPE(NPY_ULONGLONG_, unsigned long long);
+        TEST_DTYPE(NPY_FLOAT_, float);
+        TEST_DTYPE(NPY_DOUBLE_, double);
+        TEST_DTYPE(NPY_LONGDOUBLE_, long double);
+        TEST_DTYPE(NPY_CFLOAT_, std::complex<float>);
+        TEST_DTYPE(NPY_CDOUBLE_, std::complex<double>);
+        TEST_DTYPE(NPY_CLONGDOUBLE_, std::complex<long double>);
+        TEST_DTYPE(NPY_INT8_, int8_t);
+        TEST_DTYPE(NPY_UINT8_, uint8_t);
+        TEST_DTYPE(NPY_INT16_, int16_t);
+        TEST_DTYPE(NPY_UINT16_, uint16_t);
+        TEST_DTYPE(NPY_INT32_, int32_t);
+        TEST_DTYPE(NPY_UINT32_, uint32_t);
+        TEST_DTYPE(NPY_INT64_, int64_t);
+        TEST_DTYPE(NPY_UINT64_, uint64_t);
+#undef TEST_DTYPE
+        return res;
+    });
+    m.def("test_dtype_switch", [](const py::array &arr) -> py::array {
+        switch (arr.dtype().normalized_num()) {
+            case py::dtype::num_of<int8_t>():
+                return dispatch_array_increment<int8_t>(arr);
+            case py::dtype::num_of<uint8_t>():
+                return dispatch_array_increment<uint8_t>(arr);
+            case py::dtype::num_of<int16_t>():
+                return dispatch_array_increment<int16_t>(arr);
+            case py::dtype::num_of<uint16_t>():
+                return dispatch_array_increment<uint16_t>(arr);
+            case py::dtype::num_of<int32_t>():
+                return dispatch_array_increment<int32_t>(arr);
+            case py::dtype::num_of<uint32_t>():
+                return dispatch_array_increment<uint32_t>(arr);
+            case py::dtype::num_of<int64_t>():
+                return dispatch_array_increment<int64_t>(arr);
+            case py::dtype::num_of<uint64_t>():
+                return dispatch_array_increment<uint64_t>(arr);
+            case py::dtype::num_of<float>():
+                return dispatch_array_increment<float>(arr);
+            case py::dtype::num_of<double>():
+                return dispatch_array_increment<double>(arr);
+            case py::dtype::num_of<long double>():
+                return dispatch_array_increment<long double>(arr);
+            default:
+                throw std::runtime_error("Unsupported dtype");
+        }
     });
     m.def("test_dtype_methods", []() {
         py::list list;

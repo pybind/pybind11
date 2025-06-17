@@ -1,3 +1,4 @@
+#include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
@@ -17,6 +18,15 @@ using namespace py::literals;
 size_t get_sys_path_size() {
     auto sys_path = py::module::import("sys").attr("path");
     return py::len(sys_path);
+}
+
+bool has_state_dict_internals_obj() {
+    py::dict state = py::detail::get_python_state_dict();
+    return state.contains(PYBIND11_INTERNALS_ID);
+}
+
+uintptr_t get_details_as_uintptr() {
+    return reinterpret_cast<uintptr_t>(py::detail::get_internals_pp_manager().get_pp()->get());
 }
 
 class Widget {
@@ -55,12 +65,15 @@ class test_override_cache_helper_trampoline : public test_override_cache_helper 
     int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
 };
 
-PYBIND11_EMBEDDED_MODULE(widget_module, m) {
+PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
 
     m.def("add", [](int i, int j) { return i + j; });
+
+    auto sub = m.def_submodule("sub");
+    sub.def("add", [](int i, int j) { return i + j; });
 }
 
 PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
@@ -255,26 +268,15 @@ TEST_CASE("Add program dir to path using PyConfig") {
 }
 #endif
 
-bool has_state_dict_internals_obj() {
-    return bool(
-        py::detail::get_internals_obj_from_state_dict(py::detail::get_python_state_dict()));
-}
-
-bool has_pybind11_internals_static() {
-    auto **&ipp = py::detail::get_internals_pp();
-    return (ipp != nullptr) && (*ipp != nullptr);
-}
-
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
     REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>()
             == 123);
 
     // local and foreign module internals should point to the same internals:
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
+    REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
@@ -286,11 +288,11 @@ TEST_CASE("Restart the interpreter") {
 
     // Internals are deleted after a restart.
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE_FALSE(has_pybind11_internals_static());
+    REQUIRE(get_details_as_uintptr() == 0);
     pybind11::detail::get_internals();
     REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
-    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp())
+    REQUIRE(get_details_as_uintptr() != 0);
+    REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
@@ -301,65 +303,28 @@ TEST_CASE("Restart the interpreter") {
     py::module_::import("__main__").attr("internals_destroy_test")
         = py::capsule(&ran, [](void *ran) {
               py::detail::get_internals();
+              REQUIRE(has_state_dict_internals_obj());
               *static_cast<bool *>(ran) = true;
           });
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE_FALSE(has_pybind11_internals_static());
     REQUIRE_FALSE(ran);
     py::finalize_interpreter();
     REQUIRE(ran);
     py::initialize_interpreter();
     REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE_FALSE(has_pybind11_internals_static());
+    REQUIRE(get_details_as_uintptr() == 0);
 
     // C++ modules can be reloaded.
     auto cpp_module = py::module_::import("widget_module");
     REQUIRE(cpp_module.attr("add")(1, 2).cast<int>() == 3);
 
+    // Also verify submodules work
+    REQUIRE(cpp_module.attr("sub").attr("add")(1, 41).cast<int>() == 42);
+
     // C++ type information is reloaded and can be used in python modules.
     auto py_module = py::module_::import("test_interpreter");
     auto py_widget = py_module.attr("DerivedWidget")("Hello after restart");
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
-}
-
-TEST_CASE("Subinterpreter") {
-    // Add tags to the modules in the main interpreter and test the basics.
-    py::module_::import("__main__").attr("main_tag") = "main interpreter";
-    {
-        auto m = py::module_::import("widget_module");
-        m.attr("extension_module_tag") = "added to module in main interpreter";
-
-        REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
-    }
-    REQUIRE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
-
-    /// Create and switch to a subinterpreter.
-    auto *main_tstate = PyThreadState_Get();
-    auto *sub_tstate = Py_NewInterpreter();
-
-    // Subinterpreters get their own copy of builtins. detail::get_internals() still
-    // works by returning from the static variable, i.e. all interpreters share a single
-    // global pybind11::internals;
-    REQUIRE_FALSE(has_state_dict_internals_obj());
-    REQUIRE(has_pybind11_internals_static());
-
-    // Modules tags should be gone.
-    REQUIRE_FALSE(py::hasattr(py::module_::import("__main__"), "tag"));
-    {
-        auto m = py::module_::import("widget_module");
-        REQUIRE_FALSE(py::hasattr(m, "extension_module_tag"));
-
-        // Function bindings should still work.
-        REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
-    }
-
-    // Restore main interpreter.
-    Py_EndInterpreter(sub_tstate);
-    PyThreadState_Swap(main_tstate);
-
-    REQUIRE(py::hasattr(py::module_::import("__main__"), "main_tag"));
-    REQUIRE(py::hasattr(py::module_::import("widget_module"), "extension_module_tag"));
 }
 
 TEST_CASE("Execution frame") {
@@ -373,18 +338,32 @@ TEST_CASE("Threads") {
     // Restart interpreter to ensure threads are not initialized
     py::finalize_interpreter();
     py::initialize_interpreter();
-    REQUIRE_FALSE(has_pybind11_internals_static());
 
     constexpr auto num_threads = 10;
     auto locals = py::dict("count"_a = 0);
 
     {
         py::gil_scoped_release gil_release{};
+#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030E0000
+        std::mutex mutex;
+#endif
 
         auto threads = std::vector<std::thread>();
         for (auto i = 0; i < num_threads; ++i) {
             threads.emplace_back([&]() {
                 py::gil_scoped_acquire gil{};
+#ifdef Py_GIL_DISABLED
+#    if PY_VERSION_HEX < 0x030E0000
+                // This will not run with the GIL, so it won't deadlock. That's
+                // because of how we run our tests. Be more careful of
+                // deadlocks if the "free-threaded" GIL could be enabled (at
+                // runtime).
+                std::lock_guard<std::mutex> lock(mutex);
+#    else
+                // CPython's thread-safe API in no-GIL mode.
+                py::scoped_critical_section lock(locals);
+#    endif
+#endif
                 locals["count"] = locals["count"].cast<int>() + 1;
             });
         }

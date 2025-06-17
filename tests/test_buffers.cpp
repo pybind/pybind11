@@ -167,6 +167,125 @@ TEST_SUBMODULE(buffers, m) {
                  sizeof(float)});
         });
 
+    // A matrix that uses Fortran storage order.
+    class FortranMatrix : public Matrix {
+    public:
+        FortranMatrix(py::ssize_t rows, py::ssize_t cols) : Matrix(cols, rows) {
+            print_created(this,
+                          std::to_string(rows) + "x" + std::to_string(cols) + " Fortran matrix");
+        }
+
+        float operator()(py::ssize_t i, py::ssize_t j) const { return Matrix::operator()(j, i); }
+
+        float &operator()(py::ssize_t i, py::ssize_t j) { return Matrix::operator()(j, i); }
+
+        using Matrix::data;
+
+        py::ssize_t rows() const { return Matrix::cols(); }
+        py::ssize_t cols() const { return Matrix::rows(); }
+    };
+    py::class_<FortranMatrix, Matrix>(m, "FortranMatrix", py::buffer_protocol())
+        .def(py::init<py::ssize_t, py::ssize_t>())
+
+        .def("rows", &FortranMatrix::rows)
+        .def("cols", &FortranMatrix::cols)
+
+        /// Bare bones interface
+        .def("__getitem__",
+             [](const FortranMatrix &m, std::pair<py::ssize_t, py::ssize_t> i) {
+                 if (i.first >= m.rows() || i.second >= m.cols()) {
+                     throw py::index_error();
+                 }
+                 return m(i.first, i.second);
+             })
+        .def("__setitem__",
+             [](FortranMatrix &m, std::pair<py::ssize_t, py::ssize_t> i, float v) {
+                 if (i.first >= m.rows() || i.second >= m.cols()) {
+                     throw py::index_error();
+                 }
+                 m(i.first, i.second) = v;
+             })
+        /// Provide buffer access
+        .def_buffer([](FortranMatrix &m) -> py::buffer_info {
+            return py::buffer_info(m.data(),             /* Pointer to buffer */
+                                   {m.rows(), m.cols()}, /* Buffer dimensions */
+                                   /* Strides (in bytes) for each index */
+                                   {sizeof(float), sizeof(float) * size_t(m.rows())});
+        });
+
+    // A matrix that uses a discontiguous underlying memory block.
+    class DiscontiguousMatrix : public Matrix {
+    public:
+        DiscontiguousMatrix(py::ssize_t rows,
+                            py::ssize_t cols,
+                            py::ssize_t row_factor,
+                            py::ssize_t col_factor)
+            : Matrix(rows * row_factor, cols * col_factor), m_row_factor(row_factor),
+              m_col_factor(col_factor) {
+            print_created(this,
+                          std::to_string(rows) + "(*" + std::to_string(row_factor) + ")x"
+                              + std::to_string(cols) + "(*" + std::to_string(col_factor)
+                              + ") matrix");
+        }
+
+        ~DiscontiguousMatrix() {
+            print_destroyed(this,
+                            std::to_string(rows() / m_row_factor) + "(*"
+                                + std::to_string(m_row_factor) + ")x"
+                                + std::to_string(cols() / m_col_factor) + "(*"
+                                + std::to_string(m_col_factor) + ") matrix");
+        }
+
+        float operator()(py::ssize_t i, py::ssize_t j) const {
+            return Matrix::operator()(i *m_row_factor, j *m_col_factor);
+        }
+
+        float &operator()(py::ssize_t i, py::ssize_t j) {
+            return Matrix::operator()(i *m_row_factor, j *m_col_factor);
+        }
+
+        using Matrix::data;
+
+        py::ssize_t rows() const { return Matrix::rows() / m_row_factor; }
+        py::ssize_t cols() const { return Matrix::cols() / m_col_factor; }
+        py::ssize_t row_factor() const { return m_row_factor; }
+        py::ssize_t col_factor() const { return m_col_factor; }
+
+    private:
+        py::ssize_t m_row_factor;
+        py::ssize_t m_col_factor;
+    };
+    py::class_<DiscontiguousMatrix, Matrix>(m, "DiscontiguousMatrix", py::buffer_protocol())
+        .def(py::init<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t>())
+
+        .def("rows", &DiscontiguousMatrix::rows)
+        .def("cols", &DiscontiguousMatrix::cols)
+
+        /// Bare bones interface
+        .def("__getitem__",
+             [](const DiscontiguousMatrix &m, std::pair<py::ssize_t, py::ssize_t> i) {
+                 if (i.first >= m.rows() || i.second >= m.cols()) {
+                     throw py::index_error();
+                 }
+                 return m(i.first, i.second);
+             })
+        .def("__setitem__",
+             [](DiscontiguousMatrix &m, std::pair<py::ssize_t, py::ssize_t> i, float v) {
+                 if (i.first >= m.rows() || i.second >= m.cols()) {
+                     throw py::index_error();
+                 }
+                 m(i.first, i.second) = v;
+             })
+        /// Provide buffer access
+        .def_buffer([](DiscontiguousMatrix &m) -> py::buffer_info {
+            return py::buffer_info(m.data(),             /* Pointer to buffer */
+                                   {m.rows(), m.cols()}, /* Buffer dimensions */
+                                   /* Strides (in bytes) for each index */
+                                   {size_t(m.col_factor()) * sizeof(float) * size_t(m.cols())
+                                        * size_t(m.row_factor()),
+                                    size_t(m.col_factor()) * sizeof(float)});
+        });
+
     class BrokenMatrix : public Matrix {
     public:
         BrokenMatrix(py::ssize_t rows, py::ssize_t cols) : Matrix(rows, cols) {}
@@ -268,4 +387,56 @@ TEST_SUBMODULE(buffers, m) {
         });
 
     m.def("get_buffer_info", [](const py::buffer &buffer) { return buffer.request(); });
+
+    // Expose Py_buffer for testing.
+    m.attr("PyBUF_FORMAT") = PyBUF_FORMAT;
+    m.attr("PyBUF_SIMPLE") = PyBUF_SIMPLE;
+    m.attr("PyBUF_ND") = PyBUF_ND;
+    m.attr("PyBUF_STRIDES") = PyBUF_STRIDES;
+    m.attr("PyBUF_INDIRECT") = PyBUF_INDIRECT;
+    m.attr("PyBUF_C_CONTIGUOUS") = PyBUF_C_CONTIGUOUS;
+    m.attr("PyBUF_F_CONTIGUOUS") = PyBUF_F_CONTIGUOUS;
+    m.attr("PyBUF_ANY_CONTIGUOUS") = PyBUF_ANY_CONTIGUOUS;
+
+    m.def("get_py_buffer", [](const py::object &object, int flags) {
+        Py_buffer buffer;
+        memset(&buffer, 0, sizeof(Py_buffer));
+        if (PyObject_GetBuffer(object.ptr(), &buffer, flags) == -1) {
+            throw py::error_already_set();
+        }
+
+        auto SimpleNamespace = py::module_::import("types").attr("SimpleNamespace");
+        py::object result = SimpleNamespace("len"_a = buffer.len,
+                                            "readonly"_a = buffer.readonly,
+                                            "itemsize"_a = buffer.itemsize,
+                                            "format"_a = buffer.format,
+                                            "ndim"_a = buffer.ndim,
+                                            "shape"_a = py::none(),
+                                            "strides"_a = py::none(),
+                                            "suboffsets"_a = py::none());
+        if (buffer.shape != nullptr) {
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.shape[i]);
+            }
+            py::setattr(result, "shape", l);
+        }
+        if (buffer.strides != nullptr) {
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.strides[i]);
+            }
+            py::setattr(result, "strides", l);
+        }
+        if (buffer.suboffsets != nullptr) {
+            py::list l;
+            for (auto i = 0; i < buffer.ndim; i++) {
+                l.append(buffer.suboffsets[i]);
+            }
+            py::setattr(result, "suboffsets", l);
+        }
+
+        PyBuffer_Release(&buffer);
+        return result;
+    });
 }

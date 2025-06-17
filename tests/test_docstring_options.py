@@ -19,9 +19,13 @@ def test_docstring_options():
     assert m.test_overloaded3.__doc__ == "Overload docstr"
 
     # options.enable_function_signatures()
-    assert m.test_function3.__doc__.startswith("test_function3(a: int, b: int) -> None")
+    assert m.test_function3.__doc__.startswith(
+        "test_function3(a: typing.SupportsInt, b: typing.SupportsInt) -> None"
+    )
 
-    assert m.test_function4.__doc__.startswith("test_function4(a: int, b: int) -> None")
+    assert m.test_function4.__doc__.startswith(
+        "test_function4(a: typing.SupportsInt, b: typing.SupportsInt) -> None"
+    )
     assert m.test_function4.__doc__.endswith("A custom docstring\n")
 
     # options.disable_function_signatures()
@@ -32,7 +36,9 @@ def test_docstring_options():
     assert m.test_function6.__doc__ == "A custom docstring"
 
     # RAII destructor
-    assert m.test_function7.__doc__.startswith("test_function7(a: int, b: int) -> None")
+    assert m.test_function7.__doc__.startswith(
+        "test_function7(a: typing.SupportsInt, b: typing.SupportsInt) -> None"
+    )
     assert m.test_function7.__doc__.endswith("A custom docstring\n")
 
     # when all options are disabled, no docstring (instead of an empty one) should be generated

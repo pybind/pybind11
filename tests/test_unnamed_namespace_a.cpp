@@ -10,7 +10,6 @@ TEST_SUBMODULE(unnamed_namespace_a, m) {
     } else {
         m.attr("unnamed_namespace_a_any_struct") = py::none();
     }
-    m.attr("PYBIND11_INTERNALS_VERSION") = PYBIND11_INTERNALS_VERSION;
     m.attr("defined_WIN32_or__WIN32") =
 #if defined(WIN32) || defined(_WIN32)
         true;

@@ -322,4 +322,10 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             py::pos_only{},
             py::arg("i"),
             py::arg("j"));
+
+    // Test support for args and kwargs subclasses
+    m.def("args_kwargs_subclass_function",
+          [](const py::Args<std::string> &args, const py::KWArgs<std::string> &kwargs) {
+              return py::make_tuple(args, kwargs);
+          });
 }

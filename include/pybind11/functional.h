@@ -9,8 +9,6 @@
 
 #pragma once
 
-#define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS
-
 #include "pybind11.h"
 
 #include <functional>
@@ -50,7 +48,7 @@ struct func_wrapper_base {
 template <typename Return, typename... Args>
 struct func_wrapper : func_wrapper_base {
     using func_wrapper_base::func_wrapper_base;
-    Return operator()(Args... args) const {
+    Return operator()(Args... args) const { // NOLINT(performance-unnecessary-value-param)
         gil_scoped_acquire acq;
         // casts the returned object as a rvalue to the return type
         return hfunc.f(std::forward<Args>(args)...).template cast<Return>();
@@ -93,23 +91,22 @@ public:
             auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
             if (cfunc_self == nullptr) {
                 PyErr_Clear();
-            } else if (isinstance<capsule>(cfunc_self)) {
-                auto c = reinterpret_borrow<capsule>(cfunc_self);
-
-                function_record *rec = nullptr;
-                // Check that we can safely reinterpret the capsule into a function_record
-                if (detail::is_function_record_capsule(c)) {
-                    rec = c.get_pointer<function_record>();
-                }
-
+            } else {
+                function_record *rec = function_record_ptr_from_PyObject(cfunc_self);
                 while (rec != nullptr) {
                     if (rec->is_stateless
                         && same_type(typeid(function_type),
                                      *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
                         struct capture {
                             function_type f;
+
+                            static capture *from_data(void **data) {
+                                return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
+                            }
                         };
-                        value = ((capture *) &rec->data)->f;
+                        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+                            std::is_standard_layout<capture>::value);
+                        value = capture::from_data(rec->data)->f;
                         return true;
                     }
                     rec = rec->next;
@@ -138,11 +135,12 @@ public:
         return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
-    PYBIND11_TYPE_CASTER(type,
-                         const_name("Callable[[")
-                             + ::pybind11::detail::concat(make_caster<Args>::name...)
-                             + const_name("], ") + make_caster<retval_type>::name
-                             + const_name("]"));
+    PYBIND11_TYPE_CASTER(
+        type,
+        const_name("collections.abc.Callable[[")
+            + ::pybind11::detail::concat(::pybind11::detail::arg_descr(make_caster<Args>::name)...)
+            + const_name("], ") + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
+            + const_name("]"));
 };
 
 PYBIND11_NAMESPACE_END(detail)

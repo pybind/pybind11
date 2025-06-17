@@ -5,7 +5,6 @@ import re
 import pytest
 
 import env  # noqa: F401
-from pybind11_tests import PYBIND11_NUMPY_1_ONLY
 from pybind11_tests import numpy_dtypes as m
 
 np = pytest.importorskip("numpy")
@@ -181,12 +180,29 @@ def test_dtype(simple_dtype):
     assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
     assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]
     assert m.test_dtype_alignment() == [np.dtype(ch).alignment for ch in expected_chars]
-    if not PYBIND11_NUMPY_1_ONLY:
-        assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
-    else:
-        assert m.test_dtype_flags() == [
-            chr(np.dtype(ch).flags) for ch in expected_chars
-        ]
+    assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
+
+    for a, b in m.test_dtype_num_of():
+        assert a == b
+
+    for a, b in m.test_dtype_normalized_num():
+        assert a == b
+
+    arr = np.array([4, 84, 21, 36])
+    # Note: "ulong" does not work in NumPy 1.x, so we use "L"
+    assert (m.test_dtype_switch(arr.astype("byte")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ubyte")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("short")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ushort")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("intc")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("uintc")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("long")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("L")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("longlong")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ulonglong")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("single")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("double")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("longdouble")) == arr + 1).all()
 
 
 def test_recarray(simple_dtype, packed_dtype):
@@ -351,7 +367,7 @@ def test_complex_array():
 def test_signature(doc):
     assert (
         doc(m.create_rec_nested)
-        == "create_rec_nested(arg0: int) -> numpy.ndarray[NestedStruct]"
+        == "create_rec_nested(arg0: typing.SupportsInt) -> numpy.typing.NDArray[NestedStruct]"
     )
 
 

@@ -90,15 +90,8 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
     // Free threaded Python uses UINT32_MAX for immortal objects.
-    m.attr("PYBIND11_REFCNT_IMMORTAL") = UINT32_MAX;
     m.attr("PYBIND11_SIMPLE_GIL_MANAGEMENT") =
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-        true;
-#else
-        false;
-#endif
-    m.attr("PYBIND11_NUMPY_1_ONLY") =
-#if defined(PYBIND11_NUMPY_1_ONLY)
         true;
 #else
         false;
@@ -128,4 +121,9 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     for (const auto &initializer : initializers()) {
         initializer(m);
     }
+
+    py::class_<TestContext>(m, "TestContext")
+        .def(py::init<>(&TestContext::createNewContextForInit))
+        .def("__enter__", &TestContext::contextEnter)
+        .def("__exit__", &TestContext::contextExit);
 }
