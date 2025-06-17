@@ -1,10 +1,70 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import pickle
 import sys
 
 import pytest
+
+CONCURRENT_INTERPRETERS_SUPPORT = sys.version_info >= (3, 14) and (
+    sys.version_info != (3, 14, 0, "beta", 1)
+    or sys.version_info != (3, 14, 0, "beta", 2)
+)
+
+
+def get_interpreters(*, modern: bool):
+    if modern and CONCURRENT_INTERPRETERS_SUPPORT:
+        from concurrent import interpreters
+
+        def create():
+            return contextlib.closing(interpreters.create())
+
+        def run_string(
+            interp: interpreters.Interpreter,
+            code: str,
+            *,
+            shared: dict[str, object] | None = None,
+        ) -> Exception | None:
+            if shared:
+                interp.prepare_main(**shared)
+            try:
+                interp.exec(code)
+                return None
+            except interpreters.ExecutionFailed as err:
+                return err
+
+        return run_string, create
+
+    if sys.version_info >= (3, 12):
+        interpreters = pytest.importorskip(
+            "_interpreters" if sys.version_info >= (3, 13) else "_xxsubinterpreters"
+        )
+
+        @contextlib.contextmanager
+        def create(config: str = ""):
+            try:
+                if config:
+                    interp = interpreters.create(config)
+                else:
+                    interp = interpreters.create()
+            except TypeError:
+                pytest.skip(f"interpreters module needs to support {config} config")
+
+            try:
+                yield interp
+            finally:
+                interpreters.destroy(interp)
+
+        def run_string(
+            interp: int, code: str, shared: dict[str, object] | None = None
+        ) -> Exception | None:
+            kwargs = {"shared": shared} if shared else {}
+            return interpreters.run_string(interp, code, **kwargs)
+
+        return run_string, create
+
+    pytest.skip("Test requires the interpreters stdlib module")
 
 
 @pytest.mark.skipif(
@@ -15,15 +75,7 @@ def test_independent_subinterpreters():
 
     sys.path.append(".")
 
-    # This is supposed to be added in 3.14.0b3
-    if sys.version_info >= (3, 15):
-        import interpreters
-    elif sys.version_info >= (3, 13):
-        interpreters = pytest.importorskip("_interpreters")
-    elif sys.version_info >= (3, 12):
-        interpreters = pytest.importorskip("_xxsubinterpreters")
-    else:
-        pytest.skip("Test requires the interpreters stdlib module")
+    run_string, create = get_interpreters(modern=True)
 
     m = pytest.importorskip("mod_per_interpreter_gil")
 
@@ -37,23 +89,21 @@ with open(pipeo, 'wb') as f:
     pickle.dump(m.internals_at(), f)
 """
 
-    interp1 = interpreters.create()
-    interp2 = interpreters.create()
-    try:
+    with create() as interp1, create() as interp2:
         try:
-            res0 = interpreters.run_string(interp1, "import mod_shared_interpreter_gil")
+            res0 = run_string(interp1, "import mod_shared_interpreter_gil")
             if res0 is not None:
-                res0 = res0.msg
+                res0 = str(res0)
         except Exception as e:
             res0 = str(e)
 
         pipei, pipeo = os.pipe()
-        interpreters.run_string(interp1, code, shared={"pipeo": pipeo})
+        run_string(interp1, code, shared={"pipeo": pipeo})
         with open(pipei, "rb") as f:
             res1 = pickle.load(f)
 
         pipei, pipeo = os.pipe()
-        interpreters.run_string(interp2, code, shared={"pipeo": pipeo})
+        run_string(interp2, code, shared={"pipeo": pipeo})
         with open(pipei, "rb") as f:
             res2 = pickle.load(f)
 
@@ -63,9 +113,6 @@ with open(pipeo, 'wb') as f:
         assert m.internals_at() == m2.internals_at(), (
             "internals should be the same within the main interpreter"
         )
-    finally:
-        interpreters.destroy(interp1)
-        interpreters.destroy(interp2)
 
     assert "does not support loading in subinterpreters" in res0, (
         "cannot use shared_gil in a default subinterpreter"
@@ -90,14 +137,7 @@ def test_dependent_subinterpreters():
 
     sys.path.append(".")
 
-    if sys.version_info >= (3, 15):
-        import interpreters
-    elif sys.version_info >= (3, 13):
-        interpreters = pytest.importorskip("_interpreters")
-    elif sys.version_info >= (3, 12):
-        interpreters = pytest.importorskip("_xxsubinterpreters")
-    else:
-        pytest.skip("Test requires the interpreters stdlib module")
+    run_string, create = get_interpreters(modern=False)
 
     m = pytest.importorskip("mod_shared_interpreter_gil")
 
@@ -111,14 +151,9 @@ with open(pipeo, 'wb') as f:
     pickle.dump(m.internals_at(), f)
 """
 
-    try:
-        interp1 = interpreters.create("legacy")
-    except TypeError:
-        pytest.skip("interpreters module needs to support legacy config")
-
-    try:
+    with create("legacy") as interp1:
         pipei, pipeo = os.pipe()
-        interpreters.run_string(interp1, code, shared={"pipeo": pipeo})
+        run_string(interp1, code, shared={"pipeo": pipeo})
         with open(pipei, "rb") as f:
             res1 = pickle.load(f)
 
@@ -128,8 +163,6 @@ with open(pipeo, 'wb') as f:
         assert m.internals_at() == m2.internals_at(), (
             "internals should be the same within the main interpreter"
         )
-    finally:
-        interpreters.destroy(interp1)
 
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
 
