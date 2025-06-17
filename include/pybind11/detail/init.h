@@ -262,6 +262,22 @@ void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, boo
 
 template <typename Class, detail::enable_if_t<is_smart_holder<Holder<Class>>::value, int> = 0>
 void construct(value_and_holder &v_h,
+               std::shared_ptr<const Cpp<Class>> &&shd_ptr,
+               bool need_alias) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
+    auto *ptr = shd_ptr.get();
+    no_nullptr(ptr);
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
+        throw type_error("pybind11::init(): construction failed: returned std::shared_ptr pointee "
+                         "is not an alias instance");
+    }
+    auto smhldr = smart_holder::from_shared_ptr(std::const_pointer_cast<Cpp<Class>>(shd_ptr));
+    v_h.value_ptr() = const_cast<Cpp<Class> *>(ptr);
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+
+template <typename Class, detail::enable_if_t<is_smart_holder<Holder<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h,
                std::shared_ptr<Alias<Class>> &&shd_ptr,
                bool /*need_alias*/) {
     auto *ptr = shd_ptr.get();
