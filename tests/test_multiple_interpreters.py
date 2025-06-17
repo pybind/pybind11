@@ -9,12 +9,13 @@ import pytest
 
 CONCURRENT_INTERPRETERS_SUPPORT = sys.version_info >= (3, 14) and (
     sys.version_info != (3, 14, 0, "beta", 1)
-    or sys.version_info != (3, 14, 0, "beta", 2)
+    and sys.version_info != (3, 14, 0, "beta", 2)
 )
 
 
 def get_interpreters(*, modern: bool):
     if modern and CONCURRENT_INTERPRETERS_SUPPORT:
+        print(sys.version_info)
         from concurrent import interpreters
 
         def create():
@@ -117,6 +118,65 @@ with open(pipeo, 'wb') as f:
     assert "does not support loading in subinterpreters" in res0, (
         "cannot use shared_gil in a default subinterpreter"
     )
+    assert res1 != m.internals_at(), "internals should differ from main interpreter"
+    assert res2 != m.internals_at(), "internals should differ from main interpreter"
+    assert res1 != res2, "internals should differ between interpreters"
+
+    # do this after the two interpreters are destroyed and only one remains
+    import mod_per_interpreter_gil as m3
+
+    assert m.internals_at() == m3.internals_at(), (
+        "internals should be the same within the main interpreter"
+    )
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_independent_subinterpreters_modern():
+    """Makes sure the internals object differs across independent subinterpreters. Modern (3.14+) syntax."""
+
+    sys.path.append(".")
+
+    m = pytest.importorskip("mod_per_interpreter_gil")
+
+    if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
+        pytest.skip("Does not have subinterpreter support compiled in")
+
+    from concurrent import interpreters
+
+    code = """
+import mod_per_interpreter_gil as m
+
+values.put_nowait(m.internals_at())
+"""
+
+    with contextlib.closing(interpreters.create()) as interp1, contextlib.closing(
+        interpreters.create()
+    ) as interp2:
+        with pytest.raises(
+            interpreters.ExecutionFailed,
+            match="does not support loading in subinterpreters",
+        ):
+            interp1.exec("import mod_shared_interpreter_gil")
+
+        values = interpreters.create_queue()
+        interp1.prepare_main(values=values)
+        interp1.exec(code)
+        res1 = values.get_nowait()
+
+        interp2.prepare_main(values=values)
+        interp2.exec(code)
+        res2 = values.get_nowait()
+
+        # do this while the two interpreters are active
+        import mod_per_interpreter_gil as m2
+
+        assert m.internals_at() == m2.internals_at(), (
+            "internals should be the same within the main interpreter"
+        )
+
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
     assert res2 != m.internals_at(), "internals should differ from main interpreter"
     assert res1 != res2, "internals should differ between interpreters"
