@@ -531,8 +531,8 @@ struct value_and_holder_helper {
     }
 
     // have_holder() must be true or this function will fail.
-    void throw_if_instance_is_currently_owned_by_shared_ptr() const {
-        auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(holder().vptr);
+    void throw_if_instance_is_currently_owned_by_shared_ptr(const type_info *tinfo) const {
+        auto *vptr_gd_ptr = tinfo->get_memory_guarded_delete(holder().vptr);
         if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
             throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
@@ -564,8 +564,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     assert(st.second != nullptr);
     const detail::type_info *tinfo = st.second;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
-        auto *self_life_support
-            = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(src.get());
+        auto *self_life_support = tinfo->get_trampoline_self_life_support(src.get());
         if (self_life_support != nullptr) {
             value_and_holder &v_h = self_life_support->v_h;
             if (v_h.inst != nullptr && v_h.vh != nullptr) {
@@ -576,7 +575,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
                 }
                 // Critical transfer-of-ownership section. This must stay together.
                 self_life_support->deactivate_life_support();
-                holder.reclaim_disowned();
+                holder.reclaim_disowned(tinfo->get_memory_guarded_delete);
                 (void) src.release();
                 // Critical section end.
                 return existing_inst;
@@ -742,7 +741,8 @@ struct load_helper : value_and_holder_helper {
         return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
     }
 
-    std::shared_ptr<T> load_as_shared_ptr(void *void_raw_ptr,
+    std::shared_ptr<T> load_as_shared_ptr(const type_info *tinfo,
+                                          void *void_raw_ptr,
                                           handle responsible_parent = nullptr,
                                           // to support py::potentially_slicing_weak_ptr
                                           // with minimal added code complexity:
@@ -763,7 +763,7 @@ struct load_helper : value_and_holder_helper {
         }
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
         if (python_instance_is_alias && !force_potentially_slicing_shared_ptr) {
-            auto *vptr_gd_ptr = std::get_deleter<memory::guarded_delete>(hld.vptr);
+            auto *vptr_gd_ptr = tinfo->get_memory_guarded_delete(holder().vptr);
             if (vptr_gd_ptr != nullptr) {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
                 if (released_ptr) {
@@ -800,31 +800,32 @@ struct load_helper : value_and_holder_helper {
     }
 
     template <typename D>
-    std::unique_ptr<T, D> load_as_unique_ptr(void *raw_void_ptr,
+    std::unique_ptr<T, D> load_as_unique_ptr(const type_info *tinfo,
+                                             void *raw_void_ptr,
                                              const char *context = "load_as_unique_ptr") {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
         throw_if_uninitialized_or_disowned_holder(typeid(T));
-        throw_if_instance_is_currently_owned_by_shared_ptr();
+        throw_if_instance_is_currently_owned_by_shared_ptr(tinfo);
         holder().ensure_is_not_disowned(context);
-        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
+        holder().template ensure_compatible_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
 
         T *raw_type_ptr = static_cast<T *>(raw_void_ptr);
 
-        auto *self_life_support
-            = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
+        auto *self_life_support = tinfo->get_trampoline_self_life_support(raw_type_ptr);
         // This is enforced indirectly by a static_assert in the class_ implementation:
         assert(!python_instance_is_alias || self_life_support);
 
-        std::unique_ptr<D> extracted_deleter = holder().template extract_deleter<T, D>(context);
+        std::unique_ptr<D> extracted_deleter
+            = holder().template extract_deleter<T, D>(context, tinfo->get_memory_guarded_delete);
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
-            holder().disown();
+            holder().disown(tinfo->get_memory_guarded_delete);
         } else {
-            holder().release_ownership();
+            holder().release_ownership(tinfo->get_memory_guarded_delete);
         }
         auto result = unique_with_deleter<T, D>(raw_type_ptr, std::move(extracted_deleter));
         if (self_life_support != nullptr) {
@@ -842,14 +843,17 @@ struct load_helper : value_and_holder_helper {
     // This assumes load_as_shared_ptr succeeded(), and the returned shared_ptr is still alive.
     // The returned unique_ptr is meant to never expire (the behavior is undefined otherwise).
     template <typename D>
-    std::unique_ptr<T, D>
-    load_as_const_unique_ptr(T *raw_type_ptr, const char *context = "load_as_const_unique_ptr") {
+    std::unique_ptr<T, D> load_as_const_unique_ptr(const type_info *tinfo,
+                                                   T *raw_type_ptr,
+                                                   const char *context
+                                                   = "load_as_const_unique_ptr") {
         if (!have_holder()) {
             return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
         }
-        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
-        return unique_with_deleter<T, D>(
-            raw_type_ptr, std::move(holder().template extract_deleter<T, D>(context)));
+        holder().template ensure_compatible_uqp_del<T, D>(context);
+        return unique_with_deleter<T, D>(raw_type_ptr,
+                                         std::move(holder().template extract_deleter<T, D>(
+                                             context, tinfo->get_memory_guarded_delete)));
     }
 };
 

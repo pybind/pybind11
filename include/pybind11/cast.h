@@ -980,7 +980,7 @@ public:
 
     explicit operator std::shared_ptr<type> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
+            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(typeinfo, value);
         }
         return shared_ptr_storage;
     }
@@ -989,7 +989,8 @@ public:
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             // Reusing shared_ptr code to minimize code complexity.
             shared_ptr_storage
-                = sh_load_helper.load_as_shared_ptr(value,
+                = sh_load_helper.load_as_shared_ptr(typeinfo,
+                                                    value,
                                                     /*responsible_parent=*/nullptr,
                                                     /*force_potentially_slicing_shared_ptr=*/true);
         }
@@ -1019,7 +1020,8 @@ public:
         copyable_holder_caster loader;
         loader.load(responsible_parent, /*convert=*/false);
         assert(loader.typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder);
-        return loader.sh_load_helper.load_as_shared_ptr(loader.value, responsible_parent);
+        return loader.sh_load_helper.load_as_shared_ptr(
+            loader.typeinfo, loader.value, responsible_parent);
     }
 
 protected:
@@ -1240,7 +1242,7 @@ public:
 
     explicit operator std::unique_ptr<type, deleter>() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
-            return sh_load_helper.template load_as_unique_ptr<deleter>(value);
+            return sh_load_helper.template load_as_unique_ptr<deleter>(typeinfo, value);
         }
         pybind11_fail("Expected to be UNREACHABLE: " __FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }
@@ -1248,12 +1250,12 @@ public:
     explicit operator const std::unique_ptr<type, deleter> &() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             // Get shared_ptr to ensure that the Python object is not disowned elsewhere.
-            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(value);
+            shared_ptr_storage = sh_load_helper.load_as_shared_ptr(typeinfo, value);
             // Build a temporary unique_ptr that is meant to never expire.
             unique_ptr_storage = std::shared_ptr<std::unique_ptr<type, deleter>>(
                 new std::unique_ptr<type, deleter>{
                     sh_load_helper.template load_as_const_unique_ptr<deleter>(
-                        shared_ptr_storage.get())},
+                        typeinfo, shared_ptr_storage.get())},
                 [](std::unique_ptr<type, deleter> *ptr) {
                     if (!ptr) {
                         pybind11_fail("FATAL: `const std::unique_ptr<T, D> &` was disowned "

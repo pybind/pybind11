@@ -14,6 +14,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+using pybind11::memory::guarded_delete;
 using pybind11::memory::smart_holder;
 namespace poc = pybind11::memory::smart_holder_poc;
 
@@ -160,11 +161,12 @@ TEST_CASE("from_raw_ptr_take_ownership+as_shared_ptr", "[S]") {
 TEST_CASE("from_raw_ptr_take_ownership+disown+reclaim_disowned", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
-    hld.disown();
+    hld.disown(pybind11::memory::get_guarded_delete);
     REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
     REQUIRE(*new_owner == 19);
-    hld.reclaim_disowned(); // Manually veriified: without this, clang++ -fsanitize=address reports
-                            // "detected memory leaks".
+    // Manually verified: without this, clang++ -fsanitize=address reports
+    // "detected memory leaks".
+    hld.reclaim_disowned(pybind11::memory::get_guarded_delete);
     // NOLINTNEXTLINE(bugprone-unused-return-value)
     (void) new_owner.release(); // Manually verified: without this, clang++ -fsanitize=address
                                 // reports "attempting double-free".
@@ -175,7 +177,7 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+reclaim_disowned", "[S]") {
 TEST_CASE("from_raw_ptr_take_ownership+disown+release_disowned", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
-    hld.disown();
+    hld.disown(pybind11::memory::get_guarded_delete);
     REQUIRE(poc::as_lvalue_ref<int>(hld) == 19);
     REQUIRE(*new_owner == 19);
     hld.release_disowned();
@@ -187,7 +189,7 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+ensure_is_not_disowned", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     hld.ensure_is_not_disowned(context); // Does not throw.
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
-    hld.disown();
+    hld.disown(pybind11::memory::get_guarded_delete);
     REQUIRE_THROWS_WITH(hld.ensure_is_not_disowned(context),
                         "Holder was disowned already (test_case).");
 }

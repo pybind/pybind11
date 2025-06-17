@@ -1571,6 +1571,7 @@ protected:
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
         tinfo->init_instance = rec.init_instance;
         tinfo->dealloc = rec.dealloc;
+        tinfo->get_trampoline_self_life_support = rec.get_trampoline_self_life_support;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
         tinfo->module_local = rec.module_local;
@@ -2064,6 +2065,16 @@ public:
             record.dealloc = dealloc_release_gil_before_calling_cpp_dtor;
         } else {
             record.dealloc = dealloc_without_manipulating_gil;
+        }
+
+        if (std::is_base_of<trampoline_self_life_support, type_alias>::value) {
+            // Store a cross-DSO-safe getter.
+            // This lambda is defined in the same DSO that instantiates
+            // class_<type, alias_type>, but it can be called safely from any other DSO.
+            record.get_trampoline_self_life_support = [](void *type_ptr) {
+                return dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(
+                    static_cast<type *>(type_ptr));
+            };
         }
 
         generic_type::initialize(record);

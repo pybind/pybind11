@@ -12,8 +12,10 @@
 #include <pybind11/conduit/pybind11_platform_abi_id.h>
 #include <pybind11/gil_simple.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/trampoline_self_life_support.h>
 
 #include "common.h"
+#include "struct_smart_holder.h"
 
 #include <atomic>
 #include <exception>
@@ -35,11 +37,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 10
+#    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 10
-#    error "PYBIND11_INTERNALS_VERSION 10 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 11
+#    error "PYBIND11_INTERNALS_VERSION 11 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -308,6 +310,12 @@ struct type_info {
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
+
+    // Cross-DSO-safe function pointers, to sidestep cross-DSO RTTI issues
+    // on platforms like macOS (see PR #5728 for details):
+    memory::get_guarded_delete_fn get_memory_guarded_delete = memory::get_guarded_delete;
+    get_trampoline_self_life_support_fn get_trampoline_self_life_support = nullptr;
+
     std::vector<PyObject *(*) (PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*) (void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
