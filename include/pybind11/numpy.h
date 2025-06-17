@@ -811,7 +811,7 @@ struct numpy_scalar {
     numpy_scalar() = default;
     explicit numpy_scalar(value_type value) : value(value) {}
 
-    explicit operator value_type() { return value; }
+    explicit operator value_type() const { return value; }
     numpy_scalar &operator=(value_type value) {
         this->value = value;
         return *this;

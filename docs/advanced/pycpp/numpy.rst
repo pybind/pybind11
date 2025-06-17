@@ -261,7 +261,7 @@ them mapping to respective C++ counterparts.
 
 .. note::
 
-    This is a strict type, it will only allows to specify NumPy type as input
+    This is a strict type, it will only allow to specify NumPy type as input
     arguments, and does not allow other types of input parameters (e.g.,
     ``py::numpy_scalar<int64_t>`` will not accept Python's builtin ``int`` ).
 
