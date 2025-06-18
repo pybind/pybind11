@@ -45,3 +45,10 @@ def test_numpy_scalars(npy_scalar_type, expected_value):
         else:
             with pytest.raises(TypeError):
                 test_tpnm(value)
+
+
+def test_eq_ne():
+    assert m.test_eq(np.int32(3), np.int32(3))
+    assert not m.test_eq(np.int32(3), np.int32(5))
+    assert not m.test_ne(np.int32(3), np.int32(3))
+    assert m.test_ne(np.int32(3), np.int32(5))

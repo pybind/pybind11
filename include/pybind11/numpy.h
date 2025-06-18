@@ -816,6 +816,12 @@ struct numpy_scalar {
         this->value = value;
         return *this;
     }
+
+    friend bool operator==(const numpy_scalar &a, const numpy_scalar &b) {
+        return a.value == b.value;
+    }
+
+    friend bool operator!=(const numpy_scalar &a, const numpy_scalar &b) { return !(a == b); }
 };
 
 template <typename T>
