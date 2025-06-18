@@ -12,6 +12,7 @@
 
 #include "detail/common.h"
 #include "cast.h"
+#include "trampoline_self_life_support.h"
 
 #include <functional>
 
@@ -311,6 +312,12 @@ struct type_record {
 
     /// Function pointer to class_<..>::dealloc
     void (*dealloc)(detail::value_and_holder &) = nullptr;
+
+    /// Function pointer for casting alias class (aka trampoline) pointer to
+    /// trampoline_self_life_support pointer. Sidesteps cross-DSO RTTI issues
+    /// on platforms like macOS (see PR #5728 for details).
+    get_trampoline_self_life_support_fn get_trampoline_self_life_support
+        = [](void *) -> trampoline_self_life_support * { return nullptr; };
 
     /// List of base classes of the newly created type
     list bases;

@@ -19,6 +19,7 @@ PYBIND11_NAMESPACE_END(detail)
 // https://github.com/google/clif/blob/07f95d7e69dca2fcf7022978a55ef3acff506c19/clif/python/runtime.cc#L37
 // URL provided here mainly to give proper credit.
 struct trampoline_self_life_support {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     detail::value_and_holder v_h;
 
     trampoline_self_life_support() = default;
@@ -56,5 +57,9 @@ struct trampoline_self_life_support {
     trampoline_self_life_support &operator=(const trampoline_self_life_support &) = delete;
     trampoline_self_life_support &operator=(trampoline_self_life_support &&) = delete;
 };
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+using get_trampoline_self_life_support_fn = trampoline_self_life_support *(*) (void *);
+PYBIND11_NAMESPACE_END(detail)
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

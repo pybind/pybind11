@@ -50,6 +50,7 @@ Details:
 
 #include "pybind11_namespace_macros.h"
 
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -57,19 +58,6 @@ Details:
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
-
-// IMPORTANT: This code block must stay BELOW the #include <stdexcept> above.
-// This is only required on some builds with libc++ (one of three implementations
-// in
-// https://github.com/llvm/llvm-project/blob/a9b64bb3180dab6d28bf800a641f9a9ad54d2c0c/libcxx/include/typeinfo#L271-L276
-// require it)
-#if !defined(PYBIND11_EXPORT_GUARDED_DELETE)
-#    if defined(_LIBCPP_VERSION) && !defined(WIN32) && !defined(_WIN32)
-#        define PYBIND11_EXPORT_GUARDED_DELETE __attribute__((visibility("default")))
-#    else
-#        define PYBIND11_EXPORT_GUARDED_DELETE
-#    endif
-#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(memory)
@@ -91,7 +79,8 @@ static constexpr bool type_has_shared_from_this(const void *) {
     return false;
 }
 
-struct PYBIND11_EXPORT_GUARDED_DELETE guarded_delete {
+struct guarded_delete {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
     std::function<void(void *)> del_fun; // Rare case.
     void (*del_ptr)(void *);             // Common case.
@@ -113,13 +102,19 @@ struct PYBIND11_EXPORT_GUARDED_DELETE guarded_delete {
     }
 };
 
+inline guarded_delete *get_guarded_delete(const std::shared_ptr<void> &ptr) {
+    return std::get_deleter<guarded_delete>(ptr);
+}
+
+using get_guarded_delete_fn = guarded_delete *(*) (const std::shared_ptr<void> &);
+
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
-inline void builtin_delete_if_destructible(void *raw_ptr) {
+inline void std_default_delete_if_destructible(void *raw_ptr) {
     std::default_delete<T>{}(static_cast<T *>(raw_ptr));
 }
 
 template <typename T, typename std::enable_if<!std::is_destructible<T>::value, int>::type = 0>
-inline void builtin_delete_if_destructible(void *) {
+inline void std_default_delete_if_destructible(void *) {
     // This noop operator is needed to avoid a compilation error (for `delete raw_ptr;`), but
     // throwing an exception from a destructor will std::terminate the process. Therefore the
     // runtime check for lifetime-management correctness is implemented elsewhere (in
@@ -127,12 +122,13 @@ inline void builtin_delete_if_destructible(void *) {
 }
 
 template <typename T>
-guarded_delete make_guarded_builtin_delete(bool armed_flag) {
-    return guarded_delete(builtin_delete_if_destructible<T>, armed_flag);
+guarded_delete make_guarded_std_default_delete(bool armed_flag) {
+    return guarded_delete(std_default_delete_if_destructible<T>, armed_flag);
 }
 
 template <typename T, typename D>
 struct custom_deleter {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     D deleter;
     explicit custom_deleter(D &&deleter) : deleter{std::forward<D>(deleter)} {}
     void operator()(void *raw_ptr) { deleter(static_cast<T *>(raw_ptr)); }
@@ -144,17 +140,25 @@ guarded_delete make_guarded_custom_deleter(D &&uqp_del, bool armed_flag) {
         std::function<void(void *)>(custom_deleter<T, D>(std::forward<D>(uqp_del))), armed_flag);
 }
 
-template <typename T>
-inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
-    return rtti_deleter == typeid(std::default_delete<T>)
-           || rtti_deleter == typeid(std::default_delete<T const>);
+template <typename T, typename D>
+constexpr bool uqp_del_is_std_default_delete() {
+    return std::is_same<D, std::default_delete<T>>::value
+           || std::is_same<D, std::default_delete<T const>>::value;
+}
+
+inline bool type_info_equal_across_dso_boundaries(const std::type_info &a,
+                                                  const std::type_info &b) {
+    // RTTI pointer comparison may fail across DSOs (e.g., macOS libc++).
+    // Fallback to name comparison, which is generally safe and ABI-stable enough for our use.
+    return a == b || std::strcmp(a.name(), b.name()) == 0;
 }
 
 struct smart_holder {
+    // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     const std::type_info *rtti_uqp_del = nullptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
-    bool vptr_is_using_builtin_delete : 1;
+    bool vptr_is_using_std_default_delete : 1;
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
     bool is_disowned : 1;
@@ -166,7 +170,7 @@ struct smart_holder {
     smart_holder &operator=(const smart_holder &) = delete;
 
     smart_holder()
-        : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
+        : vptr_is_using_noop_deleter{false}, vptr_is_using_std_default_delete{false},
           vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false} {}
 
     bool has_pointee() const { return vptr != nullptr; }
@@ -191,7 +195,7 @@ struct smart_holder {
         }
     }
 
-    void ensure_vptr_is_using_builtin_delete(const char *context) const {
+    void ensure_vptr_is_using_std_default_delete(const char *context) const {
         if (vptr_is_external_shared_ptr) {
             throw std::invalid_argument(std::string("Cannot disown external shared_ptr (")
                                         + context + ").");
@@ -200,24 +204,26 @@ struct smart_holder {
             throw std::invalid_argument(std::string("Cannot disown non-owning holder (") + context
                                         + ").");
         }
-        if (!vptr_is_using_builtin_delete) {
+        if (!vptr_is_using_std_default_delete) {
             throw std::invalid_argument(std::string("Cannot disown custom deleter (") + context
                                         + ").");
         }
     }
 
     template <typename T, typename D>
-    void ensure_compatible_rtti_uqp_del(const char *context) const {
-        const std::type_info *rtti_requested = &typeid(D);
+    void ensure_compatible_uqp_del(const char *context) const {
         if (!rtti_uqp_del) {
-            if (!is_std_default_delete<T>(*rtti_requested)) {
+            if (!uqp_del_is_std_default_delete<T, D>()) {
                 throw std::invalid_argument(std::string("Missing unique_ptr deleter (") + context
                                             + ").");
             }
-            ensure_vptr_is_using_builtin_delete(context);
-        } else if (!(*rtti_requested == *rtti_uqp_del)
-                   && !(vptr_is_using_builtin_delete
-                        && is_std_default_delete<T>(*rtti_requested))) {
+            ensure_vptr_is_using_std_default_delete(context);
+            return;
+        }
+        if (uqp_del_is_std_default_delete<T, D>() && vptr_is_using_std_default_delete) {
+            return;
+        }
+        if (!type_info_equal_across_dso_boundaries(typeid(D), *rtti_uqp_del)) {
             throw std::invalid_argument(std::string("Incompatible unique_ptr deleter (") + context
                                         + ").");
         }
@@ -244,19 +250,20 @@ struct smart_holder {
         }
     }
 
-    void reset_vptr_deleter_armed_flag(bool armed_flag) const {
-        auto *vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
-        if (vptr_del_ptr == nullptr) {
+    void reset_vptr_deleter_armed_flag(const get_guarded_delete_fn ggd_fn, bool armed_flag) const {
+        auto *gd = ggd_fn(vptr);
+        if (gd == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
         }
-        vptr_del_ptr->armed_flag = armed_flag;
+        gd->armed_flag = armed_flag;
     }
 
-    // Caller is responsible for precondition: ensure_compatible_rtti_uqp_del<T, D>() must succeed.
+    // Caller is responsible for precondition: ensure_compatible_uqp_del<T, D>() must succeed.
     template <typename T, typename D>
-    std::unique_ptr<D> extract_deleter(const char *context) const {
-        const auto *gd = std::get_deleter<guarded_delete>(vptr);
+    std::unique_ptr<D> extract_deleter(const char *context,
+                                       const get_guarded_delete_fn ggd_fn) const {
+        auto *gd = ggd_fn(vptr);
         if (gd && gd->use_del_fun) {
             const auto &custom_deleter_ptr = gd->del_fun.template target<custom_deleter<T, D>>();
             if (custom_deleter_ptr == nullptr) {
@@ -288,28 +295,28 @@ struct smart_holder {
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
-        auto gd = make_guarded_builtin_delete<T>(true);
+        auto gd = make_guarded_std_default_delete<T>(true);
         if (void_cast_raw_ptr) {
             hld.vptr.reset(static_cast<void *>(raw_ptr), std::move(gd));
         } else {
             hld.vptr.reset(raw_ptr, std::move(gd));
         }
-        hld.vptr_is_using_builtin_delete = true;
+        hld.vptr_is_using_std_default_delete = true;
         hld.is_populated = true;
         return hld;
     }
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void disown() {
-        reset_vptr_deleter_armed_flag(false);
+    void disown(const get_guarded_delete_fn ggd_fn) {
+        reset_vptr_deleter_armed_flag(ggd_fn, false);
         is_disowned = true;
     }
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void reclaim_disowned() {
-        reset_vptr_deleter_armed_flag(true);
+    void reclaim_disowned(const get_guarded_delete_fn ggd_fn) {
+        reset_vptr_deleter_armed_flag(ggd_fn, true);
         is_disowned = false;
     }
 
@@ -319,14 +326,14 @@ struct smart_holder {
 
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") const {
         ensure_is_not_disowned(context);
-        ensure_vptr_is_using_builtin_delete(context);
+        ensure_vptr_is_using_std_default_delete(context);
         ensure_use_count_1(context);
     }
 
     // Caller is responsible for ensuring the complex preconditions
     // (see `smart_holder_type_caster_support::load_helper`).
-    void release_ownership() {
-        reset_vptr_deleter_armed_flag(false);
+    void release_ownership(const get_guarded_delete_fn ggd_fn) {
+        reset_vptr_deleter_armed_flag(ggd_fn, false);
         release_disowned();
     }
 
@@ -335,10 +342,10 @@ struct smart_holder {
                                         void *void_ptr = nullptr) {
         smart_holder hld;
         hld.rtti_uqp_del = &typeid(D);
-        hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
+        hld.vptr_is_using_std_default_delete = uqp_del_is_std_default_delete<T, D>();
         guarded_delete gd{nullptr, false};
-        if (hld.vptr_is_using_builtin_delete) {
-            gd = make_guarded_builtin_delete<T>(true);
+        if (hld.vptr_is_using_std_default_delete) {
+            gd = make_guarded_std_default_delete<T>(true);
         } else {
             gd = make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
         }
