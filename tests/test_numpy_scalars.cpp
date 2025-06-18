@@ -56,6 +56,8 @@ TEST_SUBMODULE(numpy_scalars, m) {
     register_test<cfloat>(m, "complex64", add<cfloat>({0, -0.125f}));
     register_test<cdouble>(m, "complex128", add<cdouble>({0, -0.25f}));
 
-    m.def("test_eq", [](py::numpy_scalar<int> a, py::numpy_scalar<int> b) { return a == b; });
-    m.def("test_ne", [](py::numpy_scalar<int> a, py::numpy_scalar<int> b) { return a != b; });
+    m.def("test_eq",
+          [](py::numpy_scalar<int32_t> a, py::numpy_scalar<int32_t> b) { return a == b; });
+    m.def("test_ne",
+          [](py::numpy_scalar<int32_t> a, py::numpy_scalar<int32_t> b) { return a != b; });
 }
