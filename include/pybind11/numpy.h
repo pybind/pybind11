@@ -422,7 +422,7 @@ struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
 template <typename T>
 struct numpy_scalar_info {};
 
-#define DECL_NPY_SCALAR(ctype_, typenum_)                                                         \
+#define PYBIND11_NUMPY_SCALAR_IMPL(ctype_, typenum_)                                              \
     template <>                                                                                   \
     struct numpy_scalar_info<ctype_> {                                                            \
         static constexpr auto name = npy_format_descriptor_name<ctype_>::name;                    \
@@ -430,34 +430,34 @@ struct numpy_scalar_info {};
     }
 
 // boolean type
-DECL_NPY_SCALAR(bool, NPY_BOOL);
+PYBIND11_NUMPY_SCALAR_IMPL(bool, NPY_BOOL);
 
 // character types
-DECL_NPY_SCALAR(char, NPY_CHAR);
-DECL_NPY_SCALAR(signed char, NPY_BYTE);
-DECL_NPY_SCALAR(unsigned char, NPY_UBYTE);
+PYBIND11_NUMPY_SCALAR_IMPL(char, NPY_CHAR);
+PYBIND11_NUMPY_SCALAR_IMPL(signed char, NPY_BYTE);
+PYBIND11_NUMPY_SCALAR_IMPL(unsigned char, NPY_UBYTE);
 
 // signed integer types
-DECL_NPY_SCALAR(std::int16_t, NPY_INT16);
-DECL_NPY_SCALAR(std::int32_t, NPY_INT32);
-DECL_NPY_SCALAR(std::int64_t, NPY_INT64);
+PYBIND11_NUMPY_SCALAR_IMPL(std::int16_t, NPY_INT16);
+PYBIND11_NUMPY_SCALAR_IMPL(std::int32_t, NPY_INT32);
+PYBIND11_NUMPY_SCALAR_IMPL(std::int64_t, NPY_INT64);
 
 // unsigned integer types
-DECL_NPY_SCALAR(std::uint16_t, NPY_UINT16);
-DECL_NPY_SCALAR(std::uint32_t, NPY_UINT32);
-DECL_NPY_SCALAR(std::uint64_t, NPY_UINT64);
+PYBIND11_NUMPY_SCALAR_IMPL(std::uint16_t, NPY_UINT16);
+PYBIND11_NUMPY_SCALAR_IMPL(std::uint32_t, NPY_UINT32);
+PYBIND11_NUMPY_SCALAR_IMPL(std::uint64_t, NPY_UINT64);
 
 // floating point types
-DECL_NPY_SCALAR(float, NPY_FLOAT);
-DECL_NPY_SCALAR(double, NPY_DOUBLE);
-DECL_NPY_SCALAR(long double, NPY_LONGDOUBLE);
+PYBIND11_NUMPY_SCALAR_IMPL(float, NPY_FLOAT);
+PYBIND11_NUMPY_SCALAR_IMPL(double, NPY_DOUBLE);
+PYBIND11_NUMPY_SCALAR_IMPL(long double, NPY_LONGDOUBLE);
 
 // complex types
-DECL_NPY_SCALAR(std::complex<float>, NPY_CFLOAT);
-DECL_NPY_SCALAR(std::complex<double>, NPY_CDOUBLE);
-DECL_NPY_SCALAR(std::complex<long double>, NPY_CLONGDOUBLE);
+PYBIND11_NUMPY_SCALAR_IMPL(std::complex<float>, NPY_CFLOAT);
+PYBIND11_NUMPY_SCALAR_IMPL(std::complex<double>, NPY_CDOUBLE);
+PYBIND11_NUMPY_SCALAR_IMPL(std::complex<long double>, NPY_CLONGDOUBLE);
 
-#undef DECL_NPY_SCALAR
+#undef PYBIND11_NUMPY_SCALAR_IMPL
 
 // This table normalizes typenums by mapping NPY_INT_, NPY_LONG, ... to NPY_INT32_, NPY_INT64, ...
 // This is needed to correctly handle situations where multiple typenums map to the same type,
