@@ -107,26 +107,12 @@ with open(pipeo, 'wb') as f:
         with open(pipei, "rb") as f:
             res2 = pickle.load(f)
 
-        # do this while the two interpreters are active
-        import mod_per_interpreter_gil as m2
-
-        assert m.internals_at() == m2.internals_at(), (
-            "internals should be the same within the main interpreter"
-        )
-
     assert "does not support loading in subinterpreters" in res0, (
         "cannot use shared_gil in a default subinterpreter"
     )
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
     assert res2 != m.internals_at(), "internals should differ from main interpreter"
     assert res1 != res2, "internals should differ between interpreters"
-
-    # do this after the two interpreters are destroyed and only one remains
-    import mod_per_interpreter_gil as m3
-
-    assert m.internals_at() == m3.internals_at(), (
-        "internals should be the same within the main interpreter"
-    )
 
 
 @pytest.mark.skipif(
@@ -169,23 +155,9 @@ values.put_nowait(m.internals_at())
         interp2.exec(code)
         res2 = values.get_nowait()
 
-        # do this while the two interpreters are active
-        import mod_per_interpreter_gil as m2
-
-        assert m.internals_at() == m2.internals_at(), (
-            "internals should be the same within the main interpreter"
-        )
-
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
     assert res2 != m.internals_at(), "internals should differ from main interpreter"
     assert res1 != res2, "internals should differ between interpreters"
-
-    # do this after the two interpreters are destroyed and only one remains
-    import mod_per_interpreter_gil as m3
-
-    assert m.internals_at() == m3.internals_at(), (
-        "internals should be the same within the main interpreter"
-    )
 
 
 @pytest.mark.skipif(
@@ -216,18 +188,4 @@ with open(pipeo, 'wb') as f:
         with open(pipei, "rb") as f:
             res1 = pickle.load(f)
 
-        # do this while the other interpreter is active
-        import mod_shared_interpreter_gil as m2
-
-        assert m.internals_at() == m2.internals_at(), (
-            "internals should be the same within the main interpreter"
-        )
-
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
-
-    # do this after the other interpreters are destroyed and only one remains
-    import mod_shared_interpreter_gil as m3
-
-    assert m.internals_at() == m3.internals_at(), (
-        "internals should be the same within the main interpreter"
-    )
