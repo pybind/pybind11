@@ -16,6 +16,8 @@
 
 namespace py = pybind11;
 
+namespace pybind11_test_numpy_scalars {
+
 template <typename T>
 struct add {
     T x;
@@ -31,6 +33,10 @@ void register_test(py::module &m, const char *name, F &&func) {
           },
           py::arg("x"));
 }
+
+} // namespace pybind11_test_numpy_scalars
+
+using namespace pybind11_test_numpy_scalars;
 
 TEST_SUBMODULE(numpy_scalars, m) {
     using cfloat = std::complex<float>;
