@@ -15,7 +15,6 @@ CONCURRENT_INTERPRETERS_SUPPORT = sys.version_info >= (3, 14) and (
 
 def get_interpreters(*, modern: bool):
     if modern and CONCURRENT_INTERPRETERS_SUPPORT:
-        print(sys.version_info)
         from concurrent import interpreters
 
         def create():
