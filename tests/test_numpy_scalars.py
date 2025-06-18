@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import sys
-
 import pytest
 
 from pybind11_tests import numpy_scalars as m
 
 np = pytest.importorskip("numpy")
 
-SCALAR_TYPES = {
+NPY_SCALAR_TYPES = {
     np.bool_: False,
     np.int8: -7,
     np.int16: -15,
@@ -23,40 +21,27 @@ SCALAR_TYPES = {
     np.complex64: 1 - 0.125j,
     np.complex128: 1 - 0.25j,
 }
-ALL_TYPES = [int, bool, float, bytes, str] + list(SCALAR_TYPES)
+
+ALL_SCALAR_TYPES = tuple(NPY_SCALAR_TYPES.keys()) + (int, bool, float, bytes, str)
 
 
-def type_name(tp):
-    try:
-        return tp.__name__.rstrip("_")
-    except BaseException:
-        # no numpy
-        return str(tp)
-
-
-@pytest.fixture(scope="module", params=list(SCALAR_TYPES), ids=type_name)
-def scalar_type(request):
-    return request.param
-
-
-def expected_signature(tp):
-    s = "str" if sys.version_info[0] >= 3 else "unicode"
-    t = type_name(tp)
-    return f"test_{t}(x: numpy.{t}) -> tuple[{s}, numpy.{t}]\n"
-
-
-def test_numpy_scalars(scalar_type):
-    expected = SCALAR_TYPES[scalar_type]
-    name = type_name(scalar_type)
-    func = getattr(m, "test_" + name)
-    assert func.__doc__ == expected_signature(scalar_type)
-    for tp in ALL_TYPES:
+@pytest.mark.parametrize(
+    ("npy_scalar_type", "expected_value"), NPY_SCALAR_TYPES.items()
+)
+def test_numpy_scalars(npy_scalar_type, expected_value):
+    tpnm = npy_scalar_type.__name__.rstrip("_")
+    test_tpnm = getattr(m, "test_" + tpnm)
+    assert (
+        test_tpnm.__doc__
+        == f"test_{tpnm}(x: numpy.{tpnm}) -> tuple[str, numpy.{tpnm}]\n"
+    )
+    for tp in ALL_SCALAR_TYPES:
         value = tp(1)
-        if tp is scalar_type:
-            result = func(value)
-            assert result[0] == name
-            assert isinstance(result[1], tp)
-            assert result[1] == tp(expected)
+        if tp is npy_scalar_type:
+            result_tpnm, result_value = test_tpnm(value)
+            assert result_tpnm == tpnm
+            assert isinstance(result_value, npy_scalar_type)
+            assert result_value == tp(expected_value)
         else:
             with pytest.raises(TypeError):
-                func(value)
+                test_tpnm(value)
