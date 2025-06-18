@@ -7,10 +7,12 @@ import sys
 
 import pytest
 
+# 3.14.0b3+, though sys.implementation.supports_isolated_interpreters is being added in b4
+# Can be simplified when we drop support for the first three betas
 CONCURRENT_INTERPRETERS_SUPPORT = sys.version_info >= (3, 14) and (
     sys.version_info != (3, 14, 0, "beta", 1)
     and sys.version_info != (3, 14, 0, "beta", 2)
-)
+) and (sys.version_info == (3, 14, 0, "beta", 3) or sys.implementation.supports_isolated_interpreters)
 
 
 def get_interpreters(*, modern: bool):
