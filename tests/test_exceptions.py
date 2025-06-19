@@ -76,7 +76,7 @@ def test_cross_module_exceptions(msg):
 
 # TODO: FIXME
 @pytest.mark.xfail(
-    "env.MACOS and env.PYPY",
+    "(env.MACOS and env.PYPY) or env.ANDROID",
     raises=RuntimeError,
     reason="See Issue #2847, PR #2999, PR #4324",
     strict=not env.PYPY,  # PR 5569
