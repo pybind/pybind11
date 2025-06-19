@@ -25,9 +25,9 @@
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
 // - For stable releases, set the serial to 0.
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_GAMMA
-#define PYBIND11_VERSION_RELEASE_SERIAL 3
+#define PYBIND11_VERSION_RELEASE_SERIAL 4
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 0rc3
+#define PYBIND11_VERSION_PATCH 0rc4
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)

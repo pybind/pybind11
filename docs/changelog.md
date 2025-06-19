@@ -42,6 +42,18 @@ New Features:
   trampoline objects, and `std::enable_shared_from_this`.
   [#5542](https://github.com/pybind/pybind11/pull/5542)
 
+  - Added support for `std::shared_ptr<const T>` in `py::init()` when using
+    `py::smart_holder`, complementing existing support for
+    `std::unique_ptr<const T>`.
+    [#5731](https://github.com/pybind/pybind11/pull/5731)
+
+  - Support const-only smart pointers.
+    [#5718](https://github.com/pybind/pybind11/pull/5718)
+
+  - Eliminate cross-DSO RTTI reliance from `trampoline_self_life_support` functionality, `smart_holder` deleter detection, and other
+    `smart_holder` bookkeeping. Resolves platform-specific issues on macOS related to cross-DSO `dynamic_cast` and `typeid` mismatches.
+    [#5728](https://github.com/pybind/pybind11/pull/5728) (replaces [#5700](https://github.com/pybind/pybind11/pull/5700))
+
 - Changed `PYBIND11_MODULE` macro implementation to perform multi-phase
   module initialization (PEP 489) behind the scenes.
   [#5574](https://github.com/pybind/pybind11/pull/5574) and avoid destruction
@@ -64,6 +76,9 @@ New Features:
   - Modify internals pointer-to-pointer implementation to not use `thread_local` (better iOS support).
     [#5709](https://github.com/pybind/pybind11/pull/5709)
 
+  - Support implementations without subinterpreter support.
+    [#5732](https://github.com/pybind/pybind11/pull/5732)
+
 - Changed `PYBIND11_EMBEDDED_MODULE` macro implementation to perform
   multi-phase module initialization (PEP 489) behind the scenes and to
   support `py::mod_gil_not_used()`,
@@ -84,6 +99,9 @@ New Features:
 
   - Fix signature for functions with a `native_enum` in the signature.
     [#5619](https://github.com/pybind/pybind11/pull/5619)
+
+- Support `py::numpy_scalar<>` / `py::make_scalar()` for NumPy types.
+  [#5726](https://github.com/pybind/pybind11/pull/5726)
 
 - A `py::release_gil_before_calling_cpp_dtor` option (for `py::class_`)
   was added to resolve the long-standing issue \#1446.
@@ -124,7 +142,7 @@ New Features:
   update example for `pybind11::custom_type_setup` in documentation.
   [#5669](https://github.com/pybind/pybind11/pull/5669)
 
-* Added `py::scoped_critical_section` to support free-threaded mode.
+- Added `py::scoped_critical_section` to support free-threaded mode.
   [#5684](https://github.com/pybind/pybind11/pull/5684) \|
   [#5706](https://github.com/pybind/pybind11/pull/5706)
 
@@ -216,12 +234,6 @@ Bug fixes:
   [#5381](https://github.com/pybind/pybind11/pull/5381)
 - Disable false-positive GCC 12 Bound Check warning.
   [#5355](https://github.com/pybind/pybind11/pull/5355)
-- fix: using `__cpp_nontype_template_args` instead of
-  `__cpp_nontype_template_parameter_class`.
-  [#5330](https://github.com/pybind/pybind11/pull/5330)
-- Properly translate C++ exception to Python exception when creating
-  Python buffer from wrapped object.
-  [#5324](https://github.com/pybind/pybind11/pull/5324)
 - Update the dict when restoring pickles, instead of assigning a
   replacement dict.
   [#5658](https://github.com/pybind/pybind11/pull/5658)
@@ -232,8 +244,6 @@ Bug fixes:
 - Change the behavior of the default constructor of `py::slice` to be
   equivalent to `::` in Python.
   [#5620](https://github.com/pybind/pybind11/pull/5620)
-- Expose required symbol when using clang.
-  [#5700](https://github.com/pybind/pybind11/pull/5700)
 
 Bug fixes and features (CMake):
 
@@ -254,10 +264,9 @@ Bug fixes and features (CMake):
 - Add support for running pybind11's tests via presets in CMake 3.25+.
   [#5655](https://github.com/pybind/pybind11/pull/5655) and support `--fresh`.
   [#5668](https://github.com/pybind/pybind11/pull/5668)
-- Restructure venv support to support `--fresh`, make in build folder.
-  [#5668](https://github.com/pybind/pybind11/pull/5668)
-
-* Presets now generate `compile_commands.json`.
+- Experimental CMake support for Android.
+  [#5733](https://github.com/pybind/pybind11/pull/5733)
+- Presets now generate `compile_commands.json`.
   [#5685](https://github.com/pybind/pybind11/pull/5685)
 
 Bug fixes (free-threading):
@@ -282,7 +291,7 @@ Internals:
   that it can easily be reused.
   [#5614](https://github.com/pybind/pybind11/pull/5614)
 
-* Use CPython macros to construct `PYBIND11_VERSION_HEX`.
+- Use CPython macros to construct `PYBIND11_VERSION_HEX`.
   [#5683](https://github.com/pybind/pybind11/pull/5683)
 
 Documentation:
@@ -292,10 +301,6 @@ Documentation:
 
 - A new "Double locking, deadlocking, GIL" document was added.
   [#5394](https://github.com/pybind/pybind11/pull/5394)
-
-- Adds an answer (FAQ) for "What is a highly conclusive and simple way
-  to find memory leaks?".
-  [#5340](https://github.com/pybind/pybind11/pull/5340)
 
 - Add documenting for free-threading and subinterpreters.
   [#5659](https://github.com/pybind/pybind11/pull/5659)
@@ -309,19 +314,19 @@ Tests:
   compiling using `clang` on Linux with the `-funsigned-char` flag.
   [#5545](https://github.com/pybind/pybind11/pull/5545)
 
-- Test PyPy3.11 in CI.
-  [#5534](https://github.com/pybind/pybind11/pull/5534)
-
 - CI testing now includes
   `-Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls`
   in some jobs.
   [#5523](https://github.com/pybind/pybind11/pull/5523)
 
-* Add nightly wheels to scientific-python's nightly wheelhouse.
+- Add nightly wheels to scientific-python's nightly wheelhouse.
   [#5675](https://github.com/pybind/pybind11/pull/5675)
 
-* Expect free-threaded warning when loading a non-free-threaded module.
+- Expect free-threaded warning when loading a non-free-threaded module.
   [#5680](https://github.com/pybind/pybind11/pull/5680)
+
+- Run pytest under Python devmode.
+  [#5715](https://github.com/pybind/pybind11/pull/5715)
 
 New and removed platforms:
 
@@ -337,15 +342,18 @@ New and removed platforms:
 
 - Support for PyPy 3.11 added.
   [#5508](https://github.com/pybind/pybind11/pull/5508)
+  And test in ci.
+  [#5534](https://github.com/pybind/pybind11/pull/5534)
 
 - Support for PyPy 3.8 and 3.9 was dropped.
   [#5578](https://github.com/pybind/pybind11/pull/5578)
 
 - Support for Python 3.7 was removed. (Official end-of-life:
-  2023-06-27). [#5191](https://github.com/pybind/pybind11/pull/5191)
+  2023-06-27).
+  [#5191](https://github.com/pybind/pybind11/pull/5191)
 
 - Support for CMake older than 3.15 removed. CMake 3.15-4.0 supported.
-  [#5304](https://github.com/pybind/pybind11/pull/5304) and fix regression [#5688](https://github.com/pybind/pybind11/pull/5688).
+  [#5304](https://github.com/pybind/pybind11/pull/5304) and fix regression [#5691](https://github.com/pybind/pybind11/pull/5691).
 
 - Use scikit-build-core for the build backend for the PyPI `pybind11`.
   The CMake generation has been moved to the sdist-\>wheel step.
@@ -361,7 +369,6 @@ New and removed platforms:
 
 - Support Windows C++20 and Linux C++23 in tests.
   [#5707](https://github.com/pybind/pybind11/pull/5707)
-
 
 ## Version 2.13.6 (September 13, 2024)
 
