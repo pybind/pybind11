@@ -541,7 +541,7 @@ struct process_attribute<is_new_style_constructor>
 /// Process an attribute which adds a typevariable
 template <>
 struct process_attribute<typevar_record> : process_attribute_default<typevar_record> {
-    static void init(const typevar_record t, function_record *r) { r->type_vars.push_back(t); }
+    static void init(const typevar_record &t, function_record *r) { r->type_vars.push_back(t); }
 };
 
 inline void check_kw_only_arg(const arg &a, function_record *r) {
