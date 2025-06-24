@@ -191,9 +191,62 @@ struct argument_record {
         : name(name), descr(descr), value(value), convert(convert), none(none) {}
 };
 
+#if defined(PYBIND11_HAS_OPTIONAL)
+/// Internal data structure which holds metadata about a typevar argument
+struct typevar_record {
+    const char *name;                     ///< TypeVar name
+    std::optional<std::string> bound;     ///< Upper Bound of the TypeVar
+    std::optional<std::string> default_;  ///< Default value of the TypeVar
+    std::vector<std::string> constraints; ///< Constraints (mutually exclusive with bound)
+
+    typevar_record(const char *name,
+                   std::optional<std::string> bound,
+                   std::optional<std::string> default_,
+                   std::vector<std::string> constraints)
+        : name(name), bound(std::move(bound)), default_(std::move(default_)),
+          constraints(std::move(constraints)) {}
+
+    static typevar_record from_name(const char *name) {
+        return typevar_record(name, std::nullopt, std::nullopt, {});
+    }
+
+    template <typename Bound>
+    static typevar_record with_bound(const char *name) {
+        return typevar_record(name, generate_type_signature<Bound>(), std::nullopt, {});
+    }
+
+    template <typename... Constraints>
+    static typevar_record with_constraints(const char *name) {
+        return typevar_record(
+            name, std::nullopt, std::nullopt, {generate_type_signature<Constraints>()...});
+    }
+
+    template <typename Default>
+    static typevar_record with_default(const char *name) {
+        return typevar_record(name, std::nullopt, generate_type_signature<Default>(), {});
+    }
+
+    template <typename Default, typename Bound>
+    static typevar_record with_default_and_bound(const char *name) {
+        return typevar_record(
+            name, generate_type_signature<Bound>(), generate_type_signature<Default>(), {});
+    }
+
+    template <typename Default, typename... Constraints>
+    static typevar_record with_default_and_constraints(const char *name) {
+        return typevar_record(name,
+                              std::nullopt,
+                              generate_type_signature<Default>(),
+                              {generate_type_signature<Constraints>()...});
+    }
+};
+#else
+struct typevar_record {};
+#endif
+
 /// Internal data structure which holds metadata about a bound function (signature, overloads,
 /// etc.)
-#define PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID "v1" // PLEASE UPDATE if the struct is changed.
+#define PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID "v2" // PLEASE UPDATE if the struct is changed.
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
@@ -250,6 +303,9 @@ struct function_record {
 
     /// True if this function is to be inserted at the beginning of the overload resolution chain
     bool prepend : 1;
+
+    /// List of registered typevar arguments
+    std::vector<typevar_record> type_vars;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
@@ -480,6 +536,12 @@ struct process_attribute<is_new_style_constructor>
     static void init(const is_new_style_constructor &, function_record *r) {
         r->is_new_style_constructor = true;
     }
+};
+
+/// Process an attribute which adds a typevariable
+template <>
+struct process_attribute<typevar_record> : process_attribute_default<typevar_record> {
+    static void init(const typevar_record t, function_record *r) { r->type_vars.push_back(t); }
 };
 
 inline void check_kw_only_arg(const arg &a, function_record *r) {

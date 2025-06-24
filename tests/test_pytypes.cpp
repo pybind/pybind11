@@ -986,14 +986,49 @@ TEST_SUBMODULE(pytypes, m) {
                                                    const RealNumber &)> &x) { return x; });
     m.def("identity_literal_all_special_chars",
           [](const py::typing::Literal<"\"!@!!->{%}\""> &x) { return x; });
-    m.def("annotate_generic_containers",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
-              return l;
-          });
+    m.def(
+        "annotate_generic_containers",
+        [](const py::typing::List<typevar::TypeVarT> &l) -> py::typing::List<typevar::TypeVarV> {
+            return l;
+        },
+        pybind11::detail::typevar_record::from_name("T"),
+        pybind11::detail::typevar_record::from_name("V"));
 
-    m.def("annotate_listT_to_T",
-          [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; });
-    m.def("annotate_object_to_T", [](const py::object &o) -> typevar::TypeVarT { return o; });
+    m.def(
+        "annotate_listT_to_T",
+        [](const py::typing::List<typevar::TypeVarT> &l) -> typevar::TypeVarT { return l[0]; },
+        pybind11::detail::typevar_record::from_name("T"));
+    m.def(
+        "annotate_object_to_T",
+        [](const py::object &o) -> typevar::TypeVarT { return o; },
+        pybind11::detail::typevar_record::from_name("T"));
+
+    m.def(
+        "typevar_bound_int",
+        [](const typevar::TypeVarT &) -> void {},
+        pybind11::detail::typevar_record::with_bound<int>("T"));
+
+    m.def(
+        "typevar_constraints_int_str",
+        [](const typevar::TypeVarT &) -> void {},
+        pybind11::detail::typevar_record::with_constraints<py::int_, py::str>("T"));
+
+    m.def(
+        "typevar_default_int",
+        [](const typevar::TypeVarT &) -> void {},
+        pybind11::detail::typevar_record::with_default<int>("T"));
+
+    m.def(
+        "typevar_bound_and_default_int",
+        [](const typevar::TypeVarT &) -> void {},
+        pybind11::detail::typevar_record::with_default_and_bound<int, int>("T"));
+
+    m.def(
+        "typevar_constraints_and_default",
+        [](const typevar::TypeVarT &) -> void {},
+        pybind11::detail::typevar_record::
+            with_default_and_constraints<py::str, py::typing::List<int>, py::str>("T"));
+
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = true;
 #else
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;

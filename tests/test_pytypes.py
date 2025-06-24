@@ -1092,12 +1092,37 @@ def test_literal(doc):
 def test_typevar(doc):
     assert (
         doc(m.annotate_generic_containers)
-        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+        == "annotate_generic_containers[T, V](arg0: list[T]) -> list[V]"
     )
 
-    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T[T](arg0: list[T]) -> T"
 
-    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T[T](arg0: object) -> T"
+
+    assert (
+        doc(m.typevar_bound_int)
+        == "typevar_bound_int[T: typing.SupportsInt](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_constraints_int_str)
+        == "typevar_constraints_int_str[T: (typing.SupportsInt, str)](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_default_int)
+        == "typevar_default_int[T = typing.SupportsInt](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_bound_and_default_int)
+        == "typevar_bound_and_default_int[T: typing.SupportsInt = typing.SupportsInt](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_constraints_and_default)
+        == "typevar_constraints_and_default[T: (list[typing.SupportsInt], str) = str](arg0: T) -> None"
+    )
 
 
 @pytest.mark.skipif(
