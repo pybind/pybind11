@@ -1034,6 +1034,45 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL") = false;
 #endif
 
+#if defined(PYBIND11_TEST_PTYPES_HAS_OPTIONAL)
+    m.def("generic_T", []() -> void {}, pybind11::detail::typevar_record::from_name("T"));
+
+    m.def(
+        "generic_T_V",
+        []() -> void {},
+        pybind11::detail::typevar_record::from_name("T"),
+        pybind11::detail::typevar_record::from_name("V"));
+
+    m.def(
+        "generic_bound_int",
+        []() -> void {},
+        pybind11::detail::typevar_record::with_bound<int>("T"));
+
+    m.def(
+        "generic_constraints_int_str",
+        []() -> void {},
+        pybind11::detail::typevar_record::with_constraints<py::int_, py::str>("T"));
+
+    m.def(
+        "generic_default_int",
+        []() -> void {},
+        pybind11::detail::typevar_record::with_default<int>("T"));
+
+    m.def(
+        "generic_bound_and_default_int",
+        []() -> void {},
+        pybind11::detail::typevar_record::with_default_and_bound<int, int>("T"));
+
+    m.def(
+        "generic_constraints_and_default",
+        []() -> void {},
+        pybind11::detail::typevar_record::
+            with_default_and_constraints<py::str, py::typing::List<int>, py::str>("T"));
+    m.attr("defined_PYBIND11_TEST_PTYPES_HAS_OPTIONAL") = true;
+#else
+    m.attr("defined_PYBIND11_TEST_PTYPES_HAS_OPTIONAL") = false;
+#endif
+
 #if defined(PYBIND11_TEST_PYTYPES_HAS_RANGES)
 
     // test_tuple_ranges

@@ -1086,6 +1086,38 @@ def test_literal(doc):
 
 
 @pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PTYPES_HAS_OPTIONAL,
+    reason="use of optional feature not available.",
+)
+def test_generic(doc):
+    assert doc(m.generic_T) == "generic_T[T]() -> None"
+
+    assert (
+        doc(m.generic_bound_int) == "generic_bound_int[T: typing.SupportsInt]() -> None"
+    )
+
+    assert (
+        doc(m.generic_constraints_int_str)
+        == "generic_constraints_int_str[T: (typing.SupportsInt, str)]() -> None"
+    )
+
+    assert (
+        doc(m.generic_default_int)
+        == "generic_default_int[T = typing.SupportsInt]() -> None"
+    )
+
+    assert (
+        doc(m.generic_bound_and_default_int)
+        == "generic_bound_and_default_int[T: typing.SupportsInt = typing.SupportsInt]() -> None"
+    )
+
+    assert (
+        doc(m.generic_constraints_and_default)
+        == "generic_constraints_and_default[T: (list[typing.SupportsInt], str) = str]() -> None"
+    )
+
+
+@pytest.mark.skipif(
     not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
     reason="C++20 non-type template args feature not available.",
 )
