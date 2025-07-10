@@ -503,8 +503,6 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         }
 
 \endrst */
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     PYBIND11_MODULE_PYINIT(                                                                       \
         name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \

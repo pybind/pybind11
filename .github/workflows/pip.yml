@@ -111,10 +111,8 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: standard/
-        attestations: true
 
     - name: Publish global package
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: global/
-        attestations: true
