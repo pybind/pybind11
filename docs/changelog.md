@@ -12,13 +12,7 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 (RC 3) (June 4, 2025)
-
-Since this is a large release, we are providing a release candidate to give
-projects time to test! We also now provide
-[SPEC 4](https://scientific-python.org/specs/spec-0004/) nightly wheels. We
-are hoping to split up `std.h`; that work is approved to be added during the
-RC phase if it's ready in time. We expect the RC phase to last around a week.
+## 3.0.0 (final) (July 10, 2025)
 
 Pybind11 3.0 includes an ABI bump, the first required bump in many years
 on Unix (Windows has had required bumps more often). This release contains
@@ -129,8 +123,10 @@ New Features:
 
 - `pybind11/conduit/pybind11_platform_abi_id.h` was factored out, to
   maximize reusability of `PYBIND11_PLATFORM_ABI_ID` (for other
-  Python/C++ binding systems).
-  [#5375](https://github.com/pybind/pybind11/pull/5375)
+  Python/C++ binding systems). Separately, a note was added to explain
+  that the conduit feature only covers from-Python-to-C++ conversions.
+  [#5375](https://github.com/pybind/pybind11/pull/5375) \|
+  [#5740](https://github.com/pybind/pybind11/pull/5740)
 
 - Added support for finding pybind11 using pkgconf distributed on pypi.
   [#5552](https://github.com/pybind/pybind11/pull/5552)
