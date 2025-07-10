@@ -37,7 +37,8 @@ struct WithPyObjectPtrReturnTrampoline : WithPyObjectPtrReturn {
 
 std::string call_return_pyobject_ptr(const WithPyObjectPtrReturn *base_class_ptr) {
     PyObject *returned_obj = base_class_ptr->return_pyobject_ptr();
-#if !defined(PYPY_VERSION) // It is not worth the trouble doing something special for PyPy.
+// It is not worth the trouble doing something special for PyPy/GraalPy
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
     if (Py_REFCNT(returned_obj) != 1) {
         py::pybind11_fail(__FILE__ ":" PYBIND11_TOSTRING(__LINE__));
     }

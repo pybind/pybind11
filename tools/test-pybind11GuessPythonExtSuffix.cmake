@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15...4.0)
 
 # Tests for pybind11_guess_python_module_extension
 # Run using `cmake -P tools/test-pybind11GuessPythonExtSuffix.cmake`

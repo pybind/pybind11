@@ -8,6 +8,157 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-3.0:
+
+v3.0
+====
+
+pybind11 v3.0 introduces major new features, but the vast majority of
+existing extensions are expected to build and run without modification. Minor
+adjustments may be needed in rare cases, and any such changes can be easily
+wrapped in preprocessor conditionals to maintain compatibility with the
+2.x series.
+
+However, due to new features and modernizations, extensions built with
+pybind11 v3.0 are not ABI-compatible with those built using v2.13. To ensure
+cross-extension-module compatibility, it is recommended to rebuild all
+pybind11-based extensions with v3.0.
+
+CMake support now defaults to the modern FindPython module. If you haven't
+updated yet, we provide some backward compatibility for ``PYTHON_*`` variables,
+but you should switch to using ``Python_*`` variables instead. Note that
+setting ``PYTHON_*`` variables no longer affects the build.
+
+A major new feature in this release is the integration of
+``py::smart_holder``, which improves support for ``std::unique_ptr``
+and ``std::shared_ptr``, resolving several long-standing issues. See
+:ref:`smart_holder` for details. Closely related is the addition
+of ``py::trampoline_self_life_support``, documented under
+:ref:`overriding_virtuals`.
+
+This release includes a major modernization of cross-extension-module
+ABI compatibility handling. The new implementation reflects actual ABI
+compatibility much more accurately than in previous versions. The details
+are subtle and complex; see
+`#4953 <https://github.com/pybind/pybind11/pull/4953>`_ and
+`#5439 <https://github.com/pybind/pybind11/pull/5439>`_.
+
+Also new in v3.0 is ``py::native_enum``, a modern API for exposing
+C++ enumerations as native Python types — typically standard-library
+``enum.Enum`` or related subclasses. This provides improved integration with
+Python's enum system, compared to the older (now deprecated) ``py::enum_``.
+See `#5555 <https://github.com/pybind/pybind11/pull/5555>`_ for details.
+
+Functions exposed with pybind11 are now pickleable. This removes a
+long-standing obstacle when using pybind11-bound functions with Python features
+that rely on pickling, such as multiprocessing and caching tools.
+See `#5580 <https://github.com/pybind/pybind11/pull/5580>`_ for details.
+
+Anything producing a deprecation warning in the 2.x series may be removed in a
+future minor release of 3.x. Most of these are still present in 3.0 in order to ease
+transition. The new :ref:`deprecated` page details deprecations.
+
+Migration Recommendations
+-------------------------
+
+We recommend migrating to pybind11 v3.0 promptly, while keeping initial
+changes to a minimum. Most projects can upgrade simply by updating the
+pybind11 version, without altering existing binding code.
+
+After a short stabilization period — enough to surface any subtle issues —
+you may incrementally adopt new features where appropriate:
+
+* Use ``py::smart_holder`` and ``py::trampoline_self_life_support`` as needed,
+  or to improve code health. Note that ``py::classh`` is available as a
+  shortcut — for example, ``py::classh<Pet>`` is shorthand for
+  ``py::class_<Pet, py::smart_holder>``. This is designed to enable easy
+  experimentation with ``py::smart_holder`` without introducing distracting
+  whitespace changes. In many cases, a global replacement of ``py::class_``
+  with ``py::classh`` can be an effective first step. Build failures will
+  quickly identify places where ``std::shared_ptr<...>`` holders need to be
+  removed. Runtime failures (assuming good unit test coverage) will highlight
+  base-and-derived class situations that require coordinated changes.
+
+  Note that ``py::bind_vector`` and ``py::bind_map`` (in pybind11/stl_bind.h)
+  have a ``holder_type`` template parameter that defaults to
+  ``std::unique_ptr``. If ``py::smart_holder`` functionality is desired or
+  required, use e.g. ``py::bind_vector<VecType, py::smart_holder>``.
+
+* Gradually migrate from ``py::enum_`` to ``py::native_enum`` to improve
+  integration with Python's standard enum types.
+
+There is no urgency to refactor existing, working bindings — adopt new
+features as the need arises or as part of ongoing maintenance efforts.
+
+If you are using CMake, update to FindPython variables (mostly changing
+variables from ``PYTHON_*`` -> ``Python_*``). You should see if you can use
+``set(PYBIND11_FINDPYTHON ON)``, which has been supported for years and will
+avoid setting the compatibility mode variables (and will avoid a warning).
+
+Potential stumbling blocks when migrating to v3.0
+-------------------------------------------------
+
+The following issues are very unlikely to arise, and easy to work around:
+
+* In rare cases, a C++ enum may be bound to Python via a
+  :ref:`custom type caster <custom_type_caster>`. In such cases, a
+  template specialization like this may be required:
+
+  .. code-block:: cpp
+
+      #if defined(PYBIND11_HAS_NATIVE_ENUM)
+      namespace pybind11::detail {
+      template <typename FancyEnum>
+      struct type_caster_enum_type_enabled<
+          FancyEnum,
+          enable_if_t<is_fancy_enum<FancyEnum>::value>> : std::false_type {};
+      }
+      #endif
+
+  This specialization is needed only if the custom type caster is templated.
+
+  The ``PYBIND11_HAS_NATIVE_ENUM`` guard is needed only
+  if backward compatibility with pybind11v2 is required.
+
+* Similarly, template specializations like the following may be required
+  if there are custom
+
+  * ``pybind11::detail::copyable_holder_caster`` or
+
+  * ``pybind11::detail::move_only_holder_caster``
+
+  implementations that are used for ``std::shared_ptr`` or ``std::unique_ptr``
+  conversions:
+
+  .. code-block:: cpp
+
+      #if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+      namespace pybind11::detail {
+      template <typename ExampleType>
+      struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled<
+          ExampleType,
+          enable_if_t<is_example_type<ExampleType>::value>> : std::false_type {};
+      }
+      #endif
+
+  .. code-block:: cpp
+
+      #if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+      namespace pybind11::detail {
+      template <typename ExampleType>
+      struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled<
+          ExampleType,
+          enable_if_t<is_example_type<ExampleType>::value>> : std::false_type {};
+      }
+      #endif
+
+  The ``PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT`` guard is needed only
+  if backward compatibility with pybind11v2 is required.
+
+  (Note that ``copyable_holder_caster`` and ``move_only_holder_caster`` are not
+  documented, although they existed since 2017.)
+
+
 .. _upgrade-guide-2.12:
 
 v2.12
@@ -24,7 +175,8 @@ changes are that:
   function is not available anymore.
 
 Due to NumPy changes, you may experience difficulties updating to NumPy 2.
-Please see the [NumPy 2 migration guide](https://numpy.org/devdocs/numpy_2_0_migration_guide.html) for details.
+Please see the `NumPy 2 migration guide <https://numpy.org/devdocs/numpy_2_0_migration_guide.html>`_
+for details.
 For example, a more direct change could be that the default integer ``"int_"``
 (and ``"uint"``) is now ``ssize_t`` and not ``long`` (affects 64bit windows).
 

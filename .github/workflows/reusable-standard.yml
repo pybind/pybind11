@@ -1,0 +1,96 @@
+name: Reusable Standard Test
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: true
+        type: string
+      cmake-args:
+        required: false
+        type: string
+        default: ''
+      runs-on:
+        required: true
+        type: string
+
+env:
+  PYTHONDEVMODE: 1
+  PIP_BREAK_SYSTEM_PACKAGES: 1
+  PIP_ONLY_BINARY: numpy
+  FORCE_COLOR: 3
+  PYTEST_TIMEOUT: 300
+  # For cmake:
+  VERBOSE: 1
+  CMAKE_COLOR_DIAGNOSTICS: 1
+
+jobs:
+  standard:
+    name: 🧪
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          allow-prereleases: true
+          # Python 3.13.4 broken on Windows
+          check-latest: >-
+            ${{ inputs.python-version == '3.13' && runner.os == 'Windows' }}
+
+      - name: Setup Boost (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install libboost-dev
+
+      - name: Setup Boost (macOS)
+        if: runner.os == 'macOS'
+        run: brew install boost
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Prepare env
+        run: uv pip install --python=python --system -r tests/requirements.txt
+
+      - name: Setup annotations on Linux
+        if: runner.os == 'Linux'
+        run: uv pip install --python=python --system pytest-github-actions-annotate-failures
+
+      # TODO Resolve Windows Ninja shared object issue on Python 3.8+
+      - name: Use Ninja except on Windows
+        if: runner.os != 'Windows'
+        run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: >
+          cmake -S. -Bbuild -Werror=dev
+          -DPYBIND11_WERROR=ON
+          -DPYBIND11_PYTEST_ARGS=-v
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          ${{ inputs.cmake-args }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Python tests
+        run: cmake --build build --target pytest
+
+      - name: C++ tests
+        run: cmake --build build --target cpptest
+
+      - name: Interface test
+        run: cmake --build build --target test_cmake_build
+
+      - name: Visibility test
+        run: cmake --build build --target test_cross_module_rtti
+
+      - name: Setuptools helpers test
+        run: |
+          uv pip install --python=python --system setuptools
+          pytest tests/extra_setuptools

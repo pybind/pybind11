@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 
 np = pytest.importorskip("numpy")
@@ -94,19 +95,20 @@ def test_mutator_descriptors():
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_r(zc)
     assert (
-        "(arg0: numpy.ndarray[numpy.float32[5, 6],"
-        " flags.writeable, flags.c_contiguous]) -> None" in str(excinfo.value)
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]",'
+        ' "flags.writeable", "flags.c_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_c(zr)
     assert (
-        "(arg0: numpy.ndarray[numpy.float32[5, 6],"
-        " flags.writeable, flags.f_contiguous]) -> None" in str(excinfo.value)
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]",'
+        ' "flags.writeable", "flags.f_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_a(np.array([[1, 2], [3, 4]], dtype="float32"))
-    assert "(arg0: numpy.ndarray[numpy.float32[5, 6], flags.writeable]) -> None" in str(
-        excinfo.value
+    assert (
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]", "flags.writeable"]) -> None'
+        in str(excinfo.value)
     )
     zr.flags.writeable = False
     with pytest.raises(TypeError):
@@ -200,7 +202,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threer(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.float32[1, 3], flags.writeable]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[1, 3]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
@@ -212,7 +214,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threec(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.float32[3, 1], flags.writeable]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
@@ -243,9 +245,9 @@ def test_eigen_ref_to_python():
     chols = [m.cholesky1, m.cholesky2, m.cholesky3, m.cholesky4]
     for i, chol in enumerate(chols, start=1):
         mymat = chol(np.array([[1.0, 2, 4], [2, 13, 23], [4, 23, 77]]))
-        assert np.all(
-            mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])
-        ), f"cholesky{i}"
+        assert np.all(mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])), (
+            f"cholesky{i}"
+        )
 
 
 def assign_both(a1, a2, r, c, v):
@@ -394,6 +396,7 @@ def test_eigen_return_references():
     np.testing.assert_array_equal(a_copy5, c5want)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def assert_keeps_alive(cl, method, *args):
     cstats = ConstructorStats.get(cl)
     start_with = cstats.alive()
@@ -409,6 +412,7 @@ def assert_keeps_alive(cl, method, *args):
     assert cstats.alive() == start_with
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_eigen_keepalive():
     a = m.ReturnTester()
     cstats = ConstructorStats.get(m.ReturnTester)
@@ -631,16 +635,16 @@ def test_nocopy_wrapper():
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_colmajor)
     assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
-    assert ", flags.f_contiguous" in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
     assert m.get_elem_nocopy(dbl_matrix_colmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_rowmajor)
     assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
-    assert ", flags.f_contiguous" in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(dbl_matrix_rowmajor)
     assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
-    assert ", flags.f_contiguous" in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
 
     # For the row-major test, we take a long matrix in row-major, so only the third is allowed:
     with pytest.raises(TypeError) as excinfo:
@@ -648,20 +652,20 @@ def test_nocopy_wrapper():
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
     )
-    assert ", flags.c_contiguous" in str(excinfo.value)
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_colmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
     )
-    assert ", flags.c_contiguous" in str(excinfo.value)
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
     assert m.get_elem_rm_nocopy(int_matrix_rowmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_rowmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
     )
-    assert ", flags.c_contiguous" in str(excinfo.value)
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
 
 
 def test_eigen_ref_life_support():
@@ -697,25 +701,25 @@ def test_dense_signature(doc):
     assert (
         doc(m.double_col)
         == """
-        double_col(arg0: numpy.ndarray[numpy.float32[m, 1]]) -> numpy.ndarray[numpy.float32[m, 1]]
+        double_col(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]
     """
     )
     assert (
         doc(m.double_row)
         == """
-        double_row(arg0: numpy.ndarray[numpy.float32[1, n]]) -> numpy.ndarray[numpy.float32[1, n]]
+        double_row(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[1, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[1, n]"]
     """
     )
     assert doc(m.double_complex) == (
         """
-        double_complex(arg0: numpy.ndarray[numpy.complex64[m, 1]])"""
-        """ -> numpy.ndarray[numpy.complex64[m, 1]]
+        double_complex(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.complex64, "[m, 1]"])"""
+        """ -> typing.Annotated[numpy.typing.NDArray[numpy.complex64], "[m, 1]"]
     """
     )
     assert doc(m.double_mat_rm) == (
         """
-        double_mat_rm(arg0: numpy.ndarray[numpy.float32[m, n]])"""
-        """ -> numpy.ndarray[numpy.float32[m, n]]
+        double_mat_rm(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"])"""
+        """ -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]
     """
     )
 
@@ -814,3 +818,22 @@ def test_custom_operator_new():
     o = m.CustomOperatorNew()
     np.testing.assert_allclose(o.a, 0.0)
     np.testing.assert_allclose(o.b.diagonal(), 1.0)
+
+
+def test_arraylike_signature(doc):
+    assert doc(m.round_trip_vector) == (
+        'round_trip_vector(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]'
+    )
+    assert doc(m.round_trip_dense) == (
+        'round_trip_dense(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]'
+    )
+    assert doc(m.round_trip_dense_ref) == (
+        'round_trip_dense_ref(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]", "flags.writeable", "flags.c_contiguous"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]", "flags.writeable", "flags.c_contiguous"]'
+    )
+    m.round_trip_vector([1.0, 2.0])
+    m.round_trip_dense([[1.0, 2.0], [3.0, 4.0]])
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_dense_ref([[1.0, 2.0], [3.0, 4.0]])

@@ -69,6 +69,20 @@ public:
     T **operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
 };
 
+// Simple custom holder that imitates smart pointer, that always stores cpointer to const
+template <class T>
+class const_only_shared_ptr {
+    std::shared_ptr<const T> ptr_;
+
+public:
+    const_only_shared_ptr() = default;
+    explicit const_only_shared_ptr(const T *ptr) : ptr_(ptr) {}
+    const T *get() const { return ptr_.get(); }
+
+private:
+    // for demonstration purpose only, this imitates smart pointer with a const-only pointer
+};
+
 // Custom object with builtin reference counting (see 'object.h' for the implementation)
 class MyObject1 : public Object {
 public:
@@ -179,6 +193,20 @@ public:
     int value;
 };
 
+// test const_only_shared_ptr
+class MyObject6 {
+public:
+    static const_only_shared_ptr<MyObject6> createObject(std::string value) {
+        return const_only_shared_ptr<MyObject6>(new MyObject6(std::move(value)));
+    }
+
+    const std::string &value() const { return value_; }
+
+private:
+    explicit MyObject6(std::string &&value) : value_{std::move(value)} {}
+    std::string value_;
+};
+
 // test_shared_ptr_and_references
 struct SharedPtrRef {
     struct A {
@@ -283,12 +311,79 @@ struct holder_helper<ref<T>> {
 
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
+PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>)
+
+namespace holder_caster_traits_test {
+struct example_base {};
+} // namespace holder_caster_traits_test
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Negate this condition to demonstrate "ambiguous template instantiation" compilation error:
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+template <typename ExampleType>
+struct copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled<
+    ExampleType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>>
+    : std::false_type {};
+#endif
+
+template <typename ExampleType, typename HolderType>
+struct copyable_holder_caster<
+    ExampleType,
+    HolderType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>> {
+    static constexpr auto name = const_name<ExampleType>();
+
+    static handle cast(const HolderType &, return_value_policy, handle) {
+        return str("copyable_holder_caster_traits_test").release();
+    }
+};
+
+// Negate this condition to demonstrate "ambiguous template instantiation" compilation error:
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT)
+template <typename ExampleType>
+struct move_only_holder_caster_unique_ptr_with_smart_holder_support_enabled<
+    ExampleType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>>
+    : std::false_type {};
+#endif
+
+template <typename ExampleType, typename HolderType>
+struct move_only_holder_caster<
+    ExampleType,
+    HolderType,
+    enable_if_t<std::is_base_of<holder_caster_traits_test::example_base, ExampleType>::value>> {
+    static constexpr auto name = const_name<ExampleType>();
+
+    static handle cast(const HolderType &, return_value_policy, handle) {
+        return str("move_only_holder_caster_traits_test").release();
+    }
+};
+
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+namespace holder_caster_traits_test {
+
+struct example_drvd : example_base {};
+
+void wrap(py::module_ &m) {
+    m.def("return_std_shared_ptr_example_drvd",
+          // NOLINTNEXTLINE(modernize-make-shared)
+          []() { return std::shared_ptr<example_drvd>(new example_drvd()); });
+    m.def("return_std_unique_ptr_example_drvd",
+          []() { return std::unique_ptr<example_drvd>(new example_drvd()); });
+}
+
+} // namespace holder_caster_traits_test
 
 TEST_SUBMODULE(smart_ptr, m) {
     // Please do not interleave `struct` and `class` definitions with bindings code,
@@ -372,6 +467,10 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<MyObject5, huge_unique_ptr<MyObject5>>(m, "MyObject5")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject5::value);
+
+    py::class_<MyObject6, const_only_shared_ptr<MyObject6>>(m, "MyObject6")
+        .def(py::init([](const std::string &value) { return MyObject6::createObject(value); }))
+        .def_property_readonly("value", &MyObject6::value);
 
     // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
@@ -473,4 +572,16 @@ TEST_SUBMODULE(smart_ptr, m) {
             }
             return list;
         });
+
+    // NOLINTNEXTLINE(bugprone-incorrect-enable-shared-from-this)
+    class PrivateESFT : /* implicit private */ std::enable_shared_from_this<PrivateESFT> {};
+    struct ContainerUsingPrivateESFT {
+        std::shared_ptr<PrivateESFT> ptr;
+    };
+    py::class_<ContainerUsingPrivateESFT>(m, "ContainerUsingPrivateESFT")
+        .def(py::init<>())
+        .def_readwrite("ptr",
+                       &ContainerUsingPrivateESFT::ptr); // <- access ESFT through shared_ptr
+
+    holder_caster_traits_test::wrap(m);
 }

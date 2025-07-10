@@ -63,6 +63,9 @@ public:
     get_duration(const std::chrono::duration<rep, period> &src) {
         return src;
     }
+    static const std::chrono::duration<rep, period> &
+    get_duration(const std::chrono::duration<rep, period> &&)
+        = delete;
 
     // If this is a time_point get the time_since_epoch
     template <typename Clock>
@@ -185,7 +188,7 @@ public:
         using us_t = duration<int, std::micro>;
         auto us = duration_cast<us_t>(src.time_since_epoch() % seconds(1));
         if (us.count() < 0) {
-            us += seconds(1);
+            us += duration_cast<us_t>(seconds(1));
         }
 
         // Subtract microseconds BEFORE `system_clock::to_time_t`, because:

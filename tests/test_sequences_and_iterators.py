@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 from pytest import approx  # noqa: PT013
 
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import sequences_and_iterators as m
 
@@ -61,12 +64,20 @@ def test_generalized_iterators_simple():
 
 
 def test_iterator_doc_annotations():
-    assert m.IntPairs.nonref.__doc__.endswith("-> Iterator[tuple[int, int]]\n")
-    assert m.IntPairs.nonref_keys.__doc__.endswith("-> Iterator[int]\n")
-    assert m.IntPairs.nonref_values.__doc__.endswith("-> Iterator[int]\n")
-    assert m.IntPairs.simple_iterator.__doc__.endswith("-> Iterator[tuple[int, int]]\n")
-    assert m.IntPairs.simple_keys.__doc__.endswith("-> Iterator[int]\n")
-    assert m.IntPairs.simple_values.__doc__.endswith("-> Iterator[int]\n")
+    assert m.IntPairs.nonref.__doc__.endswith(
+        "-> collections.abc.Iterator[tuple[int, int]]\n"
+    )
+    assert m.IntPairs.nonref_keys.__doc__.endswith("-> collections.abc.Iterator[int]\n")
+    assert m.IntPairs.nonref_values.__doc__.endswith(
+        "-> collections.abc.Iterator[int]\n"
+    )
+    assert m.IntPairs.simple_iterator.__doc__.endswith(
+        "-> collections.abc.Iterator[tuple[int, int]]\n"
+    )
+    assert m.IntPairs.simple_keys.__doc__.endswith("-> collections.abc.Iterator[int]\n")
+    assert m.IntPairs.simple_values.__doc__.endswith(
+        "-> collections.abc.Iterator[int]\n"
+    )
 
 
 def test_iterator_referencing():
@@ -110,7 +121,8 @@ def test_sequence():
     cstats = ConstructorStats.get(m.Sequence)
 
     s = m.Sequence(5)
-    assert cstats.values() == ["of size", "5"]
+    if not env.GRAALPY:
+        assert cstats.values() == ["of size", "5"]
 
     assert "Sequence" in repr(s)
     assert len(s) == 5
@@ -123,16 +135,19 @@ def test_sequence():
     assert s[3] == approx(56.78, rel=1e-05)
 
     rev = reversed(s)
-    assert cstats.values() == ["of size", "5"]
+    if not env.GRAALPY:
+        assert cstats.values() == ["of size", "5"]
 
     rev2 = s[::-1]
-    assert cstats.values() == ["of size", "5"]
+    if not env.GRAALPY:
+        assert cstats.values() == ["of size", "5"]
 
     it = iter(m.Sequence(0))
     for _ in range(3):  # __next__ must continue to raise StopIteration
         with pytest.raises(StopIteration):
             next(it)
-    assert cstats.values() == ["of size", "0"]
+    if not env.GRAALPY:
+        assert cstats.values() == ["of size", "0"]
 
     expected = [0, 56.78, 0, 0, 12.34]
     assert rev == approx(expected, rel=1e-05)
@@ -140,9 +155,13 @@ def test_sequence():
     assert rev == rev2
 
     rev[0::2] = m.Sequence([2.0, 2.0, 2.0])
-    assert cstats.values() == ["of size", "3", "from std::vector"]
+    if not env.GRAALPY:
+        assert cstats.values() == ["of size", "3", "from std::vector"]
 
     assert rev == approx([2, 56.78, 2, 0, 2], rel=1e-05)
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     assert cstats.alive() == 4
     del it
@@ -183,7 +202,10 @@ def test_sequence_length():
 
 
 def test_sequence_doc():
-    assert m.sequence_length.__doc__.strip() == "sequence_length(arg0: Sequence) -> int"
+    assert (
+        m.sequence_length.__doc__.strip()
+        == "sequence_length(arg0: collections.abc.Sequence) -> int"
+    )
 
 
 def test_map_iterator():
@@ -244,16 +266,12 @@ def test_python_iterator_in_cpp():
 
 def test_iterator_passthrough():
     """#181: iterator passthrough did not compile"""
-    from pybind11_tests.sequences_and_iterators import iterator_passthrough
-
     values = [3, 5, 7, 9, 11, 13, 15]
-    assert list(iterator_passthrough(iter(values))) == values
+    assert list(m.iterator_passthrough(iter(values))) == values
 
 
 def test_iterator_rvp():
     """#388: Can't make iterators via make_iterator() with different r/v policies"""
-    import pybind11_tests.sequences_and_iterators as m
-
     assert list(m.make_iterator_1()) == [1, 2, 3]
     assert list(m.make_iterator_2()) == [1, 2, 3]
     assert not isinstance(m.make_iterator_1(), type(m.make_iterator_2()))
@@ -265,3 +283,25 @@ def test_carray_iterator():
     arr_h = m.CArrayHolder(*args_gt)
     args = list(arr_h)
     assert args_gt == args
+
+
+def test_generated_dunder_methods_pos_only():
+    string_map = m.StringMap({"hi": "bye", "black": "white"})
+    for it in (
+        m.make_iterator_1(),
+        m.make_iterator_2(),
+        m.iterator_passthrough(iter([3, 5, 7])),
+        iter(m.Sequence(5)),
+        iter(string_map),
+        string_map.items(),
+        string_map.values(),
+        iter(m.CArrayHolder(*[float(i) for i in range(3)])),
+    ):
+        assert (
+            re.match(r"^__iter__\(self: [\w\.]+, /\)", type(it).__iter__.__doc__)
+            is not None
+        )
+        assert (
+            re.match(r"^__next__\(self: [\w\.]+, /\)", type(it).__next__.__doc__)
+            is not None
+        )

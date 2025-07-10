@@ -12,6 +12,7 @@
 
 #include "detail/common.h"
 #include "cast.h"
+#include "trampoline_self_life_support.h"
 
 #include <functional>
 
@@ -80,6 +81,10 @@ struct dynamic_attr {};
 
 /// Annotation which enables the buffer protocol for a type
 struct buffer_protocol {};
+
+/// Annotation which enables releasing the GIL before calling the C++ destructor of wrapped
+/// instances (pybind/pybind11#1446).
+struct release_gil_before_calling_cpp_dtor {};
 
 /// Annotation which requests that a special metaclass is created for a type
 struct metaclass {
@@ -188,6 +193,7 @@ struct argument_record {
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads,
 /// etc.)
+#define PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID "v1" // PLEASE UPDATE if the struct is changed.
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
@@ -267,12 +273,18 @@ struct function_record {
     /// Pointer to next overload
     function_record *next = nullptr;
 };
+// The main purpose of this macro is to make it easy to pin-point the critically related code
+// sections.
+#define PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(...)              \
+    static_assert(                                                                                \
+        __VA_ARGS__,                                                                              \
+        "Violation of precondition for pybind11/functional.h performance optimizations!")
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false), is_final(false) {}
+          module_local(false), is_final(false), release_gil_before_calling_cpp_dtor(false) {}
 
     /// Handle to the parent scope
     handle scope;
@@ -301,6 +313,12 @@ struct type_record {
     /// Function pointer to class_<..>::dealloc
     void (*dealloc)(detail::value_and_holder &) = nullptr;
 
+    /// Function pointer for casting alias class (aka trampoline) pointer to
+    /// trampoline_self_life_support pointer. Sidesteps cross-DSO RTTI issues
+    /// on platforms like macOS (see PR #5728 for details).
+    get_trampoline_self_life_support_fn get_trampoline_self_life_support
+        = [](void *) -> trampoline_self_life_support * { return nullptr; };
+
     /// List of base classes of the newly created type
     list bases;
 
@@ -322,14 +340,16 @@ struct type_record {
     /// Does the class implement the buffer protocol?
     bool buffer_protocol : 1;
 
-    /// Is the default (unique_ptr) holder type used?
-    bool default_holder : 1;
-
     /// Is the class definition local to the module shared object?
     bool module_local : 1;
 
     /// Is the class inheritable from python classes?
     bool is_final : 1;
+
+    /// Solves pybind/pybind11#1446
+    bool release_gil_before_calling_cpp_dtor : 1;
+
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
         auto *base_info = detail::get_type_info(base, false);
@@ -340,18 +360,22 @@ struct type_record {
                           + "\" referenced unknown base type \"" + tname + "\"");
         }
 
-        if (default_holder != base_info->default_holder) {
+        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
+        bool this_has_unique_ptr_holder = (holder_enum_v == holder_enum_t::std_unique_ptr);
+        bool base_has_unique_ptr_holder
+            = (base_info->holder_enum_v == holder_enum_t::std_unique_ptr);
+        if (this_has_unique_ptr_holder != base_has_unique_ptr_holder) {
             std::string tname(base.name());
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
-                          + (default_holder ? "does not have" : "has")
+                          + (this_has_unique_ptr_holder ? "does not have" : "has")
                           + " a non-default holder type while its base \"" + tname + "\" "
-                          + (base_info->default_holder ? "does not" : "does"));
+                          + (base_has_unique_ptr_holder ? "does not" : "does"));
         }
 
         bases.append((PyObject *) base_info->type);
 
-#if PY_VERSION_HEX < 0x030B0000
+#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
         dynamic_attr |= base_info->type->tp_dictoffset != 0;
 #else
         dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
@@ -601,6 +625,14 @@ struct process_attribute<metaclass> : process_attribute_default<metaclass> {
 template <>
 struct process_attribute<module_local> : process_attribute_default<module_local> {
     static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
+};
+
+template <>
+struct process_attribute<release_gil_before_calling_cpp_dtor>
+    : process_attribute_default<release_gil_before_calling_cpp_dtor> {
+    static void init(const release_gil_before_calling_cpp_dtor &, type_record *r) {
+        r->release_gil_before_calling_cpp_dtor = true;
+    }
 };
 
 /// Process a 'prepend' attribute, putting this at the beginning of the overload chain

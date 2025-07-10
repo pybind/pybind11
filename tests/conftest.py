@@ -9,11 +9,14 @@ from __future__ import annotations
 import contextlib
 import difflib
 import gc
+import importlib.metadata
 import multiprocessing
 import re
 import sys
+import sysconfig
 import textwrap
 import traceback
+from typing import Callable
 
 import pytest
 
@@ -28,8 +31,8 @@ except Exception:
 
 @pytest.fixture(scope="session", autouse=True)
 def use_multiprocessing_forkserver_on_linux():
-    if sys.platform != "linux":
-        # The default on Windows and macOS is "spawn": If it's not broken, don't fix it.
+    if sys.platform != "linux" or sys.implementation.name == "graalpy":
+        # The default on Windows, macOS and GraalPy is "spawn": If it's not broken, don't fix it.
         return
 
     # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
@@ -198,8 +201,11 @@ def pytest_assertrepr_compare(op, left, right):  # noqa: ARG001
 
 
 def gc_collect():
-    """Run the garbage collector twice (needed when running
+    """Run the garbage collector three times (needed when running
     reference counting tests with PyPy)"""
+    gc.collect()
+    gc.collect()
+    gc.collect()
     gc.collect()
     gc.collect()
 
@@ -209,16 +215,55 @@ def pytest_configure():
     pytest.gc_collect = gc_collect
 
 
-def pytest_report_header(config):
-    del config  # Unused.
-    assert (
-        pybind11_tests.compiler_info is not None
-    ), "Please update pybind11_tests.cpp if this assert fails."
-    return (
-        "C++ Info:"
-        f" {pybind11_tests.compiler_info}"
-        f" {pybind11_tests.cpp_std}"
-        f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
-        f" PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}"
-        f" PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}"
+def pytest_report_header():
+    assert pybind11_tests.compiler_info is not None, (
+        "Please update pybind11_tests.cpp if this assert fails."
     )
+    interesting_packages = ("pybind11", "numpy", "scipy", "build")
+    valid = []
+    for package in sorted(interesting_packages):
+        with contextlib.suppress(ModuleNotFoundError):
+            valid.append(f"{package}=={importlib.metadata.version(package)}")
+    reqs = " ".join(valid)
+
+    cpp_info = [
+        "C++ Info:",
+        f"{pybind11_tests.compiler_info}",
+        f"{pybind11_tests.cpp_std}",
+        f"{pybind11_tests.PYBIND11_INTERNALS_ID}",
+        f"PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}",
+    ]
+    if "__graalpython__" in sys.modules:
+        cpp_info.append(
+            f"GraalPy version: {sys.modules['__graalpython__'].get_graalvm_version()}"
+        )
+    lines = [
+        f"installed packages of interest: {reqs}",
+        " ".join(cpp_info),
+    ]
+    if sysconfig.get_config_var("Py_GIL_DISABLED"):
+        lines.append("free-threaded Python build")
+
+    return lines
+
+
+@pytest.fixture
+def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
+    d = {}
+    if sys.version_info < (3, 13):
+        d["typing_extensions.TypeIs"] = "typing.TypeIs"
+        d["typing_extensions.CapsuleType"] = "types.CapsuleType"
+    if sys.version_info < (3, 12):
+        d["typing_extensions.Buffer"] = "collections.abc.Buffer"
+    if sys.version_info < (3, 11):
+        d["typing_extensions.Never"] = "typing.Never"
+    if sys.version_info < (3, 10):
+        d["typing_extensions.TypeGuard"] = "typing.TypeGuard"
+
+    def backport(sanatized_string: SanitizedString) -> SanitizedString:
+        for old, new in d.items():
+            sanatized_string.string = sanatized_string.string.replace(old, new)
+
+        return sanatized_string
+
+    return backport

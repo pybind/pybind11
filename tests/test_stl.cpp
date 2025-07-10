@@ -12,10 +12,11 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
-#ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
-#    define PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+#    include <pybind11/stl/filesystem.h>
 #endif
-#include <pybind11/stl/filesystem.h>
+
+#include <pybind11/typing.h>
 
 #include <string>
 #include <vector>
@@ -167,6 +168,14 @@ struct type_caster<ReferenceSensitiveOptional<T>>
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+int pass_std_vector_int(const std::vector<int> &v) {
+    int zum = 100;
+    for (const int i : v) {
+        zum += 2 * i;
+    }
+    return zum;
+}
+
 TEST_SUBMODULE(stl, m) {
     // test_vector
     m.def("cast_vector", []() { return std::vector<int>{1}; });
@@ -192,6 +201,23 @@ TEST_SUBMODULE(stl, m) {
     // test_array
     m.def("cast_array", []() { return std::array<int, 2>{{1, 2}}; });
     m.def("load_array", [](const std::array<int, 2> &a) { return a[0] == 1 && a[1] == 2; });
+
+    struct NoDefaultCtor {
+        explicit constexpr NoDefaultCtor(int val) : val{val} {}
+        int val;
+    };
+
+    struct NoDefaultCtorArray {
+        explicit constexpr NoDefaultCtorArray(int i)
+            : arr{{NoDefaultCtor(10 + i), NoDefaultCtor(20 + i)}} {}
+        std::array<NoDefaultCtor, 2> arr;
+    };
+
+    // test_array_no_default_ctor
+    py::class_<NoDefaultCtor>(m, "NoDefaultCtor").def_readonly("val", &NoDefaultCtor::val);
+    py::class_<NoDefaultCtorArray>(m, "NoDefaultCtorArray")
+        .def(py::init<int>())
+        .def_readwrite("arr", &NoDefaultCtorArray::arr);
 
     // test_valarray
     m.def("cast_valarray", []() { return std::valarray<int>{1, 4, 9}; });
@@ -428,7 +454,57 @@ TEST_SUBMODULE(stl, m) {
 #ifdef PYBIND11_HAS_FILESYSTEM
     // test_fs_path
     m.attr("has_filesystem") = true;
-    m.def("parent_path", [](const std::filesystem::path &p) { return p.parent_path(); });
+    m.def("parent_path", [](const std::filesystem::path &path) { return path.parent_path(); });
+    m.def("parent_paths", [](const std::vector<std::filesystem::path> &paths) {
+        std::vector<std::filesystem::path> result;
+        result.reserve(paths.size());
+        for (const auto &path : paths) {
+            result.push_back(path.parent_path());
+        }
+        return result;
+    });
+    m.def("parent_paths_list", [](const py::typing::List<std::filesystem::path> &paths) {
+        py::typing::List<std::filesystem::path> result;
+        for (auto path : paths) {
+            result.append(path.cast<std::filesystem::path>().parent_path());
+        }
+        return result;
+    });
+    m.def("parent_paths_nested_list",
+          [](const py::typing::List<py::typing::List<std::filesystem::path>> &paths_lists) {
+              py::typing::List<py::typing::List<std::filesystem::path>> result_lists;
+              for (auto paths : paths_lists) {
+                  py::typing::List<std::filesystem::path> result;
+                  for (auto path : paths) {
+                      result.append(path.cast<std::filesystem::path>().parent_path());
+                  }
+                  result_lists.append(result);
+              }
+              return result_lists;
+          });
+    m.def("parent_paths_tuple",
+          [](const py::typing::Tuple<std::filesystem::path, std::filesystem::path> &paths) {
+              py::typing::Tuple<std::filesystem::path, std::filesystem::path> result
+                  = py::make_tuple(paths[0].cast<std::filesystem::path>().parent_path(),
+                                   paths[1].cast<std::filesystem::path>().parent_path());
+              return result;
+          });
+    m.def("parent_paths_tuple_ellipsis",
+          [](const py::typing::Tuple<std::filesystem::path, py::ellipsis> &paths) {
+              py::typing::Tuple<std::filesystem::path, py::ellipsis> result(paths.size());
+              for (size_t i = 0; i < paths.size(); ++i) {
+                  result[i] = paths[i].cast<std::filesystem::path>().parent_path();
+              }
+              return result;
+          });
+    m.def("parent_paths_dict",
+          [](const py::typing::Dict<std::string, std::filesystem::path> &paths) {
+              py::typing::Dict<std::string, std::filesystem::path> result;
+              for (auto it : paths) {
+                  result[it.first] = it.second.cast<std::filesystem::path>().parent_path();
+              }
+              return result;
+          });
 #endif
 
 #ifdef PYBIND11_TEST_VARIANT
@@ -546,4 +622,45 @@ TEST_SUBMODULE(stl, m) {
         []() { return new std::vector<bool>(4513); },
         // Without explicitly specifying `take_ownership`, this function leaks.
         py::return_value_policy::take_ownership);
+
+    m.def("pass_std_vector_int", pass_std_vector_int);
+    m.def("pass_std_vector_pair_int", [](const std::vector<std::pair<int, int>> &v) {
+        int zum = 0;
+        for (const auto &ij : v) {
+            zum += ij.first * 100 + ij.second;
+        }
+        return zum;
+    });
+    m.def("pass_std_array_int_2", [](const std::array<int, 2> &a) {
+        return pass_std_vector_int(std::vector<int>(a.begin(), a.end())) + 1;
+    });
+    m.def("pass_std_set_int", [](const std::set<int> &s) {
+        int zum = 200;
+        for (const int i : s) {
+            zum += 3 * i;
+        }
+        return zum;
+    });
+    m.def("pass_std_map_int", [](const std::map<int, int> &m) {
+        int zum = 500;
+        for (const auto &p : m) {
+            zum += p.first * 1000 + p.second;
+        }
+        return zum;
+    });
+    m.def("roundtrip_std_vector_int", [](const std::vector<int> &v) { return v; });
+    m.def("roundtrip_std_map_str_int", [](const std::map<std::string, int> &m) { return m; });
+    m.def("roundtrip_std_set_int", [](const std::set<int> &s) { return s; });
+    m.def(
+        "roundtrip_std_vector_int_noconvert",
+        [](const std::vector<int> &v) { return v; },
+        py::arg("v").noconvert());
+    m.def(
+        "roundtrip_std_map_str_int_noconvert",
+        [](const std::map<std::string, int> &m) { return m; },
+        py::arg("m").noconvert());
+    m.def(
+        "roundtrip_std_set_int_noconvert",
+        [](const std::set<int> &s) { return s; },
+        py::arg("s").noconvert());
 }

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import re
 import sys
 import sysconfig
@@ -49,7 +50,10 @@ def print_includes() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    make_parser = functools.partial(argparse.ArgumentParser, allow_abbrev=False)
+    if sys.version_info >= (3, 14):
+        make_parser = functools.partial(make_parser, color=True, suggest_on_error=True)
+    parser = make_parser()
     parser.add_argument(
         "--version",
         action="version",
@@ -71,6 +75,11 @@ def main() -> None:
         action="store_true",
         help="Print the pkgconfig directory, ideal for setting $PKG_CONFIG_PATH.",
     )
+    parser.add_argument(
+        "--extension-suffix",
+        action="store_true",
+        help="Print the extension for a Python module",
+    )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
@@ -80,6 +89,8 @@ def main() -> None:
         print(quote(get_cmake_dir()))
     if args.pkgconfigdir:
         print(quote(get_pkgconfig_dir()))
+    if args.extension_suffix:
+        print(sysconfig.get_config_var("EXT_SUFFIX"))
 
 
 if __name__ == "__main__":

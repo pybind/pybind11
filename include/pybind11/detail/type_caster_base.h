@@ -9,13 +9,17 @@
 
 #pragma once
 
+#include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/trampoline_self_life_support.h>
 
 #include "common.h"
 #include "cpp_conduit.h"
 #include "descr.h"
+#include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
 #include "typeid.h"
+#include "using_smart_holder.h"
 #include "value_and_holder.h"
 
 #include <cstdint>
@@ -41,31 +45,21 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
-    // Store stack pointer in thread-local storage.
-    static PYBIND11_TLS_KEY_REF get_stack_tls_key() {
-#if PYBIND11_INTERNALS_VERSION == 4
-        return get_local_internals().loader_life_support_tls_key;
-#else
-        return get_internals().loader_life_support_tls_key;
-#endif
-    }
-    static loader_life_support *get_stack_top() {
-        return static_cast<loader_life_support *>(PYBIND11_TLS_GET_VALUE(get_stack_tls_key()));
-    }
-    static void set_stack_top(loader_life_support *value) {
-        PYBIND11_TLS_REPLACE_VALUE(get_stack_tls_key(), value);
-    }
-
 public:
     /// A new patient frame is created when a function is entered
-    loader_life_support() : parent{get_stack_top()} { set_stack_top(this); }
+    loader_life_support() {
+        auto &stack_top = get_internals().loader_life_support_tls;
+        parent = stack_top.get();
+        stack_top = this;
+    }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        if (get_stack_top() != this) {
+        auto &stack_top = get_internals().loader_life_support_tls;
+        if (stack_top.get() != this) {
             pybind11_fail("loader_life_support: internal error");
         }
-        set_stack_top(parent);
+        stack_top = parent;
         for (auto *item : keep_alive) {
             Py_DECREF(item);
         }
@@ -74,7 +68,7 @@ public:
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = get_stack_top();
+        loader_life_support *frame = get_internals().loader_life_support_tls.get();
         if (!frame) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such
@@ -117,7 +111,6 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
         check.push_back((PyTypeObject *) parent.ptr());
     }
-
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
         auto *type = check[i];
@@ -176,13 +169,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
  * The value is cached for the lifetime of the Python type.
  */
 inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type) {
-    auto ins = all_type_info_get_cache(type);
-    if (ins.second) {
-        // New cache entry: populate it
-        all_type_info_populate(type, ins.first->second);
-    }
-
-    return ins.first->second;
+    return all_type_info_get_cache(type).first->second;
 }
 
 /**
@@ -248,6 +235,49 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
 }
 
+inline bool try_incref(PyObject *obj) {
+    // Tries to increment the reference count of an object if it's not zero.
+    // TODO: Use PyUnstable_TryIncref when available.
+    // See https://github.com/python/cpython/issues/128844
+#ifdef Py_GIL_DISABLED
+    // See
+    // https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
+    uint32_t local = _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local);
+    local += 1;
+    if (local == 0) {
+        // immortal
+        return true;
+    }
+    if (_Py_IsOwnedByCurrentThread(obj)) {
+        _Py_atomic_store_uint32_relaxed(&obj->ob_ref_local, local);
+#    ifdef Py_REF_DEBUG
+        _Py_INCREF_IncRefTotal();
+#    endif
+        return true;
+    }
+    Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared);
+    for (;;) {
+        // If the shared refcount is zero and the object is either merged
+        // or may not have weak references, then we cannot incref it.
+        if (shared == 0 || shared == _Py_REF_MERGED) {
+            return false;
+        }
+
+        if (_Py_atomic_compare_exchange_ssize(
+                &obj->ob_ref_shared, &shared, shared + (1 << _Py_REF_SHARED_SHIFT))) {
+#    ifdef Py_REF_DEBUG
+            _Py_INCREF_IncRefTotal();
+#    endif
+            return true;
+        }
+    }
+#else
+    assert(Py_REFCNT(obj) > 0);
+    Py_INCREF(obj);
+    return true;
+#endif
+}
+
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
 PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
                                                          const detail::type_info *tinfo) {
@@ -256,7 +286,10 @@ PYBIND11_NOINLINE handle find_registered_python_instance(void *src,
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                    return handle((PyObject *) it_i->second).inc_ref();
+                    auto *wrapper = reinterpret_cast<PyObject *>(it_i->second);
+                    if (try_incref(wrapper)) {
+                        return handle(wrapper);
+                    }
                 }
             }
         }
@@ -458,19 +491,373 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
     });
 }
 
-inline PyThreadState *get_thread_state_unchecked() {
-#if defined(PYPY_VERSION)
-    return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x030D0000
-    return _PyThreadState_UncheckedGet();
-#else
-    return PyThreadState_GetUnchecked();
-#endif
-}
-
 // Forward declarations
 void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
+
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
+
+// PYBIND11:REMINDER: Needs refactoring of existing pybind11 code.
+inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
+
+PYBIND11_WARNING_POP
+
+PYBIND11_NAMESPACE_BEGIN(smart_holder_type_caster_support)
+
+struct value_and_holder_helper {
+    value_and_holder loaded_v_h;
+
+    bool have_holder() const {
+        return loaded_v_h.vh != nullptr && loaded_v_h.holder_constructed();
+    }
+
+    smart_holder &holder() const { return loaded_v_h.holder<smart_holder>(); }
+
+    void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
+        static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
+        if (!holder().is_populated) {
+            throw value_error(missing_value_msg + clean_type_id(typeid_name)
+                              + "`: Python instance is uninitialized.");
+        }
+        if (!holder().has_pointee()) {
+            throw value_error(missing_value_msg + clean_type_id(typeid_name)
+                              + "`: Python instance was disowned.");
+        }
+    }
+
+    void throw_if_uninitialized_or_disowned_holder(const std::type_info &type_info) const {
+        throw_if_uninitialized_or_disowned_holder(type_info.name());
+    }
+
+    // have_holder() must be true or this function will fail.
+    void throw_if_instance_is_currently_owned_by_shared_ptr(const type_info *tinfo) const {
+        auto *vptr_gd_ptr = tinfo->get_memory_guarded_delete(holder().vptr);
+        if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
+            throw value_error("Python instance is currently owned by a std::shared_ptr.");
+        }
+    }
+
+    void *get_void_ptr_or_nullptr() const {
+        if (have_holder()) {
+            auto &hld = holder();
+            if (hld.is_populated && hld.has_pointee()) {
+                return hld.template as_raw_ptr_unowned<void>();
+            }
+        }
+        return nullptr;
+    }
+};
+
+template <typename T, typename D>
+handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    if (policy == return_value_policy::copy) {
+        throw cast_error("return_value_policy::copy is invalid for unique_ptr.");
+    }
+    if (!src) {
+        return none().release();
+    }
+    void *src_raw_void_ptr = const_cast<void *>(st.first);
+    assert(st.second != nullptr);
+    const detail::type_info *tinfo = st.second;
+    if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
+        auto *self_life_support = tinfo->get_trampoline_self_life_support(src.get());
+        if (self_life_support != nullptr) {
+            value_and_holder &v_h = self_life_support->v_h;
+            if (v_h.inst != nullptr && v_h.vh != nullptr) {
+                auto &holder = v_h.holder<smart_holder>();
+                if (!holder.is_disowned) {
+                    pybind11_fail("smart_holder_from_unique_ptr: unexpected "
+                                  "smart_holder.is_disowned failure.");
+                }
+                // Critical transfer-of-ownership section. This must stay together.
+                self_life_support->deactivate_life_support();
+                holder.reclaim_disowned(tinfo->get_memory_guarded_delete);
+                (void) src.release();
+                // Critical section end.
+                return existing_inst;
+            }
+        }
+        throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
+    }
+
+    auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+    inst_raw_ptr->owned = true;
+    void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+    valueptr = src_raw_void_ptr;
+
+    if (static_cast<void *>(src.get()) == src_raw_void_ptr) {
+        // This is a multiple-inheritance situation that is incompatible with the current
+        // shared_from_this handling (see PR #3023). Is there a better solution?
+        src_raw_void_ptr = nullptr;
+    }
+    auto smhldr = smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
+    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+
+    if (policy == return_value_policy::reference_internal) {
+        keep_alive_impl(inst, parent);
+    }
+
+    return inst.release();
+}
+
+template <typename T, typename D>
+handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    return smart_holder_from_unique_ptr(
+        std::unique_ptr<T, D>(const_cast<T *>(src.release()),
+                              std::move(src.get_deleter())), // Const2Mutbl
+        policy,
+        parent,
+        st);
+}
+
+template <typename T>
+handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    switch (policy) {
+        case return_value_policy::automatic:
+        case return_value_policy::automatic_reference:
+            break;
+        case return_value_policy::take_ownership:
+            throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
+        case return_value_policy::copy:
+        case return_value_policy::move:
+            break;
+        case return_value_policy::reference:
+            throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
+        case return_value_policy::reference_internal:
+            break;
+    }
+    if (!src) {
+        return none().release();
+    }
+
+    auto src_raw_ptr = src.get();
+    assert(st.second != nullptr);
+    void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
+    const detail::type_info *tinfo = st.second;
+    if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
+        // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing smart_holder.
+        // PYBIND11:REMINDER: MISSING: keep_alive.
+        return existing_inst;
+    }
+
+    auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+    inst_raw_ptr->owned = true;
+    void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+    valueptr = src_raw_void_ptr;
+
+    auto smhldr
+        = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, const_cast<void *>(st.first)));
+    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+
+    if (policy == return_value_policy::reference_internal) {
+        keep_alive_impl(inst, parent);
+    }
+
+    return inst.release();
+}
+
+template <typename T>
+handle smart_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const std::pair<const void *, const type_info *> &st) {
+    return smart_holder_from_shared_ptr(std::const_pointer_cast<T>(src), // Const2Mutbl
+                                        policy,
+                                        parent,
+                                        st);
+}
+
+struct shared_ptr_parent_life_support {
+    PyObject *parent;
+    explicit shared_ptr_parent_life_support(PyObject *parent) : parent{parent} {
+        Py_INCREF(parent);
+    }
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void operator()(void *) {
+        gil_scoped_acquire gil;
+        Py_DECREF(parent);
+    }
+};
+
+struct shared_ptr_trampoline_self_life_support {
+    PyObject *self;
+    explicit shared_ptr_trampoline_self_life_support(instance *inst)
+        : self{reinterpret_cast<PyObject *>(inst)} {
+        gil_scoped_acquire gil;
+        Py_INCREF(self);
+    }
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void operator()(void *) {
+        gil_scoped_acquire gil;
+        Py_DECREF(self);
+    }
+};
+
+template <typename T,
+          typename D,
+          typename std::enable_if<std::is_default_constructible<D>::value, int>::type = 0>
+inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> &&deleter) {
+    if (deleter == nullptr) {
+        return std::unique_ptr<T, D>(raw_ptr);
+    }
+    return std::unique_ptr<T, D>(raw_ptr, std::move(*deleter));
+}
+
+template <typename T,
+          typename D,
+          typename std::enable_if<!std::is_default_constructible<D>::value, int>::type = 0>
+inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> &&deleter) {
+    if (deleter == nullptr) {
+        pybind11_fail("smart_holder_type_casters: deleter is not default constructible and no"
+                      " instance available to return.");
+    }
+    return std::unique_ptr<T, D>(raw_ptr, std::move(*deleter));
+}
+
+template <typename T>
+struct load_helper : value_and_holder_helper {
+    bool was_populated = false;
+    bool python_instance_is_alias = false;
+
+    void maybe_set_python_instance_is_alias(handle src) {
+        if (was_populated) {
+            python_instance_is_alias = reinterpret_cast<instance *>(src.ptr())->is_alias;
+        }
+    }
+
+    static std::shared_ptr<T> make_shared_ptr_with_responsible_parent(T *raw_ptr, handle parent) {
+        return std::shared_ptr<T>(raw_ptr, shared_ptr_parent_life_support(parent.ptr()));
+    }
+
+    std::shared_ptr<T> load_as_shared_ptr(const type_info *tinfo,
+                                          void *void_raw_ptr,
+                                          handle responsible_parent = nullptr,
+                                          // to support py::potentially_slicing_weak_ptr
+                                          // with minimal added code complexity:
+                                          bool force_potentially_slicing_shared_ptr
+                                          = false) const {
+        if (!have_holder()) {
+            return nullptr;
+        }
+        throw_if_uninitialized_or_disowned_holder(typeid(T));
+        smart_holder &hld = holder();
+        hld.ensure_is_not_disowned("load_as_shared_ptr");
+        if (hld.vptr_is_using_noop_deleter) {
+            if (responsible_parent) {
+                return make_shared_ptr_with_responsible_parent(static_cast<T *>(void_raw_ptr),
+                                                               responsible_parent);
+            }
+            throw std::runtime_error("Non-owning holder (load_as_shared_ptr).");
+        }
+        auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
+        if (python_instance_is_alias && !force_potentially_slicing_shared_ptr) {
+            auto *vptr_gd_ptr = tinfo->get_memory_guarded_delete(holder().vptr);
+            if (vptr_gd_ptr != nullptr) {
+                std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
+                if (released_ptr) {
+                    return std::shared_ptr<T>(released_ptr, type_raw_ptr);
+                }
+                std::shared_ptr<T> to_be_released(
+                    type_raw_ptr, shared_ptr_trampoline_self_life_support(loaded_v_h.inst));
+                vptr_gd_ptr->released_ptr = to_be_released;
+                return to_be_released;
+            }
+            auto *sptsls_ptr = std::get_deleter<shared_ptr_trampoline_self_life_support>(hld.vptr);
+            if (sptsls_ptr != nullptr) {
+                // This code is reachable only if there are multiple registered_instances for the
+                // same pointee.
+                if (reinterpret_cast<PyObject *>(loaded_v_h.inst) == sptsls_ptr->self) {
+                    pybind11_fail("smart_holder_type_caster_support load_as_shared_ptr failure: "
+                                  "loaded_v_h.inst == sptsls_ptr->self");
+                }
+            }
+            if (sptsls_ptr != nullptr || !memory::type_has_shared_from_this(type_raw_ptr)) {
+                return std::shared_ptr<T>(
+                    type_raw_ptr, shared_ptr_trampoline_self_life_support(loaded_v_h.inst));
+            }
+            if (hld.vptr_is_external_shared_ptr) {
+                pybind11_fail("smart_holder_type_casters load_as_shared_ptr failure: not "
+                              "implemented: trampoline-self-life-support for external shared_ptr "
+                              "to type inheriting from std::enable_shared_from_this.");
+            }
+            pybind11_fail(
+                "smart_holder_type_casters: load_as_shared_ptr failure: internal inconsistency.");
+        }
+        std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
+        return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
+    }
+
+    template <typename D>
+    std::unique_ptr<T, D> load_as_unique_ptr(const type_info *tinfo,
+                                             void *raw_void_ptr,
+                                             const char *context = "load_as_unique_ptr") {
+        if (!have_holder()) {
+            return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
+        }
+        throw_if_uninitialized_or_disowned_holder(typeid(T));
+        throw_if_instance_is_currently_owned_by_shared_ptr(tinfo);
+        holder().ensure_is_not_disowned(context);
+        holder().template ensure_compatible_uqp_del<T, D>(context);
+        holder().ensure_use_count_1(context);
+
+        T *raw_type_ptr = static_cast<T *>(raw_void_ptr);
+
+        auto *self_life_support = tinfo->get_trampoline_self_life_support(raw_type_ptr);
+        // This is enforced indirectly by a static_assert in the class_ implementation:
+        assert(!python_instance_is_alias || self_life_support);
+
+        std::unique_ptr<D> extracted_deleter
+            = holder().template extract_deleter<T, D>(context, tinfo->get_memory_guarded_delete);
+
+        // Critical transfer-of-ownership section. This must stay together.
+        if (self_life_support != nullptr) {
+            holder().disown(tinfo->get_memory_guarded_delete);
+        } else {
+            holder().release_ownership(tinfo->get_memory_guarded_delete);
+        }
+        auto result = unique_with_deleter<T, D>(raw_type_ptr, std::move(extracted_deleter));
+        if (self_life_support != nullptr) {
+            self_life_support->activate_life_support(loaded_v_h);
+        } else {
+            void *value_void_ptr = loaded_v_h.value_ptr();
+            loaded_v_h.value_ptr() = nullptr;
+            deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
+        }
+        // Critical section end.
+
+        return result;
+    }
+
+    // This assumes load_as_shared_ptr succeeded(), and the returned shared_ptr is still alive.
+    // The returned unique_ptr is meant to never expire (the behavior is undefined otherwise).
+    template <typename D>
+    std::unique_ptr<T, D> load_as_const_unique_ptr(const type_info *tinfo,
+                                                   T *raw_type_ptr,
+                                                   const char *context
+                                                   = "load_as_const_unique_ptr") {
+        if (!have_holder()) {
+            return unique_with_deleter<T, D>(nullptr, std::unique_ptr<D>());
+        }
+        holder().template ensure_compatible_uqp_del<T, D>(context);
+        return unique_with_deleter<T, D>(raw_type_ptr,
+                                         std::move(holder().template extract_deleter<T, D>(
+                                             context, tinfo->get_memory_guarded_delete)));
+    }
+};
+
+PYBIND11_NAMESPACE_END(smart_holder_type_caster_support)
 
 class type_caster_generic {
 public:
@@ -576,6 +963,15 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
+        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+            smart_holder_type_caster_support::value_and_holder_helper v_h_helper;
+            v_h_helper.loaded_v_h = v_h;
+            if (v_h_helper.have_holder()) {
+                v_h_helper.throw_if_uninitialized_or_disowned_holder(cpptype->name());
+                value = v_h_helper.holder().template as_raw_ptr_unowned<void>();
+                return;
+            }
+        }
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
@@ -1161,14 +1557,14 @@ protected:
        does not have a private operator new implementation. A comma operator is used in the
        decltype argument to apply SFINAE to the public copy/move constructors.*/
     template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *) -> decltype(new T(std::declval<const T>()),
-                                                             Constructor{}) {
+    static auto make_copy_constructor(const T *)
+        -> decltype(new T(std::declval<const T>()), Constructor{}) {
         return [](const void *arg) -> void * { return new T(*reinterpret_cast<const T *>(arg)); };
     }
 
     template <typename T, typename = enable_if_t<is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *) -> decltype(new T(std::declval<T &&>()),
-                                                             Constructor{}) {
+    static auto make_move_constructor(const T *)
+        -> decltype(new T(std::declval<T &&>()), Constructor{}) {
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };

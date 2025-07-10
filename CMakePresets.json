@@ -1,0 +1,93 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "binaryDir": "build",
+      "generator": "Ninja",
+      "errors": {
+        "dev": true,
+        "deprecated": true
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "DOWNLOAD_CATCH": true,
+        "DOWNLOAD_EIGEN": true,
+        "PYBIND11_FINDPYTHON": "NEW",
+        "PYBIND11_WERROR": true,
+        "CMAKE_COLOR_DIAGNOSTICS": true
+      }
+    },
+    {
+      "name": "venv",
+      "displayName": "Venv",
+      "inherits": "default",
+      "cacheVariables": {
+        "PYBIND11_CREATE_WITH_UV": "python3",
+        "Python_ROOT_DIR": ".venv"
+      }
+    },
+    {
+      "name": "tidy",
+      "displayName": "Clang-tidy",
+      "inherits": "default",
+      "binaryDir": "build-tidy",
+      "cacheVariables": {
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--use-color;--warnings-as-errors=*",
+        "CMAKE_CXX_STANDARD": "17"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "displayName": "Default Build",
+      "configurePreset": "default"
+    },
+    {
+      "name": "venv",
+      "displayName": "Venv Build",
+      "configurePreset": "venv"
+    },
+    {
+      "name": "tidy",
+      "displayName": "Clang-tidy Build",
+      "configurePreset": "tidy",
+      "nativeToolOptions": ["-k0"]
+    },
+    {
+      "name": "tests",
+      "displayName": "Tests (for workflow)",
+      "configurePreset": "default",
+      "targets": ["pytest", "cpptest", "test_cmake_build", "test_cross_module_rtti"]
+    },
+    {
+      "name": "testsvenv",
+      "displayName": "Tests Venv (for workflow)",
+      "configurePreset": "venv",
+      "targets": ["pytest", "cpptest", "test_cmake_build", "test_cross_module_rtti"]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "default",
+      "displayName": "Default Workflow",
+      "steps": [
+        { "type": "configure", "name": "default" },
+        { "type": "build", "name": "default" },
+        { "type": "build", "name": "tests" }
+      ]
+    },
+    {
+      "name": "venv",
+      "displayName": "Default Workflow",
+      "steps": [
+        { "type": "configure", "name": "venv" },
+        { "type": "build", "name": "venv" },
+        { "type": "build", "name": "testsvenv" }
+      ]
+    }
+  ]
+}

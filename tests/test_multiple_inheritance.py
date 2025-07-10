@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
 
@@ -263,7 +263,6 @@ def test_mi_static_properties():
         assert d.static_value == 0
 
 
-# Requires PyPy 6+
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
@@ -279,8 +278,9 @@ def test_mi_unaligned_base():
 
     c = m.I801C()
     d = m.I801D()
-    # + 4 below because we have the two instances, and each instance has offset base I801B2
-    assert ConstructorStats.detail_reg_inst() == n_inst + 4
+    if not env.GRAALPY:
+        # + 4 below because we have the two instances, and each instance has offset base I801B2
+        assert ConstructorStats.detail_reg_inst() == n_inst + 4
     b1c = m.i801b1_c(c)
     assert b1c is c
     b2c = m.i801b2_c(c)
@@ -289,6 +289,9 @@ def test_mi_unaligned_base():
     assert b1d is d
     b2d = m.i801b2_d(d)
     assert b2d is d
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     assert ConstructorStats.detail_reg_inst() == n_inst + 4  # no extra instances
     del c, b1c, b2c
@@ -312,7 +315,8 @@ def test_mi_base_return():
     assert d1.a == 1
     assert d1.b == 2
 
-    assert ConstructorStats.detail_reg_inst() == n_inst + 4
+    if not env.GRAALPY:
+        assert ConstructorStats.detail_reg_inst() == n_inst + 4
 
     c2 = m.i801c_b2()
     assert type(c2) is m.I801C
@@ -324,12 +328,13 @@ def test_mi_base_return():
     assert d2.a == 1
     assert d2.b == 2
 
-    assert ConstructorStats.detail_reg_inst() == n_inst + 8
+    if not env.GRAALPY:
+        assert ConstructorStats.detail_reg_inst() == n_inst + 8
 
-    del c2
-    assert ConstructorStats.detail_reg_inst() == n_inst + 6
-    del c1, d1, d2
-    assert ConstructorStats.detail_reg_inst() == n_inst
+        del c2
+        assert ConstructorStats.detail_reg_inst() == n_inst + 6
+        del c1, d1, d2
+        assert ConstructorStats.detail_reg_inst() == n_inst
 
     # Returning an unregistered derived type with a registered base; we won't
     # pick up the derived type, obviously, but should still work (as an object

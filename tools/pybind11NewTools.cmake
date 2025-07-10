@@ -5,10 +5,6 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-if(CMAKE_VERSION VERSION_LESS 3.12)
-  message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
-endif()
-
 include_guard(DIRECTORY)
 
 get_property(
@@ -56,7 +52,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   find_package(
-    Python 3.7 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+    Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
                                    ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
@@ -175,6 +171,16 @@ if(NOT _PYBIND11_CROSSCOMPILING)
       set(PYTHON_MODULE_EXTENSION
           "${_PYTHON_MODULE_EXTENSION}"
           CACHE INTERNAL "")
+      if((NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "")
+         AND (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "${PYTHON_MODULE_EXTENSION}"))
+        message(
+          AUTHOR_WARNING,
+          "SETUPTOOLS_EXT_SUFFIX is set to \"$ENV{SETUPTOOLS_EXT_SUFFIX}\", "
+          "but the auto-calculated Python extension suffix is \"${PYTHON_MODULE_EXTENSION}\". "
+          "This may cause problems when importing the Python extensions. "
+          "If you are using cross-compiling Python, you may need to "
+          "set PYTHON_MODULE_EXTENSION manually.")
+      endif()
     endif()
   endif()
 else()
@@ -236,8 +242,18 @@ if(TARGET ${_Python}::Python)
     PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
 endif()
 
-# CMake 3.15+ has this
 if(TARGET ${_Python}::Module)
+  # On Android, older versions of CMake don't know that modules need to link against
+  # libpython, so Python::Module will be an INTERFACE target with no associated library
+  # files.
+  get_target_property(module_target_type ${_Python}::Module TYPE)
+  if(ANDROID AND module_target_type STREQUAL INTERFACE_LIBRARY)
+    set_property(
+      TARGET ${_Python}::Module
+      APPEND
+      PROPERTY INTERFACE_LINK_LIBRARIES "${${_Python}_LIBRARIES}")
+  endif()
+
   set_property(
     TARGET pybind11::module
     APPEND
@@ -279,10 +295,6 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
   endif()
 
-  if(MSVC)
-    target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
-  endif()
-
   # -fvisibility=hidden is required to allow multiple modules compiled against
   # different pybind versions to work properly, and for some features (e.g.
   # py::module_local).  We force it on everything inside the `pybind11`
@@ -316,7 +328,7 @@ function(pybind11_add_module target_name)
   if(DEFINED CMAKE_BUILD_TYPE) # see https://github.com/pybind/pybind11/issues/4454
     # Use case-insensitive comparison to match the result of $<CONFIG:cfgs>
     string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-    if(NOT MSVC AND NOT "${uppercase_CMAKE_BUILD_TYPE}" MATCHES DEBUG|RELWITHDEBINFO)
+    if(NOT MSVC AND NOT "${uppercase_CMAKE_BUILD_TYPE}" MATCHES DEBUG|RELWITHDEBINFO|NONE)
       # Strip unnecessary sections of the binary on Linux/macOS
       pybind11_strip(${target_name})
     endif()

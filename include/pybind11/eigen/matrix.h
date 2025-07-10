@@ -225,19 +225,22 @@ struct EigenProps {
         = !show_c_contiguous && show_order && requires_col_major;
 
     static constexpr auto descriptor
-        = const_name("numpy.ndarray[") + npy_format_descriptor<Scalar>::name + const_name("[")
+        = const_name("typing.Annotated[")
+          + io_name("numpy.typing.ArrayLike, ", "numpy.typing.NDArray[")
+          + npy_format_descriptor<Scalar>::name + io_name("", "]") + const_name(", \"[")
           + const_name<fixed_rows>(const_name<(size_t) rows>(), const_name("m")) + const_name(", ")
-          + const_name<fixed_cols>(const_name<(size_t) cols>(), const_name("n")) + const_name("]")
-          +
+          + const_name<fixed_cols>(const_name<(size_t) cols>(), const_name("n"))
+          + const_name("]\"")
           // For a reference type (e.g. Ref<MatrixXd>) we have other constraints that might need to
           // be satisfied: writeable=True (for a mutable reference), and, depending on the map's
           // stride options, possibly f_contiguous or c_contiguous.  We include them in the
           // descriptor output to provide some hint as to why a TypeError is occurring (otherwise
-          // it can be confusing to see that a function accepts a 'numpy.ndarray[float64[3,2]]' and
-          // an error message that you *gave* a numpy.ndarray of the right type and dimensions.
-          const_name<show_writeable>(", flags.writeable", "")
-          + const_name<show_c_contiguous>(", flags.c_contiguous", "")
-          + const_name<show_f_contiguous>(", flags.f_contiguous", "") + const_name("]");
+          // it can be confusing to see that a function accepts a
+          // 'typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3,2]"]' and an error message
+          // that you *gave* a numpy.ndarray of the right type and dimensions.
+          + const_name<show_writeable>(", \"flags.writeable\"", "")
+          + const_name<show_c_contiguous>(", \"flags.c_contiguous\"", "")
+          + const_name<show_f_contiguous>(", \"flags.f_contiguous\"", "") + const_name("]");
 };
 
 // Casts an Eigen type to numpy array.  If given a base, the numpy array references the src data,
@@ -316,8 +319,11 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
             return false;
         }
 
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized") // See PR #5516
         // Allocate the new type, then build a numpy reference into it
         value = Type(fits.rows, fits.cols);
+        PYBIND11_WARNING_POP
         auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
         if (dims == 1) {
             ref = ref.squeeze();
@@ -438,7 +444,9 @@ public:
         }
     }
 
-    static constexpr auto name = props::descriptor;
+    // return_descr forces the use of NDArray instead of ArrayLike in args
+    // since Ref<...> args can only accept arrays.
+    static constexpr auto name = return_descr(props::descriptor);
 
     // Explicitly delete these: support python -> C++ conversion on these (i.e. these can be return
     // types but not bound arguments).  We still provide them (with an explicitly delete) so that

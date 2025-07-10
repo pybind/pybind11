@@ -328,6 +328,28 @@ Alternately, to ignore the error, call `PyErr_Clear
 Any Python error must be thrown or cleared, or Python/pybind11 will be left in
 an invalid state.
 
+Handling warnings from the Python C API
+=======================================
+
+Wrappers for handling Python warnings are provided in ``pybind11/warnings.h``.
+This header must be included explicitly; it is not transitively included via
+``pybind11/pybind11.h``.
+
+Warnings can be raised with the ``warn`` function:
+
+.. code-block:: cpp
+
+    py::warnings::warn("This is a warning!", PyExc_Warning);
+
+    // Optionally, a `stack_level` can be specified.
+    py::warnings::warn("Another one!", PyExc_DeprecationWarning, 3);
+
+New warning types can be registered at the module level using ``new_warning_type``:
+
+.. code-block:: cpp
+
+    py::warnings::new_warning_type(m, "CustomWarning", PyExc_RuntimeWarning);
+
 Chaining exceptions ('raise from')
 ==================================
 
@@ -368,8 +390,7 @@ Should they throw or fail to catch any exceptions in their call graph,
 the C++ runtime calls ``std::terminate()`` to abort immediately.
 
 Similarly, Python exceptions raised in a class's ``__del__`` method do not
-propagate, but are logged by Python as an unraisable error. In Python 3.8+, a
-`system hook is triggered
+propagate, but ``sys.unraisablehook()`` `is triggered
 <https://docs.python.org/3/library/sys.html#sys.unraisablehook>`_
 and an auditing event is logged.
 
