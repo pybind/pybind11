@@ -27,7 +27,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_PATCH 1a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
