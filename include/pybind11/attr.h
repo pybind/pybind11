@@ -703,6 +703,12 @@ struct process_attributes {
 };
 
 template <typename T>
+struct is_keep_alive : std::false_type {};
+
+template <size_t Nurse, size_t Patient>
+struct is_keep_alive<keep_alive<Nurse, Patient>> : std::true_type {};
+
+template <typename T>
 using is_call_guard = is_instantiation<call_guard, T>;
 
 /// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
