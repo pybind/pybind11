@@ -65,7 +65,7 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
     - Last-minute consistency check: same as tag?
 
-  - Push the new tag: ``git push upstream vX.Y.Z`` (do NOT use ``git push --tags``!)
+  - Push the new tag: ``git push upstream vX.Y.Z``
 
 - Update stable
 
