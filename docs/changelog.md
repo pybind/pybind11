@@ -12,7 +12,7 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
-## 3.0.0 (final) (July 10, 2025)
+## Version 3.0.0 (July 10, 2025)
 
 Pybind11 3.0 includes an ABI bump, the first required bump in many years
 on Unix (Windows has had required bumps more often). This release contains
