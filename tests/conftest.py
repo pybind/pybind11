@@ -78,7 +78,7 @@ class Output:
         return self.string
 
     __hash__ = None
-  
+
     def __eq__(self, other):
         # Ignore constructor/destructor output which is prefixed with "###"
         a = [
