@@ -50,7 +50,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Add a release branch if this is a new MINOR version, or update the existing
   release branch if it is a patch version
 
-  - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
+  - NOTE: This documentation assumes your ``upstream`` is ``https://github.com/pybind/pybind11.git``
+
+  - New branch: ``git checkout -b vX.Y``, ``git push -u upstream vX.Y``
 
   - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
 
@@ -63,7 +65,7 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
     - Last-minute consistency check: same as tag?
 
-  - ``git push --tags``
+  - Push the new tag: ``git push upstream vX.Y.Z``
 
 - Update stable
 
