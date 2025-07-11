@@ -19,15 +19,15 @@
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 0
+#define PYBIND11_VERSION_MICRO 1
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
 // - For stable releases, set the serial to 0.
-#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_FINAL
+#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_PATCH 1a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
