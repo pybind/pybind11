@@ -720,14 +720,42 @@ using std::make_index_sequence;
 #else
 template <size_t...>
 struct index_sequence {};
-template <size_t N, size_t... S>
-struct make_index_sequence_impl : make_index_sequence_impl<N - 1, N - 1, S...> {};
-template <size_t... S>
-struct make_index_sequence_impl<0, S...> {
+// Comments about the algorithm below.
+//
+// Credit: This is based on an algorithm by taocpp here:
+//    https://github.com/taocpp/sequences/blob/main/include/tao/seq/make_integer_sequence.hpp
+// but significantly simplified.
+//
+// We build up a sequence S by repeatedly doubling its length and sometimes adding 1 to the end.
+// E.g. if the current S is 0...3, then we either go to 0...7 or 0...8 on the next pass.
+// The goal is to end with S = 0...N-1.
+// The key insight is that the times we need to add an additional digit to S correspond
+// exactly to the 1's in the binary representation of the number N.
+//
+// Invariants:
+// - digit is a power of 2
+// - N_digit_is_1 is whether N's binary representation has a 1 in that digit's position.
+// - end <= N
+// - S is 0...end-1.
+// - if digit > 0, end * digit * 2 <= N < (end+1) * digit * 2
+//
+// The process starts with digit > N, end = 0, and S is empty.
+// Ths process concludes with digit=0, in which case, end == N and S is 0...N-1.
+
+template <size_t digit, bool N_digit_is_1, size_t N, size_t end, size_t... S> // N_digit_is_1=false
+struct make_index_sequence_impl :
+    make_index_sequence_impl<digit/2, (N&(digit/2))!=0, N, 2*end, S..., (S+end)...> {};
+template <size_t digit, size_t N, size_t end, size_t... S>
+struct make_index_sequence_impl<digit, true, N, end, S...> :
+    make_index_sequence_impl<digit/2, (N&(digit/2))!=0, N, 2*end+1, S..., (S+end)..., 2*end> {};
+template <size_t N, size_t end, size_t... S>
+struct make_index_sequence_impl<0, false, N, end, S...> {
     using type = index_sequence<S...>;
 };
+constexpr size_t next_power_of_2(size_t N)
+{ return N == 0 ? 1 : next_power_of_2(N>>1)<<1; }
 template <size_t N>
-using make_index_sequence = typename make_index_sequence_impl<N>::type;
+using make_index_sequence = typename make_index_sequence_impl<next_power_of_2(N), false, N, 0>::type;
 #endif
 
 /// Make an index sequence of the indices of true arguments
