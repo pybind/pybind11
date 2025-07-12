@@ -740,7 +740,7 @@ struct index_sequence {};
 // - if digit > 0, end * digit * 2 <= N < (end+1) * digit * 2
 //
 // The process starts with digit > N, end = 0, and S is empty.
-// Ths process concludes with digit=0, in which case, end == N and S is 0...N-1.
+// The process concludes with digit=0, in which case, end == N and S is 0...N-1.
 
 template <size_t digit, bool N_digit_is_1, size_t N, size_t end, size_t... S> // N_digit_is_1=false
 struct make_index_sequence_impl
