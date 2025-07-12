@@ -743,19 +743,26 @@ struct index_sequence {};
 // Ths process concludes with digit=0, in which case, end == N and S is 0...N-1.
 
 template <size_t digit, bool N_digit_is_1, size_t N, size_t end, size_t... S> // N_digit_is_1=false
-struct make_index_sequence_impl :
-    make_index_sequence_impl<digit/2, (N&(digit/2))!=0, N, 2*end, S..., (S+end)...> {};
+struct make_index_sequence_impl
+    : make_index_sequence_impl<digit / 2, (N & (digit / 2)) != 0, N, 2 * end, S..., (S + end)...> {
+};
 template <size_t digit, size_t N, size_t end, size_t... S>
-struct make_index_sequence_impl<digit, true, N, end, S...> :
-    make_index_sequence_impl<digit/2, (N&(digit/2))!=0, N, 2*end+1, S..., (S+end)..., 2*end> {};
+struct make_index_sequence_impl<digit, true, N, end, S...>
+    : make_index_sequence_impl<digit / 2,
+                               (N & (digit / 2)) != 0,
+                               N,
+                               2 * end + 1,
+                               S...,
+                               (S + end)...,
+                               2 * end> {};
 template <size_t N, size_t end, size_t... S>
 struct make_index_sequence_impl<0, false, N, end, S...> {
     using type = index_sequence<S...>;
 };
-constexpr size_t next_power_of_2(size_t N)
-{ return N == 0 ? 1 : next_power_of_2(N>>1)<<1; }
+constexpr size_t next_power_of_2(size_t N) { return N == 0 ? 1 : next_power_of_2(N >> 1) << 1; }
 template <size_t N>
-using make_index_sequence = typename make_index_sequence_impl<next_power_of_2(N), false, N, 0>::type;
+using make_index_sequence =
+    typename make_index_sequence_impl<next_power_of_2(N), false, N, 0>::type;
 #endif
 
 /// Make an index sequence of the indices of true arguments
