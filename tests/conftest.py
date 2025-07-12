@@ -77,6 +77,8 @@ class Output:
     def __str__(self):
         return self.string
 
+    __hash__ = None
+
     def __eq__(self, other):
         # Ignore constructor/destructor output which is prefixed with "###"
         a = [
@@ -93,6 +95,8 @@ class Output:
 
 class Unordered(Output):
     """Custom comparison for output without strict line ordering"""
+
+    __hash__ = None
 
     def __eq__(self, other):
         a = _split_and_sort(self.string)
@@ -115,6 +119,8 @@ class Capture:
 
     def __exit__(self, *args):
         self.out, self.err = self.capfd.readouterr()
+
+    __hash__ = None
 
     def __eq__(self, other):
         a = Output(self.out)
@@ -154,6 +160,8 @@ class SanitizedString:
     def __call__(self, thing):
         self.string = self.sanitizer(thing)
         return self
+
+    __hash__ = None
 
     def __eq__(self, other):
         a = self.string

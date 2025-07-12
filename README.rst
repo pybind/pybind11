@@ -3,7 +3,9 @@
 
 **pybind11 (v3)  — Seamless interoperability between C++ and Python**
 
-|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions| |CI| |Build status|
+|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |GitHub Discussions|
+
+|CI| |Build status| |SPEC 4 — Using and Creating Nightly Wheels|
 
 |Repology| |PyPI package| |Conda-forge| |Python Versions|
 
@@ -210,3 +212,5 @@ to the terms and conditions of this license.
    :target: https://pypi.org/project/pybind11/
 .. |GitHub Discussions| image:: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
    :target: https://github.com/pybind/pybind11/discussions
+.. |SPEC 4 — Using and Creating Nightly Wheels| image:: https://img.shields.io/badge/SPEC-4-green?labelColor=%23004811&color=%235CA038
+   :target: https://scientific-python.org/specs/spec-0004/
