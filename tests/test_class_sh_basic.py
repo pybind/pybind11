@@ -135,8 +135,9 @@ def test_cannot_disown_use_count_ne_1(pass_f, rtrn_f):
     assert str(exc_info.value) == ("Cannot disown use_count != 1 (load_as_unique_ptr).")
 
 
-def test_unique_ptr_roundtrip(num_round_trips=1000):
+def test_unique_ptr_roundtrip():
     # Multiple roundtrips to stress-test instance registration/deregistration.
+    num_round_trips = 1000
     recycled = m.atyp("passenger")
     for _ in range(num_round_trips):
         id_orig = id(recycled)
@@ -164,8 +165,9 @@ def test_rtrn_unique_ptr_cref():
     assert obj0 is obj1
 
 
-def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
+def test_unique_ptr_cref_roundtrip():
     # Multiple roundtrips to stress-test implementation.
+    num_round_trips = 1000
     orig = m.atyp("passenger")
     mtxt_orig = m.get_mtxt(orig)
     recycled = orig

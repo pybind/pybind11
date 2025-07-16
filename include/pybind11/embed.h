@@ -43,7 +43,8 @@
 
     - ``mod_gil_not_used()``
     - ``multiple_interpreters::per_interpreter_gil()``
-    - ``multiple_interpreters::per_interprshareeter_gil()``
+    - ``multiple_interpreters::shared_gil()``
+    - ``multiple_interpreters::not_supported()``
 
     .. code-block:: cpp
 

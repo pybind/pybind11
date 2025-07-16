@@ -151,8 +151,8 @@ def test_exo_planet_c_api_premium_traveler(premium_traveler_type):
 
 def test_home_planet_wrap_very_lonely_traveler():
     # This does not exercise the cpp_conduit feature, but is here to
-    # demonstrate that the cpp_conduit feature does not solve all
-    # cross-extension interoperability issues.
+    # demonstrate that the cpp_conduit feature does not solve
+    # cross-extension base-and-derived class interoperability issues.
     # Here is the proof that the following works for extensions with
     # matching `PYBIND11_INTERNALS_ID`s:
     #     test_cpp_conduit.cpp:

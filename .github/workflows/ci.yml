@@ -136,7 +136,7 @@ jobs:
             python-version: '3.10'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_FLAGS="/GR /EHsc"
           - runs-on: windows-2022
-            python-version: '3.13.3'
+            python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
           - runs-on: windows-latest
             python-version: '3.13t'
@@ -850,7 +850,7 @@ jobs:
             args: -DCMAKE_CXX_STANDARD=17
           - python: '3.10'
             args: -DCMAKE_CXX_STANDARD=20
-          - python: '3.13.3'
+          - python: '3.13'
 
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 • x86 ${{ matrix.args }}"
@@ -864,6 +864,9 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
+        # Python 3.13.4 broken on Windows
+        check-latest: >-
+          ${{ matrix.python == '3.13' && runner.os == 'Windows' }}
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v2.0

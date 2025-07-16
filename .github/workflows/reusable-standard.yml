@@ -37,6 +37,9 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
           allow-prereleases: true
+          # Python 3.13.4 broken on Windows
+          check-latest: >-
+            ${{ inputs.python-version == '3.13' && runner.os == 'Windows' }}
 
       - name: Setup Boost (Linux)
         if: runner.os == 'Linux'

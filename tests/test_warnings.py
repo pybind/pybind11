@@ -19,7 +19,7 @@ from pybind11_tests import warnings_ as m
 def test_warning_simple(
     expected_category, expected_message, expected_value, module_function
 ):
-    with pytest.warns(Warning) as excinfo:
+    with pytest.warns(Warning, match="This is") as excinfo:
         value = module_function()
 
     assert issubclass(excinfo[0].category, expected_category)
