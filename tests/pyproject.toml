@@ -1,5 +1,6 @@
-# Warning: this is currently used for pyodide, and is not a general out-of-tree
-# builder for the tests (yet). Specifically, wheels can't be built from SDists.
+# Warning: this is currently used to test cross-compilation, and is not a general
+# out-of-tree builder for the tests (yet). Specifically, wheels can't be built from
+# SDists.
 
 [build-system]
 requires = ["scikit-build-core"]
@@ -29,6 +30,8 @@ test-sources = ["tests", "pyproject.toml"]
 test-command = "python -m pytest -o timeout=0 -p no:cacheprovider tests"
 environment.PIP_ONLY_BINARY = "numpy"
 environment.PIP_PREFER_BINARY = "1"
+
+android.environment.ANDROID_API_LEVEL = "24"  # Needed to include libc++ in the wheel.
 pyodide.test-groups = ["numpy", "scipy"]
 ios.test-groups = ["numpy"]
 ios.xbuild-tools = ["cmake", "ninja"]
