@@ -603,6 +603,10 @@ protected:
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
                 auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
+                if (self == nullptr) {
+                    pybind11_fail(
+                        "initialize_generic: Unexpected nullptr from PyCFunction_GET_SELF");
+                }
                 chain = detail::function_record_ptr_from_PyObject(self);
                 if (chain && !chain->scope.is(rec->scope)) {
                     /* Never append a method to an overload chain of a parent class;
