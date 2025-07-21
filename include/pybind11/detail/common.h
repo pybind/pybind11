@@ -658,7 +658,7 @@ template <typename T>
 using remove_reference_t = typename std::remove_reference<T>::type;
 #endif
 
-#if defined(PYBIND11_CPP20)
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_remove_cvref)
 using std::remove_cvref;
 using std::remove_cvref_t;
 #else
