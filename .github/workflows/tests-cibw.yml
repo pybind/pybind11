@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: pypa/cibuildwheel@v3.0
+    - uses: pypa/cibuildwheel@v3.1
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
@@ -44,7 +44,7 @@ jobs:
 
     - run: brew upgrade cmake
 
-    - uses: pypa/cibuildwheel@v3.0
+    - uses: pypa/cibuildwheel@v3.1
       env:
         CIBW_PLATFORM: ios
       with:
@@ -76,9 +76,9 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    - run: pipx install wheel patchelf
+    - run: pipx install patchelf
 
-    - uses: mhsmith/cibuildwheel@android  # TODO: update to a released version
+    - uses: pypa/cibuildwheel@v3.1
       env:
         CIBW_PLATFORM: android
       with:
