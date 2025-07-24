@@ -80,7 +80,7 @@ could be realized as follows (important changes highlighted):
 .. code-block:: cpp
     :emphasize-lines: 8,30,31
 
-    class PyAnimal : public Animal, py::trampoline_self_life_support {
+    class PyAnimal : public Animal, public py::trampoline_self_life_support {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
