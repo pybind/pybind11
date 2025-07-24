@@ -44,9 +44,10 @@ jobs:
 
     - run: brew upgrade cmake
 
-    - uses: pypa/cibuildwheel@v3.0
+    - uses: pypa/cibuildwheel@v3.1
       env:
         CIBW_PLATFORM: ios
+        CIBW_SKIP: cp314-*  # https://github.com/pypa/cibuildwheel/issues/2494
       with:
         package-dir: tests
 
