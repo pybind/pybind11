@@ -199,8 +199,9 @@ TEST_CASE("Custom PyConfig") {
 
 TEST_CASE("scoped_interpreter with PyConfig_InitIsolatedConfig and argv") {
     std::vector<std::string> path;
-    for (auto p : py::module::import("sys").attr("path"))
+    for (auto p : py::module::import("sys").attr("path")) {
         path.emplace_back(py::str(p));
+    }
 
     py::finalize_interpreter();
     {
@@ -211,8 +212,9 @@ TEST_CASE("scoped_interpreter with PyConfig_InitIsolatedConfig and argv") {
         std::free(argv[0]);
         // Because this config is isolated, setting the path during init will not work, we have to
         // set it manually.  If we don't set it, then we can't import "test_interpreter"
-        for (auto &&p : path)
+        for (auto &&p : path) {
             py::list(py::module::import("sys").attr("path")).append(p);
+        }
         try {
             auto module = py::module::import("test_interpreter");
             auto py_widget = module.attr("DerivedWidget")("The question");
