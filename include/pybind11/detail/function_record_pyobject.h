@@ -52,14 +52,16 @@ constexpr char tp_name_impl[]
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
-static PyType_Slot function_record_PyType_Slots[]
-    = {{Py_tp_dealloc, &function_record_PyTypeObject_methods::tp_dealloc_impl},
-       {Py_tp_methods, &function_record_PyTypeObject_methods::tp_methods_impl},
-       {Py_tp_init, &function_record_PyTypeObject_methods::tp_init_impl},
-       {Py_tp_alloc, &function_record_PyTypeObject_methods::tp_alloc_impl},
-       {Py_tp_new, &function_record_PyTypeObject_methods::tp_new_impl},
-       {Py_tp_free, &function_record_PyTypeObject_methods::tp_free_impl},
-       {0, nullptr}};
+static PyType_Slot function_record_PyType_Slots[] = {
+    {Py_tp_dealloc,
+     reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_dealloc_impl)},
+    {Py_tp_methods,
+     reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_methods_impl)},
+    {Py_tp_init, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_init_impl)},
+    {Py_tp_alloc, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_alloc_impl)},
+    {Py_tp_new, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_new_impl)},
+    {Py_tp_free, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_free_impl)},
+    {0, nullptr}};
 
 // Designated initializers are a C++20 feature:
 // https://en.cppreference.com/w/cpp/language/aggregate_initialization#Designated_initializers
