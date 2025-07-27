@@ -47,7 +47,7 @@ static PyMethodDef tp_methods_impl[]
 
 // Note that this name is versioned.
 constexpr char tp_name_impl[]
-    = "__main__.pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID
+    = "pybind11_builtins.pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID
       "_" PYBIND11_PLATFORM_ABI_ID;
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
