@@ -52,6 +52,16 @@ constexpr char tp_name_impl[]
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
+static PyType_Slot function_record_PyType_Slots[] = {
+    {Py_tp_dealloc, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_dealloc_impl)},
+    {Py_tp_methods, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_methods_impl)},
+    {Py_tp_init, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_init_impl)},
+    {Py_tp_alloc, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_alloc_impl)},
+    {Py_tp_new, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_new_impl)},
+    {Py_tp_free, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_free_impl)},
+    {0, nullptr}
+};
+
 // Designated initializers are a C++20 feature:
 // https://en.cppreference.com/w/cpp/language/aggregate_initialization#Designated_initializers
 // MSVC rejects them unless /std:c++20 is used (error code C7555).
@@ -60,67 +70,23 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wmissing-field-initializers")
 #if defined(__GNUC__) && __GNUC__ >= 8
 PYBIND11_WARNING_DISABLE_GCC("-Wmissing-field-initializers")
 #endif
-static PyTypeObject function_record_PyTypeObject = {
-    PyVarObject_HEAD_INIT(nullptr, 0)
-    /* const char *tp_name */ function_record_PyTypeObject_methods::tp_name_impl,
-    /* Py_ssize_t tp_basicsize */ sizeof(function_record_PyObject),
-    /* Py_ssize_t tp_itemsize */ 0,
-    /* destructor tp_dealloc */ function_record_PyTypeObject_methods::tp_dealloc_impl,
-    /* Py_ssize_t tp_vectorcall_offset */ 0,
-    /* getattrfunc tp_getattr */ nullptr,
-    /* setattrfunc tp_setattr */ nullptr,
-    /* PyAsyncMethods *tp_as_async */ nullptr,
-    /* reprfunc tp_repr */ nullptr,
-    /* PyNumberMethods *tp_as_number */ nullptr,
-    /* PySequenceMethods *tp_as_sequence */ nullptr,
-    /* PyMappingMethods *tp_as_mapping */ nullptr,
-    /* hashfunc tp_hash */ nullptr,
-    /* ternaryfunc tp_call */ nullptr,
-    /* reprfunc tp_str */ nullptr,
-    /* getattrofunc tp_getattro */ nullptr,
-    /* setattrofunc tp_setattro */ nullptr,
-    /* PyBufferProcs *tp_as_buffer */ nullptr,
-    /* unsigned long tp_flags */ Py_TPFLAGS_DEFAULT,
-    /* const char *tp_doc */ nullptr,
-    /* traverseproc tp_traverse */ nullptr,
-    /* inquiry tp_clear */ nullptr,
-    /* richcmpfunc tp_richcompare */ nullptr,
-    /* Py_ssize_t tp_weaklistoffset */ 0,
-    /* getiterfunc tp_iter */ nullptr,
-    /* iternextfunc tp_iternext */ nullptr,
-    /* struct PyMethodDef *tp_methods */ function_record_PyTypeObject_methods::tp_methods_impl,
-    /* struct PyMemberDef *tp_members */ nullptr,
-    /* struct PyGetSetDef *tp_getset */ nullptr,
-    /* struct _typeobject *tp_base */ nullptr,
-    /* PyObject *tp_dict */ nullptr,
-    /* descrgetfunc tp_descr_get */ nullptr,
-    /* descrsetfunc tp_descr_set */ nullptr,
-    /* Py_ssize_t tp_dictoffset */ 0,
-    /* initproc tp_init */ function_record_PyTypeObject_methods::tp_init_impl,
-    /* allocfunc tp_alloc */ function_record_PyTypeObject_methods::tp_alloc_impl,
-    /* newfunc tp_new */ function_record_PyTypeObject_methods::tp_new_impl,
-    /* freefunc tp_free */ function_record_PyTypeObject_methods::tp_free_impl,
-    /* inquiry tp_is_gc */ nullptr,
-    /* PyObject *tp_bases */ nullptr,
-    /* PyObject *tp_mro */ nullptr,
-    /* PyObject *tp_cache */ nullptr,
-    /* PyObject *tp_subclasses */ nullptr,
-    /* PyObject *tp_weaklist */ nullptr,
-    /* destructor tp_del */ nullptr,
-    /* unsigned int tp_version_tag */ 0,
-    /* destructor tp_finalize */ nullptr,
-    /* vectorcallfunc tp_vectorcall */ nullptr,
+static PyType_Spec function_record_PyType_Spec = {
+    function_record_PyTypeObject_methods::tp_name_impl,
+    sizeof(function_record_PyObject),
+    0,
+    Py_TPFLAGS_DEFAULT,
+    function_record_PyType_Slots
 };
 PYBIND11_WARNING_POP
 
-static bool function_record_PyTypeObject_PyType_Ready_first_call = true;
-
 inline void function_record_PyTypeObject_PyType_Ready() {
-    if (function_record_PyTypeObject_PyType_Ready_first_call) {
-        if (PyType_Ready(&function_record_PyTypeObject) < 0) {
+    auto& type = detail::get_internals().function_record;
+    if (!type) {
+        PyObject *type_obj = PyType_FromSpec(&function_record_PyType_Spec);
+        if (type_obj == nullptr) {
             throw error_already_set();
         }
-        function_record_PyTypeObject_PyType_Ready_first_call = false;
+        type = reinterpret_cast<PyTypeObject *>(type_obj);
     }
 }
 
@@ -129,12 +95,15 @@ inline bool is_function_record_PyObject(PyObject *obj) {
         return false;
     }
     PyTypeObject *obj_type = Py_TYPE(obj);
+
+    auto *frtype = detail::get_internals().function_record;
+    
     // Fast path (pointer comparison).
-    if (obj_type == &function_record_PyTypeObject) {
+    if (obj_type == frtype) {
         return true;
     }
     // This works across extension modules. Note that tp_name is versioned.
-    if (strcmp(obj_type->tp_name, function_record_PyTypeObject.tp_name) == 0) {
+    if (frtype && strcmp(obj_type->tp_name, frtype->tp_name) == 0) {
         return true;
     }
     return false;
@@ -148,7 +117,7 @@ inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
 }
 
 inline object function_record_PyObject_New() {
-    auto *py_func_rec = PyObject_New(function_record_PyObject, &function_record_PyTypeObject);
+    auto *py_func_rec = PyObject_New(function_record_PyObject, detail::get_internals().function_record);
     if (py_func_rec == nullptr) {
         throw error_already_set();
     }

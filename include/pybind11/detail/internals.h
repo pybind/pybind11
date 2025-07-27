@@ -247,6 +247,7 @@ struct internals {
                                                          // detail::c_str()
     PyTypeObject *static_property_type = nullptr;
     PyTypeObject *default_metaclass = nullptr;
+    PyTypeObject *function_record = nullptr;
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
