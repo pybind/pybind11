@@ -53,14 +53,15 @@ constexpr char tp_name_impl[]
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
 static PyType_Slot function_record_PyType_Slots[] = {
-    {Py_tp_dealloc, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_dealloc_impl)},
-    {Py_tp_methods, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_methods_impl)},
+    {Py_tp_dealloc,
+     reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_dealloc_impl)},
+    {Py_tp_methods,
+     reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_methods_impl)},
     {Py_tp_init, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_init_impl)},
     {Py_tp_alloc, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_alloc_impl)},
     {Py_tp_new, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_new_impl)},
     {Py_tp_free, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_free_impl)},
-    {0, nullptr}
-};
+    {0, nullptr}};
 
 // Designated initializers are a C++20 feature:
 // https://en.cppreference.com/w/cpp/language/aggregate_initialization#Designated_initializers
@@ -70,17 +71,16 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wmissing-field-initializers")
 #if defined(__GNUC__) && __GNUC__ >= 8
 PYBIND11_WARNING_DISABLE_GCC("-Wmissing-field-initializers")
 #endif
-static PyType_Spec function_record_PyType_Spec = {
-    function_record_PyTypeObject_methods::tp_name_impl,
-    sizeof(function_record_PyObject),
-    0,
-    Py_TPFLAGS_DEFAULT,
-    function_record_PyType_Slots
-};
+static PyType_Spec function_record_PyType_Spec
+    = {function_record_PyTypeObject_methods::tp_name_impl,
+       sizeof(function_record_PyObject),
+       0,
+       Py_TPFLAGS_DEFAULT,
+       function_record_PyType_Slots};
 PYBIND11_WARNING_POP
 
 inline void function_record_PyTypeObject_PyType_Ready() {
-    auto& type = detail::get_internals().function_record;
+    auto &type = detail::get_internals().function_record;
     if (!type) {
         PyObject *type_obj = PyType_FromSpec(&function_record_PyType_Spec);
         if (type_obj == nullptr) {
@@ -97,7 +97,7 @@ inline bool is_function_record_PyObject(PyObject *obj) {
     PyTypeObject *obj_type = Py_TYPE(obj);
 
     auto *frtype = detail::get_internals().function_record;
-    
+
     // Fast path (pointer comparison).
     if (obj_type == frtype) {
         return true;
@@ -117,7 +117,8 @@ inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
 }
 
 inline object function_record_PyObject_New() {
-    auto *py_func_rec = PyObject_New(function_record_PyObject, detail::get_internals().function_record);
+    auto *py_func_rec
+        = PyObject_New(function_record_PyObject, detail::get_internals().function_record);
     if (py_func_rec == nullptr) {
         throw error_already_set();
     }

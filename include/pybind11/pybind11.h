@@ -3154,7 +3154,8 @@ void implicitly_convertible() {
         ~set_flag() { flag = false; }
     };
     bool currently_used = false;
-    auto implicit_caster = [currently_used](PyObject *obj, PyTypeObject *type) mutable -> PyObject * {
+    auto implicit_caster
+        = [currently_used](PyObject *obj, PyTypeObject *type) mutable -> PyObject * {
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }
