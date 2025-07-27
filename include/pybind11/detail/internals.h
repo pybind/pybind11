@@ -37,7 +37,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 11
+#    define PYBIND11_INTERNALS_VERSION 12
 #endif
 
 #if PYBIND11_INTERNALS_VERSION < 11
