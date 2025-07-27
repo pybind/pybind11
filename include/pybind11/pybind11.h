@@ -3148,15 +3148,13 @@ typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
 
 template <typename InputType, typename OutputType>
 void implicitly_convertible() {
-    struct flag_reset;
-    using flag_type = thread_specific_storage<flag_reset>;
     struct flag_reset {
-        flag_type &flag;
-        flag_reset(flag_type &flag_) : flag(flag_) { flag = this; }
+        thread_specific_storage<flag_reset> &flag;
+        flag_reset(thread_specific_storage<flag_reset> &flag_) : flag(flag_) { flag = this; }
         ~flag_reset() { flag.reset(); }
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-        static flag_type currently_used;
+        static thread_specific_storage<flag_reset> currently_used;
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }
