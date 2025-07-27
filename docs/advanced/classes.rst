@@ -45,7 +45,7 @@ Normally, the binding code for these classes would look as follows:
 
 .. code-block:: cpp
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Animal>(m, "Animal")
             .def("go", &Animal::go);
 
@@ -112,7 +112,7 @@ The binding code also needs a few minor adaptations (highlighted):
 .. code-block:: cpp
     :emphasize-lines: 2,3
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Animal, PyAnimal /* <--- trampoline */, py::smart_holder>(m, "Animal")
             .def(py::init<>())
             .def("go", &Animal::go);
@@ -774,7 +774,7 @@ to Python.
 
     #include <pybind11/operators.h>
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Vector2>(m, "Vector2")
             .def(py::init<float, float>())
             .def(py::self + py::self)
