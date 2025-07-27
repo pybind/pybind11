@@ -52,16 +52,14 @@ constexpr char tp_name_impl[]
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
-static PyType_Slot function_record_PyType_Slots[] = {
-    {Py_tp_dealloc,
-     reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_dealloc_impl)},
-    {Py_tp_methods,
-     reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_methods_impl)},
-    {Py_tp_init, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_init_impl)},
-    {Py_tp_alloc, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_alloc_impl)},
-    {Py_tp_new, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_new_impl)},
-    {Py_tp_free, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_free_impl)},
-    {0, nullptr}};
+static PyType_Slot function_record_PyType_Slots[]
+    = {{Py_tp_dealloc, &function_record_PyTypeObject_methods::tp_dealloc_impl},
+       {Py_tp_methods, &function_record_PyTypeObject_methods::tp_methods_impl},
+       {Py_tp_init, &function_record_PyTypeObject_methods::tp_init_impl},
+       {Py_tp_alloc, &function_record_PyTypeObject_methods::tp_alloc_impl},
+       {Py_tp_new, &function_record_PyTypeObject_methods::tp_new_impl},
+       {Py_tp_free, &function_record_PyTypeObject_methods::tp_free_impl},
+       {0, nullptr}};
 
 // Designated initializers are a C++20 feature:
 // https://en.cppreference.com/w/cpp/language/aggregate_initialization#Designated_initializers
@@ -79,7 +77,7 @@ static PyType_Spec function_record_PyType_Spec
        function_record_PyType_Slots};
 PYBIND11_WARNING_POP
 
-inline void function_record_PyTypeObject_PyType_Ready() {
+inline PyTypeObject *get_function_record_PyTypeObject() {
     auto &type = detail::get_internals().function_record;
     if (!type) {
         PyObject *type_obj = PyType_FromSpec(&function_record_PyType_Spec);
@@ -88,6 +86,7 @@ inline void function_record_PyTypeObject_PyType_Ready() {
         }
         type = reinterpret_cast<PyTypeObject *>(type_obj);
     }
+    return type;
 }
 
 inline bool is_function_record_PyObject(PyObject *obj) {
@@ -96,14 +95,14 @@ inline bool is_function_record_PyObject(PyObject *obj) {
     }
     PyTypeObject *obj_type = Py_TYPE(obj);
 
-    auto *frtype = detail::get_internals().function_record;
+    auto *frtype = get_function_record_PyTypeObject();
 
     // Fast path (pointer comparison).
     if (obj_type == frtype) {
         return true;
     }
     // This works across extension modules. Note that tp_name is versioned.
-    if (frtype && strcmp(obj_type->tp_name, frtype->tp_name) == 0) {
+    if (strcmp(obj_type->tp_name, frtype->tp_name) == 0) {
         return true;
     }
     return false;
@@ -117,8 +116,7 @@ inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
 }
 
 inline object function_record_PyObject_New() {
-    auto *py_func_rec
-        = PyObject_New(function_record_PyObject, detail::get_internals().function_record);
+    auto *py_func_rec = PyObject_New(function_record_PyObject, get_function_record_PyTypeObject());
     if (py_func_rec == nullptr) {
         throw error_already_set();
     }
