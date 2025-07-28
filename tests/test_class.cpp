@@ -477,6 +477,7 @@ TEST_SUBMODULE(class_, m) {
     // test_qualname
     // #1166: nested class docstring doesn't show nested name
     // Also related: tests that __qualname__ is set properly
+    m.def("module_func", [](){});
     struct NestBase {};
     struct Nested {};
     py::class_<NestBase> base(m, "NestBase");
@@ -484,9 +485,11 @@ TEST_SUBMODULE(class_, m) {
     py::class_<Nested>(base, "Nested")
         .def(py::init<>())
         .def("fn", [](Nested &, int, NestBase &, Nested &) {})
-        .def("fa", [](Nested &, int, NestBase &, Nested &) {}, "a"_a, "b"_a, "c"_a);
+        .def("fa", [](Nested &, int, NestBase &, Nested &) {}, "a"_a, "b"_a, "c"_a)
+        .def_static("static_func", [](){});
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
+    base.def_static("static_func", []() {});
 
     // test_error_after_conversion
     // The second-pass path through dispatcher() previously didn't
