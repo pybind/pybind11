@@ -31,7 +31,7 @@ Here is an example of the binding code for one class:
     };
     ...
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         ...
         py::class_<cl034>(m, "cl034")
             .def("fn_000", &cl034::fn_000)
