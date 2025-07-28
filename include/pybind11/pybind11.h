@@ -3149,12 +3149,15 @@ typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
 template <typename InputType, typename OutputType>
 void implicitly_convertible() {
     struct set_flag {
-        thread_specific_storage<set_flag> &flag;
-        explicit set_flag(thread_specific_storage<set_flag> &flag_) : flag(flag_) { flag = this; }
-        ~set_flag() { flag.reset(); }
+        thread_specific_storage<int> &flag;
+        // tss holds a pointer, we abuse it to hold an integral value instead
+        explicit set_flag(thread_specific_storage<int> &flag_) : flag(flag_) {
+            flag = reinterpret_cast<int *>(1);
+        }
+        ~set_flag() { flag.reset(nullptr); }
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-        static thread_specific_storage<set_flag> currently_used;
+        auto &currently_used = detail::get_implicit_caster_recursion_guard();
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }

@@ -656,6 +656,11 @@ inline local_internals &get_local_internals() {
     return *internals_ptr;
 }
 
+inline thread_specific_storage<int> &get_implicit_caster_recursion_guard() {
+    static thread_specific_storage<int> tss;
+    return tss;
+}
+
 #ifdef Py_GIL_DISABLED
 #    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
 #else
