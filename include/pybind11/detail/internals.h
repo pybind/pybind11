@@ -98,7 +98,9 @@ public:
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
         // that the `key` be allocated with the CPython allocator (as it is by
         // PyThread_tss_create).
+#if !defined(GRAALVM_PYTHON)
         PYBIND11_TLS_FREE(key_);
+#endif
     }
 
     thread_specific_storage(thread_specific_storage const &) = delete;
