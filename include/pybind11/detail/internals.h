@@ -37,7 +37,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 12
+#    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
 #if PYBIND11_INTERNALS_VERSION < 11
@@ -125,7 +125,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-constexpr const char *internals_function_record_capsule_name = "pybind11_function_record_capsule";
+#define PYBIND11_INTERNAL_MODULE_NAME "pybind11_builtins"
 
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
@@ -247,7 +247,6 @@ struct internals {
                                                          // detail::c_str()
     PyTypeObject *static_property_type = nullptr;
     PyTypeObject *default_metaclass = nullptr;
-    PyTypeObject *function_record = nullptr;
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
@@ -292,6 +291,7 @@ struct internals {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
+    PyTypeObject *function_record = nullptr;
 };
 
 enum class holder_enum_t : uint8_t {

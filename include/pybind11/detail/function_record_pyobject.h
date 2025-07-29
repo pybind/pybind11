@@ -46,9 +46,10 @@ static PyMethodDef tp_methods_impl[]
        {nullptr, nullptr, 0, nullptr}};
 
 // Note that this name is versioned.
-constexpr char tp_name_impl[]
-    = "pybind11_builtins.pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID
-      "_" PYBIND11_PLATFORM_ABI_ID;
+constexpr char tp_qualname_impl[]
+    = PYBIND11_INTERNAL_MODULE_NAME "." "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID "_" PYBIND11_PLATFORM_ABI_ID;
+constexpr char tp_plainname_impl[]
+    = "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID "_" PYBIND11_PLATFORM_ABI_ID;
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
@@ -72,7 +73,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wmissing-field-initializers")
 PYBIND11_WARNING_DISABLE_GCC("-Wmissing-field-initializers")
 #endif
 static PyType_Spec function_record_PyType_Spec
-    = {function_record_PyTypeObject_methods::tp_name_impl,
+    = {function_record_PyTypeObject_methods::tp_qualname_impl,
        sizeof(function_record_PyObject),
        0,
        Py_TPFLAGS_DEFAULT,
@@ -80,7 +81,7 @@ static PyType_Spec function_record_PyType_Spec
 PYBIND11_WARNING_POP
 
 inline PyTypeObject *get_function_record_PyTypeObject() {
-    auto &type = detail::get_internals().function_record;
+    auto &type = detail::get_local_internals().function_record;
     if (!type) {
         PyObject *type_obj = PyType_FromSpec(&function_record_PyType_Spec);
         if (type_obj == nullptr) {
@@ -104,7 +105,8 @@ inline bool is_function_record_PyObject(PyObject *obj) {
         return true;
     }
     // This works across extension modules. Note that tp_name is versioned.
-    if (strcmp(obj_type->tp_name, frtype->tp_name) == 0) {
+    if (strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_qualname_impl) == 0 ||
+        strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_plainname_impl) == 0) {
         return true;
     }
     return false;
