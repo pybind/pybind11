@@ -77,9 +77,7 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    # TODO: remove "wheel" once we're using a cibuildwheel version that includes
-    # https://github.com/pypa/cibuildwheel/pull/2515.
-    - run: pipx install wheel patchelf
+    - run: pipx install patchelf
 
     - uses: pypa/cibuildwheel@v3.1
       env:
