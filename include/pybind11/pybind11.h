@@ -3155,6 +3155,12 @@ void implicitly_convertible() {
             flag = reinterpret_cast<int *>(1);
         }
         ~set_flag() { flag.reset(nullptr); }
+
+        // Prevent copying/moving to ensure RAII guard is used safely
+        set_flag(const set_flag &) = delete;
+        set_flag(set_flag &&) = delete;
+        set_flag &operator=(const set_flag &) = delete;
+        set_flag &operator=(set_flag &&) = delete;
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
         auto &currently_used = detail::get_implicit_caster_recursion_guard();
