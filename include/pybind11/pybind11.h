@@ -3148,11 +3148,11 @@ typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
 
 template <typename InputType, typename OutputType>
 void implicitly_convertible() {
+    static int tss_sentinel_pointee = 1; // arbitrary value
     struct set_flag {
         thread_specific_storage<int> &flag;
-        // tss holds a pointer, we abuse it to hold an integral value instead
         explicit set_flag(thread_specific_storage<int> &flag_) : flag(flag_) {
-            flag = reinterpret_cast<int *>(1);
+            flag = &tss_sentinel_pointee; // trick: the pointer itself is the sentinel
         }
         ~set_flag() { flag.reset(nullptr); }
 
