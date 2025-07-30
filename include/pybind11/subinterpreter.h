@@ -93,9 +93,9 @@ public:
                 Several internal CPython modules are lacking proper subinterpreter support in 3.12
                 even though it is "stable" in that version.  This most commonly seems to cause
                 crashes when two interpreters concurrently initialize, which imports several things
-                (lke builtins, unicode, codecs).
+                (like builtins, unicode, codecs).
                 */
-#if PY_VERSION_HEX < 0x030D0000
+#if PY_VERSION_HEX < 0x030D0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
                 static std::mutex one_at_a_time;
                 std::lock_guard<std::mutex> guard(one_at_a_time);
 #endif
