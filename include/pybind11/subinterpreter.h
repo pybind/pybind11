@@ -77,6 +77,7 @@ public:
     /// @note This function acquires (and then releases) the main interpreter GIL, but the main
     /// interpreter and its GIL are not required to be held prior to calling this function.
     static inline subinterpreter create(PyInterpreterConfig const &cfg) {
+
         error_scope err_scope;
         subinterpreter result;
         {
@@ -85,7 +86,21 @@ public:
 
             auto prev_tstate = PyThreadState_Get();
 
-            auto status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
+            PyStatus status;
+
+            {
+                /*
+                Several internal CPython modules are lacking proper subinterpreter support in 3.12
+                even though it is "stable" in that version.  This most commonly seems to cause
+                crashes when two interpreters concurrently initialize, which imports several things
+                (like builtins, unicode, codecs).
+                */
+#if PY_VERSION_HEX < 0x030D0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
+                static std::mutex one_at_a_time;
+                std::lock_guard<std::mutex> guard(one_at_a_time);
+#endif
+                status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
+            }
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
             if (PyStatus_Exception(status)) {
@@ -117,6 +132,7 @@ public:
         // same as the default config in the python docs
         PyInterpreterConfig cfg;
         std::memset(&cfg, 0, sizeof(cfg));
+        cfg.allow_threads = 1;
         cfg.check_multi_interp_extensions = 1;
         cfg.gil = PyInterpreterConfig_OWN_GIL;
         return create(cfg);
