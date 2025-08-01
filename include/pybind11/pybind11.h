@@ -1365,7 +1365,6 @@ static inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
     (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
 
     auto nameobj = reinterpret_steal<str>(PyObject_GetAttrString(spec, "name"));
-    printf("WTF %s\n", cast<std::string>(str(spec)).c_str());
     auto *cached = get_cached_module(nameobj);
 
     if (cached) {
