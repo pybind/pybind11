@@ -1348,16 +1348,14 @@ inline PyObject *get_cached_module(pybind11::str const &nameobj) {
 /*
 Add successfully initialized a module object to the internal cache.
 */
-inline void cache_completed_module(pybind11::object mod) {
-    auto spec = getattr(mod, "__spec__", none());
-    if (spec.is_none()) {
-        pybind11_fail("Module has no __spec__!");
+inline void cache_completed_module(pybind11::str const &nameobj, pybind11::object const &mod) {
+    if (!nameobj.is_none()) {
+        dict state = detail::get_python_state_dict();
+        if (!state.contains("__pybind11_module_cache")) {
+            state["__pybind11_module_cache"] = dict();
+        }
+        state["__pybind11_module_cache"][nameobj] = mod;
     }
-    dict state = detail::get_python_state_dict();
-    if (!state.contains("__pybind11_module_cache")) {
-        state["__pybind11_module_cache"] = dict();
-    }
-    state["__pybind11_module_cache"][spec.attr("name")] = mod;
 }
 
 /*
