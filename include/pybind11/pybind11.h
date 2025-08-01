@@ -3163,7 +3163,7 @@ void implicitly_convertible() {
         set_flag &operator=(set_flag &&) = delete;
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-        auto &currently_used = detail::get_implicit_caster_recursion_guard();
+        static thread_specific_storage<int> currently_used;
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }
