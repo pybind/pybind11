@@ -1363,7 +1363,7 @@ A Py_mod_create slot function which will return the previously created module fr
 exists, and otherwise will create a new module object.
 */
 inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
-    (void) cache_completed_module; // silence unused-function warnings, it is used in a macro
+    (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
 
     auto nameobj = getattr(reinterpret_borrow<object>(spec), "name", none());
     if (nameobj.is_none()) {
