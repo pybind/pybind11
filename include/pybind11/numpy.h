@@ -1432,9 +1432,7 @@ public:
     // Reference to element at a given index
     template <typename... Ix>
     const T &at(Ix... index) const {
-        if ((ssize_t) sizeof...(index) != ndim()) {
-            fail_dim_check(sizeof...(index), "index dimension mismatch");
-        }
+        check_rank_precondition(sizeof...(index));
         return *(static_cast<const T *>(array::data())
                  + byte_offset(ssize_t(index)...) / itemsize());
     }
@@ -1442,11 +1440,31 @@ public:
     // Mutable reference to element at a given index
     template <typename... Ix>
     T &mutable_at(Ix... index) {
-        if ((ssize_t) sizeof...(index) != ndim()) {
-            fail_dim_check(sizeof...(index), "index dimension mismatch");
-        }
+        check_rank_precondition(sizeof...(index));
         return *(static_cast<T *>(array::mutable_data())
                  + byte_offset(ssize_t(index)...) / itemsize());
+    }
+
+    // const-reference to element at a given index without bounds checking
+    template <typename... Ix>
+    const T &operator()(Ix... index) const {
+#if !defined(NDEBUG)
+        check_rank_precondition(sizeof...(index));
+        check_dimensions(index...);
+#endif
+        return *(static_cast<const T *>(array::data())
+                 + detail::byte_offset_unsafe(strides(), ssize_t(index)...) / itemsize());
+    }
+
+    // mutable reference to element at a given index without bounds checking
+    template <typename... Ix>
+    T &operator()(Ix... index) {
+#if !defined(NDEBUG)
+        check_rank_precondition(sizeof...(index));
+        check_dimensions(index...);
+#endif
+        return *(static_cast<T *>(array::mutable_data())
+                 + detail::byte_offset_unsafe(strides(), ssize_t(index)...) / itemsize());
     }
 
     /**
@@ -1504,6 +1522,13 @@ protected:
                                                        detail::npy_api::NPY_ARRAY_ENSUREARRAY_
                                                            | ExtraFlags,
                                                        nullptr);
+    }
+
+private:
+    void check_rank_precondition(ssize_t dim) const {
+        if (dim != ndim()) {
+            fail_dim_check(dim, "index dimension mismatch");
+        }
     }
 };
 
