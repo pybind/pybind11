@@ -1333,7 +1333,7 @@ inline void *multi_interp_slot(F &&, O &&...o) {
 Return a borrowed reference to the named module if it has been successfully initialized within this
 interpreter before. nullptr if it has not been successfully initialized.
 */
-static inline PyObject *get_cached_module(pybind11::str const &nameobj) {
+inline PyObject *get_cached_module(pybind11::str const &nameobj) {
     dict state = detail::get_python_state_dict();
     if (!state.contains("__pybind11_module_cache")) {
         return nullptr;
@@ -1348,7 +1348,7 @@ static inline PyObject *get_cached_module(pybind11::str const &nameobj) {
 /*
 Add successfully initialized a module object to the internal cache.
 */
-static inline void cache_completed_module(pybind11::object mod) {
+inline void cache_completed_module(pybind11::object mod) {
     auto nameobj = getattr(getattr(mod, "__spec__", mod), "name", none());
     dict state = detail::get_python_state_dict();
     if (!state.contains("__pybind11_module_cache")) {
@@ -1361,7 +1361,7 @@ static inline void cache_completed_module(pybind11::object mod) {
 A Py_mod_create slot function which will return the previously created module from the cache if one
 exists, and otherwise will create a new module object.
 */
-static inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
+inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
     (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
 
     auto nameobj = reinterpret_steal<str>(PyObject_GetAttrString(spec, "name"));
@@ -1382,7 +1382,7 @@ using slots_array = std::array<PyModuleDef_Slot, 5>;
 
 /// Initialize an array of slots based on the supplied exec slot and options.
 template <typename... Options>
-static slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
     /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
     here, you MUST also increase the size of slots_array in the type alias above! */
     slots_array slots;
