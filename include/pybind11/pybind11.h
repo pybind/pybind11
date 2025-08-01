@@ -1365,15 +1365,16 @@ static inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
     (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
 
     auto nameobj = reinterpret_steal<str>(PyObject_GetAttrString(spec, "name"));
-    auto cached = get_cached_module(nameobj);
+    printf("WTF %s\n", cast<std::string>(str(spec)).c_str());
+    auto *cached = get_cached_module(nameobj);
 
     if (cached) {
         Py_INCREF(cached);
         return cached;
-    } else {
-        Py_INCREF(nameobj.ptr());
-        return PyModule_NewObject(nameobj.ptr());
     }
+
+    Py_INCREF(nameobj.ptr());
+    return PyModule_NewObject(nameobj.ptr());
 }
 
 /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
