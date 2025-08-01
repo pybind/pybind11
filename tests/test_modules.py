@@ -71,6 +71,19 @@ def test_importing():
     assert OD is OrderedDict
 
 
+def test_reimport():
+    import sys
+
+    import pybind11_tests as x
+
+    del sys.modules["pybind11_tests"]
+
+    # if something is wrong, this will throw import error ... otherwise nothing happens.
+    import pybind11_tests as y
+
+    assert x is y
+
+
 def test_pydoc():
     """Pydoc needs to be able to provide help() for everything inside a pybind11 module"""
     import pydoc
