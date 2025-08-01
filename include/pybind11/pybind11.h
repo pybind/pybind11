@@ -1357,7 +1357,7 @@ inline void cache_completed_module(pybind11::object mod) {
     if (!state.contains("__pybind11_module_cache")) {
         state["__pybind11_module_cache"] = dict();
     }
-    state["__pybind11_module_cache"][spec.attr("name")(spec, "name")] = mod;
+    state["__pybind11_module_cache"][spec.attr("name")] = mod;
 }
 
 /*
