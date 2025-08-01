@@ -78,7 +78,7 @@ def test_reimport():
 
     del sys.modules["pybind11_tests"]
 
-    # if something is wrong, this will throw import error ... otherwise nothing happens.
+    # exercise pybind11::detail::get_cached_module()
     import pybind11_tests as y
 
     assert x is y
