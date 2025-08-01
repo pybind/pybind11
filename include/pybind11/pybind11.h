@@ -1349,12 +1349,15 @@ inline PyObject *get_cached_module(pybind11::str const &nameobj) {
 Add successfully initialized a module object to the internal cache.
 */
 inline void cache_completed_module(pybind11::object mod) {
-    auto nameobj = getattr(getattr(mod, "__spec__", mod), "name", none());
+    auto spec = getattr(mod, "__spec__", none());
+    if (spec.is_none()) {
+        pybind11_fail("Module has no __spec__!");
+    }
     dict state = detail::get_python_state_dict();
     if (!state.contains("__pybind11_module_cache")) {
         state["__pybind11_module_cache"] = dict();
     }
-    state["__pybind11_module_cache"][nameobj] = mod;
+    state["__pybind11_module_cache"][spec.attr("name")(spec, "name")] = mod;
 }
 
 /*
@@ -1362,11 +1365,15 @@ A Py_mod_create slot function which will return the previously created module fr
 exists, and otherwise will create a new module object.
 */
 inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
-    (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
+    (void) cache_completed_module; // silence unused-function warnings, it is used in a macro
 
-    auto nameobj = reinterpret_steal<str>(PyObject_GetAttrString(spec, "name"));
+    auto nameobj = getattr(reinterpret_borrow<object>(spec), "name", none());
+    if (nameobj.is_none()) {
+        set_error(PyExc_ImportError, "module spec is missing a name");
+        return nullptr;
+    }
+
     auto *cached = get_cached_module(nameobj);
-
     if (cached) {
         Py_INCREF(cached);
         return cached;
