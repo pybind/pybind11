@@ -1347,15 +1347,15 @@ inline PyObject *get_cached_module(pybind11::str const &nameobj) {
 
 /*
 Add successfully initialized a module object to the internal cache.
+
+The module must have a __spec__ attribute with a name attribute.
 */
-inline void cache_completed_module(pybind11::str const &nameobj, pybind11::object const &mod) {
-    if (!nameobj.is_none()) {
-        dict state = detail::get_python_state_dict();
-        if (!state.contains("__pybind11_module_cache")) {
-            state["__pybind11_module_cache"] = dict();
-        }
-        state["__pybind11_module_cache"][nameobj] = mod;
+inline void cache_completed_module(pybind11::object const &mod) {
+    dict state = detail::get_python_state_dict();
+    if (!state.contains("__pybind11_module_cache")) {
+        state["__pybind11_module_cache"] = dict();
     }
+    state["__pybind11_module_cache"][mod.attr("__spec__").attr("name")] = mod;
 }
 
 /*
@@ -1371,14 +1371,14 @@ inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
         return nullptr;
     }
 
-    auto *cached = get_cached_module(nameobj);
-    if (cached) {
-        Py_INCREF(cached);
-        return cached;
+    auto *mod = get_cached_module(nameobj);
+    if (mod) {
+        Py_INCREF(mod);
     }
-
-    Py_INCREF(nameobj.ptr());
-    return PyModule_NewObject(nameobj.ptr());
+    else {
+        mod = PyModule_NewObject(nameobj.ptr());
+    }
+    return mod;
 }
 
 /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
