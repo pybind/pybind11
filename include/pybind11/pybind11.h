@@ -1374,8 +1374,7 @@ inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
     auto *mod = get_cached_module(nameobj);
     if (mod) {
         Py_INCREF(mod);
-    }
-    else {
+    } else {
         mod = PyModule_NewObject(nameobj.ptr());
     }
     return mod;
