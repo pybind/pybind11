@@ -84,7 +84,7 @@ def test_reimport():
     assert x is y
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side (failure was introduced by pr #5782)")
 def test_pydoc():
     """Pydoc needs to be able to provide help() for everything inside a pybind11 module"""
     import pydoc
