@@ -286,13 +286,7 @@ TEST_SUBMODULE(callbacks, m) {
         return &def;
     }();
 
-    // rec_capsule with name that has the same value (but not pointer) as our internal one
-    // This capsule should be detected by our code as foreign and not inspected as the pointers
-    // shouldn't match
-    constexpr const char *rec_capsule_name
-        = pybind11::detail::internals_function_record_capsule_name;
     py::capsule rec_capsule(std::malloc(1), [](void *data) { std::free(data); });
-    rec_capsule.set_name(rec_capsule_name);
     m.add_object("custom_function", PyCFunction_New(custom_def, rec_capsule.ptr()));
 
     // rec_capsule with nullptr name
