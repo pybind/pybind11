@@ -3148,17 +3148,22 @@ typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
 
 template <typename InputType, typename OutputType>
 void implicitly_convertible() {
+    static int tss_sentinel_pointee = 1; // arbitrary value
     struct set_flag {
-        bool &flag;
-        explicit set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
-        ~set_flag() { flag = false; }
+        thread_specific_storage<int> &flag;
+        explicit set_flag(thread_specific_storage<int> &flag_) : flag(flag_) {
+            flag = &tss_sentinel_pointee; // trick: the pointer itself is the sentinel
+        }
+        ~set_flag() { flag.reset(nullptr); }
+
+        // Prevent copying/moving to ensure RAII guard is used safely
+        set_flag(const set_flag &) = delete;
+        set_flag(set_flag &&) = delete;
+        set_flag &operator=(const set_flag &) = delete;
+        set_flag &operator=(set_flag &&) = delete;
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-#ifdef Py_GIL_DISABLED
-        thread_local bool currently_used = false;
-#else
-        static bool currently_used = false;
-#endif
+        static thread_specific_storage<int> currently_used;
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }
