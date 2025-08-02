@@ -455,11 +455,9 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
-            auto mod_spec_name = pybind11::getattr(                                               \
-                pybind11::getattr(m, "__spec__", pybind11::none()), "name", pybind11::none());    \
-            if (!pybind11::detail::get_cached_module(mod_spec_name)) {                            \
+            if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
-                pybind11::detail::cache_completed_module(mod_spec_name, m);                       \
+                pybind11::detail::cache_completed_module(m);                                      \
             }                                                                                     \
             return 0;                                                                             \
         }                                                                                         \
