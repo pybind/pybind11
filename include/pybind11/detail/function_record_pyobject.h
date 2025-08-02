@@ -101,7 +101,7 @@ inline bool is_function_record_PyObject(PyObject *obj) {
     }
     PyTypeObject *obj_type = Py_TYPE(obj);
 
-    auto *frtype = get_function_record_PyTypeObject();
+    PyTypeObject *frtype = get_function_record_PyTypeObject();
 
     // Fast path (pointer comparison).
     if (obj_type == frtype) {
