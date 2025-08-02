@@ -27,7 +27,7 @@ The binding code for ``Pet`` looks as follows:
 
     namespace py = pybind11;
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def("setName", &Pet::setName)
@@ -480,7 +480,7 @@ management. For example, ownership is inadvertently transferred here:
         std::shared_ptr<Child> child;
     };
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Child, std::shared_ptr<Child>>(m, "Child");
 
         py::class_<Parent, std::shared_ptr<Parent>>(m, "Parent")

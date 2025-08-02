@@ -90,14 +90,21 @@ public:
     }
 
     ~thread_specific_storage() {
-        // This destructor could be called *after* Py_Finalize(). That *SHOULD BE* fine. The
-        // following details what happens when PyThread_tss_free is called.
-        // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does
+        // This destructor is often called *after* Py_Finalize(). That *SHOULD BE* fine on most
+        // platforms. The following details what happens when PyThread_tss_free is called in
+        // CPython. PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does
         // nothing. PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
         // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX).
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
         // that the `key` be allocated with the CPython allocator (as it is by
         // PyThread_tss_create).
+        // However, in GraalPy (as of v24.2 or older), TSS is implemented by Java and this call
+        // requires a living Python interpreter.
+#ifdef GRAALVM_PYTHON
+        if (!Py_IsInitialized() || _Py_IsFinalizing()) {
+            return;
+        }
+#endif
         PYBIND11_TLS_FREE(key_);
     }
 
