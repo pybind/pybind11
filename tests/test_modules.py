@@ -71,6 +71,23 @@ def test_importing():
     assert OD is OrderedDict
 
 
+def test_reimport():
+    import sys
+
+    import pybind11_tests as x
+
+    del sys.modules["pybind11_tests"]
+
+    # exercise pybind11::detail::get_cached_module()
+    import pybind11_tests as y
+
+    assert x is y
+
+
+@pytest.mark.xfail(
+    "env.GRAALPY",
+    reason="TODO should be fixed on GraalPy side (failure was introduced by pr #5782)",
+)
 def test_pydoc():
     """Pydoc needs to be able to provide help() for everything inside a pybind11 module"""
     import pydoc

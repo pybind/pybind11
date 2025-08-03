@@ -1329,17 +1329,70 @@ inline void *multi_interp_slot(F &&, O &&...o) {
 }
 #endif
 
+/*
+Return a borrowed reference to the named module if it has been successfully initialized within this
+interpreter before. nullptr if it has not been successfully initialized.
+*/
+inline PyObject *get_cached_module(pybind11::str const &nameobj) {
+    dict state = detail::get_python_state_dict();
+    if (!state.contains("__pybind11_module_cache")) {
+        return nullptr;
+    }
+    dict cache = state["__pybind11_module_cache"];
+    if (!cache.contains(nameobj)) {
+        return nullptr;
+    }
+    return cache[nameobj].ptr();
+}
+
+/*
+Add successfully initialized a module object to the internal cache.
+
+The module must have a __spec__ attribute with a name attribute.
+*/
+inline void cache_completed_module(pybind11::object const &mod) {
+    dict state = detail::get_python_state_dict();
+    if (!state.contains("__pybind11_module_cache")) {
+        state["__pybind11_module_cache"] = dict();
+    }
+    state["__pybind11_module_cache"][mod.attr("__spec__").attr("name")] = mod;
+}
+
+/*
+A Py_mod_create slot function which will return the previously created module from the cache if one
+exists, and otherwise will create a new module object.
+*/
+inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
+    (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
+
+    auto nameobj = getattr(reinterpret_borrow<object>(spec), "name", none());
+    if (nameobj.is_none()) {
+        set_error(PyExc_ImportError, "module spec is missing a name");
+        return nullptr;
+    }
+
+    auto *mod = get_cached_module(nameobj);
+    if (mod) {
+        Py_INCREF(mod);
+    } else {
+        mod = PyModule_NewObject(nameobj.ptr());
+    }
+    return mod;
+}
+
 /// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
 /// the sentinel (0) end slot.
-using slots_array = std::array<PyModuleDef_Slot, 4>;
+using slots_array = std::array<PyModuleDef_Slot, 5>;
 
 /// Initialize an array of slots based on the supplied exec slot and options.
 template <typename... Options>
-static slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
     /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
     here, you MUST also increase the size of slots_array in the type alias above! */
     slots_array slots;
     size_t next_slot = 0;
+
+    slots[next_slot++] = {Py_mod_create, reinterpret_cast<void *>(&cached_create_module)};
 
     if (exec_fn != nullptr) {
         slots[next_slot++] = {Py_mod_exec, reinterpret_cast<void *>(exec_fn)};
