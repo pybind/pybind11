@@ -79,7 +79,7 @@ static PyType_Spec function_record_PyType_Spec
     = {function_record_PyTypeObject_methods::tp_qualname_impl,
        sizeof(function_record_PyObject),
        0,
-       Py_TPFLAGS_DEFAULT,
+       Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
        function_record_PyType_Slots};
 PYBIND11_WARNING_POP
 
