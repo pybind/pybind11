@@ -67,21 +67,12 @@ static PyType_Slot function_record_PyType_Slots[] = {
     {Py_tp_free, reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_free_impl)},
     {0, nullptr}};
 
-// Designated initializers are a C++20 feature:
-// https://en.cppreference.com/w/cpp/language/aggregate_initialization#Designated_initializers
-// MSVC rejects them unless /std:c++20 is used (error code C7555).
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_CLANG("-Wmissing-field-initializers")
-#if defined(__GNUC__) && __GNUC__ >= 8
-PYBIND11_WARNING_DISABLE_GCC("-Wmissing-field-initializers")
-#endif
 static PyType_Spec function_record_PyType_Spec
     = {function_record_PyTypeObject_methods::tp_qualname_impl,
        sizeof(function_record_PyObject),
        0,
        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
        function_record_PyType_Slots};
-PYBIND11_WARNING_POP
 
 inline PyTypeObject *get_function_record_PyTypeObject() {
     auto &type = detail::get_local_internals().function_record;
