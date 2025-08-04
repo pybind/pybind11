@@ -45,6 +45,23 @@ static PyMethodDef tp_methods_impl[]
         nullptr},
        {nullptr, nullptr, 0, nullptr}};
 
+// Python 3.12+ emits a DeprecationWarning for heap types whose tp_name does
+// not contain a dot ('.') and that lack a __module__ attribute. For pybind11's
+// internal function_record type, we do not have an actual module object to
+// attach, so we cannot use PyType_FromModuleAndSpec (introduced in Python 3.9)
+// to set __module__ automatically.
+//
+// As a workaround, we define a "qualified" type name that includes a dummy
+// module name (PYBIND11_DUMMY_MODULE_NAME). This is non‑idiomatic but avoids
+// the deprecation warning, and results in reprs like
+//
+//     <class 'pybind11_builtins.pybind11_detail_function_record_...'>
+//
+// even though no real pybind11_builtins module exists. If pybind11 gains an
+// actual module object in the future, this code should switch to
+// PyType_FromModuleAndSpec for Python 3.9+ and drop the dummy module
+// workaround.
+//
 // Note that this name is versioned.
 #define PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME                                              \
     "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID                     \
