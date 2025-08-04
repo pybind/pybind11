@@ -91,15 +91,15 @@ static PyType_Spec function_record_PyType_Spec
        function_record_PyType_Slots};
 
 inline PyTypeObject *get_function_record_PyTypeObject() {
-    auto &type = detail::get_local_internals().function_record;
-    if (!type) {
-        PyObject *type_obj = PyType_FromSpec(&function_record_PyType_Spec);
-        if (type_obj == nullptr) {
+    PyTypeObject *&py_type_obj = detail::get_local_internals().function_record_py_type;
+    if (!py_type_obj) {
+        PyObject *py_obj = PyType_FromSpec(&function_record_PyType_Spec);
+        if (py_obj == nullptr) {
             throw error_already_set();
         }
-        type = reinterpret_cast<PyTypeObject *>(type_obj);
+        py_type_obj = reinterpret_cast<PyTypeObject *>(py_obj);
     }
-    return type;
+    return py_type_obj;
 }
 
 inline bool is_function_record_PyObject(PyObject *obj) {

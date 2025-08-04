@@ -299,7 +299,7 @@ struct internals {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
-    PyTypeObject *function_record = nullptr;
+    PyTypeObject *function_record_py_type = nullptr;
 };
 
 enum class holder_enum_t : uint8_t {
