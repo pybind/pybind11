@@ -51,7 +51,7 @@ static PyMethodDef tp_methods_impl[]
     "_" PYBIND11_PLATFORM_ABI_ID
 constexpr char tp_plainname_impl[] = PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
 constexpr char tp_qualname_impl[]
-    = PYBIND11_INTERNAL_MODULE_NAME "." PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
+    = PYBIND11_DUMMY_MODULE_NAME "." PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 

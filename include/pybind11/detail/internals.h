@@ -132,7 +132,8 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-#define PYBIND11_INTERNAL_MODULE_NAME "pybind11_builtins"
+// This does NOT actually exist as a module.
+#define PYBIND11_DUMMY_MODULE_NAME "pybind11_builtins"
 
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
