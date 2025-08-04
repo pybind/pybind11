@@ -132,7 +132,8 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-constexpr const char *internals_function_record_capsule_name = "pybind11_function_record_capsule";
+// This does NOT actually exist as a module.
+#define PYBIND11_DUMMY_MODULE_NAME "pybind11_builtins"
 
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
@@ -298,6 +299,7 @@ struct internals {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
+    PyTypeObject *function_record_py_type = nullptr;
 };
 
 enum class holder_enum_t : uint8_t {

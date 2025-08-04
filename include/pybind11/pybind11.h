@@ -631,7 +631,6 @@ protected:
                 = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)()>(dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
-            detail::function_record_PyTypeObject_PyType_Ready(); // Call-once initialization.
             object py_func_rec = detail::function_record_PyObject_New();
             ((detail::function_record_PyObject *) py_func_rec.ptr())->cpp_func_rec
                 = unique_rec.release();

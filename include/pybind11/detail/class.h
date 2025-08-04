@@ -98,7 +98,7 @@ inline PyTypeObject *make_static_property_type() {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
     }
 
-    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
@@ -282,7 +282,7 @@ inline PyTypeObject *make_default_metaclass() {
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
     }
 
-    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
@@ -544,7 +544,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
         pybind11_fail("PyType_Ready failed in make_object_base_type(): " + error_string());
     }
 
-    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
