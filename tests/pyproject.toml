@@ -30,6 +30,10 @@ test-command = "python -m pytest -o timeout=0 -p no:cacheprovider tests"
 environment.PIP_ONLY_BINARY = "numpy"
 environment.PIP_PREFER_BINARY = "1"
 pyodide.test-groups = ["numpy", "scipy"]
-ios.test-groups = ["numpy"]
 ios.xbuild-tools = ["cmake", "ninja"]
 ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"
+
+# No numpy 3.14 ios yet
+[[tool.cibuildwheel.overrides]]
+select = ["cp313*ios*"]
+test-groups = ["numpy"]
