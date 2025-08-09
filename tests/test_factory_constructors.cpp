@@ -412,6 +412,16 @@ TEST_SUBMODULE(factory_constructors, m) {
             "__init__", [](NoisyAlloc &a, int i, const std::string &) { new (&a) NoisyAlloc(i); });
     });
 
+    struct FactoryErrorAlreadySet {};
+    py::class_<FactoryErrorAlreadySet>(m, "FactoryErrorAlreadySet")
+        .def(py::init([](bool set_error) -> FactoryErrorAlreadySet * {
+            if (!set_error) {
+                return new FactoryErrorAlreadySet();
+            }
+            py::set_error(PyExc_ValueError, "factory sets error and returns nullptr");
+            return nullptr;
+        }));
+
     // static_assert testing (the following def's should all fail with appropriate compilation
     // errors):
 #if 0
