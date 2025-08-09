@@ -175,6 +175,10 @@ def test_qualname(doc):
     assert m.NestBase.__module__ == "pybind11_tests.class_"
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
 
+    assert m.Pet.__module__ == "pybind11_tests.class_"
+    assert m.Pet.__qualname__ == "Pet"
+    assert m.Pet.name.__qualname__ == "Pet.name"
+
 
 def test_inheritance(msg):
     roger = m.Rabbit("Rabbit")
