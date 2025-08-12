@@ -21,7 +21,7 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
-PyInterpreterState *get_interpreter_state_unchecked() {
+inline PyInterpreterState *get_interpreter_state_unchecked() {
     auto cur_tstate = get_thread_state_unchecked();
     if (cur_tstate)
         return cur_tstate->interp;
