@@ -1388,29 +1388,29 @@ template <typename... Options>
 inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
     /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
     here, you MUST also increase the size of slots_array in the type alias above! */
-    slots_array slots;
+    slots_array pybind11_slots;
     size_t next_slot = 0;
 
     slots[next_slot++] = {Py_mod_create, reinterpret_cast<void *>(&cached_create_module)};
 
     if (exec_fn != nullptr) {
-        slots[next_slot++] = {Py_mod_exec, reinterpret_cast<void *>(exec_fn)};
+        pybind11_slots[next_slot++] = {Py_mod_exec, reinterpret_cast<void *>(exec_fn)};
     }
 
 #ifdef Py_mod_multiple_interpreters
-    slots[next_slot++] = {Py_mod_multiple_interpreters, multi_interp_slot(options...)};
+    pybind11_slots[next_slot++] = {Py_mod_multiple_interpreters, multi_interp_slot(options...)};
 #endif
 
     if (gil_not_used_option(options...)) {
 #if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
-        slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
+        pybind11_slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
 #endif
     }
 
     // slots must have a zero end sentinel
-    slots[next_slot++] = {0, nullptr};
+    pybind11_slots[next_slot++] = {0, nullptr};
 
-    return slots;
+    return pybind11_slots;
 }
 
 PYBIND11_NAMESPACE_END(detail)
