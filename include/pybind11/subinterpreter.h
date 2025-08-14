@@ -280,22 +280,6 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
         // We were on this interpreter already, so just make sure the GIL goes back as it was
         PyGILState_Release(gil_state_);
     } else {
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-        try {
-            const auto ex = std::current_exception();
-            if (ex) {
-                std::rethrow_exception(ex);
-            }
-        } catch (error_already_set &) {
-            // Because error_already_set holds python objects and what() acquires the GIL, it
-            // is basically never OK to let these exceptions propagate outside the current
-            // active interpreter.
-            pybind11_fail("~subinterpreter_scoped_activate: cannot propagate Python "
-                          "exceptions outside of their owning interpreter");
-        } catch (...) {
-        }
-#endif
-
         if (tstate_) {
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (detail::get_thread_state_unchecked() != tstate_) {
