@@ -7,12 +7,18 @@ namespace class_animal {
 
 class Animal {
 public:
+    Animal() = default;
+    Animal(const Animal &) = default;
+    Animal &operator=(const Animal &) = default;
     virtual std::shared_ptr<Animal> clone() const = 0;
     virtual ~Animal() = default;
 };
 
 class Cat : virtual public Animal {
 public:
+    Cat() = default;
+    Cat(const Cat &) = default;
+    Cat &operator=(const Cat &) = default;
     virtual ~Cat() override = default;
 };
 
@@ -20,6 +26,7 @@ class Tiger : virtual public Cat {
 public:
     Tiger() = default;
     Tiger(const Tiger &) = default;
+    Tiger &operator=(const Tiger &) = default;
     ~Tiger() override = default;
     std::shared_ptr<Animal> clone() const override { return std::make_shared<Tiger>(*this); }
 };
