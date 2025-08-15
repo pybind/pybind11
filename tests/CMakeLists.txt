@@ -411,6 +411,7 @@ function(pybind11_enable_warnings target_name)
               -Wdeprecated
               -Wundef
               -Wnon-virtual-dtor)
+    target_link_options(${target_name} PRIVATE -Werror -Wodr -Wlto-type-mismatch)
     if(DEFINED CMAKE_CXX_STANDARD AND NOT CMAKE_CXX_STANDARD VERSION_LESS 20)
       target_compile_options(${target_name} PRIVATE -Wpedantic)
     endif()
