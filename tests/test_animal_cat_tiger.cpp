@@ -19,7 +19,7 @@ public:
     Cat() = default;
     Cat(const Cat &) = default;
     Cat &operator=(const Cat &) = default;
-    virtual ~Cat() override = default;
+    ~Cat() override = default;
 };
 
 class Tiger : virtual public Cat {
