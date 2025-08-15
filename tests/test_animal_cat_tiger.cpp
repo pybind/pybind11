@@ -1,8 +1,6 @@
 #include "pybind11_tests.h"
 
 #include <memory>
-#include <string>
-#include <vector>
 
 namespace pybind11_tests {
 namespace class_animal {
