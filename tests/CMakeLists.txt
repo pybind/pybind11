@@ -170,6 +170,7 @@ set(PYBIND11_TEST_FILES
     test_scoped_critical_section
     test_sequences_and_iterators
     test_smart_ptr
+    test_animal_cat_tiger
     test_stl
     test_stl_binders
     test_tagbased_polymorphic
