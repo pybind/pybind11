@@ -864,10 +864,11 @@ struct holder_helper {
 
 struct holder_caster_foreign_helpers {
     struct py_deleter {
-        void operator()(const void *) noexcept {
+        void operator()(const void *) const noexcept {
             // Don't run the deleter if the interpreter has been shut down
-            if (!Py_IsInitialized())
+            if (Py_IsInitialized() == 0) {
                 return;
+            }
             gil_scoped_acquire guard;
             Py_DECREF(o);
         }

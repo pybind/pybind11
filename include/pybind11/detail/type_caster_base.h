@@ -253,16 +253,19 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
         if (foreign_internals.imported_any) {
             handle ret = with_internals([&](internals &) {
                 auto range = foreign_internals.bindings.equal_range(tp);
-                if (range.first != range.second)
+                if (range.first != range.second) {
                     return handle((PyObject *) range.first->second->pytype);
+                }
                 return handle();
             });
-            if (ret)
+            if (ret) {
                 return ret;
+            }
         }
     }
-    if (throw_if_missing)
+    if (throw_if_missing) {
         return handle((PyObject *) get_type_info(tp, true)->type);
+    }
     return nullptr;
 }
 
@@ -911,9 +914,10 @@ public:
         // Use the given pointer with its compile-time type, possibly downcast
         // via polymorphic_type_hook()
         template <typename itype>
-        cast_sources(const itype *ptr);
+        cast_sources(const itype *ptr); // NOLINT(google-explicit-constructor)
 
         // Use the given pointer and type
+        // NOLINTNEXTLINE(google-explicit-constructor)
         cast_sources(const source &orig) : original(orig) { result = resolve(); }
 
         // Use the given object and pybind11 type info. NB: if tinfo is null,
@@ -954,13 +958,15 @@ public:
     private:
         PYBIND11_NOINLINE std::pair<const void *, const type_info *> resolve() {
             if (downcast.type) {
-                if (same_type(*original.type, *downcast.type))
+                if (same_type(*original.type, *downcast.type)) {
                     const_cast<const std::type_info *&>(downcast.type) = nullptr;
-                else if (const auto *tpi = get_type_info(*downcast.type))
+                } else if (const auto *tpi = get_type_info(*downcast.type)) {
                     return {downcast.obj, tpi};
+                }
             }
-            if (const auto *tpi = get_type_info(*original.type))
+            if (const auto *tpi = get_type_info(*original.type)) {
                 return {original.obj, tpi};
+            }
             return {nullptr, nullptr};
         }
     };
@@ -989,8 +995,9 @@ public:
             capture &cap = *(capture *) closure;
             void *ret = binding->framework->to_python(
                 binding, const_cast<void *>(cap.src), cap.policy, cap.parent);
-            if (ret)
+            if (ret) {
                 *cap.used_foreign = binding->framework;
+            }
             return ret;
         };
 
@@ -1009,12 +1016,14 @@ public:
         }
         if (srcs.downcast.type) {
             cap.src = srcs.downcast.obj;
-            if (void *result = try_foreign_bindings(srcs.downcast.type, attempt, &cap))
+            if (void *result = try_foreign_bindings(srcs.downcast.type, attempt, &cap)) {
                 return (PyObject *) result;
+            }
         }
         cap.src = srcs.original.obj;
-        if (void *result = try_foreign_bindings(srcs.original.type, attempt, &cap))
+        if (void *result = try_foreign_bindings(srcs.original.type, attempt, &cap)) {
             return (PyObject *) result;
+        }
         return nullptr;
     }
 
@@ -1028,8 +1037,9 @@ public:
             // No pybind11 type info. See if we can use another framework's
             // type to complete this cast. Set srcs.used_foreign if so.
             if (get_foreign_internals().imported_any) {
-                if (handle ret = cast_foreign(srcs, policy, parent))
+                if (handle ret = cast_foreign(srcs, policy, parent)) {
                     return ret;
+                }
             }
             std::string tname = srcs.downcast.type   ? srcs.downcast.type->name()
                                 : srcs.original.type ? srcs.original.type->name()
@@ -1192,8 +1202,9 @@ public:
     /// Try to load as a type exposed by a different binding framework.
     bool try_load_other_framework(handle src, bool convert) {
         auto &foreign_internals = get_foreign_internals();
-        if (!foreign_internals.imported_any || !cpptype || src.is_none())
+        if (!foreign_internals.imported_any || !cpptype || src.is_none()) {
             return false;
+        }
 
         struct capture {
             handle src;
@@ -1667,6 +1678,7 @@ public:
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}
 
     struct cast_sources : type_caster_generic::cast_sources {
+        // NOLINTNEXTLINE(google-explicit-constructor)
         cast_sources(const itype *ptr) : type_caster_generic::cast_sources(ptr) {}
     };
 
@@ -1696,7 +1708,7 @@ public:
             srcs, return_value_policy::take_ownership, {}, nullptr, nullptr, holder);
         if (srcs.used_foreign) {
             // Foreign cast succeeded; release C++ ownership
-            holder->release();
+            (void) holder->release();
         }
         return ret;
     }
@@ -1705,14 +1717,14 @@ public:
         handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
         // Make the resulting Python object keep a shared_ptr<T> alive,
         // even if there's not space for it inside the object.
-        auto sp = std::make_unique<std::shared_ptr<const void>>(std::move(holder));
+        std::unique_ptr<std::shared_ptr<const void>> sp{new auto{std::move(holder)}};
         if (-1 == framework->keep_alive(ret.ptr(), sp.get(), [](void *p) noexcept {
                 delete (std::shared_ptr<const void> *) p;
             })) {
             ret.dec_ref();
             throw error_already_set();
         }
-        sp.release();
+        (void) sp.release();
     }
 
     template <class T>

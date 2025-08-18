@@ -2940,9 +2940,11 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
         if (Py_TYPE(nurse.ptr())->tp_weaklistoffset == 0) {
             // The nurse type is not weak-referenceable. Maybe it is a
             // different framework's type; try to get them to do the keep_alive.
-            if (auto *binding = pymb_get_binding(type::handle_of(nurse).ptr()))
-                if (0 != binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr))
+            if (auto *binding = pymb_get_binding(type::handle_of(nurse).ptr())) {
+                if (0 != binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr)) {
                     throw error_already_set();
+                }
+            }
             // Otherwise continue with the logic below (which will
             // raise an error).
         }

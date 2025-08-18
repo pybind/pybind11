@@ -19,7 +19,7 @@ ci:
   autoupdate_schedule: monthly
 
 # third-party content
-exclude: ^tools/JoinPaths.cmake$
+exclude: ^(tools/JoinPaths.cmake|include/pybind11/detail/pymetabind.h)$
 
 repos:
 

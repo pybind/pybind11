@@ -363,13 +363,14 @@ struct foreign_internals {
 
     // Returns true if we initialized, false if someone else already did.
     inline bool initialize_if_needed() {
-        if (registry)
+        if (registry) {
             return false;
+        }
         return initialize();
     }
 
 private:
-    inline bool initialize();
+    bool initialize();
 };
 
 // the internals struct (above) is shared between all the modules. local_internals are only
