@@ -380,8 +380,8 @@ PYBIND11_NOINLINE void foreign_enable_import_all() {
     pymb_lock_registry(foreign_internals.registry);
     // NOLINTNEXTLINE(modernize-use-auto)
     PYMB_LIST_FOREACH(struct pymb_binding *, binding, foreign_internals.registry->bindings) {
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding) != 0) {
+        if (binding->framework != foreign_internals.self.get()
+            && pymb_try_ref_binding(binding) != 0) {
             foreign_cb_add_foreign_binding(binding);
             pymb_unref_binding(binding);
         }
@@ -464,8 +464,8 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
     if (std::next(range.first) == range.second) {
         // Single binding - check that it's not our own
         auto *binding = range.first->second;
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding) != 0) {
+        if (binding->framework != foreign_internals.self.get()
+            && pymb_try_ref_binding(binding) != 0) {
 #ifdef Py_GIL_DISABLED
             // attempt() might execute Python code; drop the internals lock
             // to avoid a deadlock
@@ -482,8 +482,8 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
 #ifndef Py_GIL_DISABLED
     for (auto it = range.first; it != range.second; ++it) {
         auto *binding = it->second;
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding) != 0) {
+        if (binding->framework != foreign_internals.self.get()
+            && pymb_try_ref_binding(binding) != 0) {
             void *result = attempt(closure, binding);
             pymb_unref_binding(binding);
             if (result) {
@@ -511,8 +511,8 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
     // our scratch storage
     for (auto it = range.first; it != range.second; ++it) {
         auto *binding = it->second;
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding) != 0) {
+        if (binding->framework != foreign_internals.self.get()
+            && pymb_try_ref_binding(binding) != 0) {
             *scratch_tail++ = binding;
         }
     }
