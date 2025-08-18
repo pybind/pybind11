@@ -405,7 +405,7 @@ PYBIND11_NOINLINE void export_type_to_foreign(type_info *ti) {
     binding->framework = foreign_internals.self.get();
     binding->pytype = ti->type;
     binding->native_type = ti->cpptype;
-    binding->source_name = strdup(clean_type_id(ti->cpptype->name()).c_str());
+    binding->source_name = PYBIND11_COMPAT_STRDUP(clean_type_id(ti->cpptype->name()).c_str());
     binding->context = ti;
 
     capsule tie_lifetimes((void *) binding, [](void *p) {

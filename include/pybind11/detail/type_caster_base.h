@@ -1717,7 +1717,7 @@ public:
         handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
         // Make the resulting Python object keep a shared_ptr<T> alive,
         // even if there's not space for it inside the object.
-        std::unique_ptr<std::shared_ptr<const void>> sp{new auto{std::move(holder)}};
+        std::unique_ptr<std::shared_ptr<const void>> sp{new auto(std::move(holder))};
         if (-1 == framework->keep_alive(ret.ptr(), sp.get(), [](void *p) noexcept {
                 delete (std::shared_ptr<const void> *) p;
             })) {

@@ -161,7 +161,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             if (handle th = detail::get_type_handle(*t, false, true)) {
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
-            } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
+            } else if ((th = detail::global_internals_native_enum_type_map_get_item(*t))) {
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
             } else if (func_rec->is_new_style_constructor && arg_index == 0) {
@@ -241,12 +241,6 @@ inline std::string generate_type_signature() {
     return generate_function_signature(
         caster_name_field.text, &func_rec, descr_types.data(), type_index, arg_index);
 }
-
-#if defined(_MSC_VER)
-#    define PYBIND11_COMPAT_STRDUP _strdup
-#else
-#    define PYBIND11_COMPAT_STRDUP strdup
-#endif
 
 PYBIND11_NAMESPACE_END(detail)
 
