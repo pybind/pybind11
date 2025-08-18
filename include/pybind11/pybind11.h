@@ -12,6 +12,7 @@
 #include "detail/class.h"
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
+#include "detail/foreign.h"
 #include "detail/function_record_pyobject.h"
 #include "detail/init.h"
 #include "detail/native_enum_data.h"
@@ -157,8 +158,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             if (!t) {
                 pybind11_fail("Internal error while parsing type signature (1)");
             }
-            if (auto *tinfo = detail::get_type_info(*t)) {
-                handle th((PyObject *) tinfo->type);
+            if (handle th = detail::get_type_handle(*t, false, true)) {
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
             } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
@@ -1652,6 +1652,11 @@ protected:
 #endif
             internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
             PYBIND11_WARNING_POP
+
+            auto &foreign_internals = get_foreign_internals();
+            if (foreign_internals.export_all) {
+                foreign_internals.export_type_to_foreign(tinfo);
+            }
         });
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -2135,14 +2140,17 @@ public:
 
         generic_type::initialize(record);
 
-        if (has_alias) {
-            with_internals([&](internals &internals) {
+        with_internals([&](internals &internals) {
+            get_foreign_internals().copy_move_ctors.emplace(
+                    *record.type,
+                    detail::type_caster_base<type_>::copy_and_move_ctors());
+            if (has_alias) {
                 auto &instances = record.module_local ? get_local_internals().registered_types_cpp
                                                       : internals.registered_types_cpp;
                 instances[std::type_index(typeid(type_alias))]
                     = instances[std::type_index(typeid(type))];
-            });
-        }
+            }
+        });
         def("_pybind11_conduit_v1_", cpp_conduit_method);
     }
 
@@ -2930,6 +2938,17 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
          * internal list. */
         add_patient(nurse.ptr(), patient.ptr());
     } else {
+        if (Py_TYPE(nurse.ptr())->tp_weaklistoffset == 0) {
+            // The nurse type is not weak-referenceable. Maybe it is a
+            // different framework's type; try to get them to do the keep_alive.
+            if (auto *binding = pymb_get_binding(type::handle_of(nurse).ptr()))
+                if (0 != binding->framework->keep_alive(nurse.ptr(),
+                                                        patient.ptr(),
+                                                        nullptr))
+                    throw error_already_set();
+            // Otherwise continue with the logic below (which will
+            // raise an error).
+        }
         /* Fall back to clever approach based on weak references taken from
          * Boost.Python. This is not used for pybind-registered types because
          * the objects can be destroyed out-of-order in a GC pass. */

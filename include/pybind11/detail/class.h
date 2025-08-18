@@ -226,6 +226,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
             } else {
                 internals.registered_types_cpp.erase(tindex);
             }
+            get_foreign_internals().copy_move_ctors.erase(tindex);
             internals.registered_types_py.erase(tinfo->type);
 
             // Actually just `std::erase_if`, but that's only available in C++20

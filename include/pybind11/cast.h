@@ -862,6 +862,71 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+struct holder_caster_foreign_helpers {
+    struct py_deleter {
+        void operator()(const void *) noexcept {
+            // Don't run the deleter if the interpreter has been shut down
+            if (!Py_IsInitialized())
+                return;
+            gil_scoped_acquire guard;
+            Py_DECREF(o);
+        }
+
+        PyObject *o;
+    };
+
+    template <typename type>
+    static bool try_shared_from_this(std::enable_shared_from_this<type> *value,
+                                     std::shared_ptr<type> *holder_out) {
+        // object derives from enable_shared_from_this;
+        // try to reuse an existing shared_ptr if one is known
+        if (auto existing = try_get_shared_from_this(value)) {
+            *holder_out = existing;
+            return true;
+        }
+        return false;
+    }
+
+    template <typename type>
+    static bool try_shared_from_this(type *, std::shared_ptr<type> *) {
+        return false;
+    }
+
+    template <typename type>
+    static bool set_foreign_holder(handle src, type *value,
+                                   std::shared_ptr<type> *holder_out) {
+        // We only support using std::shared_ptr<T> for foreign T, and
+        // it's done by creating a new shared_ptr control block that
+        // owns a reference to the original Python object.
+        if (value == nullptr) {
+            *holder_out = {};
+            return true;
+        }
+        if (try_shared_from_this(value, holder_out)) {
+            return true;
+        }
+        *holder_out = std::shared_ptr<type>(value, py_deleter{src.inc_ref().ptr()});
+        return true;
+    }
+
+    template <typename type>
+    static bool set_foreign_holder(handle src, type *value,
+                                   std::shared_ptr<const type> *holder_out) {
+        std::shared_ptr<type> holder_mut;
+        if (set_foreign_holder(src, value, &holder_mut)) {
+            *holder_out = holder_mut;
+            return true;
+        }
+        return false;
+    }
+
+    template <typename type>
+    static bool set_foreign_holder(handle, type *, ...) {
+        throw cast_error("Unable to cast foreign type to held instance -- "
+                         "only std::shared_ptr<T> is supported in this case");
+    }
+};
+
 // SMART_HOLDER_BAKEIN_FOLLOW_ON: Rewrite comment, with reference to shared_ptr specialization.
 /// Type caster for holder types like std::shared_ptr, etc.
 /// The SFINAE hook is provided to help work around the current lack of support
@@ -904,6 +969,11 @@ protected:
         if (inst_has_unique_ptr_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
         }
+    }
+
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(
+                src, (type *) value, &holder);
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -976,7 +1046,7 @@ public:
     }
 
     explicit operator std::shared_ptr<type> *() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
                           "(inherently unsafe).");
         }
@@ -984,14 +1054,14 @@ public:
     }
 
     explicit operator std::shared_ptr<type> &() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             shared_ptr_storage = sh_load_helper.load_as_shared_ptr(typeinfo, value);
         }
         return shared_ptr_storage;
     }
 
     std::weak_ptr<type> potentially_slicing_weak_ptr() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             // Reusing shared_ptr code to minimize code complexity.
             shared_ptr_storage
                 = sh_load_helper.load_as_shared_ptr(typeinfo,
@@ -1005,15 +1075,12 @@ public:
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
         const auto *ptr = src.get();
-        auto st = type_caster_base<type>::src_and_type(ptr);
-        if (st.second == nullptr) {
-            return handle(); // no type info: error will be set already
-        }
-        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        typename type_caster_base<type>::cast_sources srcs{ptr};
+        if (srcs.creates_smart_holder()) {
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
-                src, policy, parent, st);
+                src, policy, parent, srcs.result);
         }
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        return type_caster_base<type>::cast_holder(srcs, &src);
     }
 
     // This function will succeed even if the `responsible_parent` does not own the
@@ -1038,6 +1105,11 @@ protected:
         if (inst_has_unique_ptr_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
         }
+    }
+
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(
+                src, (type *) value, &shared_ptr_storage);
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -1077,6 +1149,7 @@ protected:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     shared_ptr_storage
                         = std::shared_ptr<type>(sub_caster.shared_ptr_storage, (type *) value);
@@ -1183,21 +1256,12 @@ public:
     static handle
     cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
         auto *ptr = src.get();
-        auto st = type_caster_base<type>::src_and_type(ptr);
-        if (st.second == nullptr) {
-            return handle(); // no type info: error will be set already
-        }
-        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        typename type_caster_base<type>::cast_sources srcs{ptr};
+        if (srcs.creates_smart_holder()) {
             return smart_holder_type_caster_support::smart_holder_from_unique_ptr(
-                std::move(src), policy, parent, st);
+                std::move(src), policy, parent, srcs.result);
         }
-        return type_caster_generic::cast(st.first,
-                                         return_value_policy::take_ownership,
-                                         {},
-                                         st.second,
-                                         nullptr,
-                                         nullptr,
-                                         std::addressof(src));
+        return type_caster_base<type>::cast_holder(srcs, &src);
     }
 
     static handle
@@ -1221,6 +1285,12 @@ public:
             return true;
         }
         return false;
+    }
+
+    bool set_foreign_holder(handle) {
+        throw cast_error("Foreign types cannot be converted to std::unique_ptr "
+                         "because we don't know how to make them relinquish "
+                         "ownership");
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -1281,6 +1351,7 @@ public:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     pybind11_fail("Expected to be UNREACHABLE: " __FILE__
                                   ":" PYBIND11_TOSTRING(__LINE__));
@@ -2338,11 +2409,11 @@ object object_api<Derived>::call(Args &&...args) const {
 PYBIND11_NAMESPACE_END(detail)
 
 template <typename T>
-handle type::handle_of() {
+handle type::handle_of(bool foreign_ok) {
     static_assert(std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
-                  "py::type::of<T> only supports the case where T is a registered C++ types.");
+                  "py::type::of<T> only supports the case where T is a registered C++ type.");
 
-    return detail::get_type_handle(typeid(T), true);
+    return detail::get_type_handle(typeid(T), true, foreign_ok);
 }
 
 #define PYBIND11_MAKE_OPAQUE(...)                                                                 \
