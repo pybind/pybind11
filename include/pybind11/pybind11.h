@@ -158,10 +158,11 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             if (!t) {
                 pybind11_fail("Internal error while parsing type signature (1)");
             }
-            if (handle th = detail::get_type_handle(*t, false, true)) {
-                signature += th.attr("__module__").cast<std::string>() + "."
-                             + th.attr("__qualname__").cast<std::string>();
-            } else if ((th = detail::global_internals_native_enum_type_map_get_item(*t))) {
+            handle th = detail::get_type_handle(*t, false, true);
+            if (!th) {
+                th = detail::global_internals_native_enum_type_map_get_item(*t);
+            }
+            if (th) {
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
             } else if (func_rec->is_new_style_constructor && arg_index == 0) {

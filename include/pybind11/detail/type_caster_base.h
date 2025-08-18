@@ -1708,7 +1708,7 @@ public:
             srcs, return_value_policy::take_ownership, {}, nullptr, nullptr, holder);
         if (srcs.used_foreign) {
             // Foreign cast succeeded; release C++ ownership
-            (void) holder->release();
+            (void) holder->release(); // NOLINT(bugprone-unused-return-value)
         }
         return ret;
     }
@@ -1724,7 +1724,7 @@ public:
             ret.dec_ref();
             throw error_already_set();
         }
-        (void) sp.release();
+        (void) sp.release(); // NOLINT(bugprone-unused-return-value)
     }
 
     template <class T>
