@@ -12,7 +12,7 @@ namespace potentially_slicing_weak_ptr {
 template <int> // Using int as a trick to easily generate multiple types.
 struct VirtBase {
     virtual ~VirtBase() = default;
-    VirtBase(const VirtBase&) = delete;
+    VirtBase(const VirtBase &) = delete;
     virtual int get_code() { return 100; }
 };
 

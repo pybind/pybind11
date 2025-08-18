@@ -17,7 +17,7 @@ struct Animal {
     // (https://github.com/pybind/pybind11/pull/2016/).
     virtual ~Animal() = default;
 
-    Animal(const Animal&) = delete;
+    Animal(const Animal &) = delete;
 
     // Enum for tag-based polymorphism.
     enum class Kind {

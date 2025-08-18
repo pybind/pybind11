@@ -161,7 +161,7 @@ public:
         print_created(this);
         pointer_set<MyObject4a>().insert(this);
     };
-    MyObject4a(const MyObject4a&) = delete;
+    MyObject4a(const MyObject4a &) = delete;
 
     int value;
 
@@ -184,7 +184,7 @@ protected:
 class MyObject4b : public MyObject4a {
 public:
     explicit MyObject4b(int i) : MyObject4a(i) { print_created(this); }
-    MyObject4b(const MyObject4b&) = delete;
+    MyObject4b(const MyObject4b &) = delete;
     ~MyObject4b() override { print_destroyed(this); }
 };
 
@@ -192,7 +192,7 @@ public:
 class MyObject5 { // managed by huge_unique_ptr
 public:
     explicit MyObject5(int value) : value{value} { print_created(this); }
-    MyObject5(const MyObject5&) = delete;
+    MyObject5(const MyObject5 &) = delete;
     ~MyObject5() { print_destroyed(this); }
     int value;
 };
@@ -249,7 +249,7 @@ struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 // test_move_only_holder
 struct C {
     C() { print_created(this); }
-    C(const C&) = delete;
+    C(const C &) = delete;
     ~C() { print_destroyed(this); }
 };
 
