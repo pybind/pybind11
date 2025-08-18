@@ -38,11 +38,11 @@
 
 #pragma once
 
-#include <stddef.h>
 #include <assert.h>
+#include <stddef.h>
 
 #if !defined(PY_VERSION_HEX)
-#  error You must include Python.h before this header
+#    error You must include Python.h before this header
 #endif
 
 /*
@@ -59,7 +59,7 @@
  *   compilation unit that doesn't request `PYMB_DECLS_ONLY`.
  */
 #if !defined(PYMB_FUNC)
-#define PYMB_FUNC inline
+#    define PYMB_FUNC inline
 #endif
 
 #if defined(__cplusplus)
@@ -132,11 +132,11 @@ struct pymb_list {
     struct pymb_list_node head;
 };
 
-inline void pymb_list_init(struct pymb_list* list) {
+inline void pymb_list_init(struct pymb_list *list) {
     list->head.prev = list->head.next = &list->head;
 }
 
-inline void pymb_list_unlink(struct pymb_list_node* node) {
+inline void pymb_list_unlink(struct pymb_list_node *node) {
     if (node->next) {
         node->next->prev = node->prev;
         node->prev->next = node->next;
@@ -144,19 +144,17 @@ inline void pymb_list_unlink(struct pymb_list_node* node) {
     }
 }
 
-inline void pymb_list_append(struct pymb_list* list,
-                             struct pymb_list_node* node) {
+inline void pymb_list_append(struct pymb_list *list, struct pymb_list_node *node) {
     pymb_list_unlink(node);
-    struct pymb_list_node* tail = list->head.prev;
+    struct pymb_list_node *tail = list->head.prev;
     tail->next = node;
     list->head.prev = node;
     node->prev = tail;
     node->next = &list->head;
 }
 
-#define PYMB_LIST_FOREACH(type, name, list)      \
-    for (type name = (type) (list).head.next;    \
-         name != (type) &(list).head;            \
+#define PYMB_LIST_FOREACH(type, name, list)                                                       \
+    for (type name = (type) (list).head.next; name != (type) & (list).head;                       \
          name = (type) name->hook.next)
 
 /*
@@ -196,15 +194,13 @@ struct pymb_registry {
 };
 
 #if defined(Py_GIL_DISALED)
-inline void pymb_lock_registry(struct pymb_registry* registry) {
-    PyMutex_Lock(&registry->mutex);
-}
-inline void pymb_unlock_registry(struct pymb_registry* registry) {
+inline void pymb_lock_registry(struct pymb_registry *registry) { PyMutex_Lock(&registry->mutex); }
+inline void pymb_unlock_registry(struct pymb_registry *registry) {
     PyMutex_Unlock(&registry->mutex);
 }
 #else
-inline void pymb_lock_registry(struct pymb_registry*) {}
-inline void pymb_unlock_registry(struct pymb_registry*) {}
+inline void pymb_lock_registry(struct pymb_registry *) {}
+inline void pymb_unlock_registry(struct pymb_registry *) {}
 #endif
 
 struct pymb_binding;
@@ -241,7 +237,7 @@ struct pymb_framework {
     struct pymb_list_node hook;
 
     // Human-readable description of this framework, as a NUL-terminated string
-    const char* name;
+    const char *name;
 
     // Does this framework guarantee that its `pymb_binding` structures remain
     // valid to use for the lifetime of the Python interpreter process once
@@ -277,7 +273,7 @@ struct pymb_framework {
     // form of interning to speed up checking that a given binding is usable.
     // Thus, to check whether another framework's ABI matches yours, you can
     // do a pointer comparison `me->abi_extra == them->abi_extra`.
-    const char* abi_extra;
+    const char *abi_extra;
 
     // The function pointers below allow other frameworks to interact with
     // bindings provided by this framework. They are constant after construction
@@ -307,11 +303,11 @@ struct pymb_framework {
     // On free-threaded builds, callers must ensure that the `binding` is not
     // destroyed during a call to `from_python`. The requirements for this are
     // subtle; see the full discussion in the comment for `struct pymb_binding`.
-    void* (*from_python)(struct pymb_binding* binding,
-                         PyObject* pyobj,
+    void *(*from_python)(struct pymb_binding *binding,
+                         PyObject *pyobj,
                          uint8_t convert,
-                         void (*keep_referenced)(void* ctx, PyObject* obj),
-                         void* keep_referenced_ctx);
+                         void (*keep_referenced)(void *ctx, PyObject *obj),
+                         void *keep_referenced_ctx);
 
     // Wrap the C/C++/etc object `cobj` into a Python object using the given
     // return value policy. The type is specified by providing a `pymb_binding*`
@@ -328,10 +324,10 @@ struct pymb_framework {
     // On free-threaded builds, callers must ensure that the `binding` is not
     // destroyed during a call to `to_python`. The requirements for this are
     // subtle; see the full discussion in the comment for `struct pymb_binding`.
-    PyObject* (*to_python)(struct pymb_binding* binding,
-                           void* cobj,
+    PyObject *(*to_python)(struct pymb_binding *binding,
+                           void *cobj,
                            enum pymb_rv_policy rvp,
-                           PyObject* parent);
+                           PyObject *parent);
 
     // Request that a PyObject reference be dropped, or that a callback
     // be invoked, when `nurse` is destroyed. `nurse` should be an object
@@ -341,7 +337,7 @@ struct pymb_framework {
     // or -1 and sets the Python error indicator on error.
     //
     // No synchronization is required to call this method.
-    int (*keep_alive)(PyObject* nurse, void* payload, void (*cb)(void*));
+    int (*keep_alive)(PyObject *nurse, void *payload, void (*cb)(void *));
 
     // Attempt to translate a C++ exception known to this framework to Python.
     // This should translate only framework-specific exceptions or user-defined
@@ -353,28 +349,28 @@ struct pymb_framework {
     // C++ exception translation.
     //
     // No synchronization is required to call this method.
-    void (*translate_exception)(const void* eptr);
+    void (*translate_exception)(const void *eptr);
 
     // Notify this framework that some other framework published a new binding.
     // This call will be made after the new binding has been linked into the
     // `pymb_registry::bindings` list.
     //
     // The `pymb_registry::mutex` or GIL will be held when calling this method.
-    void (*add_foreign_binding)(struct pymb_binding* binding);
+    void (*add_foreign_binding)(struct pymb_binding *binding);
 
     // Notify this framework that some other framework is about to remove
     // a binding. This call will be made after the binding has been removed
     // from the `pymb_registry::bindings` list.
     //
     // The `pymb_registry::mutex` or GIL will be held when calling this method.
-    void (*remove_foreign_binding)(struct pymb_binding* binding);
+    void (*remove_foreign_binding)(struct pymb_binding *binding);
 
     // Notify this framework that some other framework came into existence.
     // This call will be made after the new framework has been linked into the
     // `pymb_registry::frameworks` list and before it adds any bindings.
     //
     // The `pymb_registry::mutex` or GIL will be held when calling this method.
-    void (*add_foreign_framework)(struct pymb_framework* framework);
+    void (*add_foreign_framework)(struct pymb_framework *framework);
 
     // There is no remove_foreign_framework(); the interpreter has
     // already been finalized at that point, so there's nothing for the
@@ -477,26 +473,26 @@ struct pymb_binding {
     struct pymb_list_node hook;
 
     // The framework that provides this binding
-    struct pymb_framework* framework;
+    struct pymb_framework *framework;
 
     // Python type: you will get an instance of this type from a successful
     // call to `framework::from_python()` that passes this binding
-    PyTypeObject* pytype;
+    PyTypeObject *pytype;
 
     // The native identifier for this type in `framework->abi_lang`, if that is
     // a concept that exists in that language. See the documentation of
     // `enum pymb_abi_lang` for specific per-language semantics.
-    const void* native_type;
+    const void *native_type;
 
     // The way that this type would be written in `framework->abi_lang` source
     // code, as a NUL-terminated byte string without struct/class/enum words.
     // Examples: "Foo", "Bar::Baz", "std::vector<int, std::allocator<int> >"
-    const char* source_name;
+    const char *source_name;
 
     // Pointer that is free for use by the framework, e.g., to point to its
     // own data about this type. If the framework needs more data, it can
     // over-allocate the `pymb_binding` storage and use the space after this.
-    void* context;
+    void *context;
 };
 
 /*
@@ -505,18 +501,16 @@ struct pymb_binding {
  * considered part of the ABI.
  */
 
-PYMB_FUNC struct pymb_registry* pymb_get_registry();
-PYMB_FUNC void pymb_add_framework(struct pymb_registry* registry,
-                                  struct pymb_framework* framework);
-PYMB_FUNC void pymb_remove_framework(struct pymb_registry* registry,
-                                     struct pymb_framework* framework);
-PYMB_FUNC void pymb_add_binding(struct pymb_registry* registry,
-                                struct pymb_binding* binding);
-PYMB_FUNC void pymb_remove_binding(struct pymb_registry* registry,
-                                   struct pymb_binding* binding);
-PYMB_FUNC int pymb_try_ref_binding(struct pymb_binding* binding);
-PYMB_FUNC void pymb_unref_binding(struct pymb_binding* binding);
-PYMB_FUNC struct pymb_binding* pymb_get_binding(PyObject* type);
+PYMB_FUNC struct pymb_registry *pymb_get_registry();
+PYMB_FUNC void pymb_add_framework(struct pymb_registry *registry,
+                                  struct pymb_framework *framework);
+PYMB_FUNC void pymb_remove_framework(struct pymb_registry *registry,
+                                     struct pymb_framework *framework);
+PYMB_FUNC void pymb_add_binding(struct pymb_registry *registry, struct pymb_binding *binding);
+PYMB_FUNC void pymb_remove_binding(struct pymb_registry *registry, struct pymb_binding *binding);
+PYMB_FUNC int pymb_try_ref_binding(struct pymb_binding *binding);
+PYMB_FUNC void pymb_unref_binding(struct pymb_binding *binding);
+PYMB_FUNC struct pymb_binding *pymb_get_binding(PyObject *type);
 
 #if !defined(PYMB_DECLS_ONLY)
 
@@ -526,27 +520,26 @@ PYMB_FUNC struct pymb_binding* pymb_get_binding(PyObject* type);
  * This must be called from a module initialization function so that the
  * import lock can provide mutual exclusion.
  */
-PYMB_FUNC struct pymb_registry* pymb_get_registry() {
-#if defined(PYPY_VERSION)
-    PyObject* dict = PyEval_GetBuiltins();
-#elif PY_VERSION_HEX < 0x03090000
-    PyObject* dict = PyInterpreterState_GetDict(_PyInterpreterState_Get());
-#else
-    PyObject* dict = PyInterpreterState_GetDict(PyInterpreterState_Get());
-#endif
-    PyObject* key = PyUnicode_FromString("__pymetabind_registry__");
+PYMB_FUNC struct pymb_registry *pymb_get_registry() {
+#    if defined(PYPY_VERSION)
+    PyObject *dict = PyEval_GetBuiltins();
+#    elif PY_VERSION_HEX < 0x03090000
+    PyObject *dict = PyInterpreterState_GetDict(_PyInterpreterState_Get());
+#    else
+    PyObject *dict = PyInterpreterState_GetDict(PyInterpreterState_Get());
+#    endif
+    PyObject *key = PyUnicode_FromString("__pymetabind_registry__");
     if (!dict || !key) {
         Py_XDECREF(key);
         return NULL;
     }
-    PyObject* capsule = PyDict_GetItem(dict, key);
+    PyObject *capsule = PyDict_GetItem(dict, key);
     if (capsule) {
         Py_DECREF(key);
-        return (struct pymb_registry*) PyCapsule_GetPointer(
-                capsule, "pymetabind_registry");
+        return (struct pymb_registry *) PyCapsule_GetPointer(capsule, "pymetabind_registry");
     }
-    struct pymb_registry* registry;
-    registry = (struct pymb_registry*) calloc(1, sizeof(*registry));
+    struct pymb_registry *registry;
+    registry = (struct pymb_registry *) calloc(1, sizeof(*registry));
     if (registry) {
         pymb_list_init(&registry->frameworks);
         pymb_list_init(&registry->bindings);
@@ -569,30 +562,30 @@ PYMB_FUNC struct pymb_registry* pymb_get_registry() {
  * framework->add_foreign_framework() and framework->add_foreign_binding()
  * for each existing framework/binding in the registry.
  */
-PYMB_FUNC void pymb_add_framework(struct pymb_registry* registry,
-                                  struct pymb_framework* framework) {
-#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030e0000
-    assert(framework->bindings_usable_forever &&
-           "Free-threaded removal of bindings requires PyUnstable_TryIncRef(), "
-           "which was added in CPython 3.14");
-#endif
+PYMB_FUNC void pymb_add_framework(struct pymb_registry *registry,
+                                  struct pymb_framework *framework) {
+#    if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030e0000
+    assert(framework->bindings_usable_forever
+           && "Free-threaded removal of bindings requires PyUnstable_TryIncRef(), "
+              "which was added in CPython 3.14");
+#    endif
     pymb_lock_registry(registry);
-    PYMB_LIST_FOREACH(struct pymb_framework*, other, registry->frameworks) {
+    PYMB_LIST_FOREACH(struct pymb_framework *, other, registry->frameworks) {
         // Intern `abi_extra` strings so they can be compared by pointer
-        if (other->abi_extra && framework->abi_extra &&
-            0 == strcmp(other->abi_extra, framework->abi_extra)) {
+        if (other->abi_extra && framework->abi_extra
+            && 0 == strcmp(other->abi_extra, framework->abi_extra)) {
             framework->abi_extra = other->abi_extra;
             break;
         }
     }
     pymb_list_append(&registry->frameworks, &framework->hook);
-    PYMB_LIST_FOREACH(struct pymb_framework*, other, registry->frameworks) {
+    PYMB_LIST_FOREACH(struct pymb_framework *, other, registry->frameworks) {
         if (other != framework) {
             other->add_foreign_framework(framework);
             framework->add_foreign_framework(other);
         }
     }
-    PYMB_LIST_FOREACH(struct pymb_binding*, binding, registry->bindings) {
+    PYMB_LIST_FOREACH(struct pymb_binding *, binding, registry->bindings) {
         if (binding->framework != framework && pymb_try_ref_binding(binding)) {
             framework->add_foreign_binding(binding);
             pymb_unref_binding(binding);
@@ -602,16 +595,15 @@ PYMB_FUNC void pymb_add_framework(struct pymb_registry* registry,
 }
 
 /* Add a new binding to the given registry */
-PYMB_FUNC void pymb_add_binding(struct pymb_registry* registry,
-                                struct pymb_binding* binding) {
-#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030e0000
+PYMB_FUNC void pymb_add_binding(struct pymb_registry *registry, struct pymb_binding *binding) {
+#    if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030e0000
     PyUnstable_EnableTryIncRef((PyObject *) binding->pytype);
-#endif
-    PyObject* capsule = PyCapsule_New(binding, "pymetabind_binding", NULL);
+#    endif
+    PyObject *capsule = PyCapsule_New(binding, "pymetabind_binding", NULL);
     int rv = -1;
     if (capsule) {
-        rv = PyObject_SetAttrString((PyObject *) binding->pytype,
-                                    "__pymetabind_binding__", capsule);
+        rv = PyObject_SetAttrString(
+            (PyObject *) binding->pytype, "__pymetabind_binding__", capsule);
         Py_DECREF(capsule);
     }
     if (rv != 0) {
@@ -619,7 +611,7 @@ PYMB_FUNC void pymb_add_binding(struct pymb_registry* registry,
     }
     pymb_lock_registry(registry);
     pymb_list_append(&registry->bindings, &binding->hook);
-    PYMB_LIST_FOREACH(struct pymb_framework*, other, registry->frameworks) {
+    PYMB_LIST_FOREACH(struct pymb_framework *, other, registry->frameworks) {
         if (other != binding->framework) {
             other->add_foreign_binding(binding);
         }
@@ -633,11 +625,10 @@ PYMB_FUNC void pymb_add_binding(struct pymb_registry* registry,
  * zero but still accessible. Once this function returns, you can free the
  * binding structure.
  */
-PYMB_FUNC void pymb_remove_binding(struct pymb_registry* registry,
-                                   struct pymb_binding* binding) {
+PYMB_FUNC void pymb_remove_binding(struct pymb_registry *registry, struct pymb_binding *binding) {
     pymb_lock_registry(registry);
     pymb_list_unlink(&binding->hook);
-    PYMB_LIST_FOREACH(struct pymb_framework*, other, registry->frameworks) {
+    PYMB_LIST_FOREACH(struct pymb_framework *, other, registry->frameworks) {
         if (other != binding->framework) {
             other->remove_foreign_binding(binding);
         }
@@ -650,56 +641,56 @@ PYMB_FUNC void pymb_remove_binding(struct pymb_registry* registry,
  * use the binding and must call pymb_unref_binding() when done) or 0 if the
  * binding is being removed and shouldn't be used.
  */
-PYMB_FUNC int pymb_try_ref_binding(struct pymb_binding* binding) {
-#if defined(Py_GIL_DISABLED)
+PYMB_FUNC int pymb_try_ref_binding(struct pymb_binding *binding) {
+#    if defined(Py_GIL_DISABLED)
     if (!binding->framework->bindings_usable_forever) {
-#if PY_VERSION_HEX >= 0x030e0000
+#        if PY_VERSION_HEX >= 0x030e0000
         return PyUnstable_TryIncRef((PyObject *) binding->pytype);
-#else
+#        else
         // bindings_usable_forever is required on this Python version, and
         // was checked in pymb_add_framework()
         assert(false);
-#endif
+#        endif
     }
-#else
+#    else
     Py_INCREF((PyObject *) binding->pytype);
-#endif
+#    endif
     return 1;
 }
 
 /* Decrease the reference count of a binding. */
-PYMB_FUNC void pymb_unref_binding(struct pymb_binding* binding) {
-#if defined(Py_GIL_DISABLED)
+PYMB_FUNC void pymb_unref_binding(struct pymb_binding *binding) {
+#    if defined(Py_GIL_DISABLED)
     if (!binding->framework->bindings_usable_forever) {
-#if PY_VERSION_HEX >= 0x030e0000
+#        if PY_VERSION_HEX >= 0x030e0000
         Py_DECREF((PyObject *) binding->pytype);
-#else
+#        else
         // bindings_usable_forever is required on this Python version, and
         // was checked in pymb_add_framework()
         assert(false);
-#endif
+#        endif
     }
-#else
+#    else
     Py_DECREF((PyObject *) binding->pytype);
-#endif
+#    endif
 }
 
 /*
  * Return a pointer to a pymb_binding for the Python type `type`, or NULL if
  * none exists.
  */
-PYMB_FUNC struct pymb_binding* pymb_get_binding(PyObject* type) {
-    PyObject* capsule = PyObject_GetAttrString(type, "__pymetabind_binding__");
+PYMB_FUNC struct pymb_binding *pymb_get_binding(PyObject *type) {
+    PyObject *capsule = PyObject_GetAttrString(type, "__pymetabind_binding__");
     if (capsule == NULL) {
         PyErr_Clear();
         return NULL;
     }
-    void* binding = PyCapsule_GetPointer(capsule, "pymetabind_binding");
+    void *binding = PyCapsule_GetPointer(capsule, "pymetabind_binding");
     Py_DECREF(capsule);
     if (!binding) {
         PyErr_Clear();
     }
-    return (struct pymb_binding*) binding;
+    return (struct pymb_binding *) binding;
 }
 
 #endif /* defined(PYMB_DECLS_ONLY) */

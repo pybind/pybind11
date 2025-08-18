@@ -181,7 +181,8 @@ struct type_equal_to {
 template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 template <typename value_type>
-using type_multimap = std::unordered_multimap<std::type_index, value_type, type_hash, type_equal_to>;
+using type_multimap
+    = std::unordered_multimap<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
@@ -313,8 +314,7 @@ struct foreign_internals {
     // For each C++ type with a native binding, store pointers to its
     // copy and move constructors. These would ideally move inside `type_info`
     // on an ABI bump. Protected by internals::mutex.
-    type_map<std::pair<copy_or_move_ctor,
-                       copy_or_move_ctor>> copy_move_ctors;
+    type_map<std::pair<copy_or_move_ctor, copy_or_move_ctor>> copy_move_ctors;
 
     // List of frameworks that provide exception translators.
     // Protected by internals::exception_translator_mutex.
@@ -368,7 +368,7 @@ struct foreign_internals {
         return initialize();
     }
 
-  private:
+private:
     inline bool initialize();
 };
 
@@ -425,7 +425,8 @@ struct type_info {
     bool module_local : 1;
 };
 
-#define PYBIND11_ABI_TAG "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
+#define PYBIND11_ABI_TAG                                                                          \
+    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                                             \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_" PYBIND11_ABI_TAG "__"

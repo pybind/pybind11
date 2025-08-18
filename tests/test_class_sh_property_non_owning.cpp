@@ -33,7 +33,7 @@ public:
         }
     }
 
-    DataFieldsHolder(DataFieldsHolder&&) noexcept = default;
+    DataFieldsHolder(DataFieldsHolder &&) noexcept = default;
 
     DataField *vec_at(std::size_t index) {
         if (index >= vec.size()) {

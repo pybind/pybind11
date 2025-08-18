@@ -893,8 +893,7 @@ struct holder_caster_foreign_helpers {
     }
 
     template <typename type>
-    static bool set_foreign_holder(handle src, type *value,
-                                   std::shared_ptr<type> *holder_out) {
+    static bool set_foreign_holder(handle src, type *value, std::shared_ptr<type> *holder_out) {
         // We only support using std::shared_ptr<T> for foreign T, and
         // it's done by creating a new shared_ptr control block that
         // owns a reference to the original Python object.
@@ -910,8 +909,8 @@ struct holder_caster_foreign_helpers {
     }
 
     template <typename type>
-    static bool set_foreign_holder(handle src, type *value,
-                                   std::shared_ptr<const type> *holder_out) {
+    static bool
+    set_foreign_holder(handle src, type *value, std::shared_ptr<const type> *holder_out) {
         std::shared_ptr<type> holder_mut;
         if (set_foreign_holder(src, value, &holder_mut)) {
             *holder_out = holder_mut;
@@ -972,8 +971,7 @@ protected:
     }
 
     bool set_foreign_holder(handle src) {
-        return holder_caster_foreign_helpers::set_foreign_holder(
-                src, (type *) value, &holder);
+        return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -1109,7 +1107,7 @@ protected:
 
     bool set_foreign_holder(handle src) {
         return holder_caster_foreign_helpers::set_foreign_holder(
-                src, (type *) value, &shared_ptr_storage);
+            src, (type *) value, &shared_ptr_storage);
     }
 
     void load_value(value_and_holder &&v_h) {

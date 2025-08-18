@@ -2142,8 +2142,7 @@ public:
 
         with_internals([&](internals &internals) {
             get_foreign_internals().copy_move_ctors.emplace(
-                    *record.type,
-                    detail::type_caster_base<type_>::copy_and_move_ctors());
+                *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
             if (has_alias) {
                 auto &instances = record.module_local ? get_local_internals().registered_types_cpp
                                                       : internals.registered_types_cpp;
@@ -2942,9 +2941,7 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
             // The nurse type is not weak-referenceable. Maybe it is a
             // different framework's type; try to get them to do the keep_alive.
             if (auto *binding = pymb_get_binding(type::handle_of(nurse).ptr()))
-                if (0 != binding->framework->keep_alive(nurse.ptr(),
-                                                        patient.ptr(),
-                                                        nullptr))
+                if (0 != binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr))
                     throw error_already_set();
             // Otherwise continue with the logic below (which will
             // raise an error).

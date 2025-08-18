@@ -18,8 +18,8 @@
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
-#include "typeid.h"
 #include "pymetabind.h"
+#include "typeid.h"
 #include "using_smart_holder.h"
 #include "value_and_holder.h"
 
@@ -40,10 +40,9 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Forward declaration, implemented in foreign.h
-void* try_foreign_bindings(
-        const std::type_info *type,
-        void* (*attempt)(void *closure, pymb_binding *binding),
-        void *closure);
+void *try_foreign_bindings(const std::type_info *type,
+                           void *(*attempt)(void *closure, pymb_binding *binding),
+                           void *closure);
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -95,9 +94,7 @@ public:
         return get_internals().loader_life_support_tls.get() != nullptr;
     }
 
-    const std::unordered_set<PyObject *>& list_patients() const {
-        return keep_alive;
-    }
+    const std::unordered_set<PyObject *> &list_patients() const { return keep_alive; }
 };
 
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
@@ -254,7 +251,7 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
     if (foreign_ok) {
         auto &foreign_internals = detail::get_foreign_internals();
         if (foreign_internals.imported_any) {
-            handle ret = with_internals([&](internals&) {
+            handle ret = with_internals([&](internals &) {
                 auto range = foreign_internals.bindings.equal_range(tp);
                 if (range.first != range.second)
                     return handle((PyObject *) range.first->second->pytype);
@@ -503,9 +500,7 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
     }
 }
 
-PYBIND11_NOINLINE bool isinstance_generic(handle obj,
-                                          const std::type_info &tp,
-                                          bool foreign_ok) {
+PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp, bool foreign_ok) {
     handle type = detail::get_type_handle(tp, false, foreign_ok);
     if (!type) {
         return false;
@@ -915,17 +910,17 @@ public:
 
         // Use the given pointer with its compile-time type, possibly downcast
         // via polymorphic_type_hook()
-        template <typename itype> cast_sources(const itype *ptr);
+        template <typename itype>
+        cast_sources(const itype *ptr);
 
         // Use the given pointer and type
-        cast_sources(const source& orig) : original(orig) { result = resolve(); }
+        cast_sources(const source &orig) : original(orig) { result = resolve(); }
 
         // Use the given object and pybind11 type info. NB: if tinfo is null,
         // this does not provide enough information to use a foreign type or
         // to render a useful error message
         cast_sources(const void *obj, const detail::type_info *tinfo)
-          : original{obj, tinfo ? tinfo->cpptype : nullptr},
-            result{obj, tinfo} {}
+            : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {}
 
         // The object passed to cast(), with its static type.
         // original.type must not be null if resolve() will be called.
@@ -952,11 +947,11 @@ public:
         // Returns true if the cast will use a pybind11 type that uses
         // a smart holder.
         bool creates_smart_holder() const {
-            return result.second != nullptr &&
-                   result.second->holder_enum_v == detail::holder_enum_t::smart_holder;
+            return result.second != nullptr
+                   && result.second->holder_enum_v == detail::holder_enum_t::smart_holder;
         }
 
-      private:
+    private:
         PYBIND11_NOINLINE std::pair<const void *, const type_info *> resolve() {
             if (downcast.type) {
                 if (same_type(*original.type, *downcast.type))
@@ -978,13 +973,11 @@ public:
                        copy_or_move_ctor move_constructor,
                        const void *existing_holder = nullptr) {
         cast_sources srcs{src, tinfo};
-        return cast(srcs, policy, parent, copy_constructor, move_constructor,
-                    existing_holder);
+        return cast(srcs, policy, parent, copy_constructor, move_constructor, existing_holder);
     }
 
-    static handle cast_foreign(const cast_sources &srcs,
-                               return_value_policy policy,
-                               handle parent) {
+    static handle
+    cast_foreign(const cast_sources &srcs, return_value_policy policy, handle parent) {
         struct capture {
             const void *src;
             pymb_rv_policy policy;
@@ -992,11 +985,10 @@ public:
             pymb_framework **used_foreign;
         } cap;
 
-        auto attempt = +[](void *closure, pymb_binding *binding) -> void* {
+        auto attempt = +[](void *closure, pymb_binding *binding) -> void * {
             capture &cap = *(capture *) closure;
             void *ret = binding->framework->to_python(
-                    binding, const_cast<void *>(cap.src),
-                    cap.policy, cap.parent);
+                binding, const_cast<void *>(cap.src), cap.policy, cap.parent);
             if (ret)
                 *cap.used_foreign = binding->framework;
             return ret;
@@ -1017,13 +1009,11 @@ public:
         }
         if (srcs.downcast.type) {
             cap.src = srcs.downcast.obj;
-            if (void *result = try_foreign_bindings(srcs.downcast.type,
-                                                    attempt, &cap))
+            if (void *result = try_foreign_bindings(srcs.downcast.type, attempt, &cap))
                 return (PyObject *) result;
         }
         cap.src = srcs.original.obj;
-        if (void *result = try_foreign_bindings(srcs.original.type,
-                                                attempt, &cap))
+        if (void *result = try_foreign_bindings(srcs.original.type, attempt, &cap))
             return (PyObject *) result;
         return nullptr;
     }
@@ -1041,10 +1031,9 @@ public:
                 if (handle ret = cast_foreign(srcs, policy, parent))
                     return ret;
             }
-            std::string tname =
-                    srcs.downcast.type ? srcs.downcast.type->name() :
-                    srcs.original.type ? srcs.original.type->name() :
-                    "<unspecified>";
+            std::string tname = srcs.downcast.type   ? srcs.downcast.type->name()
+                                : srcs.original.type ? srcs.original.type->name()
+                                                     : "<unspecified>";
             detail::clean_type_id(tname);
             std::string msg = "Unregistered type : " + tname;
             set_error(PyExc_TypeError, msg.c_str());
@@ -1202,7 +1191,7 @@ public:
 
     /// Try to load as a type exposed by a different binding framework.
     bool try_load_other_framework(handle src, bool convert) {
-        auto& foreign_internals = get_foreign_internals();
+        auto &foreign_internals = get_foreign_internals();
         if (!foreign_internals.imported_any || !cpptype || src.is_none())
             return false;
 
@@ -1211,17 +1200,15 @@ public:
             bool convert;
         } cap{src, convert};
 
-        auto attempt = +[](void *closure, pymb_binding *binding) -> void* {
+        auto attempt = +[](void *closure, pymb_binding *binding) -> void * {
             capture &cap = *(capture *) closure;
-            void (*keep_referenced)(void*, PyObject*) = nullptr;
+            void (*keep_referenced)(void *, PyObject *) = nullptr;
             if (loader_life_support::can_add_patient()) {
-                keep_referenced = [](void *, PyObject *item) {
-                    loader_life_support::add_patient(item);
-                };
+                keep_referenced
+                    = [](void *, PyObject *item) { loader_life_support::add_patient(item); };
             }
             return binding->framework->from_python(
-                    binding, cap.src.ptr(), cap.convert,
-                    keep_referenced, nullptr);
+                binding, cap.src.ptr(), cap.convert, keep_referenced, nullptr);
         };
 
         if (void *result = try_foreign_bindings(cpptype, attempt, &cap)) {
@@ -1265,8 +1252,7 @@ public:
             return false;
         }
         if (!typeinfo) {
-            return try_load_foreign(src, convert) &&
-                   this_.set_foreign_holder(src);
+            return try_load_foreign(src, convert) && this_.set_foreign_holder(src);
         }
 
         this_.check_holder_compat();
@@ -1656,8 +1642,7 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename itype>
-type_caster_generic::cast_sources::cast_sources(const itype *ptr)
-  : original{ptr, &typeid(itype)} {
+type_caster_generic::cast_sources::cast_sources(const itype *ptr) : original{ptr, &typeid(itype)} {
     // If this is a base pointer to a derived type, and the derived type is
     // registered with pybind11, we want to make the full derived object
     // available. In the typical case where itype is polymorphic, we get the
@@ -1698,17 +1683,17 @@ public:
     }
 
     static handle cast(const cast_sources &srcs, return_value_policy policy, handle parent) {
-        return type_caster_generic::cast(
-                srcs, policy, parent,
-                make_copy_constructor((const itype *) nullptr),
-                make_move_constructor((const itype *) nullptr));
+        return type_caster_generic::cast(srcs,
+                                         policy,
+                                         parent,
+                                         make_copy_constructor((const itype *) nullptr),
+                                         make_move_constructor((const itype *) nullptr));
     }
 
     template <class T>
     static handle cast_holder(const cast_sources &srcs, std::unique_ptr<T> *holder) {
         handle ret = type_caster_generic::cast(
-                srcs, return_value_policy::take_ownership, {},
-                nullptr, nullptr, holder);
+            srcs, return_value_policy::take_ownership, {}, nullptr, nullptr, holder);
         if (srcs.used_foreign) {
             // Foreign cast succeeded; release C++ ownership
             holder->release();
@@ -1717,16 +1702,13 @@ public:
     }
 
     PYBIND11_NOINLINE static void after_shared_ptr_cast_to_foreign(
-            handle ret,
-            std::shared_ptr<const void> holder,
-            pymb_framework *framework) {
+        handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
         // Make the resulting Python object keep a shared_ptr<T> alive,
         // even if there's not space for it inside the object.
         auto sp = std::make_unique<std::shared_ptr<const void>>(std::move(holder));
-        if (-1 == framework->keep_alive(
-                ret.ptr(), sp.get(), [](void *p) noexcept {
-                    delete (std::shared_ptr<const void> *) p;
-                })) {
+        if (-1 == framework->keep_alive(ret.ptr(), sp.get(), [](void *p) noexcept {
+                delete (std::shared_ptr<const void> *) p;
+            })) {
             ret.dec_ref();
             throw error_already_set();
         }
@@ -1737,23 +1719,20 @@ public:
     static handle cast_holder(const cast_sources &srcs, const std::shared_ptr<T> *holder) {
         // Use reference policy if casting via a foreign binding, and
         // take_ownership if casting a pybind11 type
-        auto policy = srcs.needs_foreign() ? return_value_policy::reference :
-                return_value_policy::take_ownership;
-        handle ret = type_caster_generic::cast(
-                srcs, policy, {}, nullptr, nullptr, holder);
+        auto policy = srcs.needs_foreign() ? return_value_policy::reference
+                                           : return_value_policy::take_ownership;
+        handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
         if (srcs.used_foreign) {
             after_shared_ptr_cast_to_foreign(
-                    ret, std::static_pointer_cast<const void>(*holder),
-                    srcs.used_foreign);
+                ret, std::static_pointer_cast<const void>(*holder), srcs.used_foreign);
         }
         return ret;
     }
 
     static handle cast_holder(const cast_sources &srcs, const void *holder) {
-        auto policy = srcs.needs_foreign() ? return_value_policy::reference :
-                return_value_policy::take_ownership;
-        handle ret = type_caster_generic::cast(
-                srcs, policy, {}, nullptr, nullptr, holder);
+        auto policy = srcs.needs_foreign() ? return_value_policy::reference
+                                           : return_value_policy::take_ownership;
+        handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
         if (srcs.used_foreign) {
             PyErr_SetString(PyExc_TypeError,
                             "Can't cast foreign type to holder; only "
@@ -1801,8 +1780,8 @@ protected:
 
 public:
     static std::pair<copy_or_move_ctor, copy_or_move_ctor> copy_and_move_ctors() {
-        return {make_copy_constructor(static_cast<const itype*>(nullptr)),
-                make_move_constructor(static_cast<const itype*>(nullptr))};
+        return {make_copy_constructor(static_cast<const itype *>(nullptr)),
+                make_move_constructor(static_cast<const itype *>(nullptr))};
     }
 };
 

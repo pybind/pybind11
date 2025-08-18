@@ -11,15 +11,15 @@
 
 #include "common.h"
 #include "internals.h"
-#include "type_caster_base.h"
 #include "pymetabind.h"
+#include "type_caster_base.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // pybind11 exception translator that tries all known foreign ones
 PYBIND11_NOINLINE void foreign_exception_translator(std::exception_ptr p) {
-    auto& foreign_internals = get_foreign_internals();
+    auto &foreign_internals = get_foreign_internals();
     for (pymb_framework *fw : foreign_internals.exc_frameworks) {
         try {
             fw->translate_exception(&p);
@@ -33,15 +33,13 @@ PYBIND11_NOINLINE void foreign_exception_translator(std::exception_ptr p) {
 // When learning about a new foreign type, should we automatically use it?
 inline bool should_autoimport_foreign(foreign_internals &foreign_internals,
                                       pymb_binding *binding) {
-    return foreign_internals.import_all &&
-           binding->framework->abi_lang == pymb_abi_lang_cpp &&
-           binding->framework->abi_extra == foreign_internals.self->abi_extra;
+    return foreign_internals.import_all && binding->framework->abi_lang == pymb_abi_lang_cpp
+           && binding->framework->abi_extra == foreign_internals.self->abi_extra;
 }
 
 // Add the given `binding` to our type maps so that we can use it to satisfy
 // from- and to-Python requests for the given C++ type
-inline void import_foreign_binding(pymb_binding *binding,
-                                   const std::type_info *cpptype) noexcept {
+inline void import_foreign_binding(pymb_binding *binding, const std::type_info *cpptype) noexcept {
     // Caller must hold the internals lock
     auto &foreign_internals = get_foreign_internals();
     foreign_internals.imported_any = true;
@@ -54,8 +52,7 @@ inline void import_foreign_binding(pymb_binding *binding,
 inline void *foreign_cb_from_python(pymb_binding *binding,
                                     PyObject *pyobj,
                                     uint8_t convert,
-                                    void (*keep_referenced)(void *ctx,
-                                                            PyObject *obj),
+                                    void (*keep_referenced)(void *ctx, PyObject *obj),
                                     void *keep_referenced_ctx) noexcept {
 #if defined(PYBIND11_HAS_OPTIONAL)
     using maybe_life_support = std::optional<loader_life_support>;
@@ -67,8 +64,8 @@ inline void *foreign_cb_from_python(pymb_binding *binding,
         bool engaged = false;
 
         maybe_life_support() {}
-        maybe_life_support(maybe_life_support&) = delete;
-        loader_life_support* operator->() { return &supp; }
+        maybe_life_support(maybe_life_support &) = delete;
+        loader_life_support *operator->() { return &supp; }
         void emplace() {
             new (&supp) loader_life_support();
             engaged = true;
@@ -84,8 +81,8 @@ inline void *foreign_cb_from_python(pymb_binding *binding,
     if (keep_referenced) {
         holder.emplace();
     }
-    type_caster_generic caster{static_cast<const type_info*>(binding->context)};
-    void* ret = nullptr;
+    type_caster_generic caster{static_cast<const type_info *>(binding->context)};
+    void *ret = nullptr;
     try {
         if (caster.load(pyobj, convert)) {
             ret = caster.value;
@@ -106,7 +103,7 @@ inline PyObject *foreign_cb_to_python(pymb_binding *binding,
                                       void *cobj,
                                       enum pymb_rv_policy rvp_,
                                       PyObject *parent) noexcept {
-    auto* ti = static_cast<const type_info*>(binding->context);
+    auto *ti = static_cast<const type_info *>(binding->context);
     if (cobj == nullptr) {
         return none().release().ptr();
     }
@@ -119,8 +116,8 @@ inline PyObject *foreign_cb_to_python(pymb_binding *binding,
 
     copy_or_move_ctor copy_ctor = nullptr, move_ctor = nullptr;
     if (rvp == return_value_policy::copy || rvp == return_value_policy::move) {
-        with_internals([&](internals&) {
-            auto& foreign_internals = get_foreign_internals();
+        with_internals([&](internals &) {
+            auto &foreign_internals = get_foreign_internals();
             auto it = foreign_internals.copy_move_ctors.find(*ti->cpptype);
             if (it != foreign_internals.copy_move_ctors.end()) {
                 std::tie(copy_ctor, move_ctor) = it->second;
@@ -129,20 +126,17 @@ inline PyObject *foreign_cb_to_python(pymb_binding *binding,
     }
 
     try {
-        return type_caster_generic::cast(cobj, rvp, parent, ti,
-                                         copy_ctor, move_ctor).ptr();
+        return type_caster_generic::cast(cobj, rvp, parent, ti, copy_ctor, move_ctor).ptr();
     } catch (...) {
         translate_exception(std::current_exception());
         return nullptr;
     }
 }
 
-inline int foreign_cb_keep_alive(PyObject *nurse,
-                                 void *payload,
-                                 void (*cb)(void*)) noexcept {
+inline int foreign_cb_keep_alive(PyObject *nurse, void *payload, void (*cb)(void *)) noexcept {
     try {
         if (!cb) {
-            keep_alive_impl(nurse, static_cast<PyObject*>(payload));
+            keep_alive_impl(nurse, static_cast<PyObject *>(payload));
         } else {
             capsule patient{payload, cb};
             keep_alive_impl(nurse, patient);
@@ -204,8 +198,8 @@ inline void foreign_cb_translate_exception(const void *eptr) {
                 return;
             } catch (const builtin_exception &err) {
                 // Could not use template since it's an abstract class.
-                if (const auto *nep = dynamic_cast<const std::nested_exception *>(
-                            std::addressof(err))) {
+                if (const auto *nep
+                    = dynamic_cast<const std::nested_exception *>(std::addressof(err))) {
                     handle_nested_exception(*nep, e);
                 }
                 err.set_error();
@@ -216,18 +210,17 @@ inline void foreign_cb_translate_exception(const void *eptr) {
 }
 
 inline void foreign_cb_add_foreign_binding(pymb_binding *binding) noexcept {
-    with_internals([&](internals&) {
-        auto& foreign_internals = get_foreign_internals();
+    with_internals([&](internals &) {
+        auto &foreign_internals = get_foreign_internals();
         if (should_autoimport_foreign(foreign_internals, binding)) {
-            import_foreign_binding(
-                    binding, (const std::type_info *) binding->native_type);
+            import_foreign_binding(binding, (const std::type_info *) binding->native_type);
         }
     });
 }
 
 inline void foreign_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
-    with_internals([&](internals&) {
-        auto& foreign_internals = get_foreign_internals();
+    with_internals([&](internals &) {
+        auto &foreign_internals = get_foreign_internals();
         auto remove_from_type = [&](const std::type_info *type) {
             auto range = foreign_internals.bindings.equal_range(*type);
             for (auto it = range.first; it != range.second; ++it) {
@@ -237,8 +230,7 @@ inline void foreign_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
                 }
             }
         };
-        bool should_remove_auto =
-            should_autoimport_foreign(foreign_internals, binding);
+        bool should_remove_auto = should_autoimport_foreign(foreign_internals, binding);
         auto it = foreign_internals.manual_imports.find(binding);
         if (it != foreign_internals.manual_imports.end()) {
             remove_from_type(it->second);
@@ -250,13 +242,12 @@ inline void foreign_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
     });
 }
 
-inline void foreign_cb_add_foreign_framework(pymb_framework *framework)
-        noexcept {
+inline void foreign_cb_add_foreign_framework(pymb_framework *framework) noexcept {
     if (framework->translate_exception) {
         with_exception_translators(
             [&](std::forward_list<ExceptionTranslator> &exception_translators,
                 std::forward_list<ExceptionTranslator> &) {
-                auto& foreign_internals = get_foreign_internals();
+                auto &foreign_internals = get_foreign_internals();
                 if (foreign_internals.exc_frameworks.empty()) {
                     // First foreign framework with an exception translator.
                     // Add our `foreign_exception_translator` wrapper in the
@@ -266,16 +257,14 @@ inline void foreign_cb_add_foreign_framework(pymb_framework *framework)
                     auto trailer = exception_translators.before_begin();
                     while (++leader != exception_translators.end())
                         ++trailer;
-                    exception_translators.insert_after(
-                            trailer, foreign_exception_translator);
+                    exception_translators.insert_after(trailer, foreign_exception_translator);
                 }
                 // Add the new framework at the end of the list
                 auto leader = foreign_internals.exc_frameworks.begin();
                 auto trailer = leader;
                 while (++leader != foreign_internals.exc_frameworks.end())
                     ++trailer;
-                foreign_internals.exc_frameworks.insert_after(
-                        trailer, framework);
+                foreign_internals.exc_frameworks.insert_after(trailer, framework);
             });
     }
 }
@@ -284,7 +273,7 @@ inline void foreign_cb_add_foreign_framework(pymb_framework *framework)
 
 // Advertise our existence, and the above callbacks, to other frameworks
 PYBIND11_NOINLINE bool foreign_internals::initialize() {
-    bool inited_by_us = with_internals([&](internals&) {
+    bool inited_by_us = with_internals([&](internals &) {
         if (registry)
             return false;
         registry = pymb_get_registry();
@@ -323,10 +312,9 @@ inline foreign_internals::~foreign_internals() = default;
 // the C++ type by looking at the binding, and require that its ABI match ours.
 // Throws an exception on failure. Caller must hold the internals lock and have
 // already called foreign_internals.initialize_if_needed().
-PYBIND11_NOINLINE void import_foreign_type(type pytype,
-                                           const std::type_info *cpptype) {
+PYBIND11_NOINLINE void import_foreign_type(type pytype, const std::type_info *cpptype) {
     auto &foreign_internals = get_foreign_internals();
-    pymb_binding* binding = pymb_get_binding(pytype.ptr());
+    pymb_binding *binding = pymb_get_binding(pytype.ptr());
     if (!binding)
         pybind11_fail("pybind11::import_foreign_type(): type does not define "
                       "a __pymetabind_binding__");
@@ -356,8 +344,8 @@ PYBIND11_NOINLINE void import_foreign_type(type pytype,
 // other C++ binding frameworks used by extension modules loaded in this
 // interpreter, both those that exist now and those bound in the future.
 PYBIND11_NOINLINE void foreign_enable_import_all() {
-    auto& foreign_internals = get_foreign_internals();
-    bool proceed = with_internals([&](internals&) {
+    auto &foreign_internals = get_foreign_internals();
+    bool proceed = with_internals([&](internals &) {
         if (foreign_internals.import_all)
             return false;
         foreign_internals.import_all = true;
@@ -376,10 +364,8 @@ PYBIND11_NOINLINE void foreign_enable_import_all() {
     // self never change once they're non-null, so we can accesss them
     // without locking here.
     pymb_lock_registry(foreign_internals.registry);
-    PYMB_LIST_FOREACH(struct pymb_binding*, binding,
-                      foreign_internals.registry->bindings) {
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding)) {
+    PYMB_LIST_FOREACH(struct pymb_binding *, binding, foreign_internals.registry->bindings) {
+        if (binding->framework != foreign_internals.self.get() && pymb_try_ref_binding(binding)) {
             foreign_cb_add_foreign_binding(binding);
             pymb_unref_binding(binding);
         }
@@ -391,7 +377,7 @@ PYBIND11_NOINLINE void foreign_enable_import_all() {
 // type object. Caller must hold the internals lock and have already called
 // foreign_internals.initialize_if_needed().
 PYBIND11_NOINLINE void export_type_to_foreign(type_info *ti) {
-    auto& foreign_internals = get_foreign_internals();
+    auto &foreign_internals = get_foreign_internals();
     auto range = foreign_internals.bindings.equal_range(*ti->cpptype);
     for (auto it = range.first; it != range.second; ++it)
         if (it->second->framework == foreign_internals.self.get())
@@ -407,7 +393,7 @@ PYBIND11_NOINLINE void export_type_to_foreign(type_info *ti) {
     capsule tie_lifetimes((void *) binding, [](void *p) {
         pymb_binding *binding = (pymb_binding *) p;
         pymb_remove_binding(get_foreign_internals().registry, binding);
-        free(const_cast<char*>(binding->source_name));
+        free(const_cast<char *>(binding->source_name));
         delete binding;
     });
     keep_alive_impl((PyObject *) ti->type, tie_lifetimes);
@@ -419,20 +405,19 @@ PYBIND11_NOINLINE void export_type_to_foreign(type_info *ti) {
 // Call `export_type_to_foreign()` for each type that currently exists in our
 // internals structure and each type created in the future.
 PYBIND11_NOINLINE void foreign_enable_export_all() {
-    auto& foreign_internals = get_foreign_internals();
-    bool proceed = with_internals([&](internals&) {
+    auto &foreign_internals = get_foreign_internals();
+    bool proceed = with_internals([&](internals &) {
         if (foreign_internals.export_all)
             return false;
         foreign_internals.export_all = true;
-        foreign_internals.export_type_to_foreign =
-            &detail::export_type_to_foreign;
+        foreign_internals.export_type_to_foreign = &detail::export_type_to_foreign;
         return true;
     });
     if (!proceed)
         return;
     foreign_internals.initialize_if_needed();
-    with_internals([&](internals& internals) {
-        for (const auto& entry : internals.registered_types_cpp) {
+    with_internals([&](internals &internals) {
+        for (const auto &entry : internals.registered_types_cpp) {
             detail::export_type_to_foreign(entry.second);
         }
     });
@@ -441,10 +426,10 @@ PYBIND11_NOINLINE void foreign_enable_export_all() {
 // Invoke `attempt(closure, binding)` for each foreign binding `binding`
 // that claims `type` and was not supplied by us, until one of them returns
 // non-null. Return that first non-null value, or null if all attempts failed.
-PYBIND11_NOINLINE void* try_foreign_bindings(
-        const std::type_info *type,
-        void* (*attempt)(void *closure, pymb_binding *binding),
-        void *closure) {
+PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
+                                             void *(*attempt)(void *closure,
+                                                              pymb_binding *binding),
+                                             void *closure) {
     auto &internals = get_internals();
     auto &foreign_internals = get_foreign_internals();
 
@@ -457,8 +442,7 @@ PYBIND11_NOINLINE void* try_foreign_bindings(
     if (std::next(range.first) == range.second) {
         // Single binding - check that it's not our own
         auto *binding = range.first->second;
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding)) {
+        if (binding->framework != foreign_internals.self.get() && pymb_try_ref_binding(binding)) {
 #ifdef Py_GIL_DISABLED
             // attempt() might execute Python code; drop the internals lock
             // to avoid a deadlock
@@ -475,8 +459,7 @@ PYBIND11_NOINLINE void* try_foreign_bindings(
 #ifndef Py_GIL_DISABLED
     for (auto it = range.first; it != range.second; ++it) {
         auto *binding = it->second;
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding)) {
+        if (binding->framework != foreign_internals.self.get() && pymb_try_ref_binding(binding)) {
             void *result = attempt(closure, binding);
             pymb_unref_binding(binding);
             if (result)
@@ -496,16 +479,14 @@ PYBIND11_NOINLINE void* try_foreign_bindings(
     size_t len = (size_t) std::distance(range.first, range.second);
 
     // Allocate temporary storage for that many pointers
-    pymb_binding **scratch =
-        (pymb_binding **) alloca(len * sizeof(pymb_binding*));
+    pymb_binding **scratch = (pymb_binding **) alloca(len * sizeof(pymb_binding *));
     pymb_binding **scratch_tail = scratch;
 
     // Iterate again, taking out strong references and saving pointers to
     // our scratch storage
     for (auto it = range.first; it != range.second; ++it) {
         auto *binding = it->second;
-        if (binding->framework != foreign_internals.self.get() &&
-            pymb_try_ref_binding(binding))
+        if (binding->framework != foreign_internals.self.get() && pymb_try_ref_binding(binding))
             *scratch_tail++ = binding;
     }
 
@@ -537,11 +518,10 @@ inline void set_foreign_type_defaults(bool export_all, bool import_all) {
 template <class T = void>
 inline void import_foreign_type(type pytype) {
     const std::type_info *cpptype = std::is_void<T>::value ? nullptr : &typeid(T);
-    auto& foreign_internals = detail::get_foreign_internals();
+    auto &foreign_internals = detail::get_foreign_internals();
     foreign_internals.initialize_if_needed();
-    detail::with_internals([&](detail::internals&) {
-        detail::import_foreign_type(pytype, cpptype);
-    });
+    detail::with_internals(
+        [&](detail::internals &) { detail::import_foreign_type(pytype, cpptype); });
 }
 
 inline void export_type_to_foreign(type ty) {
@@ -549,11 +529,9 @@ inline void export_type_to_foreign(type ty) {
     if (!ti)
         pybind11_fail("pybind11::export_type_to_foreign: not a "
                       "pybind11 registered type");
-    auto& foreign_internals = detail::get_foreign_internals();
+    auto &foreign_internals = detail::get_foreign_internals();
     foreign_internals.initialize_if_needed();
-    detail::with_internals([&](detail::internals&) {
-        detail::export_type_to_foreign(ti);
-    });
+    detail::with_internals([&](detail::internals &) { detail::export_type_to_foreign(ti); });
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
