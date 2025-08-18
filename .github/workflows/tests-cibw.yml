@@ -17,7 +17,7 @@ jobs:
     name: Pyodide wheel
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: true
         fetch-depth: 0
@@ -37,7 +37,7 @@ jobs:
       matrix:
         runs-on: [macos-14, macos-13]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: true
         fetch-depth: 0
@@ -59,7 +59,7 @@ jobs:
       matrix:
         runs-on: [macos-latest, macos-13, ubuntu-latest]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: true
         fetch-depth: 0
