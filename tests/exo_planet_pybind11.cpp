@@ -10,7 +10,7 @@
 namespace pybind11_tests {
 namespace test_cpp_conduit {
 
-PYBIND11_MODULE(exo_planet_pybind11, m) {
+PYBIND11_MODULE(exo_planet_pybind11, m, ) {
     wrap_traveler(m);
     m.def("wrap_very_lonely_traveler", [m]() { wrap_very_lonely_traveler(m); });
 }

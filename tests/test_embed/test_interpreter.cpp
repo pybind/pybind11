@@ -45,8 +45,8 @@ private:
 class PyWidget final : public Widget {
     using Widget::Widget;
 
-    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer); }
-    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0); }
+    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer, ); }
+    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0, ); }
 };
 
 class test_override_cache_helper {
@@ -62,7 +62,7 @@ public:
 };
 
 class test_override_cache_helper_trampoline : public test_override_cache_helper {
-    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
+    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func, ); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
