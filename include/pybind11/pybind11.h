@@ -1270,6 +1270,8 @@ private:
     bool flag_;
 };
 
+inline mod_gil_not_used mod_gil_used() { return mod_gil_not_used(false); }
+
 class multiple_interpreters {
 public:
     enum class level {
