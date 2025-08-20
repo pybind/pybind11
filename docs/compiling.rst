@@ -712,12 +712,15 @@ classes or incorporating modern meta-programming constructs.
 
 .. [AutoWIG] https://github.com/StatisKit/AutoWIG
 
-[robotpy-build]_ is a is a pure python, cross platform build tool that aims to
-simplify creation of python wheels for pybind11 projects, and provide
-cross-project dependency management. Additionally, it is able to autogenerate
-customizable pybind11-based wrappers by parsing C++ header files.
+[semiwrap]_ is a build tool that makes it simpler to wrap C/C++ libraries with
+pybind11 by automating large portions of the wrapping process and handling some
+of the more complex aspects of creating pybind11 based wrappers (especially with
+trampolines to allow inheriting from C++ classes from Python). It includes a
+hatchling plugin that autogenerates meson.build files that can be built using
+meson, and those build files parse your wrapped headers and generate/compile
+pybind11 based wrappers into python extension modules.
 
-.. [robotpy-build] https://robotpy-build.readthedocs.io
+.. [semiwrap] https://semiwrap.readthedocs.io
 
 [litgen]_ is an automatic python bindings generator with a focus on generating
 documented and discoverable bindings: bindings will nicely reproduce the documentation
