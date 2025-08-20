@@ -1,5 +1,6 @@
 #include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
@@ -76,7 +77,7 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interp
     sub.def("add", [](int i, int j) { return i + j; });
 }
 
-PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
+PYBIND11_EMBEDDED_MODULE(trampoline_module, m, py::multiple_interpreters::not_supported()) {
     py::class_<test_override_cache_helper,
                test_override_cache_helper_trampoline,
                std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
@@ -84,9 +85,11 @@ PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
         .def("func", &test_override_cache_helper::func);
 }
 
-PYBIND11_EMBEDDED_MODULE(throw_exception, ) { throw std::runtime_error("C++ Error"); }
+PYBIND11_EMBEDDED_MODULE(throw_exception, , py::multiple_interpreters::not_supported()) {
+    throw std::runtime_error("C++ Error");
+}
 
-PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
+PYBIND11_EMBEDDED_MODULE(throw_error_already_set, , py::multiple_interpreters::not_supported()) {
     auto d = py::dict();
     d["missing"].cast<py::object>();
 }

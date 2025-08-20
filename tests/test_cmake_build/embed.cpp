@@ -1,7 +1,9 @@
+#include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
+
 namespace py = pybind11;
 
-PYBIND11_EMBEDDED_MODULE(test_cmake_build, m) {
+PYBIND11_EMBEDDED_MODULE(test_cmake_build, m, py::multiple_interpreters::not_supported()) {
     m.def("add", [](int i, int j) { return i + j; });
 }
 
