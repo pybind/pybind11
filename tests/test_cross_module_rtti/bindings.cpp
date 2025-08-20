@@ -8,7 +8,7 @@ public:
     int get() const override { PYBIND11_OVERLOAD(int, lib::Base, get, ); }
 };
 
-PYBIND11_MODULE(test_cross_module_rtti_bindings, m, ) {
+PYBIND11_MODULE(test_cross_module_rtti_bindings, m, pybind11::mod_gil_used()) {
     pybind11::classh<lib::Base, BaseTrampoline>(m, "Base")
         .def(pybind11::init<int, int>())
         .def_readwrite("a", &lib::Base::a)
