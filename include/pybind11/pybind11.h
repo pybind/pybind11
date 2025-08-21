@@ -1263,11 +1263,14 @@ PYBIND11_NAMESPACE_END(detail)
 // Use to activate Py_MOD_GIL_NOT_USED.
 class mod_gil_not_used {
 public:
-    explicit mod_gil_not_used(bool flag = true) : flag_(flag) {}
+    mod_gil_not_used() : flag_(true) {}
     bool flag() const { return flag_; }
+
+    friend mod_gil_not_used mod_gil_used();
 
 private:
     bool flag_;
+    explicit mod_gil_not_used(bool flag) : flag_(flag) {}
 };
 
 inline mod_gil_not_used mod_gil_used() { return mod_gil_not_used(false); }
@@ -1540,7 +1543,7 @@ public:
                                            const char *doc,
                                            PyModuleDef *def,
                                            mod_gil_not_used gil_not_used
-                                           = mod_gil_not_used(false)) {
+                                           = mod_gil_used()) {
         // Placement new (not an allocation).
         new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                               /* m_name */ name,
