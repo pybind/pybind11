@@ -27,7 +27,7 @@ jobs:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
         package-dir: tests
-        only: cp312-pyodide_wasm32
+        only: cp313-pyodide_wasm32
 
   build-ios:
     name: iOS wheel ${{ matrix.runs-on }}
@@ -47,7 +47,6 @@ jobs:
     - uses: pypa/cibuildwheel@v3.1
       env:
         CIBW_PLATFORM: ios
-        CIBW_SKIP: cp314-*  # https://github.com/pypa/cibuildwheel/issues/2494
       with:
         package-dir: tests
 
@@ -76,8 +75,6 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
-
-    - run: pipx install patchelf
 
     - uses: pypa/cibuildwheel@v3.1
       env:
