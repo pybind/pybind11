@@ -1542,8 +1542,7 @@ public:
     static module_ create_extension_module(const char *name,
                                            const char *doc,
                                            PyModuleDef *def,
-                                           mod_gil_not_used gil_not_used
-                                           = mod_gil_used()) {
+                                           mod_gil_not_used gil_not_used = mod_gil_used()) {
         // Placement new (not an allocation).
         new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                               /* m_name */ name,
