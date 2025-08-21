@@ -76,6 +76,8 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
+    - run: pipx install patchelf
+
     - uses: pypa/cibuildwheel@v3.1
       env:
         CIBW_PLATFORM: android
