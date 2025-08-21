@@ -412,7 +412,6 @@ function(pybind11_enable_warnings target_name)
               -Wdeprecated
               -Wundef
               -Wnon-virtual-dtor)
-    target_link_options(${target_name} PRIVATE -Werror -Wodr -Wlto-type-mismatch)
   endif()
 
   if(PYBIND11_WERROR)
