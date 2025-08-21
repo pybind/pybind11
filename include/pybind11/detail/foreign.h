@@ -289,10 +289,8 @@ PYBIND11_NOINLINE bool foreign_internals::initialize() {
 
         self.reset(new pymb_framework{});
         self->name = "pybind11 " PYBIND11_ABI_TAG;
-        // TODO: pybind11 does leak some bindings; there should be a way to
-        // indicate that (so that eg nanobind can disable its leak detection)
-        // without promising to leak all bindings
         self->bindings_usable_forever = 0;
+        self->leak_safe = 0;
         self->abi_lang = pymb_abi_lang_cpp;
         self->abi_extra = PYBIND11_PLATFORM_ABI_ID;
         self->from_python = foreign_cb_from_python;

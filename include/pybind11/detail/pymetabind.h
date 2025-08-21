@@ -6,7 +6,10 @@
  * This functionality is intended to be used by the framework itself,
  * rather than by users of the framework.
  *
- * This is version 0.1 of pymetabind. Changelog:
+ * This is version 0.1+dev of pymetabind. Changelog:
+ *
+ *      Unreleased: Fix typo in Py_GIL_DISABLED. Add pymb_framework::leak_safe.
+ *                  Add casts from PyTypeObject* to PyObject* where needed.
  *
  *     Version 0.1: Initial draft. ABI may change without warning while we
  *      2025-08-16  prove out the concept. Please wait for a 1.0 release
@@ -195,7 +198,7 @@ struct pymb_registry {
 #endif
 };
 
-#if defined(Py_GIL_DISALED)
+#if defined(Py_GIL_DISABLED)
 inline void pymb_lock_registry(struct pymb_registry* registry) {
     PyMutex_Lock(&registry->mutex);
 }
@@ -250,8 +253,15 @@ struct pymb_framework {
     // this framework's bindings in free-threaded builds.
     uint8_t bindings_usable_forever;
 
+    // Does this framework reliably deallocate all of its type and function
+    // objects by the time the Python interpreter is finalized, in the absence
+    // of bugs in user code? If not, it might cause leaks of other frameworks'
+    // types or functions, via attributes or default argument values for
+    // this framework's leaked objects.
+    uint8_t leak_safe;
+
     // Reserved for future extensions. Set to 0.
-    uint8_t reserved[3];
+    uint8_t reserved[2];
 
     // The language to which this framework provides bindings: one of the
     // `pymb_abi_lang` enumerators.

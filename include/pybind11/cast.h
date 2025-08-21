@@ -876,20 +876,20 @@ struct holder_caster_foreign_helpers {
         PyObject *o;
     };
 
-    template <typename type>
-    static bool try_shared_from_this(std::enable_shared_from_this<type> *value,
+    template <typename base, typename type>
+    static bool try_shared_from_this(std::enable_shared_from_this<base> *value,
                                      std::shared_ptr<type> *holder_out) {
         // object derives from enable_shared_from_this;
         // try to reuse an existing shared_ptr if one is known
         if (auto existing = try_get_shared_from_this(value)) {
-            *holder_out = existing;
+            *holder_out = std::static_pointer_cast<type>(existing);
             return true;
         }
         return false;
     }
 
     template <typename type>
-    static bool try_shared_from_this(type *, std::shared_ptr<type> *) {
+    static bool try_shared_from_this(void *, std::shared_ptr<type> *) {
         return false;
     }
 
