@@ -406,15 +406,13 @@ function(pybind11_enable_warnings target_name)
       ${target_name}
       PRIVATE -Wall
               -Wextra
+              -Wpedantic
               -Wconversion
               -Wcast-qual
               -Wdeprecated
               -Wundef
               -Wnon-virtual-dtor)
     target_link_options(${target_name} PRIVATE -Werror -Wodr -Wlto-type-mismatch)
-    if(DEFINED CMAKE_CXX_STANDARD AND NOT CMAKE_CXX_STANDARD VERSION_LESS 14)
-      target_compile_options(${target_name} PRIVATE -Wpedantic)
-    endif()
   endif()
 
   if(PYBIND11_WERROR)
