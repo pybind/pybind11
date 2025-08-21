@@ -9,8 +9,6 @@
 #  CATCH_INCLUDE_DIR      - path to catch.hpp
 #  CATCH_VERSION          - version number
 
-option(DOWNLOAD_CATCH "Download catch2 if not found")
-
 if(NOT Catch_FIND_VERSION)
   message(FATAL_ERROR "A version number must be specified.")
 elseif(Catch_FIND_REQUIRED)
