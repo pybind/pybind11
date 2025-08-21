@@ -18,7 +18,9 @@
 #include "struct_smart_holder.h"
 
 #include <atomic>
+#include <cstdint>
 #include <exception>
+#include <limits>
 #include <mutex>
 #include <thread>
 
@@ -274,8 +276,10 @@ struct internals {
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
-        auto num_shards
-            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        // Make sure the number isn't unreasonable by limiting it to 16 bits (65K)
+        auto num_shards = static_cast<std::uint16_t>(
+            std::min<std::size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()),
+                                  std::numeric_limits<std::uint16_t>::max()));
         if (num_shards == 0) {
             num_shards = 1;
         }
