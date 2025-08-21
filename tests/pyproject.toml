@@ -9,12 +9,12 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "pybind11_tests"
 version = "0.0.1"
-dependencies = ["pytest", "pytest-timeout"]
-
-
-[dependency-groups]
-numpy = ["numpy"]
-scipy = ["scipy"]
+dependencies = [
+  "pytest",
+  "pytest-timeout"
+  "numpy; sys_platform != 'android' and (sys_platform != 'ios' or python_version < '3.14')",
+  "scipy; sys_platform != 'android' and sys_platform != 'ios'",
+]
 
 
 [tool.scikit-build]
@@ -28,11 +28,8 @@ PYBIND11_FINDPYTHON = true
 [tool.cibuildwheel]
 test-sources = ["tests", "pyproject.toml"]
 test-command = "python -m pytest -o timeout=0 -p no:cacheprovider tests"
-environment.PIP_ONLY_BINARY = "numpy"
+environment.PIP_ONLY_BINARY = "numpy,scipy"
 environment.PIP_PREFER_BINARY = "1"
-
 android.environment.ANDROID_API_LEVEL = "24"  # Needed to include libc++ in the wheel.
-pyodide.test-groups = ["numpy", "scipy"]
-ios.test-groups = ["numpy"]
 ios.xbuild-tools = ["cmake", "ninja"]
 ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"
