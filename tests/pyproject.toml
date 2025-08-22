@@ -12,7 +12,7 @@ version = "0.0.1"
 dependencies = [
   "pytest",
   "pytest-timeout",
-  "numpy; sys_platform != 'android' and not (sys_platform == 'ios' and python_version >= '3.14')",
+  "numpy; sys_platform != 'android' and (sys_platform != 'ios' or python_version < '3.14')",
   "scipy; sys_platform != 'android' and sys_platform != 'ios'",
 ]
 
