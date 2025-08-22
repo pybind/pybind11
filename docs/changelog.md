@@ -13,7 +13,7 @@ Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
 
-## Version 3.0.1 (August 21, 2025)
+## Version 3.0.1 (August 22, 2025)
 
 Bug fixes:
 
