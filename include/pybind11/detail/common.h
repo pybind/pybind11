@@ -214,6 +214,12 @@
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
+#if defined(_MSC_VER)
+#    define PYBIND11_COMPAT_STRDUP _strdup
+#else
+#    define PYBIND11_COMPAT_STRDUP strdup
+#endif
+
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -348,6 +354,7 @@
 #define PYBIND11_ENSURE_INTERNALS_READY                                                           \
     {                                                                                             \
         pybind11::detail::get_internals_pp_manager().unref();                                     \
+        pybind11::detail::get_foreign_internals_pp_manager().unref();                             \
         pybind11::detail::get_internals();                                                        \
     }
 

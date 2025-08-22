@@ -227,7 +227,7 @@ TEST_SUBMODULE(buffers, m) {
                               + std::to_string(cols) + "(*" + std::to_string(col_factor)
                               + ") matrix");
         }
-
+        DiscontiguousMatrix(const DiscontiguousMatrix &) = delete;
         ~DiscontiguousMatrix() {
             print_destroyed(this,
                             std::to_string(rows() / m_row_factor) + "(*"
