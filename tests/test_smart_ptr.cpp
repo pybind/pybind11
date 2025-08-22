@@ -313,11 +313,11 @@ struct holder_helper<ref<T>> {
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
 PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>)
+PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>, )
 
 namespace holder_caster_traits_test {
 struct example_base {};
