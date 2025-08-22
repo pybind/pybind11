@@ -12,8 +12,6 @@ version = "0.0.1"
 dependencies = [
   "pytest",
   "pytest-timeout",
-  "numpy; sys_platform != 'android'",
-  "scipy; sys_platform != 'android' and sys_platform != 'ios'",
 ]
 
 
@@ -32,4 +30,4 @@ environment.PIP_ONLY_BINARY = "numpy,scipy"
 environment.PIP_PREFER_BINARY = "1"
 android.environment.ANDROID_API_LEVEL = "24"  # Needed to include libc++ in the wheel.
 ios.xbuild-tools = ["cmake", "ninja"]
-ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"
+pyodide.test-requires = ["numpy", "scipy"]
