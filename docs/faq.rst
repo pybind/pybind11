@@ -90,7 +90,7 @@ following example:
     void init_ex2(py::module_ &);
     /* ... */
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         init_ex1(m);
         init_ex2(m);
         /* ... */
@@ -235,8 +235,7 @@ been received, you must either explicitly interrupt execution by throwing
 
 .. code-block:: cpp
 
-    PYBIND11_MODULE(example, m)
-    {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         m.def("long running_func", []()
         {
             for (;;) {

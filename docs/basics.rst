@@ -112,7 +112,7 @@ a file named :file:`example.cpp` with the following contents:
         return i + j;
     }
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         m.doc() = "pybind11 example plugin"; // optional module docstring
 
         m.def("add", &add, "A function that adds two numbers");
@@ -288,7 +288,7 @@ converted using the function ``py::cast``.
 
 .. code-block:: cpp
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         m.attr("the_answer") = 42;
         py::object world = py::cast("World");
         m.attr("what") = world;

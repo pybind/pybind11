@@ -21,7 +21,7 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
-PyInterpreterState *get_interpreter_state_unchecked() {
+inline PyInterpreterState *get_interpreter_state_unchecked() {
     auto cur_tstate = get_thread_state_unchecked();
     if (cur_tstate)
         return cur_tstate->interp;
@@ -77,6 +77,7 @@ public:
     /// @note This function acquires (and then releases) the main interpreter GIL, but the main
     /// interpreter and its GIL are not required to be held prior to calling this function.
     static inline subinterpreter create(PyInterpreterConfig const &cfg) {
+
         error_scope err_scope;
         subinterpreter result;
         {
@@ -85,7 +86,21 @@ public:
 
             auto prev_tstate = PyThreadState_Get();
 
-            auto status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
+            PyStatus status;
+
+            {
+                /*
+                Several internal CPython modules are lacking proper subinterpreter support in 3.12
+                even though it is "stable" in that version.  This most commonly seems to cause
+                crashes when two interpreters concurrently initialize, which imports several things
+                (like builtins, unicode, codecs).
+                */
+#if PY_VERSION_HEX < 0x030D0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
+                static std::mutex one_at_a_time;
+                std::lock_guard<std::mutex> guard(one_at_a_time);
+#endif
+                status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
+            }
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
             if (PyStatus_Exception(status)) {
@@ -117,6 +132,7 @@ public:
         // same as the default config in the python docs
         PyInterpreterConfig cfg;
         std::memset(&cfg, 0, sizeof(cfg));
+        cfg.allow_threads = 1;
         cfg.check_multi_interp_extensions = 1;
         cfg.gil = PyInterpreterConfig_OWN_GIL;
         return create(cfg);
@@ -264,28 +280,6 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
         // We were on this interpreter already, so just make sure the GIL goes back as it was
         PyGILState_Release(gil_state_);
     } else {
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-        bool has_active_exception;
-#    if defined(__cpp_lib_uncaught_exceptions)
-        has_active_exception = std::uncaught_exceptions() > 0;
-#    else
-        // removed in C++20, replaced with uncaught_exceptions
-        has_active_exception = std::uncaught_exception();
-#    endif
-        if (has_active_exception) {
-            try {
-                std::rethrow_exception(std::current_exception());
-            } catch (error_already_set &) {
-                // Because error_already_set holds python objects and what() acquires the GIL, it
-                // is basically never OK to let these exceptions propagate outside the current
-                // active interpreter.
-                pybind11_fail("~subinterpreter_scoped_activate: cannot propagate Python "
-                              "exceptions outside of their owning interpreter");
-            } catch (...) {
-            }
-        }
-#endif
-
         if (tstate_) {
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             if (detail::get_thread_state_unchecked() != tstate_) {

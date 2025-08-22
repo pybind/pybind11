@@ -45,7 +45,7 @@ Normally, the binding code for these classes would look as follows:
 
 .. code-block:: cpp
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Animal>(m, "Animal")
             .def("go", &Animal::go);
 
@@ -64,7 +64,7 @@ helper class that is defined as follows:
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal, py::trampoline_self_life_support {
+    class PyAnimal : public Animal, public py::trampoline_self_life_support {
     public:
         /* Inherit the constructors */
         using Animal::Animal;
@@ -112,7 +112,7 @@ The binding code also needs a few minor adaptations (highlighted):
 .. code-block:: cpp
     :emphasize-lines: 2,3
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Animal, PyAnimal /* <--- trampoline */, py::smart_holder>(m, "Animal")
             .def(py::init<>())
             .def("go", &Animal::go);
@@ -262,13 +262,13 @@ override the ``name()`` method):
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal, py::trampoline_self_life_support {
+    class PyAnimal : public Animal, public py::trampoline_self_life_support {
     public:
         using Animal::Animal; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, Animal, go, n_times); }
         std::string name() override { PYBIND11_OVERRIDE(std::string, Animal, name, ); }
     };
-    class PyDog : public Dog, py::trampoline_self_life_support {
+    class PyDog : public Dog, public py::trampoline_self_life_support {
     public:
         using Dog::Dog; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE(std::string, Dog, go, n_times); }
@@ -290,7 +290,7 @@ declare or override any virtual methods itself:
 .. code-block:: cpp
 
     class Husky : public Dog {};
-    class PyHusky : public Husky, py::trampoline_self_life_support {
+    class PyHusky : public Husky, public py::trampoline_self_life_support {
     public:
         using Husky::Husky; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, Husky, go, n_times); }
@@ -306,14 +306,14 @@ follows:
 .. code-block:: cpp
 
     template <class AnimalBase = Animal>
-    class PyAnimal : public AnimalBase, py::trampoline_self_life_support {
+    class PyAnimal : public AnimalBase, public py::trampoline_self_life_support {
     public:
         using AnimalBase::AnimalBase; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERRIDE_PURE(std::string, AnimalBase, go, n_times); }
         std::string name() override { PYBIND11_OVERRIDE(std::string, AnimalBase, name, ); }
     };
     template <class DogBase = Dog>
-    class PyDog : public PyAnimal<DogBase>, py::trampoline_self_life_support {
+    class PyDog : public PyAnimal<DogBase>, public py::trampoline_self_life_support {
     public:
         using PyAnimal<DogBase>::PyAnimal; // Inherit constructors
         // Override PyAnimal's pure virtual go() with a non-pure one:
@@ -564,7 +564,7 @@ an alias:
         // ...
         virtual ~Example() = default;
     };
-    class PyExample : public Example, py::trampoline_self_life_support {
+    class PyExample : public Example, public py::trampoline_self_life_support {
     public:
         using Example::Example;
         PyExample(Example &&base) : Example(std::move(base)) {}
@@ -774,7 +774,7 @@ to Python.
 
     #include <pybind11/operators.h>
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Vector2>(m, "Vector2")
             .def(py::init<float, float>())
             .def(py::self + py::self)
@@ -1170,7 +1170,7 @@ described trampoline:
         virtual int foo() const { return 42; }
     };
 
-    class Trampoline : public A, py::trampoline_self_life_support {
+    class Trampoline : public A, public py::trampoline_self_life_support {
     public:
         int foo() const override { PYBIND11_OVERRIDE(int, A, foo, ); }
     };

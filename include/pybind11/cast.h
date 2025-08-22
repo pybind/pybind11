@@ -76,6 +76,11 @@ public:
             parent);
     }
 
+    template <typename SrcType>
+    static handle cast(SrcType *src, return_value_policy policy, handle parent) {
+        return cast(*src, policy, parent);
+    }
+
     bool load(handle src, bool convert) {
         handle native_enum
             = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));

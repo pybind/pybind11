@@ -88,7 +88,7 @@ buffer objects (e.g. a NumPy matrix).
             py::buffer_info info = b.request();
 
             /* Some basic validation checks ... */
-            if (info.format != py::format_descriptor<Scalar>::format())
+            if (!info.item_type_is_equivalent_to<Scalar>())
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
             if (info.ndim != 2)
@@ -217,7 +217,7 @@ expects the type followed by field names:
     };
 
     // ...
-    PYBIND11_MODULE(test, m) {
+    PYBIND11_MODULE(test, m, py::mod_gil_not_used()) {
         // ...
 
         PYBIND11_NUMPY_DTYPE(A, x, y);
@@ -351,7 +351,7 @@ simply using ``vectorize``).
         return result;
     }
 
-    PYBIND11_MODULE(test, m) {
+    PYBIND11_MODULE(test, m, py::mod_gil_not_used()) {
         m.def("add_arrays", &add_arrays, "Add two NumPy arrays");
     }
 

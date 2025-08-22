@@ -153,6 +153,11 @@ def test_return_color_fail():
     assert str(excinfo_cast.value) == str(excinfo_direct.value)
 
 
+def test_return_color_ptr():
+    assert m.return_color_const_ptr() == m.color.red
+    assert m.return_color_mutbl_ptr() == m.color.green
+
+
 def test_property_type_hint():
     prop = m.class_with_enum.__dict__["nested_value"]
     assert isinstance(prop, property)

@@ -136,6 +136,15 @@ TEST_SUBMODULE(native_enum, m) {
     m.def("pass_color", [](color e) { return static_cast<int>(e); });
     m.def("return_color", [](int i) { return static_cast<color>(i); });
 
+    m.def("return_color_const_ptr", []() -> const color * {
+        static const color test_color = color::red;
+        return &test_color;
+    });
+    m.def("return_color_mutbl_ptr", []() -> color * {
+        static color test_color = color::green;
+        return &test_color;
+    });
+
     py::native_enum<func_sig_rendering>(m, "func_sig_rendering", "enum.Enum").finalize();
     m.def(
         "pass_and_return_func_sig_rendering",

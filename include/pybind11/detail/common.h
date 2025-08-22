@@ -19,7 +19,7 @@
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 0
+#define PYBIND11_VERSION_MICRO 1
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
@@ -27,7 +27,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_FINAL
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_PATCH 1
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -436,14 +436,14 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         pre_init;                                                                                 \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static ::pybind11::detail::slots_array slots = ::pybind11::detail::init_slots(            \
+        static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
             &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
         static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
                                /* m_name */ PYBIND11_TOSTRING(name),                              \
                                /* m_doc */ nullptr,                                               \
                                /* m_size */ 0,                                                    \
                                /* m_methods */ nullptr,                                           \
-                               /* m_slots */ slots.data(),                                        \
+                               /* m_slots */ mod_def_slots.data(),                                \
                                /* m_traverse */ nullptr,                                          \
                                /* m_clear */ nullptr,                                             \
                                /* m_free */ nullptr};                                             \
@@ -455,7 +455,10 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                                             \
+            if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
+                PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
+                pybind11::detail::cache_completed_module(m);                                      \
+            }                                                                                     \
             return 0;                                                                             \
         }                                                                                         \
         PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
@@ -697,7 +700,7 @@ template <typename T>
 using remove_reference_t = typename std::remove_reference<T>::type;
 #endif
 
-#if defined(PYBIND11_CPP20)
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_remove_cvref)
 using std::remove_cvref;
 using std::remove_cvref_t;
 #else
@@ -720,14 +723,49 @@ using std::make_index_sequence;
 #else
 template <size_t...>
 struct index_sequence {};
-template <size_t N, size_t... S>
-struct make_index_sequence_impl : make_index_sequence_impl<N - 1, N - 1, S...> {};
-template <size_t... S>
-struct make_index_sequence_impl<0, S...> {
+// Comments about the algorithm below.
+//
+// Credit: This is based on an algorithm by taocpp here:
+//    https://github.com/taocpp/sequences/blob/main/include/tao/seq/make_integer_sequence.hpp
+// but significantly simplified.
+//
+// We build up a sequence S by repeatedly doubling its length and sometimes adding 1 to the end.
+// E.g. if the current S is 0...3, then we either go to 0...7 or 0...8 on the next pass.
+// The goal is to end with S = 0...N-1.
+// The key insight is that the times we need to add an additional digit to S correspond
+// exactly to the 1's in the binary representation of the number N.
+//
+// Invariants:
+// - digit is a power of 2
+// - N_digit_is_1 is whether N's binary representation has a 1 in that digit's position.
+// - end <= N
+// - S is 0...end-1.
+// - if digit > 0, end * digit * 2 <= N < (end+1) * digit * 2
+//
+// The process starts with digit > N, end = 0, and S is empty.
+// The process concludes with digit=0, in which case, end == N and S is 0...N-1.
+
+template <size_t digit, bool N_digit_is_1, size_t N, size_t end, size_t... S> // N_digit_is_1=false
+struct make_index_sequence_impl
+    : make_index_sequence_impl<digit / 2, (N & (digit / 2)) != 0, N, 2 * end, S..., (S + end)...> {
+};
+template <size_t digit, size_t N, size_t end, size_t... S>
+struct make_index_sequence_impl<digit, true, N, end, S...>
+    : make_index_sequence_impl<digit / 2,
+                               (N & (digit / 2)) != 0,
+                               N,
+                               2 * end + 1,
+                               S...,
+                               (S + end)...,
+                               2 * end> {};
+template <size_t N, size_t end, size_t... S>
+struct make_index_sequence_impl<0, false, N, end, S...> {
     using type = index_sequence<S...>;
 };
+constexpr size_t next_power_of_2(size_t N) { return N == 0 ? 1 : next_power_of_2(N >> 1) << 1; }
 template <size_t N>
-using make_index_sequence = typename make_index_sequence_impl<N>::type;
+using make_index_sequence =
+    typename make_index_sequence_impl<next_power_of_2(N), false, N, 0>::type;
 #endif
 
 /// Make an index sequence of the indices of true arguments

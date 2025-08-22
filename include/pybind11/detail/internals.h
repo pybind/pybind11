@@ -18,7 +18,9 @@
 #include "struct_smart_holder.h"
 
 #include <atomic>
+#include <cstdint>
 #include <exception>
+#include <limits>
 #include <mutex>
 #include <thread>
 
@@ -90,14 +92,21 @@ public:
     }
 
     ~thread_specific_storage() {
-        // This destructor could be called *after* Py_Finalize(). That *SHOULD BE* fine. The
-        // following details what happens when PyThread_tss_free is called.
-        // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does
+        // This destructor is often called *after* Py_Finalize(). That *SHOULD BE* fine on most
+        // platforms. The following details what happens when PyThread_tss_free is called in
+        // CPython. PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does
         // nothing. PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
         // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX).
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
         // that the `key` be allocated with the CPython allocator (as it is by
         // PyThread_tss_create).
+        // However, in GraalPy (as of v24.2 or older), TSS is implemented by Java and this call
+        // requires a living Python interpreter.
+#ifdef GRAALVM_PYTHON
+        if (!Py_IsInitialized() || _Py_IsFinalizing()) {
+            return;
+        }
+#endif
         PYBIND11_TLS_FREE(key_);
     }
 
@@ -125,7 +134,8 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-constexpr const char *internals_function_record_capsule_name = "pybind11_function_record_capsule";
+// This does NOT actually exist as a module.
+#define PYBIND11_DUMMY_MODULE_NAME "pybind11_builtins"
 
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
@@ -266,8 +276,10 @@ struct internals {
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
-        auto num_shards
-            = static_cast<size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()));
+        // Make sure the number isn't unreasonable by limiting it to 16 bits (65K)
+        auto num_shards = static_cast<std::uint16_t>(
+            std::min<std::size_t>(round_up_to_next_pow2(2 * std::thread::hardware_concurrency()),
+                                  std::numeric_limits<std::uint16_t>::max()));
         if (num_shards == 0) {
             num_shards = 1;
         }
@@ -291,6 +303,7 @@ struct internals {
 struct local_internals {
     type_map<type_info *> registered_types_cpp;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
+    PyTypeObject *function_record_py_type = nullptr;
 };
 
 enum class holder_enum_t : uint8_t {

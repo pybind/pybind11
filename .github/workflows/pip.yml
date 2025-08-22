@@ -100,7 +100,7 @@ jobs:
 
     steps:
     # Downloads all to directories matching the artifact names
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
 
     - name: Generate artifact attestation for sdist and wheel
       uses: actions/attest-build-provenance@v2
