@@ -18,73 +18,73 @@ else()
   set(_pybind11_quiet "")
 endif()
 
-  if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
-    set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
-  endif()
+if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
+  set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
+endif()
 
-  # GitHub Actions like activation
-  if(NOT DEFINED Python_ROOT_DIR AND DEFINED ENV{pythonLocation})
-    set(Python_ROOT_DIR "$ENV{pythonLocation}")
-  endif()
+# GitHub Actions like activation
+if(NOT DEFINED Python_ROOT_DIR AND DEFINED ENV{pythonLocation})
+  set(Python_ROOT_DIR "$ENV{pythonLocation}")
+endif()
 
-  # Interpreter should not be found when cross-compiling
-  if(_PYBIND11_CROSSCOMPILING)
-    set(_pybind11_interp_component "")
-  else()
-    set(_pybind11_interp_component Interpreter)
-  endif()
+# Interpreter should not be found when cross-compiling
+if(_PYBIND11_CROSSCOMPILING)
+  set(_pybind11_interp_component "")
+else()
+  set(_pybind11_interp_component Interpreter)
+endif()
 
-  # Development.Module support (required for manylinux) started in 3.18
-  if(CMAKE_VERSION VERSION_LESS 3.18)
-    set(_pybind11_dev_component Development)
-  else()
-    set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
-  endif()
+# Development.Module support (required for manylinux) started in 3.18
+if(CMAKE_VERSION VERSION_LESS 3.18)
+  set(_pybind11_dev_component Development)
+else()
+  set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
+endif()
 
-  # Callers need to be able to access Python_EXECUTABLE
-  set(_pybind11_global_keyword "")
-  if(NOT is_config AND NOT DEFINED Python_ARTIFACTS_INTERACTIVE)
-    set(Python_ARTIFACTS_INTERACTIVE TRUE)
-    if(NOT CMAKE_VERSION VERSION_LESS 3.24)
-      set(_pybind11_global_keyword "GLOBAL")
-    endif()
+# Callers need to be able to access Python_EXECUTABLE
+set(_pybind11_global_keyword "")
+if(NOT is_config AND NOT DEFINED Python_ARTIFACTS_INTERACTIVE)
+  set(Python_ARTIFACTS_INTERACTIVE TRUE)
+  if(NOT CMAKE_VERSION VERSION_LESS 3.24)
+    set(_pybind11_global_keyword "GLOBAL")
   endif()
+endif()
 
-  find_package(
-    Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
-                                   ${_pybind11_quiet} ${_pybind11_global_keyword})
+find_package(
+  Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+                                 ${_pybind11_quiet} ${_pybind11_global_keyword})
 
-  # If we are in submodule mode, export the Python targets to global targets.
-  # If this behavior is not desired, FindPython _before_ pybind11.
-  if(NOT is_config
-     AND Python_ARTIFACTS_INTERACTIVE
-     AND _pybind11_global_keyword STREQUAL "")
-    if(TARGET Python::Python)
-      set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
-    if(TARGET Python::Interpreter)
-      set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
-    if(TARGET Python::Module)
-      set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
+# If we are in submodule mode, export the Python targets to global targets.
+# If this behavior is not desired, FindPython _before_ pybind11.
+if(NOT is_config
+   AND Python_ARTIFACTS_INTERACTIVE
+   AND _pybind11_global_keyword STREQUAL "")
+  if(TARGET Python::Python)
+    set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
   endif()
-
-  # Explicitly export version for callers (including our own functions)
-  if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE)
-    set(Python_VERSION
-        "${Python_VERSION}"
-        CACHE INTERNAL "")
-    set(Python_VERSION_MAJOR
-        "${Python_VERSION_MAJOR}"
-        CACHE INTERNAL "")
-    set(Python_VERSION_MINOR
-        "${Python_VERSION_MINOR}"
-        CACHE INTERNAL "")
-    set(Python_VERSION_PATCH
-        "${Python_VERSION_PATCH}"
-        CACHE INTERNAL "")
+  if(TARGET Python::Interpreter)
+    set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
   endif()
+  if(TARGET Python::Module)
+    set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
+  endif()
+endif()
+
+# Explicitly export version for callers (including our own functions)
+if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE)
+  set(Python_VERSION
+      "${Python_VERSION}"
+      CACHE INTERNAL "")
+  set(Python_VERSION_MAJOR
+      "${Python_VERSION_MAJOR}"
+      CACHE INTERNAL "")
+  set(Python_VERSION_MINOR
+      "${Python_VERSION_MINOR}"
+      CACHE INTERNAL "")
+  set(Python_VERSION_PATCH
+      "${Python_VERSION_PATCH}"
+      CACHE INTERNAL "")
+endif()
 
 if(Python_FOUND)
   set(_Python
