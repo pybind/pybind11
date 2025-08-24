@@ -18,7 +18,6 @@ else()
   set(_pybind11_quiet "")
 endif()
 
-if(NOT Python_FOUND AND NOT Python3_FOUND)
   if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
     set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
   endif()
@@ -86,7 +85,6 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
         "${Python_VERSION_PATCH}"
         CACHE INTERNAL "")
   endif()
-endif()
 
 if(Python_FOUND)
   set(_Python
