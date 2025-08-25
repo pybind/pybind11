@@ -16,7 +16,7 @@
 // possible using these macros. Please also be sure to push/pop with the pybind11 macros. Please
 // only use compiler specifics if you need to check specific versions, e.g. Apple Clang vs. vanilla
 // Clang.
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__) // clang-cl also defines _MSC_VER
 #    define PYBIND11_COMPILER_MSVC
 #    define PYBIND11_PRAGMA(...) __pragma(__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning(push))
