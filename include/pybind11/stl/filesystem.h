@@ -17,7 +17,7 @@
 #elif defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
 #    include <experimental/filesystem>
 #else
-#    error "Neither #include <filesystem> nor #include <experimental/filesystem is available."
+#    error "Neither #include <filesystem> nor #include <experimental/filesystem> is available."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
