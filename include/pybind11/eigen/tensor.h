@@ -124,10 +124,9 @@ struct eigen_tensor_helper<
 template <typename Type, bool ShowDetails, bool NeedsWriteable = false>
 struct get_tensor_descriptor {
     static constexpr auto details
-        = const_name<NeedsWriteable>(", \"flags.writeable\"", "") + const_name
-              < static_cast<int>(Type::Layout)
-          == static_cast<int>(Eigen::RowMajor)
-                 > (", \"flags.c_contiguous\"", ", \"flags.f_contiguous\"");
+        = const_name<NeedsWriteable>(", \"flags.writeable\"", "")
+          + const_name<static_cast<int>(Type::Layout) == static_cast<int>(Eigen::RowMajor)>(
+              ", \"flags.c_contiguous\"", ", \"flags.f_contiguous\"");
     static constexpr auto value
         = const_name("typing.Annotated[")
           + io_name("numpy.typing.ArrayLike, ", "numpy.typing.NDArray[")
