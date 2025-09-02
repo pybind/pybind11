@@ -1021,10 +1021,10 @@ jobs:
         include:
           - sys: mingw32
             env: i686
-            install_mingw64_only: ""
+            extra_install: ""
           - sys: mingw64
             env: x86_64
-            install_mingw64_only: |
+            extra_install: |
               mingw-w64-x86_64-python-numpy
               mingw-w64-x86_64-python-scipy
               mingw-w64-x86_64-eigen3
@@ -1041,7 +1041,7 @@ jobs:
           mingw-w64-${{matrix.env}}-python-pytest
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
-          ${{ matrix.install_mingw64_only }}
+          ${{ matrix.extra_install }}
 
     - uses: actions/checkout@v4
 
