@@ -201,7 +201,7 @@ def _run_in_process(target, *args, **kwargs):
             msg = "DEADLOCK, most likely, exactly what this test is meant to detect."
             if env.WIN and env.PYPY:
                 pytest.xfail("[TEST-GIL-SCOPED] Windows PyPy: " + msg)
-            elif env.MACOS and not env.SYS_IS_GIL_ENABLED:
+            elif env.MACOS and not env.sys_is_gil_enabled():
                 pytest.xfail("[TEST-GIL-SCOPED] macOS free-threading: " + msg)
             raise RuntimeError(msg)
         return process.exitcode

@@ -22,7 +22,7 @@ GRAALPY_VERSION = tuple(int(t) for t in _graalpy_version.split("-")[0].split("."
 # Compile-time config (what the binary was built for)
 PY_GIL_DISABLED = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 # Runtime state (what's actually happening now)
-SYS_IS_GIL_ENABLED = getattr(sys, "_is_gil_enabled", lambda: True)()
+sys_is_gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)
 
 
 def deprecated_call():
