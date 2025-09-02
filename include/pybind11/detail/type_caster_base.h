@@ -655,7 +655,8 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-    if (valueptr) {}
+    if (valueptr) {
+    }
 
     auto smhldr
         = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, const_cast<void *>(st.first)));
