@@ -199,8 +199,10 @@ def _run_in_process(target, *args, **kwargs):
         if process.exitcode is None:
             assert t_delta > 0.9 * timeout
             msg = "DEADLOCK, most likely, exactly what this test is meant to detect."
-            if env.PYPY and env.WIN:
-                pytest.skip(msg)
+            if env.WIN and env.PYPY:
+                pytest.xfail("[TEST-GIL-SCOPED] Windows PyPy: " + msg)
+            elif env.MACOS and not env.SYS_IS_GIL_ENABLED:
+                pytest.xfail("[TEST-GIL-SCOPED] macOS free-threading: " + msg)
             raise RuntimeError(msg)
         return process.exitcode
     finally:
