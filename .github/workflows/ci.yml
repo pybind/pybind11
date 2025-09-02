@@ -1019,8 +1019,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: mingw32, env: i686 }
+          - sys: mingw32
+            env: i686
+            install_mingw64_only: ""
+          - sys: mingw64
+            env: x86_64
+            install_mingw64_only: |
+              mingw-w64-x86_64-python-numpy
+              mingw-w64-x86_64-python-scipy
+              mingw-w64-x86_64-eigen3
     steps:
     - uses: msys2/setup-msys2@v2
       with:
@@ -1034,15 +1041,7 @@ jobs:
           mingw-w64-${{matrix.env}}-python-pytest
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
-
-    - uses: msys2/setup-msys2@v2
-      if: matrix.sys == 'mingw64'
-      with:
-        msystem: ${{matrix.sys}}
-        install: >-
-          mingw-w64-${{matrix.env}}-python-numpy
-          mingw-w64-${{matrix.env}}-python-scipy
-          mingw-w64-${{matrix.env}}-eigen3
+          ${{ matrix.install_mingw64_only }}
 
     - uses: actions/checkout@v4
 
