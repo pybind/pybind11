@@ -16,12 +16,7 @@
 // possible using these macros. Please also be sure to push/pop with the pybind11 macros. Please
 // only use compiler specifics if you need to check specific versions, e.g. Apple Clang vs. vanilla
 // Clang.
-#if defined(_MSC_VER)
-#    define PYBIND11_COMPILER_MSVC
-#    define PYBIND11_PRAGMA(...) __pragma(__VA_ARGS__)
-#    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning(push))
-#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning(pop))
-#elif defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER)
 #    define PYBIND11_COMPILER_INTEL
 #    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning push)
@@ -36,6 +31,11 @@
 #    define PYBIND11_PRAGMA(...) _Pragma(#__VA_ARGS__)
 #    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(GCC diagnostic push)
 #    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(GCC diagnostic pop)
+#elif defined(_MSC_VER) // Must be after the clang branch because clang-cl also defines _MSC_VER
+#    define PYBIND11_COMPILER_MSVC
+#    define PYBIND11_PRAGMA(...) __pragma(__VA_ARGS__)
+#    define PYBIND11_WARNING_PUSH PYBIND11_PRAGMA(warning(push))
+#    define PYBIND11_WARNING_POP PYBIND11_PRAGMA(warning(pop))
 #endif
 
 #ifdef PYBIND11_COMPILER_MSVC

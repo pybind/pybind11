@@ -67,6 +67,7 @@ project(pybind11_tests CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
+option(DOWNLOAD_CATCH "Download catch2 if not found" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)

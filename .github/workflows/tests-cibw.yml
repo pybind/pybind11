@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [macos-latest, macos-13]
+        runs-on: [macos-14, macos-13]
     steps:
     - uses: actions/checkout@v4
       with:

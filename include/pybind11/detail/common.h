@@ -19,7 +19,7 @@
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 1
+#define PYBIND11_VERSION_MICRO 2
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
@@ -27,7 +27,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 1a0
+#define PYBIND11_VERSION_PATCH 2a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -436,14 +436,14 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         pre_init;                                                                                 \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static ::pybind11::detail::slots_array slots = ::pybind11::detail::init_slots(            \
+        static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
             &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
         static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
                                /* m_name */ PYBIND11_TOSTRING(name),                              \
                                /* m_doc */ nullptr,                                               \
                                /* m_size */ 0,                                                    \
                                /* m_methods */ nullptr,                                           \
-                               /* m_slots */ slots.data(),                                        \
+                               /* m_slots */ mod_def_slots.data(),                                \
                                /* m_traverse */ nullptr,                                          \
                                /* m_clear */ nullptr,                                             \
                                /* m_free */ nullptr};                                             \
