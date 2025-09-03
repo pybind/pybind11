@@ -42,7 +42,8 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - run: brew upgrade cmake
+    # We have to uninstall first because GH is now using a local tap to build cmake<4, iOS needs cmake>=4
+    - run: brew uninstall cmake && brew install cmake
 
     - uses: pypa/cibuildwheel@v3.1
       env:
