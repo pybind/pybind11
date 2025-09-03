@@ -42,9 +42,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - run: |
-        brew update
-        brew upgrade --formula cmake || brew install --formula cmake
+    - run: brew upgrade cmake
 
     - uses: pypa/cibuildwheel@v3.1
       env:
