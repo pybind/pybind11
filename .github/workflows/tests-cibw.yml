@@ -30,6 +30,7 @@ jobs:
         only: cp312-pyodide_wasm32
 
   build-ios:
+    if: github.event_name == 'THIS NEEDS FIXING' # trick to disable the job
     name: iOS wheel ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -42,7 +43,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - run: brew upgrade cmake
+    - run: brew upgrade cmake # this was the FAILING step
 
     - uses: pypa/cibuildwheel@v3.1
       env:
