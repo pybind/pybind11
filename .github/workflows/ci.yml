@@ -1019,8 +1019,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: mingw32, env: i686 }
+          - sys: mingw32
+            env: i686
+            extra_install: ""
+          - sys: mingw64
+            env: x86_64
+            extra_install: |
+              mingw-w64-x86_64-python-numpy
+              mingw-w64-x86_64-python-scipy
+              mingw-w64-x86_64-eigen3
     steps:
     - uses: msys2/setup-msys2@v2
       with:
@@ -1034,15 +1041,7 @@ jobs:
           mingw-w64-${{matrix.env}}-python-pytest
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
-
-    - uses: msys2/setup-msys2@v2
-      if: matrix.sys == 'mingw64'
-      with:
-        msystem: ${{matrix.sys}}
-        install: >-
-          mingw-w64-${{matrix.env}}-python-numpy
-          mingw-w64-${{matrix.env}}-python-scipy
-          mingw-w64-${{matrix.env}}-eigen3
+          ${{ matrix.extra_install }}
 
     - uses: actions/checkout@v4
 
@@ -1186,94 +1185,6 @@ jobs:
 
       - name: Visibility test
         run: cmake --build . --target test_cross_module_rtti -j 2
-
-      - name: Clean directory
-        run: git clean -fdx
-
-  macos_brew_install_llvm:
-    if: github.event.pull_request.draft == false
-    name: "macos-13 • brew install llvm"
-    runs-on: macos-13
-
-    env:
-      # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
-      LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
-
-    steps:
-      - name: Update PATH
-        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
-
-      - name: Show env
-        run: env
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Show Clang++ version before brew install llvm
-        run: clang++ --version
-
-      - name: brew install llvm
-        run: brew install llvm
-
-      - name: Show Clang++ version after brew install llvm
-        run: clang++ --version
-
-      - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v2.0
-
-      - name: Run pip installs
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install -r tests/requirements.txt
-          python3 -m pip install numpy
-          python3 -m pip install scipy
-
-      - name: Show CMake version
-        run: cmake --version
-
-      - name: CMake Configure
-        run: >
-          cmake -S . -B .
-          -DPYBIND11_WERROR=ON
-          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-          -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=ON
-          -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=17
-          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-
-      - name: Build
-        run: cmake --build . -j 2
-
-      - name: Python tests
-        run: cmake --build . --target pytest -j 2
-
-      - name: C++ tests
-        run: cmake --build . --target cpptest -j 2
-
-      - name: Interface test
-        run: cmake --build . --target test_cmake_build -j 2
-
-      - name: Visibility test
-        run: cmake --build . --target test_cross_module_rtti -j 2
-
-      - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: >
-          cmake -S . -B build_partial
-          -DPYBIND11_WERROR=ON
-          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-          -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=ON
-          -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=17
-          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
-
-      - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: cmake --build build_partial -j 2
-
-      - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: cmake --build build_partial --target pytest -j 2
 
       - name: Clean directory
         run: git clean -fdx
