@@ -199,10 +199,14 @@ def _run_in_process(target, *args, **kwargs):
         if process.exitcode is None:
             assert t_delta > 0.9 * timeout
             msg = "DEADLOCK, most likely, exactly what this test is meant to detect."
+            soabi = sysconfig.get_config_var("SOABI")
             if env.WIN and env.PYPY:
-                pytest.xfail("[TEST-GIL-SCOPED] Windows PyPy: " + msg)
-            elif env.MACOS and not env.sys_is_gil_enabled():
-                pytest.xfail("[TEST-GIL-SCOPED] macOS free-threading: " + msg)
+                pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} PyPy: " + msg)
+            if env.MACOS:
+                if not env.sys_is_gil_enabled():
+                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} with GIL disabled: " + msg)
+                if env.PY_GIL_DISABLED:
+                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi}: " + msg)
             raise RuntimeError(msg)
         return process.exitcode
     finally:
