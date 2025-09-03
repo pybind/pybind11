@@ -767,7 +767,7 @@ jobs:
     container: i386/debian:bullseye
 
     steps:
-    - uses: actions/checkout@v5  # v1 is required to run inside docker
+    - uses: actions/checkout@v1  # v1 is required to run inside docker
 
     - name: Install requirements
       run: |
