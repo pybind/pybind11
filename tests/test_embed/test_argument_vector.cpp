@@ -62,9 +62,10 @@ void mutation_test_with_samples(ActualMutationFunc actual_mutation_func,
 
 // I would like to write [capture](auto& vec) block inline, but we
 // have to work with C++11, which doesn't have generic lambdas.
-// NOLINTNEXTLINE(bugprone-macro-parentheses)
+// NOLINTBEGIN(bugprone-macro-parentheses)
 #define MUTATION_LAMBDA(capture, block)                                                           \
     [capture](argument_vector & vec) block, [capture](std::vector<py::handle> & vec) block
+// NOLINTEND(bugprone-macro-parentheses)
 
 // For readability, rather than having ugly empty arguments.
 #define NO_CAPTURE
