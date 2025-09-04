@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "detail/argument_vector.h"
 #include "detail/common.h"
 #include "detail/descr.h"
 #include "detail/native_enum_data.h"
@@ -2045,10 +2046,12 @@ struct function_call {
     const function_record &func;
 
     /// Arguments passed to the function:
-    std::vector<handle> args;
+    /// (Inline size chosen mostly arbitrarily; 5 should pad function_call out to two cache lines
+    /// (16 pointers) in size.)
+    argument_vector<5> args;
 
     /// The `convert` value the arguments should be loaded with
-    std::vector<bool> args_convert;
+    args_convert_vector<5> args_convert;
 
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).

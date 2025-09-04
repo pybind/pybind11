@@ -33,7 +33,8 @@ if(PYBIND11_TEST_SMART_HOLDER)
     -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
 endif()
 
-add_executable(test_embed catch.cpp test_interpreter.cpp test_subinterpreter.cpp)
+add_executable(test_embed catch.cpp test_args_convert_vector.cpp test_argument_vector.cpp
+                          test_interpreter.cpp test_subinterpreter.cpp)
 pybind11_enable_warnings(test_embed)
 
 target_link_libraries(test_embed PRIVATE pybind11::embed Catch2::Catch2 Threads::Threads)
