@@ -2048,10 +2048,10 @@ struct function_call {
     /// Arguments passed to the function:
     /// (Inline size chosen mostly arbitrarily; 5 should pad function_call out to two cache lines
     /// (16 pointers) in size.)
-    argument_vector<5> args;
+    argument_vector<6> args;
 
     /// The `convert` value the arguments should be loaded with
-    args_convert_vector<5> args_convert;
+    args_convert_vector<6> args_convert;
 
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).

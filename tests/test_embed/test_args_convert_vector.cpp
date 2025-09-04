@@ -3,10 +3,11 @@
 
 namespace py = pybind11;
 
-// 5 is chosen to match the production value. It doesn't really matter
-// what we pick because the actual inline size is going to be 8 *
-// sizeof(size_t) given the implementation at the time of writing.
-using args_convert_vector = py::detail::args_convert_vector<5>;
+// Inline size is chosen to match the production value. It doesn't
+// really matter what we pick because the actual inline size is going
+// to be 8 * sizeof(size_t) given the implementation at the time of
+// writing.
+using args_convert_vector = py::detail::args_convert_vector<6>;
 
 namespace {
 template <typename Container>
