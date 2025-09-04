@@ -134,27 +134,24 @@ public:
     std::size_t size() const {
         if (is_inline()) {
             return m_repr.array.size;
-        } else {
-            return m_repr.vector.vec.size();
         }
+        return m_repr.vector.vec.size();
     }
 
     handle &operator[](std::size_t idx) {
         assert(idx < size());
         if (is_inline()) {
             return m_repr.array.arr[idx];
-        } else {
-            return m_repr.vector.vec[idx];
         }
+        return m_repr.vector.vec[idx];
     }
 
     handle operator[](std::size_t idx) const {
         assert(idx < size());
         if (is_inline()) {
             return m_repr.array.arr[idx];
-        } else {
-            return m_repr.vector.vec[idx];
         }
+        return m_repr.vector.vec[idx];
     }
 
     void push_back(handle x) {
@@ -229,9 +226,8 @@ public:
     std::size_t size() const {
         if (is_inline()) {
             return m_repr.array.size;
-        } else {
-            return m_repr.vector.vec.size();
         }
+        return m_repr.vector.vec.size();
     }
 
     void reserve(std::size_t sz) {
@@ -247,10 +243,9 @@ public:
     bool operator[](std::size_t idx) const {
         if (is_inline()) {
             return inline_index(idx);
-        } else {
-            assert(idx < m_repr.vector.vec.size());
-            return m_repr.vector.vec[idx];
         }
+        assert(idx < m_repr.vector.vec.size());
+        return m_repr.vector.vec[idx];
     }
 
     void push_back(bool b) {
@@ -276,7 +271,7 @@ public:
         }
     }
 
-    void swap(args_convert_vector &rhs) { std::swap(m_repr, rhs.m_repr); }
+    void swap(args_convert_vector &rhs) noexcept { std::swap(m_repr, rhs.m_repr); }
 
 private:
     struct WordAndBitIndex {
