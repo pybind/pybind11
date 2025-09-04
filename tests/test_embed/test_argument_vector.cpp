@@ -62,6 +62,7 @@ void mutation_test_with_samples(ActualMutationFunc actual_mutation_func,
 
 // I would like to write [capture](auto& vec) block inline, but we
 // have to work with C++11, which doesn't have generic lambdas.
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
 #define MUTATION_LAMBDA(capture, block)                                                           \
     [capture](argument_vector & vec) block, [capture](std::vector<py::handle> & vec) block
 
@@ -73,8 +74,7 @@ TEST_CASE("check sample argument_vector contents") {
 }
 
 TEST_CASE("argument_vector push_back") {
-    mutation_test_with_samples(
-        MUTATION_LAMBDA(NO_CAPTURE, { vec.push_back(py::handle(Py_None)); }));
+    mutation_test_with_samples(MUTATION_LAMBDA(NO_CAPTURE, { vec.emplace_back(Py_None); }));
 }
 
 TEST_CASE("argument_vector reserve") {
@@ -87,7 +87,7 @@ TEST_CASE("argument_vector reserve then push_back") {
     for (std::size_t ii = 0; ii < 4; ++ii) {
         mutation_test_with_samples(MUTATION_LAMBDA(ii, {
             vec.reserve(ii);
-            vec.push_back(py::handle(Py_True));
+            vec.emplace_back(Py_True);
         }));
     }
 }
