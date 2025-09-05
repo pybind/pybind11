@@ -19,8 +19,8 @@ jobs:
   # This builds the sdists and wheels and makes sure the files are exactly as
   # expected.
   test-packaging:
-    name: 🐍 3.8 • 📦 tests • windows-latest
-    runs-on: windows-latest
+    name: 🐍 3.8 • 📦 tests • windows-2022
+    runs-on: windows-2022
 
     steps:
     - uses: actions/checkout@v5
