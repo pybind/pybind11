@@ -495,7 +495,7 @@ FindPython, pybind11 will detect this and use the existing targets instead:
     cmake_minimum_required(VERSION 3.15...4.0)
     project(example LANGUAGES CXX)
 
-    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python COMPONENTS Development.Module REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
