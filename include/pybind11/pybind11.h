@@ -1048,13 +1048,14 @@ protected:
                 }
 #endif
 
-                std::vector<bool> second_pass_convert;
+                args_convert_vector<arg_vector_small_size> second_pass_convert;
                 if (overloaded) {
                     // We're in the first no-convert pass, so swap out the conversion flags for a
                     // set of all-false flags.  If the call fails, we'll swap the flags back in for
                     // the conversion-allowed call below.
-                    second_pass_convert.resize(func.nargs, false);
-                    call.args_convert.swap(second_pass_convert);
+                    second_pass_convert = std::move(call.args_convert);
+                    call.args_convert
+                        = args_convert_vector<arg_vector_small_size>(func.nargs, false);
                 }
 
                 // 6. Call the function.
