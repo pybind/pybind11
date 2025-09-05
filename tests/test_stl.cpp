@@ -99,6 +99,7 @@ public:
     using OptionalEnumValue = OptionalImpl<EnumType>;
 
     OptionalProperties() : value(EnumType::kSet) {}
+    OptionalProperties(const OptionalProperties &) = default;
     ~OptionalProperties() {
         // Reset value to detect use-after-destruction.
         // This is set to a specific value rather than nullopt to ensure that
