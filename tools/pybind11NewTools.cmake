@@ -106,18 +106,7 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-if(NOT _PYBIND11_CROSSCOMPILING)
-  # If a user finds Python, they may forget to include the Interpreter component
-  # and the following two steps require it. It is highly recommended by CMake
-  # when finding development libraries anyway, so we will require it.
-  if(NOT DEFINED ${_Python}_EXECUTABLE)
-    message(
-      FATAL_ERROR
-        "${_Python} was found without the Interpreter component. Pybind11 requires this component."
-    )
-
-  endif()
-
+if(NOT _PYBIND11_CROSSCOMPILING AND DEFINED ${_Python}_EXECUTABLE)
   if(DEFINED PYBIND11_PYTHON_EXECUTABLE_LAST AND NOT ${_Python}_EXECUTABLE STREQUAL
                                                  PYBIND11_PYTHON_EXECUTABLE_LAST)
     # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
@@ -190,15 +179,15 @@ else()
     include("${CMAKE_CURRENT_LIST_DIR}/pybind11GuessPythonExtSuffix.cmake")
     pybind11_guess_python_module_extension("${_Python}")
   endif()
-  # When cross-compiling, we cannot query the Python interpreter, so we require
-  # the user to set these variables explicitly.
   if(NOT DEFINED PYTHON_IS_DEBUG
      OR NOT DEFINED PYTHON_MODULE_EXTENSION
      OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
     message(
       FATAL_ERROR
-        "When cross-compiling, you should set the PYTHON_IS_DEBUG, PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX \
-        variables appropriately before loading pybind11 (e.g. in your CMake toolchain file)")
+        "A Python interpreter was not found, or you are cross-compiling, and the "
+        "PYTHON_IS_DEBUG, PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX "
+        "variables could not be guessed. Set these variables appropriately before "
+        "loading pybind11 (e.g. in your CMake toolchain file)")
   endif()
 endif()
 
@@ -248,10 +237,7 @@ if(TARGET ${_Python}::Module)
   # files.
   get_target_property(module_target_type ${_Python}::Module TYPE)
   if(ANDROID AND module_target_type STREQUAL INTERFACE_LIBRARY)
-    set_property(
-      TARGET ${_Python}::Module
-      APPEND
-      PROPERTY INTERFACE_LINK_LIBRARIES "${${_Python}_LIBRARIES}")
+    target_link_libraries(${_Python}::Module INTERFACE ${${_Python}_LIBRARIES})
   endif()
 
   set_property(
