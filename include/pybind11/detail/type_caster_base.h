@@ -45,17 +45,48 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
+#if defined(PYBIND11_CAN_USE_THREAD_LOCAL)
+    struct fake_thread_specific_storage {
+        loader_life_support *instance = nullptr;
+        loader_life_support *get() const { return instance; }
+
+        fake_thread_specific_storage &operator=(loader_life_support *pval) {
+            instance = pval;
+            return *this;
+        }
+    };
+    using loader_storage = fake_thread_specific_storage;
+#else
+    using loader_storage = thread_specific_storage<loader_life_support>;
+#endif
+
+    static loader_storage &get_stack_top() {
+#if defined(PYBIND11_CAN_USE_THREAD_LOCAL)
+        // Without this branch, loader_life_support destruction is a
+        // significant cost per function call.
+        //
+        // Observation: loader_life_support needs to be thread-local, but
+        // we don't need to go to extra effort to keep it per-interpreter
+        // (i.e., by putting it in internals) since function calls are
+        // already isolated to a single interpreter.
+        static thread_local fake_thread_specific_storage storage;
+        return storage;
+#else
+        return get_internals().loader_life_support_tls;
+#endif
+    }
+
 public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
-        auto &stack_top = get_internals().loader_life_support_tls;
+        auto &stack_top = get_stack_top();
         parent = stack_top.get();
         stack_top = this;
     }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        auto &stack_top = get_internals().loader_life_support_tls;
+        auto &stack_top = get_stack_top();
         if (stack_top.get() != this) {
             pybind11_fail("loader_life_support: internal error");
         }
@@ -68,7 +99,7 @@ public:
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = get_internals().loader_life_support_tls.get();
+        loader_life_support *frame = get_stack_top().get();
         if (!frame) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such
