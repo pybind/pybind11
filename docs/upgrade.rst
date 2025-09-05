@@ -334,7 +334,7 @@ In addition, the following changes may be of interest:
   ``pybind11_add_module`` if set instead of linking to ``pybind11::lto`` or
   ``pybind11::thin_lto``.
 
-* Using ``find_package(Python COMPONENTS Interpreter Development)`` before
+* Using ``find_package(Python COMPONENTS Development.Module)`` before
   pybind11 will cause pybind11 to use the new Python mechanisms instead of its
   own custom search, based on a patched version of classic ``FindPythonInterp``
   / ``FindPythonLibs``. In the future, this may become the default. A recent

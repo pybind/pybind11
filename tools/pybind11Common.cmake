@@ -41,6 +41,15 @@ set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}"
     CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
 
+# CMP0190 prohibits calling FindPython with both Interpreter and Development components
+# when cross-compiling, unless the CMAKE_CROSSCOMPILING_EMULATOR variable is defined.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1")
+  cmake_policy(GET CMP0190 _pybind11_cmp0190)
+  if(_pybind11_cmp0190 STREQUAL "NEW")
+    set(PYBIND11_USE_CROSSCOMPILING "ON")
+  endif()
+endif()
+
 if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
   set(_PYBIND11_CROSSCOMPILING
       ON
