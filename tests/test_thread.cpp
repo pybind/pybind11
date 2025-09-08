@@ -16,7 +16,7 @@
 #include <thread>
 
 #if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
-#    define PYBIND11_HAS_BARRIER 1
+#    define PYBIND11_HAS_STD_BARRIER 1
 #    include <barrier>
 #endif
 
@@ -71,7 +71,7 @@ TEST_SUBMODULE(thread, m) {
     py::class_<EmptyStruct>(m, "EmptyStruct")
         .def_readonly_static("SharedInstance", &SharedInstance);
 
-#if defined(PYBIND11_HAS_BARRIER)
+#if defined(PYBIND11_HAS_STD_BARRIER)
     // In the free-threaded build, during PyThreadState_Clear, removing the thread from the biased
     // reference counting table may call destructors. Make sure that it doesn't crash.
     m.def("test_pythread_state_clear_destructor", [](py::type cls) {
@@ -97,7 +97,7 @@ TEST_SUBMODULE(thread, m) {
 #endif
 
     m.attr("has_barrier") =
-#ifdef PYBIND11_HAS_BARRIER
+#ifdef PYBIND11_HAS_STD_BARRIER
         true;
 #else
         false;
