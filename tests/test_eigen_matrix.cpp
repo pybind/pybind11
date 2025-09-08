@@ -237,6 +237,7 @@ TEST_SUBMODULE(eigen_matrix, m) {
 
     public:
         ReturnTester() { print_created(this); }
+        ReturnTester(const ReturnTester &) = default;
         ~ReturnTester() { print_destroyed(this); }
         static Eigen::MatrixXd create() { return Eigen::MatrixXd::Ones(10, 10); }
         // NOLINTNEXTLINE(readability-const-return-type)
