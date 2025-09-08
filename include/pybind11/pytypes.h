@@ -1039,11 +1039,13 @@ public:
     void operator=(const accessor &a) & { operator=(handle(a)); }
 
     template <typename T>
-    void operator=(T &&value) && {
+    std::enable_if_t<!std::is_same_v<accessor, std::remove_reference_t<T>>>
+    operator=(T &&value) && {
         Policy::set(obj, key, object_or_cast(std::forward<T>(value)));
     }
     template <typename T>
-    void operator=(T &&value) & {
+    std::enable_if_t<!std::is_same_v<accessor, std::remove_reference_t<T>>>
+    operator=(T &&value) & {
         get_cache() = ensure_object(object_or_cast(std::forward<T>(value)));
     }
 
