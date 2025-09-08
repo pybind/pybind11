@@ -648,7 +648,7 @@ if(NOT PYBIND11_CUDA_TESTS)
   add_subdirectory(pure_cpp)
 
   # Test C++ code that depends on Python, such as embedding the interpreter. Provides the `cpptest` target.
-  add_subdirectory(test_low_level)
+  add_subdirectory(test_with_catch)
 
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)
