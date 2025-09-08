@@ -57,11 +57,13 @@ private:
     using loader_storage = fake_thread_specific_storage;
 
     static loader_storage &get_stack_top() {
-        // Observation: loader_life_support needs to be thread-local, but
-        // we don't need to go to extra effort to keep it per-interpreter
-        // (i.e., by putting it in internals) since function calls are
-        // already isolated to a single interpreter.
-        // This saves a significant cost per function call spent in
+        // Observation: loader_life_support needs to be thread-local,
+        // but we don't need to go to extra effort to keep it
+        // per-interpreter (i.e., by putting it in internals) since
+        // individual function calls are already isolated to a single
+        // interpreter, even though they could potentially call into a
+        // different interpreter later in the same call chain.  This
+        // saves a significant cost per function call spent in
         // loader_life_support destruction.
         static thread_local fake_thread_specific_storage storage;
         return storage;
