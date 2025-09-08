@@ -45,7 +45,6 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
-#if defined(PYBIND11_CAN_USE_THREAD_LOCAL)
     struct fake_thread_specific_storage {
         loader_life_support *instance = nullptr;
         loader_life_support *get() const { return instance; }
@@ -56,24 +55,16 @@ private:
         }
     };
     using loader_storage = fake_thread_specific_storage;
-#else
-    using loader_storage = thread_specific_storage<loader_life_support>;
-#endif
 
     static loader_storage &get_stack_top() {
-#if defined(PYBIND11_CAN_USE_THREAD_LOCAL)
-        // Without this branch, loader_life_support destruction is a
-        // significant cost per function call.
-        //
         // Observation: loader_life_support needs to be thread-local, but
         // we don't need to go to extra effort to keep it per-interpreter
         // (i.e., by putting it in internals) since function calls are
         // already isolated to a single interpreter.
+        // This saves a significant cost per function call spent in
+        // loader_life_support destruction.
         static thread_local fake_thread_specific_storage storage;
         return storage;
-#else
-        return get_internals().loader_life_support_tls;
-#endif
     }
 
 public:

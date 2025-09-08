@@ -1344,8 +1344,5 @@ constexpr
 #    define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
 #endif
 
-// TODO: determine which platforms cannot use thread_local.
-#define PYBIND11_CAN_USE_THREAD_LOCAL 1
-
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
