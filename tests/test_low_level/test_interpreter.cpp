@@ -95,7 +95,7 @@ TEST_CASE("PYTHONPATH is used to update sys.path") {
     // The setup for this TEST_CASE is in catch.cpp!
     auto sys_path = py::str(py::module_::import("sys").attr("path")).cast<std::string>();
     REQUIRE_THAT(sys_path,
-                 Catch::Matchers::Contains("pybind11_test_embed_PYTHONPATH_2099743835476552"));
+                 Catch::Matchers::Contains("pybind11_test_low_level_PYTHONPATH_2099743835476552"));
 }
 
 TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
