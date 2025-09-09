@@ -220,7 +220,7 @@ public:
 };
 
 class test_override_cache_helper_trampoline : public test_override_cache_helper {
-    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
+    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func, ); }
 };
 
 inline int test_override_cache(std::shared_ptr<test_override_cache_helper> const &instance) {
@@ -280,7 +280,7 @@ TEST_SUBMODULE(virtual_functions, m) {
             py::print("PyA.f()");
             // This convolution just gives a `void`, but tests that PYBIND11_TYPE() works to
             // protect a type containing a ,
-            PYBIND11_OVERRIDE(PYBIND11_TYPE(typename std::enable_if<true, void>::type), A, f);
+            PYBIND11_OVERRIDE(PYBIND11_TYPE(typename std::enable_if<true, void>::type), A, f, );
         }
     };
 
@@ -303,7 +303,7 @@ TEST_SUBMODULE(virtual_functions, m) {
         ~PyA2() override { py::print("PyA2.~PyA2()"); }
         void f() override {
             py::print("PyA2.f()");
-            PYBIND11_OVERRIDE(void, A2, f);
+            PYBIND11_OVERRIDE(void, A2, f, );
         }
     };
 
@@ -371,26 +371,26 @@ TEST_SUBMODULE(virtual_functions, m) {
     public:
         using OverrideTest::OverrideTest;
         std::string str_value() override {
-            PYBIND11_OVERRIDE(std::string, OverrideTest, str_value);
+            PYBIND11_OVERRIDE(std::string, OverrideTest, str_value, );
         }
         // Not allowed (enabling the below should hit a static_assert failure): we can't get a
         // reference to a python numeric value, since we only copy values in the numeric type
         // caster:
 #ifdef PYBIND11_NEVER_DEFINED_EVER
         std::string &str_ref() override {
-            PYBIND11_OVERRIDE(std::string &, OverrideTest, str_ref);
+            PYBIND11_OVERRIDE(std::string &, OverrideTest, str_ref, );
         }
 #endif
         // But we can work around it like this:
     private:
         std::string _tmp;
-        std::string str_ref_helper() { PYBIND11_OVERRIDE(std::string, OverrideTest, str_ref); }
+        std::string str_ref_helper() { PYBIND11_OVERRIDE(std::string, OverrideTest, str_ref, ); }
 
     public:
         std::string &str_ref() override { return _tmp = str_ref_helper(); }
 
-        A A_value() override { PYBIND11_OVERRIDE(A, OverrideTest, A_value); }
-        A &A_ref() override { PYBIND11_OVERRIDE(A &, OverrideTest, A_ref); }
+        A A_value() override { PYBIND11_OVERRIDE(A, OverrideTest, A_value, ); }
+        A &A_ref() override { PYBIND11_OVERRIDE(A &, OverrideTest, A_ref, ); }
     };
 
     py::class_<OverrideTest::A>(m, "OverrideTest_A")
