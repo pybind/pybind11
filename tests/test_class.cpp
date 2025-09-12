@@ -521,6 +521,7 @@ TEST_SUBMODULE(class_, m) {
     // test_exception_rvalue_abort
     struct PyPrintDestructor {
         PyPrintDestructor() = default;
+        PyPrintDestructor(const PyPrintDestructor &) = default;
         ~PyPrintDestructor() { py::print("Print from destructor"); }
         void throw_something() { throw std::runtime_error("error"); }
     };

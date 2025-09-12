@@ -22,6 +22,7 @@ private:
 
 public:
     explicit ProbeType(const std::string &unique_key) : unique_key{unique_key} {}
+    ProbeType(const ProbeType &) = default;
 
     ~ProbeType() {
         RegistryType &reg = PyGILState_Check_Results();
