@@ -159,12 +159,12 @@ public:
             auto &ha = m_repr.array;
             if (ha.size == N) {
                 move_to_vector_with_reserved_size(N + 1);
-                m_repr.vector.vec.push_back(x);
+                push_back_slow_path(x);
             } else {
                 ha.arr[ha.size++] = x;
             }
         } else {
-            m_repr.vector.vec.push_back(x);
+            push_back_slow_path(x);
         }
     }
 
@@ -179,7 +179,7 @@ public:
                 move_to_vector_with_reserved_size(sz);
             }
         } else {
-            m_repr.vector.vec.reserve(sz);
+            reserve_slow_path(sz);
         }
     }
 
@@ -187,7 +187,7 @@ private:
     using repr_type = inline_array_or_vector<handle, N>;
     repr_type m_repr;
 
-    void move_to_vector_with_reserved_size(std::size_t reserved_size) {
+    PYBIND11_NOINLINE void move_to_vector_with_reserved_size(std::size_t reserved_size) {
         assert(is_inline());
         auto &ha = m_repr.array;
         using heap_vector = typename repr_type::heap_vector;
@@ -196,6 +196,10 @@ private:
         std::copy(ha.arr.begin(), ha.arr.begin() + ha.size, std::back_inserter(hv.vec));
         new (&m_repr.vector) heap_vector(std::move(hv));
     }
+
+    PYBIND11_NOINLINE void push_back_slow_path(handle x) { m_repr.vector.vec.push_back(x); }
+
+    PYBIND11_NOINLINE void reserve_slow_path(std::size_t sz) { m_repr.vector.vec.reserve(sz); }
 
     bool is_inline() const { return m_repr.is_inline(); }
 };
@@ -253,7 +257,7 @@ public:
             auto &ha = m_repr.array;
             if (ha.size == kInlineSize) {
                 move_to_vector_with_reserved_size(kInlineSize + 1);
-                m_repr.vector.vec.push_back(b);
+                push_back_slow_path(b);
             } else {
                 assert(ha.size < kInlineSize);
                 const auto wbi = word_and_bit_index(ha.size++);
@@ -267,7 +271,7 @@ public:
                 assert(operator[](ha.size - 1) == b);
             }
         } else {
-            m_repr.vector.vec.push_back(b);
+            push_back_slow_path(b);
         }
     }
 
@@ -290,7 +294,7 @@ private:
         return m_repr.array.arr[wbi.word] & (std::size_t(1) << wbi.bit);
     }
 
-    void move_to_vector_with_reserved_size(std::size_t reserved_size) {
+    PYBIND11_NOINLINE void move_to_vector_with_reserved_size(std::size_t reserved_size) {
         auto &inline_arr = m_repr.array;
         using heap_vector = typename repr_type::heap_vector;
         heap_vector hv;
@@ -300,6 +304,8 @@ private:
         }
         new (&m_repr.vector) heap_vector(std::move(hv));
     }
+
+    PYBIND11_NOINLINE void push_back_slow_path(bool b) { m_repr.vector.vec.push_back(b); }
 
     static constexpr auto kBitsPerWord = 8 * sizeof(std::size_t);
     static constexpr auto kWords = (kRequestedInlineSize + kBitsPerWord - 1) / kBitsPerWord;
