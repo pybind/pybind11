@@ -39,6 +39,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
+//   REMINDER for next version bump: remove loader_life_support_tls
 #    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
@@ -260,7 +261,7 @@ struct internals {
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
-    thread_specific_storage<loader_life_support> loader_life_support_tls;
+    thread_specific_storage<loader_life_support> loader_life_support_tls; // OBSOLETE (PR #5830)
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
