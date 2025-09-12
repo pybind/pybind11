@@ -42,48 +42,38 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
 private:
+    // Thread-local top-of-stack for loader_life_support frames (linked via parent).
+    // Observation: loader_life_support needs to be thread-local,
+    // but we don't need to go to extra effort to keep it
+    // per-interpreter (i.e., by putting it in internals) since
+    // individual function calls are already isolated to a single
+    // interpreter, even though they could potentially call into a
+    // different interpreter later in the same call chain.  This
+    // saves a significant cost per function call spent in
+    // loader_life_support destruction.
+    // Note for future C++17 simplification:
+    // inline static thread_local loader_life_support *tls_current_frame = nullptr;
+    static loader_life_support *&tls_current_frame() {
+        static thread_local loader_life_support *frame_ptr = nullptr;
+        return frame_ptr;
+    }
+
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
-
-    struct fake_thread_specific_storage {
-        loader_life_support *instance = nullptr;
-        loader_life_support *get() const { return instance; }
-
-        fake_thread_specific_storage &operator=(loader_life_support *pval) {
-            instance = pval;
-            return *this;
-        }
-    };
-    using loader_storage = fake_thread_specific_storage;
-
-    static loader_storage &get_stack_top() {
-        // Observation: loader_life_support needs to be thread-local,
-        // but we don't need to go to extra effort to keep it
-        // per-interpreter (i.e., by putting it in internals) since
-        // individual function calls are already isolated to a single
-        // interpreter, even though they could potentially call into a
-        // different interpreter later in the same call chain.  This
-        // saves a significant cost per function call spent in
-        // loader_life_support destruction.
-        static thread_local fake_thread_specific_storage storage;
-        return storage;
-    }
 
 public:
     /// A new patient frame is created when a function is entered
     loader_life_support() {
-        auto &stack_top = get_stack_top();
-        parent = stack_top.get();
-        stack_top = this;
+        parent = tls_current_frame();
+        tls_current_frame() = this;
     }
 
     /// ... and destroyed after it returns
     ~loader_life_support() {
-        auto &stack_top = get_stack_top();
-        if (stack_top.get() != this) {
+        if (tls_current_frame() != this) {
             pybind11_fail("loader_life_support: internal error");
         }
-        stack_top = parent;
+        tls_current_frame() = parent;
         for (auto *item : keep_alive) {
             Py_DECREF(item);
         }
@@ -92,7 +82,7 @@ public:
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = get_stack_top().get();
+        loader_life_support *frame = tls_current_frame();
         if (!frame) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such
