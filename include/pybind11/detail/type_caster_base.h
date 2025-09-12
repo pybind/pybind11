@@ -604,7 +604,8 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-    valueptr = src_raw_void_ptr;
+    if (valueptr) {
+    }
 
     if (static_cast<void *>(src.get()) == src_raw_void_ptr) {
         // This is a multiple-inheritance situation that is incompatible with the current
@@ -671,7 +672,8 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-    valueptr = src_raw_void_ptr;
+    if (valueptr) {
+    }
 
     auto smhldr
         = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, const_cast<void *>(st.first)));
