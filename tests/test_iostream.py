@@ -8,6 +8,16 @@ import pytest
 
 from pybind11_tests import iostream as m
 
+if sys.platform == "win32":
+    wv_build = sys.getwindowsversion().build
+    skip_if_ge = 26100
+    if wv_build >= skip_if_ge:
+        pytest.skip(
+            f"Windows build {wv_build} >= {skip_if_ge}:"
+            " Skipping iostream capture (redirection regression under investigation)",
+            allow_module_level=True,
+        )
+
 
 def test_captured(capsys):
     msg = "I've been redirected to Python, I hope!"
