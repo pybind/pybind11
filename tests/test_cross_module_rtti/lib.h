@@ -12,6 +12,7 @@ __pragma(warning(disable : 4251))
     class TEST_CROSS_MODULE_RTTI_LIB_EXPORT Base : public std::enable_shared_from_this<Base> {
     public:
         Base(int a, int b);
+        Base(const Base &) = default;
         virtual ~Base() = default;
 
         virtual int get() const;

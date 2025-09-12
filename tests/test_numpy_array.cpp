@@ -282,6 +282,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     struct ArrayClass {
         int data[2] = {1, 2};
         ArrayClass() { py::print("ArrayClass()"); }
+        ArrayClass(const ArrayClass &) = default;
         ~ArrayClass() { py::print("~ArrayClass()"); }
     };
     py::class_<ArrayClass>(sm, "ArrayClass")
