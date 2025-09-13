@@ -514,15 +514,15 @@ public:
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_.get()) {
+            if (!tstate || tstate->interp != last_istate_tls()) {
                 gil_scoped_acquire_simple gil;
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
                 }
-                last_istate_ = tstate->interp;
-                internals_tls_p_ = get_or_create_pp_in_state_dict();
+                last_istate_tls() = tstate->interp;
+                internals_p_tls() = get_or_create_pp_in_state_dict();
             }
-            return internals_tls_p_.get();
+            return internals_p_tls();
         }
 #endif
         if (!internals_singleton_pp_) {
@@ -536,8 +536,8 @@ public:
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
-            last_istate_.reset();
-            internals_tls_p_.reset();
+            last_istate_tls() = nullptr;
+            internals_p_tls() = nullptr;
             return;
         }
 #endif
@@ -549,8 +549,8 @@ public:
         if (get_num_interpreters_seen() > 1) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_.get()) {
-                auto tpp = internals_tls_p_.get();
+            if (!tstate || tstate->interp == last_istate_tls()) {
+                auto tpp = internals_p_tls();
                 if (tpp) {
                     delete tpp;
                 }
@@ -589,12 +589,20 @@ private:
         return pp;
     }
 
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    static PyInterpreterState *&last_istate_tls() {
+        static thread_local PyInterpreterState *last_istate = nullptr;
+        return last_istate;
+    }
+
+    static std::unique_ptr<InternalsType> *&internals_p_tls() {
+        static thread_local std::unique_ptr<InternalsType> *internals_p = nullptr;
+        return internals_p;
+    }
+#endif
+
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    thread_specific_storage<PyInterpreterState> last_istate_;
-    thread_specific_storage<std::unique_ptr<InternalsType>> internals_tls_p_;
-#endif
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
