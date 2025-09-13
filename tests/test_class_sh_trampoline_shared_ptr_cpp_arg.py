@@ -70,7 +70,7 @@ def test_shared_ptr_arg_identity():
 
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
-def NOtest_shared_ptr_alias_nonpython():
+def test_shared_ptr_alias_nonpython():
     tester = m.SpBaseTester()
 
     # C++ creates the object, a python instance shouldn't exist
