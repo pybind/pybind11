@@ -324,7 +324,7 @@ There are three possible solutions:
    from CMake and rely on pybind11 in detecting Python version. If this is not
    possible, the CMake machinery should be called *before* including pybind11.
 2. Set ``PYBIND11_FINDPYTHON`` to ``True`` or use ``find_package(Python
-   COMPONENTS Development.Module)`` on modern CMake ( 3.18.2+ best).
+   COMPONENTS Interpreter Development)`` on modern CMake ( 3.18.2+ best).
    Pybind11 in these cases uses the new CMake FindPython instead of the old,
    deprecated search tools, and these modules are much better at finding the
    correct Python. If FindPythonLibs/Interp are not available (CMake 3.27+),
