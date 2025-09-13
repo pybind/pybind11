@@ -6,7 +6,18 @@ from io import StringIO
 
 import pytest
 
+import env
 from pybind11_tests import iostream as m
+
+if env.WIN:
+    wv_build = sys.getwindowsversion().build
+    skip_if_ge = 26100
+    if wv_build >= skip_if_ge:
+        pytest.skip(
+            f"Windows build {wv_build} >= {skip_if_ge}:"
+            " Skipping iostream capture (redirection regression needs investigation)",
+            allow_module_level=True,
+        )
 
 
 def test_captured(capsys):
