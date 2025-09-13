@@ -77,13 +77,13 @@ default to ``ON``.
 New FindPython mode
 ^^^^^^^^^^^^^^^^^^^
 
-To activate this mode, either call ``find_package(Python COMPONENTS Development.Module)``
+To activate this mode, either call ``find_package(Python COMPONENTS Interpreter Development)``
 before finding this package, or set the ``PYBIND11_FINDPYTHON`` variable to ON. In this mode,
 you can either use the basic targets, or use the FindPython tools:
 
 .. code-block:: cmake
 
-  find_package(Python COMPONENTS Development.Module)
+  find_package(Python COMPONENTS Interpreter Development)
   find_package(pybind11 CONFIG)
 
   # pybind11 method:
