@@ -54,16 +54,22 @@ struct Diamond : Left, Right {
     int self_tag = 99;
 };
 
+// Factory that returns the *virtual base* type (raw pointer)
+VBase *make_diamond_as_vbase_raw_ptr() {
+    auto ptr = new Diamond;
+    return ptr; // upcast
+}
+
 // Factory that returns the *virtual base* type (shared_ptr)
 std::shared_ptr<VBase> make_diamond_as_vbase_shared_ptr() {
     auto shptr = std::make_shared<Diamond>();
-    return shptr; // upcast to VBase shared_ptr (virtual base)
+    return shptr; // upcast
 }
 
 // Factory that returns the *virtual base* type (unique_ptr)
 std::unique_ptr<VBase> make_diamond_as_vbase_unique_ptr() {
     auto uqptr = std::unique_ptr<Diamond>(new Diamond);
-    return uqptr; // upcast to VBase unique_ptr (virtual base)
+    return uqptr; // upcast
 }
 
 // For diagnostics / skip decisions in test
@@ -152,6 +158,9 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
         .def(py::init<>())
         .def("ping", &Diamond::ping);
 
+    m.def("make_diamond_as_vbase_raw_ptr",
+          &make_diamond_as_vbase_raw_ptr,
+          py::return_value_policy::take_ownership);
     m.def("make_diamond_as_vbase_shared_ptr", &make_diamond_as_vbase_shared_ptr);
     m.def("make_diamond_as_vbase_unique_ptr", &make_diamond_as_vbase_unique_ptr);
 

@@ -62,11 +62,12 @@ def test_virtual_base_at_offset_0():
 @pytest.mark.parametrize(
     "make_fn",
     [
+        m.make_diamond_as_vbase_raw_ptr,  # exercises smart_holder::from_raw_ptr_take_ownership
         m.make_diamond_as_vbase_shared_ptr,  # exercises smart_holder_from_shared_ptr
         m.make_diamond_as_vbase_unique_ptr,  # exercises smart_holder_from_unique_ptr
     ],
 )
-def test_shared_ptr_return_to_virtual_base_triggers_vi_path(make_fn):
+def test_make_diamond_as_vbase(make_fn):
     # See PR #5836 for background
     vb = make_fn()
     assert vb.ping() == 7
