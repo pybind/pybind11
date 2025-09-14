@@ -41,11 +41,9 @@ struct VBase {
 // Left/right add some weight to steer layout differences across compilers
 struct Left : virtual VBase {
     char pad_l[7];
-    virtual ~Left() = default;
 };
 struct Right : virtual VBase {
     long long pad_r;
-    virtual ~Right() = default;
 };
 
 struct Diamond : Left, Right {
