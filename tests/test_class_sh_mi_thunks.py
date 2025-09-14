@@ -51,3 +51,19 @@ def test_get_shared_vec_size_unique():
     assert (
         str(exc_info.value) == "Cannot disown external shared_ptr (load_as_unique_ptr)."
     )
+
+
+def _delta_nonzero():
+    a = m.diamond_addrs()
+    return (a.as_vbase - a.as_self) != 0
+
+
+@pytest.mark.skipif(
+    not _delta_nonzero(), reason="virtual base at offset 0 on this compiler/layout"
+)
+def test_shared_ptr_return_to_virtual_base_triggers_vi_path():
+    # This exercised the broken seam pre-fix.
+    vb = m.make_diamond_as_vbase()
+    # If registration used the wrong subobject, this would crash pre-fix on MSVC
+    # and often on Linux with diamond MI (or under ASan/UBSan).
+    assert vb.ping() == 7

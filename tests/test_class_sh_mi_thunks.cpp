@@ -30,6 +30,54 @@ struct Derived : Base1, Base0 {
     Derived(const Derived &) = delete;
 };
 
+// ChatGPT-generated Diamond
+
+struct VBase {
+    virtual ~VBase() = default;
+    virtual int ping() const { return 1; }
+    int vbase_tag = 42; // ensure it's not empty
+};
+
+// Left/right add some weight to steer layout differences across compilers
+struct Left : virtual VBase {
+    char pad_l[7];
+    virtual ~Left() = default;
+};
+struct Right : virtual VBase {
+    long long pad_r;
+    virtual ~Right() = default;
+};
+
+struct Diamond : Left, Right {
+    Diamond() = default;
+    Diamond(const Diamond &) = default;
+    ~Diamond() override = default;
+    int ping() const override { return 7; }
+    int self_tag = 99;
+};
+
+// Factory that returns the *virtual base* type; this is the seam
+std::shared_ptr<VBase> make_diamond_as_vbase() {
+    auto sp = std::make_shared<Diamond>();
+    return sp; // upcast to VBase shared_ptr (virtual base)
+}
+
+// For diagnostics / skip decisions in test
+struct DiamondAddrs {
+    uintptr_t as_self;
+    uintptr_t as_vbase;
+    uintptr_t as_left;
+    uintptr_t as_right;
+};
+
+DiamondAddrs diamond_addrs() {
+    auto sp = std::make_shared<Diamond>();
+    return DiamondAddrs{reinterpret_cast<uintptr_t>(sp.get()),
+                        reinterpret_cast<uintptr_t>(static_cast<VBase *>(sp.get())),
+                        reinterpret_cast<uintptr_t>(static_cast<Left *>(sp.get())),
+                        reinterpret_cast<uintptr_t>(static_cast<Right *>(sp.get()))};
+}
+
 } // namespace test_class_sh_mi_thunks
 
 TEST_SUBMODULE(class_sh_mi_thunks, m) {
@@ -90,4 +138,23 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
         }
         return obj_der->vec.size();
     });
+
+    py::class_<VBase, py::smart_holder>(m, "VBase").def("ping", &VBase::ping);
+
+    py::class_<Left, VBase, py::smart_holder>(m, "Left");
+    py::class_<Right, VBase, py::smart_holder>(m, "Right");
+
+    py::class_<Diamond, Left, Right, py::smart_holder>(m, "Diamond", py::multiple_inheritance())
+        .def(py::init<>())
+        .def("ping", &Diamond::ping);
+
+    m.def("make_diamond_as_vbase", &make_diamond_as_vbase);
+
+    py::class_<DiamondAddrs, py::smart_holder>(m, "DiamondAddrs")
+        .def_readonly("as_self", &DiamondAddrs::as_self)
+        .def_readonly("as_vbase", &DiamondAddrs::as_vbase)
+        .def_readonly("as_left", &DiamondAddrs::as_left)
+        .def_readonly("as_right", &DiamondAddrs::as_right);
+
+    m.def("diamond_addrs", &diamond_addrs);
 }
