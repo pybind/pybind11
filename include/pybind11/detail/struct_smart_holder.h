@@ -349,8 +349,10 @@ struct smart_holder {
             = hld.vptr_is_using_std_default_delete
                   ? make_guarded_std_default_delete<T>(true)
                   : make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
-        T *owned_raw = unq_ptr.release(); // pointer we intend to delete
-        std::shared_ptr<T> owner(owned_raw, std::move(gd));
+        // Critical: construct owner with pointer we intend to delete
+        std::shared_ptr<T> owner(unq_ptr.get(), std::move(gd));
+        // Relinquish ownership only after successful construction of owner
+        (void) unq_ptr.release();
 
         // Publish either the subobject alias (for identity/VI) or the full object.
         if (alias_ptr) {
