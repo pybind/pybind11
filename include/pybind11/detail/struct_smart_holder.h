@@ -339,7 +339,7 @@ struct smart_holder {
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
-                                        void *alias_ptr = nullptr) {
+                                        void *mi_subobject_ptr = nullptr) {
         smart_holder hld;
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_std_default_delete = uqp_del_is_std_default_delete<T, D>();
@@ -355,8 +355,8 @@ struct smart_holder {
         (void) unq_ptr.release();
 
         // Publish either the subobject alias (for identity/VI) or the full object.
-        if (alias_ptr) {
-            hld.vptr = std::shared_ptr<void>(owner, alias_ptr); // aliasing shared_ptr
+        if (mi_subobject_ptr) {
+            hld.vptr = std::shared_ptr<void>(owner, mi_subobject_ptr);
         } else {
             hld.vptr = std::static_pointer_cast<void>(owner);
         }
