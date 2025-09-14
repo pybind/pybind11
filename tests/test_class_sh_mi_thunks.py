@@ -59,9 +59,14 @@ def test_virtual_base_at_offset_0():
         pytest.skip("virtual base at offset 0 on this compiler/layout")
 
 
-def test_shared_ptr_return_to_virtual_base_triggers_vi_path():
-    # This exercised the broken seam pre-fix.
-    vb = m.make_diamond_as_vbase()
-    # If registration used the wrong subobject, this would crash pre-fix on MSVC
-    # and often on Linux with diamond MI (or under ASan/UBSan).
+@pytest.mark.parametrize(
+    "make_fn",
+    [
+        m.make_diamond_as_vbase_shared_ptr,  # exercises smart_holder_from_shared_ptr
+        m.make_diamond_as_vbase_unique_ptr,  # exercises smart_holder_from_unique_ptr
+    ],
+)
+def test_shared_ptr_return_to_virtual_base_triggers_vi_path(make_fn):
+    # See PR #5836 for background
+    vb = make_fn()
     assert vb.ping() == 7
