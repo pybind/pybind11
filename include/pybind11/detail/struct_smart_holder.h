@@ -339,22 +339,26 @@ struct smart_holder {
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
-                                        void *void_ptr = nullptr) {
+                                        void *alias_ptr = nullptr) {
         smart_holder hld;
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_std_default_delete = uqp_del_is_std_default_delete<T, D>();
-        guarded_delete gd{nullptr, false};
-        if (hld.vptr_is_using_std_default_delete) {
-            gd = make_guarded_std_default_delete<T>(true);
+
+        // Build the owning control block on the *real object start* (T*).
+        guarded_delete gd
+            = hld.vptr_is_using_std_default_delete
+                  ? make_guarded_std_default_delete<T>(true)
+                  : make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
+        T *owned_raw = unq_ptr.release(); // pointer we intend to delete
+        std::shared_ptr<T> owner(owned_raw, std::move(gd));
+
+        // Publish either the subobject alias (for identity/VI) or the full object.
+        if (alias_ptr) {
+            hld.vptr = std::shared_ptr<void>(owner, alias_ptr); // aliasing shared_ptr
         } else {
-            gd = make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
+            hld.vptr = std::static_pointer_cast<void>(owner);
         }
-        if (void_ptr != nullptr) {
-            hld.vptr.reset(void_ptr, std::move(gd));
-        } else {
-            hld.vptr.reset(unq_ptr.get(), std::move(gd));
-        }
-        (void) unq_ptr.release();
+
         hld.is_populated = true;
         return hld;
     }
