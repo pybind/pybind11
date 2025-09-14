@@ -35,6 +35,11 @@ struct Derived : Base1, Base0 {
 // ChatGPT-generated Diamond added under PR #5836
 
 struct VBase {
+    VBase() = default;
+    VBase(const VBase &) = default; // silence -Wdeprecated-copy-with-dtor
+    VBase &operator=(const VBase &) = default;
+    VBase(VBase &&) = default;
+    VBase &operator=(VBase &&) = default;
     virtual ~VBase() = default;
     virtual int ping() const { return 1; }
     int vbase_tag = 42; // ensure it's not empty
