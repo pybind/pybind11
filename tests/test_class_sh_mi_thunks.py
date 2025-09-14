@@ -71,3 +71,17 @@ def test_make_diamond_as_vbase(make_fn):
     # See PR #5836 for background
     vb = make_fn()
     assert vb.ping() == 7
+
+
+@pytest.mark.parametrize(
+    "clone_fn",
+    [
+        m.Tiger.clone_raw_ptr,
+        m.Tiger.clone_shared_ptr,
+        m.Tiger.clone_unique_ptr,
+    ],
+)
+def test_animal_cat_tiger(clone_fn):
+    tiger = m.Tiger()
+    cloned = clone_fn(tiger)
+    assert isinstance(cloned, m.Tiger)

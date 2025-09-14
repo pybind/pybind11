@@ -88,6 +88,45 @@ DiamondAddrs diamond_addrs() {
                         reinterpret_cast<uintptr_t>(static_cast<Right *>(sp.get()))};
 }
 
+// Animal-Cat-Tiger reproducer copied from PR #5796.
+// clone_raw_ptr, clone_unique_ptr added in PR #5836.
+
+class Animal {
+public:
+    Animal() = default;
+    Animal(const Animal &) = default;
+    Animal &operator=(const Animal &) = default;
+    virtual Animal *clone_raw_ptr() const = 0;
+    virtual std::shared_ptr<Animal> clone_shared_ptr() const = 0;
+    virtual std::unique_ptr<Animal> clone_unique_ptr() const = 0;
+    virtual ~Animal() = default;
+};
+
+class Cat : virtual public Animal {
+public:
+    Cat() = default;
+    Cat(const Cat &) = default;
+    Cat &operator=(const Cat &) = default;
+    ~Cat() override = default;
+};
+
+class Tiger : virtual public Cat {
+public:
+    Tiger() = default;
+    Tiger(const Tiger &) = default;
+    Tiger &operator=(const Tiger &) = default;
+    ~Tiger() override = default;
+    Animal *clone_raw_ptr() const override {
+        return new Tiger(*this); // upcast
+    }
+    std::shared_ptr<Animal> clone_shared_ptr() const override {
+        return std::make_shared<Tiger>(*this); // upcast
+    }
+    std::unique_ptr<Animal> clone_unique_ptr() const override {
+        return std::unique_ptr<Tiger>(new Tiger(*this)); // upcast
+    }
+};
+
 } // namespace test_class_sh_mi_thunks
 
 TEST_SUBMODULE(class_sh_mi_thunks, m) {
@@ -171,4 +210,12 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
         .def_readonly("as_right", &DiamondAddrs::as_right);
 
     m.def("diamond_addrs", &diamond_addrs);
+
+    py::classh<Animal>(m, "Animal");
+    py::classh<Cat, Animal>(m, "Cat");
+    py::classh<Tiger, Cat>(m, "Tiger", py::multiple_inheritance())
+        .def(py::init<>())
+        .def("clone_raw_ptr", &Tiger::clone_raw_ptr)
+        .def("clone_shared_ptr", &Tiger::clone_shared_ptr)
+        .def("clone_unique_ptr", &Tiger::clone_unique_ptr);
 }
