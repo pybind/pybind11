@@ -56,6 +56,7 @@ def test_get_shared_vec_size_unique():
 def test_virtual_base_at_offset_0():
     addrs = m.diamond_addrs()
     if addrs.as_vbase - addrs.as_self == 0:
+        # Not an actual skip, just a trick generate a message in the pytest summary
         pytest.skip("virtual base at offset 0 on this compiler/layout")
 
 
@@ -68,7 +69,7 @@ def test_virtual_base_at_offset_0():
     ],
 )
 def test_make_diamond_as_vbase(make_fn):
-    # See PR #5836 for background
+    # Added under PR #5836
     vb = make_fn()
     assert vb.ping() == 7
 
@@ -82,6 +83,7 @@ def test_make_diamond_as_vbase(make_fn):
     ],
 )
 def test_animal_cat_tiger(clone_fn):
+    # Based on Animal-Cat-Tiger reproducer under PR #5796
     tiger = m.Tiger()
     cloned = clone_fn(tiger)
     assert isinstance(cloned, m.Tiger)

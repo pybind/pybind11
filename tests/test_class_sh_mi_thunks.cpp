@@ -10,6 +10,8 @@ namespace test_class_sh_mi_thunks {
 // C++ vtables - Part 2 - Multiple Inheritance
 // ... the compiler creates a 'thunk' method that corrects `this` ...
 
+// This test was added under PR #4380
+
 struct Base0 {
     virtual ~Base0() = default;
     Base0() = default;
@@ -30,7 +32,7 @@ struct Derived : Base1, Base0 {
     Derived(const Derived &) = delete;
 };
 
-// ChatGPT-generated Diamond. See PR #5836 for background.
+// ChatGPT-generated Diamond added under PR #5836
 
 struct VBase {
     virtual ~VBase() = default;
@@ -41,9 +43,11 @@ struct VBase {
 // Left/right add some weight to steer layout differences across compilers
 struct Left : virtual VBase {
     char pad_l[7];
+    ~Left() override = default;
 };
 struct Right : virtual VBase {
     long long pad_r;
+    ~Right() override = default;
 };
 
 struct Diamond : Left, Right {
@@ -54,25 +58,22 @@ struct Diamond : Left, Right {
     int self_tag = 99;
 };
 
-// Factory that returns the *virtual base* type (raw pointer)
 VBase *make_diamond_as_vbase_raw_ptr() {
     auto ptr = new Diamond;
     return ptr; // upcast
 }
 
-// Factory that returns the *virtual base* type (shared_ptr)
 std::shared_ptr<VBase> make_diamond_as_vbase_shared_ptr() {
     auto shptr = std::make_shared<Diamond>();
     return shptr; // upcast
 }
 
-// Factory that returns the *virtual base* type (unique_ptr)
 std::unique_ptr<VBase> make_diamond_as_vbase_unique_ptr() {
     auto uqptr = std::unique_ptr<Diamond>(new Diamond);
     return uqptr; // upcast
 }
 
-// For diagnostics / skip decisions in test
+// For diagnostics
 struct DiamondAddrs {
     uintptr_t as_self;
     uintptr_t as_vbase;
@@ -88,8 +89,8 @@ DiamondAddrs diamond_addrs() {
                         reinterpret_cast<uintptr_t>(static_cast<Right *>(sp.get()))};
 }
 
-// Animal-Cat-Tiger reproducer copied from PR #5796.
-// clone_raw_ptr, clone_unique_ptr added in PR #5836.
+// Animal-Cat-Tiger reproducer copied from PR #5796
+// clone_raw_ptr, clone_unique_ptr added under PR #5836
 
 class Animal {
 public:
