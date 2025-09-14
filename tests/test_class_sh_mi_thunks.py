@@ -53,14 +53,12 @@ def test_get_shared_vec_size_unique():
     )
 
 
-def _delta_nonzero():
-    a = m.diamond_addrs()
-    return (a.as_vbase - a.as_self) != 0
+def test_virtual_base_at_offset_0():
+    addrs = m.diamond_addrs()
+    if addrs.as_vbase - addrs.as_self == 0:
+        pytest.skip("virtual base at offset 0 on this compiler/layout")
 
 
-@pytest.mark.skipif(
-    not _delta_nonzero(), reason="virtual base at offset 0 on this compiler/layout"
-)
 def test_shared_ptr_return_to_virtual_base_triggers_vi_path():
     # This exercised the broken seam pre-fix.
     vb = m.make_diamond_as_vbase()
