@@ -64,7 +64,7 @@ struct Diamond : Left, Right {
 };
 
 VBase *make_diamond_as_vbase_raw_ptr() {
-    auto ptr = new Diamond;
+    auto *ptr = new Diamond;
     return ptr; // upcast
 }
 
