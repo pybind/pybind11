@@ -26,6 +26,7 @@ MANIFEST
 /.ninja_*
 /*.ninja
 /docs/.build
+__pycache__/
 *.py[co]
 *.egg-info
 *~
