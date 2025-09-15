@@ -502,8 +502,11 @@ template <typename InternalsType>
 class internals_pp_manager {
 public:
     using on_fetch_function = void(InternalsType *);
-    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
-        : holder_id_(id), on_fetch_(on_fetch) {}
+
+    inline static internals_pp_manager &get_instance(char const *id, on_fetch_function *on_fetch) {
+        static internals_pp_manager instance(id, on_fetch);
+        return instance;
+    }
 
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
@@ -514,15 +517,15 @@ public:
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_.get()) {
+            if (!tstate || tstate->interp != last_istate_tls()) {
                 gil_scoped_acquire_simple gil;
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
                 }
-                last_istate_ = tstate->interp;
-                internals_tls_p_ = get_or_create_pp_in_state_dict();
+                last_istate_tls() = tstate->interp;
+                internals_p_tls() = get_or_create_pp_in_state_dict();
             }
-            return internals_tls_p_.get();
+            return internals_p_tls();
         }
 #endif
         if (!internals_singleton_pp_) {
@@ -536,8 +539,8 @@ public:
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
-            last_istate_.reset();
-            internals_tls_p_.reset();
+            last_istate_tls() = nullptr;
+            internals_p_tls() = nullptr;
             return;
         }
 #endif
@@ -549,8 +552,8 @@ public:
         if (get_num_interpreters_seen() > 1) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_.get()) {
-                auto tpp = internals_tls_p_.get();
+            if (!tstate || tstate->interp == last_istate_tls()) {
+                auto tpp = internals_p_tls();
                 if (tpp) {
                     delete tpp;
                 }
@@ -564,6 +567,9 @@ public:
     }
 
 private:
+    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
+        : holder_id_(id), on_fetch_(on_fetch) {}
+
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
         error_scope err_scope;
         dict state_dict = get_python_state_dict();
@@ -589,12 +595,20 @@ private:
         return pp;
     }
 
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    static PyInterpreterState *&last_istate_tls() {
+        static thread_local PyInterpreterState *last_istate = nullptr;
+        return last_istate;
+    }
+
+    static std::unique_ptr<InternalsType> *&internals_p_tls() {
+        static thread_local std::unique_ptr<InternalsType> *internals_p = nullptr;
+        return internals_p;
+    }
+#endif
+
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    thread_specific_storage<PyInterpreterState> last_istate_;
-    thread_specific_storage<std::unique_ptr<InternalsType>> internals_tls_p_;
-#endif
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
@@ -624,10 +638,8 @@ inline internals_pp_manager<internals> &get_internals_pp_manager() {
 #else
 #    define ON_FETCH_FN &check_internals_local_exception_translator
 #endif
-    static internals_pp_manager<internals> internals_pp_manager(PYBIND11_INTERNALS_ID,
-                                                                ON_FETCH_FN);
+    return internals_pp_manager<internals>::get_instance(PYBIND11_INTERNALS_ID, ON_FETCH_FN);
 #undef ON_FETCH_FN
-    return internals_pp_manager;
 }
 
 /// Return a reference to the current `internals` data
@@ -655,9 +667,7 @@ inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
     static const std::string this_module_idstr
         = PYBIND11_MODULE_LOCAL_ID
           + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-    static internals_pp_manager<local_internals> local_internals_pp_manager(
-        this_module_idstr.c_str(), nullptr);
-    return local_internals_pp_manager;
+    return internals_pp_manager<local_internals>::get_instance(this_module_idstr.c_str(), nullptr);
 }
 
 /// Works like `get_internals`, but for things which are locally registered.
