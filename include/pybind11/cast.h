@@ -1400,7 +1400,7 @@ struct handle_type_name<buffer> {
 };
 template <>
 struct handle_type_name<int_> {
-    static constexpr auto name = io_name("typing.SupportsInt", "int");
+    static constexpr auto name = const_name("int");
 };
 template <>
 struct handle_type_name<iterable> {
@@ -1409,10 +1409,6 @@ struct handle_type_name<iterable> {
 template <>
 struct handle_type_name<iterator> {
     static constexpr auto name = const_name("collections.abc.Iterator");
-};
-template <>
-struct handle_type_name<float_> {
-    static constexpr auto name = io_name("typing.SupportsFloat", "float");
 };
 template <>
 struct handle_type_name<function> {
@@ -1532,6 +1528,26 @@ struct pyobject_caster {
 
 template <typename T>
 class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caster<T> {};
+
+template <>
+struct type_caster<float_> {
+    PYBIND11_TYPE_CASTER(float_, const_name("float"));
+
+    bool load(handle src, bool /* convert */) {
+        if (isinstance<float_>(src)) {
+            value = reinterpret_borrow<float_>(src);
+        } else if (isinstance<int_>(src)) {
+            value = float_(reinterpret_steal<int_>(src));
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
+        return src.inc_ref();
+    }
+};
 
 // Our conditions for enabling moving are quite restrictive:
 // At compile time:
