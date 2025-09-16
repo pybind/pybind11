@@ -1,9 +1,9 @@
 #pragma once
 
-#include <atomic>
-
-#include <pybind11/pybind11.h>
 #include <pybind11/native_enum.h>
+#include <pybind11/pybind11.h>
+
+#include <atomic>
 
 struct PYBIND11_EXPORT_EXCEPTION SharedExc {
     int value;
@@ -20,31 +20,33 @@ struct Shared {
         std::atomic<int> moved{0};
         std::atomic<int> destroyed{0};
     };
-    static Stats& stats() {
+    static Stats &stats() {
         static Stats st;
         return st;
     }
 
     Shared(int v = 0) : value(v) { ++stats().constructed; }
-    Shared(const Shared& other) : value(other.value) { ++stats().copied; }
-    Shared(Shared&& other) noexcept : value(other.value) { ++stats().moved; }
+    Shared(const Shared &other) : value(other.value) { ++stats().copied; }
+    Shared(Shared &&other) noexcept : value(other.value) { ++stats().moved; }
     ~Shared() { ++stats().destroyed; }
 
     static Shared make(int v) { return Shared{v}; }
     static std::shared_ptr<Shared> make_sp(int v) { return std::make_shared<Shared>(v); }
-    static std::unique_ptr<Shared> make_up(int v) { return std::unique_ptr<Shared>(new Shared{v}); }
+    static std::unique_ptr<Shared> make_up(int v) {
+        return std::unique_ptr<Shared>(new Shared{v});
+    }
     static Enum make_enum(int v) { return Enum(v); }
 
-    static int check(const Shared& s) { return s.value; }
+    static int check(const Shared &s) { return s.value; }
     static int check_sp(std::shared_ptr<Shared> s) { return s->value; }
     static int check_up(std::unique_ptr<Shared> s) { return s->value; }
     static int check_enum(Enum e) { return (int) e; }
 
-    static long uses(const std::shared_ptr<Shared>& s) { return s.use_count(); }
+    static long uses(const std::shared_ptr<Shared> &s) { return s.use_count(); }
 
     static pybind11::dict pull_stats() {
         pybind11::dict ret;
-        auto& st = stats();
+        auto &st = stats();
         ret["construct"] = st.constructed.exchange(0);
         ret["copy"] = st.copied.exchange(0);
         ret["move"] = st.moved.exchange(0);
@@ -61,8 +63,10 @@ struct Shared {
         } else {
             // non-smart holder can't bind a unique_ptr return when the
             // holder type is shared_ptr
-            m.def("make_up", [](int v) { return make_up(v).release(); },
-                  pybind11::return_value_policy::take_ownership);
+            m.def(
+                "make_up",
+                [](int v) { return make_up(v).release(); },
+                pybind11::return_value_policy::take_ownership);
         }
         m.def("make_enum", &make_enum);
         m.def("check", &check);
@@ -83,11 +87,9 @@ struct Shared {
 
     template <bool SmartHolder>
     static void bind_types(pybind11::handle scope) {
-        using Holder = typename std::conditional<SmartHolder,
-                                                 pybind11::smart_holder,
-                                                 std::shared_ptr<Shared>>::type;
-        pybind11::class_<Shared, Holder>(scope, "Shared")
-            .def_readonly("value", &Shared::value);
+        using Holder = typename std::
+            conditional<SmartHolder, pybind11::smart_holder, std::shared_ptr<Shared>>::type;
+        pybind11::class_<Shared, Holder>(scope, "Shared").def_readonly("value", &Shared::value);
         pybind11::native_enum<Enum>(scope, "SharedEnum", "enum.Enum")
             .value("One", Enum::One)
             .value("Two", Enum::Two)

@@ -96,7 +96,7 @@ public:
 
         type_caster_base<EnumType> legacy_caster;
         if (legacy_caster.load(src, convert)) {
-            legacy_ptr = static_cast<EnumType*>(legacy_caster);
+            legacy_ptr = static_cast<EnumType *>(legacy_caster);
             return true;
         }
         return false;
@@ -106,14 +106,13 @@ public:
     using cast_op_type = detail::cast_op_type<T>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType *() {
-        return native_loaded ? &native_value : legacy_ptr;
-    }
+    operator EnumType *() { return native_loaded ? &native_value : legacy_ptr; }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator EnumType &() {
-        return native_loaded ? native_value :
-                  legacy_ptr ? *legacy_ptr : throw reference_cast_error();
+        return native_loaded ? native_value
+               : legacy_ptr  ? *legacy_ptr
+                             : throw reference_cast_error();
     }
 
 private:

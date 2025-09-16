@@ -1,15 +1,15 @@
 # Copyright (c) 2025 The pybind Community.
+from __future__ import annotations
 
 import collections
-import itertools
 import gc
+import itertools
 import sys
-import time
 import threading
+import time
 import weakref
 
 import pytest
-
 import test_interop_1 as t1
 import test_interop_2 as t2
 import test_interop_3 as t3
@@ -36,7 +36,7 @@ free_threaded = hasattr(sys, "_is_gil_enabled") and not sys._is_gil_enabled()
 
 def delattr_and_ensure_destroyed(*specs):
     wrs = []
-    for (mod, name) in specs:
+    for mod, name in specs:
         wrs.append(weakref.ref(getattr(mod, name)))
         delattr(mod, name)
 
@@ -46,11 +46,8 @@ def delattr_and_ensure_destroyed(*specs):
             break
     else:
         pytest.fail(
-            "Could not delete bindings such as {!r}".format(
-                next(wr for wr in wrs if wr() is not None)
-            )
+            f"Could not delete bindings such as {next(wr for wr in wrs if wr() is not None)!r}"
         )
-
 
 
 @pytest.fixture(autouse=True)

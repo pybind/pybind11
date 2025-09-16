@@ -11,8 +11,9 @@
 // modules from each other and from the rest of the pybind11 tests
 #define PYBIND11_INTERNALS_VERSION 300
 
-#include <pybind11/pybind11.h>
 #include <pybind11/contrib/pymetabind.h>
+#include <pybind11/pybind11.h>
+
 #include "test_interop.h"
 
 namespace py = pybind11;
@@ -49,8 +50,7 @@ static PyObject *Shared_new(PyTypeObject *type, Shared *value, pymb_rv_policy rv
     struct raw_shared_instance *self;
     self = PyObject_New(raw_shared_instance, type);
     if (self) {
-        memset((char *) self + sizeof(PyObject), 0,
-               sizeof(*self) - sizeof(PyObject));
+        memset((char *) self + sizeof(PyObject), 0, sizeof(*self) - sizeof(PyObject));
         self->spacer[0] = 0x5a5a5a5a;
         self->spacer[1] = 0xa5a5a5a5;
         switch (rvp) {
@@ -59,13 +59,13 @@ static PyObject *Shared_new(PyTypeObject *type, Shared *value, pymb_rv_policy rv
                 self->deallocate = self->destroy = true;
                 break;
             case pymb_rv_policy_copy:
-                new(&self->value) Shared(*value);
+                new (&self->value) Shared(*value);
                 self->ptr = &self->value;
                 self->deallocate = false;
                 self->destroy = true;
                 break;
             case pymb_rv_policy_move:
-                new(&self->value) Shared(std::move(*value));
+                new (&self->value) Shared(std::move(*value));
                 self->ptr = &self->value;
                 self->deallocate = false;
                 self->destroy = true;
@@ -116,8 +116,11 @@ static void hook_ignore_foreign_framework(pymb_framework *) noexcept {}
 
 PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
     static PyMemberDef Shared_members[] = {
-        {"__weaklistoffset__", Py_T_PYSSIZET,
-         offsetof(struct raw_shared_instance, weakrefs), Py_READONLY, nullptr},
+        {"__weaklistoffset__",
+         Py_T_PYSSIZET,
+         offsetof(struct raw_shared_instance, weakrefs),
+         Py_READONLY,
+         nullptr},
         {nullptr, 0, 0, 0, nullptr},
     };
     static PyType_Slot Shared_slots[] = {
@@ -145,13 +148,9 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
     fw->abi_lang = pymb_abi_lang_c;
     fw->from_python = hook_from_python;
     fw->to_python = hook_to_python;
-    fw->keep_alive = [](PyObject *, void *, void (*)(void *)) noexcept {
-        return 0;
-    };
+    fw->keep_alive = [](PyObject *, void *, void (*)(void *)) noexcept { return 0; };
     fw->remove_local_binding = [](pymb_binding *) noexcept {};
-    fw->free_local_binding = [](pymb_binding *binding) noexcept {
-        delete binding;
-    };
+    fw->free_local_binding = [](pymb_binding *binding) noexcept { delete binding; };
     fw->add_foreign_binding = hook_ignore_foreign_binding;
     fw->remove_foreign_binding = hook_ignore_foreign_binding;
     fw->add_foreign_framework = hook_ignore_foreign_framework;
@@ -166,9 +165,7 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
         throw py::error_already_set();
 
     Shared::bind_funcs</*SmartHolder=*/true>(m);
-    m.def("bind_types", [hm = py::handle(m)]() {
-        Shared::bind_types</*SmartHolder=*/true>(hm);
-    });
+    m.def("bind_types", [hm = py::handle(m)]() { Shared::bind_types</*SmartHolder=*/true>(hm); });
 
     m.def("export_raw_binding", [hm = py::handle(m)]() {
         auto type = hm.attr("RawShared");
@@ -197,7 +194,7 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
         // here won't be re-added if `import_all` is called
         py::list bound;
         pymb_lock_registry(registry);
-        PYMB_LIST_FOREACH(struct pymb_binding*, binding, registry->bindings) {
+        PYMB_LIST_FOREACH(struct pymb_binding *, binding, registry->bindings) {
             bound.append(py::reinterpret_borrow<py::object>((PyObject *) binding->pytype));
         }
         pymb_unlock_registry(registry);

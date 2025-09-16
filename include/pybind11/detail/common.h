@@ -276,18 +276,16 @@
 
 // 3.14 Compatibility
 #if !defined(Py_GIL_DISABLED)
-inline bool is_uniquely_referenced(PyObject *obj) {
-    return Py_REFCNT(obj) == 1;
-}
+inline bool is_uniquely_referenced(PyObject *obj) { return Py_REFCNT(obj) == 1; }
 #elif 0x030E0000 <= PY_VERSION_HEX
 inline bool is_uniquely_referenced(PyObject *obj) {
     return PyUnstable_Object_IsUniquelyReferenced(obj);
 }
 #else // backport for 3.13
 inline bool is_uniquely_referenced(PyObject *obj) {
-    return _Py_IsOwnedByCurrentThread(obj) &&
-           _Py_atomic_load_uint32_relaxed(&ob->ob_ref_local) == 1 &&
-           _Py_atomic_load_ssize_relaxed(&ob->ob_ref_shared) == 0;
+    return _Py_IsOwnedByCurrentThread(obj)
+           && _Py_atomic_load_uint32_relaxed(&ob->ob_ref_local) == 1
+           && _Py_atomic_load_ssize_relaxed(&ob->ob_ref_shared) == 0;
 }
 #endif
 
@@ -1369,13 +1367,13 @@ constexpr
 #endif
 
 #if defined(PY_BIG_ENDIAN)
-#  define PYBIND11_BIG_ENDIAN PY_BIG_ENDIAN
+#    define PYBIND11_BIG_ENDIAN PY_BIG_ENDIAN
 #else // pypy doesn't define PY_BIG_ENDIAN
-#  if defined(_MSC_VER)
-#    define PYBIND11_BIG_ENDIAN 0 // All Windows platforms are little-endian
-#  else // GCC and Clang define the following macros
-#    define PYBIND11_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#  endif
+#    if defined(_MSC_VER)
+#        define PYBIND11_BIG_ENDIAN 0 // All Windows platforms are little-endian
+#    else                             // GCC and Clang define the following macros
+#        define PYBIND11_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#    endif
 #endif
 
 PYBIND11_NAMESPACE_END(detail)

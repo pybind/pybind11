@@ -9,10 +9,10 @@
 
 #pragma once
 
+#include <pybind11/contrib/pymetabind.h>
 #include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/trampoline_self_life_support.h>
-#include <pybind11/contrib/pymetabind.h>
 
 #include "common.h"
 #include "cpp_conduit.h"
@@ -106,9 +106,7 @@ public:
         }
     }
 
-    static bool can_add_patient() {
-        return tls_current_frame() != nullptr;
-    }
+    static bool can_add_patient() { return tls_current_frame() != nullptr; }
 
     const std::unordered_set<PyObject *> &list_patients() const { return keep_alive; }
 };
@@ -1014,11 +1012,10 @@ public:
         return cast(srcs, policy, parent, copy_constructor, move_constructor, existing_holder);
     }
 
-    static handle
-    cast_foreign(const cast_sources &srcs,
-                 return_value_policy policy,
-                 handle parent,
-                 bool has_holder) {
+    static handle cast_foreign(const cast_sources &srcs,
+                               return_value_policy policy,
+                               handle parent,
+                               bool has_holder) {
         struct capture {
             const void *src;
             pymb_rv_policy policy = pymb_rv_policy_none;
@@ -1044,8 +1041,8 @@ public:
                 break;
             case return_value_policy::automatic_reference:
             case return_value_policy::reference:
-                cap.policy = has_holder ? pymb_rv_policy_share_ownership
-                                        : pymb_rv_policy_reference;
+                cap.policy
+                    = has_holder ? pymb_rv_policy_share_ownership : pymb_rv_policy_reference;
                 break;
             case return_value_policy::reference_internal:
                 if (!parent) {
@@ -1071,8 +1068,8 @@ public:
         }
 
         PyObject *result = (PyObject *) result_v;
-        if (result && policy == return_value_policy::reference_internal && srcs.is_new &&
-            !srcs.used_foreign->keep_alive(result, parent.ptr(), nullptr)) {
+        if (result && policy == return_value_policy::reference_internal && srcs.is_new
+            && !srcs.used_foreign->keep_alive(result, parent.ptr(), nullptr)) {
             keep_alive_impl(result, parent.ptr());
         }
         return result;
@@ -1765,9 +1762,7 @@ public:
         // Make the resulting Python object keep a shared_ptr<T> alive,
         // even if there's not space for it inside the object.
         std::unique_ptr<std::shared_ptr<const void>> sp{new auto(std::move(holder))};
-        auto deleter = [](void *p) noexcept {
-            delete (std::shared_ptr<const void> *) p;
-        };
+        auto deleter = [](void *p) noexcept { delete (std::shared_ptr<const void> *) p; };
         if (!framework->keep_alive(ret.ptr(), sp.get(), deleter)) {
             // If they don't provide a keep_alive, use our own weakref-based
             // one. If ret is not weakrefable, it will throw and the capsule's

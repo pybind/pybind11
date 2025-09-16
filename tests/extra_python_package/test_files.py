@@ -135,7 +135,14 @@ py_files = {
     "share/pkgconfig/__init__.py",
 }
 
-headers = main_headers | conduit_headers | detail_headers | contrib_headers | eigen_headers | stl_headers
+headers = (
+    main_headers
+    | conduit_headers
+    | detail_headers
+    | contrib_headers
+    | eigen_headers
+    | stl_headers
+)
 generated_files = cmake_files | pkgconfig_files
 all_files = headers | generated_files | py_files
 

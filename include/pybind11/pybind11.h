@@ -1650,8 +1650,7 @@ protected:
 
             auto &interop_internals = get_interop_internals();
             if (interop_internals.export_all) {
-                interop_internals.export_for_interop(
-                    rec.type, (PyTypeObject *) m_ptr, tinfo);
+                interop_internals.export_for_interop(rec.type, (PyTypeObject *) m_ptr, tinfo);
             }
         });
 

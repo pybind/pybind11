@@ -33,15 +33,16 @@ public:
           enum_type_index{*enum_info_.cpptype}, parent_scope(parent_scope), enum_name{enum_name},
           native_type_name{native_type_name}, class_doc(class_doc), export_values_flag{false},
           finalize_needed{false} {
-        enum_info = capsule(new native_enum_info{enum_info_},
-                            native_enum_info::attribute_name(),
-                            +[](void *enum_info_) {
-                                auto *info = (native_enum_info *) enum_info_;
-                                with_internals([&](internals &internals) {
-                                    internals.native_enum_type_map.erase(*info->cpptype);
-                                });
-                                delete info;
-                            });
+        enum_info = capsule(
+            new native_enum_info{enum_info_},
+            native_enum_info::attribute_name(),
+            +[](void *enum_info_) {
+                auto *info = (native_enum_info *) enum_info_;
+                with_internals([&](internals &internals) {
+                    internals.native_enum_type_map.erase(*info->cpptype);
+                });
+                delete info;
+            });
     }
 
     void finalize();

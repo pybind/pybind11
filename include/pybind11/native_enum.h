@@ -26,8 +26,7 @@ public:
                 const char *name,
                 const char *native_type_name,
                 const char *class_doc = "")
-        : detail::native_enum_data(
-              parent_scope, name, native_type_name, class_doc, make_info()) {
+        : detail::native_enum_data(parent_scope, name, native_type_name, class_doc, make_info()) {
         if (detail::get_local_type_info(typeid(EnumType)) != nullptr
             || detail::get_global_type_info(typeid(EnumType)) != nullptr) {
             pybind11_fail(
@@ -63,7 +62,7 @@ public:
     native_enum(const native_enum &) = delete;
     native_enum &operator=(const native_enum &) = delete;
 
-  private:
+private:
     static detail::native_enum_info make_info() {
         detail::native_enum_info ret;
         ret.cpptype = &typeid(EnumType);
