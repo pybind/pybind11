@@ -61,6 +61,13 @@ def test_iterable(doc):
 
 def test_float(doc):
     assert doc(m.get_float) == "get_float() -> float"
+    assert doc(m.cast_float) == "get_float(arg0: float) -> float"
+    f1 = m.cast_float(5.5)
+    assert isinstance(f1, float)
+    assert f1 == 5.5
+    f2 = m.cast_float(5)
+    assert isinstance(f2, float)
+    assert f1 == 5.0
 
 
 def test_list(capture, doc):
