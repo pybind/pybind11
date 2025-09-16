@@ -67,7 +67,7 @@ def test_float(doc):
     assert f1 == 5.5
     f2 = m.cast_float(5)
     assert isinstance(f2, float)
-    assert f1 == 5.0
+    assert f2 == 5.0
 
 
 def test_list(capture, doc):
