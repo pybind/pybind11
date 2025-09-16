@@ -917,7 +917,7 @@ def test_inplace_rshift(a, b):
 def test_tuple_nonempty_annotations(doc):
     assert (
         doc(m.annotate_tuple_float_str)
-        == "annotate_tuple_float_str(arg0: tuple[typing.SupportsFloat, str]) -> None"
+        == "annotate_tuple_float_str(arg0: tuple[float, str]) -> None"
     )
 
 
@@ -930,7 +930,7 @@ def test_tuple_empty_annotations(doc):
 def test_tuple_variable_length_annotations(doc):
     assert (
         doc(m.annotate_tuple_variable_length)
-        == "annotate_tuple_variable_length(arg0: tuple[typing.SupportsFloat, ...]) -> None"
+        == "annotate_tuple_variable_length(arg0: tuple[float, ...]) -> None"
     )
 
 
@@ -989,7 +989,7 @@ def test_type_annotation(doc):
 def test_union_annotations(doc):
     assert (
         doc(m.annotate_union)
-        == "annotate_union(arg0: list[str | typing.SupportsInt | object], arg1: str, arg2: typing.SupportsInt, arg3: object) -> list[str | int | object]"
+        == "annotate_union(arg0: list[str | int | object], arg1: str, arg2: int, arg3: object) -> list[str | int | object]"
     )
 
 
