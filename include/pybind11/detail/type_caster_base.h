@@ -12,13 +12,13 @@
 #include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/trampoline_self_life_support.h>
+#include <pybind11/contrib/pymetabind.h>
 
 #include "common.h"
 #include "cpp_conduit.h"
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
-#include "pymetabind.h"
 #include "typeid.h"
 #include "using_smart_holder.h"
 #include "value_and_holder.h"

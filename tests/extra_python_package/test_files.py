@@ -87,13 +87,16 @@ detail_headers = {
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/native_enum_data.h",
     "include/pybind11/detail/pybind11_namespace_macros.h",
-    "include/pybind11/detail/pymetabind.h",
     "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",
     "include/pybind11/detail/exception_translation.h",
+}
+
+contrib_headers = {
+    "include/pybind11/contrib/pymetabind.h",
 }
 
 eigen_headers = {
@@ -132,7 +135,7 @@ py_files = {
     "share/pkgconfig/__init__.py",
 }
 
-headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
+headers = main_headers | conduit_headers | detail_headers | contrib_headers | eigen_headers | stl_headers
 generated_files = cmake_files | pkgconfig_files
 all_files = headers | generated_files | py_files
 

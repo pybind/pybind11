@@ -9,9 +9,10 @@
 
 #pragma once
 
+#include <pybind11/contrib/pymetabind.h>
+
 #include "common.h"
 #include "internals.h"
-#include "pymetabind.h"
 #include "type_caster_base.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
