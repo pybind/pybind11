@@ -284,8 +284,8 @@ inline bool is_uniquely_referenced(PyObject *obj) {
 #else // backport for 3.13
 inline bool is_uniquely_referenced(PyObject *obj) {
     return _Py_IsOwnedByCurrentThread(obj)
-           && _Py_atomic_load_uint32_relaxed(&ob->ob_ref_local) == 1
-           && _Py_atomic_load_ssize_relaxed(&ob->ob_ref_shared) == 0;
+           && _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local) == 1
+           && _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared) == 0;
 }
 #endif
 

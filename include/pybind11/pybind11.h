@@ -2934,7 +2934,7 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
         add_patient(nurse.ptr(), patient.ptr());
     } else {
         auto *binding = pymb_get_binding((PyObject *) type);
-        if (binding && binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr)) {
+        if (binding && binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr) != 0) {
             // It's a foreign-registered type and the foreign framework was
             // able to handle the keep_alive.
             return;

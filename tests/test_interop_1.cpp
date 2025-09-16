@@ -18,8 +18,9 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(test_interop_1, m, py::mod_gil_not_used()) {
+    py::handle hm = m;
     Shared::bind_funcs</*SmartHolder=*/false>(m);
-    m.def("bind_types", [hm = py::handle(m)]() { Shared::bind_types</*SmartHolder=*/false>(hm); });
+    m.def("bind_types", [hm]() { Shared::bind_types</*SmartHolder=*/false>(hm); });
 
     m.def("throw_shared", [](int v) { throw SharedExc{v}; });
 

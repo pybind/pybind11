@@ -215,7 +215,7 @@ inline void native_enum_data::finalize() {
 
         auto &interop_internals = get_interop_internals();
         if (interop_internals.export_all) {
-            auto info = enum_info.get_pointer<native_enum_info>();
+            auto *info = enum_info.get_pointer<native_enum_info>();
             interop_internals.export_for_interop(
                 info->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
         }

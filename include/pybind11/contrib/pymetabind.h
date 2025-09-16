@@ -6,7 +6,10 @@
  * This functionality is intended to be used by the framework itself,
  * rather than by users of the framework.
  *
- * This is version 0.3 of pymetabind. Changelog:
+ * This is version 0.3+dev of pymetabind. Changelog:
+ *
+ *      Unreleased: Properly return NULL if registry capsule creation fails.
+ *                  Support GraalPy.
  *
  *     Version 0.3: Don't do a Py_DECREF in `pymb_remove_framework` since the
  *      2025-09-15  interpreter might already be finalized at that point.
@@ -727,6 +730,8 @@ PYMB_FUNC void pymb_remove_framework(struct pymb_framework* framework);
 PYMB_FUNC void pymb_add_binding(struct pymb_binding* binding,
                                 int tp_finalize_will_remove);
 PYMB_FUNC void pymb_remove_binding(struct pymb_binding* binding);
+PYMB_FUNC void pymb_remove_binding_internal(struct pymb_binding* binding,
+                                            int from_capsule_destructor);
 PYMB_FUNC struct pymb_binding* pymb_get_binding(PyObject* type);
 
 #if !defined(PYMB_DECLS_ONLY)
@@ -777,7 +782,7 @@ PYMB_FUNC PyObject* pymb_weakref_callback(PyObject* self, PyObject* weakref) {
  * import lock can provide mutual exclusion.
  */
 PYMB_FUNC struct pymb_registry* pymb_get_registry() {
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     PyObject* dict = PyEval_GetBuiltins();
 #elif PY_VERSION_HEX < 0x03090000
     PyObject* dict = PyInterpreterState_GetDict(_PyInterpreterState_Get());
@@ -822,6 +827,7 @@ PYMB_FUNC struct pymb_registry* pymb_get_registry() {
                                 pymb_registry_capsule_destructor);
         if (!capsule) {
             free(registry);
+            registry = NULL;
         } else if (PyDict_SetItem(dict, key, capsule) == -1) {
             registry = NULL; // will be deallocated by capsule destructor
         }
@@ -906,7 +912,7 @@ PYMB_FUNC void pymb_binding_capsule_remove(PyObject* capsule) {
         PyErr_WriteUnraisable(capsule);
         return;
     }
-    pymb_remove_binding(binding);
+    pymb_remove_binding_internal(binding, /* from_capsule_destructor */ 1);
 }
 
 /*
@@ -1010,6 +1016,11 @@ PYMB_FUNC void pymb_binding_capsule_destroy(PyObject* capsule) {
  * `binding->framework->free_local_binding(binding)`.
  */
 PYMB_FUNC void pymb_remove_binding(struct pymb_binding* binding) {
+    pymb_remove_binding_internal(binding, 0);
+}
+
+PYMB_FUNC void pymb_remove_binding_internal(struct pymb_binding* binding,
+                                            int from_capsule_destructor) {
     struct pymb_registry* registry = binding->framework->registry;
 
     // Since we need to obtain it anyway, use the registry lock to serialize
@@ -1037,12 +1048,13 @@ PYMB_FUNC void pymb_remove_binding(struct pymb_binding* binding) {
 
     // Clear the existing capsule's destructor so we don't have to worry about
     // it firing after the pymb_binding struct has actually been freed.
-    // Note we can safely assume the capsule hasn't been freed yet, even
-    // though it might be mid-destruction. (Proof: Its destructor calls
-    // this function, which cannot complete until it acquires the lock we
-    // currently hold. If the destructor completed already, we would have bailed
-    // out above upon noticing capsule was already NULL.)
-    if (PyCapsule_SetDestructor(binding->capsule, NULL) != 0) {
+    // Note we can safely assume the capsule hasn't been freed yet.
+    // (Proof: Its destructor calls this function, which cannot complete until
+    // it acquires the lock we currently hold. If the destructor completed
+    // already, we would have bailed out above upon noticing capsule was
+    // already NULL.)
+    if (!from_capsule_destructor &&
+        PyCapsule_SetDestructor(binding->capsule, NULL) != 0) {
         PyErr_WriteUnraisable((PyObject *) binding->pytype);
     }
 

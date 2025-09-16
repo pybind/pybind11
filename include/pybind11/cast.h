@@ -110,9 +110,10 @@ public:
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator EnumType &() {
-        return native_loaded ? native_value
-               : legacy_ptr  ? *legacy_ptr
-                             : throw reference_cast_error();
+        if (!native_loaded && !legacy_ptr) {
+            throw reference_cast_error();
+        }
+        return native_loaded ? native_value : *legacy_ptr;
     }
 
 private:

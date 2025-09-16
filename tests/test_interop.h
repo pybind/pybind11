@@ -25,6 +25,7 @@ struct Shared {
         return st;
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Shared(int v = 0) : value(v) { ++stats().constructed; }
     Shared(const Shared &other) : value(other.value) { ++stats().copied; }
     Shared(Shared &&other) noexcept : value(other.value) { ++stats().moved; }
@@ -38,6 +39,7 @@ struct Shared {
     static Enum make_enum(int v) { return Enum(v); }
 
     static int check(const Shared &s) { return s.value; }
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     static int check_sp(std::shared_ptr<Shared> s) { return s->value; }
     static int check_up(std::unique_ptr<Shared> s) { return s->value; }
     static int check_enum(Enum e) { return (int) e; }
@@ -87,6 +89,16 @@ struct Shared {
 
     template <bool SmartHolder>
     static void bind_types(pybind11::handle scope) {
+        if (pybind11::hasattr(scope, "Shared")) {
+            if (pybind11::detail::get_interop_internals().export_all) {
+                // If bindings were removed but types weren't (because types
+                // are immortal in this environment) then manually re-export
+                // the bindings so that the effects of export_all are observable
+                pybind11::export_for_interop(scope.attr("Shared"));
+                pybind11::export_for_interop(scope.attr("SharedEnum"));
+            }
+            return;
+        }
         using Holder = typename std::
             conditional<SmartHolder, pybind11::smart_holder, std::shared_ptr<Shared>>::type;
         pybind11::class_<Shared, Holder>(scope, "Shared").def_readonly("value", &Shared::value);

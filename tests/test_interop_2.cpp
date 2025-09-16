@@ -18,8 +18,9 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(test_interop_2, m, py::mod_gil_not_used()) {
+    py::handle hm = m;
     Shared::bind_funcs</*SmartHolder=*/true>(m);
-    m.def("bind_types", [hm = py::handle(m)]() { Shared::bind_types</*SmartHolder=*/true>(hm); });
+    m.def("bind_types", [hm]() { Shared::bind_types</*SmartHolder=*/true>(hm); });
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             std::rethrow_exception(p);

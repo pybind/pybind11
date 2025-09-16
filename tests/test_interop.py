@@ -5,6 +5,7 @@ import collections
 import gc
 import itertools
 import sys
+import sysconfig
 import threading
 import time
 import weakref
@@ -14,7 +15,12 @@ import test_interop_1 as t1
 import test_interop_2 as t2
 import test_interop_3 as t3
 
+import env
+
 free_threaded = hasattr(sys, "_is_gil_enabled") and not sys._is_gil_enabled()
+types_are_immortal = sys.implementation.name in ("graalpy", "pypy") or (
+    sysconfig.get_config_var("Py_GIL_DISABLED") and sys.version_info < (3, 14)
+)
 
 # t1, t2, t3 all define bindings for the same C++ type `Shared`, as well as
 # several functions to create and inspect instances of that type. Each module
@@ -53,16 +59,20 @@ def delattr_and_ensure_destroyed(*specs):
 @pytest.fixture(autouse=True)
 def clean_after():
     yield
-    t3.clear_interop_bindings()
+    if sys.implementation.name in ("pypy", "graalpy"):
+        pytest.gc_collect()
+    if sys.implementation.name != "graalpy":
+        t3.clear_interop_bindings()
 
-    delattr_and_ensure_destroyed(
-        *[
-            (mod, name)
-            for mod in (t1, t2, t3)
-            for name in ("Shared", "SharedEnum", "RawShared")
-            if hasattr(mod, name)
-        ]
-    )
+    if not types_are_immortal:
+        delattr_and_ensure_destroyed(
+            *[
+                (mod, name)
+                for mod in (t1, t2, t3)
+                for name in ("Shared", "SharedEnum", "RawShared")
+                if hasattr(mod, name)
+            ]
+        )
 
     t1.pull_stats()
     t2.pull_stats()
@@ -70,11 +80,19 @@ def clean_after():
 
 
 def check_stats(mod, **entries):
-    if mod is None:
+    if mod is None or sys.implementation.name == "graalpy":
+        # graalpy seems to not do a full collection when we gc_collect(); there
+        # will be too few destructions in one check_stats() and then correspondingly
+        # too many in the next one for the same module, so just skip the check
         return
     if sys.implementation.name == "pypy":
-        gc.collect()
+        pytest.gc_collect()
     stats = mod.pull_stats()
+    if stats["move"] == entries.get("move", 0) + 1:
+        # Allow an extra move+destroy pair to account for older compilers
+        # not doing RVO like we expect.
+        entries["move"] = entries.get("move", 0) + 1
+        entries["destroy"] = entries.get("destroy", 0) + 1
     for name, value in entries.items():
         assert stats.pop(name) == value
     assert all(val == 0 for val in stats.values())
@@ -176,11 +194,34 @@ def expect(from_mod, to_mod, pattern, **extra):
         check_stats(mod, **stats)
 
 
-def test02_interop_unimported():
-    # Before any types are bound, no to-Python conversions are possible
-    for mod in (t1, t2, t3):
-        expect(mod, mod, "none")
+def test02a_interop_return_foreign_smart_holder():
+    # Test a pybind11 domain returning a different pybind11 domain's type
+    # because it didn't have its own.
+    t2.bind_types()
+    t2.export_for_interop(t2.Shared)
+    t2.export_for_interop(t2.SharedEnum)
+    t1.import_for_interop(t2.Shared)
+    t1.import_for_interop(t2.SharedEnum)
+    expect(t2, t1, "foreign")
+    expect(t1, t2, "local")  # t2 is both source and dest
+    assert type(t1.make(1)) is t2.Shared
+    assert type(t2.make(2)) is t2.Shared
 
+
+def test02b_interop_return_foreign_shared_ptr():
+    # Same thing but different holder type (t2 uses smart holder, t1 regular).
+    t1.bind_types()
+    t1.export_for_interop(t1.Shared)
+    t1.export_for_interop(t1.SharedEnum)
+    t3.import_for_interop(t1.Shared)
+    t3.import_for_interop(t1.SharedEnum)
+    expect(t1, t3, "foreign")
+    expect(t3, t1, "local")  # t1 is both source and dest
+    assert type(t1.make(1)) is t1.Shared
+    assert type(t3.make(2)) is t1.Shared
+
+
+def test03_interop_unimported():
     # Bind the types but don't share them yet
     t1.bind_types()
     t2.bind_types()
@@ -205,7 +246,7 @@ def test02_interop_unimported():
     expect(t2, t3, "isolated")
 
 
-def test03_interop_import_export_errors():
+def test04_interop_import_export_errors():
     t1.bind_types()
     t2.bind_types()
     t3.create_raw_binding()
@@ -241,7 +282,11 @@ def test03_interop_import_export_errors():
         t2.import_for_interop_wrong_type(t3.RawShared)
 
 
-def test04_interop_exceptions():
+@pytest.mark.skipif(
+    (env.MACOS and env.PYPY) or env.ANDROID,
+    reason="same issue as test_exceptions.py test_cross_module_exception_translator",
+)
+def test05_interop_exceptions():
     # Once t1 and t2 have registered with pymetabind, which happens as soon as
     # they each import or export anything, t1 can translate t2's exceptions.
     t1.bind_types()
@@ -252,7 +297,7 @@ def test04_interop_exceptions():
         t1.throw_shared(123)
 
 
-def test05_interop_with_cpp():
+def test06_interop_with_cpp():
     t1.bind_types()
     t2.bind_types()
     t3.create_raw_binding()
@@ -300,36 +345,6 @@ def test05_interop_with_cpp():
     assert type(t2.make(2)) is t2.Shared
     assert type(t3.make(3)) is t3.RawShared
 
-    # If we create a pybind11 Shared in t3, that takes priority over the raw one
-    t3.bind_types()
-    assert type(t3.make(4)) is t3.Shared
-
-
-def test06_interop_return_foreign_smart_holder():
-    # Test a pybind11 domain returning a different pybind11 domain's type
-    # because it didn't have its own.
-    t2.bind_types()
-    t2.export_for_interop(t2.Shared)
-    t2.export_for_interop(t2.SharedEnum)
-    t1.import_for_interop(t2.Shared)
-    t1.import_for_interop(t2.SharedEnum)
-    expect(t2, t1, "foreign")
-    expect(t1, t2, "local")  # t2 is both source and dest
-    assert type(t1.make(1)) is t2.Shared
-    assert type(t2.make(2)) is t2.Shared
-
-
-def test06_interop_return_foreign_shared_ptr():
-    t1.bind_types()
-    t1.export_for_interop(t1.Shared)
-    t1.export_for_interop(t1.SharedEnum)
-    t2.import_for_interop(t1.Shared)
-    t2.import_for_interop(t1.SharedEnum)
-    expect(t1, t2, "foreign")
-    expect(t2, t1, "local")  # t1 is both source and dest
-    assert type(t1.make(1)) is t1.Shared
-    assert type(t2.make(2)) is t1.Shared
-
 
 def test07_interop_with_c():
     t1.bind_types()
@@ -342,6 +357,7 @@ def test07_interop_with_c():
     expect(t3, t1, "foreign")
 
 
+@pytest.mark.skipif(types_are_immortal, reason="can't GC type object on this platform")
 def test08_remove_binding():
     t3.create_raw_binding()
     t2.import_for_interop_explicit(t3.RawShared)
@@ -379,7 +395,7 @@ def test08_remove_binding():
     # the type object.
     del t2.Shared.__pymetabind_binding__
     del t2.SharedEnum.__pymetabind_binding__
-    gc.collect()
+    pytest.gc_collect()
 
     expect(t2, t3, "isolated")
     expect(t3, t2, "isolated", enum=None)
@@ -400,7 +416,7 @@ def test08_remove_binding():
     # Removing the binding capsule should work just as well as removing
     # the type object.
     del t3.RawShared.__pymetabind_binding__
-    gc.collect()
+    pytest.gc_collect()
     t3.export_raw_binding()
 
     # t3.RawShared was removed from the beginning of t3's list for Shared
@@ -500,11 +516,35 @@ def test10_remove_binding_concurrently():
     assert num_failed > 0
 
 
-def test11_implicit():
+def test11_import_export_all():
+    # Enable automatic import and export in the t1/t2 domains.
+    # Still doesn't help with t3->t1/t2 since t3.RawShared is not a C++ type.
+    t1.import_all()
+    t1.export_all()
+    t1.bind_types()
+
+    t2.import_all()
+    t2.bind_types()
+    t2.export_all()
+
+    t3.create_raw_binding()
+    t3.import_for_interop(t1.Shared)
+    t3.import_for_interop(t2.SharedEnum)
+
+    expect(t1, t2, "foreign")
+    expect(t1, t3, "foreign", enum=False)  # t3 didn't import all or import t1's enum
+    expect(t2, t1, "foreign")
+    expect(t2, t3, "isolated", enum=True)  # t3 didn't import t2.Shared
+    t3.import_all()
+    expect(t2, t3, "foreign")  # t3 didn't import t2.Shared
+    expect(t3, t1, "isolated", enum=True)
+
+
+def test12_implicit():
     # Create four different types of pyobject, all of which have C++ type Shared
+    t3.create_raw_binding()
     t1.bind_types()
     t2.bind_types()
-    t3.create_raw_binding()
     s1 = t1.make(10)
     s2 = t2.make(11)
     s3r = t3.make(12)
@@ -537,25 +577,12 @@ def test11_implicit():
     assert t2.check(s1) == 10
 
 
-def test12_import_export_all():
-    # Enable automatic import and export in the t1/t2 domains.
-    # Still doesn't help with t3->t1/t2 since t3.RawShared is not a C++ type.
-    t1.import_all()
-    t1.export_all()
-    t1.bind_types()
-
-    t2.import_all()
-    t2.bind_types()
-    t2.export_all()
-
-    t3.create_raw_binding()
-    t3.import_for_interop(t1.Shared)
-    t3.import_for_interop(t2.SharedEnum)
-
-    expect(t1, t2, "foreign")
-    expect(t1, t3, "foreign", enum=False)  # t3 didn't import all or import t1's enum
-    expect(t2, t1, "foreign")
-    expect(t2, t3, "isolated", enum=True)  # t3 didn't import t2.Shared
-    t3.import_all()
-    expect(t2, t3, "foreign")  # t3 didn't import t2.Shared
-    expect(t3, t1, "isolated", enum=True)
+if sys.implementation.name == "graalpy":
+    # gc.collect() on GraalPy doesn't reliably collect all garbage, even if
+    # it's run multiple times, so we can't remove bindings once we've created
+    # them. Reduce the test suite to a set that can cope with that.
+    del test03_interop_unimported
+    del test06_interop_with_cpp
+    del test07_interop_with_c
+    del test11_import_export_all
+    del test12_implicit

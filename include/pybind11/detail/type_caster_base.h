@@ -266,9 +266,10 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
         auto &interop_internals = detail::get_interop_internals();
         if (interop_internals.imported_any) {
             handle ret = with_internals([&](internals &) {
-                auto range = interop_internals.bindings.equal_range(tp);
-                if (range.first != range.second) {
-                    return handle((PyObject *) range.first->second->pytype);
+                auto it = interop_internals.bindings.find(tp);
+                if (it != interop_internals.bindings.end() && !it->second.empty()) {
+                    pymb_binding *binding = *it->second.begin();
+                    return handle((PyObject *) binding->pytype);
                 }
                 return handle();
             });
@@ -1067,9 +1068,9 @@ public:
             result_v = try_foreign_bindings(srcs.original.type, attempt, &cap);
         }
 
-        PyObject *result = (PyObject *) result_v;
+        auto *result = (PyObject *) result_v;
         if (result && policy == return_value_policy::reference_internal && srcs.is_new
-            && !srcs.used_foreign->keep_alive(result, parent.ptr(), nullptr)) {
+            && srcs.used_foreign->keep_alive(result, parent.ptr(), nullptr) == 0) {
             keep_alive_impl(result, parent.ptr());
         }
         return result;
@@ -1303,9 +1304,8 @@ public:
         if (hasattr(pytype, local_key)) {
             return try_load_other_module_local(
                 src, reinterpret_borrow<capsule>(getattr(pytype, local_key)));
-        } else {
-            return foreign_ok && try_load_other_framework(src, convert);
         }
+        return foreign_ok && try_load_other_framework(src, convert);
     }
 
     // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
@@ -1372,7 +1372,7 @@ public:
         if (convert) {
             for (const auto &converter : typeinfo->implicit_conversions) {
                 auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
-                if (load_impl<ThisT>(temp, false)) { // codespell:ignore ThisT
+                if (load_impl<ThisT>(temp, false)) {
                     loader_life_support::add_patient(temp);
                     return true;
                 }

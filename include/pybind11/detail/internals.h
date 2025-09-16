@@ -184,9 +184,6 @@ struct type_equal_to {
 
 template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
-template <typename value_type>
-using type_multimap
-    = std::unordered_multimap<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
@@ -313,10 +310,73 @@ using copy_or_move_ctor = void *(*) (const void *);
 // indicating whether any foreign bindings are also known for its C++ type;
 // that way we can avoid an extra lookup when conversion to a native type fails.
 struct interop_internals {
+    // A vector optimized for the case of storing one element.
+    class binding_list {
+    public:
+        binding_list() : single(nullptr) {}
+        binding_list(const binding_list &) = delete;
+        binding_list(binding_list &&other) noexcept : vec(other.vec) { other.vec = 0; }
+        ~binding_list() {
+            if (is_vec()) {
+                delete as_vec();
+            }
+        }
+
+        bool empty() const { return single == nullptr; }
+        pymb_binding **begin() {
+            return empty() ? nullptr : is_vec() ? as_vec()->data() : &single;
+        }
+        pymb_binding **end() {
+            return empty()    ? nullptr
+                   : is_vec() ? as_vec()->data() + as_vec()->size()
+                              : &single + 1;
+        }
+        void append(pymb_binding *binding) {
+            if (empty()) {
+                single = binding;
+            } else if (!is_vec()) {
+                vec = uintptr_t(new Vec{single, binding}) | uintptr_t(1);
+            } else {
+                as_vec()->push_back(binding);
+            }
+        }
+        bool erase(pymb_binding *binding) {
+            if (is_vec()) {
+                Vec *v = as_vec();
+                for (auto it = v->begin(); it != v->end(); ++it) {
+                    if (*it == binding) {
+                        v->erase(it);
+                        if (v->size() == 1) {
+                            single = (*v)[0];
+                            delete v;
+                        }
+                        return true;
+                    }
+                }
+            } else if (single == binding) {
+                single = nullptr;
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        // Discriminated pointer: points to pymb_binding if the low bit is clear,
+        // or to std::vector<pymb_binding> if the low bit is set.
+        using Vec = std::vector<pymb_binding *>;
+        union {
+            pymb_binding *single;
+            uintptr_t vec;
+        };
+        bool is_vec() const { return (vec & uintptr_t(1)) != 0; }
+        // NOLINTNEXTLINE(performance-no-int-to-ptr)
+        Vec *as_vec() const { return (Vec *) (vec & ~uintptr_t(1)); }
+    };
+
     // Registered pymetabind bindings for each C++ type, including both our
     // own (exported) and other frameworks' (imported).
     // Protected by internals::mutex.
-    type_multimap<pymb_binding *> bindings;
+    type_map<binding_list> bindings;
 
     // For each C++ type with a native binding, store pointers to its
     // copy and move constructors. These would ideally move inside `type_info`
@@ -801,9 +861,8 @@ inline auto with_exception_translators(const F &cb)
 }
 
 inline internals_pp_manager<interop_internals> &get_interop_internals_pp_manager() {
-    static internals_pp_manager<interop_internals> interop_internals_pp_manager(
-        PYBIND11_INTERNALS_ID "interop", nullptr);
-    return interop_internals_pp_manager;
+    return internals_pp_manager<interop_internals>::get_instance(PYBIND11_INTERNALS_ID "interop",
+                                                                 nullptr);
 }
 
 inline interop_internals &get_interop_internals() {
