@@ -1400,7 +1400,7 @@ struct handle_type_name<buffer> {
 };
 template <>
 struct handle_type_name<int_> {
-    static constexpr auto name = io_name("typing.SupportsInt", "int");
+    static constexpr auto name = const_name("int");
 };
 template <>
 struct handle_type_name<iterable> {
@@ -1412,7 +1412,7 @@ struct handle_type_name<iterator> {
 };
 template <>
 struct handle_type_name<float_> {
-    static constexpr auto name = io_name("typing.SupportsFloat", "float");
+    static constexpr auto name = const_name("float");
 };
 template <>
 struct handle_type_name<function> {
