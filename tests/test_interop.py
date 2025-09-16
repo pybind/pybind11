@@ -1,4 +1,5 @@
 # Copyright (c) 2025 The pybind from __future__ import annotations
+from __future__ import annotations
 
 import collections
 import gc
