@@ -1372,7 +1372,7 @@ public:
         if (convert) {
             for (const auto &converter : typeinfo->implicit_conversions) {
                 auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
-                if (load_impl<ThisT>(temp, false)) {
+                if (load_impl<ThisT>(temp, false)) { // codespell:ignore ThisT
                     loader_life_support::add_patient(temp);
                     return true;
                 }

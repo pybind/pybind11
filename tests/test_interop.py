@@ -1,5 +1,4 @@
-# Copyright (c) 2025 The pybind Community.
-from __future__ import annotations
+# Copyright (c) 2025 The pybind from __future__ import annotations
 
 import collections
 import gc
@@ -40,7 +39,7 @@ def delattr_and_ensure_destroyed(*specs):
         wrs.append(weakref.ref(getattr(mod, name)))
         delattr(mod, name)
 
-    for attempt in range(5):
+    for _ in range(5):
         gc.collect()
         if all(wr() is None for wr in wrs):
             break
@@ -141,7 +140,7 @@ def expect(from_mod, to_mod, pattern, **extra):
     elif pattern == "none":
         expected = {"value": None, "sp": None, "up": None, "enum": None}
     else:
-        assert False, "unknown pattern"
+        pytest.fail("unknown pattern")
     expected.update(extra)
     assert outcomes == expected
 
