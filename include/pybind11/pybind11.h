@@ -1650,7 +1650,8 @@ protected:
 
             auto &interop_internals = get_interop_internals();
             if (interop_internals.export_all) {
-                interop_internals.export_for_interop(tinfo);
+                interop_internals.export_for_interop(
+                    rec.type, (PyTypeObject *) m_ptr, tinfo);
             }
         });
 
@@ -2926,22 +2927,18 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
         return; /* Nothing to keep alive or nothing to be kept alive by */
     }
 
-    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+    PyTypeObject *type = Py_TYPE(nurse.ptr());
+    auto tinfo = all_type_info(type);
     if (!tinfo.empty()) {
         /* It's a pybind-registered type, so we can store the patient in the
          * internal list. */
         add_patient(nurse.ptr(), patient.ptr());
     } else {
-        if (Py_TYPE(nurse.ptr())->tp_weaklistoffset == 0) {
-            // The nurse type is not weak-referenceable. Maybe it is a
-            // different framework's type; try to get them to do the keep_alive.
-            if (auto *binding = pymb_get_binding(type::handle_of(nurse).ptr())) {
-                if (0 != binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr)) {
-                    throw error_already_set();
-                }
-            }
-            // Otherwise continue with the logic below (which will
-            // raise an error).
+        auto *binding = pymb_get_binding((PyObject *) type);
+        if (binding && binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr)) {
+            // It's a foreign-registered type and the foreign framework was
+            // able to handle the keep_alive.
+            return;
         }
         /* Fall back to clever approach based on weak references taken from
          * Boost.Python. This is not used for pybind-registered types because

@@ -43,7 +43,8 @@ struct pymb_registry;
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-//   REMINDER for next version bump: remove loader_life_support_tls
+//   REMINDER for next version bump: remove loader_life_support_tls +
+//                                   merge interop_internals into internals
 #    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
@@ -312,7 +313,8 @@ using copy_or_move_ctor = void *(*) (const void *);
 // indicating whether any foreign bindings are also known for its C++ type;
 // that way we can avoid an extra lookup when conversion to a native type fails.
 struct interop_internals {
-    // Registered foreign bindings for each C++ type.
+    // Registered pymetabind bindings for each C++ type, including both our
+    // own (exported) and other frameworks' (imported).
     // Protected by internals::mutex.
     type_multimap<pymb_binding *> bindings;
 
@@ -327,10 +329,6 @@ struct interop_internals {
     // position of internals::registered_exception_translators that calls the
     // translate_exception methods of each framework in this list.
     std::forward_list<pymb_framework *> exc_frameworks;
-
-    // Pointer to the registry of foreign bindings.
-    // Protected by internals::mutex; constant once becoming non-null.
-    pymb_registry *registry = nullptr;
 
     // Hooks allowing other frameworks to interact with us.
     // Protected by internals::mutex; constant once becoming non-null.
@@ -347,7 +345,7 @@ struct interop_internals {
     // foreign.h. Instead, only compilation units that call
     // interoperate_by_default(), import_for_interop(), or
     // export_for_interop() will emit that code.
-    void (*export_for_interop)(type_info *);
+    void (*export_for_interop)(const std::type_info *, PyTypeObject *, type_info *);
 
     // Should we automatically advertise our types to other binding frameworks,
     // or only when requested via pybind11::export_for_interop()?
@@ -364,11 +362,16 @@ struct interop_internals {
     // own types?
     bool imported_any = false;
 
+    // Number of times the `bindings` map has been modified. Used to detect
+    // cases where the iterator in try_foreign_bindings() may have been
+    // invalidated. Protected by internals::mutex.
+    uint32_t bindings_update_count = 0;
+
     inline ~interop_internals();
 
     // Returns true if we initialized, false if someone else already did.
     inline bool initialize_if_needed() {
-        if (registry) {
+        if (self) {
             return false;
         }
         return initialize();

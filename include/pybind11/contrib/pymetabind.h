@@ -6,15 +6,20 @@
  * This functionality is intended to be used by the framework itself,
  * rather than by users of the framework.
  *
- * This is version 0.2+dev of pymetabind. Changelog:
+ * This is version 0.3 of pymetabind. Changelog:
  *
- *      Unreleased: Don't do a Py_DECREF in `pymb_remove_framework` since the
- *                  interpreter might already be finalized at that point.
+ *     Version 0.3: Don't do a Py_DECREF in `pymb_remove_framework` since the
+ *      2025-09-15  interpreter might already be finalized at that point.
  *                  Revamp binding lifetime logic. Add `remove_local_binding`
  *                  and `free_local_binding` callbacks.
  *                  Add `pymb_framework::registry` and use it to simplify
  *                  the signatures of `pymb_remove_framework`,
  *                  `pymb_add_binding`, and `pymb_remove_binding`.
+ *                  Update `to_python` protocol to be friendlier to
+ *                  pybind11 instances with shared/smart holders.
+ *                  Remove `pymb_rv_policy_reference_internal`; add
+ *                  `pymb_rv_policy_share_ownership`. Change `keep_alive`
+ *                  return value convention.
  *
  *     Version 0.2: Use a bitmask for `pymb_framework::flags` and add leak_safe
  *      2025-09-11  flag. Change `translate_exception` to be non-throwing.
@@ -98,33 +103,36 @@ extern "C" {
 #endif
 
 /*
- * Approach used to cast a previously unknown C++ instance into a Python object.
- * The values of these enumerators match those for `nanobind::rv_policy` and
- * `pybind11::return_value_policy`.
+ * Approach used to cast a previously unknown native instance into a Python
+ * object. This is similar to `pybind11::return_value_policy` or
+ * `nanobind::rv_policy`; some different options are provided than those,
+ * but same-named enumerators have the same semantics and values.
  */
 enum pymb_rv_policy {
-    // (Values 0 and 1 correspond to `automatic` and `automatic_reference`,
-    //  which should become one of the other policies before reaching us)
-
-    // Create a Python object that owns a pointer to heap-allocated storage
-    // and will destroy and deallocate it when the Python object is destroyed
+    // Create a Python object that wraps a pointer to a heap-allocated
+    // native instance and will destroy and deallocate it (in whatever way
+    // is most natural for the target language) when the Python object is
+    // destroyed
     pymb_rv_policy_take_ownership = 2,
 
-    // Create a Python object that owns a new C++ instance created via
-    // copy construction from the given one
+    // Create a Python object that owns a new native instance created by
+    // copying the given one
     pymb_rv_policy_copy = 3,
 
-    // Create a Python object that owns a new C++ instance created via
-    // move construction from the given one
+    // Create a Python object that owns a new native instance created by
+    // moving the given one
     pymb_rv_policy_move = 4,
 
-    // Create a Python object that wraps the given pointer to a C++ instance
+    // Create a Python object that wraps a pointer to a native instance
     // but will not destroy or deallocate it
     pymb_rv_policy_reference = 5,
 
-    // `reference`, plus arrange for the given `parent` python object to
-    // live at least as long as the new object that wraps the pointer
-    pymb_rv_policy_reference_internal = 6,
+    // Create a Python object that wraps a pointer to a native instance
+    // and will perform a custom action when the Python object is destroyed.
+    // The custom action is specified using the first call to keep_alive()
+    // after the object is created, and such a call must occur in order for
+    // the object to be considered fully initialized.
+    pymb_rv_policy_share_ownership = 6,
 
     // Don't create a new Python object; only try to look up an existing one
     // from the same framework
@@ -272,6 +280,23 @@ enum pymb_framework_flags {
     pymb_framework_leak_safe = 0x0002,
 };
 
+/* Additional results from `pymb_framework::to_python` */
+struct pymb_to_python_feedback {
+    // Ignored on entry. On exit, set to 1 if the returned Python object
+    // was created by the `to_python` call, or zero if it already existed and
+    // was simply looked up.
+    uint8_t is_new;
+
+    // On entry, indicates whether the caller can control whether the native
+    // instance `cobj` passed to `to_python` is destroyed after the conversion:
+    // set to 1 if a relocation is allowable or 0 if `cobj` must be destroyed
+    // after the call. (This is only relevant when using pymb_rv_policy_move.)
+    // On exit, set to 1 if destruction should be inhibited because `*cobj`
+    // was relocated into the new instance. Must be left as zero on exit if
+    // set to zero on entry.
+    uint8_t relocate;
+};
+
 /*
  * Information about one framework that has registered itself with pymetabind.
  * "Framework" here refers to a set of bindings that are natively mutually
@@ -346,8 +371,8 @@ struct pymb_framework {
 
     // The function pointers below allow other frameworks to interact with
     // bindings provided by this framework. They are constant after construction
-    // and must not throw C++ exceptions. Unless otherwise documented,
-    // they must not be NULL.
+    // and must not throw C++ exceptions. They must not be NULL; if a feature
+    // is not relevant to your use case, provide a stub that always fails.
 
     // Extract a C/C++/etc object from `pyobj`. The desired type is specified by
     // providing a `pymb_binding*` for some binding that belongs to this
@@ -375,9 +400,12 @@ struct pymb_framework {
     // a copy of the object to which `from_python`'s return value points before
     // you drop the references.
     //
-    // On free-threaded builds, callers must ensure that the `binding` is not
-    // destroyed during a call to `from_python`. The requirements for this are
-    // subtle; see the full discussion in the comment for `struct pymb_binding`.
+    // On free-threaded builds, no direct synchronization is required to call
+    // this method, but you must ensure the `binding` won't be destroyed during
+    // (or before) your call. This generally requires maintaining a continuously
+    // attached Python thread state whenever you hold a pointer to `binding`
+    // that a concurrent call to your framework's `remove_foreign_binding`
+    // method wouldn't be able to clear. See the comment for `pymb_binding`.
     void* (*from_python)(struct pymb_binding* binding,
                          PyObject* pyobj,
                          uint8_t convert,
@@ -386,30 +414,45 @@ struct pymb_framework {
 
     // Wrap the C/C++/etc object `cobj` into a Python object using the given
     // return value policy. The type is specified by providing a `pymb_binding*`
-    // for some binding that belongs to this framework. `parent` is relevant
-    // only if `rvp == pymb_rv_policy_reference_internal`. rvp must be one of
-    // the defined enumerators. Returns NULL if the cast is not possible, or
-    // a new reference otherwise.
+    // for some binding that belongs to this framework.
     //
-    // A NULL return may leave the Python error indicator set if something
-    // specifically describable went wrong during conversion, but is not
-    // required to; returning NULL without PyErr_Occurred() should be
-    // interpreted as a generic failure to convert `cobj` to a Python object.
+    // The semantics of this function are as follows:
+    // - If there is already a live Python object created by this framework for
+    //   this C++ object address and type, it will be returned and the `rvp` is
+    //   ignored.
+    // - Otherwise, if `rvp == pymb_rv_policy_none`, NULL is returned without
+    //   the Python error indicator set.
+    // - Otherwise, a new Python object will be created and returned. It will
+    //   wrap either the pointer `cobj` or a copy/move of the contents of
+    //   `cobj`, depending on the value of `rvp`.
     //
-    // On free-threaded builds, callers must ensure that the `binding` is not
-    // destroyed during a call to `to_python`. The requirements for this are
-    // subtle; see the full discussion in the comment for `struct pymb_binding`.
+    // Returns a new reference to a Python object, or NULL if not possible.
+    // Also sets *feedback to provide additional information about the
+    // conversion.
+    //
+    // After a successful `to_python` call that returns a new instance and
+    // used `pymb_rv_policy_share_ownership`, the caller must make a call to
+    // `keep_alive` to describe how the shared ownership should be managed.
+    //
+    // On free-threaded builds, no direct synchronization is required to call
+    // this method, but you must ensure the `binding` won't be destroyed during
+    // (or before) your call. This generally requires maintaining a continuously
+    // attached Python thread state whenever you hold a pointer to `binding`
+    // that a concurrent call to your framework's `remove_foreign_binding`
+    // method wouldn't be able to clear. See the comment for `pymb_binding`.
     PyObject* (*to_python)(struct pymb_binding* binding,
                            void* cobj,
                            enum pymb_rv_policy rvp,
-                           PyObject* parent) PYMB_NOEXCEPT;
+                           struct pymb_to_python_feedback* feedback) PYMB_NOEXCEPT;
 
     // Request that a PyObject reference be dropped, or that a callback
     // be invoked, when `nurse` is destroyed. `nurse` should be an object
     // whose type is bound by this framework. If `cb` is NULL, then
     // `payload` is a PyObject* to decref; otherwise `payload` will
-    // be passed as the argument to `cb`. Returns 0 if successful,
-    // or -1 and sets the Python error indicator on error.
+    // be passed as the argument to `cb`. Returns 1 if successful,
+    // 0 on error. This method may always return 0 if the framework has
+    // no better way to do a keep-alive than by creating a weakref;
+    // it is expected that the caller can handle creating the weakref.
     //
     // No synchronization is required to call this method.
     int (*keep_alive)(PyObject* nurse,
@@ -424,8 +467,8 @@ struct pymb_framework {
     // such as `std::exception`. If translation succeeds, return 1 with the
     // Python error indicator set; otherwise, return 0. An exception may be
     // converted into a different exception by modifying `*eptr` and returning
-    // zero. This function pointer may be NULL if this framework does not
-    // provide exception translation.
+    // zero. This method may be set to NULL if its framework does not have
+    // a concept of exception translation.
     //
     // No synchronization is required to call this method.
     int (*translate_exception)(void* eptr) PYMB_NOEXCEPT;

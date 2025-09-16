@@ -84,21 +84,22 @@ public:
     bool load(handle src, bool convert) {
         handle native_enum
             = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));
-        if (native_enum) {
-            if (!isinstance(src, native_enum)) {
-                return false;
-            }
+        if (native_enum && isinstance(src, native_enum)) {
             type_caster<Underlying> underlying_caster;
             if (!underlying_caster.load(src.attr("value"), convert)) {
                 pybind11_fail("native_enum internal consistency failure.");
             }
-            value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            native_value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            native_loaded = true;
             return true;
         }
-        if (!pybind11_enum_) {
-            pybind11_enum_.reset(new type_caster_base<EnumType>());
+
+        type_caster_base<EnumType> legacy_caster;
+        if (legacy_caster.load(src, convert)) {
+            legacy_ptr = static_cast<EnumType*>(legacy_caster);
+            return true;
         }
-        return pybind11_enum_->load(src, convert);
+        return false;
     }
 
     template <typename T>
@@ -106,23 +107,19 @@ public:
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator EnumType *() {
-        if (!pybind11_enum_) {
-            return &value;
-        }
-        return pybind11_enum_->operator EnumType *();
+        return native_loaded ? &native_value : legacy_ptr;
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator EnumType &() {
-        if (!pybind11_enum_) {
-            return value;
-        }
-        return pybind11_enum_->operator EnumType &();
+        return native_loaded ? native_value :
+                  legacy_ptr ? *legacy_ptr : throw reference_cast_error();
     }
 
 private:
-    std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
-    EnumType value;
+    EnumType native_value; // if loading a py::native_enum
+    bool native_loaded = false;
+    EnumType *legacy_ptr = nullptr; // if loading a py::enum_ or foreign
 };
 
 template <typename EnumType, typename SFINAE = void>
@@ -876,9 +873,9 @@ struct holder_caster_foreign_helpers {
         PyObject *o;
     };
 
-    template <typename base, typename type>
-    static bool try_shared_from_this(std::enable_shared_from_this<base> *value,
-                                     std::shared_ptr<type> *holder_out) {
+    template <typename type>
+    static auto try_shared_from_this(type *value, std::shared_ptr<type> *holder_out)
+        -> decltype(value->shared_from_this(), bool()) {
         // object derives from enable_shared_from_this;
         // try to reuse an existing shared_ptr if one is known
         if (auto existing = try_get_shared_from_this(value)) {
@@ -911,9 +908,9 @@ struct holder_caster_foreign_helpers {
 
     template <typename type>
     static bool
-    set_foreign_holder(handle src, type *value, std::shared_ptr<const type> *holder_out) {
+    set_foreign_holder(handle src, const type *value, std::shared_ptr<const type> *holder_out) {
         std::shared_ptr<type> holder_mut;
-        if (set_foreign_holder(src, value, &holder_mut)) {
+        if (set_foreign_holder(src, const_cast<type *>(value), &holder_mut)) {
             *holder_out = holder_mut;
             return true;
         }

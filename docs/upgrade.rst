@@ -8,6 +8,55 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+v3.1
+====
+
+The major new feature in pybind11 v3.1 is support for
+:ref:`interoperability with other binding frameworks <interop>` and other
+(future) versions of pybind11. See the linked documentation for details.
+
+This support was added in an ABI-compatible way, so you can combine pybind11
+v3.1 extensions with v3.0 extensions. Classes and enums bound using pybind11
+v3.1 support all interoperability features. Classes and ``py::enum_``\s bound
+using pybind11 v3.0 can still be exported manually by a pybind11 v3.1 extension
+calling ``py::export_for_interop()``, but they won't be exported automatically
+and they can't be returned by value from a foreign binding.
+``py::native_enum``\s bound using pybind11 v3.0 don't support the
+interoperability mechanism at all.
+
+There is one implication of the new interoperability support that might result
+in new compiler errors for some previously-working binding code. Previously,
+pybind11 only attempted to call a bound type's copy constructor or move
+constructor if that type was ever returned from a pybind11-bound function.
+Now, pybind11 must allow for the possibility that a pybind11-bound type is
+returned from a foreign framework's bound functions, so it will generate
+code that's capable of calling copy and move constructors for any bound type
+that satisfies ``std::is_{copy,move}_constructible``. There exist types that
+satisfy that type trait but will produce errors if you actually try to copy
+them, such as the following:
+
+.. code-block:: cpp
+
+   struct MoveOnly { MoveOnly(MoveOnly&&) noexcept = default; }
+   struct Container {
+       std::vector<MoveOnly> items;
+   };
+
+``Container`` in this example satisfies ``std::is_copy_constructible``, but
+actually trying to copy it will fail at compile time because the vector element
+``MoveOnly`` is not copyable. The solution is to explicitly mark ``Container``
+as move-only:
+
+.. code-block:: cpp
+
+   struct MoveOnly { MoveOnly(MoveOnly&&) noexcept = default; }
+   struct Container {
+       Container() = default;
+       Container(Container&&) noexcept = default;
+
+       std::vector<MoveOnly> items;
+   };
+
 .. _upgrade-guide-3.0:
 
 v3.0
