@@ -1536,13 +1536,12 @@ struct type_caster<float_> {
     bool load(handle src, bool /* convert */) {
         if (isinstance<float_>(src)) {
             value = reinterpret_borrow<float_>(src);
-            return true;
         } else if (isinstance<int_>(src)) {
             value = float_(reinterpret_steal<int_>(src));
-            return true;
         } else {
             return false;
         }
+        return true;
     }
 
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
