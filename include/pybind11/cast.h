@@ -1533,8 +1533,7 @@ template <>
 struct type_caster<float_> {
     PYBIND11_TYPE_CASTER(float_, const_name("float"));
 
-    bool load(handle src, bool /* convert */)
-    {
+    bool load(handle src, bool /* convert */) {
         if (isinstance<float_>(src)) {
             value = reinterpret_borrow<float_>(src);
             return true;
@@ -1546,8 +1545,7 @@ struct type_caster<float_> {
         }
     }
 
-    static handle cast(const handle& src, return_value_policy /* policy */, handle /* parent */)
-    {
+    static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
         return src.inc_ref();
     }
 };
