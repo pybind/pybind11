@@ -24,15 +24,25 @@ native_enum_missing_finalize_error_message(const std::string &enum_name_encoded)
 
 class native_enum_data {
 public:
-    native_enum_data(const object &parent_scope,
+    native_enum_data(handle parent_scope,
                      const char *enum_name,
                      const char *native_type_name,
                      const char *class_doc,
-                     const std::type_index &enum_type_index)
+                     const native_enum_info &enum_info_)
         : enum_name_encoded{enum_name}, native_type_name_encoded{native_type_name},
-          enum_type_index{enum_type_index}, parent_scope(parent_scope), enum_name{enum_name},
+          enum_type_index{*enum_info_.cpptype}, parent_scope(parent_scope), enum_name{enum_name},
           native_type_name{native_type_name}, class_doc(class_doc), export_values_flag{false},
-          finalize_needed{false} {}
+          finalize_needed{false} {
+        enum_info = capsule(new native_enum_info{enum_info_},
+                            native_enum_info::attribute_name(),
+                            +[](void *enum_info_) {
+                                auto *info = (native_enum_info *) enum_info_;
+                                with_internals([&](internals &internals) {
+                                    internals.native_enum_type_map.erase(*info->cpptype);
+                                });
+                                delete info;
+                            });
+    }
 
     void finalize();
 
@@ -67,10 +77,11 @@ protected:
     std::type_index enum_type_index;
 
 private:
-    object parent_scope;
+    handle parent_scope;
     str enum_name;
     str native_type_name;
     std::string class_doc;
+    capsule enum_info;
 
 protected:
     list members;
@@ -80,12 +91,6 @@ protected:
 private:
     bool finalize_needed : 1;
 };
-
-inline void global_internals_native_enum_type_map_set_item(const std::type_index &enum_type_index,
-                                                           PyObject *py_enum) {
-    with_internals(
-        [&](internals &internals) { internals.native_enum_type_map[enum_type_index] = py_enum; });
-}
 
 inline handle
 global_internals_native_enum_type_map_get_item(const std::type_index &enum_type_index) {
@@ -202,7 +207,11 @@ inline void native_enum_data::finalize() {
     for (auto doc : member_docs) {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
-    global_internals_native_enum_type_map_set_item(enum_type_index, py_enum.release().ptr());
+
+    py_enum.attr(native_enum_info::attribute_name()) = enum_info;
+    with_internals([&](internals &internals) {
+        internals.native_enum_type_map[enum_type_index] = py_enum.ptr();
+    });
 }
 
 PYBIND11_NAMESPACE_END(detail)

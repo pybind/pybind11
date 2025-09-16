@@ -431,6 +431,15 @@ struct type_info {
     bool module_local : 1;
 };
 
+/// Information stored in a capsule on py::native_enum() types.
+struct native_enum_info {
+    const std::type_info *cpptype;
+    uint32_t size_bytes;
+    bool is_signed;
+
+    static const char *attribute_name() { return "__pybind11_enum__"; }
+};
+
 #define PYBIND11_ABI_TAG                                                                          \
     "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                                             \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID
