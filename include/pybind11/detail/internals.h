@@ -39,7 +39,9 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-//   REMINDER for next version bump: remove loader_life_support_tls
+//   REMINDER for next version bump: remove loader_life_support_tls,
+//   move local_internals::global_registered_types_cpp_fast to
+//   internals::registered_types_cpp_fast
 #    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
@@ -178,6 +180,12 @@ struct type_equal_to {
 #endif
 
 template <typename value_type>
+// REVIEW: do we need to add a fancy hash for pointers or is the
+// possible identity hash function from the standard library (e.g.,
+// libstdc++) sufficient?
+using fast_type_map = std::unordered_map<const std::type_info *, value_type>;
+
+template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
@@ -302,7 +310,15 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    type_map<type_info *> registered_types_cpp;
+    // It should be safe to use fast_type_map here because this entire
+    // data structure is scoped to our single module, and thus a single
+    // DSO and single instance of type_info for any particular type.
+    fast_type_map<type_info *> registered_types_cpp;
+
+    // fast hint for the *global* internals registered_types_cpp
+    // map. If we lookup successfully, that's the right answer;
+    // otherwise we go to the global map and then backfill this one.
+    fast_type_map<type_info *> global_registered_types_cpp_fast;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 };

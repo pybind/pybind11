@@ -205,35 +205,57 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(PyTypeObject *type) {
     return bases.front();
 }
 
-inline detail::type_info *get_local_type_info(const std::type_index &tp) {
-    auto &locals = get_local_internals().registered_types_cpp;
-    auto it = locals.find(tp);
+inline detail::type_info *get_local_type_info(const std::type_info &tp,
+                                              const local_internals &local_internals) {
+    const auto &locals = local_internals.registered_types_cpp;
+    auto it = locals.find(&tp);
     if (it != locals.end()) {
         return it->second;
     }
     return nullptr;
 }
 
-inline detail::type_info *get_global_type_info(const std::type_index &tp) {
+inline detail::type_info *get_local_type_info(const std::type_info &tp) {
+    return get_local_type_info(tp, get_local_internals());
+}
+
+inline detail::type_info *get_global_type_info(const std::type_info &tp,
+                                               local_internals &local_internals) {
     return with_internals([&](internals &internals) {
         detail::type_info *type_info = nullptr;
+        auto &fast_types = local_internals.global_registered_types_cpp_fast;
         auto &types = internals.registered_types_cpp;
-        auto it = types.find(tp);
+        auto fast_it = fast_types.find(&tp);
+        if (fast_it != fast_types.end()) {
+#ifndef NDEBUG
+            auto types_it = types.find(std::type_index(tp));
+            assert(types_it != types.end());
+            assert(types_it->second == fast_it->second);
+#endif
+            return fast_it->second;
+        }
+        auto it = types.find(std::type_index(tp));
         if (it != types.end()) {
+            fast_types.emplace(&tp, it->second);
             type_info = it->second;
         }
         return type_info;
     });
 }
 
+inline detail::type_info *get_global_type_info(const std::type_info &tp) {
+    return get_global_type_info(tp, get_local_internals());
+}
+
 /// Return the type info for a given C++ type; on lookup failure can either throw or return
 /// nullptr.
-PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_index &tp,
+PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_info &tp,
                                                    bool throw_if_missing = false) {
-    if (auto *ltype = get_local_type_info(tp)) {
+    auto &local_internals = get_local_internals();
+    if (auto *ltype = get_local_type_info(tp, local_internals)) {
         return ltype;
     }
-    if (auto *gtype = get_global_type_info(tp)) {
+    if (auto *gtype = get_global_type_info(tp, local_internals)) {
         return gtype;
     }
 
