@@ -265,10 +265,10 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
         return handle((PyObject *) type_info->type);
     }
     if (foreign_ok) {
-        auto &foreign_internals = detail::get_foreign_internals();
-        if (foreign_internals.imported_any) {
+        auto &interop_internals = detail::get_interop_internals();
+        if (interop_internals.imported_any) {
             handle ret = with_internals([&](internals &) {
-                auto range = foreign_internals.bindings.equal_range(tp);
+                auto range = interop_internals.bindings.equal_range(tp);
                 if (range.first != range.second) {
                     return handle((PyObject *) range.first->second->pytype);
                 }
@@ -1052,7 +1052,7 @@ public:
         if (!srcs.result.second) {
             // No pybind11 type info. See if we can use another framework's
             // type to complete this cast. Set srcs.used_foreign if so.
-            if (get_foreign_internals().imported_any) {
+            if (get_interop_internals().imported_any) {
                 if (handle ret = cast_foreign(srcs, policy, parent)) {
                     return ret;
                 }
@@ -1215,10 +1215,11 @@ public:
         return nullptr;
     }
 
-    /// Try to load as a type exposed by a different binding framework.
+    /// Try to load as a type exposed by a different binding framework (which
+    /// might be an ABI-incompatible version of pybind11).
     bool try_load_other_framework(handle src, bool convert) {
-        auto &foreign_internals = get_foreign_internals();
-        if (!foreign_internals.imported_any || !cpptype || src.is_none()) {
+        auto &interop_internals = get_interop_internals();
+        if (!interop_internals.imported_any || !cpptype || src.is_none()) {
             return false;
         }
 
@@ -1245,28 +1246,33 @@ public:
         return false;
     }
 
+    /// Try to load as a type bound as py::module_local() in a different (but
+    /// ABI-compatible) pybind11 module.
+    bool try_load_other_module_local(handle src, type_info *remote_typeinfo) {
+        // Only consider this loader if it's not ours and it loads the correct cpp type
+        if (remote_typeinfo->module_local_load == &local_load
+            || (cpptype && !same_type(*cpptype, *remote_typeinfo->cpptype))) {
+            return false;
+        }
+
+        if (auto *result = remote_typeinfo->module_local_load(src.ptr(), remote_typeinfo)) {
+            value = result;
+            return true;
+        }
+        return false;
+    }
+
     /// Try to load with foreign typeinfo, if available. Used when there is no
     /// native typeinfo, or when the native one wasn't able to produce a value.
     PYBIND11_NOINLINE bool try_load_foreign(handle src, bool convert) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = type::handle_of(src);
-        if (!hasattr(pytype, local_key)) {
+        if (hasattr(pytype, local_key)) {
+            return try_load_other_module_local(
+                src, reinterpret_borrow<capsule>(getattr(pytype, local_key)));
+        } else {
             return try_load_other_framework(src, convert);
         }
-
-        type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
-        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp
-        // type
-        if (foreign_typeinfo->module_local_load == &local_load
-            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
-            return false;
-        }
-
-        if (auto *result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
-            value = result;
-            return true;
-        }
-        return false;
     }
 
     // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant

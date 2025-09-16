@@ -1648,9 +1648,9 @@ protected:
             internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
             PYBIND11_WARNING_POP
 
-            auto &foreign_internals = get_foreign_internals();
-            if (foreign_internals.export_all) {
-                foreign_internals.export_type_to_foreign(tinfo);
+            auto &interop_internals = get_interop_internals();
+            if (interop_internals.export_all) {
+                interop_internals.export_for_interop(tinfo);
             }
         });
 
@@ -2136,7 +2136,7 @@ public:
         generic_type::initialize(record);
 
         with_internals([&](internals &internals) {
-            get_foreign_internals().copy_move_ctors.emplace(
+            get_interop_internals().copy_move_ctors.emplace(
                 *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
             if (has_alias) {
                 auto &instances = record.module_local ? get_local_internals().registered_types_cpp

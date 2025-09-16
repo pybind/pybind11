@@ -311,7 +311,7 @@ using copy_or_move_ctor = void *(*) (const void *);
 // version, it would be good for performance to also add a flag to `type_info`
 // indicating whether any foreign bindings are also known for its C++ type;
 // that way we can avoid an extra lookup when conversion to a native type fails.
-struct foreign_internals {
+struct interop_internals {
     // Registered foreign bindings for each C++ type.
     // Protected by internals::mutex.
     type_multimap<pymb_binding *> bindings;
@@ -337,26 +337,26 @@ struct foreign_internals {
     std::unique_ptr<pymb_framework> self;
 
     // Remember the C++ type associated with each binding by
-    // import_type_from_foreign(), so we can clean up `bindings` properly.
+    // import_for_interop(), so we can clean up `bindings` properly.
     // Protected by internals::mutex.
     std::unordered_map<pymb_binding *, const std::type_info *> manual_imports;
 
-    // Pointer to `detail::export_type_to_foreign` in foreign.h, or nullptr if
+    // Pointer to `detail::export_for_interop` in foreign.h, or nullptr if
     // export_all is false. This indirection is vital to avoid having every
     // compilation unit with a py::class_ pull in the callback methods in
     // foreign.h. Instead, only compilation units that call
-    // set_foreign_type_defaults(), import_foreign_type(), or
-    // export_type_to_foreign() will emit that code.
-    void (*export_type_to_foreign)(type_info *);
+    // interoperate_by_default(), import_for_interop(), or
+    // export_for_interop() will emit that code.
+    void (*export_for_interop)(type_info *);
 
     // Should we automatically advertise our types to other binding frameworks,
-    // or only when requested via pybind11::export_type_to_foreign()?
+    // or only when requested via pybind11::export_for_interop()?
     // Never becomes false once it is set to true.
     bool export_all = false;
 
     // Should we automatically use types advertised by other frameworks as
     // a fallback when we can't do a cast using pybind11 types, or only when
-    // requested via pybind11::import_foreign_type()?
+    // requested via pybind11::import_for_interop()?
     // Never becomes false once it is set to true.
     bool import_all = false;
 
@@ -364,7 +364,7 @@ struct foreign_internals {
     // own types?
     bool imported_any = false;
 
-    inline ~foreign_internals();
+    inline ~interop_internals();
 
     // Returns true if we initialized, false if someone else already did.
     inline bool initialize_if_needed() {
@@ -778,17 +778,17 @@ inline auto with_exception_translators(const F &cb)
               local_internals.registered_exception_translators);
 }
 
-inline internals_pp_manager<foreign_internals> &get_foreign_internals_pp_manager() {
-    static internals_pp_manager<foreign_internals> foreign_internals_pp_manager(
-        PYBIND11_INTERNALS_ID "foreign", nullptr);
-    return foreign_internals_pp_manager;
+inline internals_pp_manager<interop_internals> &get_interop_internals_pp_manager() {
+    static internals_pp_manager<interop_internals> interop_internals_pp_manager(
+        PYBIND11_INTERNALS_ID "interop", nullptr);
+    return interop_internals_pp_manager;
 }
 
-inline foreign_internals &get_foreign_internals() {
-    auto &ppmgr = get_foreign_internals_pp_manager();
+inline interop_internals &get_interop_internals() {
+    auto &ppmgr = get_interop_internals_pp_manager();
     auto &ptr = *ppmgr.get_pp();
     if (!ptr) {
-        ptr.reset(new foreign_internals());
+        ptr.reset(new interop_internals());
     }
     return *ptr;
 }

@@ -180,7 +180,7 @@ public:
         // internals themselves.
         detail::get_internals_pp_manager().get_pp();
         detail::get_local_internals_pp_manager().get_pp();
-        detail::get_foreign_internals_pp_manager().get_pp();
+        detail::get_interop_internals_pp_manager().get_pp();
 
         // End it
         Py_EndInterpreter(destroy_tstate);
@@ -189,7 +189,7 @@ public:
         // py::capsule calls `get_internals()` during destruction), so we destroy afterward.
         detail::get_internals_pp_manager().destroy();
         detail::get_local_internals_pp_manager().destroy();
-        detail::get_foreign_internals_pp_manager().destroy();
+        detail::get_interop_internals_pp_manager().destroy();
 
         // switch back to the old tstate and old GIL (if there was one)
         if (switch_back)
