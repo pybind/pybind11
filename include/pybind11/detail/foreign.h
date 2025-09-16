@@ -148,6 +148,7 @@ inline void *interop_cb_from_python(pymb_binding *binding,
 // can fix up the holder before other threads start using the new instance.
 inline void init_instance_unregistered(instance *inst, const void *holder) {
     assert(holder == nullptr && !inst->owned);
+    (void) holder; // avoid unused warning if compiled without asserts
     value_and_holder v_h = *values_and_holders(inst).begin();
 
     // If using smart_holder, force creation of a shared_ptr that has a
