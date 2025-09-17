@@ -2,6 +2,7 @@ template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined
     template <typename ThisT>
         auto &this_ = static_cast<ThisT &>(*this);
                 if (load_impl<ThisT>(temp, false)) {
+                return load_impl<ThisT>(src, false);
         ssize_t nd = 0;
         auto trivial = broadcast(buffers, nd, shape);
         auto ndim = (size_t) nd;

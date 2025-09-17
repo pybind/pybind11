@@ -150,6 +150,7 @@ set(PYBIND11_TEST_FILES
     test_exceptions
     test_factory_constructors
     test_gil_scoped
+    test_interop.py
     test_iostream
     test_kwargs_and_defaults
     test_local_bindings
@@ -247,6 +248,7 @@ tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_cpp_conduit.py"
                     "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
+tests_extra_targets("test_interop.py" "test_interop_1;test_interop_2;test_interop_3")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
