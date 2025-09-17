@@ -39,7 +39,6 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-//   REMINDER for next version bump: remove loader_life_support_tls
 #    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
@@ -178,6 +177,12 @@ struct type_equal_to {
 #endif
 
 template <typename value_type>
+// REVIEW: do we need to add a fancy hash for pointers or is the
+// possible identity hash function from the standard library (e.g.,
+// libstdc++) sufficient?
+using fast_type_map = std::unordered_map<const std::type_info *, value_type>;
+
+template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
@@ -237,6 +242,14 @@ struct internals {
     pymutex mutex;
     pymutex exception_translator_mutex;
 #endif
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // non-normative but fast "hint" for
+    // registered_types_cpp. Successful lookups are correct;
+    // unsuccessful lookups need to try registered_types_cpp and then
+    // backfill this map if they find anything.
+    fast_type_map<type_info *> registered_types_cpp_fast;
+#endif
+
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
@@ -261,7 +274,9 @@ struct internals {
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
+#if PYBIND11_INTERNALS_VERSION <= 11
     thread_specific_storage<loader_life_support> loader_life_support_tls; // OBSOLETE (PR #5830)
+#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
@@ -302,7 +317,11 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    type_map<type_info *> registered_types_cpp;
+    // It should be safe to use fast_type_map here because this entire
+    // data structure is scoped to our single module, and thus a single
+    // DSO and single instance of type_info for any particular type.
+    fast_type_map<type_info *> registered_types_cpp;
+
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 };
