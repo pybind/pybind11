@@ -1641,7 +1641,9 @@ protected:
                 local_internals.registered_types_cpp[rec.type] = tinfo;
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
-                local_internals.global_registered_types_cpp_fast[rec.type] = tinfo;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast[rec.type] = tinfo;
+#endif
             }
 
             PYBIND11_WARNING_PUSH
@@ -2147,7 +2149,9 @@ public:
                     type_info *const val
                         = internals.registered_types_cpp[std::type_index(typeid(type))];
                     internals.registered_types_cpp[std::type_index(typeid(type_alias))] = val;
-                    local_internals.global_registered_types_cpp_fast[&typeid(type_alias)] = val;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                    internals.registered_types_cpp_fast[&typeid(type_alias)] = val;
+#endif
                 }
             });
         }

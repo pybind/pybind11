@@ -39,9 +39,6 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-//   REMINDER for next version bump: remove loader_life_support_tls,
-//   move local_internals::global_registered_types_cpp_fast to
-//   internals::registered_types_cpp_fast
 #    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
@@ -245,6 +242,14 @@ struct internals {
     pymutex mutex;
     pymutex exception_translator_mutex;
 #endif
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // non-normative but fast "hint" for
+    // registered_types_cpp. Successful lookups are correct;
+    // unsuccessful lookups need to try registered_types_cpp and then
+    // backfill this map if they find anything.
+    fast_type_map<type_info *> registered_types_cpp_fast;
+#endif
+
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
@@ -269,7 +274,9 @@ struct internals {
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
+#if PYBIND11_INTERNALS_VERSION <= 11
     thread_specific_storage<loader_life_support> loader_life_support_tls; // OBSOLETE (PR #5830)
+#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
@@ -315,10 +322,6 @@ struct local_internals {
     // DSO and single instance of type_info for any particular type.
     fast_type_map<type_info *> registered_types_cpp;
 
-    // fast hint for the *global* internals registered_types_cpp
-    // map. If we lookup successfully, that's the right answer;
-    // otherwise we go to the global map and then backfill this one.
-    fast_type_map<type_info *> global_registered_types_cpp_fast;
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 };

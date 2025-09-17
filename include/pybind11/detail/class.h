@@ -226,7 +226,9 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
                 local_internals.registered_types_cpp.erase(tinfo->cpptype);
             } else {
                 internals.registered_types_cpp.erase(tindex);
-                local_internals.global_registered_types_cpp_fast.erase(tinfo->cpptype);
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast.erase(tinfo->cpptype);
+#endif
             }
             internals.registered_types_py.erase(tinfo->type);
 
