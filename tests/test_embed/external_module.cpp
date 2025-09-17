@@ -13,13 +13,7 @@ void unsafe_reset_local_internals() {
     // NOTE: This code is NOT SAFE unless the caller guarantees no other threads are alive
     // NOTE: This code is tied to the precise implementation of the internals holder
 
-    // first, unref the thread local internals
     py::detail::get_local_internals_pp_manager().unref();
-
-    // now we unref the static global singleton internals
-    py::detail::get_local_internals_pp_manager().unref();
-
-    // finally, we reload the static global singleton
     py::detail::get_local_internals();
 }
 } // namespace
