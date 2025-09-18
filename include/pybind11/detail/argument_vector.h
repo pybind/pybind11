@@ -117,10 +117,6 @@ union inline_array_or_vector {
         // of bytes. See
         // https://dev-discuss.pytorch.org/t/unionizing-for-profit-how-to-exploit-the-power-of-unions-in-c/444#the-memcpy-loophole-4
         bool result = false;
-        static_assert(std::is_standard_layout<inline_array>::value,
-                      "untagged union implementation relies on this");
-        static_assert(std::is_standard_layout<heap_vector>::value,
-                      "untagged union implementation relies on this");
         static_assert(offsetof(inline_array, is_inline) == 0,
                       "untagged union implementation relies on this");
         static_assert(offsetof(heap_vector, is_inline) == 0,
