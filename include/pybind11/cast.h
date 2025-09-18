@@ -2038,6 +2038,8 @@ using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 // forward declaration (definition in attr.h)
 struct function_record;
 
+/// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
+/// (16 pointers) in size.)
 constexpr std::size_t arg_vector_small_size = 6;
 
 /// Internal data associated with a single function call
@@ -2048,8 +2050,6 @@ struct function_call {
     const function_record &func;
 
     /// Arguments passed to the function:
-    /// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
-    /// (16 pointers) in size.)
     argument_vector<arg_vector_small_size> args;
 
     /// The `convert` value the arguments should be loaded with
