@@ -334,6 +334,7 @@ inline void enable_try_inc_ref(PyObject *obj) {
 #endif
 
 inline bool register_instance_impl(void *ptr, instance *self) {
+    assert(ptr);
 #ifdef Py_GIL_DISABLED
     enable_try_inc_ref(reinterpret_cast<PyObject *>(self));
 #endif
@@ -341,6 +342,7 @@ inline bool register_instance_impl(void *ptr, instance *self) {
     return true; // unused, but gives the same signature as the deregister func
 }
 inline bool deregister_instance_impl(void *ptr, instance *self) {
+    assert(ptr);
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {

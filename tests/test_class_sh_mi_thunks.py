@@ -51,3 +51,39 @@ def test_get_shared_vec_size_unique():
     assert (
         str(exc_info.value) == "Cannot disown external shared_ptr (load_as_unique_ptr)."
     )
+
+
+def test_virtual_base_at_offset_0():
+    addrs = m.diamond_addrs()
+    if addrs.as_vbase - addrs.as_self == 0:
+        # Not an actual skip, just a trick generate a message in the pytest summary
+        pytest.skip("virtual base at offset 0 on this compiler/layout")
+
+
+@pytest.mark.parametrize(
+    "make_fn",
+    [
+        m.make_diamond_as_vbase_raw_ptr,  # exercises smart_holder::from_raw_ptr_take_ownership
+        m.make_diamond_as_vbase_shared_ptr,  # exercises smart_holder_from_shared_ptr
+        m.make_diamond_as_vbase_unique_ptr,  # exercises smart_holder_from_unique_ptr
+    ],
+)
+def test_make_diamond_as_vbase(make_fn):
+    # Added under PR #5836
+    vb = make_fn()
+    assert vb.ping() == 7
+
+
+@pytest.mark.parametrize(
+    "clone_fn",
+    [
+        m.Tiger.clone_raw_ptr,
+        m.Tiger.clone_shared_ptr,
+        m.Tiger.clone_unique_ptr,
+    ],
+)
+def test_animal_cat_tiger(clone_fn):
+    # Based on Animal-Cat-Tiger reproducer under PR #5796
+    tiger = m.Tiger()
+    cloned = clone_fn(tiger)
+    assert isinstance(cloned, m.Tiger)

@@ -576,6 +576,8 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     if (!src) {
         return none().release();
     }
+    // st.first is the subobject pointer appropriate for tinfo (may differ from src.get()
+    // under MI/VI). Use this for Python identity/registration, but keep ownership on T*.
     void *src_raw_void_ptr = const_cast<void *>(st.first);
     assert(st.second != nullptr);
     const detail::type_info *tinfo = st.second;
@@ -657,9 +659,10 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
         return none().release();
     }
 
-    auto src_raw_ptr = src.get();
+    // st.first is the subobject pointer appropriate for tinfo (may differ from src.get()
+    // under MI/VI). Use this for Python identity/registration, but keep ownership on T*.
+    void *src_raw_void_ptr = const_cast<void *>(st.first);
     assert(st.second != nullptr);
-    void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
     const detail::type_info *tinfo = st.second;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
         // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing smart_holder.
@@ -673,8 +676,7 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
     valueptr = src_raw_void_ptr;
 
-    auto smhldr
-        = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, const_cast<void *>(st.first)));
+    auto smhldr = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, src_raw_void_ptr));
     tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
     if (policy == return_value_policy::reference_internal) {
