@@ -26,11 +26,11 @@ add_custom_target(
   DEPENDS test_subdirectory_embed)
 
 # Test custom export group -- PYBIND11_EXPORT_NAME
-add_library(test_embed_lib ../embed.cpp)
-target_link_libraries(test_embed_lib PRIVATE pybind11::embed)
+add_library(test_with_catch_lib ../embed.cpp)
+target_link_libraries(test_with_catch_lib PRIVATE pybind11::embed)
 
 install(
-  TARGETS test_embed_lib
+  TARGETS test_with_catch_lib
   EXPORT test_export
   ARCHIVE DESTINATION bin
   LIBRARY DESTINATION lib
