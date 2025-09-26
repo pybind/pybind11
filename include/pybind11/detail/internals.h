@@ -39,7 +39,13 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 11
+#    if PY_VERSION_HEX >= 0x030E0000
+// Get test coverage for ABI version 12 without breaking existing
+// Python versions.
+#        define PYBIND11_INTERNALS_VERSION 12
+#    else
+#        define PYBIND11_INTERNALS_VERSION 11
+#    endif
 #endif
 
 #if PYBIND11_INTERNALS_VERSION < 11
