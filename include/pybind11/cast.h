@@ -1412,6 +1412,10 @@ struct handle_type_name<iterator> {
     static constexpr auto name = const_name("collections.abc.Iterator");
 };
 template <>
+struct handle_type_name<float_> {
+    static constexpr auto name = const_name("float");
+};
+template <>
 struct handle_type_name<function> {
     static constexpr auto name = const_name("collections.abc.Callable");
 };
@@ -1531,9 +1535,8 @@ template <typename T>
 class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caster<T> {};
 
 template <>
-struct type_caster<float_> {
-    PYBIND11_TYPE_CASTER(float_, const_name("float"));
-
+class type_caster<float_> : public pyobject_caster<float_> {
+public:
     bool load(handle src, bool /* convert */) {
         if (isinstance<float_>(src)) {
             value = reinterpret_borrow<float_>(src);
@@ -1543,10 +1546,6 @@ struct type_caster<float_> {
             return false;
         }
         return true;
-    }
-
-    static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
-        return src.inc_ref();
     }
 };
 
