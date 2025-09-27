@@ -179,6 +179,7 @@ jobs:
 
     name: "🐍 ${{ matrix.python-version }} • ${{ matrix.runs-on }} • x64 inplace C++14"
     runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -277,6 +278,7 @@ jobs:
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -364,6 +366,7 @@ jobs:
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -401,6 +404,7 @@ jobs:
     runs-on: ubuntu-latest
     name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
     container: nvidia/cuda:12.2.0-devel-ubuntu22.04
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -468,6 +472,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-22.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
+    timeout-minutes: 90
 
     env:
       # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
@@ -532,6 +537,7 @@ jobs:
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "gcc:${{ matrix.gcc }}"
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -593,6 +599,7 @@ jobs:
   icc:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
 
     name: "🐍 3 • ICC latest • x64"
 
@@ -707,6 +714,7 @@ jobs:
 
     name: "🐍 3 • ${{ matrix.container }} • x64"
     container: "${{ matrix.container }}"
+    timeout-minutes: 90
 
     steps:
     - name: Latest actions/checkout
@@ -765,6 +773,7 @@ jobs:
     name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
     container: i386/debian:bullseye
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v1  # v1 is required to run inside docker
@@ -809,6 +818,7 @@ jobs:
     if: github.event.pull_request.draft == false
     name: "Documentation build test"
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -855,6 +865,7 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 • x86 ${{ matrix.args }}"
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -907,6 +918,7 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 (Debug) • x86 ${{ matrix.args }}"
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -955,6 +967,7 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 C++20 • x64"
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v5
@@ -1012,6 +1025,7 @@ jobs:
     if: github.event.pull_request.draft == false
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
+    timeout-minutes: 90
     defaults:
       run:
         shell: msys2 {0}
@@ -1125,6 +1139,7 @@ jobs:
         python: ['3.10']
 
     runs-on: "${{ matrix.os }}"
+    timeout-minutes: 90
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
 
