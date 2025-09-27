@@ -1541,7 +1541,7 @@ public:
         if (isinstance<float_>(src)) {
             value = reinterpret_borrow<float_>(src);
         } else if (isinstance<int_>(src)) {
-            value = float_(reinterpret_steal<int_>(src));
+            value = float_(reinterpret_borrow<int_>(src));
         } else {
             return false;
         }
