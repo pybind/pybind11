@@ -45,7 +45,7 @@ struct VBase {
     int vbase_tag = 42; // ensure it's not empty
 };
 
-// Make the virtual bases non-empty and (likely) differently sized/aligned.
+// Make the virtual bases non-empty and (likely) differently sized.
 // The test does *not* require different sizes; we only want to avoid "all at offset 0".
 // If a compiler/ABI still places the virtual base at offset 0, our test logs that via
 // test_virtual_base_at_offset_0() and continues.
@@ -54,7 +54,7 @@ struct Left : virtual VBase {
     ~Left() override = default;
 };
 struct Right : virtual VBase {
-    alignas(16) char pad_r[16]; // larger + alignment nudge to differ from Left
+    char pad_r[24]; // larger, to differ from Left
     ~Right() override = default;
 };
 
