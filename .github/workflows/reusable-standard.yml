@@ -28,6 +28,7 @@ jobs:
   standard:
     name: 🧪
     runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v5
