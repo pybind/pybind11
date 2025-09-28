@@ -354,7 +354,21 @@ struct smart_holder {
         // Relinquish ownership only after successful construction of owner
         (void) unq_ptr.release();
 
-        // Publish either the subobject alias (for identity/VI) or the full object.
+        // Publish either the MI/VI subobject pointer (if provided) or the full object.
+        // Why this is needed:
+        //   * The `owner` shared_ptr must always manage the true object start (T*).
+        //     That ensures the deleter is invoked on a valid object header, so the
+        //     virtual destructor can dispatch safely (critical on MSVC with virtual
+        //     inheritance, where base subobjects are not at offset 0).
+        //   * However, pybind11 needs to *register* and expose the subobject pointer
+        //     appropriate for the type being bound.
+        //     This pointer may differ from the T* object start under multiple/virtual
+        //     inheritance.
+        // This is achieved by using an aliasing shared_ptr<void>:
+        //   - `owner` retains lifetime of the actual T* object start for deletion.
+        //   - `vptr` points at the adjusted subobject (mi_subobject_ptr), giving
+        //     Python the correct identity/registration address.
+        // If no subobject pointer is passed, we simply publish the full object.
         if (mi_subobject_ptr) {
             hld.vptr = std::shared_ptr<void>(owner, mi_subobject_ptr);
         } else {
